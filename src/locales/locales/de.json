@@ -1312,69 +1312,69 @@
   "candlestickPatterns": {
     "doji": {
       "name": "Doji",
-      "description": "Ein Doji bildet sich, wenn Eröffnungs- und Schlusskurs fast identisch (oder identisch) sind. Der Körper ist eine dünne Linie. Es signalisiert Unentschlossenheit im Markt.",
-      "interpretation": "Je nach Kontext kann ein Doji eine Trendumkehr oder Fortsetzung signalisieren. Oft ein Zeichen für Unentschlossenheit vor einer größeren Marktbewegung.",
-      "indicatorCombination": "Ein Doji an einer wichtigen Unterstützungslinie zusammen mit einer bullischen Divergenz im RSI kann ein starkes Umkehrsignal sein. Volumen kann die Bedeutung bestätigen: Hohes Volumen an einem Doji nach starkem Trend kann Erschöpfung signalisieren."
+      "description": "Ein Doji bildet sich, wenn Eröffnungs- und Schlusskurs fast identisch sind. Er signalisiert ein Gleichgewicht zwischen Käufern und Verkäufern.\n\n### Mathematische Kriterien\n\n  $$ |\\text{Open} - \\text{Close}| \\le 0.1 \\times (\\text{High} - \\text{Low}) $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Unentschlossenheit. Warnung vor möglicher Umkehr.\n*   **Krypto-Kontext:** Bei geringer Liquidität häufig. Volumen beachten.\n*   **Stop Loss:** Unter dem Tief (bullisch) oder über dem Hoch (bärisch).",
+      "indicatorCombination": "Bollinger-Bänder-Squeeze geht oft voraus. RSI-Divergenz stärkt die These."
     },
     "spinning_top": {
       "name": "Spinning Top",
-      "description": "Ein Spinning Top (Kreisel) hat einen kleinen Körper, der mittig zwischen langen oberen und unteren Schatten liegt. Die Farbe des Körpers ist nicht sehr wichtig. Ähnelt einem Doji, aber mit erkennbarem (wenn auch kleinem) Körper.",
-      "interpretation": "Signalisiert Unentschlossenheit im Markt. Weder Käufer noch Verkäufer konnten die Oberhand gewinnen. Kann je nach Kontext auf eine mögliche Trendwende oder Fortsetzung einer Konsolidierung hindeuten.",
-      "indicatorCombination": "Spinning Tops in überkauften/überverkauften Zonen (Stochastik, RSI) können auf eine bevorstehende Korrektur oder Umkehr hindeuten. Achte auf das Volumen der nächsten Kerze zur Bestätigung."
+      "description": "Kleiner Körper mittig mit langen Dochten auf beiden Seiten.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body} < 0.3 \\times \\text{Range} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Neutral / Unentschlossenheit.\n*   **Kontext:** In einem Trend signalisiert es ermüdendes Momentum.\n*   **Strategie:** Platziere Bracket-Orders über Hoch und unter Tief für den Ausbruch.",
+      "indicatorCombination": "Bollinger-Band-Breite nimmt oft ab (Squeeze) um Spinning Tops."
     },
     "abandoned_baby_bullish": {
       "name": "Abandoned Baby (Bullish)",
-      "description": "Ein sehr seltenes, aber starkes bullisches Umkehrmuster. 1. Eine lange bärische Kerze. 2. Ein Doji, der unter das Tief der ersten Kerze 'gapt' (Gap Down), wobei sich die Schatten nicht mit dem Schatten der ersten Kerze überschneiden. 3. Eine lange bullische Kerze, die über das Hoch des Dojis 'gapt' (Gap Up), ohne dass sich die Schatten überschneiden.",
-      "interpretation": "Die Lücken auf beiden Seiten des Doji isolieren ihn vollständig ('abandoned'), was eine dramatische Umkehr der Marktstimmung signalisiert. Verkäufer sind erschöpft, Käufer übernehmen mit großer Kraft.",
+      "description": "Ein sehr seltenes bullisches Umkehrmuster. 1. Lang Bärisch. 2. Doji mit Gap-Down (isoliert). 3. Bullisch mit Gap-Up.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{2} < \\text{Low}_{1} \\text{ und } \\text{High}_{2} < \\text{Low}_{3} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Trend ist komplett erschöpft.\n*   **Aktion:** Sofort kaufen beim Gap-Up der 3. Kerze.\n*   **Ziel:** Die Eröffnung der ersten bärischen Kerze.",
       "indicatorCombination": "Aufgrund der Seltenheit und Stärke ist die Kombination mit anderen Indikatoren weniger kritisch, aber ein überverkaufter Zustand (RSI, Stochastik) vor dem Muster kann die bullische Implikation verstärken."
     },
     "belt_hold_bullish": {
       "name": "Belt Hold (Bullish)",
-      "description": "Eine einzelne bullische Kerze, die nach einem Abwärtstrend auftritt. Sie eröffnet an ihrem Tief (oder sehr nahe daran) und hat einen langen bullischen Körper mit wenig oder keinem unteren Schatten. Ein kleiner oberer Schatten kann vorhanden sein.",
-      "interpretation": "Signalisiert eine plötzliche Übernahme der Kontrolle durch die Käufer. Die Stärke des Musters hängt von der Länge des Körpers ab. Es ist stärker, wenn es nach einer längeren Abwärtsbewegung auftritt.",
-      "indicatorCombination": "Hohes Volumen an der Belt Hold Kerze stärkt das Signal. Es kann an wichtigen Unterstützungsniveaus oder in Verbindung mit einer bullischen Divergenz eines Momentum-Oszillators auftreten."
+      "description": "Eine lange bullische Kerze, die an ihrem Tief eröffnet (kein unterer Docht) und nahe ihrem Hoch schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open} = \\text{Low} $$\n\n  $$ \\text{Close} \\approx \\text{High} $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Aggressiver Kauf beim Schluss.\n*   **Stop Loss:** Knapp unter dem Tief der Kerze.\n*   **Krypto:** Achte auf 4H-Timeframes an Support-Leveln.",
+      "indicatorCombination": "Hohes Kaufvolumen ist zur Bestätigung erforderlich."
     },
     "breakaway_bullish": {
       "name": "Breakaway (Bullish)",
-      "description": "Ein fünf-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine bärische Kerze, die 'gapt' (Gap Down). 3. Ein oder zwei weitere (meist bärische) Kerzen, die den Abwärtstrend fortsetzen. 4. Eine lange bullische Kerze, die die Lücke zwischen der ersten und zweiten Kerze schließt oder in den Körper der ersten Kerze hineinragt.",
-      "interpretation": "Die anfängliche Lücke und Fortsetzung des Abwärtstrends wirken bärisch, aber die finale starke bullische Kerze signalisiert eine plötzliche und kraftvolle Umkehr der Käufer, die das vorherige bärische Momentum negiert.",
-      "indicatorCombination": "Ein Anstieg des Volumens bei der fünften (Ausbruchs-)Kerze ist ein starkes Bestätigungszeichen. Es kann auch durch den Bruch einer kurzfristigen Abwärtstrendlinie unterstützt werden."
+      "description": "Lange bärische Kerze, gefolgt von Gap Down und drei kleinen Kerzen, dann eine starke bullische Kerze, die das Gap schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{5} > \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Überverkaufter Bounce wird zur Umkehr.\n*   **Einstieg:** Beim Ausbruch der 5. Kerze.\n*   **Ziel:** Das Hoch der ersten bärischen Kerze.",
+      "indicatorCombination": "RSI meist tief überverkauft (<20) vor der Umkehrkerze."
     },
     "bullish_engulfing": {
       "name": "Bullish Engulfing",
-      "description": "Ein Bullish Engulfing tritt nach einem Abwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bärische Kerze, gefolgt von einer größeren bullischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').\n\n### Mathematische Kriterien\n\n  $$ \\text{Aktueller Körper} > \\text{Vorheriger Körper} $$\n\n  $$ \\text{Open} \\le \\text{Prev Close} $$\n\n  $$ \\text{Close} \\ge \\text{Prev Open} $$",
-      "interpretation": "Signalisiert, dass die Käufer die Kontrolle von den Verkäufern übernommen haben und eine starke Aufwärtsbewegung wahrscheinlich ist.",
-      "indicatorCombination": "Ein Bullish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überverkauften RSI (<30) oder eine bullische Divergenz kann die Zuverlässigkeit erhöhen."
+      "description": "Ein starkes Umkehrsignal: Eine kleine bärische Kerze wird von einer größeren bullischen Kerze vollständig umschlossen.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{curr} > \\text{Body}_{prev} $$\n\n  $$ \\text{Close}_{curr} > \\text{Open}_{prev} $$\n\n  $$ \\text{Open}_{curr} < \\text{Close}_{prev} $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Bei Schluss der Engulfing-Kerze oder Pullback zur Mitte.\n*   **Stop Loss:** Unter dem Tief der Kerze.\n*   **Ziel:** 1.5x bis 2x Risiko.",
+      "indicatorCombination": "Hohes Volumen ist entscheidend, um 'Fakeouts' zu vermeiden. Achte auf überverkauften RSI (<30)."
     },
     "bullish_harami": {
       "name": "Bullish Harami",
-      "description": "Ein Bullish Harami tritt nach einem Abwärtstrend auf. Es besteht aus einer langen bärischen Kerze, gefolgt von einer kleinen bullischen Kerze, deren Körper vollständig im Körper der vorangegangenen Kerze enthalten ist.",
-      "interpretation": "Signalisiert eine potenzielle Abschwächung des Abwärtstrends und eine bevorstehende bullische Umkehr. Bestätigung durch die nächste Kerze ist wichtig.",
-      "indicatorCombination": "Ein Bullish Harami in einer überverkauften Zone (RSI, Stochastik) oder an einer wichtigen Unterstützung gewinnt an Bedeutung. Achte auf das Volumen der Bestätigungskerze."
+      "description": "Große bärische Kerze gefolgt von kleiner bullischer, die im ersten Körper liegt. Auch 'Inside Bar' genannt.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{2} < \\text{High}_{1} \\text{ und } \\text{Low}_{2} > \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Volatilitäts-Kontraktion. Ausbruch steht bevor.\n*   **Strategie:** Handle den Ausbruch des 'Mother Bar' (erste Kerze) Hochs.\n*   **Stop Loss:** Unter dem Mother Bar Tief.",
+      "indicatorCombination": "Achte auf sinkendes Volumen beim Harami (Konsolidierung) und Spitze beim Ausbruch."
     },
     "bullish_harami_cross": {
       "name": "Bullish Harami Cross",
-      "description": "Ähnlich wie der Bullish Harami, aber die zweite Kerze ist ein Doji. Tritt nach einem Abwärtstrend auf. Eine lange bärische Kerze gefolgt von einem Doji, der vollständig im Körper der vorherigen Kerze enthalten ist.",
-      "interpretation": "Ein stärkeres Signal für eine bullische Umkehr als ein normaler Bullish Harami, da der Doji größere Unentschlossenheit bei den Verkäufern anzeigt.",
+      "description": "Ein Bullish Harami, bei dem die zweite Kerze ein Doji ist. Zeigt höhere Unsicherheit als normaler Harami.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{2} \\approx 0 \\text{ und innerhalb Kerze } 1 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Hohe Wahrscheinlichkeit einer Umkehr.\n*   **Strategie:** Warte auf den Bruch des Mother-Bar-Hochs.",
       "indicatorCombination": "Ähnlich wie beim Bullish Harami, aber die Doji-Komponente macht das Signal oft stärker, besonders wenn es von Volumen bei der Bestätigungskerze begleitet wird."
     },
     "bullish_kicker": {
       "name": "Bullish Kicker",
-      "description": "Ein extrem starkes bullisches Umkehrmuster. 1. Eine bärische Kerze (oft lang). 2. Eine bullische Kerze, die über das Hoch der vorherigen Kerze 'gapt' (Gap Up) und stark bullisch schließt. Es gibt keine Überlappung der Handelsspannen.",
-      "interpretation": "Signalisiert einen plötzlichen und dramatischen Wechsel der Marktstimmung von bärisch zu bullisch. Oft ausgelöst durch unerwartete Nachrichten. Eines der stärksten Umkehrsignale.",
-      "indicatorCombination": "Sehr hohes Volumen auf der zweiten (Kicker) Kerze bestätigt die Stärke des Signals. Aufgrund der Plötzlichkeit ist die Kombination mit vorherigen Indikatorsignalen weniger typisch, aber nachfolgende Indikatoren sollten die neue Richtung bestätigen."
+      "description": "Bärische Kerze gefolgt von bullischer, die mit Gap-Up eröffnet und läuft. Sehr stark.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open}_{2} > \\text{High}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Gewaltsamer Stimmungswechsel, oft News-getrieben.\n*   **Aktion:** Market Buy. Warte nicht auf Pullbacks (kommen oft nicht).\n*   **Krypto-Nuance:** Selten in 24/7 Märkten, aber bei großen Protokoll-News möglich.",
+      "indicatorCombination": "Volumen sollte massiv sein auf der Kicker-Kerze."
     },
     "concealing_baby_swallow": {
       "name": "Concealing Baby Swallow",
-      "description": "Ein sehr seltenes und komplexes vier-kerziges bullisches Umkehrmuster, das nach einem starken Abwärtstrend auftritt. 1. Ein langer bärischer Marubozu. 2. Ein weiterer bärischer Marubozu, der innerhalb des Körpers des ersten eröffnet (Gap Down). 3. Eine bärische Kerze, die im Körper der zweiten eröffnet, aber höher schließt und einen oberen Schatten hat, der in den Körper der zweiten Kerze ragt. 4. Eine lange bärische Kerze, die die gesamte vorherige Kerze (die dritte) umschließt (Gap Up und schließt tiefer).",
-      "interpretation": "Trotz der überwiegend bärischen Kerzen signalisiert dieses Muster extreme Verkäufererschöpfung. Die Unfähigkeit, neue Tiefs zu machen, und die komplexen Interaktionen deuten auf eine bevorstehende scharfe Umkehr hin. Vorsicht geboten wegen Seltenheit und Komplexität.",
+      "description": "Vier bärische Kerzen. Zwei Marubozus, ein Hammer, ein Engulfing.\n\n### Mathematische Kriterien\n\n  $$ \\text{Komplexe Formation} $$",
+      "interpretation": "### Regeln\n* Sehr selten. Bodenbildung wahrscheinlich.",
       "indicatorCombination": "Aufgrund der Seltenheit sind spezifische Indikatorkombinationen weniger dokumentiert. Bestätigung durch Volumen und nachfolgende bullische Preisaktion ist entscheidend."
     },
     "dragonfly_doji": {
       "name": "Dragonfly Doji",
-      "description": "Ein Dragonfly Doji bildet sich, wenn Eröffnungs-, Höchst- und Schlusskurs nahezu identisch sind und ein langer unterer Schatten vorhanden ist. Es gibt keinen oder einen sehr kleinen oberen Schatten. Erscheint typischerweise nach einem Abwärtstrend.",
-      "interpretation": "Signalisiert eine potenzielle bullische Umkehr. Verkäufer drückten den Preis, aber Käufer übernahmen die Kontrolle und brachten den Preis zurück zum Tageshoch. Er ist stärker, wenn er in einer Unterstützungszone auftritt.",
-      "indicatorCombination": "Hohes Volumen am Dragonfly Doji kann die Ablehnung niedriger Preise bestätigen. Sein Auftreten in einer überverkauften Zone (RSI) oder an einem Fibonacci-Support erhöht die Signifikanz."
+      "description": "Ein Doji, bei dem Open und Close am Tageshoch liegen. Langer unterer Schatten, kein oberer Schatten.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open} \\approx \\text{Close} \\approx \\text{High} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Starke Ablehnung tieferer Preise (Bullisch).\n*   **Einstieg:** Kauf beim Bruch des Hochs.\n*   **Stop Loss:** Unter dem langen unteren Schatten.",
+      "indicatorCombination": "Markiert oft den exakten Boden eines Flash-Crashs oder Liquidity Sweeps in Krypto."
     },
     "hammer": {
       "name": "Hammer",
@@ -1384,326 +1384,326 @@
     },
     "homing_pigeon": {
       "name": "Homing Pigeon",
-      "description": "Ein zwei-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine kleinere bärische Kerze, deren Körper vollständig im Körper der ersten Kerze enthalten ist. Ähnelt einem Bearish Harami, aber beide Kerzen sind bärisch.",
-      "interpretation": "Obwohl beide Kerzen bärisch sind, deutet die Tatsache, dass die zweite Kerze nicht tiefer schließt und innerhalb der ersten verbleibt, auf nachlassendes Verkaufsmomentum und einen möglichen Boden hin. Bullische Bestätigung ist wichtig.",
+      "description": "Bullische Umkehr. Bärische Kerze gefolgt von kleinerer bärischer Innenkerze.\n\n### Mathematische Kriterien\n\n  $$ \\text{Inside Bar (Bear/Bear)} $$",
+      "interpretation": "### Regeln\n* Warte auf bullische Bestätigung.",
       "indicatorCombination": "Eine bullische Divergenz bei einem Oszillator (z.B. RSI, MACD) kann das Homing Pigeon Signal verstärken. Suche nach einer Bestätigungskerze mit höherem Volumen."
     },
     "inverted_hammer": {
       "name": "Inverted Hammer",
-      "description": "Der Inverted Hammer ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten. Wenig bis kein unterer Schatten.\n\n### Mathematische Kriterien\n\n  $$ \\text{Oberer Schatten} \\ge 2 \\times \\text{Körper} $$\n\n  $$ \\text{Körper} < 50\\% \\text{ der Spanne} $$\n\n  $$ \\text{Unterer Schatten} < 2\\% \\text{ der Spanne} $$",
-      "interpretation": "Signalisiert, dass Käufer versuchten, den Preis nach oben zu treiben, aber auf Widerstand trafen. Wenn die nächste Kerze höher schließt, kann dies eine bullische Umkehr bestätigen.",
-      "indicatorCombination": "Ein Inverted Hammer ist aussagekräftiger, wenn er nach einem klaren Abwärtstrend und an einer Unterstützungslinie auftritt. Bestätigung durch eine bullische Folgekerze mit Volumen ist wichtig."
+      "description": "Ein bullisches Umkehrmuster nach einem Abwärtstrend. Kleiner Körper unten, langer oberer Docht.\n\n### Mathematische Kriterien\n\n  $$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Lower Shadow} < \\text{Body} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Kaufdruck testet höhere Level.\n*   **Bestätigung:** Essenziell. Warte auf höheren Schlusskurs der nächsten Kerze.\n*   **Stop Loss:** Unter dem Tief des Inverted Hammer.",
+      "indicatorCombination": "Achte auf eine Volumenspitze im Vergleich zu den vorherigen bärischen Kerzen."
     },
     "ladder_bottom": {
       "name": "Ladder Bottom",
-      "description": "Ein fünf-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1-3. Drei lange bärische Kerzen mit sukzessive tieferen Tiefs. 4. Eine bärische Kerze mit kleinem Körper und langem oberen Schatten. 5. Eine große bullische Kerze, die über dem Körper der vierten Kerze eröffnet und signifikant höher schließt.",
-      "interpretation": "Die ersten drei Kerzen zeigen einen starken Abwärtstrend. Die vierte Kerze signalisiert eine erste Schwäche der Bären. Die fünfte bullische Kerze bestätigt die Umkehr mit starkem Kaufinteresse.",
+      "description": "Drei schwarze Krähen, dann Inverted Hammer, dann starke bullische Kerze.\n\n### Mathematische Kriterien\n\n  $$ 3 \\times \\text{Bear} \\to \\text{Inv. Hammer} \\to \\text{Bull} $$",
+      "interpretation": "### Regeln\n* Kaufe den Ausbruch der letzten Kerze.",
       "indicatorCombination": "Ein Anstieg des Volumens bei der fünften (Ausbruchs-)Kerze ist ein starkes Bestätigungszeichen. Es kann auch durch den Bruch einer kurzfristigen Abwärtstrendlinie unterstützt werden."
     },
     "matching_low": {
       "name": "Matching Low",
-      "description": "Ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine weitere bärische Kerze, die unter der ersten eröffnet, aber auf demselben Niveau wie die erste Kerze schließt (identische Schlusskurse). Beide Kerzen haben oft wenig bis keine unteren Schatten.",
-      "interpretation": "Die Unfähigkeit der Verkäufer, den Preis am zweiten Tag unter den Schlusskurs des ersten Tages zu drücken, deutet auf nachlassendes Verkaufsmomentum und eine potenzielle Unterstützung hin. Bullische Bestätigung ist ratsam.",
+      "description": "Zwei bärische Kerzen schließen am gleichen Tief.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{1} = \\text{Close}_{2} $$",
+      "interpretation": "### Regeln\n* Support bestätigt. Kaufe mit engem Stop.",
       "indicatorCombination": "Sein Auftreten an einer bekannten Unterstützungslinie oder in einer überverkauften Zone (RSI) kann die Bedeutung des Matching Low erhöhen. Eine Bestätigungskerze mit Volumen ist wichtig."
     },
     "morning_doji_star": {
       "name": "Morning Doji Star",
-      "description": "Eine spezifischere Version des Morning Star. 1. Eine lange bärische Kerze. 2. Ein Doji, der unter den Körper der ersten Kerze 'gapt' (Gap Down). 3. Eine lange bullische Kerze, die weit in den Körper der ersten Kerze oder darüber schließt.",
-      "interpretation": "Der Doji nach einem Gap Down signalisiert starke Unentschlossenheit und potenzielle Verkäufererschöpfung. Die folgende starke bullische Kerze bestätigt die Umkehr. Gilt als stärkeres Signal als ein normaler Morning Star.",
+      "description": "Wie Morning Star, aber die mittlere Kerze ist ein Doji. Stärkeres Umkehrsignal bei Bestätigung.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{2} \\approx 0 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Starke bullische Umkehr.\n*   **Einstieg:** Beim Schluss der 3. Kerze.",
       "indicatorCombination": "Volumen sollte beim Doji niedrig sein. Ein signifikanter Anstieg des Volumens bei der dritten (bullischen) Kerze ist ein starkes Bestätigungsmerkmal. Ein überverkaufter Zustand (RSI) vor dem Muster erhöht die Signifikanz."
     },
     "morning_star": {
       "name": "Morning Star",
-      "description": "Der Morning Star ist ein dreiteiliges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Lange bärische Kerze. 2. Kleine Kerze (Doji, Spinning Top oder kleiner Körper), die idealerweise unterhalb der ersten Kerze eröffnet (Gap Down). 3. Lange bullische Kerze, die weit in den Körper der ersten Kerze oder darüber schließt.",
-      "interpretation": "Signalisiert ein nachlassendes Verkaufsmomentum (Kerze 1), Unentschlossenheit (Kerze 2) und dann eine starke Übernahme durch Käufer (Kerze 3), was auf eine bullische Trendwende hindeutet.",
-      "indicatorCombination": "Volumen bei der zweiten ('Star') Kerze ist oft niedrig. Ein Anstieg des Volumens bei der dritten (bullischen) Kerze ist ein positives Zeichen und erhöht die Zuverlässigkeit. Kann durch überverkaufte Oszillatoren (RSI, Stochastik) bestätigt werden."
+      "description": "Ein dreiteiliges bullisches Umkehrmuster: 1. Lange bärische Kerze. 2. Kleine Kerze mit Gap-Down (Star). 3. Starke bullische Kerze, die in den ersten Körper schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} > \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Zur Eröffnung der 4. Kerze.\n*   **Stop Loss:** Unter dem Tief des 'Star' (mittlere Kerze).\n*   **Kontext:** Stärker, wenn die dritte Kerze hohes Volumen hat.",
+      "indicatorCombination": "Der 'Star' fällt oft mit einem RSI-Dip unter 30 zusammen. Ein Anstieg über 30 bestätigt die Umkehr."
     },
     "piercing_line": {
       "name": "Piercing Line",
-      "description": "Eine Piercing Line ist ein zwei-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Die erste Kerze ist lang und bärisch. Die zweite Kerze eröffnet unter dem Tief der ersten Kerze (Gap Down), schließt aber über der Mitte des Körpers der ersten Kerze.",
-      "interpretation": "Signalisiert, dass Käufer nach einem anfänglichen bärischen Momentum stark zurückkommen und den Preis nach oben treiben. Eine bullische Umkehr ist wahrscheinlich.",
-      "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bullischen) Kerze verstärkt das Signal. Das Muster ist stärker, wenn es an einer Unterstützungslinie oder in einer überverkauften Zone (RSI) auftritt."
+      "description": "Zweiteiliges bullisches Umkehrmuster. Bärische Kerze gefolgt von bullischer, die tiefer eröffnet aber über der Mitte der ersten schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{2} > \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Käufer lehnen Tiefs ab und gewinnen Territorium zurück.\n*   **Krypto-Kontext:** 'Gaps' sind klein; achte auf den starken Schluss über der Mitte.",
+      "indicatorCombination": "RSI Kreuzung zurück über 30 aus überverkauftem Bereich bestätigt die Bewegung."
     },
     "stick_sandwich": {
       "name": "Stick Sandwich",
-      "description": "Ein seltenes bullisches Umkehrmuster. 1. Eine lange bärische Kerze. 2. Eine bullische Kerze, die über dem Schluss der ersten Kerze eröffnet und schließt. 3. Eine bärische Kerze, deren Schlusskurs auf demselben Niveau wie der Schlusskurs der ersten bärischen Kerze liegt. Die Tiefs der zwei bärischen Kerzen bilden einen Support.",
-      "interpretation": "Die mittlere bullische Kerze zeigt Kaufinteresse. Die dritte Kerze testet die Unterstützung, die von der ersten Kerze gebildet wurde. Hält dieser Support, kann eine bullische Umkehr folgen.",
+      "description": "Zwei bärische Kerzen umschließen eine bullische. Die beiden bärischen Kerzen schließen beim gleichen Preis (Support).\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} = \\text{Close}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Bullische Umkehr / Doppelboden.\n*   **Einstieg:** Kaufe den Support-Test bei Schluss 3.",
       "indicatorCombination": "Sein Auftreten an einer wichtigen Unterstützungslinie oder einem gleitenden Durchschnitt erhöht die Bedeutung. Volumenbestätigung bei der mittleren bullischen Kerze oder der nachfolgenden Bestätigungskerze ist positiv."
     },
     "three_inside_up": {
       "name": "Three Inside Up",
-      "description": "Ein drei-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine kleine bullische Kerze (Harami), deren Körper vollständig im Körper der ersten Kerze enthalten ist. 3. Eine bullische Kerze, die über dem Schluss der zweiten Kerze und idealerweise über dem Hoch der zweiten Kerze schließt.",
-      "interpretation": "Bestätigt das Bullish Harami Muster und signalisiert eine stärkere Wahrscheinlichkeit für eine bullische Umkehr. Die dritte Kerze zeigt, dass die Käufer die Kontrolle übernommen haben.",
-      "indicatorCombination": "Ein Anstieg des Volumens bei der dritten Kerze stärkt das Signal. Das Muster ist zuverlässiger, wenn es in einer überverkauften Zone (RSI) oder an einem Support-Level auftritt."
+      "description": "Bestätigtes Bullish Harami. 1. Bärisch. 2. Klein Bullisch (Inside). 3. Bullisch schließt über 2.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} > \\text{High}_{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Bestätigte Umkehr.\n*   **Einstieg:** Zum Schluss der 3. Kerze.",
+      "indicatorCombination": "Höhere Wahrscheinlichkeit als ein alleinstehendes Harami."
     },
     "three_outside_up": {
       "name": "Three Outside Up",
-      "description": "Ein drei-kerziges bullisches Umkehrmuster. 1. Eine bärische Kerze. 2. Eine bullische Kerze, die die erste Kerze komplett umschließt (Bullish Engulfing). 3. Eine weitere bullische Kerze, die über dem Schluss der zweiten Kerze schließt.",
-      "interpretation": "Ein starkes bullisches Umkehrsignal, das das Bullish Engulfing bestätigt und eine Fortsetzung der Aufwärtsbewegung suggeriert.",
-      "indicatorCombination": "Steigendes Volumen bei der zweiten und dritten Kerze erhöht die Zuverlässigkeit. Sein Auftreten nach einer überverkauften Phase (RSI) oder an einer Unterstützungslinie verstärkt das Signal."
+      "description": "Bestätigtes Bullish Engulfing. 1. Bärisch. 2. Engulfing Bullisch. 3. Bullisch schließt höher.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} > \\text{High}_{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Starke Umkehr.\n*   **Einstieg:** Aggressive Trader gingen bei Kerze 2 rein; konservative bei 3.",
+      "indicatorCombination": "Momentum-Indikatoren (MACD) sollten bullisch kreuzen."
     },
     "three_white_soldiers": {
       "name": "Three White Soldiers",
-      "description": "Three White Soldiers ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Es besteht aus drei aufeinanderfolgenden langen bullischen Kerzen. Jede Kerze eröffnet im Körper der vorherigen und schließt höher als die vorherige, idealerweise nahe ihrem Hoch.",
-      "interpretation": "Signalisiert eine starke und stetige Umkehr der Kaufkraft und den Beginn eines neuen Aufwärtstrends.",
-      "indicatorCombination": "Das Volumen sollte idealerweise mit jeder der drei 'Soldaten'-Kerzen zunehmen oder zumindest konstant hoch bleiben. Das Muster ist stärker, wenn es nach einem signifikanten Abwärtstrend oder einer Konsolidierungsphase auftritt und nicht in einer bereits stark überkauften Zone."
+      "description": "Drei aufeinanderfolgende lange bullische Kerzen mit höheren Schlusskursen. Jede eröffnet innerhalb des vorherigen Körpers.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{i} > \\text{Close}_{i-1} \\quad \\text{für } i=2,3 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Sehr starke Trendfortsetzung oder Umkehr.\n*   **Vorsicht:** Wenn Kerzen zu groß sind, ist der Markt evtl. überdehnt (parabolisch).\n*   **Strategie:** Warte auf einen kleinen Rücksetzer nach dem 3. Soldaten für den Einstieg.",
+      "indicatorCombination": "ADX (Average Directional Index) sollte steigen, was auf einen stärker werdenden Trend hinweist."
     },
     "tower_bottom": {
       "name": "Tower Bottom",
-      "description": "Ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Es beginnt mit einer oder mehreren langen bärischen Kerzen, gefolgt von einer Phase der Konsolidierung mit kleinen Körpern (Handel in enger Range). Das Muster wird abgeschlossen durch eine oder mehrere lange bullische Kerzen, die nach oben ausbrechen.",
-      "interpretation": "Die langen bärischen Kerzen zeigen Verkaufsdruck. Die Konsolidierungsphase deutet auf Unentschlossenheit und mögliche Bodenbildung hin. Die finalen bullischen Kerzen signalisieren eine Übernahme durch Käufer und eine wahrscheinliche Trendwende.",
+      "description": "Lange bärische Kerze, Konsolidierung, dann langer bullischer Ausbruch.\n\n### Mathematische Kriterien\n\n  $$ \\text{Long Bear} \\to \\text{Base} \\to \\text{Long Bull} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Runder Boden (Rounding Bottom).\n*   **Einstieg:** Beim Ausbruch aus den 'Turm'-Mauern.",
       "indicatorCombination": "Volumen ist oft niedrig während der Konsolidierungsphase. Ein signifikanter Volumenanstieg bei den ausbrechenden bullischen Kerzen ist ein starkes Bestätigungsmerkmal. Eine bullische Divergenz im RSI während der Konsolidierung kann das Signal verstärken."
     },
     "tri_star_bullish": {
       "name": "Tri-Star (Bullish)",
-      "description": "Ein seltenes Umkehrmuster aus drei Dojis. Nach einem Abwärtstrend bildet sich der mittlere Doji mit einer Lücke (Gap) nach unten zu den zwei äußeren Dojis. Alle drei Dojis haben kleine Handelsspannen.",
-      "interpretation": "Die drei Dojis signalisieren extreme Unentschlossenheit. Das Gap Down des mittleren Dojis, gefolgt von Unfähigkeit weiter zu fallen, deutet auf Erschöpfung der Verkäufer und eine mögliche starke bullische Umkehr hin.",
+      "description": "Drei Dojis in Folge, der mittlere mit Gap-Down.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{1,2,3} \\approx 0 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Seltenes großes Tief.\n*   **Kontext:** Extreme Unentschlossenheit.",
       "indicatorCombination": "Volumen ist typischerweise niedrig bei allen drei Dojis. Ein Anstieg bei einer bullischen Bestätigungskerze ist entscheidend. Ein überverkaufter Zustand vor dem Muster erhöht die Wahrscheinlichkeit einer Umkehr."
     },
     "tweezer_bottoms": {
       "name": "Tweezer Bottoms",
-      "description": "Tweezer Bottoms sind ein bullisches Umkehrmuster, das typischerweise am Ende eines Abwärtstrends auftritt. Es besteht aus zwei oder mehr Kerzen mit nahezu identischen Tiefstständen. Die erste Kerze ist oft bärisch, die zweite bullisch, aber die Formen können variieren.",
-      "interpretation": "Die identischen Tiefs deuten auf eine starke Unterstützungszone hin. Verkäufer konnten den Preis nicht weiter nach unten drücken, was auf eine potenzielle bullische Umkehr hindeutet.",
-      "indicatorCombination": "Ein Tweezer Bottom an einer wichtigen Unterstützungslinie oder einem Fibonacci-Retracement-Level ist aussagekräftiger. Eine bullische Divergenz im RSI oder MACD kann das Umkehrsignal verstärken."
+      "description": "Zwei oder mehr Kerzen mit gleichen Tiefs. Die Körper können unterschiedlich sein.\n\n### Mathematische Kriterien\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Support-Level hält.\n*   **Einstieg:** Kauf mit Stop Loss knapp unter den Tweezer-Tiefs.\n*   **Krypto:** Sehr zuverlässig auf höheren Timeframes (Daily/Weekly).",
+      "indicatorCombination": "Achte auf bullische Divergenz im RSI oder MACD."
     },
     "unique_three_river_bottom": {
       "name": "Unique Three River Bottom",
-      "description": "Ein seltenes drei-kerziges bullisches Umkehrmuster. 1. Eine lange bärische Kerze. 2. Eine bärische Kerze mit einem tieferen Tief als die erste (eine Art Hammer-Form, aber bärisch). 3. Eine kleine bullische Kerze, die unter dem Schluss der zweiten Kerze eröffnet und über deren Tief, aber unter ihrem Hoch schließt.",
-      "interpretation": "Trotz der bärischen Natur der ersten zwei Kerzen, deuten die Unfähigkeit der Verkäufer, den Preis unter das Tief der zweiten Kerze zu drücken, und das Auftreten der kleinen bullischen Kerze auf potenzielle Verkäufererschöpfung und eine bevorstehende Umkehr hin.",
+      "description": "1. Lang Bär. 2. Hammer (Bärisch). 3. Klein Bullisch unter 2.\n\n### Mathematische Kriterien\n\n  $$ \\text{Komplexe Sequenz} $$",
+      "interpretation": "### Regeln\n* Selten. Warte auf Schluss über Hoch von Kerze 2.",
       "indicatorCombination": "Aufgrund der Seltenheit ist die Bestätigung durch erhöhtes Volumen bei der dritten Kerze oder einer nachfolgenden bullischen Kerze besonders wichtig. Überverkaufte Oszillatoren können das Signal unterstützen."
     },
     "mat_hold": {
       "name": "Mat Hold",
-      "description": "Ein bullisches Fortsetzungsmuster, ähnlich den Rising Three Methods, aber oft als stärker angesehen. 1. Eine lange bullische Kerze. 2. Gefolgt von einer kleinen Konsolidierungsphase aus drei kleinen Kerzen (meist bärisch), die von der ersten Kerze nach oben 'gapen' und über deren Tief bleiben. 3. Eine weitere lange bullische Kerze, die nach oben 'gapt' und neue Hochs erreicht.",
-      "interpretation": "Die Konsolidierung oberhalb der ersten bullischen Kerze und das anschließende Gap Up mit einer weiteren starken bullischen Kerze bestätigen die Fortsetzung des Aufwärtstrends mit großer Kraft.",
-      "indicatorCombination": "Volumen sollte hoch sein bei der ersten und fünften (starken bullischen) Kerze. Während der Konsolidierungsphase (Kerzen 2-4) ist niedrigeres Volumen typisch. Ein Halten über einem wichtigen gleitenden Durchschnitt unterstützt die Fortsetzung."
+      "description": "Starke bullische Kerze, kleines Gap Up, drei kleine Korrekturkerzen oberhalb des Tiefs der ersten, gefolgt von neuem Ausbruch.\n\n### Mathematische Kriterien\n\n  $$ \\text{Min}(\\text{Lows}_{2,3,4}) > \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Bullische Trendfortsetzung (Flaggen-Muster).\n*   **Einstieg:** Beim Bruch des höchsten Hochs der Konsolidierung.\n*   **Stop Loss:** Unter dem Tief der ersten Kerze.",
+      "indicatorCombination": "Volumen sollte während der kleinen Korrekturkerzen fallen."
     },
     "rising_three_methods": {
       "name": "Rising Three Methods",
-      "description": "Ein bullisches Fortsetzungsmuster. Es beginnt mit einer langen bullischen Kerze, gefolgt von drei (oder mehr) kleinen bärischen Kerzen, die innerhalb der Range der ersten Kerze bleiben. Das Muster endet mit einer weiteren langen bullischen Kerze, die über dem Schluss der ersten langen bullischen Kerze schließt.",
-      "interpretation": "Deutet auf eine Pause oder Konsolidierung innerhalb eines Aufwärtstrends hin, bevor der Trend wieder aufgenommen wird. Die kleinen bärischen Kerzen stellen vorübergehende Gewinnmitnahmen dar, aber die Bullen gewinnen die Kontrolle zurück.",
-      "indicatorCombination": "Volumen sollte relativ hoch sein bei der ersten und letzten (langen bullischen) Kerze. Während der Konsolidierungsphase (kleine bärische Kerzen) ist niedrigeres Volumen typisch und bestätigt die Pause. Ein MACD, der bullisch bleibt oder einen bullischen Crossover während der Konsolidierung zeigt, kann das Signal verstärken."
+      "description": "Ähnlich wie Mat Hold, aber die Korrekturkerzen bleiben strikt innerhalb der Range der ersten Kerze.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{2,3,4} < \\text{High}_{1} \\text{ und } \\text{Low}_{2,3,4} > \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Trend-Pause.\n*   **Aktion:** Positionen aufstocken beim Ausbruch über das Hoch der ersten Kerze.",
+      "indicatorCombination": "Ein klassisches 'Bull Flag' Verhalten."
     },
     "separating_lines_bullish": {
       "name": "Separating Lines (Bullish)",
-      "description": "Ein bullisches Fortsetzungsmuster. 1. In einem Aufwärtstrend erscheint eine lange bärische Kerze. 2. Am nächsten Tag 'gapt' der Markt nach oben zum gleichen Eröffnungskurs wie die vorherige bärische Kerze und schließt als lange bullische Kerze.",
-      "interpretation": "Die bärische Kerze scheint eine Umkehr anzudeuten, aber das Gap Up zum vorherigen Eröffnungskurs und die starke bullische Bewegung am zweiten Tag negieren die bärische Implikation und signalisieren eine Fortsetzung des Aufwärtstrends.",
+      "description": "Bärisch dann Bullisch. Eröffnungspreise sind gleich.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open}_{1} = \\text{Open}_{2} $$",
+      "interpretation": "### Regeln\n* Fortsetzung. Handle mit dem Trend.",
       "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bullischen) Kerze kann die Stärke der Trendfortsetzung unterstreichen. Das Muster ist stärker, wenn es über einem wichtigen gleitenden Durchschnitt auftritt."
     },
     "side_by_side_white_lines_bullish": {
       "name": "Side-by-Side White Lines (Bullish)",
-      "description": "Ein bullisches Fortsetzungsmuster. 1. In einem Aufwärtstrend bildet sich eine bullische Kerze. 2. Am nächsten Tag 'gapt' eine weitere bullische Kerze nach oben und schließt auf etwa demselben Niveau wie die erste bullische Kerze. Beide Kerzen haben ähnliche Größen und Eröffnungskurse (nach dem Gap).",
-      "interpretation": "Das Gap Up und die Unfähigkeit der Bären, den Preis zu drücken, bestätigen die Stärke des Aufwärtstrends. Eine Fortsetzung der bullischen Bewegung wird erwartet.",
+      "description": "Bullischer Trend, Gap Up, zwei ähnliche weiße Kerzen nebeneinander.\n\n### Mathematische Kriterien\n\n  $$ \\text{Gap Up} \\to \\text{Zwillinge} $$",
+      "interpretation": "### Regeln\n* Fortsetzung. Kaufen.",
       "indicatorCombination": "Volumen sollte bei den Gaps und bullischen Kerzen zumindest stabil bleiben oder steigen, um Stärke zu bestätigen. Ein MACD, der im bullischen Bereich verbleibt, unterstützt das Signal."
     },
     "upside_gap_three_methods": {
       "name": "Upside Gap Three Methods",
-      "description": "Ein bullisches Fortsetzungsmuster. 1. Eine lange bullische Kerze. 2. Eine weitere lange bullische Kerze, die nach oben 'gapt'. 3. Eine kleine bärische Kerze, die das Gap zwischen den ersten beiden Kerzen füllt, aber nicht unter den Schluss der ersten Kerze fällt.",
-      "interpretation": "Das anfängliche Gap zeigt starkes bullisches Momentum. Die bärische Kerze stellt Gewinnmitnahmen oder einen Test des Gaps dar. Solange das Gap nicht vollständig geschlossen wird und der Preis über dem Schluss der ersten Kerze bleibt, wird eine Fortsetzung des Aufwärtstrends erwartet.",
+      "description": "Bullischer Trend, Gap Up, Gap füllen, weiter.\n\n### Mathematische Kriterien\n\n  $$ \\text{Gap Fill} $$",
+      "interpretation": "### Regeln\n* Kaufen wenn Gap als Support hält.",
       "indicatorCombination": "Volumen sollte hoch sein bei den ersten beiden bullischen Kerzen (besonders der Gap-Kerze). Niedrigeres Volumen ist wünschenswert bei der dritten (korrektiven bärischen) Kerze. Ein erneuter Anstieg bei der Trendfortsetzung ist positiv."
     },
     "upside_tasuki_gap": {
       "name": "Upside Tasuki Gap",
-      "description": "Ein bullisches Fortsetzungsmuster. 1. Eine lange bullische Kerze. 2. Eine weitere bullische Kerze, die nach oben 'gapt'. 3. Eine bärische Kerze, die innerhalb des Gaps eröffnet und schließt, das Gap aber nicht vollständig schließt.",
-      "interpretation": "Das Gap repräsentiert starkes bullisches Momentum. Die dritte Kerze ist ein Versuch der Bären, das Gap zu schließen, scheitert aber. Dies bestätigt bullische Stärke und suggeriert eine Fortsetzung des Aufwärtstrends.",
+      "description": "Bullisches Gap, dann kleine Bärenkerze bleibt im Gap.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} > \\text{Close}_{1} $$",
+      "interpretation": "### Regeln\n* Fortsetzung. Longs halten.",
       "indicatorCombination": "Volumen sollte bei der zweiten Kerze (Gap Up) ansteigen. Niedrigeres Volumen bei der dritten (bärischen) Kerze ist typisch. Ein erneuter Volumenanstieg bei der Trendfortsetzung ist positiv."
     },
     "bullish_marubozu": {
       "name": "Bullish Marubozu",
-      "description": "Ein Bullish Marubozu ist eine lange grüne (oder weiße) Kerze ohne oberen oder unteren Schatten. Der Eröffnungskurs entspricht dem Tiefstkurs und der Schlusskurs dem Höchstkurs.",
-      "interpretation": "Zeigt extreme bullische Stärke. Die Käufer kontrollierten den Preis von der Eröffnung bis zum Schluss. Kann den Beginn eines bullischen Trends oder die Fortsetzung eines Aufwärtstrends signalisieren.",
-      "indicatorCombination": "Hohes Volumen bei einem Bullish Marubozu bestätigt die Stärke und Überzeugung der Käufer und erhöht die Zuverlässigkeit des Signals deutlich."
+      "description": "Lange bullische Kerze ohne Schatten. Open ist Low, Close ist High.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open} = \\text{Low} \\text{ und } \\text{Close} = \\text{High} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Totale Käuferdominanz.\n*   **Strategie:** Kaufe den Schluss. Nutze Körpermitte als Support bei Pullbacks.",
+      "indicatorCombination": "Startet oft ein neues Trendbein. Prüfe ADX für Trendstärke."
     },
     "abandoned_baby_bearish": {
       "name": "Abandoned Baby (Bearish)",
-      "description": "Ein sehr seltenes, aber starkes bärisches Umkehrmuster. 1. Eine lange bullische Kerze. 2. Ein Doji, der über das Hoch der ersten Kerze 'gapt' (Gap Up), wobei sich die Schatten nicht mit dem Schatten der ersten Kerze überschneiden. 3. Eine lange bärische Kerze, die unter das Tief des Dojis 'gapt' (Gap Down), ohne dass sich die Schatten überschneiden.",
-      "interpretation": "Die Lücken auf beiden Seiten des Doji isolieren ihn vollständig, was eine dramatische Umkehr der Marktstimmung signalisiert. Käufer sind erschöpft, und Verkäufer übernehmen mit großer Kraft.",
+      "description": "Seltenes bärisches Umkehrmuster. 1. Lang Bullisch. 2. Doji mit Gap-Up (isoliert). 3. Bärisch mit Gap-Down.\n\n### Mathematische Kriterien\n\n  $$ \\text{Low}_{2} > \\text{High}_{1} \\text{ und } \\text{Low}_{2} > \\text{High}_{3} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Großes Top.\n*   **Aktion:** Sofort verkaufen/shorten.\n*   **Stop Loss:** Über dem Doji-Hoch.",
       "indicatorCombination": "Ein überkaufter Zustand (RSI, Stochastik) vor dem Muster kann die bärische Implikation verstärken. Volumen sollte niedrig sein am Doji und signifikant steigen bei der dritten, starken bärischen Kerze."
     },
     "advance_block": {
       "name": "Advance Block",
-      "description": "Ein bärisches Umkehrmuster aus drei bullischen Kerzen, das nach einem Aufwärtstrend auftritt. Jede Kerze eröffnet innerhalb des Körpers der vorherigen und schließt höher, aber die Körper werden sukzessive kleiner und die oberen Schatten länger. Ähnlich wie Three White Soldiers, aber mit Anzeichen von Schwäche.",
-      "interpretation": "Obwohl der Preis steigt, deuten die schrumpfenden Körper und längeren oberen Schatten auf nachlassende Kaufkraft und zunehmenden Verkaufsdruck hin. Eine bärische Umkehr wird wahrscheinlicher.",
-      "indicatorCombination": "Abnehmendes Volumen über die drei Kerzen kann die nachlassende Kaufkraft unterstreichen. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) würde das Umkehrsignal verstärken."
+      "description": "Drei bullische Kerzen mit sukzessive kleineren Körpern und längeren oberen Dochten. Ein Zeichen für schwächelndes Momentum.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{3} < \\text{Body}_{2} < \\text{Body}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Rallye gerät ins Stocken.\n*   **Aktion:** Stops für Longs nachziehen. Keine neuen Longs eröffnen.\n*   **Kontext:** Oft am Ende parabolischer Krypto-Pumps zu sehen.",
+      "indicatorCombination": "Bärische Divergenz im RSI ist fast immer vorhanden."
     },
     "belt_hold_bearish": {
       "name": "Belt Hold (Bearish)",
-      "description": "Eine einzelne bärische Kerze, die nach einem Aufwärtstrend erscheint. Sie eröffnet an ihrem Hoch (oder sehr nahe daran) und hat einen langen bärischen Körper mit wenig oder keinem oberen Schatten. Ein kleiner unterer Schatten kann vorhanden sein.",
-      "interpretation": "Signalisiert eine plötzliche Übernahme der Kontrolle durch die Verkäufer. Die Stärke des Musters hängt von der Länge des Körpers ab. Es ist stärker, wenn es nach einer längeren Aufwärtsbewegung auftritt.",
-      "indicatorCombination": "Hohes Volumen an der Belt Hold Kerze stärkt das Signal. Es kann an wichtigen Widerstandsniveaus oder in Verbindung mit einer bärischen Divergenz eines Momentum-Oszillators auftreten."
+      "description": "Eine lange bärische Kerze, die an ihrem Hoch eröffnet (kein oberer Docht) und nahe ihrem Tief schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open} = \\text{High} $$\n\n  $$ \\text{Close} \\approx \\text{Low} $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Short beim Schluss.\n*   **Stop Loss:** Knapp über dem Hoch.\n*   **Signal:** Verkäufer kontrollierten die gesamte Sitzung.",
+      "indicatorCombination": "Tritt oft auf, wenn ein Widerstand getestet und sofort abgelehnt wird."
     },
     "breakaway_bearish": {
       "name": "Breakaway (Bearish)",
-      "description": "Ein fünf-kerziges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. 1. Eine lange bullische Kerze. 2. Eine bullische Kerze, die 'gapt' (Gap Up). 3. Ein oder zwei weitere (meist bullische) Kerzen, die den Aufwärtstrend fortsetzen. 4. Eine lange bärische Kerze, die die Lücke zwischen der ersten und zweiten Kerze schließt oder in den Körper der ersten Kerze hineinragt.",
-      "interpretation": "Die anfängliche Lücke und Fortsetzung des Aufwärtstrends wirken bullisch, aber die finale starke bärische Kerze signalisiert eine plötzliche und kraftvolle Umkehr der Verkäufer, die das vorherige bullische Momentum negiert.",
+      "description": "Bullisch, Gap Up, Stagnation, Bärischer Bruch.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{5} < \\text{High}_{1} $$",
+      "interpretation": "### Regeln\n* Top-Umkehr. Short Ausbruch.",
       "indicatorCombination": "Ein Anstieg des Volumens bei der fünften (Ausbruchs-)Kerze ist ein starkes Bestätigungszeichen. Es kann auch durch den Bruch einer kurzfristigen Aufwärtstrendlinie unterstützt werden."
     },
     "bearish_engulfing": {
       "name": "Bearish Engulfing",
-      "description": "Ein Bearish Engulfing tritt nach einem Aufwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bullische Kerze, gefolgt von einer größeren bärischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').\n\n### Mathematische Kriterien\n\n  $$ \\text{Aktueller Körper} > \\text{Vorheriger Körper} $$\n\n  $$ \\text{Open} \\ge \\text{Prev Close} $$\n\n  $$ \\text{Close} \\le \\text{Prev Open} $$",
-      "interpretation": "Signalisiert, dass Verkäufer die Kontrolle von den Käufern übernommen haben und eine starke bärische Umkehr wahrscheinlich ist.",
-      "indicatorCombination": "Ein Bearish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überkauften RSI (>70) oder eine bärische Divergenz kann die Zuverlässigkeit erhöhen."
+      "description": "Bärisches Umkehrmuster: Eine kleine bullische Kerze wird von einer größeren bärischen Kerze verschluckt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{curr} > \\text{Body}_{prev} $$\n\n  $$ \\text{Close}_{curr} < \\text{Open}_{prev} $$\n\n  $$ \\text{Open}_{curr} > \\text{Close}_{prev} $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Short bei Schlusskurs.\n*   **Stop Loss:** Über dem Hoch der Engulfing-Kerze.\n*   **Kontext:** Effektiv an Allzeithochs oder Widerstandstests.",
+      "indicatorCombination": "Bärische Divergenz im MACD oder RSI erhöht die Erfolgsrate signifikant."
     },
     "bearish_harami": {
       "name": "Bearish Harami",
-      "description": "Ein Bearish Harami tritt nach einem Aufwärtstrend auf. Es besteht aus einer langen bullischen Kerze, gefolgt von einer kleinen bärischen Kerze, deren Körper vollständig im Körper der vorangegangenen Kerze enthalten ist.",
-      "interpretation": "Signalisiert eine potenzielle Abschwächung des Aufwärtstrends und eine bevorstehende bärische Umkehr. Bestätigung durch die nächste Kerze ist wichtig.",
-      "indicatorCombination": "Ein Bearish Harami in einer überkauften Zone (RSI, Stochastik) oder an einer wichtigen Widerstandslinie gewinnt an Bedeutung. Achte auf das Volumen der Bestätigungskerze."
+      "description": "Große bullische Kerze gefolgt von kleiner bärischer, die im ersten Körper liegt.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{2} < \\text{High}_{1} \\text{ und } \\text{Low}_{2} > \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Momentum-Pause.\n*   **Strategie:** Short beim Ausbruch unter das Mother Bar Tief.\n*   **Ziel:** Start des vorherigen Trend-Impulses.",
+      "indicatorCombination": "Bildet oft eine 'Bear Flag' auf kleineren Zeiteinheiten."
     },
     "bearish_harami_cross": {
       "name": "Bearish Harami Cross",
-      "description": "Ähnlich wie der Bearish Harami, aber die zweite Kerze ist ein Doji. Tritt nach einem Aufwärtstrend auf. Eine lange bullische Kerze gefolgt von einem Doji, der vollständig im Körper der vorherigen Kerze enthalten ist.",
-      "interpretation": "Ein stärkeres Signal für eine bärische Umkehr als ein normaler Bearish Harami, da der Doji größere Unentschlossenheit bei den Käufern anzeigt.",
+      "description": "Ein Bearish Harami, bei dem die zweite Kerze ein Doji ist.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{2} \\approx 0 \\text{ und innerhalb Kerze } 1 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Top-Bildung.\n*   **Strategie:** Short beim Bruch des Mother-Bar-Tiefs.",
       "indicatorCombination": "Ähnlich wie beim Bearish Harami, aber die Doji-Komponente macht das Signal oft stärker, besonders wenn es von Volumen bei der Bestätigungskerze begleitet wird."
     },
     "bearish_kicker": {
       "name": "Bearish Kicker",
-      "description": "Ein extrem starkes bärisches Umkehrmuster. 1. Eine bullische Kerze (oft lang). 2. Eine bärische Kerze, die unter das Tief der vorherigen Kerze 'gapt' (Gap Down) und stark bärisch schließt. Es gibt keine Überlappung der Handelsspannen.",
-      "interpretation": "Signalisiert einen plötzlichen und dramatischen Wechsel der Marktstimmung von bullisch zu bärisch. Oft ausgelöst durch unerwartete Nachrichten. Eines der stärksten Umkehrsignale.",
-      "indicatorCombination": "Sehr hohes Volumen auf der zweiten (Kicker) Kerze bestätigt die Stärke des Signals. Aufgrund der Plötzlichkeit ist die Kombination mit vorherigen Indikatorsignalen weniger typisch, aber nachfolgende Indikatoren sollten die neue Richtung bestätigen."
+      "description": "Bullische Kerze gefolgt von bärischer, die mit Gap-Down eröffnet und crasht.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open}_{2} < \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Panikverkäufe.\n*   **Aktion:** Market Short oder Longs sofort schließen.\n*   **Stop Loss:** Über dem Gap.",
+      "indicatorCombination": "Meist begleitet von extremen Volumenspitzen."
     },
     "dark_cloud_cover": {
       "name": "Dark Cloud Cover",
-      "description": "Ein Dark Cloud Cover ist ein zwei-kerziges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Die erste Kerze ist lang und bullisch. Die zweite Kerze eröffnet über dem Hoch der ersten Kerze (Gap Up), schließt aber unter der Mitte des Körpers der ersten Kerze.",
-      "interpretation": "Signalisiert, dass Verkäufer nach einem anfänglichen bullischen Momentum stark zurückkommen und den Preis nach unten drücken. Eine bärische Umkehr ist wahrscheinlich.",
-      "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bärischen) Kerze verstärkt das Signal. Das Muster ist stärker, wenn es an einer Widerstandslinie oder in einer überkauften Zone (RSI) auftritt."
+      "description": "Zweiteiliges bärisches Umkehrmuster. Bullische Kerze gefolgt von bärischer, die höher eröffnet aber unter der Mitte der ersten schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{2} < \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Verkäufer treten aggressiv auf.\n*   **Einstieg:** Short beim Schluss oder Bruch des Tiefs.\n*   **Stop Loss:** Über dem Hoch der Formation.",
+      "indicatorCombination": "Bärische Divergenz im Stochastik-Oszillator begleitet dieses Muster oft."
     },
     "deliberation_stalled": {
       "name": "Deliberation / Stalled Pattern",
-      "description": "Ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Es besteht aus drei bullischen Kerzen. Die ersten beiden sind lange bullische Kerzen. Die dritte bullische Kerze ist klein und 'gapt' nach oben oder eröffnet nahe dem Hoch der zweiten Kerze, zeigt aber Unfähigkeit, weiter zu steigen.",
-      "interpretation": "Ähnlich wie beim Advance Block. Die nachlassende Stärke der dritten Kerze trotz des Gaps deutet auf Käufererschöpfung und eine bevorstehende bärische Umkehr hin.",
+      "description": "Drei weiße Soldaten, aber der letzte ist klein/Star.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{3} \\ll \\text{Body}_{1,2} $$",
+      "interpretation": "### Regeln\n* Profit mitnehmen. Momentum stirbt.",
       "indicatorCombination": "Abnehmendes Volumen über die drei Kerzen kann nachlassende Kaufkraft signalisieren. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) würde das Umkehrsignal verstärken."
     },
     "evening_doji_star": {
       "name": "Evening Doji Star",
-      "description": "Eine spezifischere Version des Evening Star. 1. Eine lange bullische Kerze. 2. Ein Doji, der über den Körper der ersten Kerze 'gapt' (Gap Up). 3. Eine lange bärische Kerze, die weit in den Körper der ersten Kerze oder darunter schließt.",
-      "interpretation": "Der Doji nach einem Gap Up signalisiert starke Unentschlossenheit und potenzielle Käufererschöpfung. Die folgende starke bärische Kerze bestätigt die Umkehr. Gilt als stärkeres Signal als ein normaler Evening Star.",
+      "description": "Wie Evening Star, aber die mittlere Kerze ist ein Doji.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{2} \\approx 0 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Starke bärische Umkehr.\n*   **Einstieg:** Short beim Schluss der 3. Kerze.",
       "indicatorCombination": "Volumen sollte beim Doji niedrig sein. Ein signifikanter Anstieg des Volumens bei der dritten (bärischen) Kerze ist ein starkes Bestätigungsmerkmal. Ein überkaufter Zustand (RSI) vor dem Muster erhöht die Signifikanz."
     },
     "evening_star": {
       "name": "Evening Star",
-      "description": "Der Evening Star ist ein dreiteiliges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. 1. Lange bullische Kerze. 2. Kleine Kerze (Doji, Spinning Top oder kleiner Körper), die idealerweise oberhalb der ersten Kerze eröffnet (Gap Up). 3. Lange bärische Kerze, die weit in den Körper der ersten Kerze oder darunter schließt.",
-      "interpretation": "Signalisiert ein nachlassendes Kaufmomentum (Kerze 1), Unentschlossenheit (Kerze 2) und dann eine starke Übernahme durch Verkäufer (Kerze 3), was auf eine bärische Trendwende hindeutet.",
-      "indicatorCombination": "Volumen bei der zweiten ('Star') Kerze ist oft niedrig. Ein Anstieg des Volumens bei der dritten (bärischen) Kerze ist ein positives Zeichen. Kann durch überkaufte Oszillatoren (RSI, Stochastik) bestätigt werden."
+      "description": "Ein dreiteiliges bärisches Umkehrmuster: 1. Lange bullische Kerze. 2. Kleine Kerze mit Gap-Up (Star). 3. Starke bärische Kerze, die tief in den ersten Körper schließt.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} < \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Short zur Eröffnung der 4. Kerze.\n*   **Stop Loss:** Über dem Hoch des 'Star'.\n*   **Krypto-Nuance:** Echte Gaps sind in 24/7-Märkten selten; die Form ist wichtiger als das Gap.",
+      "indicatorCombination": "Achte auf sinkendes Volumen bei der ersten und steigendes Volumen bei der dritten (bärischen) Kerze."
     },
     "gravestone_doji": {
       "name": "Gravestone Doji",
-      "description": "Ein Gravestone Doji bildet sich, wenn Eröffnungs-, Tiefst- und Schlusskurs nahezu identisch sind und ein langer oberer Schatten vorhanden ist. Es gibt keinen oder einen sehr kleinen unteren Schatten. Erscheint typischerweise nach einem Aufwärtstrend.",
-      "interpretation": "Signalisiert eine potenzielle bärische Umkehr. Käufer drückten den Preis, aber Verkäufer übernahmen die Kontrolle und brachten den Preis zurück zum Tagestief. Er ist stärker, wenn er in einer Widerstandszone auftritt.",
-      "indicatorCombination": "Hohes Volumen am Gravestone Doji kann die Ablehnung höherer Preise bestätigen. Sein Auftreten in einer überkauften Zone (RSI) oder an einem Fibonacci-Widerstand erhöht die Signifikanz."
+      "description": "Ein Doji, bei dem Open und Close am Tagestief liegen. Langer oberer Schatten, kein unterer Schatten.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open} \\approx \\text{Close} \\approx \\text{Low} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Ablehnung höherer Preise (Bärisch).\n*   **Einstieg:** Short beim Bruch des Tiefs.\n*   **Stop Loss:** Über dem langen oberen Docht.",
+      "indicatorCombination": "Volumenspitze bei der Dochtbildung deutet auf 'Smart Money' Verkäufe in die Stärke hin."
     },
     "hanging_man": {
       "name": "Hanging Man",
-      "description": "Der Hanging Man ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat dieselbe Form wie ein Hammer (kleiner Körper oben, langer unterer Schatten), erscheint aber nach einem Aufwärtstrend.\n\n### Mathematische Kriterien\n\n  $$ \\text{Unterer Schatten} \\ge 2 \\times \\text{Körper} $$\n\n  $$ \\text{Körper} < 50\\% \\text{ der Spanne} $$\n\n  $$ \\text{Oberer Schatten} < 2\\% \\text{ der Spanne} $$",
-      "interpretation": "Obwohl er bullisch aussieht, deutet sein Erscheinen nach einem Aufwärtstrend auf nachlassende Kaufkraft und eine potenzielle bärische Umkehr hin, besonders wenn die nächste Kerze tiefer schließt.",
-      "indicatorCombination": "Ein Hanging Man an einem wichtigen Widerstand oder gleitenden Durchschnitt ist ein stärkeres Signal. Ein Volumenanstieg bei der Bestätigungskerze unterstützt die Umkehr."
+      "description": "Bärisches Umkehrmuster nach Aufwärtstrend. Gleiche Form wie Hammer, aber am Top.\n\n### Mathematische Kriterien\n\n  $$ \\text{Lower Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Range} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Schwäche. Käufer drückten hoch, aber Verkäufer kamen im Verlauf zurück.\n*   **Einstieg:** Short unter dem Tief des Hanging Man.\n*   **Stop Loss:** Über dem Hoch.",
+      "indicatorCombination": "Erscheint oft an Fibonacci-Extension-Widerständen."
     },
     "shooting_star": {
       "name": "Shooting Star",
-      "description": "Ein Shooting Star ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein unterer Schatten.\n\n### Mathematische Kriterien\n\n  $$ \\text{Oberer Schatten} \\ge 2 \\times \\text{Körper} $$\n\n  $$ \\text{Körper} < 50\\% \\text{ der Spanne} $$\n\n  $$ \\text{Unterer Schatten} < 2\\% \\text{ der Spanne} $$",
-      "interpretation": "Signalisiert, dass Käufer den Preis nach oben trieben, aber Verkäufer stark genug waren, den Preis bis nahe an den Eröffnungskurs zurückzubringen. Potenzielle bärische Umkehr.",
-      "indicatorCombination": "Ein Shooting Star an einem Widerstandslevel oder in einer überkauften Zone (RSI) ist aussagekräftiger. Ein Volumenanstieg bei der Shooting Star Kerze oder der bärischen Bestätigungskerze erhöht die Zuverlässigkeit."
+      "description": "Ein bärisches Einzelkerzen-Muster mit kleinem Körper unten und langem oberen Docht. Es signalisiert Ablehnung höherer Preise.\n\n### Mathematische Kriterien\n\n  $$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Lower Shadow} \\approx 0 $$",
+      "interpretation": "### Handelsregeln\n*   **Einstieg:** Short unter dem Tief des Shooting Star.\n*   **Stop Loss:** Über dem Hoch des oberen Dochts.\n*   **Risiko:** Hohe Volatilität kann Stops leicht auslösen; ATR-Puffer nutzen.",
+      "indicatorCombination": "Bildet sich idealerweise am oberen Bollinger-Band. Überkaufter RSI (>70) ist eine Standardbestätigung."
     },
     "three_black_crows": {
       "name": "Three Black Crows",
-      "description": "Three Black Crows ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Es besteht aus drei aufeinanderfolgenden langen bärischen Kerzen. Jede Kerze eröffnet im Körper der vorherigen und schließt tiefer als die vorherige, idealerweise nahe ihrem Tief.",
-      "interpretation": "Signalisiert eine starke und stetige Umkehr der Verkaufskraft und den Beginn eines neuen Abwärtstrends.",
-      "indicatorCombination": "Das Volumen sollte idealerweise mit jeder der drei 'Krähen'-Kerzen zunehmen oder zumindest konstant hoch bleiben. Das Muster ist stärker, wenn es nach einem signifikanten Aufwärtstrend oder einer Konsolidierungsphase am Top auftritt und nicht in einer bereits stark überverkauften Zone."
+      "description": "Drei aufeinanderfolgende lange bärische Kerzen mit tieferen Schlusskursen. Jede eröffnet innerhalb des vorherigen Körpers.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{i} < \\text{Close}_{i-1} \\quad \\text{für } i=2,3 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Dominanter Verkaufsdruck.\n*   **Strategie:** Short beim Schluss der 3. Krähe, oder besser, beim Retest des Tiefs der 2. Krähe.",
+      "indicatorCombination": "Prüfe auf steigendes Volumen bei jeder Krähe. Wenn das Volumen abnimmt, verliert der Dump an Kraft."
     },
     "three_inside_down": {
       "name": "Three Inside Down",
-      "description": "Ein drei-kerziges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. 1. Eine lange bullische Kerze. 2. Eine kleine bärische Kerze (Harami), deren Körper vollständig im Körper der ersten Kerze enthalten ist. 3. Eine bärische Kerze, die unter dem Schluss der zweiten Kerze und idealerweise unter dem Tief der zweiten Kerze schließt.",
-      "interpretation": "Bestätigt das Bearish Harami Muster und signalisiert eine stärkere Wahrscheinlichkeit für eine bärische Umkehr. Die dritte Kerze zeigt, dass die Verkäufer die Kontrolle übernommen haben.",
+      "description": "Bestätigter Bearish Harami. 1. Bullisch. 2. Inside Bärisch. 3. Bärisch schließt tiefer.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} < \\text{Low}_{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Umkehr bestätigt.\n*   **Einstieg:** Schluss der 3. Kerze.",
       "indicatorCombination": "Ein Anstieg des Volumens bei der dritten Kerze stärkt das Signal. Das Muster ist zuverlässiger, wenn es in einer überkauften Zone (RSI) oder an einem Widerstandslevel auftritt."
     },
     "three_outside_down": {
       "name": "Three Outside Down",
-      "description": "Ein drei-kerziges bärisches Umkehrmuster. 1. Eine bullische Kerze. 2. Eine bärische Kerze, die die erste Kerze komplett umschließt (Bearish Engulfing). 3. Eine weitere bärische Kerze, die unter dem Schluss der zweiten Kerze schließt.",
-      "interpretation": "Ein starkes bärisches Umkehrsignal, das das Bearish Engulfing bestätigt und eine Fortsetzung der Abwärtsbewegung suggeriert.",
+      "description": "Bestätigtes Bearish Engulfing. 1. Bullisch. 2. Engulfing Bärisch. 3. Bärisch schließt tiefer.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} < \\text{Low}_{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Starke Umkehr.\n*   **Einstieg:** Schluss der 3. Kerze.",
       "indicatorCombination": "Steigendes Volumen bei der zweiten und dritten Kerze erhöht die Zuverlässigkeit. Sein Auftreten nach einer überkauften Phase (RSI) oder an einer Widerstandslinie verstärkt das Signal."
     },
     "tower_top": {
       "name": "Tower Top",
-      "description": "Ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Es beginnt mit einer oder mehreren langen bullischen Kerzen, gefolgt von einer Phase der Konsolidierung mit kleinen Körpern (Handel in enger Range). Das Muster wird abgeschlossen durch eine oder mehrere lange bärische Kerzen, die nach unten ausbrechen.",
-      "interpretation": "Die langen bullischen Kerzen zeigen Kaufdruck. Die Konsolidierungsphase deutet auf Unentschlossenheit und mögliche Top-Bildung hin. Die finalen bärischen Kerzen signalisieren eine Übernahme durch Verkäufer und eine wahrscheinliche Trendwende.",
+      "description": "Lange bullische Kerze, Konsolidierung, dann langer bärischer Drop.\n\n### Mathematische Kriterien\n\n  $$ \\text{Long Bull} \\to \\text{Base} \\to \\text{Long Bear} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Rundes Top.\n*   **Einstieg:** Bruch des Supports.",
       "indicatorCombination": "Volumen ist oft niedrig während der Konsolidierungsphase. Ein signifikanter Volumenanstieg bei den ausbrechenden bärischen Kerzen ist ein starkes Bestätigungsmerkmal. Eine bärische Divergenz im RSI während der Konsolidierung kann das Signal verstärken."
     },
     "tri_star_bearish": {
       "name": "Tri-Star (Bearish)",
-      "description": "Ein seltenes Umkehrmuster aus drei Dojis. Nach einem Aufwärtstrend bildet sich der mittlere Doji mit einer Lücke (Gap) nach oben zu den zwei äußeren Dojis. Alle drei Dojis haben kleine Handelsspannen.",
-      "interpretation": "Die drei Dojis signalisieren extreme Unentschlossenheit. Das Gap Up des mittleren Dojis, gefolgt von Unfähigkeit weiter zu steigen, deutet auf Käufererschöpfung und eine mögliche starke bärische Umkehr hin.",
+      "description": "Drei Dojis in Folge, der mittlere mit Gap-Up.\n\n### Mathematische Kriterien\n\n  $$ \\text{Body}_{1,2,3} \\approx 0 $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Seltenes großes Top.\n*   **Kontext:** Extreme Unentschlossenheit an Hochs.",
       "indicatorCombination": "Volumen ist typischerweise niedrig bei allen drei Dojis. Ein Anstieg bei einer bärischen Bestätigungskerze ist entscheidend. Ein überkaufter Zustand vor dem Muster erhöht die Wahrscheinlichkeit einer Umkehr."
     },
     "tweezer_tops": {
       "name": "Tweezer Tops",
-      "description": "Tweezer Tops sind ein bärisches Umkehrmuster, das typischerweise am Ende eines Aufwärtstrends auftritt. Es besteht aus zwei oder mehr Kerzen mit nahezu identischen Höchstständen. Die erste Kerze ist oft bullisch, die zweite bärisch, aber die Formen können variieren.",
-      "interpretation": "Die identischen Hochs deuten auf eine starke Widerstandszone hin. Käufer konnten den Preis nicht weiter nach oben treiben, was auf eine potenzielle bärische Umkehr hindeutet.",
-      "indicatorCombination": "Ein Tweezer Top an einer wichtigen Widerstandslinie oder einem Fibonacci-Retracement-Level ist aussagekräftiger. Eine bärische Divergenz im RSI oder MACD kann das Umkehrsignal verstärken."
+      "description": "Zwei oder mehr Kerzen mit gleichen Hochs.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{1} \\approx \\text{High}_{2} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Widerstand hält (Double Top).\n*   **Einstieg:** Short mit Stop Loss knapp über den Tweezer-Hochs.",
+      "indicatorCombination": "Fällt oft mit wichtigen Fibonacci-Retracement-Leveln zusammen."
     },
     "downside_gap_three_methods": {
       "name": "Downside Gap Three Methods",
-      "description": "Ein bärisches Fortsetzungsmuster. 1. Eine lange bärische Kerze. 2. Eine weitere lange bärische Kerze, die nach unten 'gapt'. 3. Eine kleine bullische Kerze, die das Gap zwischen den ersten beiden Kerzen füllt, aber nicht über den Schluss der ersten Kerze steigt.",
-      "interpretation": "Das anfängliche Gap zeigt starkes bärisches Momentum. Die bullische Kerze stellt Gewinnmitnahmen oder einen Test des Gaps dar. Solange das Gap nicht vollständig geschlossen wird und der Preis unter dem Schluss der ersten Kerze bleibt, wird eine Fortsetzung des Abwärtstrends erwartet.",
+      "description": "Bärischer Trend, Gap Down, Gap füllen, weiter.\n\n### Mathematische Kriterien\n\n  $$ \\text{Gap Fill} $$",
+      "interpretation": "### Regeln\n* Shorten wenn Gap als Widerstand hält.",
       "indicatorCombination": "Volumen sollte hoch sein bei den ersten beiden bärischen Kerzen (besonders der Gap-Kerze). Niedrigeres Volumen ist wünschenswert bei der dritten (korrektiven bullischen) Kerze."
     },
     "downside_tasuki_gap": {
       "name": "Downside Tasuki Gap",
-      "description": "Ein bärisches Fortsetzungsmuster. 1. Eine lange bärische Kerze. 2. Eine weitere bärische Kerze, die nach unten 'gapt'. 3. Eine bullische Kerze, die innerhalb des Gaps eröffnet und schließt, das Gap aber nicht vollständig schließt.",
-      "interpretation": "Das Gap repräsentiert starkes bärisches Momentum. Die dritte Kerze ist ein Versuch der Bullen, das Gap zu schließen, scheitert aber. Dies bestätigt bärische Stärke und suggeriert eine Fortsetzung des Abwärtstrends.",
+      "description": "Bärisches Gap, dann kleine Bullenkerze bleibt im Gap.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{3} < \\text{Close}_{1} $$",
+      "interpretation": "### Regeln\n* Fortsetzung. Shorts halten.",
       "indicatorCombination": "Volumen sollte bei der zweiten Kerze (Gap Down) ansteigen. Niedrigeres Volumen bei der dritten (bullischen) Kerze ist typisch."
     },
     "falling_three_methods": {
       "name": "Falling Three Methods",
-      "description": "Ein bärisches Fortsetzungsmuster. Es beginnt mit einer langen bärischen Kerze, gefolgt von drei (oder mehr) kleinen bullischen Kerzen, die innerhalb der Range der ersten Kerze bleiben. Das Muster endet mit einer weiteren langen bärischen Kerze, die unter dem Schluss der ersten langen bärischen Kerze schließt.",
-      "interpretation": "Deutet auf eine Pause oder Konsolidierung innerhalb eines Abwärtstrends hin, bevor der Trend wieder aufgenommen wird. Die kleinen bullischen Kerzen stellen eine vorübergehende Erholung dar, aber die Bären gewinnen die Kontrolle zurück.",
-      "indicatorCombination": "Volumen sollte relativ hoch sein bei der ersten und letzten (langen bärischen) Kerze. Während der Konsolidierungsphase (kleine bullische Kerzen) ist niedrigeres Volumen typisch."
+      "description": "Lange bärische Kerze, gefolgt von drei kleinen bullischen Kerzen innerhalb der Range der ersten, dann neuer Drop.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{2,3,4} < \\text{High}_{1} \\text{ und } \\text{Low}_{2,3,4} > \\text{Low}_{1} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Bärische Fortsetzung (Bear Flag).\n*   **Einstieg:** Short beim Bruch des Tiefs der ersten Kerze.",
+      "indicatorCombination": "Volumen trocknet oft aus bei den kleinen Pullback-Kerzen."
     },
     "in_neck_line": {
       "name": "In Neck Line",
-      "description": "Ein bärisches Fortsetzungsmuster, ähnlich der On Neck Line. 1. Eine lange bärische Kerze. 2. Eine kleine bullische Kerze, die unter dem Tief der ersten Kerze eröffnet (Gap Down) und leicht in den Körper der ersten Kerze hineinschließt, aber unterhalb dessen Mitte.",
-      "interpretation": "Ähnlich wie On Neck, aber die Bullen zeigen etwas mehr Stärke, indem sie in den Körper der vorherigen Kerze schließen. Dennoch wird meist eine Fortsetzung des Abwärtstrends erwartet, wenn der Schlusskurs der zweiten Kerze nicht signifikant ist.",
+      "description": "Bärisch, dann Bullisch schließt leicht im Körper.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{2} \\approx \\text{Low}_{1} $$",
+      "interpretation": "### Regeln\n* Schwacher Pullback. Trend geht wahrscheinlich weiter runter.",
       "indicatorCombination": "Keine starke spezifische Volumenindikation, aber ein Anstieg bei der Fortsetzung des Abwärtstrends wäre bestätigend. Das Muster ist stärker, wenn es unter einem wichtigen gleitenden Durchschnitt auftritt."
     },
     "on_neck_line": {
       "name": "On Neck Line",
-      "description": "Ein bärisches Fortsetzungsmuster, das in einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine kleine bullische Kerze, die unter dem Tief der ersten Kerze eröffnet (Gap Down) und nahe dem Tief der ersten Kerze schließt (die Schlusskurse sind fast gleich).",
-      "interpretation": "Die Bullen versuchen eine Erholung, scheitern aber daran, den Preis signifikant über das Tief der vorherigen Kerze zu heben. Dies suggeriert eine Fortsetzung des Abwärtstrends.",
+      "description": "Bärisch, dann Bullisch schließt am Tief.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{2} = \\text{Low}_{1} $$",
+      "interpretation": "### Regeln\n* Sehr schwach. Verkaufen.",
       "indicatorCombination": "Ähnlich wie bei In Neck Line. Ein MACD, der im bärischen Bereich verbleibt oder einen bärischen Crossover zeigt, kann das Signal unterstützen."
     },
     "separating_lines_bearish": {
       "name": "Separating Lines (Bearish)",
-      "description": "Ein bärisches Fortsetzungsmuster. 1. In einem Abwärtstrend erscheint eine lange bullische Kerze. 2. Am nächsten Tag 'gapt' der Markt nach unten zum gleichen Eröffnungskurs wie die vorherige bullische Kerze und schließt als lange bärische Kerze.",
-      "interpretation": "Die bullische Kerze scheint eine Umkehr anzudeuten, aber das Gap Down zum vorherigen Eröffnungskurs und die starke bärische Bewegung am zweiten Tag negieren die bullische Implikation und signalisieren eine Fortsetzung des Abwärtstrends.",
+      "description": "Bullisch dann Bärisch. Eröffnungspreise sind gleich.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open}_{1} = \\text{Open}_{2} $$",
+      "interpretation": "### Regeln\n* Fortsetzung. Handle mit dem Trend.",
       "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bärischen) Kerze kann die Stärke der Trendfortsetzung unterstreichen. Das Muster ist stärker, wenn es unter einem wichtigen gleitenden Durchschnitt auftritt."
     },
     "thrusting_line": {
       "name": "Thrusting Line",
-      "description": "Ein Muster, das in einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine bullische Kerze, die unter dem Tief der ersten Kerze eröffnet (Gap Down) und in den Körper der ersten Kerze hineinschließt, aber nicht über dessen Mitte hinausgeht.",
-      "interpretation": "Wird oft als bärisches Fortsetzungsmuster angesehen, weil den Bullen die Kraft fehlt, den Preis über die Mitte der vorherigen bärischen Kerze zu drücken. Wenn der Preis jedoch in den folgenden Tagen über das Hoch der Thrusting Line steigt, kann es ein Fehlsignal sein und eine bullische Umkehr anzeigen.",
+      "description": "Bärisch, dann Bullisch schließt unter Mitte.\n\n### Mathematische Kriterien\n\n  $$ \\text{Close}_{2} < \\text{Midpoint}_{1} $$",
+      "interpretation": "### Regeln\n* Gescheiterte Umkehr. Vorsicht.",
       "indicatorCombination": "Keine starke spezifische Volumenindikation. Das Muster ist schwächer als eine Piercing Line und sollte mit Vorsicht behandelt werden; Bestätigung durch weitere bärische Kerzen ist wichtig."
     },
     "two_black_gapping_candles": {
       "name": "Two Black Gapping Candles",
-      "description": "Ein bärisches Fortsetzungsmuster, das nach einem signifikanten Hoch in einem Aufwärtstrend auftritt. 1. Eine bärische Kerze, die von der vorherigen (bullischen) Kerze nach unten 'gapt'. 2. Eine weitere bärische Kerze, die von der ersten bärischen Kerze nach unten 'gapt' und tiefer schließt.",
-      "interpretation": "Die aufeinanderfolgenden Gaps nach unten signalisieren starkes bärisches Momentum und eine wahrscheinliche Fortsetzung des Abwärtstrends. Dieses Muster ist besonders stark, wenn es nach einem Top auftritt.",
+      "description": "Bärischer Trend, zwei Kerzen gapen nacheinander runter.\n\n### Mathematische Kriterien\n\n  $$ \\text{Gap}_{1} \\text{ und } \\text{Gap}_{2} $$",
+      "interpretation": "### Regeln\n* Starkes Momentum. Shorts halten.",
       "indicatorCombination": "Volumen kann bei den Gap-Kerzen zunehmen, was das bärische Momentum bestätigt. Ein Bruch wichtiger Unterstützungsniveaus nach dem Muster verstärkt das Signal."
     },
     "bearish_marubozu": {
       "name": "Bearish Marubozu",
-      "description": "Ein Bearish Marubozu ist eine lange rote (oder schwarze) Kerze ohne oberen oder unteren Schatten. Der Eröffnungskurs entspricht dem Höchstkurs und der Schlusskurs dem Tiefstkurs.",
-      "interpretation": "Zeigt extreme bärische Stärke. Die Verkäufer kontrollierten den Preis von der Eröffnung bis zum Schluss. Kann den Beginn eines bärischen Trends oder die Fortsetzung eines Abwärtstrends signalisieren.",
-      "indicatorCombination": "Hohes Volumen bei einem Bearish Marubozu bestätigt die Stärke der Verkäufer. In einem Aufwärtstrend kann es nach einer überkauften Phase (RSI > 70) eine starke Umkehr einleiten."
+      "description": "Lange bärische Kerze ohne Schatten. Open ist High, Close ist Low.\n\n### Mathematische Kriterien\n\n  $$ \\text{Open} = \\text{High} \\text{ und } \\text{Close} = \\text{Low} $$",
+      "interpretation": "### Handelsregeln\n*   **Signal:** Totale Verkäuferdominanz.\n*   **Strategie:** Sell/Short. Versuche nicht, ins fallende Messer zu greifen, bis Umkehrsignal kommt.",
+      "indicatorCombination": "Wenn Volumen niedrig ist, evtl. eine Liquiditätsfalle. Hohes Volumen bestätigt Validität."
     },
     "retracing_wicks": {
       "name": "Retracing Wicks",
-      "description": "Nach einem Aufwärtstrend bilden zwei oder mehr Kerzen lange obere Dochte auf ähnlichem Preisniveau (Widerstand). Die zweite Docht-Kerze schließt bereits bärisch und signalisiert den Beginn des Trendwechsels. Eine starke rote Folgekerze bestätigt die Umkehr.",
-      "interpretation": "Die langen Dochte zeigen die wiederholte Ablehnung höherer Preise. Der Farbwechsel zu einer roten Kerze beim zweiten Test ist das entscheidende Signal, dass die Verkäufer die Oberhand gewinnen. Die nachfolgende rote Kerze bestätigt das neue Abwärtsmomentum.",
+      "description": "Mehrere Kerzen mit langen oberen Dochten am Widerstand.\n\n### Mathematische Kriterien\n\n  $$ \\text{High}_{1} \\approx \\text{High}_{2} \\text{ m/ Dochten} $$",
+      "interpretation": "### Regeln\n* Widerstand ist massiv. Shorten.",
       "indicatorCombination": "Das Signal ist stärker, wenn die Docht-Kerzen bei hohem Volumen auftreten. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) erhöht die Signifikanz."
     },
     "advancing_wicks": {
       "name": "Advancing Wicks",
-      "description": "Nach einem Abwärtstrend bilden zwei oder mehr Kerzen lange untere Dochte auf ähnlichem Preisniveau (Unterstützung). Die zweite Docht-Kerze schließt bereits bullisch und signalisiert den Beginn des Trendwechsels. Eine starke grüne Folgekerze bestätigt die Umkehr.",
-      "interpretation": "Die langen Dochte zeigen die wiederholte Ablehnung tieferer Preise. Der Farbwechsel zu einer grünen Kerze beim zweiten Test ist das entscheidende Signal, dass die Käufer die Oberhand gewinnen. Die nachfolgende grüne Kerze bestätigt das neue Aufwärtsmomentum.",
+      "description": "Mehrere Kerzen mit langen unteren Dochten am Support.\n\n### Mathematische Kriterien\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} \\text{ m/ Dochten} $$",
+      "interpretation": "### Regeln\n* Support ist massiv. Kaufen.",
       "indicatorCombination": "Das Signal wird verstärkt durch hohes Volumen bei den Docht-Kerzen und der bullischen Bestätigungskerze. Eine bullische Divergenz im RSI oder MACD macht eine erfolgreiche Umkehr wahrscheinlicher."
     },
     "title": "Candlestick Akademie"
