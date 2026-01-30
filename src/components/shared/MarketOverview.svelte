@@ -335,9 +335,9 @@
     } else if (mode === "coinank_iframe") {
       const url = getCoinankUrl(symbol, tf, currentProvider, "iframe");
       const winId = `coinank_${symbol}_${tf}`;
-      windowManager.open(
-        new IframeWindow(url, `Coinank ${displaySymbol} ${tf}`, winId),
-      );
+      const win = new IframeWindow(url, `Coinank ${displaySymbol} ${tf}`);
+      win.id = winId;
+      windowManager.open(win);
     } else {
       // Direct Link
       externalLinkService.openOrFocus(cgHeatmapLink, cgTarget);
