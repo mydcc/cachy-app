@@ -77,7 +77,7 @@ function mapToOMSPosition(data: any): OMSPosition {
 function mapToOMSOrder(data: any): OMSOrder {
   // Hardening: Detect numeric IDs which imply precision loss
   if (typeof data.orderId === 'number') {
-      logger.warn("network", `[BitunixWS] CRITICAL: orderId is number! Precision loss imminent: ${data.orderId}`);
+    logger.warn("network", `[BitunixWS] CRITICAL: orderId is number! Precision loss imminent: ${data.orderId}`);
   }
 
   const statusMap: Record<string, OMSOrderStatus> = {
@@ -122,7 +122,10 @@ class BitunixWebSocketService {
   private lastWatchdogResetPrivate = 0;
   private readonly WATCHDOG_THROTTLE_MS = 100;
 
-  public publicSubscriptions: Set<string> = new Set();
+  // [HYBRID CHANGE] 
+  // We separate 'active' subscriptions (state) from 'pending' (intent).
+  // The 'pendingSubscriptions' acts as a buffer that survives re-connects.
+  public pendingSubscriptions: Set<string> = new Set();
 
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
@@ -394,7 +397,12 @@ class BitunixWebSocketService {
         this.lastMessageTimePublic = Date.now();
         this.startHeartbeat(ws, "public");
         this.resetWatchdog("public", ws);
-        this.resubscribePublic();
+        this.lastMessageTimePublic = Date.now();
+        this.startHeartbeat(ws, "public");
+        this.resetWatchdog("public", ws);
+
+        // [HYBRID] Flush Buffer on Connect
+        this.flushPendingSubscriptions();
       };
 
       ws.onmessage = (event) => {
@@ -779,14 +787,14 @@ class BitunixWebSocketService {
               // HARDENING: Check for native numbers in critical fields
               // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
               if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                 const now = Date.now();
-                 if (now - this.lastNumericWarning > 60000) {
-                     logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
-                     this.lastNumericWarning = now;
-                 }
-                 // Force cast to string to prevent downstream crashes or invalid types
-                 if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                 if (typeof data.lp === 'number') data.lp = String(data.lp);
+                const now = Date.now();
+                if (now - this.lastNumericWarning > 60000) {
+                  logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
+                  this.lastNumericWarning = now;
+                }
+                // Force cast to string to prevent downstream crashes or invalid types
+                if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                if (typeof data.lp === 'number') data.lp = String(data.lp);
               }
 
               const normalized = mdaService.normalizeTicker(message, "bitunix");
@@ -852,7 +860,7 @@ class BitunixWebSocketService {
                   }
                 }
                 const normalizedKlines = mdaService.normalizeKlines([d], "bitunix");
-                  marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
+                marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
               }
             }
             return;
@@ -1067,49 +1075,48 @@ class BitunixWebSocketService {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
-    if (this.publicSubscriptions.has(subKey)) return;
 
-    // Prune oldest if limit reached
-    if (this.publicSubscriptions.size >= this.MAX_PUBLIC_SUBSCRIPTIONS) {
-      const oldest = this.publicSubscriptions.values().next().value;
-      if (oldest) {
-        this.publicSubscriptions.delete(oldest);
-        const [oldChan, oldSym] = oldest.split(":");
-        if (
-          oldChan &&
-          oldSym &&
-          this.wsPublic &&
-          this.wsPublic.readyState === WebSocket.OPEN
-        ) {
-          if (settingsState.enableNetworkLogs) {
-            logger.log("network", `[Auto-Prune] Unsubscribing ${oldest}`);
-          }
-          this.sendUnsubscribe(this.wsPublic, oldSym, oldChan);
-        }
-      }
-    }
+    // Idempotency: Always add to pending (Desired State)
+    this.pendingSubscriptions.add(subKey);
 
-    this.publicSubscriptions.add(subKey);
+    // If socket is open, execute immediately (Fast Path)
+    // If not, it stays in pending and flushes on onopen (Buffer Path)
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
       if (settingsState.enableNetworkLogs) {
         logger.log("network", `Subscribe: ${channel}:${normalizedSymbol}`);
       }
       this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
-    } else {
+    } else if (!this.wsPublic || this.wsPublic.readyState === WebSocket.CLOSED) {
       this.connectPublic();
     }
   }
 
   unsubscribe(symbol: string, channel: string) {
-    if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
-    if (this.publicSubscriptions.has(subKey)) {
-      this.publicSubscriptions.delete(subKey);
-      if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-        this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
-      }
+
+    // Remove from Desired State
+    this.pendingSubscriptions.delete(subKey);
+
+    if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+      this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
     }
+  }
+
+  // [HYBRID] New Flush Method
+  private flushPendingSubscriptions() {
+    if (!this.wsPublic || this.wsPublic.readyState !== WebSocket.OPEN) return;
+
+    // Convert Set to Array for iteration
+    const subs = Array.from(this.pendingSubscriptions);
+    if (subs.length === 0) return;
+
+    logger.log("network", `[BitunixWS] Flushing ${subs.length} buffered subscriptions`);
+
+    subs.forEach(key => {
+      const [channel, symbol] = key.split(":");
+      this.sendSubscribe(this.wsPublic!, symbol, channel);
+    });
   }
 
   private subscribePrivate() {
@@ -1143,7 +1150,7 @@ class BitunixWebSocketService {
   }
 
   private resubscribePublic() {
-    this.publicSubscriptions.forEach((subKey) => {
+    this.pendingSubscriptions.forEach((subKey) => {
       const [channel, symbol] = subKey.split(":");
       if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
         this.sendSubscribe(this.wsPublic, symbol, channel);
