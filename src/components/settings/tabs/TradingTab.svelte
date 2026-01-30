@@ -312,9 +312,9 @@
                                                     class="input-field py-1.5 text-xs w-full"
                                                 >
                                                     <option value="coinglass_link">Coinglass (Link)</option>
-                                                    <option value="coinglass_image">Coinglass (Snapshot Modal)</option>
+                                                    <option value="coinglass_popup">Coinglass (Popup Window)</option>
                                                     <option value="coinank_link">Coinank (Link)</option>
-                                                    <option value="coinank_iframe">Coinank (ProChart Modal)</option>
+                                                    <option value="coinank_popup">Coinank (ProChart Popup)</option>
                                                 </select>
                                                 <p class="text-[10px] text-[var(--text-secondary)] opacity-80">
                                                     {#if settingsState.heatmapMode && settingsState.heatmapMode.includes('coinank')}

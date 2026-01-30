@@ -32,7 +32,7 @@ export type AnalysisDepth = "quick" | "standard" | "deep";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode = "realtime" | "fast" | "balanced" | "conservative";
-export type HeatmapMode = "coinglass_link" | "coinglass_image" | "coinank_link" | "coinank_iframe";
+export type HeatmapMode = "coinglass_link" | "coinglass_popup" | "coinank_link" | "coinank_popup";
 
 export const TECHNICALS_UPDATE_PRESETS = {
   realtime: {

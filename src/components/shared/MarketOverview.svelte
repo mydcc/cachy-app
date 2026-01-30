@@ -27,7 +27,6 @@
   import { app } from "../../services/app";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
-  import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { viewport } from "../../actions/viewport";
@@ -314,10 +313,10 @@
 
     if (mode === "coinank_link") {
       return getCoinankUrl(symbol, tf, currentProvider, "link");
-    } else if (mode === "coinank_iframe") {
+    } else if (mode === "coinank_popup") {
       return getCoinankUrl(symbol, tf, currentProvider, "iframe");
     } else {
-      // Coinglass (link or image)
+      // Coinglass (link or popup)
       return getCoinglassUrl(symbol);
     }
   });
@@ -328,16 +327,13 @@
     const currentProvider = settingsState.apiProvider;
     const tf = effectiveRsiTimeframe || "1d";
 
-    if (mode === "coinglass_image") {
-      // Open Image Modal
-      // We pass the heatmap URL as source/fallback since we can't easily fetch the blob client-side
-      uiState.toggleImageModal(true, cgHeatmapLink);
-    } else if (mode === "coinank_iframe") {
+    if (mode === "coinglass_popup") {
+      // Open Popup Window (solves CORS image issue by just showing the page in a dedicated window)
+      externalLinkService.openPopout(cgHeatmapLink, cgTarget, 1200, 800);
+    } else if (mode === "coinank_popup") {
+      // Open Popup Window (solves Iframe Login issue by sharing session with main window)
       const url = getCoinankUrl(symbol, tf, currentProvider, "iframe");
-      const winId = `coinank_${symbol}_${tf}`;
-      const win = new IframeWindow(url, `Coinank ${displaySymbol} ${tf}`);
-      win.id = winId;
-      windowManager.open(win);
+      externalLinkService.openPopout(url, `coinank_${symbol}_${tf}`, 1400, 900);
     } else {
       // Direct Link
       externalLinkService.openOrFocus(cgHeatmapLink, cgTarget);
