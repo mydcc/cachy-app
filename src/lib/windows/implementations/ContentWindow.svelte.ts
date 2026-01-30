@@ -12,10 +12,24 @@ export class ContentWindow extends WindowBase {
         super({ title, ...options });
         this._component = component;
 
-        // Default settings for content windows
-        this.showCachyIcon = options.showCachyIcon ?? true;
-        this.allowZoom = options.allowZoom ?? true;
-        this.allowFontSize = options.allowFontSize ?? true;
+        // --- ALL FLAGS INITIALIZED (Disabled by default for fine-tuning) ---
+
+        // UI Features
+        this.showCachyIcon = false;
+        this.allowZoom = false;
+        this.allowFontSize = false;
+
+        // Visual Effects
+        this.enableGlassmorphism = false;
+        this.enableBurningBorders = false;
+        this.burnIntensity = 0.5;
+        this.isTransparent = false;
+        this.opacity = 1.0;
+
+        // Interaction
+        this.isDraggable = true;  // Usability default
+        this.isResizable = true;  // Usability default
+        this.closeOnBlur = false;
     }
 
     get component() {
