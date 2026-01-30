@@ -8,6 +8,7 @@ import IframeView from "./IframeView.svelte";
 
 export class IframeWindow extends WindowBase {
     url: string;
+    static newsStagger = 0;
 
     constructor(url: string, title: string, options: any = {}) {
         const width = options.width ?? Math.min(window.innerWidth * 0.8, 800);
@@ -21,6 +22,14 @@ export class IframeWindow extends WindowBase {
         });
         this.url = url;
 
+        // --- News Specific Cascading (Fixed start 100, 100) ---
+        if (options.x === undefined && options.y === undefined && typeof window !== 'undefined') {
+            const stagger = (IframeWindow.newsStagger % 10) * 25;
+            this.x = 100 + stagger;
+            this.y = 100 + stagger;
+            IframeWindow.newsStagger++;
+        }
+
         // --- ALL FLAGS INITIALIZED (Disabled by default for fine-tuning) ---
 
         // UI Features
@@ -33,12 +42,12 @@ export class IframeWindow extends WindowBase {
         this.enableBurningBorders = false;
         this.burnIntensity = 0.5;
         this.isTransparent = false;
-        this.opacity = 0.9;
+        this.opacity = 1.0;
 
         // Interaction
         this.isDraggable = true; // Draggable should usually stay true for usability unless specified
         this.isResizable = true; // Resizable usually stays true
-        this.closeOnBlur = false;
+        this.closeOnBlur = true;
     }
 
     get component() {

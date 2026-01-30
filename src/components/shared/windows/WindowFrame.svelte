@@ -16,6 +16,18 @@
     let showSettings = $state(false);
     let isResizing = $state(false);
 
+    // Close settings when clicking outside
+    $effect(() => {
+        if (!showSettings) return;
+        const handler = (e: MouseEvent) => {
+            if (!(e.target as HTMLElement).closest(".cachy-logo")) {
+                showSettings = false;
+            }
+        };
+        window.addEventListener("click", handler);
+        return () => window.removeEventListener("click", handler);
+    });
+
     function handlePointerDown(e: PointerEvent) {
         windowManager.bringToFront(win.id);
     }
@@ -341,15 +353,15 @@
         border-radius: 12px;
         background: var(--bg-secondary);
         backdrop-filter: none;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         transition:
             box-shadow 0.2s ease,
             opacity 0.2s ease;
     }
     .window-frame.focused {
-        box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
-        border: 1px solid var(--accent-color);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.15); /* Grayed out instead of accent color */
     }
     .window-frame.dragging {
         opacity: 0.9;
@@ -373,7 +385,7 @@
         justify-content: space-between;
         align-items: center;
         user-select: none;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     .header-content {
         display: flex;
@@ -470,6 +482,11 @@
         display: flex;
         align-items: center;
         padding-right: 4px;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .cachy-logo:hover {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 5px var(--accent-color));
     }
     .control-group {
         display: flex;
@@ -534,14 +551,15 @@
         position: absolute;
         top: 100%;
         left: 0;
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
         padding: 12px;
         z-index: 1000;
         min-width: 160px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         backdrop-filter: blur(10px);
+        transform-origin: top left;
     }
     .cachy-logo {
         position: relative;

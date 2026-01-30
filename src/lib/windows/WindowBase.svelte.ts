@@ -62,7 +62,7 @@ export abstract class WindowBase {
 
         // Intelligent positioning & staggering
         if (typeof window !== 'undefined') {
-            const stagger = (WindowBase.staggerCount % 10) * 25;
+            const stagger = (WindowBase.staggerCount % 10) * 20;
             // Default to center if no x/y
             this.x = options.x ?? (window.innerWidth - this.width) / 2 + stagger;
             this.y = options.y ?? (window.innerHeight - this.height) / 2 + stagger;
