@@ -52,6 +52,30 @@ class UiManager {
     return windowManager.windows;
   }
 
+  get showJournalModal() {
+    return windowManager.isOpen("journal");
+  }
+
+  get showSettingsModal() {
+    return windowManager.isOpen("settings");
+  }
+
+  get showGuideModal() {
+    return windowManager.isOpen("guide");
+  }
+
+  get showChangelogModal() {
+    return windowManager.isOpen("changelog");
+  }
+
+  get showPrivacyModal() {
+    return windowManager.isOpen("privacy");
+  }
+
+  get showWhitepaperModal() {
+    return windowManager.isOpen("whitepaper");
+  }
+
   // Loading State
   isLoading = $state(false);
   loadingMessage = $state("");
@@ -325,6 +349,12 @@ class UiManager {
       windowManager.close("settings");
     }
   }
+
+  openSettings(tab: string = "trading") {
+    this.settingsTab = tab;
+    this.toggleSettingsModal(true);
+  }
+
   toggleMarketDashboardModal(show: boolean) {
     this.showMarketDashboardModal = show;
   }
