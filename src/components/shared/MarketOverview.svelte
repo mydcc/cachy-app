@@ -22,10 +22,12 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { normalizeSymbol } from "../../utils/symbolUtils";
+  import { getCoinglassUrl, getCoinankUrl } from "../../utils/heatmapUtils";
   import { Decimal } from "decimal.js";
   import { app } from "../../services/app";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
+  import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { viewport } from "../../actions/viewport";
@@ -303,9 +305,45 @@
       : symbol;
     return `https://www.tradingview.com/chart/?symbol=${providerPrefix}:${formattedSymbol.toUpperCase()}`;
   });
-  let cgHeatmapLink = $derived(
-    `https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=${baseAsset}`,
-  );
+
+  let cgHeatmapLink = $derived.by(() => {
+    const mode = settingsState.heatmapMode;
+    const currentProvider = settingsState.apiProvider;
+    // Use effective RSI timeframe as proxy for "active strategy timeframe"
+    const tf = effectiveRsiTimeframe || "1d";
+
+    if (mode === "coinank_link") {
+      return getCoinankUrl(symbol, tf, currentProvider, "link");
+    } else if (mode === "coinank_iframe") {
+      return getCoinankUrl(symbol, tf, currentProvider, "iframe");
+    } else {
+      // Coinglass (link or image)
+      return getCoinglassUrl(symbol);
+    }
+  });
+
+  function handleHeatmapClick(e: MouseEvent) {
+    e.preventDefault();
+    const mode = settingsState.heatmapMode;
+    const currentProvider = settingsState.apiProvider;
+    const tf = effectiveRsiTimeframe || "1d";
+
+    if (mode === "coinglass_image") {
+      // Open Image Modal
+      // We pass the heatmap URL as source/fallback since we can't easily fetch the blob client-side
+      uiState.toggleImageModal(true, cgHeatmapLink);
+    } else if (mode === "coinank_iframe") {
+      const url = getCoinankUrl(symbol, tf, currentProvider, "iframe");
+      const winId = `coinank_${symbol}_${tf}`;
+      const win = new IframeWindow(url, `Coinank ${displaySymbol} ${tf}`);
+      win.id = winId;
+      windowManager.open(win);
+    } else {
+      // Direct Link
+      externalLinkService.openOrFocus(cgHeatmapLink, cgTarget);
+    }
+  }
+
   let brokerLink = $derived.by(() => {
     const s = symbol.toUpperCase();
     if (provider.toLowerCase() === "bitget") {
@@ -614,10 +652,8 @@
               href={cgHeatmapLink}
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title={$_("marketOverview.tooltips.liquidationHeatmap")}
-              onclick={(e) => {
-                e.preventDefault();
-                externalLinkService.openOrFocus(cgHeatmapLink, cgTarget);
-              }}>CG Heat</a
+              onclick={handleHeatmapClick}
+              >Heatmap</a
             >
           {/if}
           {#if settingsState.showBrokerLink}
