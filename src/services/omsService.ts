@@ -12,9 +12,9 @@ import { logger } from "./logger";
 class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
-    private readonly MAX_ORDERS = 1000;
+    private readonly MAX_ORDERS = 2000;
     private readonly MAX_POSITIONS = 50;
-    private watchdogInterval: ReturnType<typeof setInterval>;
+    private watchdogInterval: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
         // Watchdog: Clean up optimistic orders that are stuck (Ghost Orders)
@@ -23,39 +23,28 @@ class OrderManagementSystem {
             this.watchdogInterval = setInterval(() => {
                 this.removeOrphanedOptimistic(30000);
             }, 5000);
-        } else {
-             this.watchdogInterval = setInterval(() => {}, 1000000) as any; // No-op in server context
+        }
+    }
+
+    public destroy() {
+        if (this.watchdogInterval) {
+            clearInterval(this.watchdogInterval);
+            this.watchdogInterval = null;
         }
     }
 
     public updateOrder(order: OMSOrder) {
         const isKnown = this.orders.has(order.id);
-        const isFinalized = ["filled", "cancelled", "rejected", "expired"].includes(order.status);
 
-        // Hardening: Prevent memory attacks by capping active orders
+        // Ring Buffer Logic:
+        // If we are at capacity and this is a NEW order, we must make space.
+        // We do NOT reject new orders. We evict the oldest ones.
         if (!isKnown && this.orders.size >= this.MAX_ORDERS) {
-            // If we are at limit, try to prune first
-            this.pruneOrders();
-
-            if (this.orders.size >= this.MAX_ORDERS) {
-                if (isFinalized) {
-                    // CRITICAL FIX: Allow finalized orders to bypass limit temporarily to ensure UI sync
-                    // We will trigger prune again after insertion.
-                    // This prevents "Phantom Orders" where a fill event is rejected because of full buffer.
-                    logger.warn("market", `[OMS] Order limit hit, but accepting FINALIZED order: ${order.id}`);
-                } else {
-                    logger.error("market", `[OMS] Order limit (${this.MAX_ORDERS}) hit. Rejecting new order: ${order.id}`);
-                    return; // Reject update to protect memory
-                }
-            }
+            this.pruneOrders(true); // Force prune one item
         }
 
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
-
-        if (this.orders.size > this.MAX_ORDERS) {
-            this.pruneOrders();
-        }
     }
 
     public addOptimisticOrder(order: OMSOrder) {
@@ -74,36 +63,35 @@ class OrderManagementSystem {
         }
     }
 
-    private pruneOrders() {
+    private pruneOrders(forceOne = false) {
         // Protect recent orders from being pruned immediately (UI needs to see them)
-        const PRESERVE_LATEST = 10;
+        const PRESERVE_LATEST = 20;
 
-        // Convert to array to control iteration range
-        // Note: Map.keys() respects insertion order
-        const allKeys = Array.from(this.orders.keys());
+        // Note: Map.keys() respects insertion order.
+        // The first keys are the oldest inserted.
 
-        // 1. Safe Prune: Remove oldest finalized orders first (ignoring the protected latest buffer)
-        // We only check orders that are OLDER than the preservation buffer
-        const pruneCandidates = allKeys.slice(0, Math.max(0, allKeys.length - PRESERVE_LATEST));
+        // 1. Safe Prune: Remove oldest finalized orders
+        // We iterate from the start (Oldest)
+        for (const [id, order] of this.orders) {
+            if (this.orders.size <= this.MAX_ORDERS && !forceOne) break;
 
-        for (const id of pruneCandidates) {
-            if (this.orders.size <= this.MAX_ORDERS) break;
-            const order = this.orders.get(id);
-            if (order && ["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
-                this.orders.delete(id);
+            // Check if finalized
+            if (["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
+                 this.orders.delete(id);
+                 if (forceOne) return; // Mission accomplished
             }
         }
 
-        // 2. Emergency Prune: If still over limit, remove oldest orders regardless of status
-        // This ensures new updates (inserted at end) are preserved while sacrificing oldest history.
-        if (this.orders.size > this.MAX_ORDERS) {
-            logger.warn("market", `[OMS] Emergency Prune: Dropping oldest orders to maintain limit.`);
-            // In emergency, we iterate from the start (oldest) and delete until we fit.
-            // We use the iterator directly to avoid another array copy
-            for (const [id] of this.orders) {
-                if (this.orders.size <= this.MAX_ORDERS) break;
-                this.orders.delete(id);
-            }
+        // 2. Force Prune: If still full (or no finalized orders found to delete),
+        // delete the ABSOLUTE OLDEST, even if active (unless we are inside the protected buffer)
+        // This is a trade-off: Dropping an active order from OMS is better than crashing or rejecting new ones.
+        if (this.orders.size > this.MAX_ORDERS || forceOne) {
+             const keys = this.orders.keys();
+             const oldestId = keys.next().value;
+             if (oldestId) {
+                 this.orders.delete(oldestId);
+                 logger.warn("market", `[OMS] Ring Buffer Eviction: Removed oldest order ${oldestId}`);
+             }
         }
     }
 
@@ -141,3 +129,9 @@ class OrderManagementSystem {
 }
 
 export const omsService = new OrderManagementSystem();
+
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        omsService.destroy();
+    });
+}

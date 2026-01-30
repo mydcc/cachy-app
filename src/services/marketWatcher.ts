@@ -20,6 +20,7 @@ class MarketWatcher {
   private startTimeout: any = null; // Track startup delay
   // private currentIntervalSeconds: number = 10; // Deprecated: Use settingsState
   private fetchLocks = new Set<string>(); // "symbol:channel"
+  private historyLocks = new Set<string>(); // "symbol:tf" for ensuring history
   private unlockTimeouts = new Map<string, any>(); // Track lock release timers to prevent race conditions
   private proactiveLockTimeouts = new Map<string, any>(); // Safety valve for stuck locks
   private staggerTimeouts = new Set<any>(); // Track staggered requests to prevent zombie calls
@@ -284,48 +285,51 @@ class MarketWatcher {
     const provider = settingsState.apiProvider;
     if (provider !== "bitunix") return; // Only supporting bitunix history optimization for now
 
-    // 1. Try Load from DB
-    const stored = await storageService.getKlines(symbol, tf);
-    if (stored && stored.length > 0) {
-      if (import.meta.env.DEV) console.log(`[History] Loaded ${stored.length} candles from DB for ${symbol}`);
-      marketState.updateSymbolKlines(symbol, tf, stored, "rest");
+    const lockKey = `${symbol}:${tf}`;
+    if (this.historyLocks.has(lockKey)) {
+        if (import.meta.env.DEV) console.log(`[History] Skipping duplicate ensureHistory for ${lockKey}`);
+        return;
     }
+    this.historyLocks.add(lockKey);
 
-    // 2. Determine if we need to fetch
-    // If we have saved data, we likely just need the HEAD (recent candles).
-    // If empty, we need massive backfill.
-    const limit = settingsState.chartHistoryLimit || 1000;
-
-    const doFetch = async () => {
-      // Fetch part 1: Latest
-      const latestLimit = 1000; // API Max
-      const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit);
-
-      if (klines1 && klines1.length > 0) {
-        marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
-        storageService.saveKlines(symbol, tf, klines1); // Async save
-
-        // Check if we have enough history now
-        const currentData = marketState.data[symbol]?.klines[tf] || [];
-
-        // Fetch part 2: Backfill if needed
-        // Only fetch if:
-        // 1. User wants more than 1000 candles
-        // 2. We received a full batch (meaning more likely exists)
-        // 3. We don't have enough history yet in memory/DB
-        if (limit > 1000 && klines1.length >= 1000 && currentData.length < limit) {
-          const oldestTime = klines1[0].time;
-          const klines2 = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
-          if (klines2 && klines2.length > 0) {
-            marketState.updateSymbolKlines(symbol, tf, klines2, "rest");
-            storageService.saveKlines(symbol, tf, klines2);
-          }
+    try {
+        // 1. Try Load from DB
+        const stored = await storageService.getKlines(symbol, tf);
+        if (stored && stored.length > 0) {
+            if (import.meta.env.DEV) console.log(`[History] Loaded ${stored.length} candles from DB for ${symbol}`);
+            marketState.updateSymbolKlines(symbol, tf, stored, "rest");
         }
-      }
-    }
 
-    // Execute non-blocking
-    doFetch().catch(e => logger.warn("market", `[History] Error ensuring history for ${symbol}`, e));
+        // 2. Determine if we need to fetch
+        const limit = settingsState.chartHistoryLimit || 1000;
+
+        // Execute Fetch Logic
+        // We await here inside the try block so the lock is held during the operation
+        const latestLimit = 1000; // API Max
+        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit);
+
+        if (klines1 && klines1.length > 0) {
+            marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
+            storageService.saveKlines(symbol, tf, klines1); // Async save
+
+            // Check if we have enough history now
+            const currentData = marketState.data[symbol]?.klines[tf] || [];
+
+            // Fetch part 2: Backfill if needed
+            if (limit > 1000 && klines1.length >= 1000 && currentData.length < limit) {
+                const oldestTime = klines1[0].time;
+                const klines2 = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+                if (klines2 && klines2.length > 0) {
+                    marketState.updateSymbolKlines(symbol, tf, klines2, "rest");
+                    storageService.saveKlines(symbol, tf, klines2);
+                }
+            }
+        }
+    } catch (e) {
+        logger.warn("market", `[History] Error ensuring history for ${symbol}`, e);
+    } finally {
+        this.historyLocks.delete(lockKey);
+    }
   }
 
   private async pollSymbolChannel(
