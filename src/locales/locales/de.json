@@ -565,8 +565,7 @@
       "closeChannel": "Kanal schließen"
     },
     "fundingRate": "Funding Rate",
-    "countdown": "Countdown",
-    "heatmapImage": "Heatmap Schnappschuss"
+    "countdown": "Countdown"
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikorechner",
@@ -1258,8 +1257,7 @@
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
-    "saveFailed": "Speichern fehlgeschlagen.",
-    "imageLoadFailed": "Bild nicht verfügbar"
+    "saveFailed": "Speichern fehlgeschlagen."
   },
   "modals": {
     "savePreset": {

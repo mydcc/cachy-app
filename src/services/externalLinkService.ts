@@ -43,6 +43,21 @@ export class ExternalLinkService {
       win.focus();
     }
   }
+
+  /**
+   * Opens a URL in a detached "Popup" window (minimal UI).
+   * This shares the session/cookies with the main window, solving auth issues (unlike iframes).
+   */
+  public openPopout(url: string, key: string, width = 1200, height = 800): void {
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    const features = `width=${width},height=${height},left=${left},top=${top},popup=yes,resizable=yes,scrollbars=yes,status=yes`;
+
+    const win = window.open(url, key, features);
+    if (win) {
+      win.focus();
+    }
+  }
 }
 
 export const externalLinkService = ExternalLinkService.getInstance();

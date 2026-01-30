@@ -550,7 +550,6 @@
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",
-    "heatmapImage": "Heatmap Snapshot",
     "length": "Length",
     "source": "Source",
     "signal": "Signal",
@@ -1219,8 +1218,7 @@
     "invalidTrade": "Invalid trade.",
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
-    "saveFailed": "Save failed.",
-    "imageLoadFailed": "Image Unavailable"
+    "saveFailed": "Save failed."
   },
   "modals": {
     "savePreset": {
