@@ -9,37 +9,36 @@ import IframeView from "./IframeView.svelte";
 export class IframeWindow extends WindowBase {
     url: string;
 
-    constructor(url: string, title: string, options: { x?: number; y?: number } = {}) {
-        const width = Math.min(window.innerWidth * 0.8, 800);
-        const height = Math.min(window.innerHeight * 0.8, 600);
+    constructor(url: string, title: string, options: any = {}) {
+        const width = options.width ?? Math.min(window.innerWidth * 0.8, 800);
+        const height = options.height ?? Math.min(window.innerHeight * 0.8, 600);
 
-        // Pass x and y if provided in options, else rely on auto-centering
         super({
             title,
             width,
             height,
-            x: options.x,
-            y: options.y
+            ...options
         });
         this.url = url;
 
-        // --- ALL FLAGS INITIALIZED (Set to false for testing) ---
+        // --- ALL FLAGS INITIALIZED (Disabled by default for fine-tuning) ---
 
         // UI Features
-        this.showCachyIcon = true;
-        this.allowZoom = true;
+        this.showCachyIcon = false;
+        this.allowZoom = false;
         this.allowFontSize = false;
 
         // Visual Effects
-        this.enableBurningBorders = true;
-        this.burnIntensity = 1.0;
+        this.enableGlassmorphism = false;
+        this.enableBurningBorders = false;
+        this.burnIntensity = 0.5;
         this.isTransparent = false;
-        this.opacity = 1.0;
+        this.opacity = 0.9;
 
         // Interaction
-        this.isDraggable = true;
-        this.isResizable = true;
-        this.closeOnBlur = false; // Artikel sollen offen bleiben beim App-Klick
+        this.isDraggable = true; // Draggable should usually stay true for usability unless specified
+        this.isResizable = true; // Resizable usually stays true
+        this.closeOnBlur = false;
     }
 
     get component() {

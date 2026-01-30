@@ -20,13 +20,9 @@
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
-  import JournalView from "../components/shared/JournalView.svelte";
-  import SettingsModal from "../components/settings/SettingsModal.svelte";
   import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
   import CustomModal from "../components/shared/CustomModal.svelte";
   import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
-  import FloatingIframe from "../components/shared/FloatingIframe.svelte";
-  import FloatingWindowsContainer from "../components/shared/FloatingWindowsContainer.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
@@ -316,18 +312,9 @@
   {@render children?.()}
 
   <!-- Global Modals -->
-  <JournalView />
-  <SettingsModal />
   <MarketDashboardModal />
   <CustomModal />
   <SymbolPickerModal />
-  <!-- Dynamic Floating Windows -->
-  {#each uiState.windows as window (window.id)}
-    <FloatingIframe
-      iframeState={window}
-      onClose={() => uiState.closeWindow(window.id)}
-    />
-  {/each}
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 
@@ -414,7 +401,6 @@
 {/if}
 
 <WindowContainer />
-<FloatingWindowsContainer />
 <ToastContainer />
 <FXOverlay />
 

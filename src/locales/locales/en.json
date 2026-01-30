@@ -1,4 +1,8 @@
 {
+  "windows": {
+    "settings": "Window Settings",
+    "smash": "Smash Window"
+  },
   "app": {
     "title": "Cachy",
     "journalButton": "Journal",
@@ -1724,17 +1728,6 @@
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
     "known": "I knew it"
-  },
-  "cloud": {
-    "title": "Community Cloud (Beta)",
-    "description": "Connect to SpacetimeDB to chat with other traders.",
-    "connectButton": "Connect to Local Cloud",
-    "noMessages": "No messages yet.",
-    "sendButton": "Send",
-    "placeholder": "Say hello..."
-  },
-  "windows": {
-    "smash": "Smash Window"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",

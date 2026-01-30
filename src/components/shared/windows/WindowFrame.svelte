@@ -13,6 +13,7 @@
     let { window: win }: Props = $props();
 
     let isDragging = $state(false);
+    let showSettings = $state(false);
     let isResizing = $state(false);
 
     function handlePointerDown(e: PointerEvent) {
@@ -140,6 +141,7 @@
     class:focused={win.isFocused}
     class:dragging={isDragging}
     class:transparent={win.isTransparent}
+    class:glass-morphism={win.enableGlassmorphism}
     style:left="{win.x}px"
     style:top="{win.y}px"
     style:width="{win.width}px"
@@ -161,12 +163,69 @@
     >
         <div class="header-content">
             {#if win.showCachyIcon}
-                <div class="cachy-logo">
+                <div
+                    class="cachy-logo"
+                    oncontextmenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showSettings = !showSettings;
+                    }}
+                    role="button"
+                    tabindex="0"
+                >
                     <CachyIcon
                         width="18"
                         height="18"
                         style="color: var(--accent-color)"
                     />
+
+                    {#if showSettings}
+                        <div
+                            class="window-settings-popup context-menu"
+                            style="display: block;"
+                        >
+                            <div class="settings-item">
+                                <span>Opacity</span>
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="1.0"
+                                    step="0.1"
+                                    bind:value={win.opacity}
+                                />
+                            </div>
+                            <label class="settings-item flex-row">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={win.enableGlassmorphism}
+                                />
+                                <span>Glass</span>
+                            </label>
+                            <label class="settings-item flex-row">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={win.enableBurningBorders}
+                                />
+                                <span>Burn</span>
+                            </label>
+
+                            <div class="menu-divider"></div>
+
+                            <button
+                                class="menu-item danger"
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    const winEl = (
+                                        e.currentTarget as HTMLElement
+                                    ).closest(".window-frame") as HTMLElement;
+                                    effectsState.triggerSmash(winEl, win.id);
+                                    windowManager.close(win.id);
+                                }}
+                            >
+                                🔨 {$_("windows.smash")}
+                            </button>
+                        </div>
+                    {/if}
                 </div>
             {/if}
             <span class="window-title">{win.title}</span>
@@ -201,20 +260,6 @@
             {/if}
 
             <div class="control-group">
-                <button
-                    onclick={(e) => {
-                        e.stopPropagation();
-                        // Get the window rect
-                        const winEl = (e.currentTarget as HTMLElement).closest(
-                            ".window-frame",
-                        ) as HTMLElement;
-                        effectsState.triggerSmash(winEl, win.id);
-                        windowManager.close(win.id); // Close immediately for visual effect
-                    }}
-                    class="tool-btn danger"
-                    title={$_("windows.smash")}>🔨</button
-                >
-                <div class="divider"></div>
                 <button
                     onclick={(e) => {
                         e.stopPropagation();
@@ -297,24 +342,28 @@
         background: var(--bg-secondary);
         backdrop-filter: none;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        border: 0px solid var(--border-color);
+        border: 1px solid var(--border-color);
         transition:
             box-shadow 0.2s ease,
             opacity 0.2s ease;
     }
     .window-frame.focused {
         box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
-        border: 0px solid var(--accent-color);
+        border: 1px solid var(--accent-color);
     }
     .window-frame.dragging {
         opacity: 0.9;
         cursor: grabbing;
     }
     .window-frame.transparent {
-        background: transparent;
-        backdrop-filter: none;
-        border: none;
-        box-shadow: none;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .window-frame.glass-morphism {
+        background: rgba(var(--bg-secondary-rgb, 15, 23, 42), 0.7);
+        backdrop-filter: blur(12px) saturate(180%);
     }
     .window-header {
         padding: 8px 12px;
@@ -478,5 +527,76 @@
     .close-btn:hover {
         background: color-mix(in srgb, var(--danger-color), transparent 80%);
         color: var(--danger-color);
+    }
+
+    /* Local Settings Popup / Context Menu */
+    .window-settings-popup {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        z-index: 1000;
+        min-width: 160px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+    }
+    .cachy-logo {
+        position: relative;
+        cursor: help;
+    }
+    .menu-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 8px -12px;
+        opacity: 0.5;
+    }
+    .menu-item {
+        width: 100%;
+        text-align: left;
+        padding: 8px;
+        border-radius: 4px;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 0.75rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .menu-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .menu-item.danger {
+        color: var(--danger-color);
+    }
+    .menu-item.danger:hover {
+        background: color-mix(in srgb, var(--danger-color), transparent 80%);
+    }
+    .settings-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+    .settings-item.flex-row {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        cursor: pointer;
+    }
+    .settings-item span {
+        white-space: nowrap;
+    }
+    .settings-item input[type="range"] {
+        width: 100%;
+    }
+    .settings-item input[type="checkbox"] {
+        cursor: pointer;
     }
 </style>

@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { uiState } from "../stores/ui.svelte";
+// uiState is imported dynamically to avoid circular dependencies
 
 export interface StorageStats {
   used: number;
@@ -34,7 +34,9 @@ export class StorageHelper {
         console.error("[Storage] Quota exceeded for key:", key);
 
         // 1. Notify user
-        uiState.showError("storage.quotaExceeded");
+        import("../stores/ui.svelte").then(({ uiState }) => {
+          uiState.showError("storage.quotaExceeded");
+        });
 
         // 2. Try to cleanup old cache
         this.cleanupCache();

@@ -1,4 +1,8 @@
 {
+  "windows": {
+    "settings": "Fenster-Einstellungen",
+    "smash": "Fenster zerschmettern"
+  },
   "app": {
     "title": "Cachy",
     "journalButton": "Journal",
@@ -1727,17 +1731,6 @@
     "clickToReveal": "Klicken zum Aufdecken",
     "practice": "Noch üben",
     "known": "Gewusst"
-  },
-  "cloud": {
-    "title": "Community Cloud (Beta)",
-    "description": "Verbinde dich mit SpacetimeDB, um mit anderen Tradern zu chatten.",
-    "connectButton": "Verbinden",
-    "noMessages": "Noch keine Nachrichten.",
-    "sendButton": "Senden",
-    "placeholder": "Sag Hallo..."
-  },
-  "windows": {
-    "smash": "Fenster zerschlagen"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",

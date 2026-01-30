@@ -26,7 +26,15 @@ class LoggerService {
         if (!browser) return false;
         if (force) return true;
 
-        const settings = settingsState;
+        // Use a safe access for settingsState to avoid circular dependency / initialization issues
+        let settings;
+        try {
+            settings = settingsState;
+            if (!settings) return category === "general";
+        } catch (e) {
+            // settingsState not yet initialized
+            return category === "general";
+        }
 
         // If debugMode is on, let everything through
         if (settings.debugMode) return true;

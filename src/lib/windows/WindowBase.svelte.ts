@@ -3,8 +3,11 @@
   Robust Base Class for UI Windows using Svelte 5 Runes
 */
 
+import type { WindowType, WindowOptions } from "./types";
+
 export abstract class WindowBase {
     id: string = crypto.randomUUID();
+    windowType: WindowType = $state("window");
     title = $state("");
     x = $state(0);
     y = $state(0);
@@ -19,10 +22,13 @@ export abstract class WindowBase {
     showCachyIcon = $state(false);
     allowZoom = $state(false);
     allowFontSize = $state(false);
-    enableBurningBorders = $state(true);
-    isDraggable = $state(true);
     isResizable = $state(true);
+    isDraggable = $state(true);
     isTransparent = $state(false);
+
+    // --- VISUALS ---
+    enableGlassmorphism = $state(true);
+    enableBurningBorders = $state(true);
     opacity = $state(1.0);
     closeOnBlur = $state(false);
 
@@ -34,8 +40,20 @@ export abstract class WindowBase {
 
     static staggerCount = 0;
 
-    constructor(options: { title: string; width?: number; height?: number; x?: number; y?: number }) {
-        this.title = options.title;
+    constructor(options: WindowOptions = {}) {
+        this.title = options.title || "";
+        this.windowType = options.windowType || "window";
+
+        if (options.id) this.id = options.id;
+        if (options.opacity !== undefined) this.opacity = options.opacity;
+        this.closeOnBlur = options.closeOnBlur ?? false;
+
+        if (options.visuals) {
+            if (options.visuals.glass !== undefined) this.enableGlassmorphism = options.visuals.glass;
+            if (options.visuals.burn !== undefined) this.enableBurningBorders = options.visuals.burn;
+            if (options.visuals.opacity !== undefined) this.opacity = options.visuals.opacity;
+        }
+
         // Use updateSize to ensure aspect ratio logic (and header compensation) runs immediately
         this.updateSize(
             options.width ?? 640,
@@ -45,9 +63,9 @@ export abstract class WindowBase {
         // Intelligent positioning & staggering
         if (typeof window !== 'undefined') {
             const stagger = (WindowBase.staggerCount % 10) * 25;
-            // Default to 20, 20 (top-left) as requested, plus staggering offset
-            this.x = options.x ?? 100 + stagger;
-            this.y = options.y ?? 100 + stagger;
+            // Default to center if no x/y
+            this.x = options.x ?? (window.innerWidth - this.width) / 2 + stagger;
+            this.y = options.y ?? (window.innerHeight - this.height) / 2 + stagger;
             WindowBase.staggerCount++;
         } else {
             this.x = options.x ?? 100;

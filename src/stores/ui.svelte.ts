@@ -19,57 +19,23 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { CONSTANTS } from "../lib/constants";
 import { toastService } from "../services/toastService.svelte";
-
-class FloatingWindow {
-  id = $state("");
-  visible = $state(true);
-  url = $state("");
-  title = $state("");
-  width = $state(768);
-  height = $state(465);
-  x = $state(100);
-  y = $state(100);
-  zIndex = $state(70);
-
-  constructor(data: {
-    id: string;
-    url: string;
-    title: string;
-    x?: number;
-    y?: number;
-    width?: number;
-    height?: number;
-    zIndex?: number;
-  }) {
-    this.id = data.id;
-    this.url = data.url;
-    this.title = data.title;
-    if (data.x !== undefined) this.x = data.x;
-    if (data.y !== undefined) this.y = data.y;
-    if (data.width !== undefined) this.width = data.width;
-    if (data.height !== undefined) this.height = data.height;
-    if (data.zIndex !== undefined) this.zIndex = data.zIndex;
-  }
-}
+import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { ModalWindow } from "../lib/windows/implementations/ModalWindow.svelte";
+import { MarkdownWindow } from "../lib/windows/implementations/MarkdownWindow.svelte";
+// Components are imported dynamically in toggle methods to avoid circular dependencies
 
 class UiManager {
   currentTheme = $state("dark");
-  showJournalModal = $state(false);
-  showChangelogModal = $state(false);
-  showGuideModal = $state(false);
-  showPrivacyModal = $state(false);
-  showWhitepaperModal = $state(false);
   showCopyFeedback = $state(false);
   showSaveFeedback = $state(false);
   toastMessage = $state("");
   errorMessage = $state("");
   showErrorMessage = $state(false);
   isPriceFetching = $state(false);
-  isSyncing = $state(false); // Prevents concurrent sync operations
+  isSyncing = $state(false);
   isAtrFetching = $state(false);
   symbolSuggestions = $state<string[]>([]);
   showSymbolSuggestions = $state(false);
-  showSettingsModal = $state(false);
   settingsTab = $state("trading");
   settingsTradingSubTab = $state("market");
   settingsVisualsSubTab = $state("appearance");
@@ -82,11 +48,9 @@ class UiManager {
   showMarketDashboardModal = $state(false);
   showAcademyModal = $state(false);
 
-  // Floating Windows Management
-  windows = $state<FloatingWindow[]>([]);
-  private windowOffset = 30; // Cascading offset
-  private basePosition = { x: 100, y: 100 };
-  private maxZIndex = 70; // Starting z-index for floating windows
+  get windows() {
+    return windowManager.windows;
+  }
 
   // Loading State
   isLoading = $state(false);
@@ -122,15 +86,10 @@ class UiManager {
 
   private notifyTimer: any = null;
 
-  // Legacy Subscribe for backward compatibility (simulates readable store)
+  // Legacy Subscribe for backward compatibility
   subscribe(fn: (value: any) => void) {
     const getSnapshot = () => ({
       currentTheme: this.currentTheme,
-      showJournalModal: this.showJournalModal,
-      showChangelogModal: this.showChangelogModal,
-      showGuideModal: this.showGuideModal,
-      showPrivacyModal: this.showPrivacyModal,
-      showWhitepaperModal: this.showWhitepaperModal,
       showCopyFeedback: this.showCopyFeedback,
       showSaveFeedback: this.showSaveFeedback,
       errorMessage: this.errorMessage,
@@ -140,7 +99,7 @@ class UiManager {
       isAtrFetching: this.isAtrFetching,
       symbolSuggestions: this.symbolSuggestions,
       showSymbolSuggestions: this.showSymbolSuggestions,
-      showSettingsModal: this.showSettingsModal,
+      showMarketDashboardModal: this.showMarketDashboardModal,
       showAcademyModal: this.showAcademyModal,
       settingsTab: this.settingsTab,
       settingsTradingSubTab: this.settingsTradingSubTab,
@@ -154,14 +113,13 @@ class UiManager {
       loadingMessage: this.loadingMessage,
       syncProgress: this.syncProgress,
       tooltip: this.tooltip,
-      windows: this.windows, // Expose windows
     });
 
     fn(getSnapshot());
 
     return $effect.root(() => {
       $effect(() => {
-        const snap = getSnapshot(); // Track everything
+        const snap = getSnapshot();
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);
           this.notifyTimer = setTimeout(() => {
@@ -173,19 +131,10 @@ class UiManager {
     });
   }
 
-  // Helper method to make migration easier (maps update(fn) to direct state changes)
+  // Legacy mapping to update(fn) to direct state changes
   update(fn: (state: any) => any) {
-    // This is a rough approximation.
-    // Since we are migrating to direct property access, we shouldn't heavily rely on this.
-    // However, for parts of the code we haven't touched yet, this might help avoid runtime crashes.
-    // Ideally, we replace all uiStore.update(...) calls with direct assignments.
     const stateSnapshot = {
       currentTheme: this.currentTheme,
-      showJournalModal: this.showJournalModal,
-      showChangelogModal: this.showChangelogModal,
-      showGuideModal: this.showGuideModal,
-      showPrivacyModal: this.showPrivacyModal,
-      showWhitepaperModal: this.showWhitepaperModal,
       showCopyFeedback: this.showCopyFeedback,
       showSaveFeedback: this.showSaveFeedback,
       errorMessage: this.errorMessage,
@@ -195,7 +144,7 @@ class UiManager {
       isAtrFetching: this.isAtrFetching,
       symbolSuggestions: this.symbolSuggestions,
       showSymbolSuggestions: this.showSymbolSuggestions,
-      showSettingsModal: this.showSettingsModal,
+      showMarketDashboardModal: this.showMarketDashboardModal,
       showAcademyModal: this.showAcademyModal,
       settingsTab: this.settingsTab,
       settingsTradingSubTab: this.settingsTradingSubTab,
@@ -209,7 +158,6 @@ class UiManager {
       loadingMessage: this.loadingMessage,
       syncProgress: this.syncProgress,
       tooltip: this.tooltip,
-      windows: this.windows,
     };
     const newState = fn(stateSnapshot);
     Object.assign(this, newState);
@@ -253,7 +201,6 @@ class UiManager {
       }
     }
 
-    // Update background color for immediate feedback
     const bgColors: Record<string, string> = {
       dark: "#0f172a",
       light: "#f1f5f9",
@@ -280,7 +227,6 @@ class UiManager {
     const bgColor = bgColors[themeName] || bgColors["dark"];
     html.style.backgroundColor = bgColor;
 
-    // Browser-native integration
     const isLightTheme = [
       "light",
       "solarized-light",
@@ -294,7 +240,7 @@ class UiManager {
       localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
       const expires = new Date(
         Date.now() + 365 * 24 * 60 * 60 * 1000,
-      ).toUTCString(); // 1 year
+      ).toUTCString();
       document.cookie = `${CONSTANTS.LOCAL_STORAGE_THEME_KEY}=${themeName}; expires=${expires}; path=/; SameSite=Lax`;
 
       if (typeof window !== "undefined" && (window as any)._mtm) {
@@ -310,23 +256,74 @@ class UiManager {
     }
   }
 
-  toggleJournalModal(show: boolean) {
-    this.showJournalModal = show;
+  async toggleJournalModal(show: boolean) {
+    if (show) {
+      const { default: JournalContent } = await import("../components/shared/JournalContent.svelte");
+      windowManager.toggle("journal", () => {
+        const win = new ModalWindow(JournalContent, "Trading Journal", {
+          id: "journal",
+          width: 1200,
+          height: 800,
+        });
+        return win;
+      });
+    } else {
+      windowManager.close("journal");
+    }
   }
-  toggleChangelogModal(show: boolean) {
-    this.showChangelogModal = show;
+  async toggleGuideModal(show: boolean) {
+    if (show) {
+      const { loadInstruction } = await import("../services/markdownLoader");
+      const { html, title } = await loadInstruction("guide");
+      windowManager.toggle("guide", () => new MarkdownWindow(html, title, { id: "guide" }));
+    } else {
+      windowManager.close("guide");
+    }
   }
-  toggleGuideModal(show: boolean) {
-    this.showGuideModal = show;
+
+  async toggleChangelogModal(show: boolean) {
+    if (show) {
+      const { loadInstruction } = await import("../services/markdownLoader");
+      const { html, title } = await loadInstruction("changelog");
+      windowManager.toggle("changelog", () => new MarkdownWindow(html, title, { id: "changelog" }));
+    } else {
+      windowManager.close("changelog");
+    }
   }
-  togglePrivacyModal(show: boolean) {
-    this.showPrivacyModal = show;
+
+  async togglePrivacyModal(show: boolean) {
+    if (show) {
+      const { loadInstruction } = await import("../services/markdownLoader");
+      const { html, title } = await loadInstruction("privacy");
+      windowManager.toggle("privacy", () => new MarkdownWindow(html, title, { id: "privacy" }));
+    } else {
+      windowManager.close("privacy");
+    }
   }
-  toggleWhitepaperModal(show: boolean) {
-    this.showWhitepaperModal = show;
+
+  async toggleWhitepaperModal(show: boolean) {
+    if (show) {
+      const { loadInstruction } = await import("../services/markdownLoader");
+      const { html, title } = await loadInstruction("whitepaper");
+      windowManager.toggle("whitepaper", () => new MarkdownWindow(html, title, { id: "whitepaper" }));
+    } else {
+      windowManager.close("whitepaper");
+    }
   }
-  toggleSettingsModal(show: boolean) {
-    this.showSettingsModal = show;
+  async toggleSettingsModal(show: boolean) {
+    if (show) {
+      const { default: SettingsContent } = await import("../components/settings/SettingsContent.svelte");
+      windowManager.toggle("settings", () => {
+        const win = new ModalWindow(SettingsContent, "Settings", {
+          id: "settings",
+          width: 900,
+          height: 700,
+        });
+        return win;
+      });
+    } else {
+      windowManager.close("settings");
+    }
   }
   toggleMarketDashboardModal(show: boolean) {
     this.showMarketDashboardModal = show;
@@ -335,102 +332,6 @@ class UiManager {
   toggleAcademyModal(show: boolean) {
     this.showAcademyModal = show;
   }
-
-  openSettings(tab = "trading") {
-    this.showSettingsModal = true;
-
-    if (tab === "indicators") {
-      this.settingsTab = "trading";
-      this.settingsTradingSubTab = "chart";
-    } else if (tab === "profile") {
-      this.settingsTab = "visuals";
-      this.settingsVisualsSubTab = "appearance";
-    } else {
-      this.settingsTab = tab;
-    }
-  }
-
-  // --- Dynamic Window Management ---
-  openWindow(id: string, url: string, title: string) {
-    const existingIndex = this.windows.findIndex((w) => w.id === id);
-
-    if (existingIndex !== -1) {
-      // Window exists, bring to front/update
-      const w = this.windows[existingIndex];
-      w.visible = true;
-      w.url = url;
-      w.title = title;
-      this.bringToFront(id);
-    } else {
-      // Create new window
-      // Calculate cascade position based on number of open windows
-      const count = this.windows.length;
-      const x = this.basePosition.x + (count * this.windowOffset) % 200;
-      const y = this.basePosition.y + (count * this.windowOffset) % 200;
-
-      this.windows.push(
-        new FloatingWindow({
-          id,
-          url,
-          title,
-          x,
-          y,
-          zIndex: ++this.maxZIndex,
-        }),
-      );
-    }
-  }
-
-  bringToFront(id: string) {
-    const window = this.windows.find((w) => w.id === id);
-    if (window) {
-      window.zIndex = ++this.maxZIndex;
-    }
-  }
-
-  closeWindow(id: string) {
-    this.windows = this.windows.filter((w) => w.id !== id);
-  }
-
-  toggleWindow(id: string, url: string, title: string) {
-    const existingIndex = this.windows.findIndex((w) => w.id === id);
-    if (existingIndex !== -1) {
-      this.closeWindow(id);
-    } else {
-      this.openWindow(id, url, title);
-    }
-  }
-
-  // Legacy Wrapper for "Genesis" (Main) Modal
-  toggleIframeModal(visible: boolean, url = "", title = "") {
-    if (visible) {
-      this.openWindow("genesis", url, title);
-    } else {
-      this.closeWindow("genesis");
-    }
-  }
-
-  // Legacy Wrapper for "Channel" Modal
-  toggleIframeModal2(visible: boolean, url = "", title = "") {
-    // For legacy channel calls, we might need a unique ID if not provided.
-    // However, existing usages likely want a specific channel.
-    // If this is called generically, we might need to know WHICH channel.
-    // But since this was just added, we can assume 'channel' ID or similar.
-    // For now, let's map it to a generic 'channel_secondary' if no better info exists,
-    // BUT strictly speaking, the updated code in MarketOverview uses toggleIframeModal2
-    // with a specific URL/Title.
-    // Actually, MarketOverview refactor is part of this plan.
-    // We should deprecate this method and update MarketOverview directly.
-    // But to keep TypeScript happy until then:
-    if (visible) {
-      // Use title as pseudo-ID if unique enough, or just 'secondary'
-      // Better: MarketOverview will be updated to use openWindow directly.
-      this.openWindow("secondary_legacy", url, title);
-    } else {
-      this.closeWindow("secondary_legacy");
-    }
-  }
-
 
   showFeedback(type: "copy" | "save", duration = 2000) {
     if (type === "copy") this.showCopyFeedback = true;
@@ -484,15 +385,12 @@ class UiManager {
 
   showToast(message: string, type: "success" | "error" | "info" = "info") {
     if (type === "error") {
-      this.showError(message); // Keep persistent error for major issues? Or switch to toast?
-      // Let's duplicate to toast for visibility if it's an error
+      this.showError(message);
       toastService.error(message);
     } else {
-      // Use the new service for transient messages
       if (type === "success") toastService.success(message);
       else toastService.info(message);
 
-      // Legacy support for local component feedback (like in +page.svelte footer)
       console.log(`[Toast ${type}] ${message}`);
       this.toastMessage = message;
       this.showSaveFeedback = true;

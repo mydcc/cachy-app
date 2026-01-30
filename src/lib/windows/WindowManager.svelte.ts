@@ -4,6 +4,8 @@
 */
 
 import type { WindowBase } from "./WindowBase.svelte";
+import { ModalWindow } from "./implementations/ModalWindow.svelte";
+import { IframeWindow } from "./implementations/IframeWindow.svelte";
 
 class WindowManager {
     private _windows = $state<WindowBase[]>([]);
@@ -23,6 +25,26 @@ class WindowManager {
 
     close(id: string) {
         this._windows = this._windows.filter(w => w.id !== id);
+    }
+
+    toggle(id: string, createFn: () => WindowBase) {
+        if (this.isOpen(id)) {
+            this.close(id);
+        } else {
+            this.open(createFn());
+        }
+    }
+
+    isOpen(id: string) {
+        return this._windows.some(w => w.id === id);
+    }
+
+    openModal(component: any, title: string, options: any = {}) {
+        this.open(new ModalWindow(component, title, options));
+    }
+
+    openIframe(url: string, title: string, options: any = {}) {
+        this.open(new IframeWindow(url, title, options));
     }
 
     bringToFront(id: string) {

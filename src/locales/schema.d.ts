@@ -2,6 +2,8 @@
 // Do not edit manually
 
 export type TranslationKey =
+  | "windows.settings"
+  | "windows.smash"
   | "app.title"
   | "app.journalButton"
   | "app.journalButtonTitle"
@@ -1413,5 +1415,4 @@ export type TranslationKey =
   | "cloud.connectButton"
   | "cloud.noMessages"
   | "cloud.sendButton"
-  | "cloud.placeholder"
-  | "windows.smash";
+  | "cloud.placeholder";

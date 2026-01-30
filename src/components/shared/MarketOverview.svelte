@@ -401,7 +401,9 @@
   onclick={loadToCalculator}
   onkeydown={(e) => (e.key === "Enter" || e.key === " ") && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
-  aria-label={isFavoriteTile ? `Load ${displaySymbol} to calculator` : `Market Overview for ${displaySymbol}`}
+  aria-label={isFavoriteTile
+    ? `Load ${displaySymbol} to calculator`
+    : `Market Overview for ${displaySymbol}`}
   tabindex={isFavoriteTile ? 0 : -1}
   use:viewport={symbol}
   use:burn={settingsState.burnMarketOverviewTiles &&
@@ -648,8 +650,7 @@
               href={cgHeatmapLink}
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title={$_("marketOverview.tooltips.liquidationHeatmap")}
-              onclick={handleHeatmapClick}
-              >Heatmap</a
+              onclick={handleHeatmapClick}>Heatmap</a
             >
           {/if}
           {#if settingsState.showBrokerLink}
@@ -669,7 +670,9 @@
             {@const config = CHANNEL_CONFIG[baseAsset]}
             {@const plotId = typeof config === "string" ? config : baseAsset}
             {@const windowId = `channel_${plotId}`}
-            {@const isOpen = uiState.windows.some((w) => w.id === windowId)}
+            {@const isOpen = windowManager.windows.some(
+              (w) => w.id === windowId,
+            )}
             <button
               class="transition-colors p-0.5 rounded"
               class:text-[var(--accent-color)]={isOpen}

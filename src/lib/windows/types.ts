@@ -1,20 +1,20 @@
-export interface WindowPosition {
-    x: number;
-    y: number;
-}
-
-export interface WindowSize {
-    width: number;
-    height: number;
+export interface WindowVisuals {
+    glass?: boolean;
+    burn?: boolean;
+    opacity?: number;
 }
 
 export interface WindowOptions {
     id?: string;
-    title: string;
+    title?: string;
     width?: number;
     height?: number;
     x?: number;
     y?: number;
-    minWidth?: number;
-    minHeight?: number;
+    opacity?: number;
+    visuals?: WindowVisuals;
+    closeOnBlur?: boolean;
+    windowType?: WindowType;
 }
+
+export type WindowType = 'window' | 'modal' | 'iframe';

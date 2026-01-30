@@ -17,12 +17,14 @@
 
 <script lang="ts">
     import { uiState } from "../../stores/ui.svelte";
+    import { windowManager } from "../../lib/windows/WindowManager.svelte";
+    import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
     import { _ } from "../../locales/i18n";
     import { fade, scale } from "svelte/transition";
 
     // Derived state to check if main window ("genesis") is open
     let isGenesisOpen = $derived(
-        uiState.windows.some((w) => w.id === "genesis"),
+        windowManager.windows.some((w) => w.id === "genesis"),
     );
 
     // Config for custom channels menu
@@ -36,21 +38,25 @@
 
     function toggleMain() {
         if (isGenesisOpen) {
-            uiState.closeWindow("genesis");
+            windowManager.close("genesis");
         } else {
-            uiState.openWindow(
-                "genesis",
-                "https://space.cachy.app/index.php?plot_id=genesis",
-                "Cachy Space",
+            windowManager.open(
+                new IframeWindow(
+                    "https://space.cachy.app/index.php?plot_id=genesis",
+                    "Cachy Space",
+                    { id: "genesis" },
+                ),
             );
         }
     }
 
     function openChannel(ch: { id: string; label: string; plotId: string }) {
-        uiState.openWindow(
-            ch.id,
-            `https://space.cachy.app/index.php?plot_id=${ch.plotId}`,
-            ch.label,
+        windowManager.open(
+            new IframeWindow(
+                `https://space.cachy.app/index.php?plot_id=${ch.plotId}`,
+                ch.label,
+                { id: ch.id },
+            ),
         );
         showMenu = false;
     }
@@ -112,7 +118,7 @@
                         class="text-[var(--text-primary)] group-hover:text-[var(--accent-color)]"
                         >{ch.label}</span
                     >
-                    {#if uiState.windows.some((w) => w.id === ch.id)}
+                    {#if windowManager.windows.some((w) => w.id === ch.id)}
                         <span
                             class="w-1.5 h-1.5 rounded-full bg-[var(--success-color)]"
                         ></span>
