@@ -38,11 +38,12 @@ export class PatternDetector {
    */
   public detect(candles: CandleData[]): string[] {
     const detected: string[] = [];
+    const cache = new Map<number, CandleData[]>();
 
     // We only check for patterns ending at the last candle
     // Loop through all defined patterns
     for (const pattern of CANDLESTICK_PATTERNS) {
-      if (this.checkPattern(pattern, candles)) {
+      if (this.checkPattern(pattern, candles, cache)) {
         detected.push(pattern.id);
       }
     }
@@ -50,7 +51,7 @@ export class PatternDetector {
     return detected;
   }
 
-  public checkPattern(pattern: PatternDefinition, candles: CandleData[]): boolean {
+  public checkPattern(pattern: PatternDefinition, candles: CandleData[], cache?: Map<number, CandleData[]>): boolean {
     const patternLen = pattern.candles.length;
     if (candles.length < patternLen) return false;
 
@@ -93,7 +94,7 @@ export class PatternDetector {
     }
 
     // 3. Fallback: Geometric / Template Matcher
-    return this.geometricMatch(pattern.id, pattern.candles, currentCandles);
+    return this.geometricMatch(pattern.id, pattern.candles, currentCandles, cache);
   }
 
   // --- Specific Pattern Logic (Formulas) ---
@@ -209,7 +210,7 @@ export class PatternDetector {
 
   // --- Geometric Matcher ---
 
-  private geometricMatch(patternId: string, template: CandleData[], input: CandleData[]): boolean {
+  private geometricMatch(patternId: string, template: CandleData[], input: CandleData[], cache?: Map<number, CandleData[]>): boolean {
       // Normalize both to 0..1 range based on their own min/max
       let normTemplate = this.normalizedTemplates.get(patternId);
       if (!normTemplate) {
@@ -217,7 +218,11 @@ export class PatternDetector {
         normTemplate = this.normalizeSequence(template);
       }
 
-      const normInput = this.normalizeSequence(input);
+      let normInput = cache?.get(input.length);
+      if (!normInput) {
+        normInput = this.normalizeSequence(input);
+        cache?.set(input.length, normInput);
+      }
 
       let totalDiff = 0;
 
