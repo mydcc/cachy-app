@@ -280,7 +280,7 @@ class MarketWatcher {
     }
   }
 
-  private async ensureHistory(symbol: string, tf: string) {
+  public async ensureHistory(symbol: string, tf: string) {
     const provider = settingsState.apiProvider;
     if (provider !== "bitunix") return; // Only supporting bitunix history optimization for now
 
@@ -305,8 +305,15 @@ class MarketWatcher {
         marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
         storageService.saveKlines(symbol, tf, klines1); // Async save
 
-        // Fetch part 2: Backfill if needed and initial head was full
-        if (limit > 1000 && klines1.length >= 1000) {
+        // Check if we have enough history now
+        const currentData = marketState.data[symbol]?.klines[tf] || [];
+
+        // Fetch part 2: Backfill if needed
+        // Only fetch if:
+        // 1. User wants more than 1000 candles
+        // 2. We received a full batch (meaning more likely exists)
+        // 3. We don't have enough history yet in memory/DB
+        if (limit > 1000 && klines1.length >= 1000 && currentData.length < limit) {
           const oldestTime = klines1[0].time;
           const klines2 = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
           if (klines2 && klines2.length > 0) {

@@ -437,7 +437,7 @@ const defaultSettings: Settings = {
   technicalsCacheTTL: 60, // 1 minute
   maxTechnicalsHistory: 750,
   enableIndicatorOptimization: true,
-  chartHistoryLimit: 1000,
+  chartHistoryLimit: 2000,
 
   // Core indicators enabled by default
   enabledIndicators: {

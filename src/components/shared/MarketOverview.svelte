@@ -250,6 +250,16 @@
     }
   });
 
+  // Cache Warming: Pre-load history for Favorites (2000 candles)
+  // This ensures the ChartView opens instantly with full data from IDB
+  $effect(() => {
+    if (isFavoriteTile && symbol) {
+      untrack(() => {
+        marketWatcher.ensureHistory(symbol, "1h");
+      });
+    }
+  });
+
   // Reset isInitialLoad once we have data
   $effect(() => {
     if (isInitialLoad && (wsData || tickerData)) {
