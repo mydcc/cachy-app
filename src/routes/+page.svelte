@@ -56,6 +56,7 @@
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import AcademyModal from "../components/shared/AcademyModal.svelte";
+  import ImageModal from "../components/shared/ImageModal.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import QuizButton from "../components/shared/QuizButton.svelte";
   import FlashCard from "../components/shared/FlashCard.svelte";
@@ -876,4 +877,5 @@
 </ModalFrame>
 
 <AcademyModal />
+<ImageModal />
 <FlashCard />

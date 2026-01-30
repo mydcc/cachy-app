@@ -32,6 +32,7 @@ export type AnalysisDepth = "quick" | "standard" | "deep";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode = "realtime" | "fast" | "balanced" | "conservative";
+export type HeatmapMode = "coinglass_link" | "coinglass_image" | "coinank_link" | "coinank_iframe";
 
 export const TECHNICALS_UPDATE_PRESETS = {
   realtime: {
@@ -184,6 +185,7 @@ export interface Settings {
   showTechnicalsPivots: boolean;
   showTvLink: boolean;
   showCgHeatLink: boolean;
+  heatmapMode: HeatmapMode;
   showBrokerLink: boolean;
   rssPresets?: string[];
   customRssFeeds?: string[];
@@ -360,6 +362,7 @@ const defaultSettings: Settings = {
   showTechnicalsPivots: true,
   showTvLink: true,
   showCgHeatLink: true,
+  heatmapMode: "coinglass_link",
   showBrokerLink: true,
   rssPresets: ["coindesk", "cointelegraph"],
   customRssFeeds: [],
@@ -653,6 +656,7 @@ export class SettingsManager {
   showTechnicalsPivots = $state<boolean>(defaultSettings.showTechnicalsPivots);
   showTvLink = $state<boolean>(defaultSettings.showTvLink);
   showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
+  heatmapMode = $state<HeatmapMode>(defaultSettings.heatmapMode);
   showBrokerLink = $state<boolean>(defaultSettings.showBrokerLink);
   rssPresets = $state<string[]>(defaultSettings.rssPresets || []);
   customRssFeeds = $state<string[]>(defaultSettings.customRssFeeds || []);
@@ -1041,6 +1045,7 @@ export class SettingsManager {
       this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
       this.showCgHeatLink =
         merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
+      this.heatmapMode = merged.heatmapMode || defaultSettings.heatmapMode;
       this.showBrokerLink =
         merged.showBrokerLink ?? defaultSettings.showBrokerLink;
       this.rssPresets = merged.rssPresets || defaultSettings.rssPresets;
@@ -1262,6 +1267,7 @@ export class SettingsManager {
       showTechnicalsPivots: this.showTechnicalsPivots,
       showTvLink: this.showTvLink,
       showCgHeatLink: this.showCgHeatLink,
+      heatmapMode: this.heatmapMode,
       showBrokerLink: this.showBrokerLink,
       rssPresets: $state.snapshot(this.rssPresets),
       customRssFeeds: $state.snapshot(this.customRssFeeds),

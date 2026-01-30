@@ -269,6 +269,68 @@
                         />
                     </label>
 
+                    <!-- Market Tile Links Configuration -->
+                    {#if settingsState.showMarketOverview}
+                        <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 border border-[var(--border-color)]">
+                            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-3">
+                                Tile Action Links
+                            </h4>
+
+                            <div class="flex flex-col gap-3">
+                                <!-- Master Toggle -->
+                                <label class="flex items-center justify-between cursor-pointer">
+                                    <span class="text-sm">Show Links Footer</span>
+                                    <Toggle bind:checked={settingsState.showMarketOverviewLinks} />
+                                </label>
+
+                                {#if settingsState.showMarketOverviewLinks}
+                                    <hr class="border-[var(--border-color)] my-1" />
+
+                                    <!-- Individual Link Toggles -->
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" bind:checked={settingsState.showTvLink} />
+                                            <span class="text-xs">TradingView</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" bind:checked={settingsState.showCgHeatLink} />
+                                            <span class="text-xs">Heatmap</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" bind:checked={settingsState.showBrokerLink} />
+                                            <span class="text-xs">Broker</span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Heatmap Mode Selection -->
+                                    {#if settingsState.showCgHeatLink}
+                                        <div class="mt-2 pt-2 border-t border-[var(--border-color)] border-dashed">
+                                            <label class="flex flex-col gap-1.5">
+                                                <span class="text-xs font-semibold text-[var(--text-secondary)]">Heatmap Action</span>
+                                                <select
+                                                    bind:value={settingsState.heatmapMode}
+                                                    class="input-field py-1.5 text-xs w-full"
+                                                >
+                                                    <option value="coinglass_link">Coinglass (Link)</option>
+                                                    <option value="coinglass_image">Coinglass (Snapshot Modal)</option>
+                                                    <option value="coinank_link">Coinank (Link)</option>
+                                                    <option value="coinank_iframe">Coinank (ProChart Modal)</option>
+                                                </select>
+                                                <p class="text-[10px] text-[var(--text-secondary)] opacity-80">
+                                                    {#if settingsState.heatmapMode && settingsState.heatmapMode.includes('coinank')}
+                                                        Maps current timeframe to Heatmap lookback period.
+                                                    {:else}
+                                                        Opens Coinglass liquidation heatmap.
+                                                    {/if}
+                                                </p>
+                                            </label>
+                                        </div>
+                                    {/if}
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
+
                     <label class="toggle-card mb-4">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
