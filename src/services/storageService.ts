@@ -1,0 +1,168 @@
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * Storage Service
+ * Persists market data to IndexedDB for offline capability and extended history.
+ */
+
+import { browser } from "$app/environment";
+import { logger } from "./logger";
+import type { Kline } from "./technicalsTypes";
+
+const DB_NAME = "CachyDB";
+const DB_VERSION = 1;
+const STORE_KLINES = "klines";
+
+export interface StoredKlines {
+    id: string; // symbol:tf
+    symbol: string;
+    tf: string;
+    data: Kline[];
+    lastUpdated: number;
+}
+
+class StorageService {
+    private dbPromise: Promise<IDBDatabase> | null = null;
+    private isSupported = false;
+
+    constructor() {
+        if (browser && "indexedDB" in window) {
+            this.isSupported = true;
+            this.initDB();
+        } else {
+            logger.warn("general", "IndexedDB not supported or SSR environment");
+        }
+    }
+
+    private initDB() {
+        this.dbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = (event) => {
+                logger.error("general", "Failed to open DB", (event.target as any).error);
+                reject((event.target as any).error);
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = (event.target as IDBOpenDBRequest).result;
+                if (!db.objectStoreNames.contains(STORE_KLINES)) {
+                    // Key: symbol:tf (e.g., "BTCUSDT:1h")
+                    db.createObjectStore(STORE_KLINES, { keyPath: "id" });
+                }
+            };
+
+            request.onsuccess = (event) => {
+                resolve((event.target as IDBOpenDBRequest).result);
+            };
+        });
+    }
+
+    private async getDB(): Promise<IDBDatabase> {
+        if (!this.isSupported) throw new Error("IndexedDB not supported");
+        if (!this.dbPromise) this.initDB();
+        return this.dbPromise!;
+    }
+
+    /**
+     * Merge and save klines.
+     * Guaranteed to preserve existing history while updating with new data.
+     */
+    async saveKlines(symbol: string, tf: string, newKlines: Kline[]): Promise<void> {
+        if (!this.isSupported || newKlines.length === 0) return;
+
+        try {
+            const db = await this.getDB();
+            const id = `${symbol}:${tf}`;
+
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_KLINES, "readwrite");
+                const store = tx.objectStore(STORE_KLINES);
+
+                const getReq = store.get(id);
+
+                getReq.onsuccess = () => {
+                    const existingRecord: StoredKlines = getReq.result;
+                    let mergedData: Kline[];
+
+                    if (existingRecord && existingRecord.data) {
+                        // Merge Strategy: Map by time to deduplicate
+                        const map = new Map<number, Kline>();
+                        existingRecord.data.forEach(k => map.set(k.time, k));
+                        newKlines.forEach(k => map.set(k.time, k));
+
+                        // Sort by time
+                        mergedData = Array.from(map.values()).sort((a, b) => a.time - b.time);
+                    } else {
+                        mergedData = [...newKlines].sort((a, b) => a.time - b.time);
+                    }
+
+                    const record: StoredKlines = {
+                        id,
+                        symbol,
+                        tf,
+                        data: mergedData,
+                        lastUpdated: Date.now()
+                    };
+
+                    const putReq = store.put(record);
+                    putReq.onsuccess = () => {
+                        this.logUsage();
+                        resolve();
+                    };
+                    putReq.onerror = () => reject(putReq.error);
+                };
+
+                getReq.onerror = () => reject(getReq.error);
+            });
+        } catch (e) {
+            logger.error("general", "Error saving klines", e);
+        }
+    }
+
+    async getKlines(symbol: string, tf: string): Promise<Kline[]> {
+        if (!this.isSupported) return [];
+
+        try {
+            const db = await this.getDB();
+            const id = `${symbol}:${tf}`;
+
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_KLINES, "readonly");
+                const store = tx.objectStore(STORE_KLINES);
+                const req = store.get(id);
+
+                req.onsuccess = () => {
+                    const result: StoredKlines = req.result;
+                    resolve(result ? result.data : []);
+                };
+
+                req.onerror = () => reject(req.error);
+            });
+        } catch (e) {
+            logger.error("general", "Error loading klines", e);
+            return [];
+        }
+    }
+
+    async logUsage() {
+        if (navigator.storage && navigator.storage.estimate) {
+            try {
+                const estimate = await navigator.storage.estimate();
+                const usedMB = (estimate.usage || 0) / 1024 / 1024;
+                const quotaMB = (estimate.quota || 0) / 1024 / 1024;
+                console.log(`[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
+            } catch (e) {
+                // ignore
+            }
+        }
+    }
+
+    async clearAll() {
+        if (!this.isSupported) return;
+        const db = await this.getDB();
+        const tx = db.transaction(STORE_KLINES, "readwrite");
+        tx.objectStore(STORE_KLINES).clear();
+    }
+}
+
+export const storageService = new StorageService();
