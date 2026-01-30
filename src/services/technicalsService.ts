@@ -202,7 +202,7 @@ export const technicalsService = {
         .join(',')
       : 'all';
 
-    const cacheKey = `${lastKline.time}-${lastPrice}-${settingsJson}-${indicatorsHash}`;
+    const cacheKey = `${lastKline.time}-${lastPrice}-${klinesInput.length}-${klinesInput[0].time}-${settingsJson}-${indicatorsHash}`;
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
@@ -306,7 +306,7 @@ export const technicalsService = {
         .sort()
         .join(',')
       : 'all';
-    const cacheKey = `${lastKline.time}-${lastPrice}-${settingsJson}-${indicatorsHash}`;
+    const cacheKey = `${lastKline.time}-${lastPrice}-${klinesInput.length}-${klinesInput[0].time}-${settingsJson}-${indicatorsHash}`;
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
