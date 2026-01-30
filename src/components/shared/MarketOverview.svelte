@@ -215,7 +215,12 @@
   }
 
   $effect(() => {
-    if (nextFundingTime) untrack(startCountdown);
+    if (nextFundingTime) {
+      untrack(startCountdown);
+    } else {
+      countdownText = "--:--:--";
+      if (countdownInterval) clearInterval(countdownInterval);
+    }
     return () => {
       if (countdownInterval) clearInterval(countdownInterval);
     };
