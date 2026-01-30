@@ -41,6 +41,8 @@
     "intl-messageformat": "^11.1.1",
     "jsdom": "^27.4.0",
     "katex": "^0.16.28",
+    "lightweight-charts": "^5.1.0",
+    "lightweight-charts-indicators": "^0.1.0",
     "lodash-es": "^4.17.21",
     "marked": "^17.0.1",
     "marked-katex-extension": "^5.1.6",
