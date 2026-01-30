@@ -804,10 +804,10 @@ export function calculatePivots(klines: Kline[], type: string) {
   if (klines.length < 2) return getEmptyPivots();
   const prev = klines[klines.length - 2];
   return calculatePivotsFromValues(
-    new Decimal(prev.high).toNumber(),
-    new Decimal(prev.low).toNumber(),
-    new Decimal(prev.close).toNumber(),
-    new Decimal(prev.open).toNumber(),
+    prev.high.toNumber(),
+    prev.low.toNumber(),
+    prev.close.toNumber(),
+    prev.open.toNumber(),
     type
   );
 }
@@ -931,7 +931,9 @@ export const indicators = {
     period: number = 14,
   ): Decimal | null {
     if (prices.length < period + 1) return null;
-    const nums = prices.map((p) => new Decimal(p || 0).toNumber());
+    const nums = prices.map((p) =>
+      p instanceof Decimal ? p.toNumber() : new Decimal(p || 0).toNumber(),
+    );
     const rsiArr = JSIndicators.rsi(nums, period);
     const last = rsiArr[rsiArr.length - 1];
     return new Decimal(last);
@@ -942,7 +944,9 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map((p) => new Decimal(p || 0).toNumber());
+    const nums = data.map((p) =>
+      p instanceof Decimal ? p.toNumber() : new Decimal(p || 0).toNumber(),
+    );
     const res = JSIndicators.sma(nums, period);
     return new Decimal(res[res.length - 1]);
   },
@@ -952,7 +956,9 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map((p) => new Decimal(p || 0).toNumber());
+    const nums = data.map((p) =>
+      p instanceof Decimal ? p.toNumber() : new Decimal(p || 0).toNumber(),
+    );
     const res = JSIndicators.ema(nums, period);
     return new Decimal(res[res.length - 1]);
   },
