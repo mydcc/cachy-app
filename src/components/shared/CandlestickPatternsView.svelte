@@ -373,5 +373,9 @@
     /* Markdown Styles specifically for formulas */
     :global(.katex) {
         font-size: 1.1em;
+        color: var(--text-primary);
+    }
+    :global(.katex .katex-mathml) {
+        display: none; /* Ensure MathML is hidden if HTML is used */
     }
 </style>
