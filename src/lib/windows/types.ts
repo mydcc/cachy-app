@@ -18,6 +18,10 @@ export interface WindowFlags {
     persistent?: boolean;
     centerByDefault?: boolean;
     allowMultipleInstances?: boolean;
+    showHeaderIndicators?: boolean;
+    allowFeedDuck?: boolean;
+    showMaximizeButton?: boolean;
+    showMinimizeButton?: boolean;
 }
 
 export interface WindowLayout {

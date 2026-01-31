@@ -191,6 +191,10 @@
     background: none;
     border: none;
     color: var(--text-secondary);
+    transition: color 0.15s ease;
+  }
+  .modal-close-btn:hover {
+    color: var(--accent-color);
   }
   .modal-body {
     display: flex;

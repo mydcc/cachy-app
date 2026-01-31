@@ -123,7 +123,7 @@
         };
     });
 
-    // Theme Color Management
+    // --- Theme Color Management ---
     let themeColors = $state({
         success: "#10b981",
         danger: "#ef4444",
@@ -402,24 +402,33 @@
             );
             uiState.showFeedback("save");
         } catch (err: any) {
-            uiState.showError($_("journal.messages.atrRecalcError") + err.message);
+            uiState.showError(
+                $_("journal.messages.atrRecalcError") + err.message,
+            );
         } finally {
             uiState.isLoading = false;
             uiState.setSyncProgress(null);
         }
     }
+
+    function setHeaderSnippet(node: HTMLElement, snippet: any) {
+        if (win) win.headerSnippet = snippet;
+    }
 </script>
 
-<div class="journal-content-wrapper p-4 sm:p-6">
-    <div class="mb-4">
-        <JournalStatistics
-            {performanceData}
-            {qualityData}
-            isPro={true}
-            minimal={true}
-        />
-    </div>
+{#snippet headerStats()}
+    <JournalStatistics
+        {performanceData}
+        {qualityData}
+        isPro={true}
+        minimal={true}
+    />
+{/snippet}
 
+<div
+    class="journal-content-wrapper p-4 sm:p-6"
+    use:setHeaderSnippet={headerStats}
+>
     <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
 
     <JournalCharts
@@ -505,10 +514,13 @@
                 class="absolute top-0 right-0 z-50 bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-2xl p-5 min-w-[300px]"
             >
                 <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-sm font-bold">{$_("journal.labels.tableSettings")}</h4>
+                    <h4 class="text-sm font-bold">
+                        {$_("journal.labels.tableSettings")}
+                    </h4>
                     <button
                         class="text-xs px-3 py-1 rounded bg-[var(--accent-color)] text-[var(--gray-900)] font-bold"
-                        onclick={() => (showColumnSettings = false)}>{$_("common.ok")}</button
+                        onclick={() => (showColumnSettings = false)}
+                        >{$_("common.ok")}</button
                     >
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -560,13 +572,15 @@
             class="btn-success text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={app.exportToCSV}
         >
-            {@html icons.export} {$_("journal.export")}
+            {@html icons.export}
+            {$_("journal.export")}
         </button>
         <button
             class="btn-accent text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={() => document.getElementById("import-csv-input")?.click()}
         >
-            {@html icons.import} {$_("journal.import")}
+            {@html icons.import}
+            {$_("journal.import")}
         </button>
         <input
             type="file"
@@ -578,7 +592,8 @@
             class="btn-danger text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={app.clearJournal}
         >
-            {@html icons.delete} {$_("journal.clearAll")}
+            {@html icons.delete}
+            {$_("journal.clearAll")}
         </button>
     </div>
 </div>

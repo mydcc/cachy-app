@@ -170,6 +170,8 @@
                         pattern.id}
                     class:text-[var(--btn-accent-text)]={selectedPatternId ===
                         pattern.id}
+                    class:hover:text-[var(--accent-color)]={selectedPatternId !==
+                        pattern.id}
                     class:shadow-lg={selectedPatternId === pattern.id}
                     onclick={() => selectPattern(pattern.id)}
                 >

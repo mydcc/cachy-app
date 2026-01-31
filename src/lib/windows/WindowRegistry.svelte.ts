@@ -182,9 +182,13 @@ class WindowRegistry {
                     ...baseFlags,
                     isResizable: true,
                     allowMaximize: true,
+                    showMaximizeButton: false,
+                    showMinimizeButton: false,
                     allowZoom: false,
-                    allowFontSize: true,
-                    centerByDefault: true
+                    allowFontSize: false,
+                    centerByDefault: true,
+                    showHeaderIndicators: t === 'journal',
+                    allowFeedDuck: t !== 'journal'
                 },
                 layout: {
                     ...baseLayout,

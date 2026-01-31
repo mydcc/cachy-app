@@ -333,6 +333,12 @@
                     </div>
                 {/if}
             </div>
+
+            {#if win.showHeaderIndicators && win.headerSnippet}
+                <div class="header-indicators">
+                    {@render win.headerSnippet()}
+                </div>
+            {/if}
         </div>
 
         <div class="window-controls">
@@ -418,48 +424,49 @@
                 </div>
             {/if}
 
-            <div class="control-group">
-                <button
-                    class="tool-btn success"
-                    onclick={(e) => {
-                        e.stopPropagation();
-                        effectsState.triggerFeed(10);
-                    }}
-                    ondblclick={(e) => e.stopPropagation()}
-                    title="Feed Duck (Profit)">🍞</button
-                >
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="control-group system-controls">
-                {#if win.allowMinimize}
+            {#if win.allowFeedDuck}
+                <div class="control-group">
                     <button
-                        class="tool-btn"
-                        onclick={() => win.minimize()}
+                        class="tool-btn success"
+                        onclick={(e) => {
+                            e.stopPropagation();
+                            effectsState.triggerFeed(10);
+                        }}
                         ondblclick={(e) => e.stopPropagation()}
-                        title="Minimize"
+                        title="Feed Duck (Profit)">🍞</button
                     >
-                        <span class="icon-min"></span>
-                    </button>
-                {/if}
-                {#if win.allowMaximize}
-                    <button
-                        class="tool-btn"
-                        onclick={() => win.toggleMaximize()}
-                        ondblclick={(e) => e.stopPropagation()}
-                        title={win.isMaximized ? "Restore" : "Maximize"}
-                    >
-                        <span
-                            class={win.isMaximized
-                                ? "icon-restore"
-                                : "icon-max"}
-                        ></span>
-                    </button>
-                {/if}
-            </div>
+                </div>
+            {/if}
 
-            <div class="divider"></div>
+            {#if win.showMinimizeButton || win.showMaximizeButton}
+                <div class="divider"></div>
+                <div class="control-group system-controls">
+                    {#if win.showMinimizeButton}
+                        <button
+                            class="tool-btn"
+                            onclick={() => win.minimize()}
+                            ondblclick={(e) => e.stopPropagation()}
+                            title="Minimize"
+                        >
+                            <span class="icon-min"></span>
+                        </button>
+                    {/if}
+                    {#if win.showMaximizeButton}
+                        <button
+                            class="tool-btn"
+                            onclick={() => win.toggleMaximize()}
+                            ondblclick={(e) => e.stopPropagation()}
+                            title={win.isMaximized ? "Restore" : "Maximize"}
+                        >
+                            <span
+                                class={win.isMaximized
+                                    ? "icon-restore"
+                                    : "icon-max"}
+                            ></span>
+                        </button>
+                    {/if}
+                </div>
+            {/if}
 
             <button
                 class="close-btn"
@@ -591,6 +598,7 @@
     .header-content {
         display: flex;
         align-items: center;
+        flex: 1;
         overflow: hidden;
     }
     .title-wrapper {
@@ -605,6 +613,14 @@
         color: var(--text-primary);
         white-space: nowrap;
         text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .header-indicators {
+        margin-left: auto;
+        margin-right: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
         overflow: hidden;
     }
     .title-wrapper.clickable {

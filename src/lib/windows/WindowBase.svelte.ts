@@ -39,10 +39,14 @@ export abstract class WindowBase {
     allowFontSize = $state(false);
     allowMaximize = $state(true);
     allowMinimize = $state(true);
+    showMaximizeButton = $state(true);
+    showMinimizeButton = $state(true);
     canMinimizeToPanel = $state(true);
     persistent = $state(true);
     allowMultipleInstances = $state(false);
     centerByDefault = $state(false);
+    showHeaderIndicators = $state(false);
+    allowFeedDuck = $state(true);
 
     // --- INTERACTIVE FLAGS ---
     headerAction: 'toggle-mode' | 'none' = $state('none');
@@ -62,6 +66,7 @@ export abstract class WindowBase {
     zoomLevel = $state(1.0);
     burnIntensity = $state(1.0);
     aspectRatio: number | null = $state(null);
+    headerSnippet = $state<any>(null);
     minWidth = 200;
     minHeight = 150;
 
@@ -166,10 +171,14 @@ export abstract class WindowBase {
         this.allowFontSize = f.allowFontSize ?? false;
         this.allowMaximize = f.allowMaximize ?? true;
         this.allowMinimize = f.allowMinimize ?? true;
+        this.showMaximizeButton = f.showMaximizeButton ?? this.allowMaximize;
+        this.showMinimizeButton = f.showMinimizeButton ?? this.allowMinimize;
         this.canMinimizeToPanel = f.canMinimizeToPanel ?? true;
         this.persistent = f.persistent ?? true;
         this.allowMultipleInstances = f.allowMultipleInstances ?? false;
         this.centerByDefault = f.centerByDefault ?? false;
+        this.showHeaderIndicators = f.showHeaderIndicators ?? false;
+        this.allowFeedDuck = f.allowFeedDuck ?? true;
 
         this.headerAction = f.headerAction ?? 'none';
         this.headerButtons = f.headerButtons ?? [];

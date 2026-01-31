@@ -54,7 +54,7 @@
             class="flex-1 py-3 text-center text-xs font-black uppercase tracking-widest border-b-2 transition-all {activeTab ===
             'chartPatterns'
                ? 'border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--bg-tertiary)] opacity-100'
-               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-60 hover:opacity-100'}"
+               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--accent-color)] opacity-60 hover:opacity-100'}"
             onclick={() => setTab("chartPatterns")}
          >
             {$_("chartPatterns.title") || "Chart Patterns"}
@@ -63,7 +63,7 @@
             class="flex-1 py-3 text-center text-xs font-black uppercase tracking-widest border-b-2 transition-all {activeTab ===
             'candlestickPatterns'
                ? 'border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--bg-tertiary)] opacity-100'
-               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-60 hover:opacity-100'}"
+               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--accent-color)] opacity-60 hover:opacity-100'}"
             onclick={() => setTab("candlestickPatterns")}
          >
             {$_("candlestickPatterns.title") || "Candlestick Patterns"}
