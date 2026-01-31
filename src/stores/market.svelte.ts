@@ -379,10 +379,11 @@ export class MarketManager {
       }
     }
 
-    // Limit history size to prevent memory leaks (e.g. 1500 candles)
-    const MAX_HISTORY = 1000;
-    if (history.length > MAX_HISTORY) {
-      history = history.slice(-MAX_HISTORY);
+    // Limit history size to prevent memory leaks
+    // Dynamically use user setting (default 2000)
+    const limit = settingsState.chartHistoryLimit || 2000;
+    if (history.length > limit) {
+      history = history.slice(-limit);
     }
 
     // [REACTIVITY FIX]
