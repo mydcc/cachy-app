@@ -316,6 +316,8 @@ class MarketWatcher {
             const currentData = marketState.data[symbol]?.klines[tf] || [];
 
             // Fetch part 2: Backfill if needed
+            // If the requested limit (e.g. 2000) exceeds the API max (1000), we perform a second fetch
+            // using the oldest timestamp from the first batch to retrieve the preceding history.
             if (limit > 1000 && klines1.length >= 1000 && currentData.length < limit) {
                 const oldestTime = klines1[0].time;
                 const klines2 = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
