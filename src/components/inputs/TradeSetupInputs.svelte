@@ -112,6 +112,16 @@
     }
   });
 
+  // Actionable Deviation Message
+  let deviationMessage = $derived.by(() => {
+      if (priceDeviation > 5) {
+          return $_("dashboard.tradeSetupInputs.priceDeviationWarning", {
+              values: { percent: priceDeviation.toFixed(1) }
+          }) || `Warning: Entry price deviates by ${priceDeviation.toFixed(1)}% from market. Check input.`;
+      }
+      return "";
+  });
+
   // Sync local state when prop changes (e.g. from Preset or internal selection)
   // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
   // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
@@ -479,7 +489,8 @@
       />
       {#if priceDeviation > 1}
         <div
-          class="absolute -top-6 left-0 text-[10px] text-[var(--orange-500)] font-bold animate-pulse flex items-center gap-1"
+          class="absolute -top-6 left-0 text-[10px] font-bold animate-pulse flex items-center gap-1 transition-colors"
+          style:color={priceDeviation > 5 ? "var(--danger-color)" : "var(--orange-500)"}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -498,9 +509,7 @@
             <path d="M12 9v4" />
             <path d="M12 17h.01" />
           </svg>
-          {$_("dashboard.tradeSetupInputs.priceDeviation")}: {priceDeviation.toFixed(
-            1,
-          )}%
+          {deviationMessage || `${$_("dashboard.tradeSetupInputs.priceDeviation")}: ${priceDeviation.toFixed(1)}%`}
         </div>
       {/if}
 
