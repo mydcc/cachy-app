@@ -48,22 +48,22 @@
    >
       <!-- Tab Header -->
       <div
-         class="flex border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg"
+         class="flex border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
       >
          <button
-            class="flex-1 py-3 text-center text-xs font-black uppercase tracking-widest border-b-2 transition-all {activeTab ===
+            class="flex-1 py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
             'chartPatterns'
-               ? 'border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--bg-tertiary)] opacity-100'
-               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--accent-color)] opacity-60 hover:opacity-100'}"
+               ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
+               : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
             onclick={() => setTab("chartPatterns")}
          >
             {$_("chartPatterns.title") || "Chart Patterns"}
          </button>
          <button
-            class="flex-1 py-3 text-center text-xs font-black uppercase tracking-widest border-b-2 transition-all {activeTab ===
+            class="flex-1 py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
             'candlestickPatterns'
-               ? 'border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--bg-tertiary)] opacity-100'
-               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--accent-color)] opacity-60 hover:opacity-100'}"
+               ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
+               : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
             onclick={() => setTab("candlestickPatterns")}
          >
             {$_("candlestickPatterns.title") || "Candlestick Patterns"}
