@@ -48,6 +48,8 @@ const config = {
           "wss://fapi.bitunix.com",
           "wss://stream.bitunix.com",
           "https://api.imgbb.com",
+          "https://generativelanguage.googleapis.com",
+          "https://api.openai.com",
         ],
       },
     },
