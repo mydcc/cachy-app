@@ -453,7 +453,7 @@
 
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
-      title="Open Real-time Chart"
+      title={$_("marketOverview.tooltips.openChart")}
       onclick={(e) => {
         e.stopPropagation();
         windowManager.toggle(`chart-${symbol}`, () => new ChartWindow(symbol));
@@ -609,7 +609,7 @@
                   <div
                     class="font-bold border-b border-[var(--border-color)] pb-1 mb-1"
                   >
-                    RSI Settings
+                    {$_("marketOverview.rsiSettings")}
                   </div>
                   <div class="flex justify-between gap-4">
                     <span>{$_("marketOverview.length")}:</span>

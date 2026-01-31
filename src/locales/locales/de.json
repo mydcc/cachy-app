@@ -560,6 +560,7 @@
     "signal": "Signal",
     "tooltips": {
       "toggleTechnicals": "Technicals umschalten",
+      "openChart": "Echtzeit-Chart öffnen",
       "refreshStats": "Statistiken aktualisieren",
       "liquidationHeatmap": "Liquidations-Heatmap",
       "openOnProvider": "Auf {provider} öffnen",

@@ -37,6 +37,8 @@ import {
   BitunixWSMessageSchema,
   BitunixPriceDataSchema,
   BitunixTickerDataSchema,
+  BitunixOrderSchema,
+  BitunixPositionSchema,
   isAllowedChannel,
   validateSymbol,
 } from "../types/bitunixValidation";
@@ -1034,28 +1036,31 @@ class BitunixWebSocketService {
       else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: any) => {
-              accountState.updatePositionFromWs(item);
-              omsService.updatePosition(mapToOMSPosition(item));
-            });
-          else {
-            accountState.updatePositionFromWs(data);
-            omsService.updatePosition(mapToOMSPosition(data));
-          }
+          const items = Array.isArray(data) ? data : [data];
+          items.forEach((item: any) => {
+            const val = BitunixPositionSchema.safeParse(item);
+            if (!val.success) {
+              logger.warn("network", "[BitunixWS] Position schema validation failed", val.error);
+              // We proceed with best effort for positions as IDs are less critical than Orders
+            }
+            accountState.updatePositionFromWs(item);
+            omsService.updatePosition(mapToOMSPosition(item));
+          });
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: any) => {
-              accountState.updateOrderFromWs(item);
-              omsService.updateOrder(mapToOMSOrder(item));
-            });
-          else {
-            accountState.updateOrderFromWs(data);
-            omsService.updateOrder(mapToOMSOrder(data));
-          }
+          const items = Array.isArray(data) ? data : [data];
+          items.forEach((item: any) => {
+            // STRICT VALIDATION: Ensure orderId is a string to prevent precision loss
+            const val = BitunixOrderSchema.safeParse(item);
+            if (!val.success) {
+              logger.error("network", `[BitunixWS] Dropping Order with invalid ID format (Precision Risk)`, val.error);
+              return; // REJECT corrupt data
+            }
+            accountState.updateOrderFromWs(item);
+            omsService.updateOrder(mapToOMSOrder(item));
+          });
         }
       } else if (validatedMessage.ch === "wallet") {
         const data = validatedMessage.data;
