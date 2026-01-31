@@ -22,7 +22,7 @@ describe("apiService RateLimiter", () => {
         vi.useRealTimers();
     });
 
-    it("should throttle Bitunix requests to ~10 req/s", async () => {
+    it("should throttle Bitunix requests to 5 req/s with no burst", async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
             headers: new Headers({ "content-type": "application/json" }),
@@ -31,42 +31,35 @@ describe("apiService RateLimiter", () => {
         });
         global.fetch = fetchMock;
 
-        // Start 20 requests
-        // Note: RequestManager MAX_CONCURRENCY is 8.
-        // Rate Limit is 10 tokens initially.
-        // 1. First 8 start immediately, consume 8 tokens. 2 tokens left.
-        // 2. First 8 finish (instant mock).
-        // 3. Next 8 dequeued.
-        // 4. First 2 of this batch consume 2 tokens. 0 tokens left.
-        // 5. Remaining 6 of this batch wait for tokens.
-        // 6. Last 4 are still in queue.
-
-        // So we expect 8 + 2 = 10 requests to fire immediately.
+        // Rate Limit: 5 req/s (200ms interval), Capacity: 1
+        // RequestManager Concurrency: 8
 
         const promises = [];
-        for (let i = 0; i < 20; i++) {
+        // Schedule 10 requests
+        for (let i = 0; i < 10; i++) {
             promises.push(requestManager.schedule(`BITUNIX:TEST:${i}`, async () => {
                 await fetchMock();
             }));
         }
 
-        // Advance time slightly to allow microtasks and immediate executions
+        // T=0: Only 1 token available (Capacity=1). So only 1 request should fire immediately.
         await vi.advanceTimersByTimeAsync(10);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
 
-        expect(fetchMock).toHaveBeenCalledTimes(10);
+        // T=200ms: 1 more token generated (5 req/s = 1 per 200ms).
+        await vi.advanceTimersByTimeAsync(200);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
 
-        // Advance time by 500ms -> 5 more tokens (10 req/s = 1 per 100ms)
-        // This should allow 5 more requests to proceed.
-        await vi.advanceTimersByTimeAsync(500);
+        // T=400ms: 3rd request fires.
+        await vi.advanceTimersByTimeAsync(200);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
 
-        // Total should be 15
-        expect(fetchMock).toHaveBeenCalledTimes(15);
-
-        // Advance time by another 500ms -> 5 more tokens
-        // Remaining 5 requests should proceed.
-        await vi.advanceTimersByTimeAsync(500);
-
-        expect(fetchMock).toHaveBeenCalledTimes(20);
+        // T=1000ms: Should have fired roughly 1 initial + 5 more = 6 requests total (at T=0, 200, 400, 600, 800, 1000)
+        // Let's advance to T=1000 total (already advanced 10+200+200 = 410)
+        await vi.advanceTimersByTimeAsync(600);
+        // Total time ~1010ms.
+        // Expected: 1 (0ms) + 1 (200ms) + 1 (400ms) + 1 (600ms) + 1 (800ms) + 1 (1000ms) = 6
+        expect(fetchMock).toHaveBeenCalledTimes(6);
     });
 
     it("should not throttle non-limited providers significantly", async () => {
