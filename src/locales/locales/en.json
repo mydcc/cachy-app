@@ -36,7 +36,9 @@
       "point": "Market Overview",
       "title": "Global Market Analysis"
     },
-    "tradeExecutionDev": "🚧 Trade Execution in Development"
+    "tradeExecutionDev": "🚧 Trade Execution in Development",
+    "offlineMessage": "Connection Lost - Trading functionality may be limited.",
+    "refresh": "Refresh"
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -190,6 +192,7 @@
       "atrMultiplierLabel": "Multiplier",
       "selectSymbol": "Select Symbol",
       "priceDeviation": "Price Deviation",
+      "priceDeviationWarning": "Warning: Entry price deviates by {percent}% from market. Check input.",
       "autoUpdateOn": "Auto-Update On",
       "autoUpdateOff": "Auto-Update Off",
       "fetchAtrValue": "Fetch ATR Value",
