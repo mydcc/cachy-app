@@ -421,6 +421,7 @@ class BitunixWebSocketService {
     }
 
     try {
+      // [HYBRID FIX] Wrap socket creation to catch immediate browser blocks
       const ws = new WebSocket(WS_PRIVATE_URL);
       this.wsPrivate = ws;
 
@@ -492,8 +493,15 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => { };
+      ws.onerror = (error) => {
+          // [HYBRID FIX] Quietly handle connection errors
+          // logger.warn("network", "[BitunixWS] Private connection error", error);
+      };
     } catch (e) {
+      // Catch synchronous errors (e.g. invalid URL or browser blocking)
+      if (settingsState.enableNetworkLogs) {
+          logger.warn("network", "[BitunixWS] Failed to initiate private connection", e);
+      }
       this.scheduleReconnect("private");
     }
   }
