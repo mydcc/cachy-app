@@ -11,24 +11,32 @@ To use the Jules API, we need to securely store the API Key.
 *   **Settings UI**: Add a field in the "Settings" -> "Integrations" (or "General") tab to input the key.
     *   This input should POST to a server-side endpoint to save it (e.g., to a secure DB or file, or just instruction to set the ENV).
     *   *Recommendation*: For now, rely on `JULES_API` in `.env` to avoid storing secrets in the database/localStorage.
+*   **Authentication Update**: API Keys are insufficient. We must use a **Google Service Account**.
+    *   The app will need a `service-account.json` file.
+    *   Env var: `GOOGLE_APPLICATION_CREDENTIALS` pointing to that file.
 
 ## 2. Backend Architecture (SvelteKit)
 We will create a server-side API route to proxy requests to Google. This ensures the API Key stays on the server.
+
+### Cheat Code Protection
+The Audit Dashboard features will be hidden by default.
+*   **Trigger**: The user must type the cheat code **"VIPTÜMPEL"** on the keyboard (listener on `window`).
+*   **Effect**: Sets a flag (e.g., `auditMode = true`) in the local state/store to reveal the "Jules Audit" tab/button.
 
 ### New Route: `src/routes/api/jules/+server.ts`
 This route will handle POST requests from the frontend.
 
 ```typescript
 // Pseudo-code for src/routes/api/jules/+server.ts
-import { JULES_API } from '$env/static/private';
+import { GOOGLE_APPLICATION_CREDENTIALS } from '$env/static/private';
 import { json } from '@sveltejs/kit';
+// GoogleAuth library would be needed here
+// import { GoogleAuth } from 'google-auth-library';
 
 export async function POST({ request }) {
     const { action, payload } = await request.json();
 
-    if (!JULES_API) {
-        return json({ error: 'API Key not configured' }, { status: 500 });
-    }
+    // Verify authentication (Service Account) logic here...
 
     let url = '';
     let body = null;
@@ -44,10 +52,11 @@ export async function POST({ request }) {
         // ... handle other actions
     }
 
+    // Requests need to use the OAuth token, not just the API Key
     const response = await fetch(url, {
         method: body ? 'POST' : 'GET',
         headers: {
-            'X-Goog-Api-Key': JULES_API,
+            'Authorization': `Bearer ${accessToken}`, // Token from GoogleAuth
             'Content-Type': 'application/json'
         },
         body: body ? JSON.stringify(body) : undefined
