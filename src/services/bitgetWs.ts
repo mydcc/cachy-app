@@ -29,7 +29,7 @@ const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
 
 const PING_INTERVAL = 25000; // Bitget requires ping every 30s
 const WATCHDOG_TIMEOUT = 35000;
-const RECONNECT_DELAY = 1000;
+const RECONNECT_DELAY = 1000; // Base delay
 const CONNECTION_TIMEOUT_MS = 5000;
 
 class BitgetWebSocketService {
@@ -42,6 +42,10 @@ class BitgetWebSocketService {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private lastPingTime = 0;
   private isReconnecting = false;
+
+  // Backoff
+  private backoffDelay = RECONNECT_DELAY;
+  private readonly MAX_BACKOFF_DELAY = 30000;
 
   public subscriptions: Set<string> = new Set(); // Stores "channel:symbol"
 
@@ -187,6 +191,8 @@ class BitgetWebSocketService {
         // Notify Manager
         connectionManager.onProviderConnected("bitget");
 
+        // Reset Backoff
+        this.backoffDelay = RECONNECT_DELAY;
         this.isReconnecting = false;
         this.lastMessageTime = Date.now();
 
@@ -265,11 +271,16 @@ class BitgetWebSocketService {
 
     this.isReconnecting = true;
     marketState.connectionStatus = "reconnecting";
+
+    // Exponential Backoff
+    const delay = this.backoffDelay;
+    this.backoffDelay = Math.min(this.backoffDelay * 1.5, this.MAX_BACKOFF_DELAY);
+
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       this.isReconnecting = false;
       if (!this.isDestroyed) this.connect();
-    }, RECONNECT_DELAY);
+    }, delay);
   }
 
   private startHeartbeat(ws: WebSocket) {
