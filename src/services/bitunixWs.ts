@@ -116,11 +116,15 @@ class BitunixWebSocketService {
   // Circuit Breaker for Validation Errors
   private validationErrorCount = 0;
   private lastValidationErrorTime = 0;
-  private readonly MAX_VALIDATION_ERRORS = 5;
-  private readonly VALIDATION_ERROR_WINDOW = 10000;
+  private readonly MAX_VALIDATION_ERRORS = 50; // [HYBRID FIX] Increased from 5 to 50 to prevent cascading reconnects on minor API drifts
+  private readonly VALIDATION_ERROR_WINDOW = 60000; // [HYBRID FIX] Increased window to 1m
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
   private readonly MAX_PUBLIC_SUBSCRIPTIONS = 50;
+
+  // Backoff State
+  private backoffDelay = 1000;
+  private readonly MAX_BACKOFF_DELAY = 30000;
 
   // Throttling for UI Blocking Updates
   private throttleMap = new Map<string, number>();
@@ -347,10 +351,10 @@ class BitunixWebSocketService {
         // Notify Manager
         connectionManager.onProviderConnected("bitunix");
 
+        // [HYBRID FIX] Reset Backoff on successful connection
+        this.backoffDelay = 1000;
         this.isReconnectingPublic = false;
-        this.lastMessageTimePublic = Date.now();
-        this.startHeartbeat(ws, "public");
-        this.resetWatchdog("public", ws);
+
         this.lastMessageTimePublic = Date.now();
         this.startHeartbeat(ws, "public");
         this.resetWatchdog("public", ws);
@@ -506,11 +510,18 @@ class BitunixWebSocketService {
       if (this.isReconnectingPublic) return;
       this.isReconnectingPublic = true;
       marketState.connectionStatus = "reconnecting";
+
+      // [HYBRID FIX] Exponential Backoff
+      const delay = this.backoffDelay;
+      this.backoffDelay = Math.min(this.backoffDelay * 1.5, this.MAX_BACKOFF_DELAY);
+
+      logger.log("network", `[BitunixWS] Scheduling reconnect in ${delay}ms (Backoff: ${this.backoffDelay})`);
+
       if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
         if (!this.isDestroyed) this.connectPublic();
-      }, RECONNECT_DELAY);
+      }, delay);
     } else {
       if (this.isReconnectingPrivate) return;
       this.isReconnectingPrivate = true;
@@ -813,7 +824,10 @@ class BitunixWebSocketService {
                     timeframe = revMap[bitunixTf] || bitunixTf;
                   }
                 }
-                const normalizedKlines = mdaService.normalizeKlines([d], "bitunix");
+                // [HYBRID FIX] Inject detached 'ts' from root message into data object
+                // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
+                const klineData = { ...d, ts: message.ts };
+                const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
                 marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
               }
             }
@@ -981,7 +995,9 @@ class BitunixWebSocketService {
               timeframe = revMap[bitunixTf] || bitunixTf;
             }
           }
-          const normalizedKlines = mdaService.normalizeKlines([data], "bitunix");
+          // [HYBRID FIX] Inject detached 'ts' from root message into data object
+          const klineData = { ...data, ts: validatedMessage.ts };
+          const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
         }
       }

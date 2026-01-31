@@ -109,6 +109,7 @@ export interface BitunixWSMessage {
   data?: any; // Generic data payload depending on channel
   pong?: number;
   event?: string; // e.g. "login"
+  ts?: number; // Timestamp from root message
 }
 
 export interface BitunixPriceData {
