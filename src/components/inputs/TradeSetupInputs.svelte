@@ -314,13 +314,19 @@
   }
 
   // Determine dynamic step based on price magnitude
-  let priceStep = $derived(
-    entryPrice && parseFloat(entryPrice) > 1000
-      ? 0.5
-      : entryPrice && parseFloat(entryPrice) > 100
-        ? 0.1
-        : 0.01,
-  );
+  let priceStep = $derived.by(() => {
+    if (!entryPrice) return 0.01;
+    const price = parseFloat(entryPrice);
+    if (isNaN(price) || price === 0) return 0.01;
+
+    // Dynamic precision for low-sat assets vs high-value assets
+    if (price > 1000) return 0.5;
+    if (price > 100) return 0.1;
+    if (price > 1) return 0.01;
+    if (price > 0.01) return 0.0001;
+    if (price > 0.0001) return 0.000001;
+    return 0.00000001;
+  });
 
   // Copy to clipboard with smiley feedback
   let showSmiley = $state(false);
