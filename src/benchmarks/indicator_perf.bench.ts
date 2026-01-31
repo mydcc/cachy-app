@@ -20,10 +20,15 @@ function generateKlines(count: number): Kline[] {
   return klines;
 }
 
-const data = generateKlines(1000);
+const data1k = generateKlines(1000);
+const data20k = generateKlines(20000);
 
 describe('Indicator Calculation', () => {
   bench('calculateAllIndicators (1000 candles)', () => {
-    calculateAllIndicators(data);
+    calculateAllIndicators(data1k);
+  });
+
+  bench('calculateAllIndicators (20000 candles)', () => {
+    calculateAllIndicators(data20k);
   });
 });
