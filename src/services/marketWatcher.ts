@@ -280,21 +280,14 @@ class MarketWatcher {
     const scheduleCount = Math.min(allowed, tasks.length);
 
     // Spread out requests over the first cycle to avoid burst
-    let stagger = 0;
+    // Refactor: Removed manual staggering timeouts. ApiService now handles RateLimiting globally.
+    // This reduces GC pressure from creating thousands of short-lived timers.
     for (let i = 0; i < scheduleCount; i++) {
       const { symbol, channel, lockKey } = tasks[i];
-      const currentStagger = stagger;
-      stagger += Math.floor(Math.random() * 150) + 50; // Random 50-200ms increments
-
-      const timeoutId = setTimeout(() => {
-        this.staggerTimeouts.delete(timeoutId);
-        if (!this.pollingInterval) return; // Zombie Guard
-        if (this.inFlight >= this.maxConcurrentPolls) return;
-        if (!this.fetchLocks.has(lockKey)) {
-          this.pollSymbolChannel(symbol, channel, provider);
-        }
-      }, currentStagger);
-      this.staggerTimeouts.add(timeoutId);
+      if (!this.fetchLocks.has(lockKey)) {
+        // ApiService will handle token bucket rate limiting internally
+        this.pollSymbolChannel(symbol, channel, provider);
+      }
     }
   }
 
