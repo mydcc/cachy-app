@@ -83,7 +83,9 @@ export function calculateIndicatorsFromArrays(
   const normalizedEnabled: Record<string, boolean> = {};
   if (enabledIndicators) {
     Object.entries(enabledIndicators).forEach(([k, v]) => {
-      normalizedEnabled[k.toLowerCase()] = v;
+      if (v !== undefined) {
+        normalizedEnabled[k.toLowerCase()] = v;
+      }
     });
   }
 

@@ -195,7 +195,9 @@ function getRelevantSettings(settings: any, enabledIndicators?: Partial<Record<s
 
   const normalizedEnabled: Record<string, boolean> = {};
   Object.entries(enabledIndicators).forEach(([k, v]) => {
-    normalizedEnabled[k.toLowerCase()] = v;
+    if (v !== undefined) {
+      normalizedEnabled[k.toLowerCase()] = v;
+    }
   });
 
   const hasAllowList = Object.values(normalizedEnabled).some((v) => v === true);
