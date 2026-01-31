@@ -5,107 +5,72 @@
   it under the terms of the GNU Affero General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
 <script lang="ts">
-    import { marketState } from "../../stores/market.svelte";
-    import { settingsState } from "../../stores/settings.svelte";
-    import { _ } from "../../locales/i18n";
-    import { app } from "../../services/app";
+  import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
+  import { marketState } from "../../stores/market.svelte";
+  import { _ } from "../../locales/i18n";
+  import { icons } from "../../lib/constants";
 
-    let isOffline = $derived(
-        marketState.connectionStatus === "disconnected" ||
-            marketState.connectionStatus === "error",
-    );
+  let isOffline = $state(false);
+  let showBanner = $state(false);
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
-    function handleReconnect() {
-        app.setupRealtimeUpdates();
+  // Monitor navigator online/offline
+  function updateOnlineStatus() {
+    isOffline = !navigator.onLine;
+  }
+
+  $effect(() => {
+    // Check both browser network and WebSocket status
+    const isDisconnected = isOffline || marketState.connectionStatus === "disconnected";
+
+    if (isDisconnected) {
+      if (!timer && !showBanner) {
+        timer = setTimeout(() => {
+          showBanner = true;
+        }, 5000); // 5s grace period
+      }
+    } else {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      showBanner = false;
     }
+  });
 
-    function handleSwitchProvider() {
-        const newProvider =
-            settingsState.apiProvider === "bitunix" ? "bitget" : "bitunix";
-        settingsState.apiProvider = newProvider;
-        app.setupRealtimeUpdates();
-    }
+  onMount(() => {
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    updateOnlineStatus();
 
-    function handleSettings() {
-        // Navigate to settings (can be implemented via router or modal)
-        if (typeof window !== "undefined") {
-            window.location.hash = "#settings";
-        }
-    }
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+      if (timer) clearTimeout(timer);
+    };
+  });
 </script>
 
-{#if isOffline}
-    <div
-        class="fixed top-0 left-0 right-0 z-[100] bg-danger-bg border-b border-danger-color"
-        data-testid="offline-banner"
-        role="alert"
-        aria-live="assertive"
-    >
-        <div
-            class="container mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3"
-        >
-            <div class="flex items-center gap-3">
-                <svg
-                    class="w-5 h-5 text-danger-color"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                >
-                    <path
-                        fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clip-rule="evenodd"
-                    />
-                </svg>
-                <div class="flex flex-col">
-                    <strong class="text-danger-color font-semibold"
-                        >{$_("offline.title")}</strong
-                    >
-                    <span class="text-sm text-muted-foreground"
-                        >{$_("offline.message")}</span
-                    >
-                </div>
-            </div>
-
-            <div class="flex gap-2 flex-wrap">
-                <button
-                    onclick={handleReconnect}
-                    class="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-                >
-                    {$_("offline.reconnect")}
-                </button>
-
-                <button
-                    onclick={handleSwitchProvider}
-                    class="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 transition-colors"
-                >
-                    {$_("offline.switchProvider")}
-                </button>
-
-                <button
-                    onclick={handleSettings}
-                    class="px-3 py-1.5 text-sm border border-border rounded hover:bg-accent transition-colors"
-                >
-                    {$_("offline.checkSettings")}
-                </button>
-            </div>
-        </div>
+{#if showBanner}
+  <div
+    class="fixed bottom-0 left-0 w-full z-[9999] bg-[var(--danger-color)] text-white font-bold py-3 px-4 text-center shadow-[0_-4px_10px_rgba(0,0,0,0.3)] border-t border-white/20 backdrop-blur-md bg-opacity-90 flex items-center justify-center gap-3 animate-pulse"
+    transition:fade={{ duration: 300 }}
+    role="alert"
+  >
+    <div class="p-1 bg-white/20 rounded-full">
+      {@html icons.alert || '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'}
     </div>
-{/if}
+    <span>{$_("app.offlineMessage") || "Connection Lost - Trading functionality may be limited."}</span>
 
-<style>
-    /* Ensure banner is above all other content */
-    [data-testid="offline-banner"] {
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    }
-</style>
+    <button
+      class="ml-4 px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs transition-colors"
+      onclick={() => window.location.reload()}
+    >
+      {$_("app.refresh") || "Refresh"}
+    </button>
+  </div>
+{/if}
