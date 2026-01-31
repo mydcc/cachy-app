@@ -347,9 +347,9 @@
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
                     TechnicalsPresenter.calculateBollingerBandWidth(
-                      new Decimal(data.volatility.bb.upper),
-                      new Decimal(data.volatility.bb.lower),
-                      new Decimal(data.volatility.bb.middle),
+                      data.volatility.bb.upper.toNumber(),
+                      data.volatility.bb.lower.toNumber(),
+                      data.volatility.bb.middle.toNumber(),
                     ),
                     2,
                   )}%</span

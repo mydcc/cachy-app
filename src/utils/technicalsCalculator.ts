@@ -365,16 +365,17 @@ export function calculateIndicatorsFromArrays(
         item.name,
       );
       results.forEach((res) => {
+        // DivergenceScanner returns Decimals for price/ind values, but TechnicalsData expects numbers now
         divergences.push({
           indicator: res.indicator,
           type: res.type,
           side: res.side,
           startIdx: res.startIdx,
           endIdx: res.endIdx,
-          priceStart: res.priceStart,
-          priceEnd: res.priceEnd,
-          indStart: res.indStart,
-          indEnd: res.indEnd,
+          priceStart: res.priceStart.toNumber(),
+          priceEnd: res.priceEnd.toNumber(),
+          indStart: res.indStart.toNumber(),
+          indEnd: res.indEnd.toNumber(),
         });
       });
     });

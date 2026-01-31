@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { Decimal } from "decimal.js";
+import type { IndicatorSettings } from "../stores/indicator.svelte";
 
 // Mock talib-web before importing service
 vi.mock("talib-web", () => {
@@ -43,6 +44,7 @@ vi.mock("talib-web", () => {
 });
 
 import { technicalsService } from "./technicalsService";
+import { defaultIndicatorSettings } from "../stores/indicator.svelte";
 
 function generateKlines(count: number) {
   const klines = [];
@@ -87,14 +89,13 @@ describe("technicalsService", () => {
 
   it("should respect custom settings", async () => {
     const klines = generateKlines(250);
-    // Note: 'length' in ADX is mapped to 'adxSmoothing' in our migration logic in store,
-    // but here we pass raw object. TechnicalsService expects 'adxSmoothing' now.
-    // We simulate the migrated object here.
-    const settings: any = {
-      cci: { length: 10, threshold: 50 },
-      adx: { adxSmoothing: 10, diLength: 10, threshold: 20 },
-      ao: { fastLength: 2, slowLength: 5 },
-      momentum: { length: 5, source: "close" },
+    // Merge custom partial settings with default full settings to satisfy type check
+    const settings: IndicatorSettings = {
+      ...defaultIndicatorSettings,
+      cci: { ...defaultIndicatorSettings.cci, length: 10, threshold: 50 },
+      adx: { ...defaultIndicatorSettings.adx, adxSmoothing: 10, diLength: 10, threshold: 20 },
+      ao: { ...defaultIndicatorSettings.ao, fastLength: 2, slowLength: 5 },
+      momentum: { ...defaultIndicatorSettings.momentum, length: 5, source: "close" },
     };
 
     const result = await technicalsService.calculateTechnicals(

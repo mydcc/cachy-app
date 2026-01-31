@@ -36,9 +36,13 @@ export class TechnicalsPresenter {
      * Calculates Bollinger Band Width %
      * Formula: ((Upper - Lower) / Middle) * 100
      */
-    static calculateBollingerBandWidth(upper: Decimal, lower: Decimal, middle: Decimal): Decimal {
-        if (middle.isZero()) return new Decimal(0);
-        return upper.minus(lower).div(middle).times(100);
+    static calculateBollingerBandWidth(upper: Decimal | number, lower: Decimal | number, middle: Decimal | number): Decimal {
+        const u = upper instanceof Decimal ? upper : new Decimal(upper);
+        const l = lower instanceof Decimal ? lower : new Decimal(lower);
+        const m = middle instanceof Decimal ? middle : new Decimal(middle);
+
+        if (m.isZero()) return new Decimal(0);
+        return u.minus(l).div(m).times(100);
     }
 
     /**
@@ -84,9 +88,10 @@ export class TechnicalsPresenter {
     /**
      * Formats a Decimal value with precision
      */
-    static formatVal(val: Decimal | undefined, precision: number = 4): string {
-        if (!val || !val.toDecimalPlaces) return "-";
-        return val.toDecimalPlaces(precision).toString();
+    static formatVal(val: Decimal | number | undefined, precision: number = 4): string {
+        if (val === undefined || val === null) return "-";
+        const d = val instanceof Decimal ? val : new Decimal(val);
+        return d.toDecimalPlaces(precision).toString();
     }
 
     /**

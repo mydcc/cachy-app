@@ -147,7 +147,7 @@ export interface IndicatorSettings {
   };
 }
 
-const defaultSettings: IndicatorSettings = {
+export const defaultIndicatorSettings: IndicatorSettings = {
   historyLimit: 750,
   precision: 4,
   rsi: {
@@ -269,40 +269,40 @@ const defaultSettings: IndicatorSettings = {
 const STORE_KEY = "cachy_indicator_settings";
 
 class IndicatorManager {
-  historyLimit = $state(defaultSettings.historyLimit);
-  precision = $state(defaultSettings.precision);
+  historyLimit = $state(defaultIndicatorSettings.historyLimit);
+  precision = $state(defaultIndicatorSettings.precision);
 
   // Oscillators
-  rsi = $state(defaultSettings.rsi);
-  stochRsi = $state(defaultSettings.stochRsi);
-  stochastic = $state(defaultSettings.stochastic);
-  williamsR = $state(defaultSettings.williamsR);
-  cci = $state(defaultSettings.cci);
-  momentum = $state(defaultSettings.momentum);
-  ao = $state(defaultSettings.ao);
-  mfi = $state(defaultSettings.mfi);
+  rsi = $state(defaultIndicatorSettings.rsi);
+  stochRsi = $state(defaultIndicatorSettings.stochRsi);
+  stochastic = $state(defaultIndicatorSettings.stochastic);
+  williamsR = $state(defaultIndicatorSettings.williamsR);
+  cci = $state(defaultIndicatorSettings.cci);
+  momentum = $state(defaultIndicatorSettings.momentum);
+  ao = $state(defaultIndicatorSettings.ao);
+  mfi = $state(defaultIndicatorSettings.mfi);
 
   // Trend
-  macd = $state(defaultSettings.macd);
-  adx = $state(defaultSettings.adx);
-  ema = $state(defaultSettings.ema);
-  superTrend = $state(defaultSettings.superTrend);
-  atrTrailingStop = $state(defaultSettings.atrTrailingStop);
-  ichimoku = $state(defaultSettings.ichimoku);
+  macd = $state(defaultIndicatorSettings.macd);
+  adx = $state(defaultIndicatorSettings.adx);
+  ema = $state(defaultIndicatorSettings.ema);
+  superTrend = $state(defaultIndicatorSettings.superTrend);
+  atrTrailingStop = $state(defaultIndicatorSettings.atrTrailingStop);
+  ichimoku = $state(defaultIndicatorSettings.ichimoku);
 
   // Volatility
-  atr = $state(defaultSettings.atr);
-  bb = $state(defaultSettings.bb);
-  choppiness = $state(defaultSettings.choppiness);
+  atr = $state(defaultIndicatorSettings.atr);
+  bb = $state(defaultIndicatorSettings.bb);
+  choppiness = $state(defaultIndicatorSettings.choppiness);
 
   // Volume & Misc
-  obv = $state(defaultSettings.obv);
-  vwap = $state(defaultSettings.vwap);
-  parabolicSar = $state(defaultSettings.parabolicSar); // Add state
-  volumeProfile = $state(defaultSettings.volumeProfile);
-  volumeMa = $state(defaultSettings.volumeMa);
-  bollingerBands = $state(defaultSettings.bollingerBands);
-  pivots = $state(defaultSettings.pivots);
+  obv = $state(defaultIndicatorSettings.obv);
+  vwap = $state(defaultIndicatorSettings.vwap);
+  parabolicSar = $state(defaultIndicatorSettings.parabolicSar); // Add state
+  volumeProfile = $state(defaultIndicatorSettings.volumeProfile);
+  volumeMa = $state(defaultIndicatorSettings.volumeMa);
+  bollingerBands = $state(defaultIndicatorSettings.bollingerBands);
+  pivots = $state(defaultIndicatorSettings.pivots);
 
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
   private saveTimer: any = null;
@@ -370,7 +370,7 @@ class IndicatorManager {
       const parsed = JSON.parse(stored);
 
       // Migration for ADX
-      let adxParsed = { ...defaultSettings.adx, ...(parsed.adx || {}) };
+      let adxParsed = { ...defaultIndicatorSettings.adx, ...(parsed.adx || {}) };
       if (
         parsed.adx &&
         parsed.adx.length !== undefined &&
@@ -379,55 +379,55 @@ class IndicatorManager {
         adxParsed.adxSmoothing = parsed.adx.length;
       }
 
-      this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
-      this.precision = parsed.precision ?? defaultSettings.precision;
+      this.historyLimit = parsed.historyLimit || defaultIndicatorSettings.historyLimit;
+      this.precision = parsed.precision ?? defaultIndicatorSettings.precision;
 
-      this.rsi = { ...defaultSettings.rsi, ...parsed.rsi };
-      this.stochRsi = { ...defaultSettings.stochRsi, ...parsed.stochRsi };
-      this.macd = { ...defaultSettings.macd, ...parsed.macd };
-      this.stochastic = { ...defaultSettings.stochastic, ...parsed.stochastic };
-      this.williamsR = { ...defaultSettings.williamsR, ...parsed.williamsR };
-      this.cci = { ...defaultSettings.cci, ...parsed.cci };
+      this.rsi = { ...defaultIndicatorSettings.rsi, ...parsed.rsi };
+      this.stochRsi = { ...defaultIndicatorSettings.stochRsi, ...parsed.stochRsi };
+      this.macd = { ...defaultIndicatorSettings.macd, ...parsed.macd };
+      this.stochastic = { ...defaultIndicatorSettings.stochastic, ...parsed.stochastic };
+      this.williamsR = { ...defaultIndicatorSettings.williamsR, ...parsed.williamsR };
+      this.cci = { ...defaultIndicatorSettings.cci, ...parsed.cci };
       this.adx = adxParsed;
-      this.ao = { ...defaultSettings.ao, ...parsed.ao };
-      this.momentum = { ...defaultSettings.momentum, ...parsed.momentum };
-      this.pivots = { ...defaultSettings.pivots, ...parsed.pivots };
-      this.superTrend = { ...defaultSettings.superTrend, ...parsed.superTrend };
+      this.ao = { ...defaultIndicatorSettings.ao, ...parsed.ao };
+      this.momentum = { ...defaultIndicatorSettings.momentum, ...parsed.momentum };
+      this.pivots = { ...defaultIndicatorSettings.pivots, ...parsed.pivots };
+      this.superTrend = { ...defaultIndicatorSettings.superTrend, ...parsed.superTrend };
       this.atrTrailingStop = {
-        ...defaultSettings.atrTrailingStop,
+        ...defaultIndicatorSettings.atrTrailingStop,
         ...parsed.atrTrailingStop,
       };
-      this.obv = { ...defaultSettings.obv, ...parsed.obv };
-      this.mfi = { ...defaultSettings.mfi, ...parsed.mfi };
-      this.vwap = { ...defaultSettings.vwap, ...parsed.vwap };
-      this.parabolicSar = { ...defaultSettings.parabolicSar, ...parsed.parabolicSar };
-      this.ichimoku = { ...defaultSettings.ichimoku, ...parsed.ichimoku };
-      this.choppiness = { ...defaultSettings.choppiness, ...parsed.choppiness };
+      this.obv = { ...defaultIndicatorSettings.obv, ...parsed.obv };
+      this.mfi = { ...defaultIndicatorSettings.mfi, ...parsed.mfi };
+      this.vwap = { ...defaultIndicatorSettings.vwap, ...parsed.vwap };
+      this.parabolicSar = { ...defaultIndicatorSettings.parabolicSar, ...parsed.parabolicSar };
+      this.ichimoku = { ...defaultIndicatorSettings.ichimoku, ...parsed.ichimoku };
+      this.choppiness = { ...defaultIndicatorSettings.choppiness, ...parsed.choppiness };
       this.volumeProfile = {
-        ...defaultSettings.volumeProfile,
+        ...defaultIndicatorSettings.volumeProfile,
         ...parsed.volumeProfile,
       };
 
-      this.atr = { ...defaultSettings.atr, ...parsed.atr };
-      this.bb = { ...defaultSettings.bb, ...parsed.bb };
+      this.atr = { ...defaultIndicatorSettings.atr, ...parsed.atr };
+      this.bb = { ...defaultIndicatorSettings.bb, ...parsed.bb };
 
       this.ema = parsed.ema
         ? {
           ema1: {
-            ...defaultSettings.ema.ema1,
+            ...defaultIndicatorSettings.ema.ema1,
             ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
           },
           ema2: {
-            ...defaultSettings.ema.ema2,
+            ...defaultIndicatorSettings.ema.ema2,
             ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
           },
           ema3: {
-            ...defaultSettings.ema.ema3,
+            ...defaultIndicatorSettings.ema.ema3,
             ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
           },
-          source: parsed.ema.source || defaultSettings.ema.source,
+          source: parsed.ema.source || defaultIndicatorSettings.ema.source,
         }
-        : defaultSettings.ema;
+        : defaultIndicatorSettings.ema;
     } catch (e) {
       console.error("IndicatorManager: Failed to load from localStorage", e);
     }
@@ -496,7 +496,7 @@ class IndicatorManager {
   }
 
   reset() {
-    const d = defaultSettings;
+    const d = defaultIndicatorSettings;
     this.historyLimit = d.historyLimit;
     this.precision = d.precision;
     this.rsi = d.rsi;

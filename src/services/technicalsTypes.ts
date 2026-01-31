@@ -66,16 +66,17 @@ export interface IndicatorResult {
   action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
 }
 
+// Updated to use number for performance migration
 export interface DivergenceItem {
   indicator: string; // "RSI", "MACD", "StochRSI"
   type: "Regular" | "Hidden";
   side: "Bullish" | "Bearish";
   startIdx: number;
   endIdx: number;
-  priceStart: Decimal;
-  priceEnd: Decimal;
-  indStart: Decimal;
-  indEnd: Decimal;
+  priceStart: number;
+  priceEnd: number;
+  indStart: number;
+  indEnd: number;
 }
 
 export interface ConfluenceData {

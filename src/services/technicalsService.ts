@@ -507,10 +507,10 @@ export const technicalsService = {
       } : undefined,
       divergences: data.divergences?.map(d => ({
         ...d,
-        priceStart: toDec(d.priceStart),
-        priceEnd: toDec(d.priceEnd),
-        indStart: toDec(d.indStart),
-        indEnd: toDec(d.indEnd),
+        priceStart: Number(d.priceStart),
+        priceEnd: Number(d.priceEnd),
+        indStart: Number(d.indStart),
+        indEnd: Number(d.indEnd),
       })),
       confluence: data.confluence,
       advanced: data.advanced ? {
