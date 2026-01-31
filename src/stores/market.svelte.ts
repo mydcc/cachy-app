@@ -378,10 +378,47 @@ export class MarketManager {
         history = newHistory;
       } else {
         // Slow Path: Historical backfill or disordered data
-        // Use Map for robust deduplication
-        const existingMap = new Map(history.map(k => [k.time, k]));
-        newKlines.forEach(k => existingMap.set(k.time, k));
-        history = Array.from(existingMap.values()).sort((a, b) => a.time - b.time);
+        // Use linear merge algorithm (O(N+M)) instead of Map+Sort (O(N log N))
+        // Both history and newKlines are sorted.
+        const merged: Kline[] = [];
+        let i = 0;
+        let j = 0;
+        const hLen = history.length;
+        const nLen = newKlines.length;
+
+        // Helper to emulate Map behavior: overwrite if duplicate timestamp exists
+        const safePush = (k: Kline) => {
+          const last = merged.length > 0 ? merged[merged.length - 1] : null;
+          if (last && last.time === k.time) {
+            merged[merged.length - 1] = k;
+          } else {
+            merged.push(k);
+          }
+        };
+
+        while (i < hLen && j < nLen) {
+          const hTime = history[i].time;
+          const nTime = newKlines[j].time;
+
+          if (hTime < nTime) {
+            safePush(history[i]);
+            i++;
+          } else if (hTime > nTime) {
+            safePush(newKlines[j]);
+            j++;
+          } else {
+            // Overwrite: newKlines takes precedence
+            safePush(newKlines[j]);
+            i++;
+            j++;
+          }
+        }
+
+        // Append remaining items
+        while (i < hLen) safePush(history[i++]);
+        while (j < nLen) safePush(newKlines[j++]);
+
+        history = merged;
       }
     }
 

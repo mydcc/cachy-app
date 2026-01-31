@@ -18,6 +18,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MarketManager } from './market.svelte';
+import { settingsState } from './settings.svelte';
 import { Decimal } from 'decimal.js';
 
 describe('MarketManager', () => {
@@ -25,6 +26,7 @@ describe('MarketManager', () => {
 
   beforeEach(() => {
     market = new MarketManager();
+    settingsState.chartHistoryLimit = 2000;
   });
 
   const createKline = (time: number, close: number) => ({
@@ -142,5 +144,26 @@ describe('MarketManager', () => {
      expect(history.length).toBe(2000);
      // Should keep the latest ones (end of array)
      expect(history[history.length-1].time).toBe(2099000);
+  });
+
+  it('should deduplicate internal duplicates in newKlines (slow path)', () => {
+    const k1 = createKline(1000, 101);
+    const k3 = createKline(3000, 105);
+    market.updateSymbolKlines('BTC', '1m', [k1, k3]);
+
+    const k2 = createKline(2000, 102);
+    const k2Dup = createKline(2000, 103); // Duplicate time, different price
+
+    // Ensure we trigger slow path: firstNewTime (2000) < lastHistTime (3000)
+    market.updateSymbolKlines('BTC', '1m', [k2, k2Dup]);
+
+    const history = market.data['BTC'].klines['1m'];
+    expect(history.length).toBe(3);
+    expect(history[0].time).toBe(1000);
+    expect(history[1].time).toBe(2000);
+    expect(history[2].time).toBe(3000);
+
+    // safePush overwrites. First k2 pushed. Then k2Dup pushed -> safePush sees same time -> overwrites.
+    expect(history[1].close.toNumber()).toBe(103);
   });
 });
