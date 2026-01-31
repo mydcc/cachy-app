@@ -33,6 +33,7 @@
   import { favoritesState } from "../../stores/favorites.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
+  import { trackInteraction } from "../../services/trackingService";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { externalLinkService } from "../../services/externalLinkService";
   import { icons } from "../../lib/constants";
@@ -433,6 +434,8 @@
   class="market-overview-card glass-panel rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] transition-all relative {isFavoriteTile
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
+  data-track-id="market-overview-card"
+  data-track-context={JSON.stringify({ symbol: displaySymbol })}
   onclick={loadToCalculator}
   onkeydown={(e) => (e.key === "Enter" || e.key === " ") && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
@@ -461,9 +464,12 @@
       <button
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
+        data-track-id="btn-toggle-technicals"
+        data-track-context={JSON.stringify({ symbol })}
         title={$_("marketOverview.tooltips.toggleTechnicals")}
         onclick={(e) => {
           e.stopPropagation();
+          trackInteraction("btn-toggle-technicals", "click", { symbol });
           onToggleTechnicals?.();
         }}
       >
@@ -475,8 +481,11 @@
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title={$_("marketOverview.tooltips.openChart")}
+      data-track-id="btn-open-chart"
+      data-track-context={JSON.stringify({ symbol })}
       onclick={(e) => {
         e.stopPropagation();
+        trackInteraction("btn-open-chart", "click", { symbol });
         windowManager.toggle(`chart-${symbol}`, () => new ChartWindow(symbol));
       }}
     >
@@ -497,8 +506,11 @@
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title={$_("marketOverview.tooltips.refreshStats")}
+      data-track-id="btn-refresh-stats"
+      data-track-context={JSON.stringify({ symbol })}
       onclick={(e) => {
         e.stopPropagation();
+        trackInteraction("btn-refresh-stats", "click", { symbol });
         app.handleFetchPrice();
       }}
     >
@@ -753,8 +765,11 @@
   <button
     class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
     class:text-[var(--accent-color)]={isFavorite}
+    data-track-id="btn-toggle-favorite"
+    data-track-context={JSON.stringify({ symbol })}
     onclick={(e) => {
       e.stopPropagation();
+      trackInteraction("btn-toggle-favorite", "click", { symbol });
       toggleFavorite();
     }}
     title={isFavorite

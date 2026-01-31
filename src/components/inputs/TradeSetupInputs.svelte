@@ -371,6 +371,7 @@
         id="symbol-input"
         name="symbol"
         type="text"
+        data-track-id="input-symbol"
         bind:value={localSymbol}
         oninput={() => {
           handleSymbolInput();
@@ -389,6 +390,7 @@
       >
         <button
           type="button"
+          data-track-id="btn-symbol-picker"
           class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           onclick={() => windowManager.open(new SymbolPickerWindow())}
           title={$_("dashboard.tradeSetupInputs.selectSymbol")}
@@ -407,6 +409,7 @@
         </button>
         <button
           type="button"
+          data-track-id="btn-fetch-price"
           class="price-fetch-btn p-1 {isPriceFetching ? 'animate-spin' : ''}"
           title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
           aria-label={$_("dashboard.tradeSetupInputs.fetchPriceAriaLabel")}
@@ -453,6 +456,7 @@
         id="entry-price-input"
         name="entryPrice"
         type="text"
+        data-track-id="input-entry-price"
         use:numberInput={{ maxDecimalPlaces: 20 }}
         use:enhancedInput={{
           step: priceStep,
@@ -506,6 +510,7 @@
         style="width: 0.382rem; height: 0.382rem; background-color: {settingsState.autoUpdatePriceInput
           ? 'var(--success-color)'
           : 'var(--danger-color)'};"
+        data-track-id="toggle-auto-price"
         title={settingsState.autoUpdatePriceInput
           ? $_("dashboard.tradeSetupInputs.autoUpdateOn")
           : $_("dashboard.tradeSetupInputs.autoUpdateOff")}
@@ -548,6 +553,7 @@
           id="use-atr-sl-checkbox"
           name="useAtrSl"
           type="checkbox"
+          data-track-id="toggle-atr-sl"
           bind:checked={useAtrSl}
           onchange={toggleAtrSl}
           class="sr-only peer"
@@ -565,6 +571,7 @@
           id="stop-loss-price-input"
           name="stopLossPrice"
           type="text"
+          data-track-id="input-stop-loss"
           use:numberInput={{ maxDecimalPlaces: 20 }}
           use:enhancedInput={{
             step: priceStep,
@@ -588,6 +595,7 @@
               id="atr-value-input"
               name="atrValue"
               type="text"
+              data-track-id="input-atr-value"
               use:numberInput={{ maxDecimalPlaces: 20 }}
               use:enhancedInput={{
                 step: 0.1,
@@ -607,6 +615,7 @@
               id="atr-multiplier-input"
               name="atrMultiplier"
               type="text"
+              data-track-id="input-atr-multiplier"
               use:numberInput={{ maxDecimalPlaces: 4 }}
               use:enhancedInput={{
                 step: 0.1,
@@ -635,6 +644,7 @@
               <select
                 id="atr-timeframe"
                 name="atrTimeframe"
+                data-track-id="select-atr-timeframe"
                 value={atrTimeframe}
                 onchange={handleAtrTimeframeChange}
                 class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
@@ -667,6 +677,7 @@
                 id="atr-value-input-auto"
                 name="atrValueAuto"
                 type="text"
+                data-track-id="input-atr-value"
                 use:numberInput={{ maxDecimalPlaces: 20 }}
                 use:enhancedInput={{
                   step: 0.1,
@@ -683,6 +694,7 @@
               />
               <button
                 type="button"
+                data-track-id="btn-fetch-atr"
                 class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isAtrFetching
                   ? 'animate-spin'
                   : ''}"
@@ -718,6 +730,7 @@
                 id="atr-multiplier-input-auto"
                 name="atrMultiplierAuto"
                 type="text"
+                data-track-id="input-atr-multiplier"
                 use:numberInput={{ maxDecimalPlaces: 4 }}
                 use:enhancedInput={{
                   step: 0.1,

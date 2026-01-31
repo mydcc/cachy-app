@@ -285,3 +285,16 @@ To guarantee accessibility and readability across all 20+ themes, the following 
 
 - **New Themes:**
   - Every new theme in `themes.css` **MUST** mandatorily define the variables `--text-on-accent`, `--text-on-success`, and `--text-on-danger`.
+
+## **19. Tracking & Analytics Conventions (Matomo)**
+
+To ensure robust analytics that survive design refactors and text changes, we follow a strict "Explicit ID" strategy.
+
+- **Do NOT rely on auto-tracking by CSS class or Text Content:** These change frequently and break analytics reports.
+- **Use `data-track-id`:** Every business-critical interactive element (Button, Input, Link) MUST have a stable, unique `data-track-id`.
+  - Naming Convention: `noun-verb-adjective` or `component-element-id` (kebab-case).
+  - Examples: `btn-buy-long`, `input-entry-price`, `toggle-atr-mode`, `nav-link-dashboard`.
+- **Use `data-track-context` for dynamic data:** If an element needs to pass specific metadata (like Symbol, Timeframe), use a valid JSON string in this attribute.
+  - Example: `data-track-context='{"symbol": "BTCUSDT", "source": "favorites"}'`
+- **Global Tracker:** A global event listener intercepts all clicks. If it finds `data-track-id`, it pushes a standardized 'interaction' event to Matomo.
+- **Manual Tracking:** Use `trackCustomEvent` from `services/trackingService.ts` ONLY for invisible logic events (e.g., "Calculation Success", "API Error"). For UI interactions, prefer attributes.
