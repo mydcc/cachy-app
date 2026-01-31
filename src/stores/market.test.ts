@@ -113,16 +113,17 @@ describe('MarketManager', () => {
   });
 
   it('should respect MAX_HISTORY limit', () => {
-     // Generate more than 1000 items
+     // Generate more than 2000 items (default settings limit)
      const klines = [];
-     for(let i=0; i<1100; i++) {
+     for(let i=0; i<2100; i++) {
          klines.push(createKline(i*1000, 100));
      }
      market.updateSymbolKlines('BTC', '1m', klines);
 
      const history = market.data['BTC'].klines['1m'];
-     expect(history.length).toBe(1000);
+     // Defaults to 2000 in settings.svelte.ts
+     expect(history.length).toBe(2000);
      // Should keep the latest ones (end of array)
-     expect(history[history.length-1].time).toBe(1099000);
+     expect(history[history.length-1].time).toBe(2099000);
   });
 });

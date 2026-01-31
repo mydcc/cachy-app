@@ -175,6 +175,7 @@
       "riskPerTradeLabel": "Risiko je Trade (%)",
       "riskPerTradePlaceholder": "z.B. 1.5",
       "riskAmountLabel": "Risikobetrag",
+      "riskAmountPlaceholder": "z.B. 100",
       "toggleRiskAmountLockTitle": "Risikobetrag sperren/entsperren",
       "fetchBalanceTitle": "Guthaben abrufen"
     },
@@ -905,6 +906,12 @@
       "filterImportant": "Wichtig",
       "planFree": "Kostenlos",
       "planPro": "Pro",
+      "placeholders": {
+        "apiKey": "API-Schlüssel",
+        "apiSecret": "API-Secret",
+        "passphrase": "Passphrase",
+        "url": "https://..."
+      },
       "providers": {
         "bitunix": "Bitunix",
         "bitget": "Bitget",
@@ -1182,6 +1189,7 @@
     }
   },
   "chartPatterns": {
+    "searchPlaceholder": "Muster suchen...",
     "description": "Beschreibung",
     "characteristics": "Charakteristika",
     "tradingStrategy": "Handelsstrategie",

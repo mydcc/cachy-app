@@ -175,6 +175,7 @@
       "riskPerTradeLabel": "Risk per Trade (%)",
       "riskPerTradePlaceholder": "e.g. 1.5",
       "riskAmountLabel": "Risk Amount",
+      "riskAmountPlaceholder": "e.g. 100",
       "toggleRiskAmountLockTitle": "Lock/Unlock Risk Amount",
       "fetchBalanceTitle": "Fetch Balance"
     },
@@ -1009,6 +1010,12 @@
       "filterImportant": "Important",
       "planFree": "Free",
       "planPro": "Pro",
+      "placeholders": {
+        "apiKey": "API Key",
+        "apiSecret": "API Secret",
+        "passphrase": "Passphrase",
+        "url": "https://..."
+      },
       "providers": {
         "bitunix": "Bitunix",
         "bitget": "Bitget",
@@ -1161,6 +1168,7 @@
     "syncFailed": "Sync failed: {error}"
   },
   "chartPatterns": {
+    "searchPlaceholder": "Search patterns...",
     "description": "Description",
     "characteristics": "Characteristics",
     "tradingStrategy": "Trading Strategy",

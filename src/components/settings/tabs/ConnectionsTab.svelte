@@ -134,7 +134,7 @@
                                             settingsState.apiKeys.bitunix.key
                                         }
                                         class="api-input pr-8"
-                                        placeholder="Bitunix Key"
+                                        placeholder={$_("settings.connections.placeholders.apiKey") || "Bitunix Key"}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -178,7 +178,7 @@
                                             settingsState.apiKeys.bitunix.secret
                                         }
                                         class="api-input pr-8"
-                                        placeholder="Bitunix Secret"
+                                        placeholder={$_("settings.connections.placeholders.apiSecret") || "Bitunix Secret"}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -237,7 +237,7 @@
                                             settingsState.apiKeys.bitget.key
                                         }
                                         class="api-input pr-8"
-                                        placeholder="Bitget Key"
+                                        placeholder={$_("settings.connections.placeholders.apiKey") || "Bitget Key"}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -282,7 +282,7 @@
                                             settingsState.apiKeys.bitget.secret
                                         }
                                         class="api-input pr-8"
-                                        placeholder="Bitget Secret"
+                                        placeholder={$_("settings.connections.placeholders.apiSecret") || "Bitget Secret"}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -327,7 +327,7 @@
                                                 .passphrase
                                         }
                                         class="api-input pr-8"
-                                        placeholder="Passphrase"
+                                        placeholder={$_("settings.connections.placeholders.passphrase") || "Passphrase"}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -553,7 +553,7 @@
                                     type="url"
                                     bind:value={settingsState.customRssFeeds[i]}
                                     class="api-input"
-                                    placeholder="https://..."
+                                    placeholder={$_("settings.connections.placeholders.url") || "https://..."}
                                 />
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
