@@ -18,6 +18,7 @@
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { uiState } from "../stores/ui.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
@@ -27,7 +28,7 @@ import { logger } from "./logger";
 import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import { Decimal } from "decimal.js";
-import type { OMSPosition, OMSOrder, OMSOrderStatus } from "./omsTypes";
+import { mapToOMSOrder, mapToOMSPosition } from "./mappers";
 import type {
   BitunixWSMessage,
   BitunixPriceData,
@@ -56,55 +57,6 @@ const CONNECTION_TIMEOUT_MS = 3000;
 interface Subscription {
   symbol: string;
   channel: string;
-}
-
-function mapToOMSPosition(data: any): OMSPosition {
-  const isClose = data.event === "CLOSE";
-  const amount = isClose ? new Decimal(0) : new Decimal(data.qty || 0);
-
-  return {
-    symbol: data.symbol,
-    side: (data.side || "").toLowerCase() as "long" | "short",
-    amount: amount,
-    entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
-    unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-    leverage: new Decimal(data.leverage || 0),
-    marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
-    liquidationPrice: data.liquidationPrice
-      ? new Decimal(data.liquidationPrice)
-      : undefined,
-  };
-}
-
-function mapToOMSOrder(data: any): OMSOrder {
-  // Hardening: Detect numeric IDs which imply precision loss
-  if (typeof data.orderId === 'number') {
-    logger.warn("network", `[BitunixWS] CRITICAL: orderId is number! Precision loss imminent: ${data.orderId}`);
-  }
-
-  const statusMap: Record<string, OMSOrderStatus> = {
-    NEW: "pending",
-    PARTIALLY_FILLED: "pending",
-    FILLED: "filled",
-    CANCELED: "cancelled",
-    CANCELLED: "cancelled",
-    REJECTED: "rejected",
-    EXPIRED: "expired",
-  };
-
-  const status = statusMap[data.orderStatus] || "pending";
-
-  return {
-    id: String(data.orderId),
-    symbol: data.symbol,
-    side: (data.side || "").toLowerCase() as "buy" | "sell",
-    type: (data.type || "").toLowerCase() as "limit" | "market",
-    status: status,
-    price: new Decimal(data.price || 0),
-    amount: new Decimal(data.qty || data.amount || 0),
-    filledAmount: new Decimal(data.dealAmount || 0),
-    timestamp: Number(data.ctime || Date.now()),
-  };
 }
 
 class BitunixWebSocketService {
@@ -171,16 +123,21 @@ class BitunixWebSocketService {
   private readonly MAX_PUBLIC_SUBSCRIPTIONS = 50;
 
   // Throttling for UI Blocking Updates
+  // Uses a bounded Map (LRU-like) to prevent memory bloat
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
-  private readonly THROTTLE_TTL = 5000;
+  private readonly THROTTLE_MAP_LIMIT = 500; // Max items
 
   private pruneThrottleMap() {
-    const now = Date.now();
-    for (const [key, timestamp] of this.throttleMap) {
-      if (now - timestamp > this.THROTTLE_TTL) {
-        this.throttleMap.delete(key);
-      }
+    // Only prune if size exceeds limit to avoid CPU churn on small maps
+    if (this.throttleMap.size > this.THROTTLE_MAP_LIMIT) {
+        const now = Date.now();
+        // Delete oldest entries first (Map iteration order is insertion order)
+        for (const [key, timestamp] of this.throttleMap) {
+            // If we have pruned enough, stop (soft limit)
+            if (this.throttleMap.size <= this.THROTTLE_MAP_LIMIT * 0.8) break;
+            this.throttleMap.delete(key);
+        }
     }
   }
 
@@ -280,15 +237,22 @@ class BitunixWebSocketService {
 
   private shouldThrottle(key: string): boolean {
     const now = Date.now();
-    // Safety: Prevent map from growing indefinitely if user cycles symbols
-    if (this.throttleMap.size > 1000) {
-      this.throttleMap.clear();
-    }
     const last = this.throttleMap.get(key) || 0;
     if (now - last < this.UPDATE_INTERVAL) {
       return true;
     }
+
+    // Manual LRU promotion: delete and re-set to move to end
+    this.throttleMap.delete(key);
     this.throttleMap.set(key, now);
+
+    // Lazy pruning on insert
+    if (this.throttleMap.size > this.THROTTLE_MAP_LIMIT) {
+        // Just remove the oldest (first) item
+        const firstKey = this.throttleMap.keys().next().value;
+        if (firstKey) this.throttleMap.delete(firstKey);
+    }
+
     return false;
   }
 
@@ -1187,6 +1151,19 @@ class BitunixWebSocketService {
 
       if (this.errorCountPublic >= this.ERROR_THRESHOLD) {
         logger.warn("network", `[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
+
+        // Hard Limit: If we hit 2x threshold (10 errors), stop retrying to save bandwidth/CPU
+        if (this.errorCountPublic >= this.ERROR_THRESHOLD * 2) {
+             logger.error("network", `[WebSocket] Public: CRITICAL FAILURE. Giving up after ${this.errorCountPublic} errors.`);
+             this.cleanup("public");
+             marketState.connectionStatus = "disconnected";
+             // Notify UI
+             if (typeof window !== "undefined") {
+                 uiState.showError("apiErrors.connectionFailedConfig");
+             }
+             return;
+        }
+
         // NOTE: We do not reset the error counter here to ensure that if the new connection
         // fails immediately, we catch it quickly without waiting for another threshold.
         // The counter will only reset if the connection is stable for ERROR_WINDOW_MS.

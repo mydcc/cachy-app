@@ -334,10 +334,13 @@ export class MarketManager {
     let history = current.klines[timeframe] || [];
 
     // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
-    // previously filtered REST updates if connected.
-    // REMOVED: We now trust the upstream (MarketWatcher) to only send REST updates
-    // if the WebSocket is disconnected OR if data is stale (gap detection).
-    // This ensures we don't block valid fallback updates.
+    // If source is REST, we must NEVER overwrite the latest live candle (Head)
+    // because REST snapshots lag behind the WebSocket stream.
+    if (source === "rest" && history.length > 0) {
+      const lastKnownTime = history[history.length - 1].time;
+      // Filter out any incoming REST candle that matches the current live candle's time
+      newKlines = newKlines.filter(k => k.time !== lastKnownTime);
+    }
 
     // Merge strategy:
     // Optimized for append-only / live update behavior

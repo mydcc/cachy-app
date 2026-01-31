@@ -304,7 +304,8 @@ const defaultSettings: Settings = {
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
   syncRsiTimeframe: true,
-  imgbbApiKey: "71a5689343bb63d5c85a76e4375f1d0b",
+  // Security: Avoid hardcoding API keys. Use environment variable or user input.
+  imgbbApiKey: import.meta.env.VITE_IMGBB_API_KEY || "",
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
