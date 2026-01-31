@@ -13,7 +13,7 @@ import { normalizeJournalEntry } from "../utils/utils";
 import type { JournalEntry } from "./types";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
-// uiState is imported dynamically where needed to avoid circular dependencies
+import { uiState } from "./ui.svelte";
 import { untrack } from "svelte";
 
 class JournalManager {
@@ -87,15 +87,11 @@ class JournalManager {
 
       if (!success) {
         console.error("[Journal] Failed to save after retry");
-        import("./ui.svelte").then(({ uiState }) => {
-          uiState.showError("journal.saveFailed");
-        });
+        uiState.showError("journal.saveFailed");
       }
     } catch (e) {
       console.error("[Journal] Save error:", e);
-      import("./ui.svelte").then(({ uiState }) => {
-        uiState.showError("journal.saveError");
-      });
+      uiState.showError("journal.saveError");
     }
   }
 
