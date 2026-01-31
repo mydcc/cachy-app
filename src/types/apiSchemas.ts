@@ -46,6 +46,20 @@ export const BitunixKlineSchema = z.object({
 
 export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);
 
+// Bitget Kline Schema
+// Format: [timestamp, open, high, low, close, volume, ...]
+// Can be string or number
+export const BitgetKlineSchema = z.tuple([
+  z.union([z.string(), z.number()]), // timestamp
+  z.union([z.string(), z.number()]), // open
+  z.union([z.string(), z.number()]), // high
+  z.union([z.string(), z.number()]), // low
+  z.union([z.string(), z.number()]), // close
+  z.union([z.string(), z.number()]), // volume
+]).rest(z.unknown()); // Allow extra fields
+
+export const BitgetKlineResponseSchema = z.array(BitgetKlineSchema);
+
 /**
  * Validate response size to prevent memory issues
  * @param data Response data as string

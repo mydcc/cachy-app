@@ -24,6 +24,7 @@
     } from "../../services/candlestickPatterns";
     import CandlestickChart from "./CandlestickChart.svelte";
     import { renderSafeMarkdown } from "../../utils/markdownUtils";
+    import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
 
     let searchQuery = $state("");
@@ -39,9 +40,13 @@
         const stored = localStorage.getItem("candlestick_favorites");
         if (stored) {
             try {
-                favorites = new Set(JSON.parse(stored));
+                const parsed = safeJsonParse(stored);
+                if (Array.isArray(parsed)) {
+                    favorites = new Set(parsed);
+                }
             } catch (e) {
                 console.error("Failed to parse favorites", e);
+                favorites = new Set();
             }
         }
     });

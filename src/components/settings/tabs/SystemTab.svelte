@@ -134,7 +134,7 @@
                 <h4
                     class="text-xs font-bold text-[var(--text-secondary)] uppercase mt-6 mb-2"
                 >
-                    Quick Actions
+                    {$_("settings.system.quickActions")}
                 </h4>
                 <div class="grid grid-cols-2 gap-4">
                     <button
@@ -186,10 +186,10 @@
                 <label class="toggle-card mt-4">
                     <div class="flex flex-col">
                         <span class="text-sm font-medium"
-                            >English Technical Terms</span
+                            >{$_("settings.system.englishTechnicalTerms")}</span
                         >
                         <span class="text-[10px] text-[var(--text-secondary)]"
-                            >Avoid translating technical words</span
+                            >{$_("settings.system.avoidTranslating")}</span
                         >
                     </div>
                     <Toggle

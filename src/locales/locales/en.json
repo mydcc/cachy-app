@@ -555,6 +555,8 @@
     "24hHigh": "24h High",
     "24hLow": "24h Low",
     "vol": "Vol",
+      "heatmap": "Heatmap",
+      "broker": "Broker",
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",
@@ -614,7 +616,16 @@
       "analysisInterval": "Technical Analysis Interval",
       "intervalAggressive": "10s (Aggressive)",
       "intervalBalanced": "60s (Balanced)",
-      "intervalConservative": "600s (Conservative)"
+      "intervalConservative": "600s (Conservative)",
+      "interval1s": "1s (Ultra-Fast)",
+      "interval2s": "2s (Fast)",
+      "interval5s": "5s (Normal)",
+      "interval10s": "10s (Eco)",
+      "interval1sTooltip": "Best for scalping (<1min trades). High CPU usage.",
+      "interval2sTooltip": "Great for intraday trading (1-15min). Moderate CPU.",
+      "interval5sTooltip": "Good for day trading (15min+). Balanced.",
+      "interval10sTooltip": "Ideal for swing trading (1h+). Low CPU.",
+      "intervalDesc": "Controls data freshness vs CPU usage"
     },
     "visuals": {
       "subtabs": {
@@ -702,6 +713,7 @@
     "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
     "marketDataInterval": "Market Data Update Rate",
+      "marketDataIntervalHelp": "How often market prices are updated",
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
     "showSidebars": "Show Sidebars",
@@ -805,7 +817,14 @@
       "resetAll": "Reset All",
       "resetConfirm": "Reset all custom hotkeys to defaults?",
       "pressKey": "Press Key...",
-      "info": "Click on a key combination to record a new hotkey. Use <span class=\"text-[var(--accent-color)]\">{alt}</span> or <span class=\"text-[var(--accent-color)]\">{ctrl}</span> modifiers to avoid conflicts with typing."
+      "info": "Click on a key combination to record a new hotkey. Use <span class=\"text-[var(--accent-color)]\">{alt}</span> or <span class=\"text-[var(--accent-color)]\">{ctrl}</span> modifiers to avoid conflicts with typing.",
+      "safetyMode": "Safety Mode (Alt+ Required)",
+      "directMode": "Direct Mode (Fast, No Modifier)",
+      "customConfig": "Custom Configuration",
+      "activePreset": "Active Preset:",
+      "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
+      "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
+      "switchToCustom": "Switch to Custom Configuration"
     },
     "tabs": {
       "general": "General",
@@ -1076,7 +1095,13 @@
       "reloadApp": "Reload App",
       "resetNow": "Reset Now",
       "restore": "Load Backup",
-      "restoreDesc": "Import a backup from a file."
+      "restoreDesc": "Import a backup from a file.",
+      "cacheCleared": "Cache cleared.",
+      "clearCache": "Clear Cache",
+      "dashboard": "Dashboard",
+      "englishTechnicalTerms": "English Technical Terms",
+      "avoidTranslating": "Avoid translating technical words",
+      "quickActions": "Quick Actions"
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -1100,7 +1125,22 @@
       "marketTiles": "Market Overview Tiles",
       "marketTilesDesc": "Show market data tiles in sidebar",
       "showLinks": "Show Links Footer",
-      "tradingView": "TradingView"
+      "tradingView": "TradingView",
+      "tileActionLinks": "Tile Action Links",
+      "heatmapAction": "Heatmap Action",
+      "coinglassNewTab": "Coinglass (New Tab)",
+      "coinglassPopup": "Coinglass (Popup Window)",
+      "coinankNewTab": "Coinank (New Tab)",
+      "coinankPopup": "Coinank (ProChart Popup)",
+      "coinankDesc": "Maps current timeframe to Heatmap lookback period.",
+      "coinglassDesc": "Opens Coinglass liquidation heatmap.",
+      "indicatorConfiguration": "Indicator Configuration",
+      "managePerformance": "Manage Performance",
+      "marketSentiment": "Market Sentiment",
+      "showSentimentAnalysis": "Show sentiment analysis panel",
+      "showTechnicalAnalysis": "Show technical analysis panel",
+      "historyLength": "History Length (Candles)",
+      "moreHistoryDesc": "More history = slower initial load. (Max: 2000)"
     }
   },
   "symbolPicker": {

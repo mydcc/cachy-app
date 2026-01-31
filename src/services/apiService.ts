@@ -27,6 +27,7 @@ import type { Kline } from "./technicalsTypes";
 import {
   BitunixTickerResponseSchema,
   BitunixKlineSchema,
+  BitgetKlineSchema,
   validateResponseSize,
   sanitizeErrorMessage,
 } from "../types/apiSchemas";
@@ -457,14 +458,35 @@ export const apiService = {
             throw new Error("apiErrors.invalidResponse");
           }
 
+          // Use Bitget Schema
           return res.map((k: any) => {
+            // Bitget returns array of strings/numbers or objects depending on endpoint version.
+            // If it's an object with keys:
+            if (k && typeof k === 'object' && !Array.isArray(k)) {
+               try {
+                  const time = parseTimestamp(k.timestamp || k.time || k.t || k.ts);
+                  const open = new Decimal(k.open || k.o);
+                  const high = new Decimal(k.high || k.h);
+                  const low = new Decimal(k.low || k.l);
+                  const close = new Decimal(k.close || k.c);
+                  const volume = new Decimal(k.volume || k.vol || k.v || 0);
+                  if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
+                  return { open, high, low, close, volume, time };
+               } catch { return null; }
+            }
+
+            // Array Format Validation
+            const validation = BitgetKlineSchema.safeParse(k);
+            if (!validation.success) return null;
+
+            const d = validation.data;
             try {
-              const time = parseTimestamp(k.timestamp || k.time || k.t);
-              const open = new Decimal(k.open);
-              const high = new Decimal(k.high);
-              const low = new Decimal(k.low);
-              const close = new Decimal(k.close);
-              const volume = new Decimal(k.volume);
+              const time = parseTimestamp(d[0]);
+              const open = new Decimal(d[1]);
+              const high = new Decimal(d[2]);
+              const low = new Decimal(d[3]);
+              const close = new Decimal(d[4]);
+              const volume = new Decimal(d[5]);
 
               if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
               return { open, high, low, close, volume, time };
