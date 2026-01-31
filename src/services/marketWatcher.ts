@@ -330,18 +330,46 @@ class MarketWatcher {
             storageService.saveKlines(symbol, tf, klines1); // Async save
 
             // Check if we have enough history now
-            const currentData = marketState.data[symbol]?.klines[tf] || [];
+            let currentData = marketState.data[symbol]?.klines[tf] || [];
+            let iterations = 0;
+            const MAX_ITERATIONS = 30; // Safety cap (e.g. 30k candles max per session load)
 
-            // Fetch part 2: Backfill if needed
-            // If the requested limit (e.g. 2000) exceeds the API max (1000), we perform a second fetch
-            // using the oldest timestamp from the first batch to retrieve the preceding history.
-            if (limit > 1000 && klines1.length >= 1000 && currentData.length < limit) {
-                const oldestTime = klines1[0].time;
-                const klines2 = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
-                if (klines2 && klines2.length > 0) {
-                    marketState.updateSymbolKlines(symbol, tf, klines2, "rest");
-                    storageService.saveKlines(symbol, tf, klines2);
+            // Backfill Loop
+            // If the requested limit exceeds what we have, we loop backfill requests.
+            // We use the oldest known timestamp as the anchor for the next batch.
+            let oldestTime = klines1[0].time;
+
+            while (limit > 1000 && currentData.length < limit && iterations < MAX_ITERATIONS) {
+                // If the last fetch was partial (reached end of data), stop.
+                // Note: klines1 is only relevant for the first iteration logic,
+                // but inside the loop we check the result of the new fetch.
+                // Actually, checking klines1.length here is only valid for the first jump.
+                // We'll rely on the loop break conditions.
+
+                iterations++;
+
+                // Fetch older batch (before oldestTime)
+                const olderKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+
+                if (!olderKlines || olderKlines.length === 0) {
+                    break; // No more history available
                 }
+
+                marketState.updateSymbolKlines(symbol, tf, olderKlines, "rest");
+                storageService.saveKlines(symbol, tf, olderKlines);
+
+                // Update state for next iteration
+                currentData = marketState.data[symbol]?.klines[tf] || [];
+                const newOldest = olderKlines[0].time;
+
+                // Safety: If we get the same time back (API quirk), abort to prevent infinite loop
+                if (newOldest >= oldestTime) {
+                    break;
+                }
+                oldestTime = newOldest;
+
+                // Rate Limit Courtesy
+                await new Promise(r => setTimeout(r, 100));
             }
         }
     } catch (e) {
