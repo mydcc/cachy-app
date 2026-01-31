@@ -771,7 +771,7 @@
       "addFeed": "Feed hinzufügen",
       "removeFeed": "Entfernen",
       "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-        "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
+      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
     },
     "ai": {
       "status": {
@@ -1791,7 +1791,8 @@
     "title": "Candlestick Akademie"
   },
   "tradeErrors": {
-    "positionNotFound": "Position nicht gefunden: {symbol} {side}"
+    "positionNotFound": "Position nicht gefunden: {symbol} {side}",
+    "dataError": "Dateninkonsistenz erkannt"
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",
@@ -1818,5 +1819,15 @@
     "noMessages": "Noch keine Nachrichten.",
     "sendButton": "Senden",
     "placeholder": "Sag Hallo..."
+  },
+  "positionsList": {
+    "noOpenPositions": "Keine offenen Positionen.",
+    "size": "Größe",
+    "close": "Schließen",
+    "tpsl": "TP/SL",
+    "confirmClose": "Position {symbol} schließen?",
+    "roi": "ROI",
+    "margin": "Margin",
+    "unrealizedPnl": "uPnL"
   }
 }

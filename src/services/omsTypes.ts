@@ -39,6 +39,7 @@ export interface OMSOrder {
     avgPrice?: Decimal;
     timestamp: number;
     _isOptimistic?: boolean;
+    _isUnconfirmed?: boolean; // Risk management: Order state unknown (Two Generals)
 }
 
 export interface OMSPosition {
@@ -50,4 +51,7 @@ export interface OMSPosition {
     leverage: Decimal;
     marginMode: "cross" | "isolated";
     liquidationPrice?: Decimal;
+    margin?: Decimal; // Hardening: Ensure margin is optional but typed
+    markPrice?: Decimal; // Hardening: Ensure markPrice is optional but typed
+    size?: Decimal; // Hardening
 }

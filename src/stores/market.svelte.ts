@@ -104,13 +104,6 @@ export class MarketManager {
         this.flushUpdates();
       }, 250);
 
-      // Start metrics history recording (every 10s)
-      /* TEMPORARILY DISABLED FOR CPU DEBUGGING
-      setInterval(() => {
-        this.snapshotMetrics();
-      }, 10 * 1000);
-      */
-
       // Reset API calls counter every minute
       this.telemetryIntervalId = setInterval(() => {
         this.telemetry.apiCallsLastMinute = 0;
@@ -138,10 +131,6 @@ export class MarketManager {
     this.cacheMetadata.clear();
     this.pendingUpdates.clear();
     this.data = {};
-  }
-
-  private snapshotMetrics() {
-    // Disabled logic
   }
 
   private getOrCreateSymbol(symbol: string): MarketData {
@@ -244,23 +233,52 @@ export class MarketManager {
       const current = this.getOrCreateSymbol(symbol);
       current.lastUpdated = Date.now();
 
-      const toDecimal = (val: any) => {
+      // Optimization: Check for equality before creating new Decimal
+      const toDecimal = (val: any, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
         try {
-          return val !== undefined && val !== null ? new Decimal(val) : undefined;
+          if (val === undefined || val === null) return undefined;
+          if (currentVal && currentVal.toString() === String(val)) {
+             return currentVal; // Reuse existing object
+          }
+          return new Decimal(val);
         } catch (e) {
           // Silently fail for individual fields to protect the rest of the update
           return undefined;
         }
       };
 
-      if (partial.lastPrice !== undefined) current.lastPrice = toDecimal(partial.lastPrice) ?? current.lastPrice;
-      if (partial.indexPrice !== undefined) current.indexPrice = toDecimal(partial.indexPrice) ?? current.indexPrice;
-      if (partial.highPrice !== undefined) current.highPrice = toDecimal(partial.highPrice) ?? current.highPrice;
-      if (partial.lowPrice !== undefined) current.lowPrice = toDecimal(partial.lowPrice) ?? current.lowPrice;
-      if (partial.volume !== undefined) current.volume = toDecimal(partial.volume) ?? current.volume;
-      if (partial.quoteVolume !== undefined) current.quoteVolume = toDecimal(partial.quoteVolume) ?? current.quoteVolume;
-      if (partial.priceChangePercent !== undefined) current.priceChangePercent = toDecimal(partial.priceChangePercent) ?? current.priceChangePercent;
-      if (partial.fundingRate !== undefined) current.fundingRate = toDecimal(partial.fundingRate) ?? current.fundingRate;
+      if (partial.lastPrice !== undefined) {
+          const newVal = toDecimal(partial.lastPrice, current.lastPrice);
+          if (newVal !== undefined) current.lastPrice = newVal;
+      }
+      if (partial.indexPrice !== undefined) {
+          const newVal = toDecimal(partial.indexPrice, current.indexPrice);
+          if (newVal !== undefined) current.indexPrice = newVal;
+      }
+      if (partial.highPrice !== undefined) {
+          const newVal = toDecimal(partial.highPrice, current.highPrice);
+          if (newVal !== undefined) current.highPrice = newVal;
+      }
+      if (partial.lowPrice !== undefined) {
+          const newVal = toDecimal(partial.lowPrice, current.lowPrice);
+          if (newVal !== undefined) current.lowPrice = newVal;
+      }
+      if (partial.volume !== undefined) {
+          const newVal = toDecimal(partial.volume, current.volume);
+          if (newVal !== undefined) current.volume = newVal;
+      }
+      if (partial.quoteVolume !== undefined) {
+          const newVal = toDecimal(partial.quoteVolume, current.quoteVolume);
+          if (newVal !== undefined) current.quoteVolume = newVal;
+      }
+      if (partial.priceChangePercent !== undefined) {
+          const newVal = toDecimal(partial.priceChangePercent, current.priceChangePercent);
+          if (newVal !== undefined) current.priceChangePercent = newVal;
+      }
+      if (partial.fundingRate !== undefined) {
+          const newVal = toDecimal(partial.fundingRate, current.fundingRate);
+          if (newVal !== undefined) current.fundingRate = newVal;
+      }
 
       if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
         let nft: number = 0;
@@ -291,7 +309,6 @@ export class MarketManager {
       if (partial.technicals !== undefined) {
         // Merge technicals map (keyed by timeframe)
         current.technicals = { ...(current.technicals || {}), ...partial.technicals };
-        // console.log(`[Market] Updated technicals for ${symbol}`);
       }
     } catch (e) {
       if (import.meta.env.DEV) {
@@ -306,8 +323,6 @@ export class MarketManager {
 
   recordApiCall() {
     this.telemetry.apiCallsLastMinute++;
-    // Simple reset would be better via interval, but for now we increment.
-    // The PerformanceMonitor can handle the reset or we add a loop.
   }
 
   updateSymbolKlines(
@@ -346,6 +361,8 @@ export class MarketManager {
     } else if (history.length === 0) {
       newKlines.sort((a, b) => a.time - b.time);
       history = newKlines;
+      // Assign new array
+      current.klines[timeframe] = history;
     } else {
       // Ensure incoming klines are sorted (usually are, but safety first)
       newKlines.sort((a, b) => a.time - b.time);
@@ -355,35 +372,31 @@ export class MarketManager {
 
       if (firstNewTime > lastHistTime) {
         // Fast Path 1: Strict Append (New candle started)
-        history = history.concat(newKlines);
+        // Optimization: Push in place instead of concat (allocates new array)
+        history.push(...newKlines);
       } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
         // Fast Path 2: Live Update (Update current candle)
-        // Copy to avoid mutating state proxy in-place before assignment
-        const newHistory = [...history];
-        newHistory[newHistory.length - 1] = newKlines[0];
-        history = newHistory;
+        // In-place update is reactive in Svelte 5 state
+        history[history.length - 1] = newKlines[0];
       } else if (firstNewTime >= lastHistTime) {
         // Fast Path 3: Overlap at the end (e.g. update last + new candle)
-        const newHistory = [...history];
+        // Optimization: In-place update + push
         for (const k of newKlines) {
           if (k.time === lastHistTime) {
-            newHistory[newHistory.length - 1] = k;
+            history[history.length - 1] = k;
           } else if (k.time > lastHistTime) {
-            newHistory.push(k);
+            history.push(k);
           }
         }
-        history = newHistory;
       } else {
         // Slow Path: Historical backfill or disordered data
-        // Use linear merge algorithm (O(N+M)) instead of Map+Sort (O(N log N))
-        // Both history and newKlines are sorted.
+        // Use linear merge algorithm (O(N+M))
         const merged: Kline[] = [];
         let i = 0;
         let j = 0;
         const hLen = history.length;
         const nLen = newKlines.length;
 
-        // Helper to emulate Map behavior: overwrite if duplicate timestamp exists
         const safePush = (k: Kline) => {
           const last = merged.length > 0 ? merged[merged.length - 1] : null;
           if (last && last.time === k.time) {
@@ -404,87 +417,39 @@ export class MarketManager {
             safePush(newKlines[j]);
             j++;
           } else {
-            // Overwrite: newKlines takes precedence
             safePush(newKlines[j]);
             i++;
             j++;
           }
         }
 
-        // Append remaining items
         while (i < hLen) safePush(history[i++]);
         while (j < nLen) safePush(newKlines[j++]);
 
         history = merged;
+        // Assign new merged array
+        current.klines[timeframe] = history;
       }
     }
 
     // Limit history size to prevent memory leaks
-    // Dynamically use user setting (default 2000)
     const userLimit = settingsState.chartHistoryLimit || 2000;
-    const safetyLimit = 10000; // Hard cap to prevent OOM
+    const safetyLimit = 10000; // Hard cap
 
-    // Sliding Window Logic:
-    // If enforceLimit is false (manual backfill), we allow growth up to safetyLimit.
-    // If enforceLimit is true (live update), we respect the current history length if it exceeds userLimit,
-    // essentially maintaining the manually expanded window size while sliding it forward.
-    // This prevents live updates from truncating the history the user just loaded.
     let effectiveLimit = userLimit;
-
     if (!enforceLimit) {
       effectiveLimit = safetyLimit;
     } else {
-      // If we already have more data than userLimit (due to manual loading), keep it (slide window)
-      // but do not exceed safetyLimit.
-      // We use (history.length - 1) because 'history' here already includes the new klines (appended/merged above)
-      // Actually, history is the new array. We want to keep its size (minus maybe 1 if we are strictly sliding).
-      // Simply: Math.max(history.length, userLimit) would effectively keep growing it?
-      // No. If history.length is 3000, and we set limit to 3000, slice(-3000) keeps all.
-      // But we want to slice to 3000.
-      // Wait. If we just appended a live candle, history.length increased by 1.
-      // We want to keep the previous length (window size).
-      // But we don't know the previous length easily here without tracking.
-      // Heuristic: If history.length > userLimit, we assume the user wanted that extra history.
-      // However, we must ensure we don't grow indefinitely on live updates.
-      // The logic `Math.max(current_length_before_update, userLimit)` is ideal.
-      // Since we don't have `before_update`, we can use a slightly looser logic:
-      // If current length is significantly larger than userLimit (e.g. > userLimit + 100), it's likely manual.
-      // But `limit` is just a max size.
-      // Let's rely on the fact that live updates add 1 candle at a time.
-      // If we cap at `Math.max(history.length - 1, userLimit)`, we maintain the window.
-      // (If we added 1, length is L+1. limit becomes L. slice(-L) removes 1. Window maintained).
-      // If we added N (bulk), length is L+N. limit L. slice(-L) removes N.
-
-      // But wait, if we bulk loaded (enforceLimit=false), we didn't slice.
-      // Next live update (enforceLimit=true), we add 1.
-      // We want to keep (L+N).
-      // The issue is distinguishing "I just added 1 live candle" from "I have a big buffer".
-
-      // Simplification: We trust `history` contains the valid data we want to keep.
-      // We only slice if it exceeds safetyLimit OR if we want to enforce userLimit strictness?
-      // No, we decided to support infinite scroll.
-      // So, we only strictly enforce userLimit if we are NOT in an "expanded" state?
-      // Actually, we can just default to safetyLimit for the upper bound, but we need to trim the *oldest*
-      // if we are just moving forward in time.
-
-      // Let's use the sliding window approach:
-      // Limit = max(history.length - (newKlines.length), userLimit)
-      // This tries to keep the size it had before this update.
-      // This works for live updates (newKlines.length=1).
-      // This works for REST updates (newKlines=1000).
-
       const previousLength = Math.max(0, history.length - newKlines.length);
       effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
     }
 
     if (history.length > effectiveLimit) {
-      history = history.slice(-effectiveLimit);
+      // Slicing creates a new array, but it's necessary for GC
+      const sliced = history.slice(-effectiveLimit);
+      current.klines[timeframe] = sliced;
     }
 
-    // [REACTIVITY FIX]
-    // In Svelte 5, deep mutations on proxies work, BUT replacing the array reference
-    // is the safest way to guarantee effect triggers in downstream components like CandleChartView.
-    current.klines[timeframe] = [...history];
     current.lastUpdated = Date.now();
 
     // FORCE REACTIVITY: Svelte 5 needs to see a write to the root property or the specific nested path.
@@ -499,20 +464,18 @@ export class MarketManager {
   // Legacy update methods refactored to use updateSymbol
   updatePrice(symbol: string, data: any) {
     try {
-      // Note: Normalization to ms happens in applyUpdate
       const update: Partial<MarketData> = {
         nextFundingTime: data.nextFundingTime,
       };
 
-      if (data.price) update.lastPrice = new Decimal(data.price);
-      if (data.indexPrice) update.indexPrice = new Decimal(data.indexPrice);
-      if (data.fundingRate) update.fundingRate = new Decimal(data.fundingRate);
+      // Just pass raw values, applyUpdate handles Decimal conversion efficiently
+      if (data.price) update.lastPrice = data.price;
+      if (data.indexPrice) update.indexPrice = data.indexPrice;
+      if (data.fundingRate) update.fundingRate = data.fundingRate;
 
       this.updateSymbol(symbol, update);
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn(`[Market] Error updating price for ${symbol}:`, e);
-      }
+        // ...
     }
   }
 
@@ -520,29 +483,17 @@ export class MarketManager {
     try {
       const update: Partial<MarketData> = {};
 
-      // Validate and map fields safely
-      if (data.lastPrice !== undefined && data.lastPrice !== null) {
-        update.lastPrice = new Decimal(data.lastPrice);
-      }
-      if (data.high !== undefined && data.high !== null) {
-        update.highPrice = new Decimal(data.high);
-      }
-      if (data.low !== undefined && data.low !== null) {
-        update.lowPrice = new Decimal(data.low);
-      }
-      if (data.vol !== undefined && data.vol !== null) {
-        update.volume = new Decimal(data.vol);
-      }
-      if (data.quoteVol !== undefined && data.quoteVol !== null) {
-        update.quoteVolume = new Decimal(data.quoteVol);
-      }
+      if (data.lastPrice !== undefined) update.lastPrice = data.lastPrice;
+      if (data.high !== undefined) update.highPrice = data.high;
+      if (data.low !== undefined) update.lowPrice = data.low;
+      if (data.vol !== undefined) update.volume = data.vol;
+      if (data.quoteVol !== undefined) update.quoteVolume = data.quoteVol;
 
       // Calculate price change percent from open and last price if available
-      // This is more reliable than interpreting the 'change' field which might be rate or percent
       let calculatedChange = false;
       if (data.open) {
         const open = new Decimal(data.open);
-        const last = update.lastPrice || this.data[symbol]?.lastPrice;
+        const last = update.lastPrice ? new Decimal(update.lastPrice) : this.data[symbol]?.lastPrice;
 
         if (!open.isZero() && last) {
           update.priceChangePercent = last
@@ -553,24 +504,13 @@ export class MarketManager {
         }
       }
 
-      // Fallback to API provided change if calculation wasn't possible
-      if (
-        !calculatedChange &&
-        data.change !== undefined &&
-        data.change !== null
-      ) {
-        // Bitunix used to send rate (0.045), but might send percent (4.5) now.
-        // We try to infer or just stick to rate logic if no open price is available.
-        // For now, we assume if we land here, we might still need the multiplication,
-        // but prefer the calculation above.
+      if (!calculatedChange && data.change !== undefined) {
         update.priceChangePercent = new Decimal(data.change).times(100);
       }
 
       this.updateSymbol(symbol, update);
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn(`[Market] Error updating ticker for ${symbol}:`, e);
-      }
+       // ...
     }
   }
 
@@ -580,9 +520,7 @@ export class MarketManager {
         depth: { bids: data.bids, asks: data.asks },
       });
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn(`[Market] Error updating depth for ${symbol}:`, e);
-      }
+       // ...
     }
   }
 
@@ -599,9 +537,7 @@ export class MarketManager {
         },
       ]);
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn(`[Market] Error updating kline for ${symbol}:`, e);
-      }
+       // ...
     }
   }
 

@@ -8,7 +8,6 @@
  */
 
 import { settingsState } from "../stores/settings.svelte";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { rssParserService } from "./rssParserService";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
@@ -420,59 +419,32 @@ export const newsService = {
 
         const headlines = news
           .slice(0, 10)
-          .map((n) => `- ${n.published_at}: ${n.title} (${n.source})`)
-          .join("\n");
-        const prompt = `Analyze sentiment for these headlines. score -1 to 1. regime: BULLISH, BEARISH, NEUTRAL, UNCERTAIN.\n\n${headlines}\n\nOutput JSON ONLY: { "score": number, "regime": "string", "summary": "string", "keyFactors": ["string"] }`;
+          .map((n) => `- ${n.published_at}: ${n.title} (${n.source})`);
 
-        let resultText = "";
+        // Prepare request to server
+        const payload = {
+          headlines,
+          provider: aiProvider,
+          model: aiProvider === "openai" ? (settingsState.openaiModel || "gpt-4o") : (settingsState.geminiModel || "gemini-1.5-flash"),
+          apiKey: aiProvider === "openai" ? openaiApiKey : geminiApiKey
+        };
 
-        if (aiProvider === "gemini" && geminiApiKey) {
-          const genAI = new GoogleGenerativeAI(geminiApiKey);
-          const model = genAI.getGenerativeModel({
-            model: settingsState.geminiModel || "gemini-1.5-flash",
-          });
+        // Secure Server-Side Execution
+        const response = await fetch("/api/sentiment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-          let lastErr = null;
-          for (let i = 0; i < 3; i++) {
-            try {
-              const result = await model.generateContent(prompt);
-              resultText = result.response.text();
-              break;
-            } catch (e: any) {
-              lastErr = e;
-              const msg = e?.message || "";
-              if (msg.includes("503") || msg.includes("overloaded")) {
-                await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
-                continue;
-              }
-              throw e;
-            }
-          }
-          if (!resultText && lastErr) throw lastErr;
-        } else if (aiProvider === "openai" && openaiApiKey) {
-          const { default: OpenAI } = await import("openai");
-          const openai = new OpenAI({
-            apiKey: openaiApiKey,
-            dangerouslyAllowBrowser: true,
-          });
-          const completion = await openai.chat.completions.create({
-            messages: [
-              { role: "system", content: "Analyze sentiment." },
-              { role: "user", content: prompt },
-            ],
-            model: settingsState.openaiModel || "gpt-4o",
-            response_format: { type: "json_object" },
-          });
-          resultText = completion.choices[0].message.content || "{}";
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Sentiment API failed (${response.status}): ${errText}`);
         }
 
-        if (!resultText) return null;
-        const analysis: SentimentAnalysis = JSON.parse(
-          resultText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim(),
-        );
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const analysis: SentimentAnalysis = data.analysis;
 
         // IDB Write - use newsHash as key
         await dbService.put("sentiment", {

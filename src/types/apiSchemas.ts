@@ -14,10 +14,14 @@ import { StrictDecimal } from "./schemas";
  * Zod-Schemas für API-Response-Validierung
  */
 
+const StrictPositiveDecimal = StrictDecimal.refine((val) => val.gt(0), {
+    message: "Value must be positive"
+});
+
 // Bitunix Ticker Schema
 export const BitunixTickerSchema = z.object({
   symbol: z.string(),
-  lastPrice: StrictDecimal,
+  lastPrice: StrictPositiveDecimal,
   open: StrictDecimal.optional(),
   high: StrictDecimal.optional(),
   low: StrictDecimal.optional(),
