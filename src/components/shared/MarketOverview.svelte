@@ -288,8 +288,11 @@
   let displaySymbol = $derived(getDisplaySymbol(symbol));
   let baseAsset = $derived(symbol.toUpperCase().replace(/USDT(\.P|P)?$/, ""));
 
-  function formatValue(val: Decimal | undefined | null, decimals: number = 2) {
-    if (!val) return "-";
+  function formatValue(
+    val: Decimal | number | undefined | null,
+    decimals: number = 2,
+  ) {
+    if (val === undefined || val === null) return "-";
     return formatDynamicDecimal(val, decimals);
   }
 
@@ -447,7 +450,8 @@
             : priceTrend === "down"
               ? "var(--danger-color)"
               : "var(--accent-color)",
-        intensity: rsiValue && (rsiValue.gt(70) || rsiValue.lt(30)) ? 1.8 : 1.0,
+        intensity:
+          rsiValue && (rsiValue > 70 || rsiValue < 30) ? 1.8 : 1.0,
         layer: "tiles",
       }
     : undefined}
@@ -609,10 +613,10 @@
             >
             <span
               class="font-medium transition-colors duration-300 cursor-help"
-              class:text-[var(--danger-color)]={rsiValue && rsiValue.gte(70)}
-              class:text-[var(--success-color)]={rsiValue && rsiValue.lte(30)}
+              class:text-[var(--danger-color)]={rsiValue && rsiValue >= 70}
+              class:text-[var(--success-color)]={rsiValue && rsiValue <= 30}
               class:text-[var(--text-primary)]={!rsiValue ||
-                (rsiValue.gt(30) && rsiValue.lt(70))}
+                (rsiValue > 30 && rsiValue < 70)}
             >
               {formatValue(rsiValue, 2)}
             </span>
