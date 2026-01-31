@@ -36,9 +36,7 @@
       "point": "Market Overview",
       "title": "Global Market Analysis"
     },
-    "tradeExecutionDev": "🚧 Trade Execution in Development",
-    "offlineMessage": "Connection Lost - Trading functionality may be limited.",
-    "refresh": "Refresh"
+    "tradeExecutionDev": "🚧 Trade Execution in Development"
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -192,7 +190,6 @@
       "atrMultiplierLabel": "Multiplier",
       "selectSymbol": "Select Symbol",
       "priceDeviation": "Price Deviation",
-      "priceDeviationWarning": "Warning: Entry price deviates by {percent}% from market. Check input.",
       "autoUpdateOn": "Auto-Update On",
       "autoUpdateOff": "Auto-Update Off",
       "fetchAtrValue": "Fetch ATR Value",
@@ -1183,9 +1180,7 @@
     "close": "Close",
     "remove": "×",
     "warning": "Warning",
-    "resize": "Resize",
-    "opacity": "Opacity",
-    "effect": "Effect"
+    "resize": "Resize"
   },
   "analyst": {
     "trend": {

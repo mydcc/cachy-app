@@ -10,7 +10,7 @@
 import { Decimal } from "decimal.js";
 import { logger } from "./logger";
 import type { OMSOrder, OMSPosition, OMSOrderStatus } from "./omsTypes";
-import type { PositionRaw } from "./apiSchemas";
+import type { PositionRaw } from "../types/apiSchemas";
 
 export function mapToOMSPosition(data: any): OMSPosition {
   const isClose = data.event === "CLOSE";

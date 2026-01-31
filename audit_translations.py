@@ -65,10 +65,11 @@ def extract_i18n_keys_from_code():
     """Extract all $t() calls from code files"""
     keys = set()
     
-    # Pattern for $t('key') or $t("key")
+    # Pattern for $t('key'), $t("key"), $_('key'), $_("key")
     patterns = [
-        r"\$t\(['\"]([^'\"]+)['\"]\)",  # $t('key') or $t("key")
-        r"_\(['\"]([^'\"]+)['\"]\)",    # _('key') - alternative pattern
+        r"\$t\(['\"]([^'\"]+)['\"]\)",   # $t('key') or $t("key")
+        r"_\(['\"]([^'\"]+)['\"]\)",     # _('key')
+        r"\$_\(['\"]([^'\"]+)['\"]\)",   # $_('key') - Svelte store subscription
     ]
     
     # Search in svelte, ts, js files

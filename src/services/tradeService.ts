@@ -27,7 +27,7 @@ import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
+import { PositionListSchema, PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSPosition, OMSOrderSide } from "./omsTypes";
 import { mapToOMSPosition } from "./mappers";
 
