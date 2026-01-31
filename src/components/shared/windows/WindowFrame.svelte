@@ -316,6 +316,22 @@
                     </div>
                 {/if}
                 <span class="window-title">{win.title}</span>
+                {#if win.headerControls.length > 0}
+                    <div class="header-controls">
+                        {#each win.headerControls as ctrl}
+                            <button
+                                class="header-ctrl-btn"
+                                class:active={ctrl.active}
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    ctrl.action();
+                                }}
+                            >
+                                {ctrl.label}
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
             </div>
         </div>
 
@@ -461,7 +477,7 @@
             style:width="{100 / win.zoomLevel}%"
             style:height="{100 / win.zoomLevel}%"
         >
-            <win.component {window} {...win.componentProps} />
+            <win.component window={win} {...win.componentProps} />
         </div>
     </div>
 
@@ -510,8 +526,8 @@
         pointer-events: auto;
         border-radius: 12px;
         background: var(--bg-secondary);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-color);
         transition:
             box-shadow 0.2s ease,
             opacity 0.2s ease,
@@ -540,8 +556,8 @@
         display: none;
     }
     .window-frame.focused {
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
     }
     .window-frame.dragging {
         opacity: 0.9;
@@ -554,7 +570,11 @@
         box-shadow: none !important;
     }
     .window-frame.glass-morphism {
-        background: rgba(var(--bg-secondary-rgb, 15, 23, 42), 0.7);
+        background: color-mix(
+            in srgb,
+            var(--bg-secondary, #0f172a),
+            transparent 30%
+        );
         backdrop-filter: blur(12px) saturate(180%);
     }
     .window-header {
@@ -565,7 +585,8 @@
         justify-content: space-between;
         align-items: center;
         user-select: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        opacity: 0.9;
     }
     .header-content {
         display: flex;
@@ -593,7 +614,7 @@
         transition: background 0.2s;
     }
     .title-wrapper.clickable:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: color-mix(in srgb, var(--text-primary), transparent 90%);
     }
     .window-content {
         flex: 1;
@@ -601,12 +622,46 @@
         overflow-x: hidden;
         position: relative;
     }
+    .header-controls {
+        display: flex;
+        gap: 4px;
+        margin-left: 12px;
+        align-items: center;
+    }
+    .header-ctrl-btn {
+        background: color-mix(in srgb, var(--text-primary), transparent 95%);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+    }
+    .header-ctrl-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+    .header-ctrl-btn.active {
+        background: var(--accent-color);
+        color: var(--text-on-accent, black);
+        border-color: var(--accent-color);
+    }
+
     .window-controls {
         display: flex;
         gap: 4px;
         align-items: center;
     }
-    .icon-min,
+    .icon-min {
+        width: 10px;
+        height: 1.5px;
+        background: currentColor;
+        display: inline-block;
+        transform: translateY(3px);
+    }
     .icon-max,
     .icon-restore {
         width: 10px;
@@ -652,7 +707,8 @@
     .control-group {
         display: flex;
         align-items: center;
-        background: rgba(255, 255, 255, 0.05);
+        background: color-mix(in srgb, var(--text-primary), transparent 95%);
+        border: 1px solid var(--border-color);
         border-radius: 6px;
         padding: 2px;
         margin-right: 4px;
@@ -685,7 +741,7 @@
     .divider {
         width: 1px;
         height: 16px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--border-color);
         margin: 0 4px;
     }
     .close-btn {

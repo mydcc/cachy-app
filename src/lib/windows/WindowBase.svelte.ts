@@ -49,6 +49,7 @@ export abstract class WindowBase {
     headerButtons: ('zoom' | 'export' | 'delete' | 'custom')[] = $state([]);
     pinSide: 'left' | 'right' | 'top' | 'bottom' | 'none' = $state('none');
     doubleClickBehavior: 'maximize' | 'pin' = $state('maximize');
+    headerControls = $state<any[]>([]); // Custom buttons in header (e.g. for Chart TFs)
 
     // --- VISUALS ---
     enableGlassmorphism = $state(true);
@@ -109,9 +110,7 @@ export abstract class WindowBase {
     private hasRestoredPosition = false;
 
     private get storageKey() {
-        // Use windowType for singletons (like assistant), id for multi-instance if they had stable ids
-        // For now, let's use windowType if it's not a generic 'window'
-        return `cachy_win_${this.windowType === 'window' ? this.id : this.windowType}`;
+        return `cachy_win_${this.id}`;
     }
 
     public saveState() {

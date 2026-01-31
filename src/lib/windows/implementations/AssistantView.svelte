@@ -7,9 +7,7 @@
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
     import { icons } from "../../../lib/constants";
-    import { marked } from "marked";
-    // @ts-ignore
-    import DOMPurify from "dompurify";
+    import { renderSafeMarkdown } from "../../../utils/markdownUtils";
     import type { WindowBase } from "../WindowBase.svelte";
 
     interface Props {
@@ -99,24 +97,8 @@
         }
     }
 
-    function cleanStreamingContent(text: string): string {
-        return text
-            .replace(/```json\s*[\s\S]*?("action"|$)[\s\S]*?(?:```|$)/g, "")
-            .trim();
-    }
-
     function renderMarkdown(text: string): string {
-        try {
-            const cleaned = cleanStreamingContent(text);
-            const raw = marked.parse(cleaned) as string;
-            if (typeof window !== "undefined") {
-                return DOMPurify.sanitize(raw);
-            }
-            return "";
-        } catch (e) {
-            console.error("Markdown rendering error:", e);
-            return text;
-        }
+        return renderSafeMarkdown(text);
     }
 
     let styleMode = $derived(settingsState.chatStyle || "minimal");
@@ -160,7 +142,7 @@
     }
 </script>
 
-<div class="assistant-container">
+<div class="assistant-container" style:--current-font-size="{win.fontSize}px">
     <!-- Redundant header removed - now in Titlebar -->
 
     <!-- Messages Area -->
@@ -178,7 +160,7 @@
                         msg.content.includes("[✅") ||
                         msg.content.includes("[❌"))}
                 <div
-                    class="flex flex-col text-sm {msg.role === 'user'
+                    class="flex flex-col {msg.role === 'user'
                         ? 'items-end'
                         : 'items-start'} {isActionMsg ? 'my-1' : ''}"
                 >
@@ -192,7 +174,6 @@
 
                     <div
                         class="message-content group"
-                        style="font-size: {win.fontSize}px"
                         class:role-user={msg.role === "user"}
                         class:role-ai={msg.role === "assistant"}
                         class:is-terminal={isTerminal}
@@ -348,7 +329,7 @@
         {:else if settingsState.sidePanelMode === "notes"}
             {#each notesState.messages as msg (msg.id)}
                 <div class="note-card group">
-                    <div class="note-text" style="font-size: {win.fontSize}px">
+                    <div class="note-text">
                         {msg.text}
                     </div>
                     <div class="note-date">
@@ -379,11 +360,7 @@
                                         >PF {msg.profitFactor.toFixed(2)}</span
                                     >{/if}
                             </span>
-                            <span
-                                class="msg-text"
-                                style="font-size: {win.fontSize}px"
-                                >{msg.text}</span
-                            >
+                            <span class="msg-text">{msg.text}</span>
                             <span class="timestamp"
                                 >{new Date(msg.timestamp).toLocaleTimeString(
                                     [],
@@ -513,7 +490,6 @@
                     bind:this={inputEl}
                     rows="1"
                     class="main-input textarea"
-                    style="font-size: {win.fontSize}px"
                     class:is-terminal={isTerminal}
                     class:is-standard={!isTerminal}
                     placeholder={settingsState.sidePanelMode === "ai"
@@ -534,7 +510,6 @@
                     bind:this={inputEl}
                     type="text"
                     class="main-input text-input"
-                    style="font-size: {win.fontSize}px"
                     class:is-terminal={isTerminal}
                     class:is-bubble={isBubble}
                     class:is-standard={!isTerminal}
@@ -579,7 +554,7 @@
         height: 100%;
         min-height: 0;
         background: transparent;
-        font-size: inherit;
+        font-size: var(--current-font-size, 13px);
         position: relative;
     }
 
@@ -626,6 +601,7 @@
     .message-content.is-terminal {
         width: 100%;
         font-family: monospace;
+        font-size: 13px; /* Terminal fixed size */
     }
 
     .message-content.is-terminal.role-user {
@@ -707,9 +683,14 @@
     }
 
     .input-area {
-        padding: 12px;
+        padding: 8px 0 0 0;
         border-top: 1px solid var(--border-color);
         background: rgba(0, 0, 0, 0.1);
+    }
+
+    .context-indicators,
+    .quick-actions {
+        padding: 0 12px;
     }
 
     .context-indicators {
@@ -736,21 +717,25 @@
         border-radius: 20px;
         border: 1px solid var(--accent-color);
         background: var(--accent-color);
-        color: white;
+        color: var(--text-on-accent, white);
         cursor: pointer;
     }
 
     .main-input {
-        width: 100%;
+        width: 100% !important;
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
         padding: 8px 40px 8px 12px;
         outline: none;
         transition: border-color 0.2s;
+        font-size: inherit;
+        box-sizing: border-box; /* Crucial for full width */
     }
 
     .main-input.is-standard {
-        border-radius: 12px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
     }
     .main-input.is-bubble {
         border-radius: 20px;
@@ -782,6 +767,7 @@
 
     .input-wrapper {
         position: relative;
+        width: 100%;
     }
 
     .blink {
@@ -810,7 +796,7 @@
     }
     .confirm-btn {
         background: var(--accent-color);
-        color: white;
+        color: var(--text-on-accent, white);
         border: none;
         padding: 4px 12px;
         border-radius: 4px;

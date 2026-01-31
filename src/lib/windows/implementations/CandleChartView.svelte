@@ -21,9 +21,11 @@
     interface Props {
         symbol: string;
         window: WindowBase;
+        timeframe: string;
+        setTimeframe: (tf: string) => void;
     }
 
-    let { symbol, window: win }: Props = $props();
+    let { symbol, window: win, timeframe, setTimeframe }: Props = $props();
 
     let chartContainer: HTMLElement | null = $state(null);
     let chart: IChartApi | null = $state(null);
@@ -34,17 +36,18 @@
     let ema2Series: ISeriesApi<"Line"> | null = $state(null);
     let ema3Series: ISeriesApi<"Line"> | null = $state(null);
 
-    let timeframe = $state("1h");
     let isInitialLoad = $state(true);
-
-    const timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
         if (typeof window === "undefined") return;
 
+        let frameId: number;
         const observer = new MutationObserver(() => {
-            updateColors();
+            cancelAnimationFrame(frameId);
+            frameId = requestAnimationFrame(() => {
+                updateColors();
+            });
         });
 
         observer.observe(document.documentElement, {
@@ -52,7 +55,10 @@
             attributeFilter: ["style", "class", "data-theme"],
         });
 
-        return () => observer.disconnect();
+        return () => {
+            observer.disconnect();
+            cancelAnimationFrame(frameId);
+        };
     });
 
     onMount(() => {
@@ -60,8 +66,6 @@
 
         // Initial Colors (Fallback)
         const textColor = getVar("--text-secondary") || "#d1d4dc";
-        const gridColor = "rgba(255, 255, 255, 0.05)";
-
         chart = createChart(chartContainer, {
             layout: {
                 background: { type: ColorType.Solid, color: "transparent" },
@@ -69,29 +73,39 @@
                 fontFamily: "Inter, sans-serif",
             },
             grid: {
-                vertLines: { color: gridColor },
-                horzLines: { color: gridColor },
+                vertLines: {
+                    color:
+                        getVar("--border-color") || "rgba(255, 255, 255, 0.05)",
+                },
+                horzLines: {
+                    color:
+                        getVar("--border-color") || "rgba(255, 255, 255, 0.05)",
+                },
             },
             rightPriceScale: {
-                borderColor: "rgba(255, 255, 255, 0.1)",
+                borderColor:
+                    getVar("--border-color") || "rgba(255, 255, 255, 0.1)",
                 scaleMargins: {
                     top: 0.1,
                     bottom: 0.2,
                 },
             },
             timeScale: {
-                borderColor: "rgba(255, 255, 255, 0.1)",
+                borderColor:
+                    getVar("--border-color") || "rgba(255, 255, 255, 0.1)",
                 timeVisible: true,
                 secondsVisible: false,
             },
             crosshair: {
                 mode: 0,
                 vertLine: {
-                    color: "rgba(255, 255, 255, 0.2)",
+                    color:
+                        getVar("--text-tertiary") || "rgba(255, 255, 255, 0.2)",
                     labelBackgroundColor: getVar("--accent-color"),
                 },
                 horzLine: {
-                    color: "rgba(255, 255, 255, 0.2)",
+                    color:
+                        getVar("--text-tertiary") || "rgba(255, 255, 255, 0.2)",
                     labelBackgroundColor: getVar("--accent-color"),
                 },
             },
@@ -108,22 +122,22 @@
         });
 
         // Initialize EMA Series
-        // Colors: EMA1=Yellow/Gold, EMA2=Blue/Cyan, EMA3=Purple
+        // Using semi-fixed colors that feel good in most themes but could be replaced by variables
         ema1Series = chart.addSeries(LineSeries, {
-            color: "#ffb300",
+            color: "#ffb300", // Gold/Amber
             lineWidth: 1,
             crosshairMarkerVisible: false,
-        }); // 21
+        });
         ema2Series = chart.addSeries(LineSeries, {
-            color: "#2979ff",
+            color: "#2979ff", // Blue
             lineWidth: 1,
             crosshairMarkerVisible: false,
-        }); // 50
+        });
         ema3Series = chart.addSeries(LineSeries, {
-            color: "#d500f9",
+            color: "#d500f9", // Purple
             lineWidth: 1,
             crosshairMarkerVisible: false,
-        }); // 200
+        });
 
         const handleResize = () => {
             if (chart && chartContainer) {
@@ -158,12 +172,29 @@
         const danger = getVar("--danger-color") || "#ef5350";
         const text = getVar("--text-secondary") || "#d1d4dc";
         const accent = getVar("--accent-color") || "#2962ff";
+        const border = getVar("--border-color") || "rgba(255, 255, 255, 0.1)";
 
         chart.applyOptions({
-            layout: { textColor: text },
+            layout: {
+                textColor: text,
+            },
+            grid: {
+                vertLines: { color: border },
+                horzLines: { color: border },
+            },
+            rightPriceScale: { borderColor: border },
+            timeScale: { borderColor: border },
             crosshair: {
-                vertLine: { labelBackgroundColor: accent },
-                horzLine: { labelBackgroundColor: accent },
+                vertLine: {
+                    color:
+                        getVar("--text-tertiary") || "rgba(255, 255, 255, 0.2)",
+                    labelBackgroundColor: accent,
+                },
+                horzLine: {
+                    color:
+                        getVar("--text-tertiary") || "rgba(255, 255, 255, 0.2)",
+                    labelBackgroundColor: accent,
+                },
             },
         });
 
@@ -173,6 +204,12 @@
             wickUpColor: success,
             wickDownColor: danger,
         });
+
+        // EMA Colors - adjusting opacity or brightness based on theme could be done here
+        // For now, ensuring they are at least visible against border colors
+        if (ema1Series) ema1Series.applyOptions({ color: "#ffb300" });
+        if (ema2Series) ema2Series.applyOptions({ color: "#2979ff" });
+        if (ema3Series) ema3Series.applyOptions({ color: "#d500f9" });
     }
 
     // Registration for real-time data
@@ -193,15 +230,11 @@
         const normalized = normalizeSymbol(symbol, "bitunix");
         const marketData = marketState.data[normalized];
         const currentTF = timeframe;
-        const settings = indicatorState.ema; // Track EMA settings
-        const indicatorsEnabled = settingsState.enabledIndicators.ema; // Track Toggle from settingsState
-
-        // DEBUG: Trace why chart is empty
-        // console.log(`[CandleChart] Check data for ${normalized} (${symbol}) TF: ${currentTF}`, marketData);
+        const settings = indicatorState.ema;
+        const indicatorsEnabled = settingsState.enabledIndicators.ema;
 
         if (marketData && marketData.klines && marketData.klines[currentTF]) {
             const klines = marketData.klines[currentTF];
-
             if (klines.length > 0) {
                 // Determine if we need to reset the data (different symbol/tf) or update
                 const formatted: CandlestickData[] = klines
@@ -297,54 +330,18 @@
             // console.warn(`[CandleChart] No data found for ${normalized} in marketState`);
         }
     });
-
-    function setTimeframe(tf: string) {
-        timeframe = tf;
-        isInitialLoad = true;
-    }
 </script>
 
 <div
     class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)]"
 >
     <div
-        class="chart-header flex justify-between items-center p-2 px-4 bg-[rgba(0,0,0,0.3)] border-b border-[rgba(255,255,255,0.05)]"
-    >
-        <div class="symbol-info flex items-center gap-2">
-            <span class="symbol-name font-bold text-sm tracking-widest"
-                >{symbol}</span
-            >
-            <div class="timeframe-selector flex gap-1 ml-4">
-                {#each timeframes as tf}
-                    <button
-                        class="px-2 py-0.5 text-[10px] rounded transition-all {timeframe ===
-                        tf
-                            ? 'bg-[var(--accent-color)] text-black font-bold'
-                            : 'bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-[var(--text-secondary)]'}"
-                        onclick={() => setTimeframe(tf)}
-                    >
-                        {tf.toUpperCase()}
-                    </button>
-                {/each}
-            </div>
-        </div>
-        <div
-            class="chart-status text-[10px] text-[var(--text-tertiary)] flex items-center gap-2"
-        >
-            <span
-                class="pulse-dot w-1.5 h-1.5 rounded-full bg-[var(--success-color)] shadow-[0_0_5px_var(--success-color)]"
-            ></span>
-            LIVE
-        </div>
-    </div>
-
-    <div
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"
     >
         {#if !marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines[timeframe]}
             <div
-                class="absolute inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.4)] backdrop-blur-sm z-10"
+                class="absolute inset-0 flex items-center justify-center bg-[var(--bg-primary)] opacity-80 backdrop-blur-sm z-10"
             >
                 <div class="flex flex-col items-center gap-3">
                     <div
@@ -364,28 +361,9 @@
     .chart-view {
         background: radial-gradient(
             circle at 50% 0%,
-            rgba(30, 30, 40, 0.4),
-            rgba(10, 10, 15, 0.9)
+            var(--bg-secondary),
+            var(--bg-primary)
         );
-    }
-
-    .pulse-dot {
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0% {
-            opacity: 1;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.5;
-            transform: scale(0.8);
-        }
-        100% {
-            opacity: 1;
-            transform: scale(1);
-        }
     }
 
     .chart-container :global(.tv-lightweight-charts) {

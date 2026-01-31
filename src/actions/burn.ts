@@ -56,6 +56,16 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     let globalLastPrice: any = null; // Decimal
     let globalTrendColor = ""; // Persists until change
 
+    // Reset caches on theme change
+    const themeObserver = new MutationObserver(() => {
+        cachedThemeColor = "";
+        cachedUpColor = "";
+        cachedDownColor = "";
+    });
+    if (typeof document !== 'undefined') {
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    }
+
     /**
      * Resolves the final color based on settings and options.
      * Logic is optimized to avoid repetitive getComputedStyle calls.
@@ -229,6 +239,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
         },
         destroy() {
             resizeObserver.disconnect();
+            themeObserver.disconnect();
             cancelAnimationFrame(resizeFrame);
             cancelAnimationFrame(frameId);
             fireStore.removeElement(id);

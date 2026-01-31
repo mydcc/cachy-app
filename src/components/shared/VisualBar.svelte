@@ -41,8 +41,12 @@
   const tradeType = $derived(tradeState.tradeType);
 
   // Derived numerical values for visualization
-  const entryNum = $derived(entryPrice ? parseDecimal(entryPrice).toNumber() : null);
-  const slNum = $derived(stopLossPrice ? parseDecimal(stopLossPrice).toNumber() : null);
+  const entryNum = $derived(
+    entryPrice ? parseDecimal(entryPrice).toNumber() : null,
+  );
+  const slNum = $derived(
+    stopLossPrice ? parseDecimal(stopLossPrice).toNumber() : null,
+  );
 </script>
 
 <div class="visual-bar-card">
@@ -65,8 +69,7 @@
     {@const isReady = totalDiff > 0}
 
     {#if isReady}
-      {@const getX = (p: number) =>
-        (Math.abs(p - slNum) / totalDiff) * 100}
+      {@const getX = (p: number) => (Math.abs(p - slNum) / totalDiff) * 100}
       {@const entryX = getX(entryNum)}
       {@const tpData = safeTargets
         .map((t, i) => {
@@ -136,8 +139,8 @@
 
 <style>
   .visual-bar-card {
-    background: rgba(30, 41, 59, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--bg-tertiary), transparent 20%);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.75rem 1rem; /* Standard card padding */
     margin: 1.5rem 0; /* Standard vertical margin */
@@ -161,18 +164,18 @@
   }
 
   .sl-badge {
-    background: rgba(30, 41, 59, 0.9);
-    color: #94a3b8;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 900;
     padding: 2px 6px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
     line-height: 1;
   }
 
   .title {
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -229,7 +232,7 @@
   .bar-track {
     width: 100%;
     height: 10px; /* Actual bar height */
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--text-primary), transparent 95%);
     border-radius: 4px;
     position: relative;
     overflow: hidden;
@@ -275,11 +278,11 @@
     transform: translateX(-50%);
     font-size: 10px;
     font-weight: 700;
-    color: #94a3b8;
-    background: rgba(30, 41, 59, 0.9);
+    color: var(--text-secondary);
+    background: var(--bg-primary);
     padding: 1px 6px;
     border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
     white-space: nowrap;
     line-height: 1;
   }

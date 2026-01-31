@@ -25,7 +25,7 @@ export class AssistantWindow extends WindowBase {
         this.pinSide = 'left';
         this.doubleClickBehavior = 'pin';
         this.allowFontSize = true;
-        this.allowZoom = true;
+        this.allowZoom = false;
     }
 
     override get title() {

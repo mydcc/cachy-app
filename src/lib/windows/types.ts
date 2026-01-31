@@ -17,6 +17,7 @@ export interface WindowFlags {
     doubleClickBehavior?: 'maximize' | 'pin';
     persistent?: boolean;
     centerByDefault?: boolean;
+    allowMultipleInstances?: boolean;
 }
 
 export interface WindowLayout {

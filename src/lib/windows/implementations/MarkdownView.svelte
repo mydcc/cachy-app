@@ -15,5 +15,6 @@
         height: 100%;
         overflow-y: auto;
         background: var(--bg-primary);
+        color: var(--text-primary);
     }
 </style>

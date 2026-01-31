@@ -84,7 +84,9 @@ class WindowRegistry {
             type: 'chart',
             flags: {
                 ...baseFlags,
-                allowZoom: true
+                allowMinimize: true,
+                allowZoom: false,
+                allowMultipleInstances: true
             },
             layout: {
                 ...baseLayout,
@@ -180,6 +182,8 @@ class WindowRegistry {
                     ...baseFlags,
                     isResizable: true,
                     allowMaximize: true,
+                    allowZoom: false,
+                    allowFontSize: true,
                     centerByDefault: true
                 },
                 layout: {
