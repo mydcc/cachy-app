@@ -89,14 +89,21 @@ export function parseDecimal(
       str = str.replace(/,/g, "");
     }
   } else if (hasComma) {
-    // HARDENING: Ambiguous Comma (1,200)
-    // Previous heuristic (length=3) guessed thousands separator, risking 1.2 -> 1200.
-    // New logic: Comma is ALWAYS a decimal separator if no dot is present.
-    // This prioritizes safety/European inputs (1,5) over English Thousands (1,000).
-    // Users must NOT input thousands separators.
-    // "1,200" -> "1.200" (1.2)
-    // "1,000" -> "1.000" (1)
-    str = str.replace(",", ".");
+    // Ambiguous Comma Handling
+    // Pattern: 1,234 or 10,000,000 (English Thousands)
+    // If strict groups of 3 digits follow comma(s), we assume English Thousands.
+    // "1,234" -> 1234
+    // "1,234,567" -> 1234567
+    // "1,2" -> 1.2
+    // "1,23" -> 1.23
+    // "1,2345" -> 1.2345
+    // Note: This heuristic assumes "1,234" is 1234, not 1.234 (German).
+    // In crypto, large numbers (1,000) are common, making this assumption safer for size logic than treating 1,000 as 1.
+    if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+        str = str.replace(/,/g, "");
+    } else {
+        str = str.replace(",", ".");
+    }
   }
   // If only dot, usually safe for Decimal (1200.50)
   // But could be 1.200 (DE thousands).

@@ -8,7 +8,6 @@
  */
 
 import { settingsState } from "../stores/settings.svelte";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { rssParserService } from "./rssParserService";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
@@ -427,43 +426,33 @@ export const newsService = {
         let resultText = "";
 
         if (aiProvider === "gemini" && geminiApiKey) {
-          const genAI = new GoogleGenerativeAI(geminiApiKey);
-          const model = genAI.getGenerativeModel({
-            model: settingsState.geminiModel || "gemini-1.5-flash",
+          const res = await fetch("/api/ai/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              provider: "gemini",
+              apiKey: geminiApiKey,
+              model: settingsState.geminiModel || "gemini-1.5-flash",
+              prompt
+            })
           });
-
-          let lastErr = null;
-          for (let i = 0; i < 3; i++) {
-            try {
-              const result = await model.generateContent(prompt);
-              resultText = result.response.text();
-              break;
-            } catch (e: any) {
-              lastErr = e;
-              const msg = e?.message || "";
-              if (msg.includes("503") || msg.includes("overloaded")) {
-                await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
-                continue;
-              }
-              throw e;
-            }
-          }
-          if (!resultText && lastErr) throw lastErr;
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+          resultText = data.result;
         } else if (aiProvider === "openai" && openaiApiKey) {
-          const { default: OpenAI } = await import("openai");
-          const openai = new OpenAI({
-            apiKey: openaiApiKey,
-            dangerouslyAllowBrowser: true,
+          const res = await fetch("/api/ai/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              provider: "openai",
+              apiKey: openaiApiKey,
+              model: settingsState.openaiModel || "gpt-4o",
+              prompt
+            })
           });
-          const completion = await openai.chat.completions.create({
-            messages: [
-              { role: "system", content: "Analyze sentiment." },
-              { role: "user", content: prompt },
-            ],
-            model: settingsState.openaiModel || "gpt-4o",
-            response_format: { type: "json_object" },
-          });
-          resultText = completion.choices[0].message.content || "{}";
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+          resultText = data.result;
         }
 
         if (!resultText) return null;
