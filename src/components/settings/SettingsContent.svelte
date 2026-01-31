@@ -18,7 +18,7 @@
     import CloudTab from "./tabs/CloudTab.svelte";
 
     // Tab State
-    const activeTab = $derived((uiState.settingsTab as any) || "trading");
+    const activeTab = $derived(uiState.settingsTab || "trading");
 
     function selectTab(tab: string) {
         uiState.settingsTab = tab;
@@ -210,7 +210,7 @@
                {activeTab === tab.id
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-l-2 border-[var(--accent-color)] shadow-inner'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50 border-l-2 border-transparent'}"
-                onclick={() => selectTab(tab.id as any)}
+                onclick={() => selectTab(tab.id)}
                 role="tab"
                 aria-selected={activeTab === tab.id}
             >
