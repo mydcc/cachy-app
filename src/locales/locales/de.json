@@ -1183,6 +1183,7 @@
     }
   },
   "chartPatterns": {
+    "title": "Chartmuster Akademie",
     "description": "Beschreibung",
     "characteristics": "Charakteristika",
     "tradingStrategy": "Handelsstrategie",
@@ -1741,9 +1742,6 @@
       "indicatorCombination": "Das Signal wird verstärkt durch hohes Volumen bei den Docht-Kerzen und der bullischen Bestätigungskerze. Eine bullische Divergenz im RSI oder MACD macht eine erfolgreiche Umkehr wahrscheinlicher."
     },
     "title": "Candlestick Akademie"
-  },
-  "chartPatterns": {
-    "title": "Chartmuster Akademie"
   },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}"
