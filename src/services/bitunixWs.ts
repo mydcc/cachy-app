@@ -856,17 +856,9 @@ class BitunixWebSocketService {
                     const bitunixTf = match[1];
                     const revMap: Record<string, string> = {
                       "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                      "60min": "1h", "1h": "1h", "1hour": "1h",
-                      "4h": "4h", "4hour": "4h",
-                      "1day": "1d", "1d": "1d",
-                      "1week": "1w", "1w": "1w",
-                      "1month": "1M", "1M": "1M"
+                      "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
                     };
                     timeframe = revMap[bitunixTf] || bitunixTf;
-
-                    if (!revMap[bitunixTf] && import.meta.env.DEV) {
-                        logger.warn("network", `[BitunixWS] Unmapped timeframe suffix: ${bitunixTf}, using raw value.`);
-                    }
                   }
                 }
                 const normalizedKlines = mdaService.normalizeKlines([d], "bitunix");
@@ -1024,18 +1016,17 @@ class BitunixWebSocketService {
             if (match) {
               const bitunixTf = match[1];
               const revMap: Record<string, string> = {
-                "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                "60min": "1h", "1h": "1h", "1hour": "1h",
-                "4h": "4h", "4hour": "4h",
-                "1day": "1d", "1d": "1d",
-                "1week": "1w", "1w": "1w",
-                "1month": "1M", "1M": "1M"
+                "1min": "1m",
+                "5min": "5m",
+                "15min": "15m",
+                "30min": "30m",
+                "60min": "1h",
+                "4h": "4h",
+                "1day": "1d",
+                "1week": "1w",
+                "1month": "1M",
               };
               timeframe = revMap[bitunixTf] || bitunixTf;
-
-              if (!revMap[bitunixTf] && import.meta.env.DEV) {
-                logger.warn("network", `[BitunixWS] Unmapped timeframe suffix: ${bitunixTf}, using raw value.`);
-              }
             }
           }
           const normalizedKlines = mdaService.normalizeKlines([data], "bitunix");

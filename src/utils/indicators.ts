@@ -856,54 +856,54 @@ export function calculatePivotsFromValues(
   o: number,
   type: string
 ) {
-  // We work with Decimals here because pivot math is sensitive
-  const high = new Decimal(h);
-  const low = new Decimal(l);
-  const close = new Decimal(c);
-  const open = new Decimal(o);
+  // Use numbers for performance in pivots as well
+  const high = h;
+  const low = l;
+  const close = c;
+  const open = o;
 
-  let p = new Decimal(0);
-  let r1 = new Decimal(0),
-    r2 = new Decimal(0),
-    r3 = new Decimal(0);
-  let s1 = new Decimal(0),
-    s2 = new Decimal(0),
-    s3 = new Decimal(0);
+  let p = 0;
+  let r1 = 0,
+    r2 = 0,
+    r3 = 0;
+  let s1 = 0,
+    s2 = 0,
+    s3 = 0;
 
   if (type === "woodie") {
-    p = high.plus(low).plus(close.times(2)).div(4);
-    r1 = p.times(2).minus(low);
-    r2 = p.plus(high).minus(low);
-    s1 = p.times(2).minus(high);
-    s2 = p.minus(high).plus(low);
-    r3 = high.plus(p.minus(low).times(2));
-    s3 = low.minus(high.minus(p).times(2));
+    p = (high + low + close * 2) / 4;
+    r1 = p * 2 - low;
+    r2 = p + high - low;
+    s1 = p * 2 - high;
+    s2 = p - high + low;
+    r3 = high + (p - low) * 2;
+    s3 = low - (high - p) * 2;
   } else if (type === "camarilla") {
-    const range = high.minus(low);
-    r3 = close.plus(range.times(1.1).div(4));
-    r2 = close.plus(range.times(1.1).div(6));
-    r1 = close.plus(range.times(1.1).div(12));
+    const range = high - low;
+    r3 = close + (range * 1.1) / 4;
+    r2 = close + (range * 1.1) / 6;
+    r1 = close + (range * 1.1) / 12;
     p = close;
-    s1 = close.minus(range.times(1.1).div(12));
-    s2 = close.minus(range.times(1.1).div(6));
-    s3 = close.minus(range.times(1.1).div(4));
+    s1 = close - (range * 1.1) / 12;
+    s2 = close - (range * 1.1) / 6;
+    s3 = close - (range * 1.1) / 4;
   } else if (type === "fibonacci") {
-    p = high.plus(low).plus(close).div(3);
-    const range = high.minus(low);
-    r1 = p.plus(range.times(0.382));
-    r2 = p.plus(range.times(0.618));
-    r3 = p.plus(range.times(1.0));
-    s1 = p.minus(range.times(0.382));
-    s2 = p.minus(range.times(0.618));
-    s3 = p.minus(range.times(1.0));
+    p = (high + low + close) / 3;
+    const range = high - low;
+    r1 = p + range * 0.382;
+    r2 = p + range * 0.618;
+    r3 = p + range * 1.0;
+    s1 = p - range * 0.382;
+    s2 = p - range * 0.618;
+    s3 = p - range * 1.0;
   } else {
-    p = high.plus(low).plus(close).div(3);
-    r1 = p.times(2).minus(low);
-    s1 = p.times(2).minus(high);
-    r2 = p.plus(high.minus(low));
-    s2 = p.minus(high.minus(low));
-    r3 = high.plus(p.minus(low).times(2));
-    s3 = low.minus(high.minus(p).times(2));
+    p = (high + low + close) / 3;
+    r1 = p * 2 - low;
+    s1 = p * 2 - high;
+    r2 = p + (high - low);
+    s2 = p - (high - low);
+    r3 = high + (p - low) * 2;
+    s3 = low - (high - p) * 2;
   }
 
   return {
@@ -931,20 +931,20 @@ function getEmptyPivots() {
   return {
     pivots: {
       classic: {
-        p: new Decimal(0),
-        r1: new Decimal(0),
-        r2: new Decimal(0),
-        r3: new Decimal(0),
-        s1: new Decimal(0),
-        s2: new Decimal(0),
-        s3: new Decimal(0),
+        p: 0,
+        r1: 0,
+        r2: 0,
+        r3: 0,
+        s1: 0,
+        s2: 0,
+        s3: 0,
       },
     },
     basis: {
-      high: new Decimal(0),
-      low: new Decimal(0),
-      close: new Decimal(0),
-      open: new Decimal(0),
+      high: 0,
+      low: 0,
+      close: 0,
+      open: 0,
     },
   };
 }
@@ -955,9 +955,9 @@ export function getRsiAction(
   oversold: number,
 ) {
   if (!val) return "Neutral";
-  const v = new Decimal(val);
-  if (v.gte(overbought)) return "Sell";
-  if (v.lte(oversold)) return "Buy";
+  const v = val instanceof Decimal ? val.toNumber() : val;
+  if (v >= overbought) return "Sell";
+  if (v <= oversold) return "Buy";
   return "Neutral";
 }
 
