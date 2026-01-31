@@ -18,12 +18,15 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { dataRepairService } from "../../services/dataRepairService";
+    import { settingsState } from "../../stores/settings.svelte";
     import { get } from "svelte/store";
     import { _ } from "../../locales/i18n";
 
     let missingAtrCount = $state(0);
     let missingMfeMaeCount = $state(0);
     let invalidSymbolCount = $state(0);
+
+    const timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
     let isScanning = $state(false);
     let isRepairing = $state(false);
@@ -116,6 +119,26 @@
         >
             {isScanning ? $_("settings.data.scanning") : $_("settings.data.scanAll")}
         </button>
+    </div>
+
+    <div class="mb-6 p-4 bg-[var(--bg-primary)] rounded border border-[var(--border-color)] flex items-center justify-between">
+        <div>
+            <h4 class="font-medium text-[var(--text-primary)]">
+                {$_("settings.data.repairTimeframe") || "Calculation Timeframe"}
+            </h4>
+            <p class="text-sm text-[var(--text-secondary)]">
+                {$_("settings.data.repairTimeframeDesc") || "Timeframe used for historical data (ATR/MFE/MAE)."}
+            </p>
+        </div>
+        <select
+            bind:value={settingsState.repairTimeframe}
+            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded px-3 py-1.5 text-sm outline-none focus:border-[var(--accent-color)]"
+            disabled={isRepairing}
+        >
+            {#each timeframes as tf}
+                <option value={tf}>{tf}</option>
+            {/each}
+        </select>
     </div>
 
     <div class="space-y-4">

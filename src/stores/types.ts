@@ -182,4 +182,5 @@ export interface JournalEntry {
   tags?: string[];
   screenshot?: string;
   positionSize?: Decimal;
+  provider?: "bitunix" | "bitget" | "custom";
 }

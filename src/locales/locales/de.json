@@ -1110,6 +1110,8 @@
       "scanning": "Scanne...",
       "repair": "Reparieren",
       "correct": "Korrigieren",
+      "repairTimeframe": "Berechnungs-Timeframe",
+      "repairTimeframeDesc": "Timeframe für historische Daten (ATR/MFE/MAE).",
       "atrTitle": "Volatilitäts-Matrix (ATR)",
       "atrDesc": "Prüft auf Trades ohne ATR-Wert und lädt diesen automatisch nach.",
       "mfeMaeTitle": "Exekutions-Metriken (MFE/MAE)",
