@@ -57,7 +57,13 @@ class WindowManager {
     }
 
     close(id: string) {
-        this._windows = this._windows.filter(w => w.id !== id);
+        const win = this._windows.find(w => w.id === id);
+        if (win) {
+            if (typeof win.destroy === 'function') {
+                win.destroy();
+            }
+            this._windows = this._windows.filter(w => w.id !== id);
+        }
     }
 
     toggle(id: string, createFn: () => WindowBase) {

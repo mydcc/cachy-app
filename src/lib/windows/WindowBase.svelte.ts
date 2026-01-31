@@ -64,6 +64,8 @@ export abstract class WindowBase {
     centerByDefault = $state(false);
     showHeaderIndicators = $state(false);
     allowFeedDuck = $state(true);
+    isResponsive = $state(false);
+    edgeToEdgeBreakpoint = 768;
 
     // --- INTERACTIVE FLAGS ---
     headerAction: 'toggle-mode' | 'none' = $state('none');
@@ -88,6 +90,8 @@ export abstract class WindowBase {
     minHeight = 150;
 
     static staggerCount = 0;
+    private resizeHandler: ((e: Event) => void) | null = null;
+    private _wasResponsiveMaximized = false;
 
     constructor(options: WindowOptions = {}) {
         this.title = options.title || "";
@@ -126,6 +130,33 @@ export abstract class WindowBase {
             if (!this.centerByDefault) {
                 WindowBase.staggerCount++;
             }
+        }
+
+        // Responsive Check
+        this.updateResponsiveState();
+        if (typeof window !== 'undefined') {
+            this.resizeHandler = () => this.updateResponsiveState();
+            window.addEventListener('resize', this.resizeHandler);
+        }
+    }
+
+    destroy() {
+        if (typeof window !== 'undefined' && this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+        }
+    }
+
+    updateResponsiveState() {
+        if (!this.isResponsive || typeof window === 'undefined') return;
+
+        const isSmall = window.innerWidth < this.edgeToEdgeBreakpoint;
+
+        if (isSmall && !this.isMaximized) {
+            this.maximize();
+            this._wasResponsiveMaximized = true;
+        } else if (!isSmall && this.isMaximized && this._wasResponsiveMaximized) {
+            this.restore();
+            this._wasResponsiveMaximized = false;
         }
     }
 
@@ -196,6 +227,8 @@ export abstract class WindowBase {
         this.centerByDefault = f.centerByDefault ?? false;
         this.showHeaderIndicators = f.showHeaderIndicators ?? false;
         this.allowFeedDuck = f.allowFeedDuck ?? true;
+        this.isResponsive = f.isResponsive ?? false;
+        this.edgeToEdgeBreakpoint = f.edgeToEdgeBreakpoint ?? 768;
 
         this.headerAction = f.headerAction ?? 'none';
         this.headerButtons = f.headerButtons ?? [];

@@ -28,10 +28,10 @@
     import { apiService } from "../../../services/apiService";
     import { Decimal } from "decimal.js";
     import { windowManager } from "../WindowManager.svelte";
-    import type { WindowBase } from "../WindowBase.svelte";
+    import type { SymbolPickerWindow } from "./SymbolPickerWindow.svelte";
 
     interface Props {
-        window: WindowBase;
+        window: SymbolPickerWindow;
     }
 
     let { window: win }: Props = $props();
@@ -190,6 +190,7 @@
     function selectSymbol(s: string) {
         tradeState.update((state) => ({ ...state, symbol: s }));
         app.fetchAllAnalysisData(s, true);
+        win.closeWith(s);
         windowManager.close(win.id);
     }
 

@@ -15,40 +15,46 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
-  Copyright (C) 2026 MYDCT
-  Symbol Picker Window Implementation
-*/
-
 import { WindowBase } from "../WindowBase.svelte";
-import SymbolPickerView from "./SymbolPickerView.svelte";
+import DialogView from "./DialogView.svelte";
 
-export class SymbolPickerWindow extends WindowBase {
+export class DialogWindow extends WindowBase {
+    message = $state("");
+    type: 'alert' | 'confirm' | 'prompt' = $state('alert');
+    defaultValue = $state("");
     resolve: ((value: any) => void) | null = null;
 
-    constructor(resolve?: (value: any) => void) {
-        super({
-            title: "Symbol Selection",
-            windowType: "symbolpicker"
-        });
-        if (resolve) this.resolve = resolve;
+    constructor(
+        title: string,
+        message: string,
+        type: 'alert' | 'confirm' | 'prompt' = 'alert',
+        defaultValue: string = "",
+        resolve: (value: any) => void,
+        options: any = {}
+    ) {
+        super({ title, windowType: 'dialog', ...options });
+        this.message = message;
+        this.type = type;
+        this.defaultValue = defaultValue;
+        this.resolve = resolve;
     }
 
     get component() {
-        return SymbolPickerView;
+        return DialogView;
     }
 
     closeWith(value: any) {
         if (this.resolve) {
             this.resolve(value);
-            this.resolve = null;
+            this.resolve = null; // Prevent double resolve
         }
     }
 
+    // Handle destruction to ensure promises don't hang if closed externally
     destroy() {
-        super.destroy();
+        super.destroy(); // Call WindowBase destroy (removes resize listener)
         if (this.resolve) {
-            this.resolve(null); // Resolve with null/false if closed without selection
+            this.resolve(false); // Resolve with false/cancel if destroyed without explicit closeWith
             this.resolve = null;
         }
     }
