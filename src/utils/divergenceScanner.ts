@@ -125,18 +125,8 @@ export class DivergenceScanner {
         // Professional scanners look for the lowest price within a small window (+-2) of the indicator pivot.
 
         const searchWindow = 2;
-        const priceLow1 = Math.min(
-          ...priceLows.slice(
-            Math.max(0, p1.index - searchWindow),
-            Math.min(priceLows.length, p1.index + searchWindow + 1),
-          ),
-        );
-        const priceLow2 = Math.min(
-          ...priceLows.slice(
-            Math.max(0, p2.index - searchWindow),
-            Math.min(priceLows.length, p2.index + searchWindow + 1),
-          ),
-        );
+        const priceLow1 = getMinInWindow(priceLows, p1.index, searchWindow);
+        const priceLow2 = getMinInWindow(priceLows, p2.index, searchWindow);
 
         // Regular Bullish: Price Lower Low, Indicator Higher Low
         if (priceLow2 < priceLow1 && indLow2 > indLow1) {
@@ -190,18 +180,8 @@ export class DivergenceScanner {
         const indHigh2 = p2.value;
 
         const searchWindow = 2;
-        const priceHigh1 = Math.max(
-          ...priceHighs.slice(
-            Math.max(0, p1.index - searchWindow),
-            Math.min(priceHighs.length, p1.index + searchWindow + 1),
-          ),
-        );
-        const priceHigh2 = Math.max(
-          ...priceHighs.slice(
-            Math.max(0, p2.index - searchWindow),
-            Math.min(priceHighs.length, p2.index + searchWindow + 1),
-          ),
-        );
+        const priceHigh1 = getMaxInWindow(priceHighs, p1.index, searchWindow);
+        const priceHigh2 = getMaxInWindow(priceHighs, p2.index, searchWindow);
 
         // Regular Bearish: Price Higher High, Indicator Lower High
         if (priceHigh2 > priceHigh1 && indHigh2 < indHigh1) {
@@ -244,4 +224,33 @@ export class DivergenceScanner {
 
     return results.filter((r) => r.endIdx >= indicatorValues.length - 15);
   }
+}
+
+// Helpers to avoid slice allocation in loops
+function getMinInWindow(
+  data: NumberArray,
+  center: number,
+  radius: number,
+): number {
+  const start = Math.max(0, center - radius);
+  const end = Math.min(data.length - 1, center + radius);
+  let min = data[start];
+  for (let k = start + 1; k <= end; k++) {
+    if (data[k] < min) min = data[k];
+  }
+  return min;
+}
+
+function getMaxInWindow(
+  data: NumberArray,
+  center: number,
+  radius: number,
+): number {
+  const start = Math.max(0, center - radius);
+  const end = Math.min(data.length - 1, center + radius);
+  let max = data[start];
+  for (let k = start + 1; k <= end; k++) {
+    if (data[k] > max) max = data[k];
+  }
+  return max;
 }
