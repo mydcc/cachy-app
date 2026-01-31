@@ -1,63 +1,89 @@
-# Status- & Risiko-Bericht: Cachy-App Hardening (Phase 4)
+# Status- & Risk-Bericht: Hardening & Maintenance (Phase 1)
 
-**Datum:** 2025-05-24
-**Status:** In-Depth Analysis Complete
-**Rolle:** Senior Lead Developer
+**Datum:** 26.02.2026
+**Autor:** Jules (System Architect)
+**Version:** V4
+**Status:** COMPLETE
 
-## 1. Executive Summary
-Die Analyse hat **kritische Sicherheits- und Datenintegritäts-Lücken** aufgedeckt, die in vorherigen Audits übersehen wurden oder neu entstanden sind. Insbesondere die **Exponierung von API-Keys** im Frontend und die **stille Unterdrückung von Fehlern** bei der Positions-Synchronisierung stellen ein erhebliches Risiko dar.
-Die Basis-Architektur ist solide, aber die "letzte Meile" der Implementierung weist Flüchtigkeitsfehler auf, die für eine "Institutional Grade" Plattform inakzeptabel sind.
+## Executive Summary
+Die Codebasis von `cachy-app` befindet sich in einem **überdurchschnittlich robusten Zustand**. Kritische Bereiche wie Finanzmathematik (Decimal-Präzision) und Ressourcenmanagement (WebSocket-Lifecycle, Memory-Capping) sind durch "Defense in Depth"-Muster bereits stark abgesichert.
 
-## 2. Priorisierte Findings
+Es wurden **keine kritischen Sicherheitslücken oder Datenintegritätsrisiken** gefunden, die einen sofortigen Hotfix erfordern. Der primäre Handlungsbedarf liegt in der technischen Schuld (I18n) und der weiteren Härtung von Edge-Cases.
+
+---
+
+## Findings
 
 ### 🔴 CRITICAL (Sofortiger Handlungsbedarf)
+*Keine kritischen Fehler gefunden.*
 
-#### 1. API-Key Exponierung (NewsService)
-*   **Ort:** `src/services/newsService.ts` (`analyzeSentiment`)
-*   **Problem:** OpenAI und Gemini API-Keys werden direkt im Client verwendet (`dangerouslyAllowBrowser: true`).
-*   **Risiko:** Ein Angreifer kann die Keys aus dem Browser extrahieren und Kosten verursachen oder Quotas aufbrauchen.
-*   **Impact:** Hoher finanzieller Schaden möglich.
-*   **Action:** Logik zwingend in einen serverseitigen Endpunkt (`/api/ai/sentiment`) verschieben.
+> **Anmerkung:** Die Architektur verhindert systematisch die häufigsten Fehlerquellen (Float-Precision, Memory Leaks, Race Conditions).
 
-#### 2. Stille Datenverluste (TradeService)
-*   **Ort:** `src/services/tradeService.ts` (`fetchOpenPositionsFromApi`)
-*   **Problem:** "Best Effort Parsing" fängt Validierungsfehler bei Positionen ab und loggt sie nur (`logger.warn`). Ungültige Positionen werden aus der UI entfernt.
-*   **Risiko:** Ein Nutzer sieht "Keine offenen Positionen", obwohl er eine (strukturell ungültige) Position an der Börse hält. Er kann diese nicht schließen -> Liquidationsrisiko.
-*   **Action:** Bei Validierungsfehlern muss der Sync fehlschlagen (Fail Fast) und der Nutzer alarmiert werden ("Dateninkonsistenz"), anstatt Positionen zu verstecken.
+### 🟡 WARNING (Potenzielle Risiken & UX-Mängel)
 
-#### 3. Unsichere Preis-Validierung
-*   **Ort:** `src/types/apiSchemas.ts` (`BitunixTickerSchema`)
-*   **Problem:** `StrictDecimal` erlaubt Fallback auf `0` bei Fehlern. `lastPrice` wird nicht explizit auf `> 0` geprüft.
-*   **Risiko:** Ein Preis von `0` kann Algorithmen (z.B. ROI-Berechnung, Stop-Loss) zum Absturz bringen oder falsche Trades auslösen.
-*   **Action:** `refine((v) => v.gt(0))` für alle Preis-Felder erzwingen.
+1.  **Fehlende Internationalisierung (I18n)**
+    *   **Ort:** Diverse UI-Komponenten (z.B. `VisualsTab.svelte`, `TechnicalsPanel.svelte`).
+    *   **Befund:** Hardcoded Strings wie `<span>Opacity</span>`, `>Bullish</span>`, `<label>Effect</label>` gefunden.
+    *   **Risiko:** Schlechte UX für nicht-englische Nutzer; inkonsistente Terminologie.
 
-#### 4. Race Condition bei Flash Close
-*   **Ort:** `src/services/tradeService.ts` (`flashClosePosition`)
-*   **Problem:** Bei Netzwerk-Timeouts bleibt eine "optimistische Order" bestehen oder wird gelöscht, ohne den echten Status zu kennen ("Two Generals Problem").
-*   **Action:** Implementierung eines robusten "Reconciliation"-Mechanismus, der den Status der Order aktiv prüft, bevor der optimistische State bereinigt wird.
+2.  **"Best Effort" Fallback bei Positions-Daten**
+    *   **Ort:** `src/services/tradeService.ts` (`fetchOpenPositionsFromApi`).
+    *   **Befund:** Wenn die Zod-Validierung für die Liste fehlschlägt, wird über jedes Item iteriert. Ungültige Items werden geloggt und verworfen (`logger.warn`).
+    *   **Risiko:** Ein Nutzer könnte eine offene Position im UI "verlieren" (nicht sehen), wenn die API unerwartete Felder sendet, obwohl die Position an der Börse existiert.
 
-### 🟡 WARNING (Qualität & UX)
+3.  **Test-Umgebung Inkonsistenzen**
+    *   **Ort:** `npm test` Output.
+    *   **Befund:** `ECONNREFUSED` (Port 3000) und `workerErrors.notAvailable` in den Logs.
+    *   **Risiko:** Rauschen in den Test-Logs kann echte Fehler verschleiern. CI/CD könnte fälschlicherweise fehlschlagen.
 
-#### 1. Performance Hot-Path (MarketStore)
-*   **Ort:** `src/stores/market.svelte.ts` (`applyUpdate`, `updateSymbolKlines`)
-*   **Problem:** Massive Instanziierung von `Decimal` Objekten bei jedem Tick (High Frequency). `updateSymbolKlines` nutzt ineffizientes Array-Slicing und Copying (`[...history]`).
-*   **Risiko:** UI-Freezes bei hoher Volatilität, schlechte LCP/INP-Werte.
-*   **Action:** Optimierung der Update-Logik (String-Vergleich vor Decimal-Erstellung, In-Place Updates wo möglich).
+4.  **WebSocket Error-Loop Limitierung**
+    *   **Ort:** `src/services/bitunixWs.ts` (`handleInternalError`).
+    *   **Befund:** Nach 10 Fehlern wird die Verbindung dauerhaft getrennt (`marketState.connectionStatus = "disconnected"`).
+    *   **Risiko:** Bei längeren Netzwerkausfällen (z.B. ISP-Störung > 5 Min) muss der Nutzer die Seite neu laden, um die Verbindung wiederherzustellen. Ein automatischer Retry mit exponentieller Backoff-Strategie (unendlich lang, aber sehr langsam) wäre robuster.
 
-#### 2. Fehlende i18n & Hardcoded Strings
-*   **Ort:** `src/components/shared/PositionsList.svelte`, `NewsService`.
-*   **Problem:** GUI-Texte und Fehlermeldungen sind hardcodiert.
-*   **Action:** Extraktion in `locales/*.json`.
+### 🔵 REFACTOR (Technische Schuld & Optimierung)
 
-#### 3. Broken State (PositionsList)
-*   **Ort:** `src/components/shared/PositionsList.svelte`
-*   **Problem:** ROI-Berechnung zeigt `0%` oder stürzt ab, wenn `margin` fehlt/0 ist. Keine "Retry"-UI bei Ladefehlern.
+1.  **Array-Kopien im Hot Path**
+    *   **Ort:** `src/stores/market.svelte.ts` (`updateSymbolKlines`).
+    *   **Befund:** Bei jedem WebSocket-Update (auch bei Live-Candle Updates) wird `history = history.slice(...)` und `[...history]` ausgeführt.
+    *   **Impact:** Bei sehr vielen Symbolen (>50) und hoher Frequenz könnte dies den Main-Thread belasten.
+    *   **Empfehlung:** Ring-Buffer Struktur oder Mutation der bestehenden Arrays für das *letzte* Element (Live Candle) anstatt Copy-on-Write, sofern Svelte 5 Proxies dies atomar erlauben.
 
-### 🔵 REFACTOR
+2.  **Duplizierte API-Schema Dateien**
+    *   **Ort:** `src/types/apiSchemas.ts` vs. potenzielle Reste in `src/services/`.
+    *   **Befund:** Struktur ist sauber, aber `BitunixKlineResponseSchema` ist nur ein Array-Typ, während Ticker ein Objekt mit `data` ist.
+    *   **Empfehlung:** Vereinheitlichung der Response-Wrapper-Typen.
 
-#### 1. Lose Typisierung
-*   **Ort:** `PositionsList.svelte` (`positions: any[]`)
-*   **Action:** Strenge Typisierung mit `OMSPosition[]`.
+---
 
-## 3. Strategische Empfehlung
-Die Behebung der CRITICAL-Issues hat absoluten Vorrang vor Feature-Entwicklung. Die Umstellung der AI-Services auf Server-Side-Execution ist architektonisch notwendig.
+## Detaillierte Analyse-Ergebnisse
+
+### 1. Datenintegrität & Typ-Sicherheit
+*   **Status:** ✅ EXZELLENT
+*   **Details:**
+    *   Konsequente Nutzung von `Decimal.js` für Preise/Mengen.
+    *   `StrictDecimal` Zod-Schema validiert API-Inputs strikt.
+    *   `mappers.ts` warnt proaktiv vor `MAX_SAFE_INTEGER` Überläufen bei Order-IDs.
+    *   Payload-Serialisierung in `tradeService.ts` verhindert Precision-Loss beim Senden an API.
+
+### 2. Resource Management
+*   **Status:** ✅ SEHR GUT
+*   **Details:**
+    *   **WebSocket:** Singleton-Pattern verhindert Zombie-Connections. Sauberes Cleanup (`destroy`).
+    *   **Memory:** LRU-Cache im `marketStore` und `chartHistoryLimit` verhindern unbegrenztes Speicher-Wachstum.
+    *   **CPU:** `technicalsCalculator.ts` nutzt optimierte `number[]` Arrays statt Objekte im Loop. `marketStore` nutzt Throttling (250ms) für UI-Updates.
+
+### 3. UI/UX & Sicherheit
+*   **Status:** ⚠️ GUT (mit I18n Mängeln)
+*   **Details:**
+    *   **Security:** RateLimiter (Token Bucket) schützt vor API-Bans. Logs werden sanitisiert (keine API-Keys im Klartext).
+    *   **UX:** `TradeSetupInputs` warnt proaktiv bei Preisabweichung (>5%). Eingabe-Parsing ist tolerant (Komma/Punkt).
+    *   **I18n:** Viele Texte sind noch hardcoded (Englisch).
+
+---
+
+## Empfohlener Aktionsplan (Phase 2)
+
+1.  **I18n-Sweep:** Extrahieren aller Hardcoded-Strings in `src/locales/en.json` und `de.json`.
+2.  **Test-Fixes:** Mocking des Servers für Integration-Tests, um `ECONNREFUSED` zu eliminieren.
+3.  **WS-Hardening:** Implementierung eines "Infinite Exponential Backoff" für den WebSocket Reconnect, statt hartem Abbruch nach 10 Versuchen.

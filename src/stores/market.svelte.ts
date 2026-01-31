@@ -349,10 +349,10 @@ export class MarketManager {
     let history = current.klines[timeframe] || [];
 
     // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
-    if (source === "rest" && history.length > 0) {
-      const lastKnownTime = history[history.length - 1].time;
-      newKlines = newKlines.filter(k => k.time !== lastKnownTime);
-    }
+    // previously filtered REST updates if connected.
+    // REMOVED: We now trust the upstream (MarketWatcher) to only send REST updates
+    // if the WebSocket is disconnected OR if data is stale (gap detection).
+    // This ensures we don't block valid fallback updates.
 
     // Merge strategy:
     // Optimized for append-only / live update behavior
@@ -451,6 +451,13 @@ export class MarketManager {
     }
 
     current.lastUpdated = Date.now();
+
+    // FORCE REACTIVITY: Svelte 5 needs to see a write to the root property or the specific nested path.
+    // By re-assigning the nested array above, we trigger listeners on `current.klines[timeframe]`.
+    // By re-assigning the symbol object below, we trigger listeners on `marketState.data[symbol]`.
+    // We do both to be absolutely sure.
+    this.data[symbol] = current;
+
     this.enforceCacheLimit();
   }
 

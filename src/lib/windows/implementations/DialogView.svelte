@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { untrack } from "svelte";
     import { _ } from "../../../locales/i18n";
     import { windowManager } from "../WindowManager.svelte";
     import type { DialogWindow } from "./DialogWindow.svelte";
@@ -11,7 +12,13 @@
 
     let { window: win }: Props = $props();
 
-    let inputValue = $state(win.defaultValue || "");
+    let inputValue = $state(untrack(() => win.defaultValue || ""));
+    let inputElement = $state<HTMLInputElement | null>(null);
+
+    // Setze Fokus programmatisch (A11y-konform)
+    $effect(() => {
+        inputElement?.focus();
+    });
 
     function handleConfirm(result: boolean | string) {
         win.closeWith(result);
@@ -20,11 +27,11 @@
 
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === "Enter") {
-             if (win.type === 'prompt') {
-                 handleConfirm(inputValue);
-             } else {
-                 handleConfirm(true);
-             }
+            if (win.type === "prompt") {
+                handleConfirm(inputValue);
+            } else {
+                handleConfirm(true);
+            }
         }
         if (e.key === "Escape") {
             handleConfirm(false);
@@ -32,7 +39,11 @@
     }
 </script>
 
-<div class="dialog-content p-6 flex flex-col h-full" onkeydown={handleKeydown} role="presentation">
+<div
+    class="dialog-content p-6 flex flex-col h-full"
+    onkeydown={handleKeydown}
+    role="presentation"
+>
     <div class="message prose dark:prose-invert mb-6 text-base leading-relaxed">
         {@html sanitizeHtml(win.message)}
     </div>
@@ -44,20 +55,20 @@
                 class="w-full px-4 py-3 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] focus:border-[var(--accent-color)] outline-none transition-colors"
                 placeholder={$_("dashboard.customModal.promptPlaceholder")}
                 bind:value={inputValue}
-                autofocus
+                bind:this={inputElement}
             />
         </div>
     {/if}
 
     <div class="mt-auto flex justify-end gap-3">
         {#if win.type === "confirm"}
-             <button
+            <button
                 class="px-5 py-2.5 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] border border-[var(--border-color)] font-semibold transition-colors"
                 onclick={() => handleConfirm(false)}
                 use:trackClick={{
-                  category: "Dialog",
-                  action: "Click",
-                  name: "Cancel",
+                    category: "Dialog",
+                    action: "Click",
+                    name: "Cancel",
                 }}
             >
                 {$_("dashboard.customModal.noButton")}
@@ -66,9 +77,9 @@
                 class="px-5 py-2.5 rounded-lg bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-semibold shadow-lg shadow-red-900/20 transition-all hover:scale-105"
                 onclick={() => handleConfirm(true)}
                 use:trackClick={{
-                  category: "Dialog",
-                  action: "Click",
-                  name: "Confirm",
+                    category: "Dialog",
+                    action: "Click",
+                    name: "Confirm",
                 }}
             >
                 {$_("dashboard.customModal.yesButton")}
@@ -91,10 +102,10 @@
             <button
                 class="px-6 py-2.5 rounded-lg bg-[var(--accent-color)] hover:opacity-90 text-[var(--btn-accent-text)] font-semibold shadow-lg shadow-[var(--accent-color)]/20 transition-all hover:scale-105 w-full sm:w-auto"
                 onclick={() => handleConfirm(true)}
-                 use:trackClick={{
-                  category: "Dialog",
-                  action: "Click",
-                  name: "OK",
+                use:trackClick={{
+                    category: "Dialog",
+                    action: "Click",
+                    name: "OK",
                 }}
             >
                 {$_("dashboard.customModal.okButton")}
