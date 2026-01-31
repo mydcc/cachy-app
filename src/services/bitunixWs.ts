@@ -1050,17 +1050,29 @@ class BitunixWebSocketService {
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
         if (data) {
-          const items = Array.isArray(data) ? data : [data];
-          items.forEach((item: any) => {
-            // STRICT VALIDATION: Ensure orderId is a string to prevent precision loss
-            const val = BitunixOrderSchema.safeParse(item);
-            if (!val.success) {
-              logger.error("network", `[BitunixWS] Dropping Order with invalid ID format (Precision Risk)`, val.error);
-              return; // REJECT corrupt data
-            }
-            accountState.updateOrderFromWs(item);
-            omsService.updateOrder(mapToOMSOrder(item));
-          });
+          const sanitize = (item: any) => {
+             if (typeof item.orderId === 'number') {
+                 // Precision loss only happens > 15 digits, but we enforce string for consistency
+                 // safeJsonParse handles >15 digits, so this catches smaller IDs or edge cases
+                 if (item.orderId > 9007199254740991) {
+                     logger.warn("network", `[BitunixWS] CRITICAL: numeric orderId detected > MAX_SAFE_INTEGER: ${item.orderId}`);
+                 }
+                 item.orderId = String(item.orderId);
+             }
+             return item;
+          };
+
+          if (Array.isArray(data))
+            data.forEach((item: any) => {
+              const safeItem = sanitize(item);
+              accountState.updateOrderFromWs(safeItem);
+              omsService.updateOrder(mapToOMSOrder(safeItem));
+            });
+          else {
+            const safeItem = sanitize(data);
+            accountState.updateOrderFromWs(safeItem);
+            omsService.updateOrder(mapToOMSOrder(safeItem));
+          }
         }
       } else if (validatedMessage.ch === "wallet") {
         const data = validatedMessage.data;

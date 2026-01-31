@@ -71,12 +71,21 @@ class TradeService {
         });
 
         const text = await response.text();
-        const data = safeJsonParse(text);
+        let data: any = {};
+        try {
+            data = safeJsonParse(text);
+        } catch (e) {
+            // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
+            // use the status code as the error code
+            if (!response.ok) {
+                 throw new BitunixApiError(response.status, text || response.statusText);
+            }
+        }
 
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || -1, data.msg || data.error || "Unknown API Error");
+            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "Unknown API Error");
         }
 
         return data;
