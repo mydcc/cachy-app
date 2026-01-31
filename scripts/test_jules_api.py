@@ -24,8 +24,12 @@ def main():
     print("--- Jules API Connection Test ---")
 
     # 1. Get API Key
-    api_key = os.environ.get("JULES_API_KEY")
-    if not api_key:
+    # Check JULES_API (from user screenshot) or JULES_API_KEY (standard convention)
+    api_key = os.environ.get("JULES_API") or os.environ.get("JULES_API_KEY")
+
+    if api_key:
+        print(f"Loaded API Key from environment ({len(api_key)} chars).")
+    else:
         print("Please enter your Jules API Key:")
         api_key = input("> ").strip()
 
