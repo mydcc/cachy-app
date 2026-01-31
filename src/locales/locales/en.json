@@ -1145,6 +1145,16 @@
       "moreHistoryDesc": "More history = slower initial load. (Max: 2000)"
     }
   },
+  "positionsList": {
+    "noOpenPositions": "No open positions.",
+    "size": "Size",
+    "close": "Close",
+    "tpsl": "TP/SL",
+    "confirmClose": "Close position for {symbol}?",
+    "roi": "ROI",
+    "margin": "Margin",
+    "unrealizedPnl": "uPnL"
+  },
   "symbolPicker": {
     "title": "Select Symbol",
     "searchPlaceholder": "Search...",
@@ -1791,7 +1801,8 @@
     "title": "Candlestick Academy"
   },
   "tradeErrors": {
-    "positionNotFound": "Position not found: {symbol} {side}"
+    "positionNotFound": "Position not found: {symbol} {side}",
+    "dataError": "Data Inconsistency Detected"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",

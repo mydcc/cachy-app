@@ -22,14 +22,16 @@
   import { uiState } from "../../stores/ui.svelte";
   // import PositionTooltip from "./PositionTooltip.svelte"; // Global handled
   import Button from "./Button.svelte";
+  import { _ } from "../../locales/i18n";
+  import type { OMSPosition } from "../../services/omsTypes";
 
   interface Props {
-    positions?: any[];
+    positions?: OMSPosition[];
     loading?: boolean;
     error?: string;
     // Svelte 5 event props
-    onclose?: (pos: any) => void;
-    ontpSl?: (pos: any) => void;
+    onclose?: (pos: OMSPosition) => void;
+    ontpSl?: (pos: OMSPosition) => void;
   }
 
   let {
@@ -67,10 +69,10 @@
   }
 
   // PnL Logic
-  function getPnlDisplay(pos: any, mode: "value" | "percent" | "bar") {
-    const val = new Decimal(pos.unrealizedPnl || 0);
+  function getPnlDisplay(pos: OMSPosition, mode: "value" | "percent" | "bar") {
+    const val = pos.unrealizedPnl || new Decimal(0);
     if (mode === "percent" || mode === "bar") {
-      if (!pos.margin || new Decimal(pos.margin).isZero()) return "0%";
+      if (!pos.margin || pos.margin.isZero()) return "ROI: N/A";
       const roi = val.div(pos.margin).mul(100);
       return `${roi.toFixed(2)}%`;
     }
@@ -87,17 +89,17 @@
     settingsState.pnlViewMode = nextMode;
   }
 
-  function handleClose(pos: any) {
-    if (confirm(`Close position for ${pos.symbol}?`)) {
+  function handleClose(pos: OMSPosition) {
+    if (confirm($_("positionsList.confirmClose", { symbol: pos.symbol }))) {
       onclose?.(pos);
     }
   }
 
-  function getRoi(pos: any) {
-    if (!pos.margin || new Decimal(pos.margin).isZero()) return 0;
-    const pnl = new Decimal(pos.unrealizedPnl || 0);
-    const margin = new Decimal(pos.margin);
-    return new Decimal(pnl.div(margin).mul(100)).toNumber();
+  function getRoi(pos: OMSPosition) {
+    if (!pos.margin || pos.margin.isZero()) return 0;
+    const pnl = pos.unrealizedPnl || new Decimal(0);
+    const margin = pos.margin;
+    return pnl.div(margin).mul(100).toNumber();
   }
 
   // View Modes
@@ -121,7 +123,7 @@
     </div>
   {:else if safePositions.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
-      No open positions.
+      {$_("positionsList.noOpenPositions")}
     </div>
   {:else}
     <div class="flex flex-col gap-2">
@@ -176,15 +178,14 @@
                         style="width: {Math.min(
                           Math.abs(Number(getRoi(pos))),
                           100,
-                        )}%; background-color: {pos.unrealizedPnl > 0
+                        )}%; background-color: {pos.unrealizedPnl.gt(0)
                           ? 'var(--success-color)'
                           : 'var(--danger-color)'}"
                       ></div>
                       <span
                         class="text-[10px] font-bold z-10 relative"
-                        class:text-[var(--success-color)]={pos.unrealizedPnl >
-                          0}
-                        class:text-[var(--danger-color)]={pos.unrealizedPnl < 0}
+                        class:text-[var(--success-color)]={pos.unrealizedPnl.gt(0)}
+                        class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                       >
                         {getPnlDisplay(pos, "percent")}
                       </span>
@@ -192,8 +193,8 @@
                   {:else}
                     <span
                       class="font-bold text-sm"
-                      class:text-[var(--success-color)]={pos.unrealizedPnl > 0}
-                      class:text-[var(--danger-color)]={pos.unrealizedPnl < 0}
+                      class:text-[var(--success-color)]={pos.unrealizedPnl.gt(0)}
+                      class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                     >
                       {getPnlDisplay(pos, pnlMode)}
                     </span>
@@ -205,10 +206,9 @@
               <div class="flex justify-between items-center text-xs py-1">
                 <div class="flex flex-col">
                   <span class="text-[var(--text-secondary)] text-[10px]"
-                    >Size</span
+                    >{$_("positionsList.size")}</span
                   >
-                  <span class="font-mono">{formatDynamicDecimal(pos.size)}</span
-                  >
+                  <span class="font-mono">{formatDynamicDecimal(pos.amount)}</span>
                 </div>
                 <div
                   class="flex items-center gap-1 text-[var(--text-tertiary)] text-[10px]"
@@ -218,7 +218,7 @@
                   >
                   <span>→</span>
                   <span class="font-mono text-[var(--text-primary)]"
-                    >{formatDynamicDecimal(pos.markPrice)}</span
+                    >{pos.markPrice ? formatDynamicDecimal(pos.markPrice) : "?"}</span
                   >
                 </div>
               </div>
@@ -229,13 +229,13 @@
                   class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
                   onclick={() => ontpSl?.(pos)}
                 >
-                  TP/SL
+                  {$_("positionsList.tpsl")}
                 </button>
                 <button
                   class="flex-1 py-1 text-[10px] bg-[var(--danger-color)] bg-opacity-10 hover:bg-opacity-20 text-[var(--danger-color)] rounded border border-[var(--danger-color)] border-opacity-30 transition-colors font-bold"
                   onclick={() => handleClose(pos)}
                 >
-                  Close
+                  {$_("positionsList.close")}
                 </button>
               </div>
             </div>
@@ -252,8 +252,8 @@
               >
                 <span
                   class="font-bold text-lg leading-none"
-                  class:text-[var(--success-color)]={pos.unrealizedPnl > 0}
-                  class:text-[var(--danger-color)]={pos.unrealizedPnl < 0}
+                  class:text-[var(--success-color)]={pos.unrealizedPnl.gt(0)}
+                  class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                 >
                   {getPnlDisplay(pos, pnlMode)}
                 </span>
@@ -277,7 +277,7 @@
               <button
                 class="w-8 h-8 flex items-center justify-center bg-[var(--danger-color)] text-white rounded hover:bg-opacity-80 transition-colors shadow-sm"
                 onclick={() => handleClose(pos)}
-                title="Close Position"
+                title={$_("positionsList.close")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

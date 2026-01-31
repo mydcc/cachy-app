@@ -220,8 +220,12 @@ class TradeService {
                  omsService.removeOrder(clientOrderId);
             } else {
                  // Indeterminate state (Timeout / Network Error)
-                 // Keep it, but rely on background sync/watchdog to eventually clear it.
-                 // omsService.removeOrphanedOptimistic() should be called periodically by the app.
+                 // Mark as unconfirmed
+                 const order = omsService.getOrder(clientOrderId);
+                 if (order) {
+                     order._isUnconfirmed = true;
+                     omsService.updateOrder(order);
+                 }
             }
 
             // Trigger background sync to verify state
@@ -263,16 +267,10 @@ class TradeService {
             if (validation.success) {
                 pendingPositions = validation.data;
             } else {
-                logger.error("market", "[TradeService] API Schema List mismatch. Falling back to individual item validation.", validation.error);
-                // Best Effort Parsing: Iterate and keep only valid items
-                rawPositions.forEach((item: any, index: number) => {
-                    const itemValidation = PositionRawSchema.safeParse(item);
-                    if (itemValidation.success) {
-                        pendingPositions.push(itemValidation.data);
-                    } else {
-                        logger.warn("market", `[TradeService] Dropping invalid position at index ${index}`, itemValidation.error);
-                    }
-                });
+                // HARDENING: FAIL FAST instead of Best Effort
+                // If the schema mismatch is severe, we must alert the user.
+                logger.error("market", "[TradeService] CRITICAL: API Schema mismatch for positions.", validation.error);
+                throw new TradeError("Data inconsistency detected. Please refresh or contact support.", "trade.dataError", validation.error);
             }
 
             // Map and Update OMS using robust mapper
@@ -301,6 +299,7 @@ class TradeService {
         const lev = new Decimal(raw.leverage || 0);
         const liq = raw.liquidationPrice || raw.liqPrice ? new Decimal(raw.liquidationPrice || raw.liqPrice!) : undefined;
 
+        // Populate optional fields for UI
         return {
             symbol: raw.symbol,
             side,
@@ -309,7 +308,11 @@ class TradeService {
             unrealizedPnl: upnl,
             leverage: lev,
             marginMode: (raw.marginMode || "cross").toLowerCase() as "cross" | "isolated",
-            liquidationPrice: liq
+            liquidationPrice: liq,
+            // Add extra fields if available in raw, mapped to Decimal
+            margin: new Decimal(0), // Placeholder, would need raw field if available
+            markPrice: new Decimal(0), // Placeholder
+            size: amount
         };
 
 

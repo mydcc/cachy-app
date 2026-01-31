@@ -23,6 +23,7 @@
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
+  import type { OMSPosition } from "../../services/omsTypes";
 
   // Sub-components
   import PositionsList from "./PositionsList.svelte";
@@ -87,6 +88,23 @@
     }
     return data.error || $_("apiErrors.generic");
   }
+
+  // Map AccountState Position to OMSPosition
+  let mappedPositions = $derived(
+    accountState.positions.map((p): OMSPosition => ({
+        symbol: p.symbol,
+        side: p.side,
+        amount: p.size, // Map size to amount
+        entryPrice: p.entryPrice,
+        unrealizedPnl: p.unrealizedPnl,
+        leverage: p.leverage,
+        marginMode: p.marginMode as "cross" | "isolated",
+        liquidationPrice: p.liquidationPrice,
+        margin: p.margin,
+        markPrice: p.markPrice,
+        size: p.size
+    }))
+  );
 
   async function fetchPositions() {
     const provider = settingsState.apiProvider || "bitunix";
@@ -282,14 +300,12 @@
   }
 
   // Actions
-  async function handleClosePosition(event: CustomEvent) {
-    const pos = event.detail;
-
+  async function handleClosePosition(pos: OMSPosition) {
     try {
       const res = (await tradeService.closePosition({
         symbol: pos.symbol,
         positionSide: String(pos.side).toLowerCase() as any,
-        amount: pos.size,
+        amount: pos.amount, // Use amount from OMSPosition
       })) as any;
 
       if (res && res.error) {
@@ -310,15 +326,14 @@
     }
   }
 
-  async function handleTpSl(event: CustomEvent) {
-    const pos = event.detail;
+  async function handleTpSl(pos: OMSPosition) {
     // Placeholder: Could open a modal or just pre-fill trade inputs
     // For now, let's load it into the Trade Inputs
     tradeState.update((s) => ({
       ...s,
       symbol: pos.symbol,
       entryPrice: pos.entryPrice.toString(),
-      lockedPositionSize: pos.size, // Use actual Decimal from position
+      lockedPositionSize: pos.amount, // Use amount
       isPositionSizeLocked: true,
       leverage: pos.leverage.toString(),
     }));
@@ -438,7 +453,7 @@
     <div class="bg-[var(--bg-secondary)] rounded-b-xl">
       {#if activeTab === "positions"}
         <PositionsList
-          positions={accountState.positions}
+          positions={mappedPositions}
           loading={loadingPositions}
           error={errorPositions}
           onclose={handleClosePosition}
