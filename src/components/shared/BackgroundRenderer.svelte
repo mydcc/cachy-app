@@ -62,13 +62,16 @@
 
   $effect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.style.setProperty(
-        "--bg-blur",
-        `${settingsState.backgroundBlur}px`,
-      );
+      // Force full visibility for ThreeJS to prevent "covering" by background color
+      // due to default blur/opacity settings meant for images
+      const isThree = settingsState.backgroundType === "threejs";
+      const blur = isThree ? 0 : settingsState.backgroundBlur;
+      const opacity = isThree ? 1 : settingsState.backgroundOpacity;
+
+      document.documentElement.style.setProperty("--bg-blur", `${blur}px`);
       document.documentElement.style.setProperty(
         "--bg-opacity",
-        settingsState.backgroundOpacity.toString(),
+        opacity.toString(),
       );
     }
   });
