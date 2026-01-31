@@ -1160,13 +1160,6 @@
     "syncNoNewData": "No new positions found.",
     "syncFailed": "Sync failed: {error}"
   },
-  "chartPatterns": {
-    "description": "Description",
-    "characteristics": "Characteristics",
-    "tradingStrategy": "Trading Strategy",
-    "interpretation": "Interpretation & Context",
-    "performance": "Performance"
-  },
   "bitunixErrors": {
     "10001": "Network Error",
     "10002": "Parameter Error",
@@ -1742,7 +1735,12 @@
     "title": "Candlestick Academy"
   },
   "chartPatterns": {
-    "title": "Chart Patterns Academy"
+    "title": "Chart Patterns Academy",
+    "description": "Description",
+    "characteristics": "Characteristics",
+    "tradingStrategy": "Trading Strategy",
+    "interpretation": "Interpretation & Context",
+    "performance": "Performance"
   },
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}"

@@ -1181,13 +1181,6 @@
       "trending": "Trending"
     }
   },
-  "chartPatterns": {
-    "description": "Beschreibung",
-    "characteristics": "Charakteristika",
-    "tradingStrategy": "Handelsstrategie",
-    "interpretation": "Interpretation & Kontext",
-    "performance": "Performance"
-  },
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
     "invalidResponse": "Invalid response from API.",
@@ -1742,7 +1735,12 @@
     "title": "Candlestick Akademie"
   },
   "chartPatterns": {
-    "title": "Chartmuster Akademie"
+    "title": "Chartmuster Akademie",
+    "description": "Beschreibung",
+    "characteristics": "Charakteristika",
+    "tradingStrategy": "Handelsstrategie",
+    "interpretation": "Interpretation & Kontext",
+    "performance": "Performance"
   },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}"
