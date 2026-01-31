@@ -7,10 +7,10 @@ This document outlines the architecture for integrating the Google Jules API int
 To use the Jules API, we need to securely store the API Key.
 
 *   **Server-Side Storage**: The API Key should **never** be exposed to the client (browser).
-*   **Environment Variable**: Store the key in `.env` as `JULES_API_KEY`.
+*   **Environment Variable**: Store the key in `.env` as `JULES_API`.
 *   **Settings UI**: Add a field in the "Settings" -> "Integrations" (or "General") tab to input the key.
     *   This input should POST to a server-side endpoint to save it (e.g., to a secure DB or file, or just instruction to set the ENV).
-    *   *Recommendation*: For now, rely on `JULES_API_KEY` in `.env` to avoid storing secrets in the database/localStorage.
+    *   *Recommendation*: For now, rely on `JULES_API` in `.env` to avoid storing secrets in the database/localStorage.
 
 ## 2. Backend Architecture (SvelteKit)
 We will create a server-side API route to proxy requests to Google. This ensures the API Key stays on the server.
@@ -20,13 +20,13 @@ This route will handle POST requests from the frontend.
 
 ```typescript
 // Pseudo-code for src/routes/api/jules/+server.ts
-import { JULES_API_KEY } from '$env/static/private';
+import { JULES_API } from '$env/static/private';
 import { json } from '@sveltejs/kit';
 
 export async function POST({ request }) {
     const { action, payload } = await request.json();
 
-    if (!JULES_API_KEY) {
+    if (!JULES_API) {
         return json({ error: 'API Key not configured' }, { status: 500 });
     }
 
@@ -47,7 +47,7 @@ export async function POST({ request }) {
     const response = await fetch(url, {
         method: body ? 'POST' : 'GET',
         headers: {
-            'X-Goog-Api-Key': JULES_API_KEY,
+            'X-Goog-Api-Key': JULES_API,
             'Content-Type': 'application/json'
         },
         body: body ? JSON.stringify(body) : undefined
