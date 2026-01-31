@@ -97,10 +97,6 @@
         }
     }
 
-    function renderMarkdown(text: string): string {
-        return renderSafeMarkdown(text);
-    }
-
     let styleMode = $derived(settingsState.chatStyle || "minimal");
     let isTerminal = $derived(styleMode === "terminal");
     let isBubble = $derived(styleMode === "bubble");
@@ -213,7 +209,7 @@
                                 class="markdown-content"
                                 class:terminal-md={isTerminal}
                             >
-                                {@html renderMarkdown(msg.content)}
+                                {@html renderSafeMarkdown(msg.content)}
                             </div>
                         {:else if msg.role === "system"}
                             {@const pendingMatch =

@@ -109,10 +109,6 @@
         return "No description available.";
     }
 
-    function renderMarkdown(text: string) {
-        return renderSafeMarkdown(text);
-    }
-
     function getCategoryIcon(category: string) {
         switch (category) {
             case "Umkehrmuster":
@@ -289,10 +285,10 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
                         >
-                            Description
+                            {$_("chartPatterns.description")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
+                            {@html renderSafeMarkdown(
                                 getLocalizedText(currentPattern, "description"),
                             )}
                         </div>
@@ -301,7 +297,7 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mt-4 mb-2"
                         >
-                            Characteristics
+                            {$_("chartPatterns.characteristics")}
                         </h3>
                         <ul
                             class="list-disc list-inside text-sm text-[var(--text-primary)]"
@@ -322,10 +318,10 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
                         >
-                            Trading Strategy
+                            {$_("chartPatterns.tradingStrategy")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
+                            {@html renderSafeMarkdown(
                                 getLocalizedText(currentPattern, "trading"),
                             )}
                         </div>
@@ -338,10 +334,10 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
                         >
-                            Interpretation & Context
+                            {$_("chartPatterns.interpretation")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
+                            {@html renderSafeMarkdown(
                                 getLocalizedText(
                                     currentPattern,
                                     "advancedConsiderations",
@@ -352,10 +348,10 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mt-4 mb-2"
                         >
-                            Performance
+                            {$_("chartPatterns.performance")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
+                            {@html renderSafeMarkdown(
                                 getLocalizedText(
                                     currentPattern,
                                     "performanceStats",

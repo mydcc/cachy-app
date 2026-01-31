@@ -24,7 +24,9 @@ export function renderSafeMarkdown(text: string): string {
             return DOMPurify.sanitize(raw);
         }
 
-        // SSR Fallback: Return empty or raw (risky if displayed, but usually hydrated on client)
+        // SSR Fallback: Return empty string to prevent XSS.
+        // Returning raw (unsanitized) HTML on server is dangerous even from internal sources.
+        // This causes hydration mismatch warnings (layout shift), but ensures Zero-Tolerance security.
         return "";
     } catch (e) {
         console.error("Markdown rendering error:", e);

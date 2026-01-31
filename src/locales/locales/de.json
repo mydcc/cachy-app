@@ -1181,6 +1181,13 @@
       "trending": "Trending"
     }
   },
+  "chartPatterns": {
+    "description": "Beschreibung",
+    "characteristics": "Charakteristika",
+    "tradingStrategy": "Handelsstrategie",
+    "interpretation": "Interpretation & Kontext",
+    "performance": "Performance"
+  },
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
     "invalidResponse": "Invalid response from API.",
