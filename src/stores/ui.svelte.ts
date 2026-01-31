@@ -271,14 +271,12 @@ class UiManager {
       ).toUTCString();
       document.cookie = `${CONSTANTS.LOCAL_STORAGE_THEME_KEY}=${themeName}; expires=${expires}; path=/; SameSite=Lax`;
 
-      if (typeof window !== "undefined" && (window as any)._mtm) {
-        (window as any)._mtm.push({
-          event: "customEvent",
-          "custom-event-category": "Settings",
-          "custom-event-action": "ChangeTheme",
-          "custom-event-name": themeName,
-        });
-      }
+      // Dynamic import to avoid circular dependency
+      import("../services/trackingService")
+        .then(({ trackCustomEvent }) => {
+          trackCustomEvent("Settings", "ChangeTheme", themeName);
+        })
+        .catch(() => {});
     } catch (e) {
       console.warn("Could not save theme.", e);
     }

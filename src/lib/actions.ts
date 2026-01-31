@@ -17,6 +17,8 @@
 
 // src/lib/actions.ts
 
+import { trackCustomEvent } from "../services/trackingService";
+
 interface TrackClickParams {
   category: string;
   action: string;
@@ -24,13 +26,30 @@ interface TrackClickParams {
 }
 
 export function trackClick(node: HTMLElement, params: TrackClickParams) {
-  node.setAttribute("data-mtm-category", params.category);
-  node.setAttribute("data-mtm-action", params.action);
-  node.setAttribute("data-mtm-name", params.name);
+  // Legacy attributes for reference (optional, but cleaner to remove to force migration to Data Layer)
+  // node.setAttribute("data-mtm-category", params.category);
+  // node.setAttribute("data-mtm-action", params.action);
+  // node.setAttribute("data-mtm-name", params.name);
+
+  let currentParams = params;
+
+  function handleClick() {
+    trackCustomEvent(
+      currentParams.category,
+      currentParams.action,
+      currentParams.name,
+    );
+  }
+
+  // Use event bubbling to capture clicks on child elements (like SVG icons)
+  node.addEventListener("click", handleClick);
 
   return {
+    update(newParams: TrackClickParams) {
+      currentParams = newParams;
+    },
     destroy() {
-      // No cleanup needed for this action
+      node.removeEventListener("click", handleClick);
     },
   };
 }
