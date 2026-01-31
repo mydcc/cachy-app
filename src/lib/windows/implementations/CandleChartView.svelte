@@ -291,13 +291,16 @@
 
         // Dependencies for reactivity
         const normalized = normalizeSymbol(symbol, "bitunix");
+        // Explicitly track the kline array reference to ensure reactivity
         const marketData = marketState.data[normalized];
+        // We need to access the property to register the dependency in Svelte 5 rune mode
+        const klines = marketData?.klines?.[timeframe];
+
         const currentTF = timeframe;
         const settings = indicatorState.ema;
         const indicatorsEnabled = settingsState.enabledIndicators.ema;
 
-        if (marketData && marketData.klines && marketData.klines[currentTF]) {
-            const klines = marketData.klines[currentTF];
+        if (klines) {
             if (klines.length > 0) {
                 // Optimization: Check if this is just a live update to the last candle
                 const lastKline = klines[klines.length - 1];

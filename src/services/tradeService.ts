@@ -29,7 +29,6 @@ import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
 import type { OMSPosition, OMSOrderSide } from "./omsTypes";
-import { mapToOMSPosition } from "./mappers";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -278,13 +277,42 @@ class TradeService {
 
             // Map and Update OMS using robust mapper
             pendingPositions.forEach((p: PositionRaw) => {
-                omsService.updatePosition(mapToOMSPosition(p));
+                omsService.updatePosition(this.mapPosition(p));
             });
 
         } catch (e) {
             logger.error("market", "[TradeService] Failed to fetch open positions", e);
             throw e;
         }
+    }
+
+    private mapPosition(raw: PositionRaw): OMSPosition {
+        // Side logic
+        let side: "long" | "short" = "long";
+        const rawSide = (raw.side || raw.positionSide || raw.holdSide || "").toLowerCase();
+        if (rawSide.includes("sell") || rawSide.includes("short")) side = "short";
+
+        // Amount logic
+        const amount = new Decimal(raw.qty || raw.size || raw.amount || 0);
+
+        // Price
+        const entryPrice = new Decimal(raw.avgOpenPrice || raw.entryPrice || 0);
+        const upnl = new Decimal(raw.unrealizedPNL || raw.unrealizedPnl || 0);
+        const lev = new Decimal(raw.leverage || 0);
+        const liq = raw.liquidationPrice || raw.liqPrice ? new Decimal(raw.liquidationPrice || raw.liqPrice!) : undefined;
+
+        return {
+            symbol: raw.symbol,
+            side,
+            amount,
+            entryPrice,
+            unrealizedPnl: upnl,
+            leverage: lev,
+            marginMode: (raw.marginMode || "cross").toLowerCase() as "cross" | "isolated",
+            liquidationPrice: liq
+        };
+
+
     }
 
     public async cancelAllOrders(symbol: string) {
