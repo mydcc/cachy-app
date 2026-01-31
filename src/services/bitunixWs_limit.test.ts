@@ -68,7 +68,7 @@ describe('BitunixWS Hardening', () => {
         expect(ws.throttleMap.has(`key-${LIMIT + 5}`)).toBe(true);
     });
 
-    it('should give up after excessive connection errors', () => {
+    it('should switch to slow retry after excessive connection errors', () => {
         const ws = bitunixWs as any;
 
         // Simulate errors
@@ -77,7 +77,8 @@ describe('BitunixWS Hardening', () => {
             vi.advanceTimersByTime(100);
         }
 
-        expect(marketState.connectionStatus).toBe('disconnected');
-        expect(uiState.showError).toHaveBeenCalledWith('apiErrors.connectionFailedConfig');
+        expect(marketState.connectionStatus).toBe('reconnecting');
+        // We no longer show error dialog, we just retry slowly
+        expect(uiState.showError).not.toHaveBeenCalled();
     });
 });

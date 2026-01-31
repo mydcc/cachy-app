@@ -1152,15 +1152,21 @@ class BitunixWebSocketService {
       if (this.errorCountPublic >= this.ERROR_THRESHOLD) {
         logger.warn("network", `[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
 
-        // Hard Limit: If we hit 2x threshold (10 errors), stop retrying to save bandwidth/CPU
+        // Hard Limit: If we hit 2x threshold (10 errors), switch to infinite slow retry
         if (this.errorCountPublic >= this.ERROR_THRESHOLD * 2) {
-             logger.error("network", `[WebSocket] Public: CRITICAL FAILURE. Giving up after ${this.errorCountPublic} errors.`);
+             logger.warn("network", `[WebSocket] Public: Connection unstable. Switching to SLOW RETRY mode (60s).`);
              this.cleanup("public");
-             marketState.connectionStatus = "disconnected";
-             // Notify UI
-             if (typeof window !== "undefined") {
-                 uiState.showError("apiErrors.connectionFailedConfig");
-             }
+             marketState.connectionStatus = "reconnecting";
+
+             // Infinite Slow Retry (60s)
+             if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
+             this.reconnectTimerPublic = setTimeout(() => {
+                 // Decrement counter slightly so we stay in "slow mode" range but trigger a retry
+                 // If it succeeds, the onopen will reset errorCountPublic to 0.
+                 // If it fails, we come back here.
+                 // We keep count high to ensure we stay in this block if failure persists.
+                 this.connectPublic();
+             }, 60000);
              return;
         }
 

@@ -248,7 +248,7 @@
                                 for="glass-opacity"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
-                                Opacity: {Math.round(
+                                {$_("common.opacity")}: {Math.round(
                                     settingsState.glassOpacity * 100,
                                 )}%
                             </label>
@@ -644,7 +644,7 @@
 
                 {#if settingsState.backgroundType === "animation"}
                     <div class="field-group mb-4">
-                        <label for="anim-preset">Effect</label>
+                        <label for="anim-preset">{$_("common.effect")}</label>
                         <select
                             id="anim-preset"
                             bind:value={settingsState.backgroundAnimationPreset}
@@ -990,7 +990,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="field-group">
                             <label for="bg-opacity"
-                                >Opacity: {Math.round(
+                                >{$_("common.opacity")}: {Math.round(
                                     settingsState.backgroundOpacity * 100,
                                 )}%</label
                             >

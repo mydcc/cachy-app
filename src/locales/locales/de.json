@@ -1219,7 +1219,9 @@
     "close": "Schließen",
     "remove": "×",
     "warning": "Warnung",
-    "resize": "Größe ändern"
+    "resize": "Größe ändern",
+    "opacity": "Deckkraft",
+    "effect": "Effekt"
   },
   "analyst": {
     "trend": {

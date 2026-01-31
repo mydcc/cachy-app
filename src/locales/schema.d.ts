@@ -1041,6 +1041,8 @@ export type TranslationKey =
   | "common.remove"
   | "common.warning"
   | "common.resize"
+  | "common.opacity"
+  | "common.effect"
   | "analyst.trend.bullish"
   | "analyst.trend.bearish"
   | "analyst.trend.neutral"

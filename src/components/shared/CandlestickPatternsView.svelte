@@ -187,12 +187,12 @@
                     {#if pattern.type.includes("Bullish")}
                         <span
                             class="w-2 h-2 rounded-full bg-[var(--success-color)] flex-shrink-0"
-                            title="Bullish"
+                            title={$_("analyst.trend.bullish")}
                         ></span>
                     {:else if pattern.type.includes("Bearish")}
                         <span
                             class="w-2 h-2 rounded-full bg-[var(--danger-color)] flex-shrink-0"
-                            title="Bearish"
+                            title={$_("analyst.trend.bearish")}
                         ></span>
                     {:else}
                         <span

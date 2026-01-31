@@ -286,7 +286,7 @@
                                 style="display: block;"
                             >
                                 <div class="settings-item">
-                                    <span>Opacity</span>
+                                    <span>{$_("common.opacity")}</span>
                                     <input
                                         type="range"
                                         min="0.1"

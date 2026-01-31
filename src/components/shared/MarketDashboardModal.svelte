@@ -206,7 +206,7 @@
                             {marketBullishPercent.toFixed(0)}%
                         </span>
                         <span class="text-xs text-[var(--text-secondary)] mb-1"
-                            >Bullish</span
+                            >{$_("analyst.trend.bullish")}</span
                         >
                     </div>
                     <div

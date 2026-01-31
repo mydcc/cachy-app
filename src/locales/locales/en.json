@@ -1183,7 +1183,9 @@
     "close": "Close",
     "remove": "×",
     "warning": "Warning",
-    "resize": "Resize"
+    "resize": "Resize",
+    "opacity": "Opacity",
+    "effect": "Effect"
   },
   "analyst": {
     "trend": {
