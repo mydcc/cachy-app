@@ -453,20 +453,55 @@
                         <div
                             class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
                         >
-                            {#each [{ id: "showTechnicalsSummary", label: $_("settings.technicals.summaryAction") || "Summary" }, { id: "showTechnicalsOscillators", label: $_("settings.technicals.oscillators") || "Oscillators" }, { id: "showTechnicalsMAs", label: $_("settings.technicals.movingAverages") || "Moving Avgs" }, { id: "showTechnicalsPivots", label: $_("settings.technicals.pivots") || "Pivots" }] as mod}
-                                <label
-                                    class="flex items-center gap-2 cursor-pointer"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={(settingsState as any)[mod.id]}
-                                        onchange={(e) =>
-                                            ((settingsState as any)[mod.id] =
-                                                e.currentTarget.checked)}
-                                    />
-                                    <span class="text-xs">{mod.label}</span>
-                                </label>
-                            {/each}
+                            <!-- Summary -->
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={settingsState.showTechnicalsSummary}
+                                />
+                                <span class="text-xs">
+                                    {$_("settings.technicals.summaryAction") || "Summary"}
+                                </span>
+                            </label>
+
+                            <!-- Oscillators -->
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={settingsState.showTechnicalsOscillators}
+                                />
+                                <span class="text-xs">
+                                    {$_("settings.technicals.oscillators") || "Oscillators"}
+                                </span>
+                            </label>
+
+                            <!-- Moving Averages -->
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={settingsState.showTechnicalsMAs}
+                                />
+                                <span class="text-xs">
+                                    {$_("settings.technicals.movingAverages") || "Moving Avgs"}
+                                </span>
+                            </label>
+
+                            <!-- Pivots (Syncs with Calculation) -->
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={settingsState.showTechnicalsPivots}
+                                    onchange={(e) => {
+                                        const val = e.currentTarget.checked;
+                                        settingsState.showTechnicalsPivots = val;
+                                        // Sync with calculation engine to ensure data exists
+                                        settingsState.enabledIndicators.pivots = val;
+                                    }}
+                                />
+                                <span class="text-xs">
+                                    {$_("settings.technicals.pivots") || "Pivots"}
+                                </span>
+                            </label>
                         </div>
                     {/if}
 

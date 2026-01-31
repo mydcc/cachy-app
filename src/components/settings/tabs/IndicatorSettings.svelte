@@ -133,6 +133,21 @@
                     <Toggle bind:checked={settingsState.syncRsiTimeframe} />
                 </label>
 
+                <label class="toggle-card mt-2">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium"
+                            >{$_("settings.technicals.pivots") ||
+                                "Pivot Points"}</span
+                        >
+                        <span class="text-[10px] text-[var(--text-secondary)]"
+                            >Calculate standard pivot points (S/R)</span
+                        >
+                    </div>
+                    <Toggle
+                        bind:checked={settingsState.enabledIndicators.pivots}
+                    />
+                </label>
+
                 <!-- PnL Mode -->
                 <div class="field-group mt-4">
                     <span
