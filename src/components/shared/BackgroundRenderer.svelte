@@ -83,7 +83,7 @@
       <img
         src={settingsState.backgroundUrl}
         alt="Background"
-        loading="lazy"
+        loading="eager"
         onerror={() => (imageError = true)}
       />
     {:else if settingsState.backgroundType === "video" && settingsState.backgroundUrl && !videoError}
