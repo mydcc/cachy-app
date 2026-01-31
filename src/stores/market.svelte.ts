@@ -310,7 +310,13 @@ export class MarketManager {
     // The PerformanceMonitor can handle the reset or we add a loop.
   }
 
-  updateSymbolKlines(symbol: string, timeframe: string, klines: any[], source: "rest" | "ws" = "rest") {
+  updateSymbolKlines(
+    symbol: string,
+    timeframe: string,
+    klines: any[],
+    source: "rest" | "ws" = "rest",
+    enforceLimit: boolean = true
+  ) {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
@@ -381,9 +387,64 @@ export class MarketManager {
 
     // Limit history size to prevent memory leaks
     // Dynamically use user setting (default 2000)
-    const limit = settingsState.chartHistoryLimit || 2000;
-    if (history.length > limit) {
-      history = history.slice(-limit);
+    const userLimit = settingsState.chartHistoryLimit || 2000;
+    const safetyLimit = 10000; // Hard cap to prevent OOM
+
+    // Sliding Window Logic:
+    // If enforceLimit is false (manual backfill), we allow growth up to safetyLimit.
+    // If enforceLimit is true (live update), we respect the current history length if it exceeds userLimit,
+    // essentially maintaining the manually expanded window size while sliding it forward.
+    // This prevents live updates from truncating the history the user just loaded.
+    let effectiveLimit = userLimit;
+
+    if (!enforceLimit) {
+      effectiveLimit = safetyLimit;
+    } else {
+      // If we already have more data than userLimit (due to manual loading), keep it (slide window)
+      // but do not exceed safetyLimit.
+      // We use (history.length - 1) because 'history' here already includes the new klines (appended/merged above)
+      // Actually, history is the new array. We want to keep its size (minus maybe 1 if we are strictly sliding).
+      // Simply: Math.max(history.length, userLimit) would effectively keep growing it?
+      // No. If history.length is 3000, and we set limit to 3000, slice(-3000) keeps all.
+      // But we want to slice to 3000.
+      // Wait. If we just appended a live candle, history.length increased by 1.
+      // We want to keep the previous length (window size).
+      // But we don't know the previous length easily here without tracking.
+      // Heuristic: If history.length > userLimit, we assume the user wanted that extra history.
+      // However, we must ensure we don't grow indefinitely on live updates.
+      // The logic `Math.max(current_length_before_update, userLimit)` is ideal.
+      // Since we don't have `before_update`, we can use a slightly looser logic:
+      // If current length is significantly larger than userLimit (e.g. > userLimit + 100), it's likely manual.
+      // But `limit` is just a max size.
+      // Let's rely on the fact that live updates add 1 candle at a time.
+      // If we cap at `Math.max(history.length - 1, userLimit)`, we maintain the window.
+      // (If we added 1, length is L+1. limit becomes L. slice(-L) removes 1. Window maintained).
+      // If we added N (bulk), length is L+N. limit L. slice(-L) removes N.
+
+      // But wait, if we bulk loaded (enforceLimit=false), we didn't slice.
+      // Next live update (enforceLimit=true), we add 1.
+      // We want to keep (L+N).
+      // The issue is distinguishing "I just added 1 live candle" from "I have a big buffer".
+
+      // Simplification: We trust `history` contains the valid data we want to keep.
+      // We only slice if it exceeds safetyLimit OR if we want to enforce userLimit strictness?
+      // No, we decided to support infinite scroll.
+      // So, we only strictly enforce userLimit if we are NOT in an "expanded" state?
+      // Actually, we can just default to safetyLimit for the upper bound, but we need to trim the *oldest*
+      // if we are just moving forward in time.
+
+      // Let's use the sliding window approach:
+      // Limit = max(history.length - (newKlines.length), userLimit)
+      // This tries to keep the size it had before this update.
+      // This works for live updates (newKlines.length=1).
+      // This works for REST updates (newKlines=1000).
+
+      const previousLength = Math.max(0, history.length - newKlines.length);
+      effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
+    }
+
+    if (history.length > effectiveLimit) {
+      history = history.slice(-effectiveLimit);
     }
 
     // [REACTIVITY FIX]

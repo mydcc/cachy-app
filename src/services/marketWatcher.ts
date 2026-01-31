@@ -334,6 +334,52 @@ class MarketWatcher {
     }
   }
 
+  public async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {
+    const lockKey = `more:${symbol}:${tf}`;
+    if (this.historyLocks.has(lockKey)) return false; // Already loading
+
+    // Check global lock to avoid colliding with ensureHistory
+    const globalLock = `${symbol}:${tf}`;
+    if (this.historyLocks.has(globalLock)) return false;
+
+    this.historyLocks.add(lockKey);
+
+    try {
+        const data = marketState.data[symbol];
+        if (!data || !data.klines || !data.klines[tf] || data.klines[tf].length === 0) {
+            return false;
+        }
+
+        const history = data.klines[tf];
+        // Ensure sorted
+        const oldestTime = history[0].time;
+
+        if (import.meta.env.DEV) {
+           console.log(`[History] Loading more history for ${symbol} before ${new Date(oldestTime).toISOString()}`);
+        }
+
+        // Fetch older batch (Bitunix specific)
+        const newKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+
+        if (newKlines && newKlines.length > 0) {
+             // Pass enforceLimit: false to allow growth beyond settings.chartHistoryLimit
+             // (up to the safety cap defined in store)
+            marketState.updateSymbolKlines(symbol, tf, newKlines, "rest", false);
+
+            // Persist (optional: might get huge)
+            // storageService.saveKlines(symbol, tf, newKlines);
+
+            return true;
+        }
+        return false;
+    } catch (e) {
+        logger.warn("market", `[History] Error loading more history for ${symbol}`, e);
+        return false;
+    } finally {
+        this.historyLocks.delete(lockKey);
+    }
+  }
+
   private async pollSymbolChannel(
     symbol: string,
     channel: string,

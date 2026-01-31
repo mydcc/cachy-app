@@ -37,6 +37,8 @@
     let ema3Series: ISeriesApi<"Line"> | null = $state(null);
 
     let isInitialLoad = $state(true);
+    let isLoadingHistory = $state(false);
+    let allHistoryLoaded = $state(false);
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -151,11 +153,54 @@
         const resizeObserver = new ResizeObserver(handleResize);
         resizeObserver.observe(chartContainer);
 
+        // Scroll listener for dynamic history loading
+        let debounceTimer: any;
+        const timeScale = chart.timeScale();
+
+        const handleVisibleLogicalRangeChange = (newVisibleLogicalRange: any) => {
+             if (!newVisibleLogicalRange) return;
+
+             // Detect if we are close to the start (left side)
+             // Logical range: 0 is the last bar, negative values go back in history if not fully loaded,
+             // but here Lightweight Charts usually indexes 0 as the first point in the dataset.
+             // If we scroll to 'from' < 10, we are at the start of known history.
+             if (newVisibleLogicalRange.from < 10 && !isLoadingHistory && !allHistoryLoaded) {
+                 clearTimeout(debounceTimer);
+                 debounceTimer = setTimeout(() => {
+                     // Double check inside debounce
+                     const currentRange = timeScale.getVisibleLogicalRange();
+                     if (currentRange && currentRange.from < 10 && !isLoadingHistory && !allHistoryLoaded) {
+                         loadMore();
+                     }
+                 }, 200);
+             }
+        };
+
+        timeScale.subscribeVisibleLogicalRangeChange(handleVisibleLogicalRangeChange);
+
         return () => {
+            timeScale.unsubscribeVisibleLogicalRangeChange(handleVisibleLogicalRangeChange);
             if (chartContainer) resizeObserver.unobserve(chartContainer);
             if (chart) chart.remove();
         };
     });
+
+    async function loadMore() {
+        if (isLoadingHistory || allHistoryLoaded) return;
+        isLoadingHistory = true;
+
+        try {
+            const hasMore = await marketWatcher.loadMoreHistory(normalizeSymbol(symbol, "bitunix"), timeframe);
+            if (!hasMore) {
+                allHistoryLoaded = true;
+            }
+        } finally {
+            // Small delay to prevent rapid refiring
+            setTimeout(() => {
+                isLoadingHistory = false;
+            }, 500);
+        }
+    }
 
     // Helper to resolve CSS variables
     function getVar(name: string): string {
@@ -339,6 +384,15 @@
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"
     >
+        {#if isLoadingHistory}
+             <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none">
+                <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-full px-3 py-1 flex items-center gap-2 shadow-lg">
+                    <div class="w-3 h-3 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-[10px] text-[var(--text-secondary)] font-mono">LOADING HISTORY</span>
+                </div>
+             </div>
+        {/if}
+
         {#if !marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines[timeframe]}
             <div
                 class="absolute inset-0 flex items-center justify-center bg-[var(--bg-primary)] opacity-80 backdrop-blur-sm z-10"
