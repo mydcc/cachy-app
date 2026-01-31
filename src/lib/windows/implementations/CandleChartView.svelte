@@ -358,11 +358,21 @@
 
                             const mapToSeries = (arr: number[]) =>
                                 arr
-                                    .map((val: number, i: number) => ({
-                                        time: unique[i].time,
-                                        value: val,
-                                    }))
-                                    .filter((d) => !isNaN(d.value));
+                                    .map((val: number, i: number) => {
+                                        if (!unique[i]) return null;
+                                        return {
+                                            time: unique[i].time,
+                                            value: val,
+                                        };
+                                    })
+                                    .filter(
+                                        (d): d is { time: Time; value: number } =>
+                                            d !== null &&
+                                            d.value !== null &&
+                                            d.value !== undefined &&
+                                            typeof d.value === "number" &&
+                                            !isNaN(d.value),
+                                    );
 
                             ema1Series.setData(mapToSeries(ema1));
                             ema2Series.setData(mapToSeries(ema2));
