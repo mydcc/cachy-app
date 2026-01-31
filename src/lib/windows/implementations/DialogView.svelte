@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { untrack } from "svelte";
     import { _ } from "../../../locales/i18n";
     import { windowManager } from "../WindowManager.svelte";
     import type { DialogWindow } from "./DialogWindow.svelte";
@@ -12,7 +11,7 @@
 
     let { window: win }: Props = $props();
 
-    let inputValue = $state(untrack(() => win.defaultValue) || "");
+    let inputValue = $state(win.defaultValue || "");
 
     function handleConfirm(result: boolean | string) {
         win.closeWith(result);
@@ -40,7 +39,6 @@
 
     {#if win.type === "prompt"}
         <div class="mb-6">
-            <!-- svelte-ignore a11y_autofocus -->
             <input
                 type="text"
                 class="w-full px-4 py-3 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] focus:border-[var(--accent-color)] outline-none transition-colors"

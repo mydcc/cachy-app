@@ -34,10 +34,10 @@ export interface DivergenceResult {
   side: DivergenceSide;
   startIdx: number; // Index of the first pivot (older)
   endIdx: number; // Index of the second pivot (newer)
-  priceStart: Decimal;
-  priceEnd: Decimal;
-  indStart: Decimal;
-  indEnd: Decimal;
+  priceStart: number;
+  priceEnd: number;
+  indStart: number;
+  indEnd: number;
 }
 
 interface Pivot {
@@ -147,10 +147,10 @@ export class DivergenceScanner {
             side: "Bullish",
             startIdx: p1.index,
             endIdx: p2.index,
-            priceStart: new Decimal(priceLow1),
-            priceEnd: new Decimal(priceLow2),
-            indStart: new Decimal(indLow1),
-            indEnd: new Decimal(indLow2),
+            priceStart: priceLow1,
+            priceEnd: priceLow2,
+            indStart: indLow1,
+            indEnd: indLow2,
           };
         }
 
@@ -162,10 +162,10 @@ export class DivergenceScanner {
             side: "Bullish",
             startIdx: p1.index,
             endIdx: p2.index,
-            priceStart: new Decimal(priceLow1),
-            priceEnd: new Decimal(priceLow2),
-            indStart: new Decimal(indLow1),
-            indEnd: new Decimal(indLow2),
+            priceStart: priceLow1,
+            priceEnd: priceLow2,
+            indStart: indLow1,
+            indEnd: indLow2,
           };
         }
       }
@@ -211,10 +211,10 @@ export class DivergenceScanner {
             side: "Bearish",
             startIdx: p1.index,
             endIdx: p2.index,
-            priceStart: new Decimal(priceHigh1),
-            priceEnd: new Decimal(priceHigh2),
-            indStart: new Decimal(indHigh1),
-            indEnd: new Decimal(indHigh2),
+            priceStart: priceHigh1,
+            priceEnd: priceHigh2,
+            indStart: indHigh1,
+            indEnd: indHigh2,
           };
         }
 
@@ -226,10 +226,10 @@ export class DivergenceScanner {
             side: "Bearish",
             startIdx: p1.index,
             endIdx: p2.index,
-            priceStart: new Decimal(priceHigh1),
-            priceEnd: new Decimal(priceHigh2),
-            indStart: new Decimal(indHigh1),
-            indEnd: new Decimal(indHigh2),
+            priceStart: priceHigh1,
+            priceEnd: priceHigh2,
+            indStart: indHigh1,
+            indEnd: indHigh2,
           };
         }
       }

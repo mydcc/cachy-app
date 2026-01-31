@@ -42,8 +42,17 @@ describe("technicalsService", () => {
   it("should respect custom settings", async () => {
     const customSettings = {
       ...indicatorState,
-      rsi: { length: 20, source: "close", overbought: 80, oversold: 20 },
-    };
+      rsi: {
+        length: 20,
+        source: "close",
+        overbought: 80,
+        oversold: 20,
+        showSignal: false,
+        signalType: "sma",
+        signalLength: 14,
+        defaultTimeframe: "1h",
+      },
+    } as any; // Cast to any to avoid strict type checks on partial settings
 
     const result = await technicalsService.calculateTechnicals(
       klines,

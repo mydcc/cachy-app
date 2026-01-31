@@ -28,13 +28,13 @@ describe("technicals.worker", () => {
   describe("calculateAllIndicators", () => {
     it("should calculate SMA correctly", () => {
         // SMA logic test via calculator
-        const result = calculateAllIndicators(klines, {}, { ema: false }); // Disable others to focus
+        const result = calculateAllIndicators(klines, undefined, { ema: false }); // Disable others to focus
         // We actually can't easily disable everything, but we check return structure
         expect(result.movingAverages).toBeDefined();
     });
 
     it("should calculate RSI correctly", () => {
-        const result = calculateAllIndicators(klines, {}, { rsi: true });
+        const result = calculateAllIndicators(klines, undefined, { rsi: true });
         const rsi = result.oscillators.find(o => o.name === "RSI");
         expect(rsi).toBeDefined();
         expect(typeof rsi?.value).toBe("number");
