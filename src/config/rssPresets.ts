@@ -75,11 +75,11 @@ export function getPresetUrls(ids: string[], presets: RssPreset[] = RSS_PRESETS)
     return [];
   }
 
-  // Optimization: For small preset lists, avoiding Set creation is faster.
-  // Benchmark showed crossover at around 50 presets.
-  // Note: We don't check ids.length because for small N (presets), N * M comparisons
-  // is generally cheaper than M hashes (Set creation), even for large M.
-  if (presets.length < 50) {
+  // Optimization:
+  // Benchmark shows Set creation overhead makes it slower than linear scan
+  // for small preset lists. The crossover point is around 15 items.
+  // (Previous threshold was 50, but benchmarking refined this to 15).
+  if (presets.length < 15) {
     const urls: string[] = [];
     for (const p of presets) {
       if (ids.includes(p.id)) {
@@ -89,6 +89,8 @@ export function getPresetUrls(ids: string[], presets: RssPreset[] = RSS_PRESETS)
     return urls;
   }
 
+  // For larger lists, using a Set for O(1) lookups is significantly faster
+  // despite the initial creation cost.
   const idsSet = new Set(ids);
   const urls: string[] = [];
 
