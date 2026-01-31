@@ -116,6 +116,9 @@ export function calculateIndicatorsFromArrays(
     return normalizedEnabled[key] !== false;
   };
 
+  // Cache for derived sources
+  const sourceCache: Record<string, number[] | Float64Array> = {};
+
   // Helper to get source array based on config
   const getSource = (sourceType: string): number[] | Float64Array => {
     switch (sourceType) {
@@ -126,9 +129,19 @@ export function calculateIndicatorsFromArrays(
       case "low":
         return lowsNum;
       case "hl2":
-        return highsNum.map((h, i) => (h + lowsNum[i]) / 2);
+        if (!sourceCache["hl2"]) {
+          sourceCache["hl2"] = (highsNum as number[]).map(
+            (h, i) => (h + lowsNum[i]) / 2,
+          );
+        }
+        return sourceCache["hl2"];
       case "hlc3":
-        return highsNum.map((h, i) => (h + lowsNum[i] + closesNum[i]) / 3);
+        if (!sourceCache["hlc3"]) {
+          sourceCache["hlc3"] = (highsNum as number[]).map(
+            (h, i) => (h + lowsNum[i] + closesNum[i]) / 3,
+          );
+        }
+        return sourceCache["hlc3"];
       default:
         return closesNum;
     }
@@ -249,7 +262,13 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('ao')) {
       const aoFast = settings?.ao?.fastLength || 5;
       const aoSlow = settings?.ao?.slowLength || 34;
-      const aoVal = calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
+      const aoVal = calculateAwesomeOscillator(
+        highsNum,
+        lowsNum,
+        aoFast,
+        aoSlow,
+        getSource("hl2"),
+      );
       // We'd need the full series for divergence, but AO helper returns single value.
       // We'll skip AO divergence for now unless we refactor helper.
 
@@ -473,6 +492,7 @@ export function calculateIndicatorsFromArrays(
         closesNum,
         volumesNum,
         mfiLen,
+        getSource("hlc3"),
         );
         const mfiVal = mfiSeries[mfiSeries.length - 1];
         let mfiAction = "Neutral";
