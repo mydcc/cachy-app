@@ -621,7 +621,7 @@
 
           <div class="flex flex-col mt-1 text-right relative group">
             <span class="text-[var(--text-secondary)]"
-              >{$_("marketOverview.rsi")} ({effectiveRsiTimeframe})</span
+              >RSI ({effectiveRsiTimeframe})</span
             >
             <span
               class="font-medium transition-colors duration-300 cursor-help"
@@ -712,7 +712,7 @@
               onclick={(e) => {
                 e.preventDefault();
                 externalLinkService.openOrFocus(tvLink, tvTarget);
-              }}>{$_("marketOverview.tv")}</a
+              }}>TV</a
             >
           {/if}
           {#if settingsState.showCgHeatLink}
@@ -720,7 +720,7 @@
               href={cgHeatmapLink}
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title={$_("marketOverview.tooltips.liquidationHeatmap")}
-              onclick={handleHeatmapClick}>{$_("marketOverview.heatmap")}</a
+              onclick={handleHeatmapClick}>Heatmap</a
             >
           {/if}
           {#if settingsState.showBrokerLink}
