@@ -640,7 +640,7 @@
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >
-                  {$_("technicals.noSignals" as any)}
+                  {$_("settings.technicals.noSignals" as any)}
                 </div>
               {/if}
             </div>
