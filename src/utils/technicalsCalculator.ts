@@ -47,15 +47,14 @@ export function calculateAllIndicators(
 ): TechnicalsData {
   if (klines.length < 2) return getEmptyData();
 
-  // Prepare data arrays (number[] for speed)
-  // Optimization: Single loop extraction with pre-allocated arrays
+  // Prepare data arrays (Single loop extraction for speed)
   const len = klines.length;
-  const highsNum = new Array(len);
-  const lowsNum = new Array(len);
-  const closesNum = new Array(len);
-  const opensNum = new Array(len);
-  const volumesNum = new Array(len);
-  const timesNum = new Array(len);
+  const highsNum: number[] = new Array(len);
+  const lowsNum: number[] = new Array(len);
+  const closesNum: number[] = new Array(len);
+  const opensNum: number[] = new Array(len);
+  const volumesNum: number[] = new Array(len);
+  const timesNum: number[] = new Array(len);
 
   for (let i = 0; i < len; i++) {
     const k = klines[i];
