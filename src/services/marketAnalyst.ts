@@ -1,6 +1,23 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * Copyright (C) 2026 MYDCT
+ *
  * Market Analyst Service
  * Background service that cycles through favorite symbols to calculate 
  * key indicators without overloading the CPU or API.
@@ -129,27 +146,26 @@ class MarketAnalystService {
             console.log(`[TECHNICALS] Analyst: ${symbol} Calculating technicals for ${timeframes.length} timeframes...`);
             const startCalc = performance.now();
 
+            // Prepare settings ONCE (Optimization)
+            const settings = indicatorState.toJSON() as any;
+
+            // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
+            // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting
+            if (!settings.ema) settings.ema = {} as any;
+            if (!settings.ema.ema3) settings.ema.ema3 = {} as any;
+            settings.ema.ema3.length = 200;
+
+            // FORCE: RSI 14 for Heatmap
+            if (!settings.rsi) settings.rsi = {} as any;
+            if (!settings.rsi.length) settings.rsi.length = 14;
+
+            // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
+            // The calculator checks "shouldCalculate('ema')".
+            const requiredIndicators = { "EMA": true, "RSI": true };
+
             const techPromises = timeframes.map(tf => {
                 const klines = klinesMap[tf];
                 if (!klines || klines.length < 20) return Promise.resolve(null);
-
-                // Clone settings to safely inject required dashboard indicators
-                // Optimization: indicatorState.toJSON() already returns a fresh snapshot, so no deep clone needed
-                const settings = indicatorState.toJSON() as any;
-
-                // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
-                // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting
-                if (!settings.ema) settings.ema = {} as any;
-                if (!settings.ema.ema3) settings.ema.ema3 = {} as any;
-                settings.ema.ema3.length = 200;
-
-                // FORCE: RSI 14 for Heatmap
-                if (!settings.rsi) settings.rsi = {} as any;
-                if (!settings.rsi.length) settings.rsi.length = 14;
-
-                // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
-                // The calculator checks "shouldCalculate('ema')".
-                const requiredIndicators = { "EMA": true, "RSI": true };
 
                 return technicalsService.calculateTechnicals(klines, settings, requiredIndicators);
             });
