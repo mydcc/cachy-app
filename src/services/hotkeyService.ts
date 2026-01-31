@@ -280,6 +280,13 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     defaultKey: "Alt+F",
     action: () => windowManager.open(new SymbolPickerWindow()),
   },
+  {
+    id: "TOGGLE_ASSISTANT",
+    label: "Toggle Assistant",
+    category: "UI & Navigation",
+    defaultKey: "Alt+A",
+    action: () => uiState.toggleAssistant(true),
+  },
 ];
 
 // --- Legacy Mode Maps ---
@@ -304,6 +311,7 @@ export const MODE1_MAP: Record<string, string> = {
   TOGGLE_SETTINGS: ",",
   RESET_INPUTS: "R",
   TOGGLE_SYMBOL_PICKER: "F",
+  TOGGLE_ASSISTANT: "A",
 };
 
 export const MODE2_MAP: Record<string, string> = {
@@ -327,6 +335,7 @@ export const MODE2_MAP: Record<string, string> = {
   TOGGLE_TECHNICALS: "Alt+K",
   TOGGLE_SETTINGS: "Alt+,",
   TOGGLE_SYMBOL_PICKER: "Alt+F",
+  TOGGLE_ASSISTANT: "Alt+A",
 };
 
 export const MODE3_MAP: Record<string, string> = {
@@ -351,6 +360,7 @@ export const MODE3_MAP: Record<string, string> = {
   TOGGLE_TECHNICALS: "K",
   TOGGLE_SETTINGS: ",",
   TOGGLE_SYMBOL_PICKER: "F",
+  TOGGLE_ASSISTANT: "A",
 };
 
 // --- Key Matching Logic ---

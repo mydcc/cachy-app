@@ -252,7 +252,6 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<SidePanel />
 <LeftControlPanel />
 
 <!-- Global Layout Wrapper -->

@@ -531,11 +531,11 @@ export class SettingsManager {
 
   customSystemPrompt = $state<string>(defaultSettings.customSystemPrompt);
   aiProvider = $state<AiProvider>(defaultSettings.aiProvider);
-  openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
+  openaiApiKey = $state<string>(defaultSettings.openaiApiKey || import.meta.env.VITE_OPENAI_API_KEY || "");
   openaiModel = $state<string>(defaultSettings.openaiModel);
-  geminiApiKey = $state<string>(defaultSettings.geminiApiKey);
+  geminiApiKey = $state<string>(defaultSettings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || "");
   geminiModel = $state<string>(defaultSettings.geminiModel);
-  anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
+  anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey || import.meta.env.VITE_ANTHROPIC_API_KEY || "");
   anthropicModel = $state<string>(defaultSettings.anthropicModel);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);

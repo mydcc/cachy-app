@@ -76,6 +76,10 @@ class UiManager {
     return windowManager.isOpen("whitepaper");
   }
 
+  get showAssistant() {
+    return windowManager.isOpen("assistant");
+  }
+
   // Loading State
   isLoading = $state(false);
   loadingMessage = $state("");
@@ -286,6 +290,7 @@ class UiManager {
       windowManager.toggle("journal", () => {
         const win = new ModalWindow(JournalContent, "Trading Journal", {
           id: "journal",
+          windowType: "journal",
           width: 1200,
           height: 800,
         });
@@ -299,7 +304,7 @@ class UiManager {
     if (show) {
       const { loadInstruction } = await import("../services/markdownLoader");
       const { html, title } = await loadInstruction("guide");
-      windowManager.toggle("guide", () => new MarkdownWindow(html, title, { id: "guide" }));
+      windowManager.toggle("guide", () => new MarkdownWindow(html, title, { id: "guide", windowType: "guide" }));
     } else {
       windowManager.close("guide");
     }
@@ -309,7 +314,7 @@ class UiManager {
     if (show) {
       const { loadInstruction } = await import("../services/markdownLoader");
       const { html, title } = await loadInstruction("changelog");
-      windowManager.toggle("changelog", () => new MarkdownWindow(html, title, { id: "changelog" }));
+      windowManager.toggle("changelog", () => new MarkdownWindow(html, title, { id: "changelog", windowType: "changelog" }));
     } else {
       windowManager.close("changelog");
     }
@@ -319,7 +324,7 @@ class UiManager {
     if (show) {
       const { loadInstruction } = await import("../services/markdownLoader");
       const { html, title } = await loadInstruction("privacy");
-      windowManager.toggle("privacy", () => new MarkdownWindow(html, title, { id: "privacy" }));
+      windowManager.toggle("privacy", () => new MarkdownWindow(html, title, { id: "privacy", windowType: "privacy" }));
     } else {
       windowManager.close("privacy");
     }
@@ -329,7 +334,7 @@ class UiManager {
     if (show) {
       const { loadInstruction } = await import("../services/markdownLoader");
       const { html, title } = await loadInstruction("whitepaper");
-      windowManager.toggle("whitepaper", () => new MarkdownWindow(html, title, { id: "whitepaper" }));
+      windowManager.toggle("whitepaper", () => new MarkdownWindow(html, title, { id: "whitepaper", windowType: "whitepaper" }));
     } else {
       windowManager.close("whitepaper");
     }
@@ -340,6 +345,7 @@ class UiManager {
       windowManager.toggle("settings", () => {
         const win = new ModalWindow(SettingsContent, "Settings", {
           id: "settings",
+          windowType: "settings",
           width: 900,
           height: 700,
         });
@@ -347,6 +353,17 @@ class UiManager {
       });
     } else {
       windowManager.close("settings");
+    }
+  }
+
+  async toggleAssistant(show: boolean) {
+    if (show) {
+      const { AssistantWindow } = await import("../lib/windows/implementations/AssistantWindow.svelte");
+      windowManager.toggle("assistant", () => {
+        return new AssistantWindow();
+      });
+    } else {
+      windowManager.close("assistant");
     }
   }
 

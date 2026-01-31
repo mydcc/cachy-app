@@ -31,6 +31,7 @@
     sentiment: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`, // Activity/Lightning bolt for sentiment/energy
     academy: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>`,
     chartPatterns: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 3v18h18" /></svg>`,
+    assistant: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>`,
   };
 </script>
 
@@ -107,6 +108,21 @@
     {/if}
   </div>
 
+  <!-- Assistant Button -->
+  <button
+    class="control-btn"
+    class:active={uiState.showAssistant}
+    onclick={() => uiState.toggleAssistant(!uiState.showAssistant)}
+    title={$_("sidePanel.aiAssistant") || "Assistant"}
+    use:trackClick={{
+      category: "Navigation",
+      action: "Click",
+      name: "OpenAssistant",
+    }}
+  >
+    {@html ICONS.assistant}
+  </button>
+
   <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
 
   <!-- Technicals Toggle -->
@@ -141,6 +157,31 @@
   >
     {@html ICONS.sentiment}
   </button>
+
+  <!-- Minimized Windows (Taskbar) -->
+  {#if uiState.windows.some((w: any) => w.isMinimized)}
+    <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
+    <div class="flex flex-col gap-2 mt-auto">
+      {#each uiState.windows.filter((w: any) => w.isMinimized) as win}
+        <button
+          class="minimized-btn group"
+          onclick={() => win.restore()}
+          title="Restore {win.title}"
+        >
+          <div
+            class="w-9 h-9 flex items-center justify-center bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] group-hover:border-[var(--accent-color)] group-hover:bg-[var(--bg-secondary)] transition-all shadow-sm overflow-hidden"
+          >
+            <span
+              class="text-[9px] font-black opacity-80 uppercase tracking-tighter text-center leading-[10px] break-all px-0.5"
+            >
+              {win.title.substring(0, 4)}
+            </span>
+          </div>
+          <div class="minimized-indicator"></div>
+        </button>
+      {/each}
+    </div>
+  {/if}
 </aside>
 
 <style>
@@ -169,5 +210,30 @@
   .control-btn :global(svg) {
     width: 20px;
     height: 20px;
+  }
+
+  .minimized-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+  }
+
+  .minimized-btn:hover {
+    transform: scale(1.1);
+  }
+
+  .minimized-indicator {
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 12px;
+    background: var(--accent-color);
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 8px var(--accent-color);
   }
 </style>

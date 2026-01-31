@@ -15,24 +15,10 @@ export class ChartWindow extends WindowBase {
             title: `Chart: ${symbol}`,
             width: 800,
             height: 500,
+            windowType: "chart",
             ...options
         });
         this.symbol = symbol;
-
-        // --- ALL FLAGS INITIALIZED (Disabled by default) ---
-        this.showCachyIcon = false;
-        this.allowZoom = false;
-        this.allowFontSize = false;
-
-        this.enableGlassmorphism = false;
-        this.enableBurningBorders = false;
-        this.burnIntensity = 0.5;
-        this.isTransparent = false;
-        this.opacity = 1.0;
-
-        this.isDraggable = true;
-        this.isResizable = true;
-        this.closeOnBlur = false;
     }
 
     get component() {

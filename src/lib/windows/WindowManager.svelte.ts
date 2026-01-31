@@ -16,10 +16,26 @@ class WindowManager {
     }
 
     open(windowInstance: WindowBase) {
-        const existing = this._windows.find(w => w.id === windowInstance.id);
-        if (!existing) {
-            this._windows.push(windowInstance);
+        // 1. Check if EXACT window instance already exists by ID
+        const existingById = this._windows.find(w => w.id === windowInstance.id);
+        if (existingById) {
+            this.bringToFront(existingById.id);
+            return;
         }
+
+        // 2. Check if a window of the SAME TYPE already exists (if multiple instances are NOT allowed)
+        if (!windowInstance.allowMultipleInstances) {
+            const existingByType = this._windows.find(
+                w => w.windowType === windowInstance.windowType
+            );
+            if (existingByType) {
+                this.bringToFront(existingByType.id);
+                return;
+            }
+        }
+
+        // 3. Otherwise add new window
+        this._windows.push(windowInstance);
         this.bringToFront(windowInstance.id);
     }
 

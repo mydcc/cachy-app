@@ -13,6 +13,7 @@ import { settingsState } from "./settings.svelte";
 import { journalState } from "./journal.svelte";
 import { calculator } from "../lib/calculator";
 import { Decimal } from "decimal.js";
+import { windowManager } from "../lib/windows/WindowManager.svelte";
 
 export interface ChatMessage {
   id: string;
@@ -40,7 +41,7 @@ class ChatManager {
       $effect.root(() => {
         $effect(() => {
           if (
-            settingsState.enableSidePanel &&
+            windowManager.isOpen("assistant") &&
             settingsState.sidePanelMode === "chat"
           ) {
             this.poll(); // Initial poll

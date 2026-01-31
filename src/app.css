@@ -191,26 +191,26 @@ html {
 
 /* Global Premium Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--scrollbar-track, var(--bg-primary));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.1));
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15));
   border-radius: 10px;
-  border: 2px solid var(--bg-primary);
+  border: 1px solid var(--scrollbar-track, var(--bg-primary));
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-color, rgba(255, 255, 255, 0.2));
+  background: var(--accent-color, rgba(255, 255, 255, 0.25));
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.1)) var(--bg-primary);
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15)) var(--scrollbar-track, var(--bg-primary));
 }

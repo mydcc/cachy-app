@@ -189,7 +189,9 @@
                                 </select>
                             </div>
                             <div class="w-1/3">
-                                <label for="chat-font-size">{$_("settings.visuals.chatSize")}</label>
+                                <label for="chat-font-size"
+                                    >{$_("settings.visuals.chatSize")}</label
+                                >
                                 <div class="flex items-center gap-2">
                                     <input
                                         id="chat-font-size"
@@ -289,7 +291,9 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >{$_("settings.visuals.burningBordersDesc")}</span
+                                >{$_(
+                                    "settings.visuals.burningBordersDesc",
+                                )}</span
                             >
                         </div>
                         <Toggle
@@ -385,7 +389,8 @@
                             <div class="field-group">
                                 <span
                                     class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                    > {$_("settings.visuals.intensity")}</span
+                                >
+                                    {$_("settings.visuals.intensity")}</span
                                 >
                                 <div class="flex gap-2">
                                     {#each ["low", "medium", "high"] as intensity}
@@ -560,36 +565,16 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Chat / Notes sidebar</span
+                                >AI Chat / Notes / World Chat</span
                             >
                         </div>
-                        <Toggle bind:checked={settingsState.enableSidePanel} />
+                        <Toggle
+                            checked={uiState.showAssistant}
+                            onchange={(e: any) =>
+                                uiState.toggleAssistant(e.detail)}
+                        />
                     </label>
                 </div>
-
-                {#if settingsState.enableSidePanel}
-                    <div class="field-group mt-4">
-                        <span
-                            class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                            >Side Panel Mode</span
-                        >
-                        <div class="flex gap-2">
-                            {#each layoutModes as mode}
-                                <button
-                                    class="px-3 py-2 text-xs rounded border transition-colors {settingsState.sidePanelLayout ===
-                                    mode.value
-                                        ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                        : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
-                                    onclick={() =>
-                                        (settingsState.sidePanelLayout =
-                                            mode.value as any)}
-                                >
-                                    {mode.label}
-                                </button>
-                            {/each}
-                        </div>
-                    </div>
-                {/if}
             </section>
         {/if}
 
@@ -977,7 +962,9 @@
                                 >
                                 <span
                                     class="text-[10px] text-[var(--text-secondary)]"
-                                    >{$_("settings.visuals.gyroscopeDesc")}</span
+                                    >{$_(
+                                        "settings.visuals.gyroscopeDesc",
+                                    )}</span
                                 >
                             </div>
                             <button
