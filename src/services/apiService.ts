@@ -43,6 +43,49 @@ export interface Ticker24h {
   quoteVolume?: Decimal;
 }
 
+// --- Rate Limiter (Token Bucket) ---
+class RateLimiter {
+  private tokens: number;
+  private lastRefill: number;
+  private readonly capacity: number;
+  private readonly refillRateMs: number;
+
+  constructor(tokensPerSecond: number) {
+    this.capacity = tokensPerSecond;
+    this.tokens = tokensPerSecond;
+    this.lastRefill = Date.now();
+    this.refillRateMs = tokensPerSecond / 1000;
+  }
+
+  async waitForToken(): Promise<void> {
+    this.refill();
+
+    if (this.tokens >= 1) {
+      this.tokens -= 1;
+      return;
+    }
+
+    // Calculate wait time for 1 token
+    const needed = 1 - this.tokens;
+    const waitTime = needed / this.refillRateMs;
+
+    if (waitTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      return this.waitForToken(); // Recurse to re-check/refill
+    }
+  }
+
+  private refill() {
+    const now = Date.now();
+    const elapsed = now - this.lastRefill;
+    if (elapsed > 0) {
+      const newTokens = elapsed * this.refillRateMs;
+      this.tokens = Math.min(this.capacity, this.tokens + newTokens);
+      this.lastRefill = now;
+    }
+  }
+}
+
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
   private pending = new Map<string, Promise<unknown>>();
@@ -59,6 +102,9 @@ class RequestManager {
   private readonly MAX_CACHE_SIZE = 100; // Hard limit on cache size
   private readonly CLEANUP_INTERVAL = 30000; // Check every 30s (more frequent)
 
+  // Rate Limiters
+  private rateLimiters = new Map<string, RateLimiter>();
+
   // Logging for debugging latency
   private readonly LOG_LIMIT = 50;
 
@@ -69,6 +115,12 @@ class RequestManager {
     if (typeof setInterval !== "undefined") {
       this.cleanupInterval = setInterval(() => this.pruneCache(), this.CLEANUP_INTERVAL);
     }
+
+    // Initialize Rate Limiters
+    // Bitunix: Conservative 10 req/s to avoid 500 "frequent request" error
+    this.rateLimiters.set("BITUNIX", new RateLimiter(10));
+    // Bitget: Usually 20 req/s
+    this.rateLimiters.set("BITGET", new RateLimiter(20));
   }
 
   public destroy() {
@@ -142,6 +194,17 @@ class RequestManager {
         this.activeCount++;
 
         try {
+          // Rate Limit Check
+          let provider = "";
+          if (key.startsWith("BITUNIX") || key.includes(":bitunix:"))
+            provider = "BITUNIX";
+          else if (key.startsWith("BITGET") || key.includes(":bitget:"))
+            provider = "BITGET";
+
+          if (provider && this.rateLimiters.has(provider)) {
+            await this.rateLimiters.get(provider)!.waitForToken();
+          }
+
           logger.debug("network", `[Request] Start: ${key}`);
           const startFetch = performance.now();
           // Wrapped task with Timeout and Retry
