@@ -109,32 +109,26 @@
       <button
         id="trade-long-btn"
         name="tradeType"
+        data-track-id="trade-type-long"
         value={CONSTANTS.TRADE_TYPE_LONG}
         class="long w-1/2"
         class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_LONG}
         onclick={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}
-        use:trackClick={{
-          category: "GeneralInputs",
-          action: "SetTradeType",
-          name: "Long",
-        }}>{$_("dashboard.generalInputs.longButton")}</button
+        >{$_("dashboard.generalInputs.longButton")}</button
       >
       <button
         id="trade-short-btn"
         name="tradeType"
+        data-track-id="trade-type-short"
         value={CONSTANTS.TRADE_TYPE_SHORT}
         class="short w-1/2"
         class:active={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
         onclick={() => setTradeType(CONSTANTS.TRADE_TYPE_SHORT)}
-        use:trackClick={{
-          category: "GeneralInputs",
-          action: "SetTradeType",
-          name: "Short",
-        }}>{$_("dashboard.generalInputs.shortButton")}</button
+        >{$_("dashboard.generalInputs.shortButton")}</button
       >
     </div>
 
@@ -150,6 +144,7 @@
           id="leverage-input"
           name="leverage"
           type="text"
+          data-track-id="input-leverage"
           use:numberInput={{
             noDecimals: true,
             maxValue: 125,
@@ -176,6 +171,7 @@
             style="background-color: {isLeverageSynced
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
+            data-track-id="btn-sync-leverage"
             title={isLeverageSynced
               ? $_("dashboard.generalInputs.syncedWithApi")
               : $_("dashboard.generalInputs.manualOverride", { value: remoteLev + "x" })}
@@ -195,6 +191,7 @@
           id="fees-input"
           name="fees"
           type="text"
+          data-track-id="input-fees"
           use:numberInput={{ maxDecimalPlaces: 4 }}
           use:enhancedInput={{
             step: 0.01,
@@ -215,6 +212,7 @@
             style="background-color: {isFeeSynced
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
+            data-track-id="btn-sync-fees"
             title={isFeeSynced
               ? $_("dashboard.generalInputs.syncedWithApi")
               : $_("dashboard.generalInputs.manualOverride", { value: targetRemoteFee + "%" })}

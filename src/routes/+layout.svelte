@@ -35,6 +35,7 @@
   import { _ } from "../locales/i18n";
 
   import WindowContainer from "../components/shared/windows/WindowContainer.svelte";
+  import GlobalTracker from "../components/shared/GlobalTracker.svelte";
 
   import "../app.css";
 
@@ -398,6 +399,7 @@
 
 <WindowContainer />
 <ToastContainer />
+<GlobalTracker />
 <FXOverlay />
 
 {#if uiState.tooltip.visible}
