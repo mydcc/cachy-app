@@ -37,6 +37,7 @@ const config = {
           "unsafe-inline",
           "unsafe-eval",
           "https://s.cachy.app",
+          "https://js-agent.newrelic.com",
           "blob:",
         ],
         "connect-src": [
