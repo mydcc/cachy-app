@@ -26,7 +26,7 @@
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
-import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData, SerializedIndicatorResult, SerializedDivergenceItem } from "./technicalsTypes";
+import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData } from "./technicalsTypes";
 import { type Kline } from "../utils/indicators";
 import {
   calculateAllIndicators,
@@ -100,7 +100,7 @@ function cleanupStaleCache() {
 // --- Worker Manager (Singleton) ---
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
-  private pendingResolves: Map<string, (value: SerializedTechnicalsData) => void> =
+  private pendingResolves: Map<string, (value: TechnicalsData) => void> =
     new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
   private lastActive: number = Date.now();
@@ -162,7 +162,7 @@ class TechnicalsWorkerManager {
     this.pendingRejects.clear();
   }
 
-  public async postMessage(message: any, transfer: Transferable[] = []): Promise<SerializedTechnicalsData> {
+  public async postMessage(message: any, transfer: Transferable[] = []): Promise<TechnicalsData> {
     const w = this.getWorker();
     if (!w) throw new Error("workerErrors.notAvailable");
 
@@ -331,8 +331,8 @@ export const technicalsService = {
         }
       }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
 
-      // 2. Rehydrate Decimals (Worker returns Serialized Data)
-      const rehydrated = this.deserializeTechnicalsData(result);
+      // Optimization: No deserialization needed, result is directly TechnicalsData with numbers
+      const finalResult = result;
 
       // Cache result with aggressive eviction
       if (calculationCache.size >= MAX_CACHE_SIZE) {
@@ -353,12 +353,12 @@ export const technicalsService = {
         }
       }
       calculationCache.set(cacheKey, {
-        data: rehydrated,
+        data: finalResult,
         timestamp: Date.now(),
         lastAccessed: Date.now()
       });
 
-      return rehydrated;
+      return finalResult;
     } catch (e) {
       if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
       return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
@@ -460,107 +460,6 @@ export const technicalsService = {
     });
 
     return result;
-  },
-
-  deserializeTechnicalsData(data: SerializedTechnicalsData): TechnicalsData {
-    const toDec = (v: string | undefined): Decimal => v ? new Decimal(v) : new Decimal(0);
-
-    return {
-      oscillators: data.oscillators.map(o => ({
-        ...o,
-        value: toDec(o.value),
-        signal: o.signal ? new Decimal(o.signal) : undefined,
-        histogram: o.histogram ? new Decimal(o.histogram) : undefined,
-      })),
-      movingAverages: data.movingAverages.map(m => ({
-        ...m,
-        value: toDec(m.value),
-        signal: m.signal ? new Decimal(m.signal) : undefined,
-        histogram: m.histogram ? new Decimal(m.histogram) : undefined,
-      })),
-      pivots: {
-        classic: {
-          p: toDec(data.pivots.classic.p),
-          r1: toDec(data.pivots.classic.r1),
-          r2: toDec(data.pivots.classic.r2),
-          r3: toDec(data.pivots.classic.r3),
-          s1: toDec(data.pivots.classic.s1),
-          s2: toDec(data.pivots.classic.s2),
-          s3: toDec(data.pivots.classic.s3),
-        }
-      },
-      pivotBasis: data.pivotBasis ? {
-        high: toDec(data.pivotBasis.high),
-        low: toDec(data.pivotBasis.low),
-        close: toDec(data.pivotBasis.close),
-        open: toDec(data.pivotBasis.open),
-      } : undefined,
-      summary: data.summary,
-      volatility: data.volatility ? {
-        atr: toDec(data.volatility.atr),
-        bb: {
-          upper: toDec(data.volatility.bb.upper),
-          middle: toDec(data.volatility.bb.middle),
-          lower: toDec(data.volatility.bb.lower),
-          percentP: toDec(data.volatility.bb.percentP),
-        }
-      } : undefined,
-      divergences: data.divergences?.map(d => ({
-        ...d,
-        priceStart: toDec(d.priceStart),
-        priceEnd: toDec(d.priceEnd),
-        indStart: toDec(d.indStart),
-        indEnd: toDec(d.indEnd),
-      })),
-      confluence: data.confluence,
-      advanced: data.advanced ? {
-        vwap: data.advanced.vwap ? toDec(data.advanced.vwap) : undefined,
-        mfi: data.advanced.mfi ? {
-          value: toDec(data.advanced.mfi.value),
-          action: data.advanced.mfi.action
-        } : undefined,
-        stochRsi: data.advanced.stochRsi ? {
-          k: toDec(data.advanced.stochRsi.k),
-          d: toDec(data.advanced.stochRsi.d),
-          action: data.advanced.stochRsi.action
-        } : undefined,
-        williamsR: data.advanced.williamsR ? {
-          value: toDec(data.advanced.williamsR.value),
-          action: data.advanced.williamsR.action
-        } : undefined,
-        choppiness: data.advanced.choppiness ? {
-          value: toDec(data.advanced.choppiness.value),
-          state: data.advanced.choppiness.state
-        } : undefined,
-        ichimoku: data.advanced.ichimoku ? {
-          conversion: toDec(data.advanced.ichimoku.conversion),
-          base: toDec(data.advanced.ichimoku.base),
-          spanA: toDec(data.advanced.ichimoku.spanA),
-          spanB: toDec(data.advanced.ichimoku.spanB),
-          action: data.advanced.ichimoku.action
-        } : undefined,
-        parabolicSar: data.advanced.parabolicSar ? toDec(data.advanced.parabolicSar) : undefined,
-        superTrend: data.advanced.superTrend ? {
-          value: toDec(data.advanced.superTrend.value),
-          trend: data.advanced.superTrend.trend
-        } : undefined,
-        atrTrailingStop: data.advanced.atrTrailingStop ? {
-          buy: toDec(data.advanced.atrTrailingStop.buy),
-          sell: toDec(data.advanced.atrTrailingStop.sell)
-        } : undefined,
-        obv: data.advanced.obv ? toDec(data.advanced.obv) : undefined,
-        volumeProfile: data.advanced.volumeProfile ? {
-          poc: toDec(data.advanced.volumeProfile.poc),
-          vaHigh: toDec(data.advanced.volumeProfile.vaHigh),
-          vaLow: toDec(data.advanced.volumeProfile.vaLow),
-          rows: data.advanced.volumeProfile.rows.map(r => ({
-            priceStart: toDec(r.priceStart),
-            priceEnd: toDec(r.priceEnd),
-            volume: toDec(r.volume)
-          }))
-        } : undefined,
-      } : undefined
-    };
   },
 
   getEmptyData(): TechnicalsData {
