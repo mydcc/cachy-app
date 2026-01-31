@@ -514,7 +514,9 @@ export const apiService = {
     priority: "high" | "normal" = "normal",
     timeout = 10000,
   ): Promise<Kline[]> {
-    const key = `BITUNIX:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
+    const safeStart = startTime ?? "0";
+    const safeEnd = endTime ?? "0";
+    const key = `BITUNIX:${symbol}:${interval}:${limit}:${safeStart}:${safeEnd}`;
     return requestManager.schedule(
       key,
       async (signal) => {
