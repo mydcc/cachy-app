@@ -20,7 +20,12 @@
  */
 
 import { browser } from "$app/environment";
+import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { DialogWindow } from "../lib/windows/implementations/DialogWindow.svelte";
+import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";
 
+// Interface kept for backward compatibility if imported elsewhere,
+// though the state itself is no longer active.
 export interface ModalState {
   title: string;
   message: string;
@@ -32,15 +37,16 @@ export interface ModalState {
 }
 
 class ModalManager {
-  state = $state<ModalState>({
-    title: "",
-    message: "",
-    type: "alert",
-    defaultValue: "",
-    isOpen: false,
-    resolve: null,
-    extraClasses: "",
-  });
+    // Legacy state container - effectively unused by new logic
+    state = $state<ModalState>({
+        title: "",
+        message: "",
+        type: "alert",
+        defaultValue: "",
+        isOpen: false,
+        resolve: null,
+        extraClasses: "",
+    });
 
   show(
     title: string,
@@ -56,31 +62,29 @@ class ModalManager {
         return;
       }
 
-      this.state = {
-        title,
-        message,
-        type,
-        defaultValue,
-        isOpen: true,
-        resolve,
-        extraClasses,
-      };
+      if (type === 'symbolPicker') {
+          const win = new SymbolPickerWindow(resolve);
+          windowManager.open(win);
+      } else {
+          const win = new DialogWindow(
+              title,
+              message,
+              type as 'alert' | 'confirm' | 'prompt',
+              defaultValue,
+              resolve
+          );
+          windowManager.open(win);
+      }
     });
   }
 
   handleModalConfirm(result: boolean | string) {
-    if (this.state.resolve) {
-      this.state.resolve(result);
-    }
-    this.close();
+      // Deprecated: Logic is now handled within Window instances (DialogWindow/SymbolPickerWindow)
+      console.warn("modalState.handleModalConfirm called but is deprecated.");
   }
 
   close() {
-    this.state = {
-      ...this.state,
-      isOpen: false,
-      resolve: null,
-    };
+      // Deprecated
   }
 }
 

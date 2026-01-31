@@ -79,6 +79,27 @@ class WindowRegistry {
             }
         });
 
+        // Dialog (Alerts, Confirms, Inputs)
+        this.configs.set('dialog', {
+            type: 'dialog',
+            flags: {
+                ...baseFlags,
+                isResizable: false,
+                isDraggable: true,
+                allowMaximize: false,
+                allowMinimize: false,
+                canMinimizeToPanel: false,
+                centerByDefault: true,
+                isResponsive: true, // EdgeToEdge on Mobile
+                edgeToEdgeBreakpoint: 768
+            },
+            layout: {
+                ...baseLayout,
+                width: 450,
+                height: 250 // Dynamic, but start small
+            }
+        });
+
         // Symbol Picker
         this.configs.set('symbolpicker', {
             type: 'symbolpicker',
@@ -87,12 +108,14 @@ class WindowRegistry {
                 isResizable: false,
                 isDraggable: false,
                 allowMaximize: false,
-                centerByDefault: true
+                centerByDefault: true,
+                isResponsive: true,
+                edgeToEdgeBreakpoint: 768
             },
             layout: {
                 ...baseLayout,
-                width: 800,
-                height: 600
+                width: 900,
+                height: 700
             }
         });
 

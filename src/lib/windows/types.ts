@@ -39,6 +39,8 @@ export interface WindowFlags {
     allowFeedDuck?: boolean;
     showMaximizeButton?: boolean;
     showMinimizeButton?: boolean;
+    isResponsive?: boolean;
+    edgeToEdgeBreakpoint?: number;
 }
 
 export interface WindowLayout {
@@ -93,4 +95,5 @@ export type WindowType =
     | 'changelog'
     | 'privacy'
     | 'whitepaper'
-    | 'assistant';
+    | 'assistant'
+    | 'dialog';

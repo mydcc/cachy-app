@@ -21,8 +21,6 @@
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
-  import CustomModal from "../components/shared/CustomModal.svelte";
-  import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
@@ -313,8 +311,6 @@
 
   <!-- Global Modals -->
   <MarketDashboardModal />
-  <CustomModal />
-  <SymbolPickerModal />
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 
