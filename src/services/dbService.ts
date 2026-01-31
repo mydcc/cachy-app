@@ -93,12 +93,12 @@ export class DBService {
         });
     }
 
-    public async getAll<T>(storeName: string): Promise<T[]> {
+    public async getAll<T>(storeName: string, count?: number): Promise<T[]> {
         const db = await this.getDB();
         return new Promise((resolve, reject) => {
             const tx = db.transaction(storeName, "readonly");
             const store = tx.objectStore(storeName);
-            const request = store.getAll();
+            const request = store.getAll(null, count);
 
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);

@@ -152,7 +152,8 @@ async function pruneOldCaches() {
   if (!isBrowser) return;
 
   try {
-    const allNews = await dbService.getAll<NewsCacheEntry>("news");
+    // Limit retrieval to 50 to prevent OOM if cache was flooded
+    const allNews = await dbService.getAll<NewsCacheEntry>("news", 50);
     if (allNews.length > MAX_SYMBOLS_CACHED) {
       const sorted = allNews.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       const toDelete = sorted.slice(0, allNews.length - MAX_SYMBOLS_CACHED);
@@ -171,7 +172,9 @@ async function pruneOldCaches() {
  */
 function generateNewsId(item: NewsItem): string {
   // Einfacher Hash aus URL + Titel
-  return btoa(encodeURIComponent(item.url + item.title)).substring(0, 32);
+  if (typeof btoa === 'undefined') return item.url; // Fallback for test env if polyfill fails
+  // Increase ID length to prevent collisions on similar URLs
+  return btoa(encodeURIComponent(item.url + item.title)).substring(0, 128);
 }
 
 export const newsService = {
@@ -346,7 +349,7 @@ export const newsService = {
 
         // Deduplizierung basierend auf ID
         const uniqueNews = new Map<string, NewsItem>();
-        newsItems.forEach(item => {
+        newsItems.forEach((item) => {
           const id = item.id || generateNewsId(item);
           if (!uniqueNews.has(id)) {
             uniqueNews.set(id, { ...item, id });
@@ -360,6 +363,11 @@ export const newsService = {
             new Date(b.published_at).getTime() -
             new Date(a.published_at).getTime(),
         );
+
+        // Limit to 100 items to prevent unbounded growth
+        if (newsItems.length > 100) {
+          newsItems = newsItems.slice(0, 100);
+        }
 
         // Cache-Update with IDB
         const cacheEntry: NewsCacheEntry = {

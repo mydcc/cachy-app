@@ -35,6 +35,46 @@ export const BitunixTickerDataSchema = z.object({
 });
 
 /**
+ * Schema for Bitunix Order Data
+ * Strictly enforces orderId as string to prevent precision loss
+ */
+export const BitunixOrderSchema = z.object({
+  orderId: z.string(), // Strict string required
+  symbol: z.string(),
+  side: z.string().optional(),
+  type: z.string().optional(),
+  orderStatus: z.string(),
+  price: z.union([z.string(), z.number()]).optional(),
+  qty: z.union([z.string(), z.number()]).optional(),
+  amount: z.union([z.string(), z.number()]).optional(),
+  dealAmount: z.union([z.string(), z.number()]).optional(),
+  ctime: z.union([z.string(), z.number()]).optional(),
+}).passthrough(); // Allow other fields
+
+/**
+ * Schema for Bitunix Position Data
+ */
+export const BitunixPositionSchema = z.object({
+  symbol: z.string(),
+  side: z.string().optional(),
+  positionSide: z.string().optional(),
+  holdSide: z.string().optional(),
+  qty: z.union([z.string(), z.number()]).optional(),
+  size: z.union([z.string(), z.number()]).optional(),
+  amount: z.union([z.string(), z.number()]).optional(),
+  averagePrice: z.union([z.string(), z.number()]).optional(),
+  avgOpenPrice: z.union([z.string(), z.number()]).optional(),
+  entryPrice: z.union([z.string(), z.number()]).optional(),
+  unrealizedPNL: z.union([z.string(), z.number()]).optional(),
+  unrealizedPnl: z.union([z.string(), z.number()]).optional(),
+  leverage: z.union([z.string(), z.number()]).optional(),
+  marginMode: z.string().optional(),
+  liquidationPrice: z.union([z.string(), z.number()]).optional(),
+  liqPrice: z.union([z.string(), z.number()]).optional(),
+  event: z.string().optional(),
+}).passthrough();
+
+/**
  * Schema for Bitunix WebSocket Message
  */
 export const BitunixWSMessageSchema = z.object({

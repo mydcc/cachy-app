@@ -37,6 +37,8 @@ import {
   BitunixWSMessageSchema,
   BitunixPriceDataSchema,
   BitunixTickerDataSchema,
+  BitunixOrderSchema,
+  BitunixPositionSchema,
   isAllowedChannel,
   validateSymbol,
 } from "../types/bitunixValidation";
@@ -1034,15 +1036,16 @@ class BitunixWebSocketService {
       else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: any) => {
-              accountState.updatePositionFromWs(item);
-              omsService.updatePosition(mapToOMSPosition(item));
-            });
-          else {
-            accountState.updatePositionFromWs(data);
-            omsService.updatePosition(mapToOMSPosition(data));
-          }
+          const items = Array.isArray(data) ? data : [data];
+          items.forEach((item: any) => {
+            const val = BitunixPositionSchema.safeParse(item);
+            if (!val.success) {
+              logger.warn("network", "[BitunixWS] Position schema validation failed", val.error);
+              // We proceed with best effort for positions as IDs are less critical than Orders
+            }
+            accountState.updatePositionFromWs(item);
+            omsService.updatePosition(mapToOMSPosition(item));
+          });
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;

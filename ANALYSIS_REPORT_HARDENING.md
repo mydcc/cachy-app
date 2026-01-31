@@ -1,74 +1,49 @@
-# Status- & Risiko-Bericht (Step 1)
+# Status & Risiko-Bericht (Schritt 1)
 
-## 1. Executive Summary
-Die Codebasis zeigt eine solide Architektur mit robusten Ansätzen (z.B. Zod-Validierung im Backend, Singleton-Pattern für WebSockets). Jedoch wurden **KRITISCHE** Sicherheitslücken (XSS) und logische Schwachstellen im Finanz-Handling (fehlende Validierung bei Teilschließungen) gefunden. Die Ressourcenverwaltung ist größtenteils gut ("Zombie-Killing" in WS), aber Synchrone I/O-Operationen im AI-Store gefährden die Performance.
+## Zusammenfassung
+Die Codebasis ist grundsätzlich robust (Nutzung von `Decimal.js`, `safeJsonParse`, OMS-Watchdog), weist jedoch kritische Risiken in der Datenverarbeitung von WebSocket-Nachrichten und potenzielles Speicher-Überlauf-Verhalten im News-Service auf.
 
----
+## 🔴 CRITICAL (Kritisch)
+**Gefahr von Datenverlust oder Inkonsistenz**
 
-## 2. Findings
+1.  **Präzisionsverlust bei WebSocket-IDs (`src/services/bitunixWs.ts`)**
+    *   **Befund:** Der Code warnt explizit: `CRITICAL: orderId is number!`. Die Verarbeitung verlässt sich vollständig auf `safeJsonParse`. Sollte das Regex-Matching fehlschlagen (z.B. durch geänderte JSON-Formatierung der API), werden 19-stellige IDs zu JavaScript-Numbers und verlieren Präzision (letzte Stellen werden 0).
+    *   **Risiko:** Order-Management versagt; Orders können nicht mehr storniert oder getrackt werden.
+    *   **Empfehlung:** `safeJsonParse` Regex robuster gestalten und Zod-Schema erzwingen, dass IDs Strings sein *müssen* (Parse-Fehler statt stiller Korruption).
 
-### 🔴 CRITICAL (Sofortiger Handlungsbedarf)
+2.  **Unbegrenzter Speicherverbrauch (`src/services/newsService.ts`)**
+    *   **Befund:** `fetchNews` lädt via `dbService.getAll("news")` *alle* jemals gespeicherten News-Einträge in den RAM, um sie zu sortieren und zu deduplizieren (`newsItems = [...newsItems, ...mapped]`).
+    *   **Risiko:** Bei längerer Laufzeit wächst die IDB. Ein Laden von Tausenden News-Objekten (mit Strings) führt zum Absturz des Browser-Tabs (OOM).
+    *   **Empfehlung:** Limitierung der `getAll`-Abfrage oder Paginierung implementieren.
 
-1.  **XSS Schwachstelle in `CustomModal.svelte`**
-    *   **Ort:** `src/components/shared/CustomModal.svelte`
-    *   **Problem:** Verwendung von `{@html mState.message}` ohne Sanitize-Schritt (z.B. DOMPurify).
-    *   **Risiko:** Ein Angreifer könnte über manipulierte Fehlermeldungen oder externe Daten (z.B. News-Titel) Schadcode einschleusen.
-    *   **Empfehlung:** `sanitizeHtml` Utility verwenden oder `{@html}` entfernen.
+## 🟡 WARNING (Warnung)
+**Performance & UX Risiken**
 
-2.  **Fehlende Input-Validierung in `tradeService.ts`**
-    *   **Ort:** `src/services/tradeService.ts`, Methode `closePosition`
-    *   **Problem:** Der Parameter `amount` ist optional. Falls vorhanden, wird nicht geprüft, ob `amount > position.amount` oder `amount <= 0` ist.
-    *   **Risiko:** Senden ungültiger Orders an die API, potenziell unerwartetes Verhalten bei "ReduceOnly" Konflikten, wenn die API dies nicht sauber abfängt.
-    *   **Empfehlung:** Pre-Check: `if (amount && (amount.lte(0) || amount.gt(position.amount))) throw ...`
+1.  **Optimistic Order Ghosting (`src/services/tradeService.ts`)**
+    *   **Befund:** `flashClosePosition` erstellt eine optimistische Order. Bei einem Netzwerkfehler (nicht API-Fehler) bleibt diese bestehen.
+    *   **Mitigation:** `omsService.ts` enthält einen Watchdog (`removeOrphanedOptimistic`), der alle 30s aufräumt. Das ist gut, aber ein Restrisiko für "Ghost Orders" im UI für 30s bleibt.
 
-3.  **Performance-Blocker in `ai.svelte.ts`**
-    *   **Ort:** `src/stores/ai.svelte.ts`, Methode `save()` und `sendMessage()`
-    *   **Problem:** `localStorage.setItem` wird synchron bei *jeder* Nachricht aufgerufen. Auch wenn `messages` auf 50 begrenzt ist, blockiert dies den Main-Thread, besonders auf mobilen Geräten.
-    *   **Risiko:** UI-Freezes während des Tradings.
-    *   **Empfehlung:** `debounce` für `save()` implementieren oder `IndexedDB` (async) nutzen.
-
-### 🟡 WARNING (Priorität Hoch)
-
-1.  **"Fast Path" Validierungsumgehung in `bitunixWs.ts`**
-    *   **Ort:** `src/services/bitunixWs.ts`, Methode `handleMessage`
-    *   **Problem:** Für High-Frequency Daten (Ticker, Price, Book) wird die Zod-Validierung übersprungen ("Fast Path"), um Performance zu sparen.
-    *   **Risiko:** Wenn Bitunix das API-Schema ändert, könnte die App abstürzen oder korrupte Daten in den `marketState` schreiben, da `isPriceData` Type Guards sehr locker sind.
-    *   **Empfehlung:** Zumindest eine "Lightweight"-Validierung der Datentypen durchführen oder `try-catch` spezifisch um den State-Update-Block legen.
-
-2.  **Hardcoded Strings & i18n Lücken**
-    *   **Ort:** `src/components/shared/OrderHistoryList.svelte`
-    *   **Problem:** Mapping von `BUY`/`SELL`/`MAKER` auf Übersetzungsschlüssel ist statisch. Fallback-Texte ("No history found") sind hardcoded englisch.
+2.  **Hardcoded Strings (Fehlende i18n)**
+    *   **Befund:** In `src/components/shared/MarketOverview.svelte` wurden Strings gefunden:
+        *   `"No market data available"`
+        *   `"RSI Settings"` (in Tooltip)
+        *   `"Open Real-time Chart"`
     *   **Risiko:** Inkonsistente UX für nicht-englische Nutzer.
-    *   **Empfehlung:** Alle Strings in `src/locales` auslagern.
 
-3.  **Netzwerk-Timeout Logik in `ai.svelte.ts`**
-    *   **Ort:** `src/stores/ai.svelte.ts`, Methode `gatherContext`
-    *   **Problem:** `Promise.race` wartet bis zu 5000ms auf Kontext.
-    *   **Risiko:** Verzögert die Antwort des AI-Assistenten massiv, wenn externe APIs (CMC, News) langsam sind.
-    *   **Empfehlung:** Timeout auf 1000-2000ms reduzieren oder "Stale-While-Revalidate" Pattern nutzen.
+3.  **Thread Contention durch Timer**
+    *   **Befund:** `MarketWatcher`, `MarketManager` und `BitunixWs` nutzen jeweils eigene `setInterval`-Loops (teilweise 250ms).
+    *   **Risiko:** Erhöhte CPU-Last im Leerlauf.
 
-4.  **API Fallback Logik**
-    *   **Ort:** `src/routes/api/orders/+server.ts`, `fetchBitgetHistoryOrders`
-    *   **Problem:** `startTime` ist hardcoded auf `Date.now() - 7 Tage`.
-    *   **Risiko:** User kann keine älteren Orders sehen.
-    *   **Empfehlung:** `startTime` als optionalen Parameter durchreichen.
+## 🔵 REFACTOR (Technisch)
 
-### 🔵 REFACTOR (Technische Schuld)
-
-1.  **Inkonsistente Typen (`Number` vs `Decimal`)**
-    *   **Ort:** `src/services/bitunixWs.ts` (`mapToOMSOrder`), `src/components/shared/OrderHistoryList.svelte`
-    *   **Problem:** Zeitstempel und einige PnL-Berechnungen nutzen `Number()`.
-    *   **Empfehlung:** Konsequente Nutzung von `Decimal` für alle Geldwerte. Zeitstempel können `number` bleiben (safe integer range), aber API-Daten sollten idealerweise direkt validiert werden.
-
-2.  **Magic Strings in `marketWatcher.ts`**
-    *   **Ort:** `mapTimeframeToBitunix` und Channel-Namen.
-    *   **Empfehlung:** Enums oder Konstanten-Objekte verwenden.
+1.  **{@html} Usage**
+    *   **Befund:** 22 Verwendungen von `{@html}`.
+    *   **Bewertung:** Die meisten nutzen `icons` (vertrauenswürdig aus `constants.ts`) oder `renderSafeMarkdown` (sanitized).
+    *   **Aktion:** Keine direkte Gefahr, aber sollte bei Reviews stets beachtet werden.
 
 ---
 
-## 3. Nächste Schritte (Vorschlag)
-
-1.  **Sofort-Fix:** `CustomModal` XSS beheben (Sanitization).
-2.  **Hardening:** `tradeService` Validierung hinzufügen.
-3.  **Performance:** `ai.svelte.ts` Storage-Logik optimieren.
-4.  **I18n:** Audit der UI-Komponenten und Auslagerung der Strings.
+**Empfohlener Aktionsplan (Schritt 2):**
+1.  **Härtung `safeJsonParse`:** Unit Tests für Edge-Cases hinzufügen.
+2.  **News-Service optimieren:** `slice()` oder Index-Limitierung einbauen.
+3.  **i18n Fixes:** Hardcoded Strings extrahieren.
