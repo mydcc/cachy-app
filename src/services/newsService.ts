@@ -419,40 +419,17 @@ export const newsService = {
 
         const headlines = news
           .slice(0, 10)
-          .map((n) => `- ${n.published_at}: ${n.title} (${n.source})`)
-          .join("\n");
-        const prompt = `Analyze sentiment for these headlines. score -1 to 1. regime: BULLISH, BEARISH, NEUTRAL, UNCERTAIN.\n\n${headlines}\n\nOutput JSON ONLY: { "score": number, "regime": "string", "summary": "string", "keyFactors": ["string"] }`;
+          .map((n) => `${n.published_at}: ${n.title} (${n.source})`);
 
-        let resultText = "";
+        let apiKey = "";
+        let model = "";
 
-        if (aiProvider === "gemini" && geminiApiKey) {
-          const res = await fetch("/api/ai/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              provider: "gemini",
-              apiKey: geminiApiKey,
-              model: settingsState.geminiModel || "gemini-1.5-flash",
-              prompt
-            })
-          });
-          if (!res.ok) throw new Error(await res.text());
-          const data = await res.json();
-          resultText = data.result;
-        } else if (aiProvider === "openai" && openaiApiKey) {
-          const res = await fetch("/api/ai/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              provider: "openai",
-              apiKey: openaiApiKey,
-              model: settingsState.openaiModel || "gpt-4o",
-              prompt
-            })
-          });
-          if (!res.ok) throw new Error(await res.text());
-          const data = await res.json();
-          resultText = data.result;
+        if (aiProvider === "openai") {
+          apiKey = openaiApiKey;
+          model = settingsState.openaiModel || "gpt-4o";
+        } else if (aiProvider === "gemini") {
+          apiKey = geminiApiKey;
+          model = settingsState.geminiModel || "gemini-1.5-flash";
         }
 
         // Call Backend to keep keys secure (or use server env keys if user provided none)

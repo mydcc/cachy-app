@@ -244,36 +244,23 @@ export class MarketManager {
       const current = this.getOrCreateSymbol(symbol);
       current.lastUpdated = Date.now();
 
-      // Optimization: Helper to only update if value changed significantly
-      // This reduces CPU usage by avoiding redundant Decimal instantiation and reactivity triggers
-      const updateDecimal = (key: keyof MarketData, rawVal: any) => {
-          if (rawVal === undefined || rawVal === null) return;
-          try {
-              // Fast path: string check to avoid Decimal instantiation overhead
-              // current[key] might be null, so check existence
-              const currentVal = current[key];
-              const strVal = String(rawVal);
-
-              if (currentVal instanceof Decimal) {
-                  // If string representation matches, it's the same value. Skip write.
-                  if (currentVal.toString() === strVal) return;
-              }
-
-              // Only create new object if changed
-              (current as any)[key] = new Decimal(rawVal);
-          } catch {
-              // ignore invalid inputs
-          }
+      const toDecimal = (val: any) => {
+        try {
+          return val !== undefined && val !== null ? new Decimal(val) : undefined;
+        } catch (e) {
+          // Silently fail for individual fields to protect the rest of the update
+          return undefined;
+        }
       };
 
-      if (partial.lastPrice !== undefined) updateDecimal('lastPrice', partial.lastPrice);
-      if (partial.indexPrice !== undefined) updateDecimal('indexPrice', partial.indexPrice);
-      if (partial.highPrice !== undefined) updateDecimal('highPrice', partial.highPrice);
-      if (partial.lowPrice !== undefined) updateDecimal('lowPrice', partial.lowPrice);
-      if (partial.volume !== undefined) updateDecimal('volume', partial.volume);
-      if (partial.quoteVolume !== undefined) updateDecimal('quoteVolume', partial.quoteVolume);
-      if (partial.priceChangePercent !== undefined) updateDecimal('priceChangePercent', partial.priceChangePercent);
-      if (partial.fundingRate !== undefined) updateDecimal('fundingRate', partial.fundingRate);
+      if (partial.lastPrice !== undefined) current.lastPrice = toDecimal(partial.lastPrice) ?? current.lastPrice;
+      if (partial.indexPrice !== undefined) current.indexPrice = toDecimal(partial.indexPrice) ?? current.indexPrice;
+      if (partial.highPrice !== undefined) current.highPrice = toDecimal(partial.highPrice) ?? current.highPrice;
+      if (partial.lowPrice !== undefined) current.lowPrice = toDecimal(partial.lowPrice) ?? current.lowPrice;
+      if (partial.volume !== undefined) current.volume = toDecimal(partial.volume) ?? current.volume;
+      if (partial.quoteVolume !== undefined) current.quoteVolume = toDecimal(partial.quoteVolume) ?? current.quoteVolume;
+      if (partial.priceChangePercent !== undefined) current.priceChangePercent = toDecimal(partial.priceChangePercent) ?? current.priceChangePercent;
+      if (partial.fundingRate !== undefined) current.fundingRate = toDecimal(partial.fundingRate) ?? current.fundingRate;
 
       if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
         let nft: number = 0;
@@ -349,8 +336,7 @@ export class MarketManager {
     // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
     // If source is REST, we must NEVER overwrite the latest live candle (Head)
     // because REST snapshots lag behind the WebSocket stream.
-    // EXCEPTION: If WebSocket is disconnected, we MUST accept REST updates for the live candle.
-    if (source === "rest" && history.length > 0 && this.connectionStatus === "connected") {
+    if (source === "rest" && history.length > 0) {
       const lastKnownTime = history[history.length - 1].time;
       // Filter out any incoming REST candle that matches the current live candle's time
       newKlines = newKlines.filter(k => k.time !== lastKnownTime);

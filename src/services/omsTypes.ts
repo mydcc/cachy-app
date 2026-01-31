@@ -50,5 +50,4 @@ export interface OMSPosition {
     leverage: Decimal;
     marginMode: "cross" | "isolated";
     liquidationPrice?: Decimal;
-    timestamp?: number;
 }

@@ -113,8 +113,6 @@ class OrderManagementSystem {
     }
 
     public updatePosition(position: OMSPosition) {
-        // Enforce timestamp
-        if (!position.timestamp) position.timestamp = Date.now();
         this.positions.set(position.symbol + ":" + position.side, position);
         logger.log("market", `[OMS] Position Updated: ${position.symbol} ${position.side}`);
 

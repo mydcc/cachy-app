@@ -8,7 +8,6 @@
  */
 
 import { z } from "zod";
-import { Decimal } from "decimal.js";
 import { StrictDecimal } from "./schemas";
 
 /**
@@ -60,69 +59,6 @@ export const BitgetKlineSchema = z.tuple([
 ]).rest(z.unknown()); // Allow extra fields
 
 export const BitgetKlineResponseSchema = z.array(BitgetKlineSchema);
-
-// Generic API Response Wrapper
-export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) => z.object({
-    code: z.union([z.string(), z.number()]).transform(String),
-    msg: z.string().optional(),
-    error: z.string().optional(),
-    data: dataSchema.optional().nullable()
-});
-
-// Position Schema (Bitunix & Generic)
-export const PositionRawSchema = z.object({
-    symbol: z.string(),
-    // Allow flexibility in field names (Bitunix vs Bitget vs Others)
-    // We map them to canonical fields later, but here we define what we expect from raw JSON
-    side: z.string().optional(),
-    positionSide: z.string().optional(),
-    holdSide: z.string().optional(),
-
-    // Amount fields - Use local transform to preserve undefined for validation
-    qty: z.union([z.string(), z.number()]).optional().transform(v => v !== undefined && v !== null ? new Decimal(v) : undefined),
-    size: z.union([z.string(), z.number()]).optional().transform(v => v !== undefined && v !== null ? new Decimal(v) : undefined),
-    amount: z.union([z.string(), z.number()]).optional().transform(v => v !== undefined && v !== null ? new Decimal(v) : undefined),
-
-    // Price fields
-    avgOpenPrice: z.union([StrictDecimal, z.undefined()]).optional(),
-    entryPrice: z.union([StrictDecimal, z.undefined()]).optional(),
-
-    // PnL
-    unrealizedPNL: z.union([StrictDecimal, z.undefined()]).optional(),
-    unrealizedPnl: z.union([StrictDecimal, z.undefined()]).optional(),
-
-    leverage: z.union([StrictDecimal, z.undefined()]).optional(),
-    marginMode: z.string().optional(),
-    liquidationPrice: z.union([StrictDecimal, z.undefined()]).optional(),
-    liqPrice: z.union([StrictDecimal, z.undefined()]).optional()
-}).refine(data => {
-    // Hardening: A position must have at least one quantity field to be valid.
-    // Otherwise it's likely a malformed response or an empty object from a weird API state.
-    // Note: StrictDecimal returns 0 for undefined if used directly, but here we wrapped in union/optional?
-    // Wait, StrictDecimal transforms inputs.
-    // If I use `qty: StrictDecimal.optional()`, Zod might not run the transform if input is undefined?
-    // Zod's optional() means if key is missing, it's undefined.
-    // StrictDecimal handles null/undefined inside its transform.
-    // If I want the output to be Decimal (0) even if missing, I should just use `qty: StrictDecimal.optional().default(new Decimal(0))`?
-    // Or just `qty: StrictDecimal`.
-    // But PositionRawSchema in TradeService seemed to treat them as optional.
-    // Let's stick to the structure but use StrictDecimal to handle the parsing.
-    // The previous schema used: `z.union([z.string(), z.number()]).optional()`
-
-    // Simplification for migration:
-    // We want to allow raw values to be parsed.
-    // We check existence.
-    const hasQty = data.qty !== undefined || data.size !== undefined || data.amount !== undefined;
-    return hasQty;
-}, {
-    message: "Position object missing quantity field (qty, size, or amount)",
-    path: ["qty"]
-});
-
-export const PositionListSchema = z.array(PositionRawSchema);
-
-// Type inference
-export type PositionRaw = z.infer<typeof PositionRawSchema>;
 
 /**
  * Validate response size to prevent memory issues
