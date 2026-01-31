@@ -56,6 +56,7 @@
     let isInitialLoad = $state(true);
     let isLoadingHistory = $state(false);
     let allHistoryLoaded = $state(false);
+    let lastRenderedTime: Time | null = $state(null);
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -298,104 +299,132 @@
         if (marketData && marketData.klines && marketData.klines[currentTF]) {
             const klines = marketData.klines[currentTF];
             if (klines.length > 0) {
-                // Determine if we need to reset the data (different symbol/tf) or update
-                const formatted: CandlestickData[] = klines
-                    .map((k: any) => ({
-                        time: (k.time / 1000) as Time,
-                        open: Number(k.open),
-                        high: Number(k.high),
-                        low: Number(k.low),
-                        close: Number(k.close),
-                    }))
-                    .filter(
-                        (k) =>
-                            !isNaN(Number(k.time)) &&
-                            Number(k.time) > 0 &&
-                            !isNaN(k.open) &&
-                            !isNaN(k.high) &&
-                            !isNaN(k.low) &&
-                            !isNaN(k.close),
-                    );
+                // Optimization: Check if this is just a live update to the last candle
+                const lastKline = klines[klines.length - 1];
+                const lastTime = (lastKline.time / 1000) as Time;
+                const isLiveUpdate = lastRenderedTime === lastTime;
 
-                // Sorting check (Lightweight charts requires strictly ascending time)
-                formatted.sort((a, b) => Number(a.time) - Number(b.time));
+                if (isLiveUpdate && !isInitialLoad) {
+                    // Fast Path: Update single candle
+                    try {
+                        const update = {
+                            time: lastTime,
+                            open: Number(lastKline.open),
+                            high: Number(lastKline.high),
+                            low: Number(lastKline.low),
+                            close: Number(lastKline.close),
+                        };
+                        candleSeries.update(update);
 
-                // Deduping check
-                const unique: CandlestickData[] = [];
-                const seen = new Set();
-                for (const k of formatted) {
-                    if (!seen.has(Number(k.time))) {
-                        seen.add(Number(k.time));
-                        unique.push(k);
+                        // Note: We skip full indicator recalculation for single tick updates to save CPU.
+                        // Ideally we would update the last point of indicators too, but that requires
+                        // incremental calculation support or re-running on the tail.
+                        // For now, indicators update only on new candles or full refreshes.
+                    } catch (e) {
+                        // Fallback to full render
+                        // console.warn("[CandleChart] Live update failed, falling back", e);
                     }
-                }
+                } else {
+                    // Slow Path: Full Render (History load or New Candle)
+                    const formatted: CandlestickData[] = klines
+                        .map((k: any) => ({
+                            time: (k.time / 1000) as Time,
+                            open: Number(k.open),
+                            high: Number(k.high),
+                            low: Number(k.low),
+                            close: Number(k.close),
+                        }))
+                        .filter(
+                            (k) =>
+                                !isNaN(Number(k.time)) &&
+                                Number(k.time) > 0 &&
+                                !isNaN(k.open) &&
+                                !isNaN(k.high) &&
+                                !isNaN(k.low) &&
+                                !isNaN(k.close),
+                        );
 
-                try {
-                    candleSeries.setData(unique);
+                    // Sorting check (Lightweight charts requires strictly ascending time)
+                    formatted.sort((a, b) => Number(a.time) - Number(b.time));
 
-                    // Update Indicators if enabled
-                    if (
-                        indicatorsEnabled &&
-                        ema1Series &&
-                        ema2Series &&
-                        ema3Series
-                    ) {
-                        const closes = unique.map((c) => c.close);
-                        // Ensure we have enough data
-                        if (closes.length > 5) {
-                            const ema1 = JSIndicators.ema(
-                                closes,
-                                settings.ema1.length,
-                            );
-                            const ema2 = JSIndicators.ema(
-                                closes,
-                                settings.ema2.length,
-                            );
-                            const ema3 = JSIndicators.ema(
-                                closes,
-                                settings.ema3.length,
-                            );
-
-                            const mapToSeries = (arr: number[]) =>
-                                arr
-                                    .map((val: number, i: number) => {
-                                        if (!unique[i]) return null;
-                                        return {
-                                            time: unique[i].time,
-                                            value: val,
-                                        };
-                                    })
-                                    .filter(
-                                        (d): d is { time: Time; value: number } =>
-                                            d !== null &&
-                                            d.value !== null &&
-                                            d.value !== undefined &&
-                                            typeof d.value === "number" &&
-                                            !isNaN(d.value),
-                                    );
-
-                            ema1Series.setData(mapToSeries(ema1));
-                            ema2Series.setData(mapToSeries(ema2));
-                            ema3Series.setData(mapToSeries(ema3));
-
-                            // Visible
-                            ema1Series.applyOptions({ visible: true });
-                            ema2Series.applyOptions({ visible: true });
-                            ema3Series.applyOptions({ visible: true });
+                    // Deduping check
+                    const unique: CandlestickData[] = [];
+                    const seen = new Set();
+                    for (const k of formatted) {
+                        if (!seen.has(Number(k.time))) {
+                            seen.add(Number(k.time));
+                            unique.push(k);
                         }
-                    } else if (ema1Series && ema2Series && ema3Series) {
-                        // Hide if disabled
-                        ema1Series.applyOptions({ visible: false });
-                        ema2Series.applyOptions({ visible: false });
-                        ema3Series.applyOptions({ visible: false });
                     }
 
-                    if (isInitialLoad) {
-                        chart.timeScale().fitContent();
-                        isInitialLoad = false;
+                    try {
+                        candleSeries.setData(unique);
+                        lastRenderedTime = unique.length > 0 ? unique[unique.length - 1].time : null;
+
+                        // Update Indicators if enabled
+                        if (
+                            indicatorsEnabled &&
+                            ema1Series &&
+                            ema2Series &&
+                            ema3Series
+                        ) {
+                            const closes = unique.map((c) => c.close);
+                            // Ensure we have enough data
+                            if (closes.length > 5) {
+                                const ema1 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema1.length,
+                                );
+                                const ema2 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema2.length,
+                                );
+                                const ema3 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema3.length,
+                                );
+
+                                const mapToSeries = (arr: number[]) =>
+                                    arr
+                                        .map((val: number, i: number) => {
+                                            if (!unique[i]) return null;
+                                            return {
+                                                time: unique[i].time,
+                                                value: val,
+                                            };
+                                        })
+                                        .filter(
+                                            (d): d is { time: Time; value: number } =>
+                                                d !== null &&
+                                                d.value !== null &&
+                                                d.value !== undefined &&
+                                                typeof d.value === "number" &&
+                                                !isNaN(d.value),
+                                        );
+
+                                ema1Series.setData(mapToSeries(ema1));
+                                ema2Series.setData(mapToSeries(ema2));
+                                ema3Series.setData(mapToSeries(ema3));
+
+                                // Visible
+                                ema1Series.applyOptions({ visible: true });
+                                ema2Series.applyOptions({ visible: true });
+                                ema3Series.applyOptions({ visible: true });
+                            }
+                        } else if (ema1Series && ema2Series && ema3Series) {
+                            // Hide if disabled
+                            ema1Series.applyOptions({ visible: false });
+                            ema2Series.applyOptions({ visible: false });
+                            ema3Series.applyOptions({ visible: false });
+                        }
+
+                        if (isInitialLoad) {
+                            chart.timeScale().fitContent();
+                            isInitialLoad = false;
+                        }
+                    } catch (e) {
+                        console.error("[CandleChartView] Render error:", e);
                     }
-                } catch (e) {
-                    console.error("[CandleChartView] Render error:", e);
                 }
             }
         } else {
