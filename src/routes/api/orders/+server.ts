@@ -116,6 +116,23 @@ export const POST: RequestHandler = async ({ request }) => {
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
       }
+      else if (payload.type === "cancel-all") {
+        // Implementation for Cancel All (Pending + Loop)
+        const pending = await fetchBitunixPendingOrders(apiKey, apiSecret);
+        const symbol = payload.symbol; // Optional filter
+
+        const toCancel = symbol
+            ? pending.filter(o => o.symbol === symbol)
+            : pending;
+
+        const promises = toCancel.map(order =>
+             cancelBitunixOrder(apiKey, apiSecret, order.symbol, order.id)
+                .catch(err => ({ status: 'rejected', error: err, id: order.id }))
+        );
+
+        await Promise.all(promises);
+        result = { success: true, count: toCancel.length };
+      }
     }
     // --- BITGET ---
     else if (exchange === "bitget") {
@@ -213,6 +230,38 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 // --- Bitunix Helpers ---
+
+async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: string, orderId: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/cancel_order";
+
+    const payload = { symbol, orderId };
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "DELETE", // Bitunix typically uses DELETE or POST for cancel. Assuming DELETE based on common REST standards.
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        // If 404/400, order might already be filled/cancelled. Ignore.
+        const text = await response.text();
+        if (response.status === 400 || response.status === 404) return;
+        throw new Error(`Cancel failed: ${text}`);
+    }
+
+    const res = await response.json();
+    if (String(res.code) !== "0") throw new Error(res.msg);
+    return res.data;
+}
+
 async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,

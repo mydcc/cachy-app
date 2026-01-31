@@ -239,51 +239,64 @@ export class MarketManager {
   }
 
   private applyUpdate(symbol: string, partial: any) {
-    this.touchSymbol(symbol);
-    const current = this.getOrCreateSymbol(symbol);
-    current.lastUpdated = Date.now();
+    try {
+      this.touchSymbol(symbol);
+      const current = this.getOrCreateSymbol(symbol);
+      current.lastUpdated = Date.now();
 
-    const toDecimal = (val: any) => (val !== undefined && val !== null ? new Decimal(val) : undefined);
+      const toDecimal = (val: any) => {
+        try {
+          return val !== undefined && val !== null ? new Decimal(val) : undefined;
+        } catch (e) {
+          // Silently fail for individual fields to protect the rest of the update
+          return undefined;
+        }
+      };
 
-    if (partial.lastPrice !== undefined) current.lastPrice = toDecimal(partial.lastPrice) ?? current.lastPrice;
-    if (partial.indexPrice !== undefined) current.indexPrice = toDecimal(partial.indexPrice) ?? current.indexPrice;
-    if (partial.highPrice !== undefined) current.highPrice = toDecimal(partial.highPrice) ?? current.highPrice;
-    if (partial.lowPrice !== undefined) current.lowPrice = toDecimal(partial.lowPrice) ?? current.lowPrice;
-    if (partial.volume !== undefined) current.volume = toDecimal(partial.volume) ?? current.volume;
-    if (partial.quoteVolume !== undefined) current.quoteVolume = toDecimal(partial.quoteVolume) ?? current.quoteVolume;
-    if (partial.priceChangePercent !== undefined) current.priceChangePercent = toDecimal(partial.priceChangePercent) ?? current.priceChangePercent;
-    if (partial.fundingRate !== undefined) current.fundingRate = toDecimal(partial.fundingRate) ?? current.fundingRate;
+      if (partial.lastPrice !== undefined) current.lastPrice = toDecimal(partial.lastPrice) ?? current.lastPrice;
+      if (partial.indexPrice !== undefined) current.indexPrice = toDecimal(partial.indexPrice) ?? current.indexPrice;
+      if (partial.highPrice !== undefined) current.highPrice = toDecimal(partial.highPrice) ?? current.highPrice;
+      if (partial.lowPrice !== undefined) current.lowPrice = toDecimal(partial.lowPrice) ?? current.lowPrice;
+      if (partial.volume !== undefined) current.volume = toDecimal(partial.volume) ?? current.volume;
+      if (partial.quoteVolume !== undefined) current.quoteVolume = toDecimal(partial.quoteVolume) ?? current.quoteVolume;
+      if (partial.priceChangePercent !== undefined) current.priceChangePercent = toDecimal(partial.priceChangePercent) ?? current.priceChangePercent;
+      if (partial.fundingRate !== undefined) current.fundingRate = toDecimal(partial.fundingRate) ?? current.fundingRate;
 
-    if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
-      let nft: number = 0;
-      const raw = partial.nextFundingTime;
+      if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
+        let nft: number = 0;
+        const raw = partial.nextFundingTime;
 
-      if (typeof raw === "number") {
-        nft = raw;
-      } else if (typeof raw === "string") {
-        if (/^\d+$/.test(raw)) {
-          nft = parseInt(raw, 10);
-        } else {
-          // Falls es ein ISO-String oder ein anderes Datumsformat ist
-          const parsed = new Date(raw).getTime();
-          if (!isNaN(parsed)) {
-            nft = parsed;
+        if (typeof raw === "number") {
+          nft = raw;
+        } else if (typeof raw === "string") {
+          if (/^\d+$/.test(raw)) {
+            nft = parseInt(raw, 10);
+          } else {
+            // Falls es ein ISO-String oder ein anderes Datumsformat ist
+            const parsed = new Date(raw).getTime();
+            if (!isNaN(parsed)) {
+              nft = parsed;
+            }
           }
         }
+
+        // Heuristik: Sekunden in Millisekunden umrechnen (~1.7*10^9 vs ~1.7*10^12)
+        if (nft > 0 && nft < 10000000000) {
+          nft *= 1000;
+        }
+        current.nextFundingTime = nft > 0 ? nft : null;
       }
 
-      // Heuristik: Sekunden in Millisekunden umrechnen (~1.7*10^9 vs ~1.7*10^12)
-      if (nft > 0 && nft < 10000000000) {
-        nft *= 1000;
+      if (partial.depth !== undefined) current.depth = partial.depth;
+      if (partial.technicals !== undefined) {
+        // Merge technicals map (keyed by timeframe)
+        current.technicals = { ...(current.technicals || {}), ...partial.technicals };
+        // console.log(`[Market] Updated technicals for ${symbol}`);
       }
-      current.nextFundingTime = nft > 0 ? nft : null;
-    }
-
-    if (partial.depth !== undefined) current.depth = partial.depth;
-    if (partial.technicals !== undefined) {
-      // Merge technicals map (keyed by timeframe)
-      current.technicals = { ...(current.technicals || {}), ...partial.technicals };
-      // console.log(`[Market] Updated technicals for ${symbol}`);
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.error(`[Market] Critical error applying update for ${symbol}`, e);
+      }
     }
   }
 

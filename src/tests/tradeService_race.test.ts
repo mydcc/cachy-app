@@ -85,6 +85,7 @@ describe('TradeService Race Conditions', () => {
         (omsService.getPositions as any).mockReturnValue([position]);
 
         // Mock Fetch Success but API Error Response (400)
+        // Ensure text() is mocked as TradeService uses it
         (global.fetch as any).mockResolvedValue({
             ok: false,
             text: async () => JSON.stringify({ code: '400', msg: 'Bad Request' }),

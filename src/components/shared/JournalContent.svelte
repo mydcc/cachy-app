@@ -391,7 +391,7 @@
         const { dataRepairService } =
             await import("../../services/dataRepairService");
         uiState.isLoading = true;
-        uiState.loadingMessage = "ATR-Neuberechnung gestartet...";
+        uiState.loadingMessage = $_("journal.messages.atrRecalcStart");
 
         try {
             await dataRepairService.repairMissingAtr(
@@ -402,7 +402,7 @@
             );
             uiState.showFeedback("save");
         } catch (err: any) {
-            uiState.showError("Fehler bei ATR-Berechnung: " + err.message);
+            uiState.showError($_("journal.messages.atrRecalcError") + err.message);
         } finally {
             uiState.isLoading = false;
             uiState.setSyncProgress(null);
@@ -479,8 +479,8 @@
                         {/if}
                         <span>
                             {uiState.isPriceFetching
-                                ? "Syncing..."
-                                : "Bitunix Sync"}
+                                ? $_("journal.messages.syncing")
+                                : $_("journal.syncBitunix")}
                         </span>
                     </button>
                 {/if}
@@ -505,10 +505,10 @@
                 class="absolute top-0 right-0 z-50 bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-2xl p-5 min-w-[300px]"
             >
                 <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-sm font-bold">Table Settings</h4>
+                    <h4 class="text-sm font-bold">{$_("journal.labels.tableSettings")}</h4>
                     <button
                         class="text-xs px-3 py-1 rounded bg-[var(--accent-color)] text-[var(--gray-900)] font-bold"
-                        onclick={() => (showColumnSettings = false)}>OK</button
+                        onclick={() => (showColumnSettings = false)}>{$_("common.ok")}</button
                     >
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -560,13 +560,13 @@
             class="btn-success text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={app.exportToCSV}
         >
-            {@html icons.export} Export
+            {@html icons.export} {$_("journal.export")}
         </button>
         <button
             class="btn-accent text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={() => document.getElementById("import-csv-input")?.click()}
         >
-            {@html icons.import} Import
+            {@html icons.import} {$_("journal.import")}
         </button>
         <input
             type="file"
@@ -578,7 +578,7 @@
             class="btn-danger text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={app.clearJournal}
         >
-            {@html icons.delete} Clear All
+            {@html icons.delete} {$_("journal.clearAll")}
         </button>
     </div>
 </div>

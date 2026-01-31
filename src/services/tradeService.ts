@@ -288,6 +288,20 @@ class TradeService {
 
     }
 
+    public async cancelAllOrders(symbol: string) {
+        if (!symbol) return;
+        logger.log("market", `[Trade] Cancelling all orders for ${symbol}`);
+        try {
+             return await this.signedRequest("POST", "/api/orders", {
+                symbol,
+                type: "cancel-all"
+             });
+        } catch (e) {
+             logger.warn("market", `[Trade] Failed to cancel orders for ${symbol}`, e);
+             // We don't throw here, because we want flashClose to proceed even if cancel fails (best effort)
+        }
+    }
+
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }) {
         const { symbol, positionSide, amount } = params;
 

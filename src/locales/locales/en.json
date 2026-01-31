@@ -379,7 +379,9 @@
       "min5Trades": "(Min. 5 Trades)",
       "min20Trades": "(Min. 20 Trades)",
       "noStrategyLosses": "(No Strategy Losses)",
-      "noTimingLosses": "(No Timing Losses)"
+      "noTimingLosses": "(No Timing Losses)",
+      "atrRecalcStart": "ATR recalculation started...",
+      "atrRecalcError": "Error during ATR calculation: "
     },
     "deepDive": {
       "title": "Deep Dive",
