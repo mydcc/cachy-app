@@ -308,6 +308,36 @@ class IndicatorManager {
   private saveTimer: any = null;
   private notifyTimer: any = null;
 
+  // Cache the snapshot using $derived to avoid expensive re-cloning on every access
+  private _snapshot = $derived({
+    historyLimit: this.historyLimit,
+    precision: this.precision,
+    rsi: $state.snapshot(this.rsi),
+    stochRsi: $state.snapshot(this.stochRsi),
+    macd: $state.snapshot(this.macd),
+    stochastic: $state.snapshot(this.stochastic),
+    williamsR: $state.snapshot(this.williamsR),
+    cci: $state.snapshot(this.cci),
+    adx: $state.snapshot(this.adx),
+    ao: $state.snapshot(this.ao),
+    momentum: $state.snapshot(this.momentum),
+    ema: $state.snapshot(this.ema),
+    pivots: $state.snapshot(this.pivots),
+    atr: $state.snapshot(this.atr),
+    bb: $state.snapshot(this.bb),
+    superTrend: $state.snapshot(this.superTrend),
+    atrTrailingStop: $state.snapshot(this.atrTrailingStop),
+    obv: $state.snapshot(this.obv),
+    mfi: $state.snapshot(this.mfi),
+    vwap: $state.snapshot(this.vwap),
+    parabolicSar: $state.snapshot(this.parabolicSar),
+    ichimoku: $state.snapshot(this.ichimoku),
+    choppiness: $state.snapshot(this.choppiness),
+    volumeProfile: $state.snapshot(this.volumeProfile),
+    volumeMa: $state.snapshot(this.volumeMa),
+    bollingerBands: $state.snapshot(this.bollingerBands),
+  });
+
   constructor() {
     if (browser) {
       this.load();
@@ -423,34 +453,8 @@ class IndicatorManager {
   }
 
   toJSON(): IndicatorSettings {
-    return {
-      historyLimit: this.historyLimit,
-      precision: this.precision,
-      rsi: $state.snapshot(this.rsi),
-      stochRsi: $state.snapshot(this.stochRsi),
-      macd: $state.snapshot(this.macd),
-      stochastic: $state.snapshot(this.stochastic),
-      williamsR: $state.snapshot(this.williamsR),
-      cci: $state.snapshot(this.cci),
-      adx: $state.snapshot(this.adx),
-      ao: $state.snapshot(this.ao),
-      momentum: $state.snapshot(this.momentum),
-      ema: $state.snapshot(this.ema),
-      pivots: $state.snapshot(this.pivots),
-      atr: $state.snapshot(this.atr),
-      bb: $state.snapshot(this.bb),
-      superTrend: $state.snapshot(this.superTrend),
-      atrTrailingStop: $state.snapshot(this.atrTrailingStop),
-      obv: $state.snapshot(this.obv),
-      mfi: $state.snapshot(this.mfi),
-      vwap: $state.snapshot(this.vwap),
-      parabolicSar: $state.snapshot(this.parabolicSar),
-      ichimoku: $state.snapshot(this.ichimoku),
-      choppiness: $state.snapshot(this.choppiness),
-      volumeProfile: $state.snapshot(this.volumeProfile),
-      volumeMa: $state.snapshot(this.volumeMa),
-      bollingerBands: $state.snapshot(this.bollingerBands),
-    };
+    // Return a fresh clone of the cached snapshot
+    return structuredClone(this._snapshot);
   }
 
   subscribe(fn: (value: IndicatorSettings) => void): () => void {
