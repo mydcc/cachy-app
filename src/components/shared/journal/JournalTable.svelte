@@ -65,8 +65,9 @@
         type: columnVisibility?.type ?? true,
         entry: columnVisibility?.entry ?? true,
         exit: columnVisibility?.exit ?? true,
-        atr: columnVisibility?.atr ?? true,
         sl: columnVisibility?.sl ?? true,
+        slAtr: columnVisibility?.slAtr ?? true,
+        atr: columnVisibility?.atr ?? true,
         size: columnVisibility?.size ?? true,
         pnl: columnVisibility?.pnl ?? true,
         funding: columnVisibility?.funding ?? true,
@@ -115,6 +116,21 @@
 
             // Compare
             let comparison = 0;
+
+            // Computed field: slAtr
+            if (field === "slAtr") {
+                const getSlAtr = (item: any) => {
+                    if (!item.entryPrice || !item.stopLossPrice || !item.atrValue) return -1;
+                    const entry = new Decimal(item.entryPrice);
+                    const sl = new Decimal(item.stopLossPrice);
+                    const atr = new Decimal(item.atrValue);
+                    if (atr.isZero()) return -1;
+                    return entry.minus(sl).abs().div(atr).toNumber();
+                };
+                aVal = getSlAtr(a);
+                bVal = getSlAtr(b);
+            }
+
             if (typeof aVal === "string" && typeof bVal === "string") {
                 comparison = aVal.localeCompare(bVal);
             } else {
@@ -339,24 +355,6 @@
                                 >
                             </th>
                         {/if}
-                        {#if visibility.atr && (!groupBySymbol || isNested)}
-                            <th
-                                onclick={() =>
-                                    isNested
-                                        ? handleInternalSort("atrValue")
-                                        : handleMainSort("atrValue")}
-                                class="sortable"
-                            >
-                                {$_("journal.table.atr")}
-                                <span class="sort-icon"
-                                    >{activeSort === "atrValue"
-                                        ? activeDir === "asc"
-                                            ? "↑"
-                                            : "↓"
-                                        : ""}</span
-                                >
-                            </th>
-                        {/if}
                         {#if visibility.sl && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
@@ -368,6 +366,42 @@
                                 {$_("journal.table.sl")}
                                 <span class="sort-icon"
                                     >{activeSort === "stopLossPrice"
+                                        ? activeDir === "asc"
+                                            ? "↑"
+                                            : "↓"
+                                        : ""}</span
+                                >
+                            </th>
+                        {/if}
+                        {#if visibility.slAtr && (!groupBySymbol || isNested)}
+                            <th
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("slAtr")
+                                        : handleMainSort("slAtr")}
+                                class="sortable"
+                            >
+                                {$_("journal.table.sl")} (ATR)
+                                <span class="sort-icon"
+                                    >{activeSort === "slAtr"
+                                        ? activeDir === "asc"
+                                            ? "↑"
+                                            : "↓"
+                                        : ""}</span
+                                >
+                            </th>
+                        {/if}
+                        {#if visibility.atr && (!groupBySymbol || isNested)}
+                            <th
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("atrValue")
+                                        : handleMainSort("atrValue")}
+                                class="sortable"
+                            >
+                                {$_("journal.table.atr")}
+                                <span class="sort-icon"
+                                    >{activeSort === "atrValue"
                                         ? activeDir === "asc"
                                             ? "↑"
                                             : "↓"
@@ -671,6 +705,27 @@
                                             : "-"}</td
                                     >
                                 {/if}
+                                {#if visibility.sl}
+                                    <td class="text-danger"
+                                        >{item.stopLossPrice &&
+                                        !item.stopLossPrice.isZero()
+                                            ? formatDynamicDecimal(
+                                                  item.stopLossPrice,
+                                                  4,
+                                              )
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if visibility.slAtr}
+                                    <td class="text-xs text-[var(--text-secondary)]">
+                                        {(() => {
+                                            if (!item.entryPrice || !item.stopLossPrice || !item.atrValue || item.atrValue.isZero()) return "-";
+                                            const dist = item.entryPrice.minus(item.stopLossPrice).abs();
+                                            const mult = dist.div(item.atrValue);
+                                            return mult.toFixed(2) + "x";
+                                        })()}
+                                    </td>
+                                {/if}
                                 {#if visibility.atr}
                                     <td
                                         class="text-xs text-[var(--text-secondary)]"
@@ -678,17 +733,6 @@
                                         item.atrValue !== null
                                             ? formatDynamicDecimal(
                                                   item.atrValue,
-                                                  4,
-                                              )
-                                            : "-"}</td
-                                    >
-                                {/if}
-                                {#if visibility.sl}
-                                    <td class="text-danger"
-                                        >{item.stopLossPrice &&
-                                        !item.stopLossPrice.isZero()
-                                            ? formatDynamicDecimal(
-                                                  item.stopLossPrice,
                                                   4,
                                               )
                                             : "-"}</td

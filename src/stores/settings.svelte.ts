@@ -250,6 +250,7 @@ export interface Settings {
   maxTechnicalsHistory: number; // Max klines to keep in memory
   enableIndicatorOptimization: boolean; // Only calculate enabled indicators
   chartHistoryLimit: number; // Max candles to load on chart (200-20000)
+  repairTimeframe: string; // Timeframe used for ATR/MFE/MAE repair (default: 15m)
 
   // Individual Indicator Toggles
   enabledIndicators: {
@@ -438,6 +439,7 @@ const defaultSettings: Settings = {
   maxTechnicalsHistory: 750,
   enableIndicatorOptimization: true,
   chartHistoryLimit: 20000,
+  repairTimeframe: "15m",
 
   // Core indicators enabled by default
   enabledIndicators: {
@@ -725,6 +727,7 @@ export class SettingsManager {
   maxTechnicalsHistory = $state<number>(defaultSettings.maxTechnicalsHistory);
   enableIndicatorOptimization = $state<boolean>(defaultSettings.enableIndicatorOptimization);
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
+  repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
   enabledIndicators = $state(defaultSettings.enabledIndicators);
 
   get marketMode() {
@@ -1098,6 +1101,15 @@ export class SettingsManager {
       this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
       this.marketCacheSize = merged.marketCacheSize ?? defaultSettings.marketCacheSize;
 
+      this.technicalsUpdateMode = merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
+      this.technicalsUpdateInterval = merged.technicalsUpdateInterval;
+      this.technicalsCacheSize = merged.technicalsCacheSize ?? defaultSettings.technicalsCacheSize;
+      this.technicalsCacheTTL = merged.technicalsCacheTTL ?? defaultSettings.technicalsCacheTTL;
+      this.maxTechnicalsHistory = merged.maxTechnicalsHistory ?? defaultSettings.maxTechnicalsHistory;
+      this.enableIndicatorOptimization = merged.enableIndicatorOptimization ?? defaultSettings.enableIndicatorOptimization;
+      this.chartHistoryLimit = merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
+      this.repairTimeframe = merged.repairTimeframe || defaultSettings.repairTimeframe;
+
       // Burning Borders Persistence
       this.enableBurningBorders = merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
       this.borderEffect = merged.borderEffect ?? defaultSettings.borderEffect;
@@ -1301,6 +1313,7 @@ export class SettingsManager {
       maxTechnicalsHistory: this.maxTechnicalsHistory,
       enableIndicatorOptimization: this.enableIndicatorOptimization,
       chartHistoryLimit: this.chartHistoryLimit,
+      repairTimeframe: this.repairTimeframe,
       enabledIndicators: $state.snapshot(this.enabledIndicators),
     };
   }

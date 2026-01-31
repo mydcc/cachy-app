@@ -883,6 +883,8 @@
       "scanning": "Scanning...",
       "repair": "Repair",
       "correct": "Correct",
+      "repairTimeframe": "Calculation Timeframe",
+      "repairTimeframeDesc": "Timeframe used for historical data (ATR/MFE/MAE).",
       "atrTitle": "Volatility Matrix (ATR)",
       "atrDesc": "Checks for trades without ATR value and fetches it automatically.",
       "mfeMaeTitle": "Execution Metrics (MFE/MAE)",

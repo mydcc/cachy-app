@@ -23,6 +23,7 @@
     import CalculationSettings from "../CalculationSettings.svelte";
     import CalculationDashboard from "../../shared/CalculationDashboard.svelte";
     import PerformanceMonitor from "../../shared/PerformanceMonitor.svelte";
+    import DataMaintenance from "../DataMaintenance.svelte";
 
     let { onBackup, onRestore, onReset } = $props<{
         onBackup: () => void;
@@ -303,6 +304,10 @@
                             class="hidden"
                         />
                     </label>
+                </div>
+
+                <div class="mt-8">
+                    <DataMaintenance />
                 </div>
             </section>
         {/if}
