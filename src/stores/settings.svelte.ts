@@ -249,7 +249,7 @@ export interface Settings {
   technicalsCacheTTL: number; // Cache TTL in seconds
   maxTechnicalsHistory: number; // Max klines to keep in memory
   enableIndicatorOptimization: boolean; // Only calculate enabled indicators
-  chartHistoryLimit: number; // Max candles to load on chart (200-2000)
+  chartHistoryLimit: number; // Max candles to load on chart (200-20000)
 
   // Individual Indicator Toggles
   enabledIndicators: {
@@ -437,7 +437,7 @@ const defaultSettings: Settings = {
   technicalsCacheTTL: 60, // 1 minute
   maxTechnicalsHistory: 750,
   enableIndicatorOptimization: true,
-  chartHistoryLimit: 2000,
+  chartHistoryLimit: 20000,
 
   // Core indicators enabled by default
   enabledIndicators: {
