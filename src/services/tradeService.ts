@@ -25,10 +25,11 @@
 import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
+import { mapToOMSPosition } from "./mappers";
 import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
-import type { OMSPosition, OMSOrderSide } from "./omsTypes";
+import { PositionRawSchema, type PositionRaw } from "./apiSchemas";
+import type { OMSOrderSide } from "./omsTypes";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -258,64 +259,46 @@ class TradeService {
             const pendingResult = safeJsonParse(pendingText);
             if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
-            // VALIDATION with Zod
-            const rawPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
-            const validation = PositionListSchema.safeParse(rawPositions);
+            // Hardening: Best Effort Processing
+            // Instead of failing the entire batch via PositionListSchema, we validate per item.
+            const rawList = Array.isArray(pendingResult.data) ? pendingResult.data : [];
 
-            let pendingPositions: PositionRaw[] = [];
-
-            if (validation.success) {
-                pendingPositions = validation.data;
-            } else {
-                // HARDENING: FAIL FAST instead of Best Effort
-                // If the schema mismatch is severe, we must alert the user.
-                logger.error("market", "[TradeService] CRITICAL: API Schema mismatch for positions.", validation.error);
-                throw new TradeError("Data inconsistency detected. Please refresh or contact support.", "trade.dataError", validation.error);
+            if (rawList.length === 0) {
+                 // Nothing to process, but we might want to clear OMS positions if the API explicitly says "empty list"
+                 // Currently OMS sync is additive/update-based. Full clearing is handled by specialized logic if needed.
             }
 
-            // Map and Update OMS using robust mapper
-            pendingPositions.forEach((p: PositionRaw) => {
-                omsService.updatePosition(this.mapPosition(p));
-            });
+            let validCount = 0;
+            let errorCount = 0;
+
+            for (const item of rawList) {
+                // Per-item validation
+                const validation = PositionRawSchema.safeParse(item);
+
+                if (validation.success) {
+                    try {
+                        // Use centralized mapper
+                        omsService.updatePosition(mapToOMSPosition(validation.data));
+                        validCount++;
+                    } catch (mapError) {
+                         logger.warn("market", "[TradeService] Mapping error for position", mapError);
+                         errorCount++;
+                    }
+                } else {
+                    // Log but don't crash
+                    logger.warn("market", "[TradeService] Invalid position schema skipped", { item, error: validation.error });
+                    errorCount++;
+                }
+            }
+
+            if (errorCount > 0) {
+                logger.warn("market", `[TradeService] Sync completed with ${errorCount} skipped invalid items.`);
+            }
 
         } catch (e) {
             logger.error("market", "[TradeService] Failed to fetch open positions", e);
             throw e;
         }
-    }
-
-    private mapPosition(raw: PositionRaw): OMSPosition {
-        // Side logic
-        let side: "long" | "short" = "long";
-        const rawSide = (raw.side || raw.positionSide || raw.holdSide || "").toLowerCase();
-        if (rawSide.includes("sell") || rawSide.includes("short")) side = "short";
-
-        // Amount logic
-        const amount = new Decimal(raw.qty || raw.size || raw.amount || 0);
-
-        // Price
-        const entryPrice = new Decimal(raw.avgOpenPrice || raw.entryPrice || 0);
-        const upnl = new Decimal(raw.unrealizedPNL || raw.unrealizedPnl || 0);
-        const lev = new Decimal(raw.leverage || 0);
-        const liq = raw.liquidationPrice || raw.liqPrice ? new Decimal(raw.liquidationPrice || raw.liqPrice!) : undefined;
-
-        // Populate optional fields for UI
-        return {
-            symbol: raw.symbol,
-            side,
-            amount,
-            entryPrice,
-            unrealizedPnl: upnl,
-            leverage: lev,
-            marginMode: (raw.marginMode || "cross").toLowerCase() as "cross" | "isolated",
-            liquidationPrice: liq,
-            // Add extra fields if available in raw, mapped to Decimal
-            margin: new Decimal(0), // Placeholder, would need raw field if available
-            markPrice: new Decimal(0), // Placeholder
-            size: amount
-        };
-
-
     }
 
     public async cancelAllOrders(symbol: string) {

@@ -802,6 +802,9 @@
       "range": "Range",
       "noSignals": "No divergences detected"
     },
+    "candlestickPatterns": {
+      "title": "Candlestick Patterns"
+    },
     "imgbbPermanent": "Permanent (No Auto-Delete)",
     "imgbb10m": "10 Minutes",
     "imgbb1h": "1 Hour",
