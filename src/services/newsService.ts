@@ -455,13 +455,26 @@ export const newsService = {
           resultText = data.result;
         }
 
-        if (!resultText) return null;
-        const analysis: SentimentAnalysis = JSON.parse(
-          resultText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim(),
-        );
+        // Call Backend to keep keys secure (or use server env keys if user provided none)
+        const response = await fetch("/api/sentiment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            headlines,
+            provider: aiProvider,
+            model,
+            apiKey: apiKey || undefined
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Sentiment Analysis failed: ${response.status} ${response.statusText}`);
+        }
+
+        const json = await response.json();
+        if (json.error) throw new Error(json.error);
+
+        const analysis: SentimentAnalysis = json.analysis;
 
         // IDB Write - use newsHash as key
         await dbService.put("sentiment", {

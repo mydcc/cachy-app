@@ -27,7 +27,7 @@ import { logger } from "./logger";
 import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import { Decimal } from "decimal.js";
-import type { OMSPosition, OMSOrder, OMSOrderStatus } from "./omsTypes";
+import { mapToOMSOrder, mapToOMSPosition } from "./mappers";
 import type {
   BitunixWSMessage,
   BitunixPriceData,
@@ -56,55 +56,6 @@ const CONNECTION_TIMEOUT_MS = 3000;
 interface Subscription {
   symbol: string;
   channel: string;
-}
-
-function mapToOMSPosition(data: any): OMSPosition {
-  const isClose = data.event === "CLOSE";
-  const amount = isClose ? new Decimal(0) : new Decimal(data.qty || 0);
-
-  return {
-    symbol: data.symbol,
-    side: (data.side || "").toLowerCase() as "long" | "short",
-    amount: amount,
-    entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
-    unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-    leverage: new Decimal(data.leverage || 0),
-    marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
-    liquidationPrice: data.liquidationPrice
-      ? new Decimal(data.liquidationPrice)
-      : undefined,
-  };
-}
-
-function mapToOMSOrder(data: any): OMSOrder {
-  // Hardening: Detect numeric IDs which imply precision loss
-  if (typeof data.orderId === 'number') {
-    logger.warn("network", `[BitunixWS] CRITICAL: orderId is number! Precision loss imminent: ${data.orderId}`);
-  }
-
-  const statusMap: Record<string, OMSOrderStatus> = {
-    NEW: "pending",
-    PARTIALLY_FILLED: "pending",
-    FILLED: "filled",
-    CANCELED: "cancelled",
-    CANCELLED: "cancelled",
-    REJECTED: "rejected",
-    EXPIRED: "expired",
-  };
-
-  const status = statusMap[data.orderStatus] || "pending";
-
-  return {
-    id: String(data.orderId),
-    symbol: data.symbol,
-    side: (data.side || "").toLowerCase() as "buy" | "sell",
-    type: (data.type || "").toLowerCase() as "limit" | "market",
-    status: status,
-    price: new Decimal(data.price || 0),
-    amount: new Decimal(data.qty || data.amount || 0),
-    filledAmount: new Decimal(data.dealAmount || 0),
-    timestamp: Number(data.ctime || Date.now()),
-  };
 }
 
 class BitunixWebSocketService {

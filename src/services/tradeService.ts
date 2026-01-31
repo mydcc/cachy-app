@@ -29,6 +29,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionListSchema, PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSPosition, OMSOrderSide } from "./omsTypes";
+import { mapToOMSPosition } from "./mappers";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -302,7 +303,7 @@ class TradeService {
 
             // Map and Update OMS using robust mapper
             pendingPositions.forEach((p: PositionRaw) => {
-                omsService.updatePosition(this.mapPosition(p));
+                omsService.updatePosition(mapToOMSPosition(p));
             });
 
         } catch (e) {
