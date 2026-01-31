@@ -336,7 +336,8 @@ export class MarketManager {
     // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
     // If source is REST, we must NEVER overwrite the latest live candle (Head)
     // because REST snapshots lag behind the WebSocket stream.
-    if (source === "rest" && history.length > 0) {
+    // EXCEPTION: If WebSocket is disconnected, we MUST accept REST updates for the live candle.
+    if (source === "rest" && history.length > 0 && this.connectionStatus === "connected") {
       const lastKnownTime = history[history.length - 1].time;
       // Filter out any incoming REST candle that matches the current live candle's time
       newKlines = newKlines.filter(k => k.time !== lastKnownTime);
