@@ -189,6 +189,67 @@ class TechnicalsWorkerManager {
 
 const workerManager = new TechnicalsWorkerManager();
 
+function getRelevantSettings(settings: any, enabledIndicators?: Partial<Record<string, boolean>>): any {
+  if (!settings) return undefined;
+  if (!enabledIndicators) return settings;
+
+  const normalizedEnabled: Record<string, boolean> = {};
+  Object.entries(enabledIndicators).forEach(([k, v]) => {
+    if (v !== undefined) {
+      normalizedEnabled[k.toLowerCase()] = v;
+    }
+  });
+
+  const hasAllowList = Object.values(normalizedEnabled).some((v) => v === true);
+
+  const isEnabled = (name: string) => {
+    const key = name.toLowerCase();
+    if (hasAllowList) return normalizedEnabled[key] === true;
+    return normalizedEnabled[key] !== false;
+  };
+
+  const relevant: any = {};
+  // Always include globals
+  relevant.historyLimit = settings.historyLimit;
+  relevant.precision = settings.precision;
+
+  // Map indicator names to settings keys
+  const map: Record<string, string> = {
+    'rsi': 'rsi',
+    'stochastic': 'stochastic',
+    'cci': 'cci',
+    'adx': 'adx',
+    'ao': 'ao',
+    'macd': 'macd',
+    'stochrsi': 'stochRsi',
+    'williamsr': 'williamsR',
+    'supertrend': 'superTrend',
+    'atrtrailingstop': 'atrTrailingStop',
+    'obv': 'obv',
+    'volumeprofile': 'volumeProfile',
+    'vwap': 'vwap',
+    'parabolicsar': 'parabolicSar',
+    'mfi': 'mfi',
+    'choppiness': 'choppiness',
+    'ichimoku': 'ichimoku',
+    'ema': 'ema',
+    'pivots': 'pivots',
+    'atr': 'atr',
+    'bb': 'bb',
+    'momentum': 'momentum',
+    'volumema': 'volumeMa',
+    'bollingerbands': 'bollingerBands'
+  };
+
+  Object.entries(map).forEach(([indName, settingKey]) => {
+    if (isEnabled(indName)) {
+      relevant[settingKey] = settings[settingKey];
+    }
+  });
+
+  return relevant;
+}
+
 export const technicalsService = {
   async calculateTechnicals(
     klinesInput: {
@@ -210,7 +271,11 @@ export const technicalsService = {
     // 0. Cache Check - Include enabled indicators in cache key
     const lastKline = klinesInput[klinesInput.length - 1];
     const lastPrice = lastKline.close?.toString() || "0";
-    const settingsJson = JSON.stringify(settings);
+
+    // Optimize: Only include relevant settings in cache key
+    const relevantSettings = getRelevantSettings(settings, enabledIndicators);
+    const settingsJson = JSON.stringify(relevantSettings);
+
     const indicatorsHash = enabledIndicators
       ? Object.entries(enabledIndicators)
         .filter(([_, enabled]) => enabled)
@@ -315,7 +380,10 @@ export const technicalsService = {
     // 1. Cache check first (same as async version)
     const lastKline = klinesInput[klinesInput.length - 1];
     const lastPrice = lastKline.close?.toString() || "0";
-    const settingsJson = JSON.stringify(settings);
+
+    const relevantSettings = getRelevantSettings(settings, enabledIndicators);
+    const settingsJson = JSON.stringify(relevantSettings);
+
     const indicatorsHash = enabledIndicators
       ? Object.entries(enabledIndicators)
         .filter(([_, enabled]) => enabled)

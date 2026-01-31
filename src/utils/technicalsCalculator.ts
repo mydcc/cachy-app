@@ -79,9 +79,30 @@ export function calculateIndicatorsFromArrays(
 ): TechnicalsData {
   const currentPrice = new Decimal(closesNum[closesNum.length - 1]);
 
+  // Normalize enabledIndicators keys to lowercase
+  const normalizedEnabled: Record<string, boolean> = {};
+  if (enabledIndicators) {
+    Object.entries(enabledIndicators).forEach(([k, v]) => {
+      if (v !== undefined) {
+        normalizedEnabled[k.toLowerCase()] = v;
+      }
+    });
+  }
+
+  // Determine filtering mode:
+  // If ANY key is explicitly true -> Allowlist mode (only calc enabled)
+  // Else -> Blocklist mode (calc all except disabled)
+  const hasAllowList = Object.values(normalizedEnabled).some((v) => v === true);
+
   // Helper to check if indicator should be calculated
-  const shouldCalculate = (name: string) =>
-    !enabledIndicators || enabledIndicators[name] !== false;
+  const shouldCalculate = (name: string) => {
+    if (!enabledIndicators) return true;
+    const key = name.toLowerCase();
+    if (hasAllowList) {
+      return normalizedEnabled[key] === true;
+    }
+    return normalizedEnabled[key] !== false;
+  };
 
   // Helper to get source array based on config
   const getSource = (sourceType: string): number[] | Float64Array => {
@@ -259,50 +280,54 @@ export function calculateIndicatorsFromArrays(
     }
 
     // 7. StochRSI (NEW)
-    const stochRsiK = settings?.stochRsi?.kPeriod || 3;
-    const stochRsiD = settings?.stochRsi?.dPeriod || 3;
-    const stochRsiLen = settings?.stochRsi?.length || 14;
-    const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
-    const stochRsiSmooth = 1; // Not yet in settings, assume 1
+    if (shouldCalculate('stochrsi')) {
+        const stochRsiK = settings?.stochRsi?.kPeriod || 3;
+        const stochRsiD = settings?.stochRsi?.dPeriod || 3;
+        const stochRsiLen = settings?.stochRsi?.length || 14;
+        const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
+        const stochRsiSmooth = 1; // Not yet in settings, assume 1
 
-    const srRes = JSIndicators.stochRsi(
-      closesNum,
-      stochRsiRsiLen,
-      stochRsiK,
-      stochRsiD,
-      stochRsiSmooth,
-    );
-    const srK = new Decimal(srRes.k[srRes.k.length - 1]);
-    const srD = new Decimal(srRes.d[srRes.d.length - 1]);
+        const srRes = JSIndicators.stochRsi(
+        closesNum,
+        stochRsiRsiLen,
+        stochRsiK,
+        stochRsiD,
+        stochRsiSmooth,
+        );
+        const srK = new Decimal(srRes.k[srRes.k.length - 1]);
+        const srD = new Decimal(srRes.d[srRes.d.length - 1]);
 
-    let srAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-    // StochRSI logic similar to Stoch but more sensitive
-    if (srK.lt(20) && srD.lt(20) && srK.gt(srD)) srAction = "Buy";
-    else if (srK.gt(80) && srD.gt(80) && srK.lt(srD)) srAction = "Sell";
+        let srAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+        // StochRSI logic similar to Stoch but more sensitive
+        if (srK.lt(20) && srD.lt(20) && srK.gt(srD)) srAction = "Buy";
+        else if (srK.gt(80) && srD.gt(80) && srK.lt(srD)) srAction = "Sell";
 
-    oscillators.push({
-      name: "StochRSI",
-      value: srK,
-      signal: srD,
-      params: `${stochRsiRsiLen}, ${stochRsiK}, ${stochRsiD}`,
-      action: srAction,
-    });
+        oscillators.push({
+        name: "StochRSI",
+        value: srK,
+        signal: srD,
+        params: `${stochRsiRsiLen}, ${stochRsiK}, ${stochRsiD}`,
+        action: srAction,
+        });
+    }
 
     // 8. Williams %R (NEW)
-    const wRLen = settings?.williamsR?.length || 14;
-    const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
-    const wRVal = new Decimal(wR[wR.length - 1]);
-    // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
-    let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-    if (wRVal.lt(-80)) wRAction = "Buy";
-    else if (wRVal.gt(-20)) wRAction = "Sell";
+    if (shouldCalculate('williamsr')) {
+        const wRLen = settings?.williamsR?.length || 14;
+        const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
+        const wRVal = new Decimal(wR[wR.length - 1]);
+        // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
+        let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+        if (wRVal.lt(-80)) wRAction = "Buy";
+        else if (wRVal.gt(-20)) wRAction = "Sell";
 
-    oscillators.push({
-      name: "Will %R",
-      value: wRVal,
-      params: wRLen.toString(),
-      action: wRAction,
-    });
+        oscillators.push({
+        name: "Will %R",
+        value: wRVal,
+        params: wRLen.toString(),
+        action: wRAction,
+        });
+    }
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error("Error calculating oscillators:", error);
@@ -312,15 +337,16 @@ export function calculateIndicatorsFromArrays(
   // --- Divergences Scan ---
   try {
     // Scanners: RSI, MACD, CCI, StochK
+    // We only scan for what we calculated
     const scanList = [
       { name: "RSI", data: indSeries["RSI"] },
       { name: "MACD", data: indSeries["MACD"] },
       { name: "CCI", data: indSeries["CCI"] },
       { name: "Stoch", data: indSeries["StochK"] },
-    ];
+    ].filter(i => !!i.data);
 
+    // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)
     scanList.forEach((item) => {
-      if (!item.data) return;
       const results = DivergenceScanner.scan(
         highsNum,
         lowsNum,
@@ -351,146 +377,163 @@ export function calculateIndicatorsFromArrays(
   let advancedInfo: TechnicalsData["advanced"] = {};
   try {
     // Phase 5: Pro Indicators Calculations
-    const stResult = JSIndicators.superTrend(
-      highsNum,
-      lowsNum,
-      closesNum,
-      settings?.superTrend?.period || 10,
-      settings?.superTrend?.factor || 3,
-    );
-    const atrTsResult = JSIndicators.atrTrailingStop(
-      highsNum,
-      lowsNum,
-      closesNum,
-      settings?.atrTrailingStop?.period || 14,
-      settings?.atrTrailingStop?.multiplier || 3.5,
-    );
-    const obvResult = JSIndicators.obv(closesNum, volumesNum);
+    if (shouldCalculate('supertrend')) {
+        const stResult = JSIndicators.superTrend(
+        highsNum,
+        lowsNum,
+        closesNum,
+        settings?.superTrend?.period || 10,
+        settings?.superTrend?.factor || 3,
+        );
+        advancedInfo.superTrend = {
+            value: new Decimal(stResult.value[stResult.value.length - 1]),
+            trend: stResult.trend[stResult.trend.length - 1] === 1 ? "bull" : "bear",
+        };
+    }
 
-    const vpResult = JSIndicators.volumeProfile(
-      highsNum,
-      lowsNum,
-      closesNum,
-      volumesNum,
-      settings?.volumeProfile?.rows || 24,
-    );
+    if (shouldCalculate('atrtrailingstop')) {
+        const atrTsResult = JSIndicators.atrTrailingStop(
+        highsNum,
+        lowsNum,
+        closesNum,
+        settings?.atrTrailingStop?.period || 14,
+        settings?.atrTrailingStop?.multiplier || 3.5,
+        );
+        advancedInfo.atrTrailingStop = {
+            buy: new Decimal(atrTsResult.buyStop[atrTsResult.buyStop.length - 1]),
+            sell: new Decimal(atrTsResult.sellStop[atrTsResult.sellStop.length - 1]),
+        };
+    }
+
+    if (shouldCalculate('obv')) {
+        const obvResult = JSIndicators.obv(closesNum, volumesNum);
+        advancedInfo.obv = new Decimal(obvResult[obvResult.length - 1]);
+    }
+
+    if (shouldCalculate('volumeprofile')) {
+        const vpResult = JSIndicators.volumeProfile(
+        highsNum,
+        lowsNum,
+        closesNum,
+        volumesNum,
+        settings?.volumeProfile?.rows || 24,
+        );
+        if (vpResult) {
+            advancedInfo.volumeProfile = {
+                poc: new Decimal(vpResult.poc),
+                vaHigh: new Decimal(vpResult.vaHigh),
+                vaLow: new Decimal(vpResult.vaLow),
+                rows: vpResult.rows.map((r) => ({
+                priceStart: new Decimal(r.priceStart),
+                priceEnd: new Decimal(r.priceEnd),
+                volume: new Decimal(r.volume),
+                })),
+            };
+        }
+    }
 
     // VWAP
-    const vwapSeries = JSIndicators.vwap(
-      highsNum,
-      lowsNum,
-      closesNum,
-      volumesNum,
-      timesNum,
-      {
-        mode: (settings?.vwap as any)?.anchor || "session",
-        anchorPoint: (settings?.vwap as any)?.anchorPoint
-      }
-    );
-    advancedInfo.vwap = new Decimal(vwapSeries[vwapSeries.length - 1]);
+    if (shouldCalculate('vwap')) {
+        const vwapSeries = JSIndicators.vwap(
+        highsNum,
+        lowsNum,
+        closesNum,
+        volumesNum,
+        timesNum,
+        {
+            mode: (settings?.vwap as any)?.anchor || "session",
+            anchorPoint: (settings?.vwap as any)?.anchorPoint
+        }
+        );
+        advancedInfo.vwap = new Decimal(vwapSeries[vwapSeries.length - 1]);
+    }
 
     // Parabolic SAR
-    const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
-    const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
-    const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
-    advancedInfo.parabolicSar = new Decimal(psarSeries[psarSeries.length - 1]);
+    if (shouldCalculate('parabolicsar')) {
+        const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
+        const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
+        const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
+        advancedInfo.parabolicSar = new Decimal(psarSeries[psarSeries.length - 1]);
+    }
 
     // MFI
-    const mfiLen = settings?.mfi?.length || 14;
-    const mfiSeries = JSIndicators.mfi(
-      highsNum,
-      lowsNum,
-      closesNum,
-      volumesNum,
-      mfiLen,
-    );
-    const mfiVal = new Decimal(mfiSeries[mfiSeries.length - 1]);
-    let mfiAction = "Neutral";
-    if (mfiVal.gt(80))
-      mfiAction = "Sell"; // Overbought
-    else if (mfiVal.lt(20)) mfiAction = "Buy"; // Oversold
-    advancedInfo.mfi = { value: mfiVal, action: mfiAction };
+    if (shouldCalculate('mfi')) {
+        const mfiLen = settings?.mfi?.length || 14;
+        const mfiSeries = JSIndicators.mfi(
+        highsNum,
+        lowsNum,
+        closesNum,
+        volumesNum,
+        mfiLen,
+        );
+        const mfiVal = new Decimal(mfiSeries[mfiSeries.length - 1]);
+        let mfiAction = "Neutral";
+        if (mfiVal.gt(80))
+        mfiAction = "Sell"; // Overbought
+        else if (mfiVal.lt(20)) mfiAction = "Buy"; // Oversold
+        advancedInfo.mfi = { value: mfiVal, action: mfiAction };
+    }
 
     // Choppiness
-    const chopLen = settings?.choppiness?.length || 14;
-    const chopSeries = JSIndicators.choppiness(
-      highsNum,
-      lowsNum,
-      closesNum,
-      chopLen,
-    );
-    const chopVal = new Decimal(chopSeries[chopSeries.length - 1]);
-    // > 61.8 = Consolidation/Chop, < 38.2 = Trending
-    advancedInfo.choppiness = {
-      value: chopVal,
-      state: chopVal.gt(61.8) ? "Range" : chopVal.lt(38.2) ? "Trend" : "Range",
-    };
+    if (shouldCalculate('choppiness')) {
+        const chopLen = settings?.choppiness?.length || 14;
+        const chopSeries = JSIndicators.choppiness(
+        highsNum,
+        lowsNum,
+        closesNum,
+        chopLen,
+        );
+        const chopVal = new Decimal(chopSeries[chopSeries.length - 1]);
+        // > 61.8 = Consolidation/Chop, < 38.2 = Trending
+        advancedInfo.choppiness = {
+        value: chopVal,
+        state: chopVal.gt(61.8) ? "Range" : chopVal.lt(38.2) ? "Trend" : "Range",
+        };
+    }
 
     // Ichimoku
-    const ichiConv = settings?.ichimoku?.conversionPeriod || 9;
-    const ichiBase = settings?.ichimoku?.basePeriod || 26;
-    const ichiSpanB = settings?.ichimoku?.spanBPeriod || 52;
-    const ichiDisp = settings?.ichimoku?.displacement || 26;
+    if (shouldCalculate('ichimoku')) {
+        const ichiConv = settings?.ichimoku?.conversionPeriod || 9;
+        const ichiBase = settings?.ichimoku?.basePeriod || 26;
+        const ichiSpanB = settings?.ichimoku?.spanBPeriod || 52;
+        const ichiDisp = settings?.ichimoku?.displacement || 26;
 
-    const ichi = JSIndicators.ichimoku(
-      highsNum,
-      lowsNum,
-      ichiConv,
-      ichiBase,
-      ichiSpanB,
-      ichiDisp,
-    );
-    const idx = ichi.conversion.length - 1;
-    const conv = new Decimal(ichi.conversion[idx] || 0); // Guard against empty
-    const base = new Decimal(ichi.base[idx] || 0);
-    const spanA = new Decimal(ichi.spanA[idx] || 0);
-    const spanB = new Decimal(ichi.spanB[idx] || 0);
+        const ichi = JSIndicators.ichimoku(
+        highsNum,
+        lowsNum,
+        ichiConv,
+        ichiBase,
+        ichiSpanB,
+        ichiDisp,
+        );
+        const idx = ichi.conversion.length - 1;
+        const conv = new Decimal(ichi.conversion[idx] || 0); // Guard against empty
+        const base = new Decimal(ichi.base[idx] || 0);
+        const spanA = new Decimal(ichi.spanA[idx] || 0);
+        const spanB = new Decimal(ichi.spanB[idx] || 0);
 
-    // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
-    // Price < Cloud && Conv < Base = Sell
-    let ichiAction = "Neutral";
-    const cloudTop = spanA.gt(spanB) ? spanA : spanB;
-    const cloudBottom = spanA.lt(spanB) ? spanA : spanB;
+        // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
+        // Price < Cloud && Conv < Base = Sell
+        let ichiAction = "Neutral";
+        const cloudTop = spanA.gt(spanB) ? spanA : spanB;
+        const cloudBottom = spanA.lt(spanB) ? spanA : spanB;
 
-    if (currentPrice.gt(cloudTop) && conv.gt(base)) ichiAction = "Buy";
-    else if (
-      currentPrice.gt(cloudTop) &&
-      conv.gt(base) &&
-      currentPrice.gt(base)
-    )
-      ichiAction = "Strong Buy";
-    else if (currentPrice.lt(cloudBottom) && conv.lt(base)) ichiAction = "Sell";
+        if (currentPrice.gt(cloudTop) && conv.gt(base)) ichiAction = "Buy";
+        else if (
+        currentPrice.gt(cloudTop) &&
+        conv.gt(base) &&
+        currentPrice.gt(base)
+        )
+        ichiAction = "Strong Buy";
+        else if (currentPrice.lt(cloudBottom) && conv.lt(base)) ichiAction = "Sell";
 
-    advancedInfo.ichimoku = {
-      conversion: conv,
-      base: base,
-      spanA: spanA,
-      spanB: spanB,
-      action: ichiAction,
-    };
-
-    // Phase 5 Assignments
-    advancedInfo.superTrend = {
-      value: new Decimal(stResult.value[stResult.value.length - 1]),
-      trend: stResult.trend[stResult.trend.length - 1] === 1 ? "bull" : "bear",
-    };
-    advancedInfo.atrTrailingStop = {
-      buy: new Decimal(atrTsResult.buyStop[atrTsResult.buyStop.length - 1]),
-      sell: new Decimal(atrTsResult.sellStop[atrTsResult.sellStop.length - 1]),
-    };
-    advancedInfo.obv = new Decimal(obvResult[obvResult.length - 1]);
-
-    if (vpResult) {
-      advancedInfo.volumeProfile = {
-        poc: new Decimal(vpResult.poc),
-        vaHigh: new Decimal(vpResult.vaHigh),
-        vaLow: new Decimal(vpResult.vaLow),
-        rows: vpResult.rows.map((r) => ({
-          priceStart: new Decimal(r.priceStart),
-          priceEnd: new Decimal(r.priceEnd),
-          volume: new Decimal(r.volume),
-        })),
-      };
+        advancedInfo.ichimoku = {
+        conversion: conv,
+        base: base,
+        spanA: spanA,
+        spanB: spanB,
+        action: ichiAction,
+        };
     }
   } catch (e) {
     if (import.meta.env.DEV) {
@@ -501,21 +544,25 @@ export function calculateIndicatorsFromArrays(
   // --- Moving Averages ---
   const movingAverages: IndicatorResult[] = [];
   try {
-    const ema1 = settings?.ema?.ema1?.length || 20;
-    const ema2 = settings?.ema?.ema2?.length || 50;
-    const ema3 = settings?.ema?.ema3?.length || 200;
-    const emaSource = getSource(settings?.ema?.source || "close");
+    if (shouldCalculate('ema')) {
+        const ema1 = settings?.ema?.ema1?.length || 20;
+        const ema2 = settings?.ema?.ema2?.length || 50;
+        const ema3 = settings?.ema?.ema3?.length || 200;
+        const emaSource = getSource(settings?.ema?.source || "close");
 
-    const emaPeriods = [ema1, ema2, ema3];
-    for (const period of emaPeriods) {
-      const emaResults = JSIndicators.ema(emaSource, period);
-      const emaVal = new Decimal(emaResults[emaResults.length - 1]);
-      movingAverages.push({
-        name: "EMA",
-        params: `${period}`,
-        value: emaVal,
-        action: currentPrice.gt(emaVal) ? "Buy" : "Sell",
-      });
+        const emaPeriods = [ema1, ema2, ema3];
+        for (const period of emaPeriods) {
+        const emaResults = JSIndicators.ema(emaSource, period);
+        const rawVal = emaResults[emaResults.length - 1];
+        // Handle insufficient data (NaN) by defaulting to 0, matching legacy behavior expectation
+        const emaVal = (typeof rawVal === 'number' && !isNaN(rawVal)) ? new Decimal(rawVal) : new Decimal(0);
+        movingAverages.push({
+            name: "EMA",
+            params: `${period}`,
+            value: emaVal,
+            action: currentPrice.gt(emaVal) ? "Buy" : "Sell",
+        });
+        }
     }
   } catch (error) {
     if (import.meta.env.DEV) {
@@ -529,7 +576,12 @@ export function calculateIndicatorsFromArrays(
   // Need previous completed candle (index length - 2)
   const prevIdx = closesNum.length - 2;
   let pivotData;
-  if (prevIdx >= 0) {
+  // Calculate pivots if allowed OR if we need basic pivotBasis anyway?
+  // The 'pivotBasis' (open/high/low/close) is just the kline data, we probably always want that if requested?
+  // But typically pivots object is the heavy part.
+
+  // Note: getEmptyData returns dummy pivots.
+  if (prevIdx >= 0 && shouldCalculate('pivots')) {
     pivotData = calculatePivotsFromValues(
       highsNum[prevIdx],
       lowsNum[prevIdx],
@@ -538,40 +590,51 @@ export function calculateIndicatorsFromArrays(
       pivotType
     );
   } else {
-    // Check if we can get empty data easily or just use calculator logic helper
-    // Reuse logic from getEmptyData basically
+    // Return empty/placeholder if disabled or not enough data
     pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
   }
 
   // --- Volatility ---
   let volatility = undefined;
   try {
-    const atrLen = settings?.atr?.length || 14;
-    const bbLen = settings?.bb?.length || 20;
-    const bbStdDev = settings?.bb?.stdDev || 2;
+    if (shouldCalculate('atr') || shouldCalculate('bb')) {
+        const atrLen = settings?.atr?.length || 14;
+        const bbLen = settings?.bb?.length || 20;
+        const bbStdDev = settings?.bb?.stdDev || 2;
 
-    const atrResults = JSIndicators.atr(highsNum, lowsNum, closesNum, atrLen);
-    const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev);
+        // We might want to separate ATR and BB calc if one is disabled
+        // But for now grouping them under "volatility" section is common usage in return type
 
-    const currentAtr = new Decimal(atrResults[atrResults.length - 1]);
-    const bbUpper = new Decimal(bbResults.upper[bbResults.upper.length - 1]);
-    const bbLower = new Decimal(bbResults.lower[bbResults.lower.length - 1]);
-    const bbMiddle = new Decimal(bbResults.middle[bbResults.middle.length - 1]);
+        let currentAtr = new Decimal(0);
+        if (shouldCalculate('atr')) {
+            const atrResults = JSIndicators.atr(highsNum, lowsNum, closesNum, atrLen);
+            currentAtr = new Decimal(atrResults[atrResults.length - 1]);
+        }
 
-    const range = bbUpper.minus(bbLower);
-    const percentP = range.isZero()
-      ? new Decimal(0.5)
-      : currentPrice.minus(bbLower).div(range);
+        let bbUpper = new Decimal(0), bbLower = new Decimal(0), bbMiddle = new Decimal(0), percentP = new Decimal(0);
 
-    volatility = {
-      atr: currentAtr,
-      bb: {
-        upper: bbUpper,
-        middle: bbMiddle,
-        lower: bbLower,
-        percentP: percentP,
-      },
-    };
+        if (shouldCalculate('bb')) {
+            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev);
+            bbUpper = new Decimal(bbResults.upper[bbResults.upper.length - 1]);
+            bbLower = new Decimal(bbResults.lower[bbResults.lower.length - 1]);
+            bbMiddle = new Decimal(bbResults.middle[bbResults.middle.length - 1]);
+
+            const range = bbUpper.minus(bbLower);
+            percentP = range.isZero()
+            ? new Decimal(0.5)
+            : currentPrice.minus(bbLower).div(range);
+        }
+
+        volatility = {
+            atr: currentAtr,
+            bb: {
+                upper: bbUpper,
+                middle: bbMiddle,
+                lower: bbLower,
+                percentP: percentP,
+            },
+        };
+    }
   } catch (e) {
     if (import.meta.env.DEV) {
       console.error("Volatility calculation error:", e);
