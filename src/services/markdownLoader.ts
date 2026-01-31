@@ -66,24 +66,42 @@ export async function loadInstruction(
     | "guide"
     | "privacy"
     | "whitepaper",
+  lang?: string
 ): Promise<InstructionContent> {
-  const currentLocale = get(locale);
-  const filePath = `/instructions/${name}.${currentLocale}.md`;
+  const currentLocale = lang || get(locale);
+  // Path relative to project root for module lookup
+  const relativePath = `/src/lib/assets/content/${name}.${currentLocale}.md`;
 
   try {
     // Dynamically import the markdown file content
     // Vite/SvelteKit handles this import.meta.glob for static assets
-    const modules = import.meta.glob("/src/instructions/*.md", {
+    const modules = import.meta.glob("/src/lib/assets/content/*.md", {
       query: "?raw",
       import: "default",
     });
-    const modulePath = `/src${filePath}`;
 
-    if (!modules[modulePath]) {
-      throw new Error("markdownErrors.fileNotFound");
+    // In import.meta.glob, keys are exactly as the pattern matches or relative.
+    // Usually with leading slash if absolute path provided.
+    // Let's rely on the exact string.
+
+    if (!modules[relativePath]) {
+        // Fallback or specific error handling if file doesn't exist for locale
+        console.warn(`Markdown file not found: ${relativePath}`);
+        if (currentLocale !== 'en') {
+             // Try fallback to 'en'
+             const fallbackPath = `/src/lib/assets/content/${name}.en.md`;
+             if (modules[fallbackPath]) {
+                 const content = (await modules[fallbackPath]()) as string;
+                 const html = await marked(content);
+                 const firstLine = content.split("\n")[0];
+                 const titleMatch = firstLine.match(/^#\s*(.*)/);
+                 return { html, title: titleMatch ? titleMatch[1] : "" };
+             }
+        }
+        throw new Error("markdownErrors.fileNotFound");
     }
 
-    const markdownContent = (await modules[modulePath]()) as string;
+    const markdownContent = (await modules[relativePath]()) as string;
     const htmlContent = await marked(markdownContent);
 
     // Extract title from the first line (assuming it's an H1)

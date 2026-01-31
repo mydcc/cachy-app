@@ -25,6 +25,9 @@ marked.use(markedKatex({ throwOnError: false }));
 /**
  * Renders Markdown to HTML with sanitization (DOMPurify).
  * Handles AI streaming artifacts (e.g. JSON blocks).
+ *
+ * SECURITY: Returns empty string during SSR to prevent XSS/hydration mismatches
+ * from untrusted content.
  */
 export function renderSafeMarkdown(text: string): string {
     try {
@@ -42,11 +45,41 @@ export function renderSafeMarkdown(text: string): string {
         }
 
         // SSR Fallback: Return empty string to prevent XSS.
-        // Returning raw (unsanitized) HTML on server is dangerous even from internal sources.
-        // This causes hydration mismatch warnings (layout shift), but ensures Zero-Tolerance security.
         return "";
     } catch (e) {
         console.error("Markdown rendering error:", e);
         return text;
+    }
+}
+
+/**
+ * Renders Markdown to HTML WITHOUT client-side sanitization on the server.
+ * MUST ONLY BE USED FOR TRUSTED, STATIC CONTENT (e.g. internal Markdown files).
+ *
+ * Allows SEO content to be rendered on the server.
+ */
+export function renderTrustedMarkdown(text: string): string {
+    try {
+        if (!text) return "";
+
+        // Hide JSON blocks (consistent behavior)
+        const cleaned = text
+            .replace(/```json\s*[\s\S]*?("action"|$)[\s\S]*?(?:```|$)/g, "")
+            .trim();
+
+        const raw = marked.parse(cleaned) as string;
+
+        if (typeof window !== "undefined") {
+            // On client, we can still sanitize for extra safety,
+            // though for trusted content it's technically optional.
+            // But consistency is good.
+            return DOMPurify.sanitize(raw);
+        }
+
+        // SSR: Return raw HTML because we trust the source.
+        return raw;
+    } catch (e) {
+        console.error("Markdown rendering error:", e);
+        return "";
     }
 }
