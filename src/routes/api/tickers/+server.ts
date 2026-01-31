@@ -18,6 +18,7 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const symbols = url.searchParams.get("symbols");
@@ -54,7 +55,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
         if (!response.ok) {
           const errorText = await response.text();
           try {
-            const data = JSON.parse(errorText);
+            const data = safeJsonParse(errorText);
             if (
               data.code === 2 ||
               data.code === "2" ||
@@ -70,7 +71,8 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           throw { status: response.status, message: errorText };
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        const data = safeJsonParse(text);
         if (
           provider !== "bitget" && // Bitget uses code 00000, handled below generally?
           data &&

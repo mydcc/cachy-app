@@ -207,7 +207,8 @@ async function fetchBitgetKlines(
     throw new Error(`Bitget API error: ${response.status}`);
   }
 
-  const data = await response.json();
+  const text = await response.text();
+  const data = safeJsonParse(text);
   // [[timestamp, open, high, low, close, volume, quoteVol], ...]
   // timestamp is string or number? usually string in response.
 

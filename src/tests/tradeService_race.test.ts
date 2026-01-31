@@ -87,6 +87,7 @@ describe('TradeService Race Conditions', () => {
         // Mock Fetch Success but API Error Response (400)
         (global.fetch as any).mockResolvedValue({
             ok: false,
+            text: async () => JSON.stringify({ code: '400', msg: 'Bad Request' }),
             json: async () => ({ code: '400', msg: 'Bad Request' }),
         });
 

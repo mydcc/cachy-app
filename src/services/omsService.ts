@@ -138,6 +138,18 @@ class OrderManagementSystem {
     public getPositions(): OMSPosition[] {
         return Array.from(this.positions.values());
     }
+
+    public destroy() {
+        if (this.watchdogInterval) {
+            clearInterval(this.watchdogInterval);
+        }
+    }
 }
 
 export const omsService = new OrderManagementSystem();
+
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        omsService.destroy();
+    });
+}

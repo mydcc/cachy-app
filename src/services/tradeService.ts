@@ -223,7 +223,8 @@ class TradeService {
 
             if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
 
-            const pendingResult = await pendingResponse.json();
+            const pendingText = await pendingResponse.text();
+            const pendingResult = safeJsonParse(pendingText);
             if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             // VALIDATION with Zod

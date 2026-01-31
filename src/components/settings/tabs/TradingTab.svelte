@@ -84,7 +84,7 @@
         <!-- Execution & Fees -->
         {#if activeSubTab === "market"}
             <section class="settings-section animate-fade-in">
-                <h3 class="section-title mb-4">Execution & Data</h3>
+                <h3 class="section-title mb-4">{$_("settings.trading.executionData")}</h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Fee Preference -->
@@ -168,17 +168,17 @@
                             <option
                                 value={true}
                                 class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                                >Always Visible</option
+                                >{$_("settings.trading.spinButtons.always")}</option
                             >
                             <option
                                 value="hover"
                                 class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                                >On Hover</option
+                                >{$_("settings.trading.spinButtons.hover")}</option
                             >
                             <option
                                 value={false}
                                 class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                                >Hidden</option
+                                >{$_("settings.trading.spinButtons.hidden")}</option
                             >
                         </select>
                     </div>
@@ -191,7 +191,7 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Sync inputs with live price</span
+                                >{$_("settings.trading.syncPrice")}</span
                             >
                         </div>
                         <Toggle
@@ -203,11 +203,11 @@
                     <label class="toggle-card">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >Confirm Trade Deletion</span
+                                >{$_("settings.trading.confirmDelete")}</span
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Safety check before removing</span
+                                >{$_("settings.trading.confirmDeleteDesc")}</span
                             >
                         </div>
                         <Toggle
@@ -218,11 +218,11 @@
                     <label class="toggle-card">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >Confirm Bulk Deletion</span
+                                >{$_("settings.trading.confirmBulkDelete")}</span
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Safety check for 'Close All'</span
+                                >{$_("settings.trading.confirmBulkDeleteDesc")}</span
                             >
                         </div>
                         <Toggle
@@ -282,11 +282,11 @@
                     <label class="toggle-card mb-4">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >Market Overview Tiles</span
+                                >{$_("settings.trading.marketTiles")}</span
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Show market data tiles in sidebar</span
+                                >{$_("settings.trading.marketTilesDesc")}</span
                             >
                         </div>
                         <Toggle
@@ -311,7 +311,7 @@
                                     class="flex items-center justify-between cursor-pointer"
                                 >
                                     <span class="text-sm"
-                                        >Show Links Footer</span
+                                        >{$_("settings.trading.showLinks")}</span
                                     >
                                     <Toggle
                                         bind:checked={
@@ -337,7 +337,7 @@
                                                 }
                                             />
                                             <span class="text-xs"
-                                                >TradingView</span
+                                                >{$_("settings.trading.tradingView")}</span
                                             >
                                         </label>
                                         <label

@@ -622,9 +622,7 @@
             onclick={async () => {
               if (settingsState.capabilities.tradeExecution) {
                 // Pro: Execute Trade
-                uiState.showError(
-                  "🚧 Trade-Ausführung in Entwicklung | Trade execution in development",
-                );
+                uiState.showError("app.tradeExecutionDev");
               } else {
                 // Community: Add to Journal
                 await app.addTrade();

@@ -26,9 +26,7 @@
   import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
-  import { marked } from "marked";
-  // @ts-ignore
-  import DOMPurify from "dompurify";
+  import { renderSafeMarkdown } from "../../utils/markdownUtils";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
@@ -117,28 +115,6 @@
     if (mode === "notes") return $_("sidePanel.myNotes");
     if (mode === "ai") return $_("sidePanel.aiAssistant");
     return "Side Panel";
-  }
-
-  function cleanStreamingContent(text: string): string {
-    // Hide JSON blocks that likely contain actions, even while streaming
-    // This looks for the start of a json block and hides everything until it sees a closing block or just stops
-    return text
-      .replace(/```json\s*[\s\S]*?("action"|$)[\s\S]*?(?:```|$)/g, "")
-      .trim();
-  }
-
-  function renderMarkdown(text: string): string {
-    try {
-      const cleaned = cleanStreamingContent(text);
-      const raw = marked.parse(cleaned) as string;
-      if (typeof window !== "undefined") {
-        return DOMPurify.sanitize(raw);
-      }
-      return ""; // SSR safe fallback
-    } catch (e) {
-      console.error("Markdown rendering error:", e);
-      return text;
-    }
   }
 
   // Reactive layout variables
@@ -849,7 +825,7 @@
                         style="font-size: inherit"
                         class:terminal-md={isTerminal}
                       >
-                        {@html renderMarkdown(msg.content)}
+                        {@html renderSafeMarkdown(msg.content)}
                       </div>
                     {:else if msg.role === "system"}
                       {@const pendingMatch =
