@@ -311,8 +311,8 @@
 
   <!-- Global Modals -->
   <MarketDashboardModal />
-  <!-- ToastManager Removed as not found -->
-  <!-- LoadingSpinner Removed as not found -->
+  <!-- ToastManager is replaced by ToastContainer in the layout above -->
+  <!-- LoadingSpinner is unused in layout, only used locally in components -->
 
   <!-- Jules Report Overlay -->
   <!-- Jules Report Overlay -->
