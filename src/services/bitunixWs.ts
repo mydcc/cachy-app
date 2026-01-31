@@ -757,89 +757,111 @@ class BitunixWebSocketService {
 
           if (message.ch === "price") {
             if (symbol && isObjectData && isPriceData(data)) {
-              // HARDENING: Check for native numbers in critical fields
-              // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
-              if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                const now = Date.now();
-                if (now - this.lastNumericWarning > 60000) {
-                  logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
-                  this.lastNumericWarning = now;
+              try {
+                // HARDENING: Check for native numbers in critical fields
+                // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
+                if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
+                    const now = Date.now();
+                    if (now - this.lastNumericWarning > 60000) {
+                        logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
+                        this.lastNumericWarning = now;
+                    }
+                    // Force cast to string to prevent downstream crashes or invalid types
+                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                    if (typeof data.lp === 'number') data.lp = String(data.lp);
                 }
-                // Force cast to string to prevent downstream crashes or invalid types
-                if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                if (typeof data.lp === 'number') data.lp = String(data.lp);
-              }
 
-              const normalized = mdaService.normalizeTicker(message, "bitunix");
-              if (!this.shouldThrottle(`${symbol}:price`)) {
-                marketState.updateSymbol(symbol, {
-                  lastPrice: normalized.lastPrice,
-                  fundingRate: data.fr,
-                  nextFundingTime: data.nft ? String(data.nft) : undefined
-                });
+                const normalized = mdaService.normalizeTicker(message, "bitunix");
+                if (!this.shouldThrottle(`${symbol}:price`)) {
+                    marketState.updateSymbol(symbol, {
+                    lastPrice: normalized.lastPrice,
+                    fundingRate: data.fr,
+                    nextFundingTime: data.nft ? String(data.nft) : undefined
+                    });
+                }
+                // Fast path successful - return early
+                return;
+              } catch(fastPathError) {
+                // Specific error inside logic - log and fall through to Zod
+                if (import.meta.env.DEV) {
+                    console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
+                }
+                // Do NOT throw. Let it fall through to standard validation.
               }
             } else if (import.meta.env.DEV && data) {
               // console.warn("[BitunixWS] FastPath failed for price.", data);
             }
-            return;
+            // If we fall through here, it means isPriceData failed (schema mismatch), so we let it fall through to Zod
           }
 
           if (message.ch === "ticker") {
             if (symbol && isObjectData && isTickerData(data)) {
-              const normalized = mdaService.normalizeTicker(message, "bitunix");
-              if (!this.shouldThrottle(`${symbol}:ticker`)) {
-                marketState.updateSymbol(symbol, {
-                  lastPrice: normalized.lastPrice,
-                  highPrice: normalized.high,
-                  lowPrice: normalized.low,
-                  volume: normalized.volume,
-                  quoteVolume: normalized.quoteVolume,
-                  priceChangePercent: normalized.priceChangePercent
-                });
-              }
+               try {
+                  const normalized = mdaService.normalizeTicker(message, "bitunix");
+                  if (!this.shouldThrottle(`${symbol}:ticker`)) {
+                    marketState.updateSymbol(symbol, {
+                      lastPrice: normalized.lastPrice,
+                      highPrice: normalized.high,
+                      lowPrice: normalized.low,
+                      volume: normalized.volume,
+                      quoteVolume: normalized.quoteVolume,
+                      priceChangePercent: normalized.priceChangePercent
+                    });
+                  }
+                  return;
+               } catch(fastPathError) {
+                   if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
+               }
             } else if (import.meta.env.DEV && data) {
               // console.warn("[BitunixWS] FastPath failed for ticker.", data);
             }
-            return;
           }
 
           if (message.ch === "depth_book5") {
             if (symbol && isObjectData && isDepthData(data)) {
-              if (!this.shouldThrottle(`${symbol}:depth`)) {
-                marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+              try {
+                  if (!this.shouldThrottle(`${symbol}:depth`)) {
+                    marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+                  }
+                  return;
+              } catch(fastPathError) {
+                  if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
               }
             } else if (import.meta.env.DEV && data) {
               // console.warn("[BitunixWS] FastPath failed for depth.", data);
             }
-            return;
           }
 
           // Klines
           if (message.ch.startsWith("market_kline_") || message.ch === "mark_kline_1day") {
             if (symbol && isObjectData) {
-              const d = data as any;
-              if (d && (d.close || d.c || d.open || d.o)) {
-                let timeframe = "1h";
-                if (message.ch === "mark_kline_1day") timeframe = "1d";
-                else {
-                  const match = message.ch.match(/market_kline_(.+)/);
-                  if (match) {
-                    const bitunixTf = match[1];
-                    const revMap: Record<string, string> = {
-                      "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                      "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
-                    };
-                    timeframe = revMap[bitunixTf] || bitunixTf;
+              try {
+                  const d = data as any;
+                  if (d && (d.close || d.c || d.open || d.o)) {
+                    let timeframe = "1h";
+                    if (message.ch === "mark_kline_1day") timeframe = "1d";
+                    else {
+                      const match = message.ch.match(/market_kline_(.+)/);
+                      if (match) {
+                        const bitunixTf = match[1];
+                        const revMap: Record<string, string> = {
+                          "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
+                          "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
+                        };
+                        timeframe = revMap[bitunixTf] || bitunixTf;
+                      }
+                    }
+                    // [HYBRID FIX] Inject detached 'ts' from root message into data object
+                    // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
+                    const klineData = { ...d, ts: message.ts };
+                    const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
+                    marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
                   }
-                }
-                // [HYBRID FIX] Inject detached 'ts' from root message into data object
-                // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
-                const klineData = { ...d, ts: message.ts };
-                const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
-                marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
+                  return;
+              } catch(fastPathError) {
+                  if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
               }
             }
-            return;
           }
         }
       } catch (e) {

@@ -232,7 +232,7 @@
                                 for="glass-blur"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
-                                Blur: {settingsState.glassBlur}px
+                                {$_("settings.profile.glass.blur")}: {settingsState.glassBlur}px
                             </label>
                             <input
                                 id="glass-blur"
@@ -248,7 +248,7 @@
                                 for="glass-opacity"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
-                                Opacity: {Math.round(
+                                {$_("settings.profile.glass.opacity")}: {Math.round(
                                     settingsState.glassOpacity * 100,
                                 )}%
                             </label>
@@ -267,7 +267,7 @@
                                 for="glass-saturate"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
-                                Saturate: {settingsState.glassSaturate}%
+                                {$_("settings.profile.glass.saturate")}: {settingsState.glassSaturate}%
                             </label>
                             <input
                                 id="glass-saturate"
@@ -403,7 +403,7 @@
                                                 (settingsState.burningBordersIntensity =
                                                     intensity as any)}
                                         >
-                                            {intensity}
+                                            {$_(`settings.profile.background.intensity${intensity.charAt(0).toUpperCase() + intensity.slice(1)}` as TranslationKey) || intensity}
                                         </button>
                                     {/each}
                                 </div>
@@ -552,7 +552,7 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Show left/right panels</span
+                                >{$_("settings.sidePanelDesc")}</span
                             >
                         </div>
                         <Toggle bind:checked={settingsState.showSidebars} />
@@ -565,7 +565,7 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >AI Chat / Notes / World Chat</span
+                                >{$_("settings.workspace.aiAssistant")} / {$_("settings.workspace.privateNotes")} / {$_("settings.workspace.marketChat")}</span
                             >
                         </div>
                         <Toggle
@@ -583,7 +583,7 @@
             <section class="settings-section animate-fade-in">
                 <!-- Type Selector -->
                 <div class="flex gap-2 mb-4 flex-wrap">
-                    {#each [{ v: "none", l: "None" }, { v: "image", l: "Image / Video" }, { v: "animation", l: "Live Animation" }, { v: "threejs", l: "Galaxy (3D)" }] as type}
+                    {#each [{ v: "none", l: $_("settings.profile.background.typeNone") }, { v: "image", l: $_("settings.profile.background.typeMedia") }, { v: "animation", l: $_("settings.profile.background.typeAnimation") }, { v: "threejs", l: $_("settings.visuals.bgGalaxy") }] as type}
                         <button
                             class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
                                 type.v ||
@@ -606,7 +606,7 @@
 
                 {#if settingsState.backgroundType === "image" || settingsState.backgroundType === "video"}
                     <div class="field-group mb-4">
-                        <label for="bg-url">Image / Video URL</label>
+                        <label for="bg-url">{$_("settings.profile.background.url")}</label>
                         <input
                             id="bg-url"
                             type="text"
@@ -618,16 +618,16 @@
                                 else settingsState.backgroundType = "image";
                             }}
                             class="input-field"
-                            placeholder="https://..."
+                            placeholder={$_("settings.connections.placeholders.url")}
                         />
                         <p class="text-[10px] text-[var(--text-secondary)]">
-                            Supports .jpg, .png, .mp4
+                            {$_("settings.profile.background.urlHelper")}
                         </p>
                     </div>
                     {#if settingsState.backgroundType === "video"}
                         <div class="field-group mb-4">
                             <label for="vid-speed"
-                                >Playback Speed: {settingsState.videoPlaybackSpeed}x</label
+                                >{$_("settings.visuals.playbackSpeed")}: {settingsState.videoPlaybackSpeed}x</label
                             >
                             <input
                                 id="vid-speed"
@@ -644,7 +644,7 @@
 
                 {#if settingsState.backgroundType === "animation"}
                     <div class="field-group mb-4">
-                        <label for="anim-preset">Effect</label>
+                        <label for="anim-preset">{$_("settings.visuals.effect")}</label>
                         <select
                             id="anim-preset"
                             bind:value={settingsState.backgroundAnimationPreset}
@@ -664,7 +664,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
                                 <label for="galaxy-count"
-                                    >Particles: {settingsState.galaxySettings
+                                    >{$_("settings.visuals.particles")}: {settingsState.galaxySettings
                                         .particleCount}</label
                                 >
                                 <input
@@ -682,7 +682,7 @@
                             </div>
                             <div class="field-group">
                                 <label for="galaxy-size"
-                                    >Size: {settingsState.galaxySettings.particleSize.toFixed(
+                                    >{$_("settings.visuals.size")}: {settingsState.galaxySettings.particleSize.toFixed(
                                         2,
                                     )}</label
                                 >
@@ -704,7 +704,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
                                 <label for="galaxy-radius"
-                                    >Radius: {settingsState.galaxySettings.radius.toFixed(
+                                    >{$_("settings.visuals.radius")}: {settingsState.galaxySettings.radius.toFixed(
                                         1,
                                     )}</label
                                 >
@@ -722,7 +722,7 @@
                             </div>
                             <div class="field-group">
                                 <label for="galaxy-branches"
-                                    >Branches: {settingsState.galaxySettings
+                                    >{$_("settings.visuals.branches")}: {settingsState.galaxySettings
                                         .branches}</label
                                 >
                                 <input
@@ -742,7 +742,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
                                 <label for="galaxy-spin"
-                                    >Spin Speed: {settingsState.galaxySettings.spin.toFixed(
+                                    >{$_("settings.visuals.spinSpeed")}: {settingsState.galaxySettings.spin.toFixed(
                                         2,
                                     )}</label
                                 >
@@ -760,7 +760,7 @@
                             </div>
                             <div class="field-group">
                                 <label for="galaxy-randomness"
-                                    >Randomness: {settingsState.galaxySettings.randomness.toFixed(
+                                    >{$_("settings.visuals.randomness")}: {settingsState.galaxySettings.randomness.toFixed(
                                         2,
                                     )}</label
                                 >
@@ -781,7 +781,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
                                 <label for="galaxy-randomness-power"
-                                    >Spread: {settingsState.galaxySettings.randomnessPower.toFixed(
+                                    >{$_("settings.visuals.spread")}: {settingsState.galaxySettings.randomnessPower.toFixed(
                                         2,
                                     )}</label
                                 >
@@ -800,7 +800,7 @@
                             </div>
                             <div class="field-group">
                                 <label for="galaxy-concentration"
-                                    >Concentration: {settingsState.galaxySettings.concentrationPower.toFixed(
+                                    >{$_("settings.visuals.concentration")}: {settingsState.galaxySettings.concentrationPower.toFixed(
                                         1,
                                     )}</label
                                 >
@@ -825,7 +825,7 @@
                         >
                             <span
                                 class="text-xs font-semibold text-[var(--text-secondary)]"
-                                >Camera Position</span
+                                >{$_("settings.visuals.cameraPos")}</span
                             >
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="field-group">
@@ -889,7 +889,7 @@
 
                             <span
                                 class="text-xs font-semibold text-[var(--text-secondary)]"
-                                >Rotation</span
+                                >{$_("settings.visuals.rotation")}</span
                             >
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="field-group">
@@ -990,7 +990,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="field-group">
                             <label for="bg-opacity"
-                                >Opacity: {Math.round(
+                                >{$_("settings.profile.background.opacity")}: {Math.round(
                                     settingsState.backgroundOpacity * 100,
                                 )}%</label
                             >
@@ -1006,7 +1006,7 @@
                         </div>
                         <div class="field-group">
                             <label for="bg-blur"
-                                >Blur: {settingsState.backgroundBlur}px</label
+                                >{$_("settings.profile.background.blur")}: {settingsState.backgroundBlur}px</label
                             >
                             <input
                                 id="bg-blur"
