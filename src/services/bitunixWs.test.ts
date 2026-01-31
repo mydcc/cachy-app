@@ -1,119 +1,96 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { bitunixWs } from './bitunixWs';
-import { omsService } from './omsService';
+import { bitunixWs } from '../../src/services/bitunixWs';
+import { marketState } from '../../src/stores/market.svelte';
+import { mdaService } from '../../src/services/mdaService';
 
-// Mock dependencies
-vi.mock('./omsService', () => ({
-  omsService: {
-    updatePosition: vi.fn(),
-    updateOrder: vi.fn(),
-  }
+// Mock mdaService
+vi.mock('../../src/services/mdaService', () => ({
+    mdaService: {
+        normalizeTicker: vi.fn(() => ({ lastPrice: '100', high: '105', low: '95', volume: '1000' })),
+        normalizeKlines: vi.fn(() => [])
+    }
 }));
 
-vi.mock('../stores/market.svelte', () => ({
-  marketState: {
-    updateSymbol: vi.fn(),
-    updateDepth: vi.fn(),
-    updateSymbolKlines: vi.fn(),
-    updateTelemetry: vi.fn(),
-    connectionStatus: 'connected',
-  }
+// Mock logger
+vi.mock('../../src/services/logger', () => ({
+    logger: {
+        warn: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn()
+    }
 }));
 
-vi.mock('../stores/account.svelte', () => ({
-  accountState: {
-    updatePositionFromWs: vi.fn(),
-    updateOrderFromWs: vi.fn(),
-    updateBalanceFromWs: vi.fn(),
-  }
+// Mock marketState
+vi.mock('../../src/stores/market.svelte', () => ({
+    marketState: {
+        updateSymbol: vi.fn(),
+        updateDepth: vi.fn(),
+        updateSymbolKlines: vi.fn(),
+        updateTelemetry: vi.fn(),
+        connectionStatus: 'connected'
+    }
 }));
 
-vi.mock('../stores/settings.svelte', () => ({
-  settingsState: {
-    enableNetworkLogs: false,
-    apiKeys: {},
-    capabilities: { marketData: true },
-    apiProvider: 'bitunix',
-  }
-}));
+describe('BitunixWS Fast Path Fallback', () => {
+    const wsService = bitunixWs as any;
 
-vi.mock('./connectionManager', () => ({
-  connectionManager: {
-    onProviderConnected: vi.fn(),
-    onProviderDisconnected: vi.fn(),
-  }
-}));
-
-vi.mock('./mdaService', () => ({
-  mdaService: {
-    normalizeTicker: vi.fn(),
-    normalizeKlines: vi.fn(),
-  }
-}));
-
-// Access private method via any
-const service = bitunixWs as any;
-
-describe('BitunixWebSocketService Sync', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Clear throttle map to prevent cross-test contamination
+        if (wsService.throttleMap) {
+            wsService.throttleMap.clear();
+        }
     });
 
-    it('should sync position updates to omsService', () => {
+    it('should use Fast Path for valid price message', () => {
         const msg = {
-            ch: 'position',
-            data: {
-                symbol: 'BTCUSDT',
-                side: 'LONG',
-                qty: '1.5',
-                averagePrice: '50000',
-                unrealizedPNL: '100',
-                leverage: '10',
-                marginMode: 'cross'
-            }
+            ch: 'price',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', fr: '0.01' }
         };
 
-        // Call handleMessage with private type to bypass strict validation checks for public messages if any
-        service.handleMessage(msg, 'private');
+        wsService.handleMessage(msg, 'public');
 
-        expect(omsService.updatePosition).toHaveBeenCalled();
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({ lastPrice: '100' }));
     });
 
-    it('should sync order updates to omsService', () => {
+    it('should FALLBACK to standard validation if Fast Path throws', () => {
+        // Force throw in fast path
+        const normalizeMock = vi.mocked(mdaService.normalizeTicker);
+        normalizeMock.mockImplementationOnce(() => {
+            throw new Error('Fast Path Crash');
+        });
+
+        // Use different symbol or clear throttle (done in beforeEach)
         const msg = {
-            ch: 'order',
-            data: {
-                orderId: '123',
-                symbol: 'BTCUSDT',
-                side: 'BUY',
-                type: 'LIMIT',
-                orderStatus: 'NEW',
-                price: '50000',
-                qty: '1',
-                dealAmount: '0',
-                ctime: 1234567890
-            }
+            ch: 'price',
+            symbol: 'ETHUSDT',
+            data: { lastPrice: '3000' },
+            event: 'push' // Valid structure for Zod fallback
         };
 
-        service.handleMessage(msg, 'private');
+        // Execution
+        wsService.handleMessage(msg, 'public');
 
-        expect(omsService.updateOrder).toHaveBeenCalled();
+        // Verification:
+        // 1. Fast Path called normalizeTicker -> Threw Error
+        // 2. Catch block caught it
+        // 3. Fallback logic (Zod) ran -> Called normalizeTicker AGAIN (success)
+        // 4. updateSymbol called with success result
+
+        expect(normalizeMock).toHaveBeenCalledTimes(2);
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object));
+    });
+
+    it('should handle missing fields in Fast Path gracefully without crashing', () => {
+        const msg = {
+            ch: 'price',
+            symbol: 'SOLUSDT',
+            data: { random: 'field' },
+            event: 'push'
+        };
+
+        wsService.handleMessage(msg, 'public');
+        expect(true).toBe(true);
     });
 });

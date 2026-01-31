@@ -1149,8 +1149,8 @@
                   placeholder={settingsState.sidePanelMode === "ai"
                     ? isTerminal
                       ? "> ENTER COMMAND"
-                      : "Message AI... (Shift+Enter for new line)"
-                    : "Type note..."}
+                      : $_("cloud.placeholder") || "Message AI... (Shift+Enter for new line)"
+                    : $_("journal.placeholder.notes")}
                   maxlength={settingsState.sidePanelMode === "ai" ? 2000 : 2000}
                   bind:value={messageText}
                   onkeydown={handleKeydown}
@@ -1177,7 +1177,7 @@
                   class:rounded-full={isBubble}
                   class:focus:border-[var(--accent-color)]={!isTerminal}
                   class:placeholder-[var(--text-tertiary)]={true}
-                  placeholder="Type here..."
+                  placeholder={$_("cloud.placeholder")}
                   maxlength={140}
                   bind:value={messageText}
                   onkeydown={handleKeydown}
