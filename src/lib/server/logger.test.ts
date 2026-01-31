@@ -16,7 +16,7 @@
  */
 
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { logger } from './logger';
 
 describe('ServerLogger', () => {
@@ -59,10 +59,6 @@ describe('ServerLogger', () => {
     logger.info('API Request', sensitiveData);
     const entry = await logPromise;
 
-    // The logger parses JSON strings and sanitizes the object inside, then stringifies it back?
-    // Let's check the implementation:
-    // try { const parsed = JSON.parse(data); return JSON.stringify(this.sanitize(parsed)); }
-
     const parsedData = JSON.parse(entry.data);
     expect(parsedData.token).toBe('***REDACTED***');
     expect(parsedData.other).toBe('value');
@@ -80,12 +76,82 @@ describe('ServerLogger', () => {
 
   it('should sanitize complex strings like URLs or connection strings', async () => {
     const url = "https://api.example.com/v1?apiKey=abcdef123456&lang=en";
+    const db = "postgres://user:supersecret@localhost:5432/db";
 
     const logPromise = captureLog();
     logger.debug('Fetching URL', url);
     const entry = await logPromise;
-
     expect(entry.data).toContain('apiKey=***REDACTED***');
     expect(entry.data).toContain('&lang=en');
+
+    const logPromise2 = captureLog();
+    logger.debug('DB Connection', db);
+    const entry2 = await logPromise2;
+    expect(entry2.data).toBe("postgres://user:***REDACTED***@localhost:5432/db");
+  });
+
+  it('should sanitize Authorization headers', async () => {
+    const header = "Authorization: Bearer my-secret-token-123";
+    const logPromise = captureLog();
+    logger.info('Request', header);
+    const entry = await logPromise;
+    expect(entry.data).toBe("Authorization: Bearer ***REDACTED***");
+  });
+
+  it('should sanitize quoted values with spaces', async () => {
+    const str = 'password="my secret phrase"';
+    const logPromise = captureLog();
+    logger.info('Config', str);
+    const entry = await logPromise;
+    expect(entry.data).toBe('password="***REDACTED***"');
+  });
+
+  it('should sanitize broken JSON strings', async () => {
+    const str = '{ "broken": "json", "password": "secret"';
+    const logPromise = captureLog();
+    logger.info('Log', str);
+    const entry = await logPromise;
+    expect(entry.data).toBe('{ "broken": "json", "password": "***REDACTED***"');
+  });
+
+  it('should sanitize Private Keys in PEM format', async () => {
+    const privKey = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEA...
+...
+-----END RSA PRIVATE KEY-----`;
+
+    const logPromise = captureLog();
+    logger.info('Key', privKey);
+    const entry = await logPromise;
+    expect(entry.data).toContain('-----BEGIN RSA PRIVATE KEY-----');
+    expect(entry.data).toContain('***REDACTED***');
+    expect(entry.data).toContain('-----END RSA PRIVATE KEY-----');
+    expect(entry.data).not.toContain('MIIEpQIBAAKCAQEA');
+  });
+
+  it('should NOT sanitize safe keys (False Positives)', async () => {
+    const safeData = {
+      max_tokens: 1000,
+      total_tokens: 5000,
+      author: 'John Doe',
+      authority: 'Admin'
+    };
+
+    const logPromise = captureLog();
+    logger.info('Safe', safeData);
+    const entry = await logPromise;
+
+    expect(entry.data.max_tokens).toBe(1000);
+    expect(entry.data.total_tokens).toBe(5000);
+    expect(entry.data.author).toBe('John Doe');
+    expect(entry.data.authority).toBe('Admin');
+  });
+
+  it('should NOT sanitize quoted safe keys in strings', async () => {
+    const str = '"max_tokens": 1000, "author": "John"';
+    const logPromise = captureLog();
+    logger.info('Safe String', str);
+    const entry = await logPromise;
+    expect(entry.data).toBe(str);
   });
 });

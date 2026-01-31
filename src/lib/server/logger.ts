@@ -30,33 +30,37 @@ interface LogEntry {
 class ServerLogger extends EventEmitter {
   private static instance: ServerLogger;
 
-  // Pattern für sensible Schlüssel, die maskiert werden sollen
-  private sensitiveKeys = [
-    "apiKey",
-    "apiSecret",
-    "secret",
-    "signature",
-    "access_token",
-    "password",
-    "token",
-    "auth",
-  ];
+  // Patterns for keys that are explicitly safe and should not be redacted
+  // even if they partially match sensitive patterns (e.g., "max_tokens")
+  private safeKeys = new Set([
+    "max_tokens",
+    "total_tokens",
+    "completion_tokens",
+    "prompt_tokens",
+    "token_type",
+    "expires_in",
+    "created_at",
+    "updated_at",
+    "author",
+    "authority",
+  ]);
 
-  private sensitiveRegex: RegExp;
+  // Regex patterns for identifying sensitive keys
+  private sensitivePatterns: RegExp[] = [
+    /passw(or)?d/i,
+    /secret/i,
+    /token/i,
+    /api[-_]?key/i,
+    /signature/i,
+    /authorization/i,
+    /bearer/i,
+    /^private[-_]?key$/i,
+  ];
 
   private constructor() {
     super();
     // Erhöhe das Limit für Listener, da viele Clients verbunden sein könnten
     this.setMaxListeners(100);
-
-    // Initialisiere Regex basierend auf sensitiveKeys
-    const joinedKeys = this.sensitiveKeys
-      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      .join("|");
-    this.sensitiveRegex = new RegExp(
-      `(\\b[\\w-]*?(?:${joinedKeys})[\\w-]*?\\b\\s*[:=]\\s*)(["']?)([^"'\\s&,;]+)(\\2)`,
-      "gi",
-    );
   }
 
   public static getInstance(): ServerLogger {
@@ -64,6 +68,18 @@ class ServerLogger extends EventEmitter {
       ServerLogger.instance = new ServerLogger();
     }
     return ServerLogger.instance;
+  }
+
+  private isSensitiveKey(key: string): boolean {
+    const lowerKey = key.toLowerCase();
+
+    // Check safe keys first
+    if (this.safeKeys.has(lowerKey)) {
+      return false;
+    }
+
+    // Check against sensitive patterns
+    return this.sensitivePatterns.some(pattern => pattern.test(key));
   }
 
   /**
@@ -76,7 +92,10 @@ class ServerLogger extends EventEmitter {
       // Versuche JSON zu parsen, falls es ein JSON-String ist
       try {
         const parsed = JSON.parse(data);
-        return JSON.stringify(this.sanitize(parsed));
+        // Recurse on the parsed object
+        const sanitizedParsed = this.sanitize(parsed);
+        // Return stringified version
+        return JSON.stringify(sanitizedParsed);
       } catch {
         // Einfacher String: Sensible Daten maskieren
         return this.sanitizeString(data);
@@ -91,13 +110,7 @@ class ServerLogger extends EventEmitter {
       const sanitized: any = {};
       for (const key in data) {
         if (Object.prototype.hasOwnProperty.call(data, key)) {
-          // Check ob der Key sensibel ist (case-insensitive)
-          const lowerKey = key.toLowerCase();
-          const isSensitive = this.sensitiveKeys.some((s) =>
-            lowerKey.includes(s.toLowerCase()),
-          );
-
-          if (isSensitive) {
+          if (this.isSensitiveKey(key)) {
             sanitized[key] = "***REDACTED***";
           } else {
             sanitized[key] = this.sanitize(data[key]);
@@ -111,7 +124,68 @@ class ServerLogger extends EventEmitter {
   }
 
   private sanitizeString(str: string): string {
-    return str.replace(this.sensitiveRegex, "$1$2***REDACTED***$4");
+    let s = str;
+
+    // 1. Redact Private Keys (PEM format)
+    s = s.replace(
+      /(-{5}BEGIN [A-Z ]+ PRIVATE KEY-{5})[\s\S]*?(-{5}END [A-Z ]+ PRIVATE KEY-{5})/g,
+      '$1\n***REDACTED***\n$2'
+    );
+
+    // 2. Redact URLs with credentials (protocol://user:pass@host)
+    s = s.replace(
+      /([a-zA-Z][\w+.-]*:\/\/[^:]+):([^@]+)@/g,
+      '$1:***REDACTED***@'
+    );
+
+    // 3. Redact Authorization Headers
+    // Matches "Authorization: Bearer <token>" or "Authorization: <token>"
+    s = s.replace(
+      /(Authorization:\s*(?:\w+\s+)?)(.+)/gi,
+      '$1***REDACTED***'
+    );
+
+    // 4. Redact Query Parameters in URLs (e.g. ?apiKey=..., &token=...)
+    s = s.replace(/([?&])([\w-]+)=([^&\s]+)/g, (match, prefix, key, val) => {
+        if (this.isSensitiveKey(key)) {
+            return `${prefix}${key}=***REDACTED***`;
+        }
+        return match;
+    });
+
+    // 5. Redact Key-Value pairs (e.g. key=value, key="value", "key": "value")
+    // Groups:
+    // 1: Quote (Key), 2: Key (Quoted), 3: Key (Unquoted)
+    // 4: Separator
+    // 5: Quote (Val), 6: Val (Quoted), 7: Val (Unquoted)
+    const kvRegex = /(?:("|')([\w-]+)\1|([\w-]+))(\s*[:=]\s*)(?:("|')((?:(?!\5).)*)\5|([^"'&\s,;]+))/gi;
+
+    s = s.replace(kvRegex, (match, qKey, keyQuoted, keyUnquoted, sep, qVal, valQuoted, valUnquoted) => {
+      const key = keyQuoted || keyUnquoted;
+
+      // Skip Authorization header keys as they are handled specifically above
+      if (key.toLowerCase() === 'authorization') {
+        return match;
+      }
+      // Skip if it looks like a URL protocol (e.g. "https: //...") which was matched as Key="https", Sep=":", Val="//..."
+      if (key.toLowerCase().startsWith('http')) {
+         return match;
+      }
+
+      if (this.isSensitiveKey(key)) {
+        const val = valQuoted ?? valUnquoted;
+        // Don't redact if the value is empty
+        if (!val && val !== "") return match;
+
+        const qv = qVal || '';
+        // If the key was quoted, we need to reconstruct that
+        const qk = qKey || '';
+        return `${qk}${key}${qk}${sep}${qv}***REDACTED***${qv}`;
+      }
+      return match;
+    });
+
+    return s;
   }
 
   private emitLog(level: LogLevel, message: string, data?: any) {
