@@ -326,21 +326,23 @@ export const JSIndicators = {
     close: NumberArray,
     volume: NumberArray,
     period: number,
+    typicalPrices?: NumberArray,
   ): number[] {
     const result = new Array(close.length).fill(NaN);
     if (close.length < period + 1) return result;
 
-    const typicalPrices = close.map((c, i) => (high[i] + low[i] + c) / 3);
-    const moneyFlow = typicalPrices.map((tp, i) => tp * volume[i]);
+    const tp = typicalPrices || close.map((c, i) => (high[i] + low[i] + c) / 3);
+    const moneyFlow = new Array(close.length);
+    for (let i = 0; i < close.length; i++) moneyFlow[i] = tp[i] * volume[i];
 
     const posFlow = new Array(close.length).fill(0);
     const negFlow = new Array(close.length).fill(0);
 
     // 1. Calculate Flows
     for (let i = 1; i < close.length; i++) {
-      if (typicalPrices[i] > typicalPrices[i - 1]) {
+      if (tp[i] > tp[i - 1]) {
         posFlow[i] = moneyFlow[i];
-      } else if (typicalPrices[i] < typicalPrices[i - 1]) {
+      } else if (tp[i] < tp[i - 1]) {
         negFlow[i] = moneyFlow[i];
       }
     }
@@ -819,8 +821,9 @@ export function calculateAwesomeOscillator(
   low: NumberArray,
   fastPeriod: number,
   slowPeriod: number,
+  hl2?: NumberArray,
 ): number {
-  const hl2 = high.map((val, i) => (val + low[i]) / 2);
+  const _hl2 = hl2 || high.map((val, i) => (val + low[i]) / 2);
 
   const getSMA = (data: NumberArray, period: number): number => {
     if (data.length < period) return 0;
@@ -831,8 +834,8 @@ export function calculateAwesomeOscillator(
     return sum / period;
   };
 
-  const fastSMA = getSMA(hl2, fastPeriod);
-  const slowSMA = getSMA(hl2, slowPeriod);
+  const fastSMA = getSMA(_hl2, fastPeriod);
+  const slowSMA = getSMA(_hl2, slowPeriod);
 
   return fastSMA - slowSMA;
 }
