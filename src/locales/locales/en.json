@@ -1168,6 +1168,7 @@
     "syncFailed": "Sync failed: {error}"
   },
   "chartPatterns": {
+    "title": "Chart Patterns Academy",
     "searchPlaceholder": "Search patterns...",
     "description": "Description",
     "characteristics": "Characteristics",
@@ -1748,9 +1749,6 @@
       "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
     },
     "title": "Candlestick Academy"
-  },
-  "chartPatterns": {
-    "title": "Chart Patterns Academy"
   },
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}"
