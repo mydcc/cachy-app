@@ -137,7 +137,7 @@
         >
             <input
                 type="text"
-                placeholder="Search patterns..."
+                placeholder={$_("chartPatterns.searchPlaceholder") || "Search patterns..."}
                 bind:value={searchQuery}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all"
             />
@@ -161,19 +161,18 @@
         >
             {#each filteredPatterns as pattern}
                 <button
-                    class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-[var(--nav-hover-bg)] flex justify-between items-center group"
-                    class:bg-[var(--accent-color)]={selectedPatternId ===
-                        pattern.id}
-                    class:text-[var(--btn-accent-text)]={selectedPatternId ===
-                        pattern.id}
-                    class:hover:text-[var(--accent-color)]={selectedPatternId !==
-                        pattern.id}
-                    class:shadow-lg={selectedPatternId === pattern.id}
+                    class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex justify-between items-center group
+                           {selectedPatternId === pattern.id
+                        ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)]'}"
                     onclick={() => selectPattern(pattern.id)}
                 >
                     <div class="flex items-center gap-2 truncate">
                         <div
-                            class="text-[var(--text-secondary)] shrink-0"
+                            class="shrink-0 transition-colors {selectedPatternId ===
+                            pattern.id
+                                ? 'text-[var(--btn-accent-text)]'
+                                : 'text-[var(--text-secondary)]'}"
                             title={pattern.category}
                         >
                             {@html getCategoryIcon(pattern.category)}

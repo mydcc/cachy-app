@@ -246,7 +246,7 @@
           value={format(riskAmount)}
           oninput={handleRiskAmountInput}
           class="input-field w-full px-4 py-2 rounded-md pr-10"
-          placeholder="e.g. 100"
+          placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder") || "e.g. 100"}
           disabled={isPositionSizeLocked}
         />
         <button

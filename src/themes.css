@@ -226,6 +226,7 @@
   --toggle-circle-bg: var(--slate-100);
   --toggle-circle-bg-on: var(--slate-100);
   --overlay-color: var(--white-transparent);
+  --nav-hover-bg: var(--slate-300);
 }
 
 /* =================================================================
@@ -1927,6 +1928,7 @@
   --toggle-circle-bg: var(--ayu-light-bg);
   --toggle-circle-bg-on: var(--ayu-light-bg);
   --overlay-color: var(--white-overlay);
+  --nav-hover-bg: var(--ayu-light-border-hover);
 }
 
 
@@ -2129,6 +2131,7 @@
   --toggle-circle-bg: var(--gh-light-bg);
   --toggle-circle-bg-on: var(--gh-light-fg);
   --overlay-color: var(--white-overlay);
+  --nav-hover-bg: var(--gh-light-btn-hover-bg);
 }
 
 /* =================================================================

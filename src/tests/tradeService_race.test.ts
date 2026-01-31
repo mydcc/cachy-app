@@ -100,4 +100,54 @@ describe('TradeService Race Conditions', () => {
         // Assertions
         expect(removeOrderSpy).toHaveBeenCalled();
     });
+
+    it('should remove optimistic order on Rate Limit (429)', async () => {
+        // Setup Position
+        const position = {
+            symbol: 'BTCUSDT',
+            side: 'long',
+            amount: new Decimal(1),
+            entryPrice: new Decimal(50000),
+            unrealizedPnl: new Decimal(100),
+            leverage: new Decimal(10),
+            marginMode: 'cross',
+        };
+        (omsService.getPositions as any).mockReturnValue([position]);
+
+        // Mock Rate Limit
+        (global.fetch as any).mockResolvedValue({
+            ok: false,
+            status: 429,
+            text: async () => "Too Many Requests",
+            json: async () => ({}),
+        });
+
+        // We assume the service throws an error with "429" in message based on fetch implementation
+        // But TradeService.signedRequest checks "response.ok".
+        // If !response.ok, it might throw BitunixApiError or generic Error.
+        // Let's verify how signedRequest handles it.
+        // It does: if (!response.ok ... ) throw new BitunixApiError(data.code || -1, ...);
+        // If data.code is missing (likely in 429 text response), it might be -1.
+
+        // Wait, tradeService.ts:
+        // const text = await response.text();
+        // const data = safeJsonParse(text);
+        // if (!response.ok ...) throw new BitunixApiError(data.code || -1, ...);
+
+        // So for this test to work with the *current* implementation,
+        // we need to ensure the error thrown triggers the catch block in flashClosePosition.
+
+        const removeOrderSpy = vi.spyOn(omsService, 'removeOrder');
+
+        // Execute
+        try {
+            await tradeService.flashClosePosition('BTCUSDT', 'long');
+        } catch (e) {
+            // Expected
+        }
+
+        // With current code, 429 is NOT in the list, so it might FAIL this test (expecting call, but got none)
+        // This confirms we need to add 429 handling.
+        expect(removeOrderSpy).toHaveBeenCalled();
+    });
 });
