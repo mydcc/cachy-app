@@ -26,7 +26,7 @@ import { Decimal } from "decimal.js";
 
 interface PivotDisplay {
     label: string;
-    val: Decimal;
+    val: number;
     color: string;
 }
 
@@ -36,34 +36,34 @@ export class TechnicalsPresenter {
      * Calculates Bollinger Band Width %
      * Formula: ((Upper - Lower) / Middle) * 100
      */
-    static calculateBollingerBandWidth(upper: Decimal, lower: Decimal, middle: Decimal): Decimal {
-        if (middle.isZero()) return new Decimal(0);
-        return upper.minus(lower).div(middle).times(100);
+    static calculateBollingerBandWidth(upper: number, lower: number, middle: number): number {
+        if (middle === 0) return 0;
+        return ((upper - lower) / middle) * 100;
     }
 
     /**
      * Determines the context (Overbought/Oversold) for oscillators
      */
-    static getOscillatorContext(name: string, val: Decimal, defaultAction: string = "Neutral"): string {
+    static getOscillatorContext(name: string, val: number, defaultAction: string = "Neutral"): string {
         if (name === "RSI") {
-            if (val.gte(70)) return "Overbought";
-            if (val.lte(30)) return "Oversold";
+            if (val >= 70) return "Overbought";
+            if (val <= 30) return "Oversold";
         }
         if (name === "Stoch" || name === "StochRSI") {
-            if (val.gte(80)) return "Overbought";
-            if (val.lte(20)) return "Oversold";
+            if (val >= 80) return "Overbought";
+            if (val <= 20) return "Oversold";
         }
         if (name === "Will %R") {
-            if (val.gt(-20)) return "Overbought";
-            if (val.lt(-80)) return "Oversold";
+            if (val > -20) return "Overbought";
+            if (val < -80) return "Oversold";
         }
         if (name === "CCI") {
-            if (val.gt(100)) return "Overbought";
-            if (val.lt(-100)) return "Oversold";
+            if (val > 100) return "Overbought";
+            if (val < -100) return "Oversold";
         }
         if (name === "MFI") {
-            if (val.gte(80)) return "Overbought";
-            if (val.lte(20)) return "Oversold";
+            if (val >= 80) return "Overbought";
+            if (val <= 20) return "Oversold";
         }
 
         return defaultAction;
@@ -84,9 +84,9 @@ export class TechnicalsPresenter {
     /**
      * Formats a Decimal value with precision
      */
-    static formatVal(val: Decimal | undefined, precision: number = 4): string {
-        if (!val || !val.toDecimalPlaces) return "-";
-        return val.toDecimalPlaces(precision).toString();
+    static formatVal(val: number | undefined, precision: number = 4): string {
+        if (val === undefined || val === null || isNaN(val)) return "-";
+        return val.toFixed(precision);
     }
 
     /**

@@ -38,7 +38,7 @@ import type {
 } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
-import { trackCustomEvent } from "./trackingService";
+import { trackCustomEvent, addContextProvider } from "./trackingService";
 import { onboardingService } from "./onboardingService";
 import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
@@ -62,6 +62,20 @@ export const app = {
     if (browser) {
       if (isInitialized) return;
       isInitialized = true;
+
+      // 0. Setup Tracking Context
+      addContextProvider(() => {
+        return {
+          app_theme: uiState.currentTheme,
+          app_symbol: tradeState.symbol,
+          app_provider: settingsState.apiProvider,
+          app_background: settingsState.backgroundType,
+          app_modals: uiState.windows.map((w) => w.id).join(","),
+          app_viewport: `${window.innerWidth}x${window.innerHeight}`,
+          app_zoom: window.devicePixelRatio,
+          app_version: import.meta.env.VITE_APP_VERSION,
+        };
+      });
 
       // 1. Initialise core logic
       app.populatePresetLoader();

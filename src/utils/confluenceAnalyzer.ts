@@ -109,10 +109,11 @@ export class ConfluenceAnalyzer {
     // Logic: Price > VWAP = Bullish
     // We need Price to compare. Usually passed in data or we need it?
     // Wait, TechnicalsData has pivotBasis which has close.
+    // Optimization: Use native numbers
     if (data.advanced?.vwap && data.pivotBasis?.close) {
       const close = data.pivotBasis.close;
       const vwap = data.advanced.vwap;
-      if (new Decimal(close).gt(new Decimal(vwap))) adjust(5, "Price > VWAP");
+      if (close > vwap) adjust(5, "Price > VWAP");
       else adjust(-5, "Price < VWAP");
     }
 

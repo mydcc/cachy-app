@@ -47,14 +47,15 @@ export function calculateAllIndicators(
 ): TechnicalsData {
   if (klines.length < 2) return getEmptyData();
 
-  // Prepare data arrays (Single loop extraction for speed)
+  // Prepare data arrays (number[] for speed)
+  // Optimization: Single loop extraction with pre-allocated arrays
   const len = klines.length;
-  const highsNum: number[] = new Array(len);
-  const lowsNum: number[] = new Array(len);
-  const closesNum: number[] = new Array(len);
-  const opensNum: number[] = new Array(len);
-  const volumesNum: number[] = new Array(len);
-  const timesNum: number[] = new Array(len);
+  const highsNum = new Array(len);
+  const lowsNum = new Array(len);
+  const closesNum = new Array(len);
+  const opensNum = new Array(len);
+  const volumesNum = new Array(len);
+  const timesNum = new Array(len);
 
   for (let i = 0; i < len; i++) {
     const k = klines[i];
@@ -88,7 +89,7 @@ export function calculateIndicatorsFromArrays(
   settings?: IndicatorSettings,
   enabledIndicators?: Partial<Record<string, boolean>>,
 ): TechnicalsData {
-  const currentPrice = new Decimal(closesNum[closesNum.length - 1]);
+  const currentPrice = closesNum[closesNum.length - 1];
 
   // Normalize enabledIndicators keys to lowercase
   const normalizedEnabled: Record<string, boolean> = {};
@@ -115,6 +116,9 @@ export function calculateIndicatorsFromArrays(
     return normalizedEnabled[key] !== false;
   };
 
+  // Cache for derived sources
+  const sourceCache: Record<string, number[] | Float64Array> = {};
+
   // Helper to get source array based on config
   const getSource = (sourceType: string): number[] | Float64Array => {
     switch (sourceType) {
@@ -125,9 +129,19 @@ export function calculateIndicatorsFromArrays(
       case "low":
         return lowsNum;
       case "hl2":
-        return highsNum.map((h, i) => (h + lowsNum[i]) / 2);
+        if (!sourceCache["hl2"]) {
+          sourceCache["hl2"] = (highsNum as number[]).map(
+            (h, i) => (h + lowsNum[i]) / 2,
+          );
+        }
+        return sourceCache["hl2"];
       case "hlc3":
-        return highsNum.map((h, i) => (h + lowsNum[i] + closesNum[i]) / 3);
+        if (!sourceCache["hlc3"]) {
+          sourceCache["hlc3"] = (highsNum as number[]).map(
+            (h, i) => (h + lowsNum[i] + closesNum[i]) / 3,
+          );
+        }
+        return sourceCache["hlc3"];
       default:
         return closesNum;
     }
@@ -147,7 +161,7 @@ export function calculateIndicatorsFromArrays(
       const rsiSource = getSource(settings?.rsi?.source || "close");
       const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
       indSeries["RSI"] = rsiResults;
-      const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
+      const rsiVal = rsiResults[rsiResults.length - 1];
 
       oscillators.push({
         name: "RSI",
@@ -172,14 +186,14 @@ export function calculateIndicatorsFromArrays(
       const dLine = JSIndicators.sma(kLine, stochD);
       indSeries["StochK"] = kLine;
 
-      const stochKVal = new Decimal(kLine[kLine.length - 1]);
-      const stochDVal = new Decimal(dLine[dLine.length - 1]);
+      const stochKVal = kLine[kLine.length - 1];
+      const stochDVal = dLine[dLine.length - 1];
 
       let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       // Classic Stoch Strategy
-      if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal))
+      if (stochKVal < 20 && stochDVal < 20 && stochKVal > stochDVal)
         stochAction = "Buy";
-      else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal))
+      else if (stochKVal > 80 && stochDVal > 80 && stochKVal < stochDVal)
         stochAction = "Sell";
 
       oscillators.push({
@@ -199,7 +213,7 @@ export function calculateIndicatorsFromArrays(
       let cciResults = JSIndicators.cci(cciSource, cciLen);
       if (cciSmoothLen > 1)
         cciResults = JSIndicators.sma(cciResults, cciSmoothLen); // Default SMA smoothing
-      const cciVal = new Decimal(cciResults[cciResults.length - 1]);
+      const cciVal = cciResults[cciResults.length - 1];
       const cciThreshold = settings?.cci?.threshold || 100;
       indSeries["CCI"] = cciResults;
 
@@ -208,9 +222,9 @@ export function calculateIndicatorsFromArrays(
         value: cciVal,
         params:
           cciSmoothLen > 1 ? `${cciLen}, ${cciSmoothLen}` : cciLen.toString(),
-        action: cciVal.gt(cciThreshold)
+        action: cciVal > cciThreshold
           ? "Sell"
-          : cciVal.lt(-cciThreshold)
+          : cciVal < -cciThreshold
             ? "Buy"
             : "Neutral",
       });
@@ -224,16 +238,16 @@ export function calculateIndicatorsFromArrays(
       // Note: JSIndicators.adx implementation might use a single length for both currently.
       // If we want separate DI length, we'd need to update JSIndicators.adx signature.
       // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
-      const adxVal = new Decimal(adxResults[adxResults.length - 1]);
+      const adxVal = adxResults[adxResults.length - 1];
       const adxThreshold = settings?.adx?.threshold || 25;
       indSeries["ADX"] = adxResults;
 
       let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       // ADX itself just means trend strength, direction comes from price or DMI (omitted for brevity here but could add)
       // If strong trend, we assume continuation of current short term trend
-      if (adxVal.gt(adxThreshold)) {
+      if (adxVal > adxThreshold) {
         const prevClose = closesNum[closesNum.length - 2];
-        adxAction = currentPrice.gt(prevClose) ? "Buy" : "Sell";
+        adxAction = currentPrice > prevClose ? "Buy" : "Sell";
       }
 
       oscillators.push({
@@ -248,8 +262,12 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('ao')) {
       const aoFast = settings?.ao?.fastLength || 5;
       const aoSlow = settings?.ao?.slowLength || 34;
-      const aoVal = new Decimal(
-        calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow),
+      const aoVal = calculateAwesomeOscillator(
+        highsNum,
+        lowsNum,
+        aoFast,
+        aoSlow,
+        getSource("hl2"),
       );
       // We'd need the full series for divergence, but AO helper returns single value.
       // We'll skip AO divergence for now unless we refactor helper.
@@ -258,7 +276,7 @@ export function calculateIndicatorsFromArrays(
         name: "Awesome Osc.",
         params: `${aoFast}, ${aoSlow}`,
         value: aoVal,
-        action: aoVal.gt(0) ? "Buy" : "Sell",
+        action: aoVal > 0 ? "Buy" : "Sell",
       });
     }
 
@@ -269,16 +287,14 @@ export function calculateIndicatorsFromArrays(
       const macdSig = settings?.macd?.signalLength || 9;
       const macdSource = getSource(settings?.macd?.source || "close");
       const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
-      const macdVal = new Decimal(macdRes.macd[macdRes.macd.length - 1]);
-      const macdSignalVal = new Decimal(
-        macdRes.signal[macdRes.signal.length - 1],
-      );
-      const macdHist = macdVal.minus(macdSignalVal);
+      const macdVal = macdRes.macd[macdRes.macd.length - 1];
+      const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
+      const macdHist = macdVal - macdSignalVal;
       indSeries["MACD"] = macdRes.macd; // Scan divergences on MACD line
 
       let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      if (macdVal.gt(macdSignalVal)) macdAction = "Buy";
-      else if (macdVal.lt(macdSignalVal)) macdAction = "Sell";
+      if (macdVal > macdSignalVal) macdAction = "Buy";
+      else if (macdVal < macdSignalVal) macdAction = "Sell";
 
       oscillators.push({
         name: "MACD",
@@ -305,13 +321,13 @@ export function calculateIndicatorsFromArrays(
         stochRsiD,
         stochRsiSmooth,
         );
-        const srK = new Decimal(srRes.k[srRes.k.length - 1]);
-        const srD = new Decimal(srRes.d[srRes.d.length - 1]);
+        const srK = srRes.k[srRes.k.length - 1];
+        const srD = srRes.d[srRes.d.length - 1];
 
         let srAction: "Buy" | "Sell" | "Neutral" = "Neutral";
         // StochRSI logic similar to Stoch but more sensitive
-        if (srK.lt(20) && srD.lt(20) && srK.gt(srD)) srAction = "Buy";
-        else if (srK.gt(80) && srD.gt(80) && srK.lt(srD)) srAction = "Sell";
+        if (srK < 20 && srD < 20 && srK > srD) srAction = "Buy";
+        else if (srK > 80 && srD > 80 && srK < srD) srAction = "Sell";
 
         oscillators.push({
         name: "StochRSI",
@@ -326,11 +342,11 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('williamsr')) {
         const wRLen = settings?.williamsR?.length || 14;
         const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
-        const wRVal = new Decimal(wR[wR.length - 1]);
+        const wRVal = wR[wR.length - 1];
         // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
         let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-        if (wRVal.lt(-80)) wRAction = "Buy";
-        else if (wRVal.gt(-20)) wRAction = "Sell";
+        if (wRVal < -80) wRAction = "Buy";
+        else if (wRVal > -20) wRAction = "Sell";
 
         oscillators.push({
         name: "Will %R",
@@ -371,10 +387,10 @@ export function calculateIndicatorsFromArrays(
           side: res.side,
           startIdx: res.startIdx,
           endIdx: res.endIdx,
-          priceStart: res.priceStart,
-          priceEnd: res.priceEnd,
-          indStart: res.indStart,
-          indEnd: res.indEnd,
+          priceStart: res.priceStart.toNumber(),
+          priceEnd: res.priceEnd.toNumber(),
+          indStart: res.indStart.toNumber(),
+          indEnd: res.indEnd.toNumber(),
         });
       });
     });
@@ -397,7 +413,7 @@ export function calculateIndicatorsFromArrays(
         settings?.superTrend?.factor || 3,
         );
         advancedInfo.superTrend = {
-            value: new Decimal(stResult.value[stResult.value.length - 1]),
+            value: stResult.value[stResult.value.length - 1],
             trend: stResult.trend[stResult.trend.length - 1] === 1 ? "bull" : "bear",
         };
     }
@@ -411,14 +427,14 @@ export function calculateIndicatorsFromArrays(
         settings?.atrTrailingStop?.multiplier || 3.5,
         );
         advancedInfo.atrTrailingStop = {
-            buy: new Decimal(atrTsResult.buyStop[atrTsResult.buyStop.length - 1]),
-            sell: new Decimal(atrTsResult.sellStop[atrTsResult.sellStop.length - 1]),
+            buy: atrTsResult.buyStop[atrTsResult.buyStop.length - 1],
+            sell: atrTsResult.sellStop[atrTsResult.sellStop.length - 1],
         };
     }
 
     if (shouldCalculate('obv')) {
         const obvResult = JSIndicators.obv(closesNum, volumesNum);
-        advancedInfo.obv = new Decimal(obvResult[obvResult.length - 1]);
+        advancedInfo.obv = obvResult[obvResult.length - 1];
     }
 
     if (shouldCalculate('volumeprofile')) {
@@ -431,13 +447,13 @@ export function calculateIndicatorsFromArrays(
         );
         if (vpResult) {
             advancedInfo.volumeProfile = {
-                poc: new Decimal(vpResult.poc),
-                vaHigh: new Decimal(vpResult.vaHigh),
-                vaLow: new Decimal(vpResult.vaLow),
+                poc: vpResult.poc,
+                vaHigh: vpResult.vaHigh,
+                vaLow: vpResult.vaLow,
                 rows: vpResult.rows.map((r) => ({
-                priceStart: new Decimal(r.priceStart),
-                priceEnd: new Decimal(r.priceEnd),
-                volume: new Decimal(r.volume),
+                priceStart: r.priceStart,
+                priceEnd: r.priceEnd,
+                volume: r.volume,
                 })),
             };
         }
@@ -456,7 +472,7 @@ export function calculateIndicatorsFromArrays(
             anchorPoint: (settings?.vwap as any)?.anchorPoint
         }
         );
-        advancedInfo.vwap = new Decimal(vwapSeries[vwapSeries.length - 1]);
+        advancedInfo.vwap = vwapSeries[vwapSeries.length - 1];
     }
 
     // Parabolic SAR
@@ -464,7 +480,7 @@ export function calculateIndicatorsFromArrays(
         const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
         const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
         const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
-        advancedInfo.parabolicSar = new Decimal(psarSeries[psarSeries.length - 1]);
+        advancedInfo.parabolicSar = psarSeries[psarSeries.length - 1];
     }
 
     // MFI
@@ -476,12 +492,13 @@ export function calculateIndicatorsFromArrays(
         closesNum,
         volumesNum,
         mfiLen,
+        getSource("hlc3"),
         );
-        const mfiVal = new Decimal(mfiSeries[mfiSeries.length - 1]);
+        const mfiVal = mfiSeries[mfiSeries.length - 1];
         let mfiAction = "Neutral";
-        if (mfiVal.gt(80))
+        if (mfiVal > 80)
         mfiAction = "Sell"; // Overbought
-        else if (mfiVal.lt(20)) mfiAction = "Buy"; // Oversold
+        else if (mfiVal < 20) mfiAction = "Buy"; // Oversold
         advancedInfo.mfi = { value: mfiVal, action: mfiAction };
     }
 
@@ -494,11 +511,11 @@ export function calculateIndicatorsFromArrays(
         closesNum,
         chopLen,
         );
-        const chopVal = new Decimal(chopSeries[chopSeries.length - 1]);
+        const chopVal = chopSeries[chopSeries.length - 1];
         // > 61.8 = Consolidation/Chop, < 38.2 = Trending
         advancedInfo.choppiness = {
         value: chopVal,
-        state: chopVal.gt(61.8) ? "Range" : chopVal.lt(38.2) ? "Trend" : "Range",
+        state: chopVal > 61.8 ? "Range" : chopVal < 38.2 ? "Trend" : "Range",
         };
     }
 
@@ -518,25 +535,25 @@ export function calculateIndicatorsFromArrays(
         ichiDisp,
         );
         const idx = ichi.conversion.length - 1;
-        const conv = new Decimal(ichi.conversion[idx] || 0); // Guard against empty
-        const base = new Decimal(ichi.base[idx] || 0);
-        const spanA = new Decimal(ichi.spanA[idx] || 0);
-        const spanB = new Decimal(ichi.spanB[idx] || 0);
+        const conv = ichi.conversion[idx] || 0;
+        const base = ichi.base[idx] || 0;
+        const spanA = ichi.spanA[idx] || 0;
+        const spanB = ichi.spanB[idx] || 0;
 
         // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
         // Price < Cloud && Conv < Base = Sell
         let ichiAction = "Neutral";
-        const cloudTop = spanA.gt(spanB) ? spanA : spanB;
-        const cloudBottom = spanA.lt(spanB) ? spanA : spanB;
+        const cloudTop = spanA > spanB ? spanA : spanB;
+        const cloudBottom = spanA < spanB ? spanA : spanB;
 
-        if (currentPrice.gt(cloudTop) && conv.gt(base)) ichiAction = "Buy";
+        if (currentPrice > cloudTop && conv > base) ichiAction = "Buy";
         else if (
-        currentPrice.gt(cloudTop) &&
-        conv.gt(base) &&
-        currentPrice.gt(base)
+        currentPrice > cloudTop &&
+        conv > base &&
+        currentPrice > base
         )
         ichiAction = "Strong Buy";
-        else if (currentPrice.lt(cloudBottom) && conv.lt(base)) ichiAction = "Sell";
+        else if (currentPrice < cloudBottom && conv < base) ichiAction = "Sell";
 
         advancedInfo.ichimoku = {
         conversion: conv,
@@ -565,13 +582,13 @@ export function calculateIndicatorsFromArrays(
         for (const period of emaPeriods) {
         const emaResults = JSIndicators.ema(emaSource, period);
         const rawVal = emaResults[emaResults.length - 1];
-        // Handle insufficient data (NaN) by defaulting to 0, matching legacy behavior expectation
-        const emaVal = (typeof rawVal === 'number' && !isNaN(rawVal)) ? new Decimal(rawVal) : new Decimal(0);
+        // Handle insufficient data (NaN) by defaulting to 0
+        const emaVal = (typeof rawVal === 'number' && !isNaN(rawVal)) ? rawVal : 0;
         movingAverages.push({
             name: "EMA",
             params: `${period}`,
             value: emaVal,
-            action: currentPrice.gt(emaVal) ? "Buy" : "Sell",
+            action: currentPrice > emaVal ? "Buy" : "Sell",
         });
         }
     }
@@ -583,13 +600,8 @@ export function calculateIndicatorsFromArrays(
 
   // --- Pivots ---
   const pivotType = settings?.pivots?.type || "classic";
-  // Pro-Level: Use array optimized pivot calc
-  // Need previous completed candle (index length - 2)
   const prevIdx = closesNum.length - 2;
   let pivotData;
-  // Calculate pivots if allowed OR if we need basic pivotBasis anyway?
-  // The 'pivotBasis' (open/high/low/close) is just the kline data, we probably always want that if requested?
-  // But typically pivots object is the heavy part.
 
   // Note: getEmptyData returns dummy pivots.
   if (prevIdx >= 0 && shouldCalculate('pivots')) {
@@ -613,27 +625,24 @@ export function calculateIndicatorsFromArrays(
         const bbLen = settings?.bb?.length || 20;
         const bbStdDev = settings?.bb?.stdDev || 2;
 
-        // We might want to separate ATR and BB calc if one is disabled
-        // But for now grouping them under "volatility" section is common usage in return type
-
-        let currentAtr = new Decimal(0);
+        let currentAtr = 0;
         if (shouldCalculate('atr')) {
             const atrResults = JSIndicators.atr(highsNum, lowsNum, closesNum, atrLen);
-            currentAtr = new Decimal(atrResults[atrResults.length - 1]);
+            currentAtr = atrResults[atrResults.length - 1];
         }
 
-        let bbUpper = new Decimal(0), bbLower = new Decimal(0), bbMiddle = new Decimal(0), percentP = new Decimal(0);
+        let bbUpper = 0, bbLower = 0, bbMiddle = 0, percentP = 0;
 
         if (shouldCalculate('bb')) {
             const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev);
-            bbUpper = new Decimal(bbResults.upper[bbResults.upper.length - 1]);
-            bbLower = new Decimal(bbResults.lower[bbResults.lower.length - 1]);
-            bbMiddle = new Decimal(bbResults.middle[bbResults.middle.length - 1]);
+            bbUpper = bbResults.upper[bbResults.upper.length - 1];
+            bbLower = bbResults.lower[bbResults.lower.length - 1];
+            bbMiddle = bbResults.middle[bbResults.middle.length - 1];
 
-            const range = bbUpper.minus(bbLower);
-            percentP = range.isZero()
-            ? new Decimal(0.5)
-            : currentPrice.minus(bbLower).div(range);
+            const range = bbUpper - bbLower;
+            percentP = range === 0
+            ? 0.5
+            : (currentPrice - bbLower) / range;
         }
 
         volatility = {
@@ -697,20 +706,20 @@ export function getEmptyData(): TechnicalsData {
     movingAverages: [],
     pivots: {
       classic: {
-        p: new Decimal(0),
-        r1: new Decimal(0),
-        r2: new Decimal(0),
-        r3: new Decimal(0),
-        s1: new Decimal(0),
-        s2: new Decimal(0),
-        s3: new Decimal(0),
+        p: 0,
+        r1: 0,
+        r2: 0,
+        r3: 0,
+        s1: 0,
+        s2: 0,
+        s3: 0,
       },
     },
     pivotBasis: {
-      high: new Decimal(0),
-      low: new Decimal(0),
-      close: new Decimal(0),
-      open: new Decimal(0),
+      high: 0,
+      low: 0,
+      close: 0,
+      open: 0,
     },
     summary: { buy: 0, sell: 0, neutral: 0, action: "Neutral" },
   };

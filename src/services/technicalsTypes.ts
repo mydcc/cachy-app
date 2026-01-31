@@ -17,6 +17,7 @@
 
 import { Decimal } from "decimal.js";
 
+// Source Data (Financial Precision required)
 export interface Kline {
   open: Decimal;
   high: Decimal;
@@ -57,12 +58,13 @@ export function deserializeKline(k: SerializedKline): Kline {
   };
 }
 
+// Technical Analysis Data (Performance optimized: native numbers)
 export interface IndicatorResult {
   name: string;
   params?: string; // e.g. "14, 14"
-  value: Decimal;
-  signal?: Decimal; // For MACD signal line, etc.
-  histogram?: Decimal; // For MACD histogram
+  value: number;
+  signal?: number; // For MACD signal line, etc.
+  histogram?: number; // For MACD histogram
   action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
 }
 
@@ -72,10 +74,10 @@ export interface DivergenceItem {
   side: "Bullish" | "Bearish";
   startIdx: number;
   endIdx: number;
-  priceStart: Decimal;
-  priceEnd: Decimal;
-  indStart: Decimal;
-  indEnd: Decimal;
+  priceStart: number;
+  priceEnd: number;
+  indStart: number;
+  indEnd: number;
 }
 
 export interface ConfluenceData {
@@ -89,20 +91,20 @@ export interface TechnicalsData {
   movingAverages: IndicatorResult[];
   pivots: {
     classic: {
-      r3: Decimal;
-      r2: Decimal;
-      r1: Decimal;
-      p: Decimal;
-      s1: Decimal;
-      s2: Decimal;
-      s3: Decimal;
+      r3: number;
+      r2: number;
+      r1: number;
+      p: number;
+      s1: number;
+      s2: number;
+      s3: number;
     };
   };
   pivotBasis?: {
-    high: Decimal;
-    low: Decimal;
-    close: Decimal;
-    open: Decimal;
+    high: number;
+    low: number;
+    close: number;
+    open: number;
   };
   summary: {
     buy: number;
@@ -111,123 +113,50 @@ export interface TechnicalsData {
     action: "Buy" | "Sell" | "Neutral";
   };
   volatility?: {
-    atr: Decimal;
+    atr: number;
     bb: {
-      upper: Decimal;
-      middle: Decimal;
-      lower: Decimal;
-      percentP: Decimal; // Price position within bands (0-1)
+      upper: number;
+      middle: number;
+      lower: number;
+      percentP: number; // Price position within bands (0-1)
     };
   };
   // New Fields
   divergences?: DivergenceItem[];
   confluence?: ConfluenceData;
   advanced?: {
-    vwap?: Decimal;
-    mfi?: { value: Decimal; action: string };
-    stochRsi?: { k: Decimal; d: Decimal; action: string };
-    williamsR?: { value: Decimal; action: string };
-    choppiness?: { value: Decimal; state: "Trend" | "Range" };
+    vwap?: number;
+    mfi?: { value: number; action: string };
+    stochRsi?: { k: number; d: number; action: string };
+    williamsR?: { value: number; action: string };
+    choppiness?: { value: number; state: "Trend" | "Range" };
     ichimoku?: {
-      conversion: Decimal;
-      base: Decimal;
-      spanA: Decimal;
-      spanB: Decimal;
+      conversion: number;
+      base: number;
+      spanA: number;
+      spanB: number;
       action: string;
     };
-    parabolicSar?: Decimal;
+    parabolicSar?: number;
     // Phase 5: Pro Indicators
-    superTrend?: { value: Decimal; trend: "bull" | "bear" };
-    atrTrailingStop?: { buy: Decimal; sell: Decimal };
-    obv?: Decimal;
+    superTrend?: { value: number; trend: "bull" | "bear" };
+    atrTrailingStop?: { buy: number; sell: number };
+    obv?: number;
     volumeProfile?: {
-      poc: Decimal;
-      vaHigh: Decimal;
-      vaLow: Decimal;
-      rows: { priceStart: Decimal; priceEnd: Decimal; volume: Decimal }[];
+      poc: number;
+      vaHigh: number;
+      vaLow: number;
+      rows: { priceStart: number; priceEnd: number; volume: number }[];
     };
   };
   lastUpdated?: number;
 }
 
-export interface SerializedIndicatorResult {
-  name: string;
-  params?: string;
-  value: string;
-  signal?: string;
-  histogram?: string;
-  action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
-}
-
-export interface SerializedDivergenceItem {
-  indicator: string;
-  type: "Regular" | "Hidden";
-  side: "Bullish" | "Bearish";
-  priceStart: string;
-  priceEnd: string;
-  indStart: string;
-  indEnd: string;
-  startIdx: number;
-  endIdx: number;
-}
-
-export interface SerializedTechnicalsData {
-  oscillators: SerializedIndicatorResult[];
-  movingAverages: SerializedIndicatorResult[];
-  pivots: {
-    classic: {
-      p: string;
-      r1: string;
-      r2: string;
-      r3: string;
-      s1: string;
-      s2: string;
-      s3: string;
-    };
-  };
-  pivotBasis?: {
-    high: string;
-    low: string;
-    open: string;
-    close: string;
-  };
-  summary: TechnicalsData["summary"];
-  volatility?: {
-    atr: string;
-    bb: {
-      upper: string;
-      middle: string;
-      lower: string;
-      percentP: string;
-    };
-  };
-  divergences?: SerializedDivergenceItem[];
-  confluence?: ConfluenceData;
-  advanced?: {
-    vwap?: string;
-    mfi?: { value: string; action: string };
-    stochRsi?: { k: string; d: string; action: string };
-    williamsR?: { value: string; action: string };
-    choppiness?: { value: string; state: "Trend" | "Range" };
-    ichimoku?: {
-      conversion: string;
-      base: string;
-      spanA: string;
-      spanB: string;
-      action: string;
-    };
-    parabolicSar?: string;
-    superTrend?: { value: string; trend: "bull" | "bear" };
-    atrTrailingStop?: { buy: string; sell: string };
-    obv?: string;
-    volumeProfile?: {
-      poc: string;
-      vaHigh: string;
-      vaLow: string;
-      rows: { priceStart: string; priceEnd: string; volume: string }[];
-    };
-  };
-}
+// Deprecated: Serialized types are no longer needed as we transfer numbers directly
+// Keeping type alias for compatibility if needed, but pointing to main type
+export type SerializedTechnicalsData = TechnicalsData;
+export type SerializedIndicatorResult = IndicatorResult;
+export type SerializedDivergenceItem = DivergenceItem;
 
 export interface WorkerCalculatePayload {
   klines: {
