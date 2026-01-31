@@ -51,9 +51,9 @@ class RateLimiter {
   private readonly capacity: number;
   private readonly refillRateMs: number;
 
-  constructor(tokensPerSecond: number) {
-    this.capacity = tokensPerSecond;
-    this.tokens = tokensPerSecond;
+  constructor(tokensPerSecond: number, capacity?: number) {
+    this.capacity = capacity ?? tokensPerSecond;
+    this.tokens = this.capacity;
     this.lastRefill = Date.now();
     this.refillRateMs = tokensPerSecond / 1000;
   }
@@ -118,8 +118,8 @@ class RequestManager {
     }
 
     // Initialize Rate Limiters
-    // Bitunix: Conservative 10 req/s to avoid 500 "frequent request" error
-    this.rateLimiters.set("BITUNIX", new RateLimiter(10));
+    // Bitunix: Conservative 5 req/s with no burst to avoid 500 "frequent request" error
+    this.rateLimiters.set("BITUNIX", new RateLimiter(5, 1));
     // Bitget: Usually 20 req/s
     this.rateLimiters.set("BITGET", new RateLimiter(20));
   }

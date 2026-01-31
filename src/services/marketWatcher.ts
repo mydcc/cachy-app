@@ -41,7 +41,7 @@ class MarketWatcher {
   private unlockTimeouts = new Map<string, any>(); // Track lock release timers to prevent race conditions
   private proactiveLockTimeouts = new Map<string, any>(); // Safety valve for stuck locks
   private staggerTimeouts = new Set<any>(); // Track staggered requests to prevent zombie calls
-  private maxConcurrentPolls = 12; // Reduced to mitigate rate limits (worked with RateLimiter)
+  private maxConcurrentPolls = 6; // Reduced to mitigate rate limits (aligned with strict token bucket)
   private inFlight = 0;
   private lastErrorLog = 0;
   private readonly errorLogIntervalMs = 30000;
