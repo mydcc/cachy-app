@@ -27,7 +27,7 @@ import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
+import { PositionListSchema, PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSPosition, OMSOrderSide } from "./omsTypes";
 
 export class BitunixApiError extends Error {
@@ -156,6 +156,21 @@ class TradeService {
             } catch (e) {
                 logger.error("market", `[FlashClose] API Fallback failed`, e);
             }
+        } else {
+            // Freshness Check: If data is stale (> 5s), force verify
+            // This prevents closing based on old WebSocket data if connection was laggy
+            const isStale = position.timestamp && (Date.now() - position.timestamp > 5000);
+            if (isStale) {
+                logger.warn("market", `[FlashClose] Position data stale (${Date.now() - (position.timestamp || 0)}ms). Forcing refresh.`);
+                try {
+                    await this.fetchOpenPositionsFromApi();
+                    positions = omsService.getPositions();
+                    const fresh = positions.find(p => p.symbol === symbol && p.side === positionSide);
+                    if (fresh) position = fresh;
+                } catch (e) {
+                    logger.warn("market", `[FlashClose] Refresh failed, proceeding with stale data (Best Effort)`);
+                }
+            }
         }
 
         if (!position) {
@@ -263,16 +278,26 @@ class TradeService {
             if (validation.success) {
                 pendingPositions = validation.data;
             } else {
-                logger.error("market", "[TradeService] API Schema List mismatch. Falling back to individual item validation.", validation.error);
-                // Best Effort Parsing: Iterate and keep only valid items
+                logger.error("market", "[TradeService] API Schema List mismatch. Checking individual items.", validation.error);
+                // Strict Alerting:
+                // We iterate to recover valid items, BUT we must alert if we are dropping items.
+                // Silent dropping is forbidden for financial data.
+                let dropCount = 0;
                 rawPositions.forEach((item: any, index: number) => {
                     const itemValidation = PositionRawSchema.safeParse(item);
                     if (itemValidation.success) {
                         pendingPositions.push(itemValidation.data);
                     } else {
-                        logger.warn("market", `[TradeService] Dropping invalid position at index ${index}`, itemValidation.error);
+                        dropCount++;
+                        logger.error("market", `[TradeService] CRITICAL: Dropping invalid position at index ${index}. DATA LOSS RISK.`, { item, error: itemValidation.error });
+                        // TODO: trigger UI Alert via uiState or telemetry if possible
                     }
                 });
+
+                if (dropCount > 0 && pendingPositions.length === 0) {
+                    // If we dropped everything, that's a total failure. Throw.
+                    throw new TradeError("Critical: All positions failed validation", "trade.apiSchemaError");
+                }
             }
 
             // Map and Update OMS using robust mapper
@@ -309,7 +334,8 @@ class TradeService {
             unrealizedPnl: upnl,
             leverage: lev,
             marginMode: (raw.marginMode || "cross").toLowerCase() as "cross" | "isolated",
-            liquidationPrice: liq
+            liquidationPrice: liq,
+            timestamp: Date.now()
         };
 
 
