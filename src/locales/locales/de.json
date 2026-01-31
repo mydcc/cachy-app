@@ -555,6 +555,8 @@
     "24hHigh": "24h Hoch",
     "24hLow": "24h Tief",
     "vol": "Vol",
+    "heatmap": "Heatmap",
+    "broker": "Broker",
     "rsiSettings": "RSI Einstellungen",
     "length": "Länge",
     "source": "Quelle",
@@ -614,7 +616,16 @@
       "analysisInterval": "Intervall Technische Analyse",
       "intervalAggressive": "10s (Aggressiv)",
       "intervalBalanced": "60s (Ausgewogen)",
-      "intervalConservative": "600s (Konservativ)"
+      "intervalConservative": "600s (Konservativ)",
+      "interval1s": "1s (Ultra-Schnell)",
+      "interval2s": "2s (Schnell)",
+      "interval5s": "5s (Normal)",
+      "interval10s": "10s (Öko)",
+      "interval1sTooltip": "Bestens für Scalping (<1min Trades). Hohe CPU-Last.",
+      "interval2sTooltip": "Gut für Intraday-Trading (1-15min). Moderate CPU.",
+      "interval5sTooltip": "Gut für Day-Trading (15min+). Ausgewogen.",
+      "interval10sTooltip": "Ideal für Swing-Trading (1h+). Niedrige CPU.",
+      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung"
     },
     "visuals": {
       "subtabs": {
@@ -702,6 +713,7 @@
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
     "marketDataInterval": "Marktdaten-Aktualisierungsrate",
+    "marketDataIntervalHelp": "Wie oft Marktpreise aktualisiert werden",
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
@@ -836,7 +848,14 @@
       "resetAll": "Alles zurücksetzen",
       "resetConfirm": "Alle Hotkeys auf Standard zurücksetzen?",
       "pressKey": "Taste drücken...",
-      "info": "Klicke auf eine Kombination, um sie neu zu belegen. Nutze <span class=\"text-[var(--accent-color)]\">{alt}</span> oder <span class=\"text-[var(--accent-color)]\">{ctrl}</span>, um Konflikte zu vermeiden."
+      "info": "Klicke auf eine Kombination, um sie neu zu belegen. Nutze <span class=\"text-[var(--accent-color)]\">{alt}</span> oder <span class=\"text-[var(--accent-color)]\">{ctrl}</span>, um Konflikte zu vermeiden.",
+      "safetyMode": "Sicherheitsmodus (Alt+ erforderlich)",
+      "directMode": "Direktmodus (Schnell, kein Modifikator)",
+      "customConfig": "Benutzerdefinierte Konfiguration",
+      "activePreset": "Aktives Preset:",
+      "mode1Desc": "⚡ Direktmodus - Drücke \"L\" für Long, \"S\" für Short (am schnellsten)",
+      "mode2Desc": "🛡️ Sicherheitsmodus - Drücke \"Alt+L\" für Long, \"Alt+S\" für Short (verhindert Unfälle)",
+      "switchToCustom": "Zur benutzerdefinierten Konfiguration wechseln"
     },
     "tabs": {
       "general": "Allgemein",
@@ -882,7 +901,10 @@
       "factoryReset": "Werkseinstellungen",
       "factoryResetDesc": "Alles löschen und frisch starten. Nicht umkehrbar.",
       "resetNow": "Jetzt zurücksetzen",
-      "dashboard": "Dashboard"
+      "dashboard": "Dashboard",
+      "englishTechnicalTerms": "Englische Fachbegriffe",
+      "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
+      "quickActions": "Schnellaktionen"
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -941,7 +963,22 @@
       "marketTiles": "Marktübersicht Kacheln",
       "marketTilesDesc": "Marktdaten-Kacheln in der Seitenleiste anzeigen",
       "showLinks": "Links-Footer anzeigen",
-      "tradingView": "TradingView"
+      "tradingView": "TradingView",
+      "tileActionLinks": "Kachel-Aktions-Links",
+      "heatmapAction": "Heatmap Aktion",
+      "coinglassNewTab": "Coinglass (Neuer Tab)",
+      "coinglassPopup": "Coinglass (Popup Fenster)",
+      "coinankNewTab": "Coinank (Neuer Tab)",
+      "coinankPopup": "Coinank (ProChart Popup)",
+      "coinankDesc": "Ordnet den aktuellen Zeitrahmen dem Heatmap-Lookback-Zeitraum zu.",
+      "coinglassDesc": "Öffnet Coinglass Liquidation Heatmap.",
+      "indicatorConfiguration": "Indikator Konfiguration",
+      "managePerformance": "Leistung verwalten",
+      "marketSentiment": "Marktstimmung",
+      "showSentimentAnalysis": "Stimmungsanalyse-Panel anzeigen",
+      "showTechnicalAnalysis": "Technische Analyse-Panel anzeigen",
+      "historyLength": "Historienlänge (Kerzen)",
+      "moreHistoryDesc": "Mehr Historie = langsameres Laden. (Max: 2000)"
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",

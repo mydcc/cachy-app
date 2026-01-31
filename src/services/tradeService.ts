@@ -11,7 +11,7 @@ import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
-import type { OMSPosition } from "./omsTypes";
+import type { OMSPosition, OMSOrderSide } from "./omsTypes";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -149,7 +149,8 @@ class TradeService {
         // 2. Execute Close
         // Close Long -> Sell
         // Close Short -> Buy
-        const side = positionSide === "long" ? "SELL" : "BUY";
+        const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
+        const apiSide = side === "sell" ? "SELL" : "BUY";
 
         // CRITICAL: Use exact amount from OMS
         if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
@@ -167,7 +168,7 @@ class TradeService {
             id: clientOrderId,
             clientOrderId,
             symbol,
-            side: side.toLowerCase() as any,
+            side: side,
             type: "market",
             status: "pending",
             price: new Decimal(0),
@@ -180,7 +181,7 @@ class TradeService {
         try {
             return await this.signedRequest("POST", "/api/orders", {
                 symbol,
-                side,
+                side: apiSide,
                 orderType: "MARKET",
                 qty, // String for precision
                 reduceOnly: true,

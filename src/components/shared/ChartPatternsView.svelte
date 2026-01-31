@@ -21,6 +21,7 @@
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { renderSafeMarkdown } from "../../utils/markdownUtils";
+    import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
 
     let searchQuery = $state("");
@@ -36,9 +37,16 @@
         const stored = localStorage.getItem("chart_pattern_favorites");
         if (stored) {
             try {
-                favorites = new Set(JSON.parse(stored));
+                // Use safeJsonParse for resilience, although IDs are strings.
+                // Standard JSON.parse is risky if storage is corrupted.
+                const parsed = safeJsonParse(stored);
+                if (Array.isArray(parsed)) {
+                    favorites = new Set(parsed);
+                }
             } catch (e) {
                 console.error("Failed to parse favorites", e);
+                // Fallback to empty if corrupt
+                favorites = new Set();
             }
         }
     });

@@ -7,12 +7,13 @@
 import type { Decimal } from "decimal.js";
 
 export type OMSOrderStatus = "pending" | "filled" | "cancelled" | "rejected" | "expired";
+export type OMSOrderSide = "buy" | "sell";
 
 export interface OMSOrder {
     id: string;
     clientOrderId?: string;
     symbol: string;
-    side: "buy" | "sell";
+    side: OMSOrderSide;
     type: "limit" | "market";
     status: OMSOrderStatus;
     price: Decimal;

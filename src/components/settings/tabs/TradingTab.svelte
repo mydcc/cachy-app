@@ -26,23 +26,23 @@
     const intervals = [
         {
             value: 1000,
-            label: "1s (Ultra-Fast)",
-            tooltip: "Best for scalping (<1min trades). High CPU usage.",
+            label: $_("settings.calculation.interval1s"),
+            tooltip: $_("settings.calculation.interval1sTooltip"),
         },
         {
             value: 2000,
-            label: "2s (Fast)",
-            tooltip: "Great for intraday trading (1-15min). Moderate CPU.",
+            label: $_("settings.calculation.interval2s"),
+            tooltip: $_("settings.calculation.interval2sTooltip"),
         },
         {
             value: 5000,
-            label: "5s (Normal)",
-            tooltip: "Good for day trading (15min+). Balanced.",
+            label: $_("settings.calculation.interval5s"),
+            tooltip: $_("settings.calculation.interval5sTooltip"),
         },
         {
             value: 10000,
-            label: "10s (Eco)",
-            tooltip: "Ideal for swing trading (1h+). Low CPU.",
+            label: $_("settings.calculation.interval10s"),
+            tooltip: $_("settings.calculation.interval10sTooltip"),
         },
     ];
 
@@ -125,7 +125,7 @@
                             {$_("settings.marketDataInterval")}
                             <span
                                 class="help-icon"
-                                title="How often market prices are updated"
+                                title={$_("settings.marketDataIntervalHelp")}
                                 >ℹ️</span
                             >
                         </label>
@@ -151,7 +151,7 @@
                                     i.value ===
                                     settingsState.marketDataInterval,
                             )?.tooltip ||
-                                "Controls data freshness vs CPU usage"}
+                                $_("settings.calculation.intervalDesc")}
                         </p>
                     </div>
 
@@ -247,7 +247,7 @@
                             uiState.settingsSystemSubTab = "performance";
                         }}
                     >
-                        ⚡ Manage Performance
+                        ⚡ {$_("settings.trading.managePerformance")}
                     </button>
                 </div>
 
@@ -255,7 +255,7 @@
                     <!-- Chart History Limit -->
                     <div class="field-group">
                         <label for="history-limit">
-                            History Length (Candles)
+                            {$_("settings.trading.historyLength")}
                             <span
                                 class="text-[var(--accent-color)] font-mono ml-auto"
                                 >{settingsState.chartHistoryLimit}</span
@@ -273,7 +273,7 @@
                         <p
                             class="text-[10px] text-[var(--text-secondary)] mt-1"
                         >
-                            More history = slower initial load. (Max: 2000)
+                            {$_("settings.trading.moreHistoryDesc")}
                         </p>
                     </div>
                 </div>
@@ -302,7 +302,7 @@
                             <h4
                                 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-3"
                             >
-                                Tile Action Links
+                                {$_("settings.trading.tileActionLinks")}
                             </h4>
 
                             <div class="flex flex-col gap-3">
@@ -349,7 +349,7 @@
                                                     settingsState.showCgHeatLink
                                                 }
                                             />
-                                            <span class="text-xs">Heatmap</span>
+                                            <span class="text-xs">{$_("marketOverview.heatmap")}</span>
                                         </label>
                                         <label
                                             class="flex items-center gap-2 cursor-pointer"
@@ -360,7 +360,7 @@
                                                     settingsState.showBrokerLink
                                                 }
                                             />
-                                            <span class="text-xs">Broker</span>
+                                            <span class="text-xs">{$_("marketOverview.broker")}</span>
                                         </label>
                                     </div>
 
@@ -374,7 +374,7 @@
                                             >
                                                 <span
                                                     class="text-xs font-semibold text-[var(--text-secondary)]"
-                                                    >Heatmap Action</span
+                                                    >{$_("settings.trading.heatmapAction")}</span
                                                 >
                                                 <select
                                                     bind:value={
@@ -384,33 +384,28 @@
                                                 >
                                                     <option
                                                         value="coinglass_new_tab"
-                                                        >Coinglass (New Tab)</option
+                                                        >{$_("settings.trading.coinglassNewTab")}</option
                                                     >
                                                     <option
                                                         value="coinglass_popup"
-                                                        >Coinglass (Popup
-                                                        Window)</option
+                                                        >{$_("settings.trading.coinglassPopup")}</option
                                                     >
                                                     <option
                                                         value="coinank_new_tab"
-                                                        >Coinank (New Tab)</option
+                                                        >{$_("settings.trading.coinankNewTab")}</option
                                                     >
                                                     <option
                                                         value="coinank_popup"
-                                                        >Coinank (ProChart
-                                                        Popup)</option
+                                                        >{$_("settings.trading.coinankPopup")}</option
                                                     >
                                                 </select>
                                                 <p
                                                     class="text-[10px] text-[var(--text-secondary)] opacity-80"
                                                 >
                                                     {#if settingsState.heatmapMode && settingsState.heatmapMode.includes("coinank")}
-                                                        Maps current timeframe
-                                                        to Heatmap lookback
-                                                        period.
+                                                        {$_("settings.trading.coinankDesc")}
                                                     {:else}
-                                                        Opens Coinglass
-                                                        liquidation heatmap.
+                                                        {$_("settings.trading.coinglassDesc")}
                                                     {/if}
                                                 </p>
                                             </label>
@@ -424,11 +419,11 @@
                     <label class="toggle-card mb-4">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >Market Sentiment</span
+                                >{$_("settings.trading.marketSentiment")}</span
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Show sentiment analysis panel</span
+                                >{$_("settings.trading.showSentimentAnalysis")}</span
                             >
                         </div>
                         <Toggle
@@ -443,7 +438,7 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Show technical analysis panel</span
+                                >{$_("settings.trading.showTechnicalAnalysis")}</span
                             >
                         </div>
                         <Toggle bind:checked={settingsState.showTechnicals} />
@@ -512,7 +507,7 @@
                         <h4
                             class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
                         >
-                            Indicator Configuration
+                            {$_("settings.trading.indicatorConfiguration")}
                         </h4>
                         <IndicatorSettings />
                     </div>
@@ -533,12 +528,12 @@
                         class="input-field w-auto py-1 text-xs"
                     >
                         <option value="mode2"
-                            >Safety Mode (Alt+ Required)</option
+                            >{$_("settings.hotkeys.safetyMode")}</option
                         >
                         <option value="mode1"
-                            >Direct Mode (Fast, No Modifier)</option
+                            >{$_("settings.hotkeys.directMode")}</option
                         >
-                        <option value="custom">Custom Configuration</option>
+                        <option value="custom">{$_("settings.hotkeys.customConfig")}</option>
                     </select>
                 </div>
 
@@ -553,16 +548,16 @@
                         class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                     >
                         <p class="text-xs text-[var(--text-secondary)] mb-2">
-                            <strong>Active Preset:</strong>
+                            <strong>{$_("settings.hotkeys.activePreset")}</strong>
                             {settingsState.hotkeyMode === "mode1"
-                                ? '⚡ Direct Mode - Press "L" for Long, "S" for Short (fastest)'
-                                : '🛡️ Safety Mode - Press "Alt+L" for Long, "Alt+S" for Short (prevents accidents)'}
+                                ? $_("settings.hotkeys.mode1Desc")
+                                : $_("settings.hotkeys.mode2Desc")}
                         </p>
                         <button
                             class="text-xs text-[var(--accent-color)] underline"
                             onclick={() =>
                                 (settingsState.hotkeyMode = "custom")}
-                            >Switch to Custom Configuration</button
+                            >{$_("settings.hotkeys.switchToCustom")}</button
                         >
                     </div>
                 {/if}
