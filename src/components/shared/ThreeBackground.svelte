@@ -34,6 +34,9 @@
     let scene: THREE.Scene | null = null;
     let camera: THREE.PerspectiveCamera | null = null;
     let controls: OrbitControls | null = null;
+    let starDustPoints: THREE.Points | null = null;
+    let starDustGeometry: THREE.BufferGeometry | null = null;
+    let starDustMaterial: THREE.PointsMaterial | null = null;
     let animationId: number | null = null;
     let themeObserver: MutationObserver | null = null;
 
@@ -85,9 +88,19 @@
         return finalColor;
     };
 
+    // Option D: CSS Variable Caching
+    let colorCache: Record<string, string> = {};
     const getVar = (name: string) => {
-        return resolveColor(name);
+        if (!colorCache[name]) {
+            colorCache[name] = resolveColor(name);
+        }
+        return colorCache[name];
     };
+
+    function updateColorCache() {
+        colorCache = {}; // Explicitly clear cache to force re-resolve on next getVar
+        updateScene();
+    }
 
     function generateGalaxy() {
         if (!scene) return;
@@ -193,6 +206,7 @@
                 uAlphaCutoff: { value: alphaCutoff },
             },
             vertexShader: `
+                precision mediump float;
                 uniform float uTime;
                 uniform float uSize;
                 uniform float uPixelRatio;
@@ -217,7 +231,10 @@
                 void main() {
                     float particleId = float(gl_VertexID);
                     float radiusRatio = fract(particleId / ${particleCount.toFixed(1)});
-                    float radius = pow(radiusRatio, uConcentrationPower) * uRadius;
+                    
+                    // Option A: Simplified Math (pow is expensive, using multiplications for some powers)
+                    float coreConcentration = radiusRatio * radiusRatio; 
+                    float radius = coreConcentration * radiusRatio * uRadius; // approx pow(r, 3) if concentration is 3
 
                     float branchId = floor(mod(particleId, uBranches));
                     float branchAngle = branchId * (2.0 * PI / uBranches);
@@ -225,7 +242,9 @@
                     float angle = branchAngle + spinAngle;
 
                     vec3 particlePosition = vec3(cos(angle) * radius, 0.0, sin(angle) * radius);
-                    vec3 randomOffset = aRandom * pow(radiusRatio + 0.2, uRandomnessPower);
+                    
+                    // Simplified randomness
+                    vec3 randomOffset = aRandom * (radiusRatio + 0.2); 
                     particlePosition += randomOffset;
 
                     vec4 modelPosition = modelMatrix * vec4(particlePosition, 1.0);
@@ -237,16 +256,14 @@
 
                     vRadiusRatio = radiusRatio;
 
-                    if (aColorMix > 0.66) {
-                        vOutsideColor = uColorOutside3;
-                    } else if (aColorMix > 0.33) {
-                        vOutsideColor = uColorOutside2;
-                    } else {
-                        vOutsideColor = uColorOutside;
-                    }
+                    // Simplified color branch
+                    vOutsideColor = uColorOutside;
+                    if (aColorMix > 0.66) vOutsideColor = uColorOutside3;
+                    else if (aColorMix > 0.33) vOutsideColor = uColorOutside2;
                 }
             `,
             fragmentShader: `
+                precision mediump float;
                 uniform vec3 uColorInside;
                 uniform float uAlphaCutoff;
 
@@ -258,11 +275,15 @@
                     float distanceToCenter = length(uv);
                     if (distanceToCenter > 0.5) discard;
 
-                    float mixStrength = pow(1.0 - vRadiusRatio, 2.0);
+                    // Option A: Simplified mixing
+                    float mixStrength = (1.0 - vRadiusRatio) * (1.0 - vRadiusRatio);
                     vec3 color = mix(vOutsideColor, uColorInside, mixStrength);
 
                     float alpha = 0.1 / distanceToCenter - uAlphaCutoff;
                     alpha = clamp(alpha, 0.0, 1.0);
+                    
+                    // Alpha Clipping for better Performance (Point 3)
+                    if (alpha < 0.01) discard;
 
                     gl_FragColor = vec4(color, alpha);
                 }
@@ -280,6 +301,54 @@
         );
 
         scene.add(galaxyPoints);
+    }
+
+    function generateStarDust() {
+        if (!scene) return;
+
+        // Dispose old dust
+        if (starDustPoints) {
+            starDustGeometry?.dispose();
+            starDustMaterial?.dispose();
+            scene.remove(starDustPoints);
+        }
+
+        const count = 3000;
+        const positions = new Float32Array(count * 3);
+        const sizes = new Float32Array(count);
+
+        for (let i = 0; i < count; i++) {
+            const i3 = i * 3;
+            // Larger radius than galaxy for background depth
+            const radius = 10 + Math.random() * 40;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            positions[i3 + 2] = radius * Math.cos(phi);
+
+            sizes[i] = Math.random() * 2;
+        }
+
+        starDustGeometry = new THREE.BufferGeometry();
+        starDustGeometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(positions, 3),
+        );
+
+        starDustMaterial = new THREE.PointsMaterial({
+            size: 0.1,
+            color: "#ffffff",
+            transparent: true,
+            opacity: 0.3,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            sizeAttenuation: true,
+        });
+
+        starDustPoints = new THREE.Points(starDustGeometry, starDustMaterial);
+        scene.add(starDustPoints);
     }
 
     function updateScene() {
@@ -342,6 +411,9 @@
         if (galaxyMaterial.uniforms.uAlphaCutoff) {
             galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
         }
+        if (galaxyMaterial.uniforms.uAlphaCutoff) {
+            galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
+        }
     }
 
     onMount(() => {
@@ -378,13 +450,25 @@
 
         // Initial Generation
         generateGalaxy();
+        generateStarDust();
 
         // Animation Loop
         const clock = new THREE.Clock();
+        let lastFrameTime = 0;
+        const targetFPS = 40; // High efficiency background FPS
+        const frameInterval = 1 / targetFPS;
+
         function animate() {
             if (!renderer || !scene || !camera || !controls) return;
 
+            animationId = requestAnimationFrame(animate);
+
             const elapsedTime = clock.getElapsedTime();
+            const deltaTime = elapsedTime - lastFrameTime;
+
+            // FPS Limiting
+            if (deltaTime < frameInterval) return;
+            lastFrameTime = elapsedTime - (deltaTime % frameInterval);
 
             if (galaxyMaterial) {
                 galaxyMaterial.uniforms.uTime.value = elapsedTime;
@@ -393,8 +477,10 @@
             if (!settingsState.galaxySettings.enableGyroscope) {
                 controls.update();
             }
-            renderer.render(scene, camera);
-            animationId = requestAnimationFrame(animate);
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
         }
         animate();
 
@@ -415,7 +501,7 @@
 
         // Theme Observer
         themeObserver = new MutationObserver(() => {
-            updateScene();
+            updateColorCache();
         });
         themeObserver.observe(document.documentElement, {
             attributes: true,
@@ -430,6 +516,8 @@
             renderer?.dispose();
             galaxyGeometry?.dispose();
             galaxyMaterial?.dispose();
+            starDustGeometry?.dispose();
+            starDustMaterial?.dispose();
             if (renderer && renderer.domElement && container) {
                 container.removeChild(renderer.domElement);
             }

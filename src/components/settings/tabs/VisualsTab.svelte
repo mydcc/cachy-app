@@ -403,7 +403,9 @@
                                                 (settingsState.burningBordersIntensity =
                                                     intensity as any)}
                                         >
-                                            {$_(`settings.profile.background.intensity${intensity.charAt(0).toUpperCase() + intensity.slice(1)}` as TranslationKey) || intensity}
+                                            {$_(
+                                                `settings.profile.background.intensity${intensity.charAt(0).toUpperCase() + intensity.slice(1)}` as TranslationKey,
+                                            ) || intensity}
                                         </button>
                                     {/each}
                                 </div>
@@ -565,7 +567,9 @@
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >{$_("settings.workspace.aiAssistant")} / {$_("settings.workspace.privateNotes")} / {$_("settings.workspace.marketChat")}</span
+                                >{$_("settings.workspace.aiAssistant")} / {$_(
+                                    "settings.workspace.privateNotes",
+                                )} / {$_("settings.workspace.marketChat")}</span
                             >
                         </div>
                         <Toggle
@@ -606,7 +610,9 @@
 
                 {#if settingsState.backgroundType === "image" || settingsState.backgroundType === "video"}
                     <div class="field-group mb-4">
-                        <label for="bg-url">{$_("settings.profile.background.url")}</label>
+                        <label for="bg-url"
+                            >{$_("settings.profile.background.url")}</label
+                        >
                         <input
                             id="bg-url"
                             type="text"
@@ -618,7 +624,9 @@
                                 else settingsState.backgroundType = "image";
                             }}
                             class="input-field"
-                            placeholder={$_("settings.connections.placeholders.url")}
+                            placeholder={$_(
+                                "settings.connections.placeholders.url",
+                            )}
                         />
                         <p class="text-[10px] text-[var(--text-secondary)]">
                             {$_("settings.profile.background.urlHelper")}
@@ -644,7 +652,9 @@
 
                 {#if settingsState.backgroundType === "animation"}
                     <div class="field-group mb-4">
-                        <label for="anim-preset">{$_("settings.visuals.effect")}</label>
+                        <label for="anim-preset"
+                            >{$_("settings.visuals.effect")}</label
+                        >
                         <select
                             id="anim-preset"
                             bind:value={settingsState.backgroundAnimationPreset}
@@ -664,8 +674,8 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
                                 <label for="galaxy-count"
-                                    >{$_("settings.visuals.particles")}: {settingsState.galaxySettings
-                                        .particleCount}</label
+                                    >{$_("settings.visuals.particles")}: {settingsState
+                                        .galaxySettings.particleCount}</label
                                 >
                                 <input
                                     id="galaxy-count"
@@ -722,8 +732,8 @@
                             </div>
                             <div class="field-group">
                                 <label for="galaxy-branches"
-                                    >{$_("settings.visuals.branches")}: {settingsState.galaxySettings
-                                        .branches}</label
+                                    >{$_("settings.visuals.branches")}: {settingsState
+                                        .galaxySettings.branches}</label
                                 >
                                 <input
                                     id="galaxy-branches"
