@@ -145,8 +145,17 @@ export const JSIndicators = {
     const result = new Array(close.length).fill(NaN);
     if (close.length < kPeriod) return result;
     for (let i = kPeriod - 1; i < close.length; i++) {
-      const lookbackHigh = Math.max(...high.slice(i - kPeriod + 1, i + 1));
-      const lookbackLow = Math.min(...low.slice(i - kPeriod + 1, i + 1));
+      // Optimization: Manual loop instead of slice + spread
+      let lookbackHigh = -Infinity;
+      let lookbackLow = Infinity;
+      const start = i - kPeriod + 1;
+      const end = i + 1;
+
+      for (let j = start; j < end; j++) {
+        if (high[j] > lookbackHigh) lookbackHigh = high[j];
+        if (low[j] < lookbackLow) lookbackLow = low[j];
+      }
+
       const range = lookbackHigh - lookbackLow;
       result[i] = range === 0 ? 50 : ((close[i] - lookbackLow) / range) * 100;
     }
@@ -175,22 +184,19 @@ export const JSIndicators = {
     if (data.length < period) return result;
 
     for (let i = period - 1; i < data.length; i++) {
-      const slice = data.slice(i - period + 1, i + 1);
-
-      // Calculate SMA using Decimal for precision in Sum if needed, or keeping it fast with numbers?
-      // TechnicalsService used Decimal for sum. Let's stick to number for raw speed if consistent,
-      // BUT duplicate implementation used Decimal. Let's use Number for performance unless precision is critical here.
-      // Actually, CCI is often sensitive. Let's use Number for JSIndicators as it is meant to be "Fast JS".
-      // ...wait, the previous worker implementation used Decimal in cci.
-      // Let's use simple number math here to match the "Fast" nature of JSIndicators. if higher precision needed, use Decimal variant.
+      // Optimization: Manual loop instead of slice
+      const start = i - period + 1;
+      const end = i + 1;
 
       let sum = 0;
-      for (const val of slice) sum += val;
+      for (let j = start; j < end; j++) {
+        sum += data[j];
+      }
       const sma = sum / period;
 
       let sumAbsDiff = 0;
-      for (const val of slice) {
-        sumAbsDiff += Math.abs(val - sma);
+      for (let j = start; j < end; j++) {
+        sumAbsDiff += Math.abs(data[j] - sma);
       }
       const meanDev = sumAbsDiff / period;
 
@@ -271,10 +277,16 @@ export const JSIndicators = {
     const lower = new Array(data.length).fill(NaN);
 
     for (let i = period - 1; i < data.length; i++) {
-      const slice = data.slice(i - period + 1, i + 1);
       const avg = sma[i];
       let sumSqDiff = 0;
-      for (const val of slice) sumSqDiff += Math.pow(val - avg, 2);
+
+      // Optimization: Manual loop
+      const start = i - period + 1;
+      const end = i + 1;
+      for (let j = start; j < end; j++) {
+        sumSqDiff += Math.pow(data[j] - avg, 2);
+      }
+
       const standardDev = Math.sqrt(sumSqDiff / period);
       upper[i] = avg + standardDev * stdDev;
       lower[i] = avg - standardDev * stdDev;
@@ -386,9 +398,16 @@ export const JSIndicators = {
     const stochSingle = (src: NumberArray, len: number) => {
       const res = new Array(src.length).fill(NaN);
       for (let i = len - 1; i < src.length; i++) {
-        const slice = src.slice(i - len + 1, i + 1);
-        const min = Math.min(...slice);
-        const max = Math.max(...slice);
+        // Optimization: Manual loop
+        let min = Infinity;
+        let max = -Infinity;
+        const start = i - len + 1;
+        const end = i + 1;
+        for (let j = start; j < end; j++) {
+          if (src[j] < min) min = src[j];
+          if (src[j] > max) max = src[j];
+        }
+
         const range = max - min;
         res[i] = range === 0 ? 50 : ((src[i] - min) / range) * 100;
       }
@@ -416,8 +435,16 @@ export const JSIndicators = {
     if (close.length < period) return result;
 
     for (let i = period - 1; i < close.length; i++) {
-      const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
-      const lowestLow = Math.min(...low.slice(i - period + 1, i + 1));
+      // Optimization: Manual loop
+      let highestHigh = -Infinity;
+      let lowestLow = Infinity;
+      const start = i - period + 1;
+      const end = i + 1;
+      for (let j = start; j < end; j++) {
+        if (high[j] > highestHigh) highestHigh = high[j];
+        if (low[j] < lowestLow) lowestLow = low[j];
+      }
+
       const range = highestHigh - lowestLow;
       result[i] = range === 0 ? 0 : ((highestHigh - close[i]) / range) * -100;
     }
@@ -450,8 +477,16 @@ export const JSIndicators = {
       let sumTr = 0;
       for (let j = 0; j < period; j++) sumTr += tr[i - j];
 
-      const maxHigh = Math.max(...high.slice(i - period + 1, i + 1));
-      const minLow = Math.min(...low.slice(i - period + 1, i + 1));
+      // Optimization: Manual loop
+      let maxHigh = -Infinity;
+      let minLow = Infinity;
+      const start = i - period + 1;
+      const end = i + 1;
+      for (let j = start; j < end; j++) {
+        if (high[j] > maxHigh) maxHigh = high[j];
+        if (low[j] < minLow) minLow = low[j];
+      }
+
       const range = maxHigh - minLow;
 
       if (range === 0) result[i] = 0;
@@ -476,10 +511,19 @@ export const JSIndicators = {
     // Senkou Span B (Leading Span B): (52-period high + 52-period low)/2
     // Chikou Span (Lagging Span): Close plotted 26 days in the past (handled by UI offset mostly, but here we just return close)
 
-    const getAvg = (len: number, idx: number) => {
-      if (idx < len - 1) return 0;
-      const h = Math.max(...high.slice(idx - len + 1, idx + 1));
-      const l = Math.min(...low.slice(idx - len + 1, idx + 1));
+    const getAvg = (period: number, idx: number) => {
+      if (idx < period - 1) return 0;
+
+      // Optimization: Manual loop
+      let h = -Infinity;
+      let l = Infinity;
+      const start = idx - period + 1;
+      const end = idx + 1;
+
+      for (let j = start; j < end; j++) {
+        if (high[j] > h) h = high[j];
+        if (low[j] < l) l = low[j];
+      }
       return (h + l) / 2;
     };
 
@@ -608,8 +652,15 @@ export const JSIndicators = {
     const sellStop = new Array(len).fill(NaN);
 
     for (let i = period; i < len; i++) {
-      const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
-      const lowestLow = Math.min(...low.slice(i - period + 1, i + 1));
+      // Optimization: Manual loop
+      let highestHigh = -Infinity;
+      let lowestLow = Infinity;
+      const start = i - period + 1;
+      const end = i + 1;
+      for (let j = start; j < end; j++) {
+        if (high[j] > highestHigh) highestHigh = high[j];
+        if (low[j] < lowestLow) lowestLow = low[j];
+      }
 
       buyStop[i] = highestHigh - atr[i] * multiplier;
       sellStop[i] = lowestLow + atr[i] * multiplier;
