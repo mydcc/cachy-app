@@ -217,13 +217,15 @@ class BitunixWebSocketService {
           return;
         }
 
-        if (status === "connected" && timeSincePublic > 5000) {
+        // [HYBRID FIX] Increased tolerance to 15s (3x Ping Interval) to prevent false positives
+        if (status === "connected" && timeSincePublic > 15000) {
           marketState.connectionStatus = "reconnecting";
         }
 
         // Monitor for stale connection, but ONLY if connected.
         // If connecting, the connectionTimeout handles it.
-        if (status === "connected" && timeSincePublic > 20000) {
+        // Increased to 25s to allow for the 15s reconnection warning window
+        if (status === "connected" && timeSincePublic > 25000) {
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
@@ -801,6 +803,16 @@ class BitunixWebSocketService {
           if (channel === "ticker") {
             if (symbol && isObjectData && isTickerData(data)) {
                try {
+                  // HARDENING: Force cast numeric fields to string to prevent precision loss
+                  if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                  if (typeof data.high === 'number') data.high = String(data.high);
+                  if (typeof data.low === 'number') data.low = String(data.low);
+                  if (typeof data.volume === 'number') data.volume = String(data.volume);
+                  if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
+                  // Ticker aliases
+                  if (typeof data.v === 'number') data.v = String(data.v);
+                  if (typeof data.close === 'number') data.close = String(data.close);
+
                   const normalized = mdaService.normalizeTicker(message, "bitunix");
                   if (!this.shouldThrottle(`${symbol}:ticker`)) {
                     marketState.updateSymbol(symbol, {
@@ -824,6 +836,24 @@ class BitunixWebSocketService {
           if (channel === "depth_book5") {
             if (symbol && isObjectData && isDepthData(data)) {
               try {
+                  // HARDENING: Check depth arrays for numeric values
+                  // Bids and Asks are arrays of [price, qty]
+                  const safeToString = (val: any) => typeof val === 'number' ? String(val) : val;
+
+                  // In-place mutation for performance (Fast Path)
+                  if (data.b) {
+                      for (let i = 0; i < data.b.length; i++) {
+                          data.b[i][0] = safeToString(data.b[i][0]);
+                          data.b[i][1] = safeToString(data.b[i][1]);
+                      }
+                  }
+                  if (data.a) {
+                      for (let i = 0; i < data.a.length; i++) {
+                          data.a[i][0] = safeToString(data.a[i][0]);
+                          data.a[i][1] = safeToString(data.a[i][1]);
+                      }
+                  }
+
                   if (!this.shouldThrottle(`${symbol}:depth`)) {
                     marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
                   }
