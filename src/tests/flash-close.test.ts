@@ -134,7 +134,9 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
     it('should use exact OMS position amount for flash close', async () => {
         await tradeService.flashClosePosition('BTCUSDT', 'long');
 
-        const callArgs = signedRequestSpy.mock.calls[0];
+        // [HARDENING FIX] Now that we call cancelAllOrders first, we must find the CLOSE order
+        const calls = signedRequestSpy.mock.calls;
+        const callArgs = calls.find((c: any) => c[2] && c[2].side === 'SELL');
         const body = callArgs[2];
 
         // CRITICAL: Must use exact position size, not Safe Max
@@ -182,12 +184,49 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
     it('should prevent opening opposite position with reduceOnly flag', async () => {
         await tradeService.flashClosePosition('BTCUSDT', 'long');
 
-        const callArgs = signedRequestSpy.mock.calls[0];
+        // [HARDENING FIX] Find the CLOSE order call
+        const calls = signedRequestSpy.mock.calls;
+        const callArgs = calls.find((c: any) => c[2] && c[2].side === 'SELL');
         const body = callArgs[2];
 
         // Opposite side for long = sell
         expect(body.side).toBe('SELL');
         // CRITICAL: reduceOnly prevents opening short position
         expect(body.reduceOnly).toBe(true);
+    });
+
+    it('should attempt to cancel all orders before closing the position (Hardening)', async () => {
+        // Clear previous calls
+        signedRequestSpy.mockClear();
+
+        await tradeService.flashClosePosition('BTCUSDT', 'long');
+
+        // We expect TWO calls.
+        // Call 1: Cancel All
+        // Call 2: Market Close
+
+        const calls = signedRequestSpy.mock.calls;
+
+        // Find Cancel Call
+        const cancelCall = calls.find((call: any) =>
+            call[1] === '/api/orders' &&
+            call[2].type === 'cancel-all'
+        );
+
+        // This expectation confirms the vulnerability (missing cancel call)
+        // Since we want to reproduce the bug (i.e., demonstrate it's missing),
+        // we assert that it IS MISSING for now, then we will flip it to expect PRESENCE after fix.
+        // OR better: assert it IS PRESENT, and let the test fail.
+        // The prompt says "Create reproduction test...". A failing test is the reproduction.
+
+        expect(cancelCall).toBeDefined();
+
+        // Ensure Cancel happens BEFORE Close if both exist
+        if (cancelCall) {
+            const closeCall = calls.find((call: any) => call[2].side === 'SELL');
+            const cancelIndex = calls.indexOf(cancelCall);
+            const closeIndex = calls.indexOf(closeCall);
+            expect(cancelIndex).toBeLessThan(closeIndex);
+        }
     });
 });
