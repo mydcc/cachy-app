@@ -98,13 +98,38 @@ class WindowManager {
 
     /**
      * Toggles a window's open state by ID.
+     * 
+     * Enhanced UX: If the window is currently minimized, the first toggle 
+     * click will RESTORE it to the front instead of closing it.
+     * 
+     * @param id Unique identifier.
+     * @param createFn Closure to instantiate the window if it's currently closed.
+     */
+    /**
+     * Toggles a window's open state by ID.
+     * 
+     * Enhanced UX: If the window is currently minimized, the first toggle 
+     * click will RESTORE it to the front instead of closing it.
+     * 
      * @param id Unique identifier.
      * @param createFn Closure to instantiate the window if it's currently closed.
      */
     toggle(id: string, createFn: () => WindowBase) {
-        if (this.isOpen(id)) {
-            this.close(id);
+        const existing = this._windows.find(w => w.id === id);
+
+        if (existing) {
+            if (existing.isMinimized) {
+                // If minimized, restore it instead of closing.
+                // This fix ensures that windows restored from cache at startup
+                // are first expanded before being toggle-closed.
+                existing.restore();
+                this.bringToFront(id);
+            } else {
+                // If already open and active, close it.
+                this.close(id);
+            }
         } else {
+            // Not open yet, instantiate and register.
             this.open(createFn());
         }
     }

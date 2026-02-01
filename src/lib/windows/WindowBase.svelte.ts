@@ -176,6 +176,11 @@ export abstract class WindowBase {
         // --- RESTORE FROM PERSISTENCE ---
         this.restoreState();
 
+        // Ensure isMinimized flag is respected immediately after registration.
+        if (this.isMinimized && !this.allowMinimize) {
+            this.isMinimized = false; // Safety check
+        }
+
         // Position Logic: Only apply staggering/cursor-vicinity if NO valid saved state exists.
         if (typeof window !== 'undefined' && !this.hasRestoredPosition) {
             if (options.x !== undefined && options.y !== undefined) {
@@ -240,6 +245,7 @@ export abstract class WindowBase {
             width: this.width,
             height: this.height,
             isMaximized: this.isMaximized,
+            isMinimized: this.isMinimized,
             isPinned: this.isPinned,
             opacity: this.opacity,
             fontSize: this.fontSize,
@@ -261,6 +267,7 @@ export abstract class WindowBase {
                 this.width = state.width ?? this.width;
                 this.height = state.height ?? this.height;
                 this.isMaximized = state.isMaximized ?? false;
+                this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
                 this.opacity = state.opacity ?? this.opacity;
                 this.fontSize = state.fontSize ?? this.fontSize;
