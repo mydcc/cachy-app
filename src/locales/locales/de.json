@@ -1162,10 +1162,6 @@
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
     }
   },
-  "marketDashboard": {
-    "buttonTitle": "Marktübersicht öffnen",
-    "title": "Globale Marktanalyse"
-  },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
     "nextCycleIn": "Nächster Zyklus in",

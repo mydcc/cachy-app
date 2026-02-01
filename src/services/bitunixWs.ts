@@ -287,6 +287,7 @@ class BitunixWebSocketService {
   }
 
   private connectPublic(force = false) {
+    console.log('[BitunixWS-Debug] connectPublic called. Destroyed:', this.isDestroyed, 'MarketData:', settingsState.capabilities.marketData);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
@@ -389,11 +390,12 @@ class BitunixWebSocketService {
           marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
+            this.cleanup("public");
           } else {
             marketState.connectionStatus = "reconnecting";
+            this.cleanup("public");
             this.scheduleReconnect("public");
           }
-          this.cleanup("public");
         }
       };
 
@@ -488,10 +490,11 @@ class BitunixWebSocketService {
           this.isAuthenticated = false;
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
+            this.cleanup("private");
           } else {
+            this.cleanup("private");
             this.scheduleReconnect("private");
           }
-          this.cleanup("private");
         }
       };
 
