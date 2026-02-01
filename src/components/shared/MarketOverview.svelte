@@ -88,7 +88,7 @@
 
   // Ticker Data (Fallback)
   let tickerData = $derived(
-    marketState.data[normalizeSymbol(symbol, "bitunix")],
+    marketState.data[normalizeSymbol(symbol, provider)],
   );
 
   let currentPrice = $derived.by(() => {

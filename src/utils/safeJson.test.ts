@@ -49,9 +49,24 @@ describe('safeJsonParse', () => {
         expect(parsed[1]).toBe('1234567890123456790');
     });
 
-    it('should NOT treat floats as large integers', () => {
-        const json = '{"val": 123456789012345.678}';
+    it('should protect high-precision floats (Core Hardening)', () => {
+        // 18 digits total - JS would round this
+        // Input:  12345.123456789012
+        // JS:     12345.12345678901
+        const json = '{"val": 12345.123456789012}';
         const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe(123456789012345.678);
+        expect(parsed.val).toBe("12345.123456789012");
+    });
+
+    it('should NOT protect small numbers', () => {
+        const json = '{"val": 123.45}';
+        const parsed = safeJsonParse(json);
+        expect(parsed.val).toBe(123.45);
+    });
+
+    it('should protect very small floats with high precision', () => {
+        const json = '{"val": 0.0000000000123456789}'; // 21 chars
+        const parsed = safeJsonParse(json);
+        expect(parsed.val).toBe("0.0000000000123456789");
     });
 });

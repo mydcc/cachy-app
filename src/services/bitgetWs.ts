@@ -13,6 +13,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
+import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import type {
   BitgetWSMessage,
@@ -233,7 +234,7 @@ class BitgetWebSocketService {
         }
 
         try {
-          const message = JSON.parse(event.data);
+          const message = safeJsonParse(event.data);
           this.handleMessage(message);
         } catch (e) {
           // ignore
