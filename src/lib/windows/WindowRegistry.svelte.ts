@@ -22,15 +22,36 @@
 
 import type { WindowType, WindowConfig } from "./types";
 
+/**
+ * WindowRegistry acts as a central configuration store for all window types.
+ * It defines default flags, layouts, and behavioral traits for categories like
+ * charts, news, settings, modals, and internal tools.
+ * 
+ * When a window is instantiated, it retrieves its base configuration from this 
+ * registry to ensure visual and functional consistency.
+ */
 class WindowRegistry {
+    /** Map of window types to their respective configuration objects. */
     private configs: Map<WindowType, WindowConfig> = new Map();
 
     constructor() {
         this.registerDefaults();
     }
 
+    /**
+     * populates the registry with predefined configurations.
+     * Includes categories for:
+     * - System: window, modal, dialog, settings, iframe
+     * - Trading: chart, symbolpicker
+     * - Communication: news, chatbox, assistant
+     * - Content: journal, guide, whitepaper, etc.
+     */
     private registerDefaults() {
-        // Base Default for a standard window
+        /**
+         * GLOBAL BASE FLAGS
+         * These serve as the absolute fallback for any property not explicitly 
+         * defined in a specific window type.
+         */
         const baseFlags = {
             isResizable: true,
             isDraggable: true,
@@ -43,7 +64,6 @@ class WindowRegistry {
             allowMaximize: false,
             allowMinimize: false,
             canMinimizeToPanel: false,
-            // Harmonization defaults
             showIcon: false,
             hasContextMenu: false,
             doubleClickAction: 'maximize' as 'maximize',
@@ -59,14 +79,16 @@ class WindowRegistry {
             aspectRatio: null
         };
 
-        // Standard Window
+        // --- SYSTEM TYPES ---
+
+        /** Standard generic window. */
         this.configs.set('window', {
             type: 'window',
             flags: { ...baseFlags },
             layout: { ...baseLayout }
         });
 
-        // Modal (usually non-resizable, fixed center)
+        /** Center-fixed modal for critical inputs or overlays. */
         this.configs.set('modal', {
             type: 'modal',
             flags: {
@@ -85,7 +107,7 @@ class WindowRegistry {
             }
         });
 
-        // Dialog (Alerts, Confirms, Inputs)
+        /** Small center-fixed dialog for Alerts and Confirmations. */
         this.configs.set('dialog', {
             type: 'dialog',
             flags: {
@@ -96,17 +118,40 @@ class WindowRegistry {
                 allowMinimize: false,
                 canMinimizeToPanel: false,
                 centerByDefault: true,
-                isResponsive: true, // EdgeToEdge on Mobile
+                isResponsive: true, // Maximizes automatically on mobile
                 edgeToEdgeBreakpoint: 768
             },
             layout: {
                 ...baseLayout,
                 width: 450,
-                height: 250 // Dynamic, but start small
+                height: 250
             }
         });
 
-        // Symbol Picker
+        // --- TRADING & DATA TYPES ---
+
+        /** Full-featured financial chart window. */
+        this.configs.set('chart', {
+            type: 'chart',
+            flags: {
+                ...baseFlags,
+                allowMinimize: true,
+                allowZoom: false,
+                allowMultipleInstances: true,
+                showIcon: true,
+                hasContextMenu: true,
+                autoScaling: true,
+                showRightScale: true
+            },
+            layout: {
+                ...baseLayout,
+                width: 640,
+                height: 480,
+                aspectRatio: 1.6 // Maintain 16:10 ratio during resizing
+            }
+        });
+
+        /** Asset selection tool. */
         this.configs.set('symbolpicker', {
             type: 'symbolpicker',
             flags: {
@@ -125,28 +170,8 @@ class WindowRegistry {
             }
         });
 
-        // Chart Window
-        this.configs.set('chart', {
-            type: 'chart',
-            flags: {
-                ...baseFlags,
-                allowMinimize: true,
-                allowZoom: false,
-                allowMultipleInstances: true,
-                showIcon: true,
-                hasContextMenu: true,
-                autoScaling: true,
-                showRightScale: true
-            },
-            layout: {
-                ...baseLayout,
-                width: 640,
-                height: 480,
-                aspectRatio: 1.6
-            }
-        });
+        // --- COMMUNICATION & UTILITY ---
 
-        // News Window
         this.configs.set('news', {
             type: 'news',
             flags: {
@@ -161,7 +186,6 @@ class WindowRegistry {
             }
         });
 
-        // Chat Box
         this.configs.set('chatbox', {
             type: 'chatbox',
             flags: {
@@ -175,37 +199,7 @@ class WindowRegistry {
             }
         });
 
-        // Chat Panel (pinned/specific)
-        this.configs.set('chatpanel', {
-            type: 'chatpanel',
-            flags: {
-                ...baseFlags,
-                isDraggable: false,
-                isResizable: true,
-                allowMaximize: false
-            },
-            layout: {
-                ...baseLayout,
-                width: 350,
-                height: 800
-            }
-        });
-
-        // Iframe Window
-        this.configs.set('iframe', {
-            type: 'iframe',
-            flags: {
-                ...baseFlags,
-                showCachyIcon: true
-            },
-            layout: {
-                ...baseLayout,
-                width: 900,
-                height: 600
-            }
-        });
-
-        // Settings
+        /** Settings pane with auto-close on blur. */
         this.configs.set('settings', {
             type: 'settings',
             flags: {
@@ -225,7 +219,8 @@ class WindowRegistry {
             }
         });
 
-        // Markdown Info Windows (Journal, Guide, etc)
+        // --- DOCUMENTATION & INFORMATION ---
+
         const markdownTypes: WindowType[] = ['journal', 'guide', 'changelog', 'privacy', 'whitepaper'];
         markdownTypes.forEach(t => {
             this.configs.set(t, {
@@ -250,7 +245,7 @@ class WindowRegistry {
             });
         });
 
-        // Assistant Window (AI, Notes, Chat)
+        /** Hybrid AI assistant / Side-chat window. */
         this.configs.set('assistant', {
             type: 'assistant',
             flags: {
@@ -269,6 +264,10 @@ class WindowRegistry {
         });
     }
 
+    /**
+     * Retrieves the configuration for a specific window type.
+     * Falls back to 'window' if the type is unregistered.
+     */
     getConfig(type: WindowType): WindowConfig {
         return this.configs.get(type) || this.configs.get('window')!;
     }

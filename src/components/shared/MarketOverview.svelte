@@ -404,7 +404,7 @@
     LINK: true,
     XRP: true,
   };
-  function openChannel() {
+  function openChannel(e?: MouseEvent) {
     if (!symbol) return;
     const s = symbol.toUpperCase().replace(/USDT(\.P|P)?$/, "");
     const config = CHANNEL_CONFIG[s];
@@ -419,7 +419,14 @@
     } else {
       const plotId = typeof config === "string" ? config : s;
       const url = `https://space.cachy.app/index.php?plot_id=${plotId}`;
-      windowManager.open(new ChannelWindow(url, `${s} Channel`, windowId));
+      windowManager.open(
+        new ChannelWindow(
+          url,
+          `${s} Channel`,
+          windowId,
+          e ? { x: e.clientX, y: e.clientY } : {},
+        ),
+      );
     }
   }
 
@@ -453,8 +460,7 @@
             : priceTrend === "down"
               ? "var(--danger-color)"
               : "var(--accent-color)",
-        intensity:
-          rsiValue && (rsiValue.gt(70) || rsiValue.lt(30)) ? 1.8 : 1.0,
+        intensity: rsiValue && (rsiValue.gt(70) || rsiValue.lt(30)) ? 1.8 : 1.0,
         layer: "tiles",
       }
     : undefined}
@@ -486,7 +492,10 @@
       onclick={(e) => {
         e.stopPropagation();
         trackInteraction("btn-open-chart", "click", { symbol });
-        windowManager.toggle(`chart-${symbol}`, () => new ChartWindow(symbol));
+        windowManager.toggle(
+          `chart-${symbol}`,
+          () => new ChartWindow(symbol, { x: e.clientX, y: e.clientY }),
+        );
       }}
     >
       <svg
@@ -753,7 +762,7 @@
                 : $_("marketOverview.tooltips.openChannel")}
               onclick={(e) => {
                 e.stopPropagation();
-                openChannel();
+                openChannel(e);
               }}>{@html icons.monitor}</button
             >
           {/if}

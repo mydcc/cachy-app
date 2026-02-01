@@ -22,10 +22,22 @@
 
 import { WindowBase } from "../WindowBase.svelte";
 import { windowManager } from "../WindowManager.svelte";
+import { tradeState } from "../../../stores/trade.svelte";
 import CandleChartView from "./CandleChartView.svelte";
 
+/**
+ * ChartWindow is a specific implementation of WindowBase that renders
+ * a financial chart using CandleChartView.
+ * 
+ * Features:
+ * - Timeframe selection in the header.
+ * - Integration with tradeState (syncing symbol selection).
+ * - Price-in-title display toggle via context menu.
+ */
 export class ChartWindow extends WindowBase {
+    /** The financial ticker symbol (e.g., BTCUSDT). */
     symbol = $state("");
+    /** The active aggregation interval (e.g., 1h, 15m). */
     timeframe = $state("1h");
 
     constructor(symbol: string, options: any = {}) {
@@ -38,9 +50,14 @@ export class ChartWindow extends WindowBase {
             ...options
         });
         this.symbol = symbol;
+        this.headerAction = 'toggle-mode';
         this.updateHeaderControls();
     }
 
+    /**
+     * Generates the timeframe buttons displayed in the window header.
+     * Updates whenever the active timeframe changes.
+     */
     updateHeaderControls() {
         const tfs = ["3m", "5m", "15m", "1h", "4h", "1d"];
         this.headerControls = tfs.map(tf => ({
@@ -53,10 +70,12 @@ export class ChartWindow extends WindowBase {
         }));
     }
 
+    /** The Svelte component used to render the chart content. */
     get component() {
         return CandleChartView;
     }
 
+    /** Mapping of logic state to component props. */
     get componentProps() {
         return {
             symbol: this.symbol,
@@ -69,6 +88,19 @@ export class ChartWindow extends WindowBase {
         };
     }
 
+    // --- INTERACTION HOOKS ---
+
+    /**
+     * Triggered when the user clicks the symbol/title in the header.
+     * Synchronizes the global application state to this symbol.
+     */
+    onHeaderTitleClick() {
+        tradeState.setSymbol(this.symbol);
+    }
+
+    /**
+     * Extends the base context menu with chart-specific actions.
+     */
     public getContextMenuActions(): any[] {
         return [
             {
@@ -91,6 +123,7 @@ export class ChartWindow extends WindowBase {
         ];
     }
 
+    /** Reserved for future implementation: fit the chart to the viewport. */
     autoScale() {
         // Implementation logic if needed
     }

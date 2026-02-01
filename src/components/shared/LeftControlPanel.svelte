@@ -159,10 +159,10 @@
   </button>
 
   <!-- Minimized Windows (Taskbar) -->
-  {#if uiState.windows.some((w: any) => w.isMinimized)}
+  {#if uiState.windows.some((w: any) => w.isMinimized && w.canMinimizeToPanel)}
     <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
     <div class="flex flex-col gap-2 mt-auto">
-      {#each uiState.windows.filter((w: any) => w.isMinimized) as win}
+      {#each uiState.windows.filter((w: any) => w.isMinimized && w.canMinimizeToPanel) as win}
         <button
           class="minimized-btn group"
           onclick={() => win.restore()}

@@ -1,18 +1,15 @@
 <!--
-  Copyright (C) 2026 MYDCT
+  WindowFrame is the primary UI wrapper for all windows in the Cachy application.
+  It provides the chrome (header, controls, borders) and handles user interactions 
+  such as dragging, resizing, focusing, and state persistence.
 
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of the
-  License, or (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Key Responsibilities:
+  - Rendering the window header with titles, icons, and control buttons.
+  - Implementing drag-and-drop movement.
+  - Implementing multi-directional resizing.
+  - Managing stacked Z-indices via WindowManager.
+  - Applying visual effects like Glassmorphism and "Burning Borders".
+  - Persisting geometry state to LocalStorage.
 -->
 
 <script lang="ts">
@@ -24,16 +21,21 @@
     import CachyIcon from "../CachyIcon.svelte";
 
     interface Props {
+        /** The logic instance representing this window. contains state and behavioral rules. */
         window: WindowBase;
     }
 
     let { window: win }: Props = $props();
 
+    // --- LOCAL INTERACTION STATE ---
     let isDragging = $state(false);
     let showSettings = $state(false);
     let isResizing = $state(false);
 
-    // Close context menu when clicking outside
+    /**
+     * Context Menu Observer
+     * Closes the right-click settings menu if the user clicks anywhere outside of it.
+     */
     $effect(() => {
         if (!showSettings) return;
         const handler = (e: MouseEvent) => {
@@ -49,24 +51,21 @@
         return () => document.removeEventListener("mousedown", handler);
     });
 
-    // Close window on blur if configured
-    $effect(() => {
-        if (!win.isFocused || !win.closeOnBlur) return;
-
-        const handler = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (!target.closest(`.window-frame`)) {
-                // Check if it's the current window (by ID search or similar)
-                // WindowManager handled background click, but this is a per-window observer
-            }
-        };
-    });
-
+    /**
+     * Stacking & Focus Management
+     * Ensures the window is brought to the front when clicked.
+     */
     function handlePointerDown(e: PointerEvent) {
         windowManager.bringToFront(win.id);
     }
 
+    /**
+     * Drag-and-Drop Implementation
+     * Uses Pointer Capture to allow movement across the entire screen once initiated
+     * from the header bar.
+     */
     function startDrag(e: PointerEvent) {
+        // Prevent movement if clicking control buttons
         if ((e.target as HTMLElement).closest(".window-controls")) return;
 
         isDragging = true;
@@ -95,6 +94,12 @@
         target.addEventListener("pointerup", onPointerUp);
     }
 
+    /**
+     * Multi-directional Resizing Implementation
+     * Handles 8 coordinates (N, S, E, W, NW, NE, SW, SE) and supports
+     * fixed aspect ratios defined in the window configuration.
+     * @param direction Codename for the resize handle (e.g. 'se' for South-East)
+     */
     function startResize(e: PointerEvent, direction: string) {
         e.stopPropagation();
         isResizing = true;
@@ -109,6 +114,7 @@
         const startPointerX = e.clientX;
         const startPointerY = e.clientY;
 
+        // Shared constant for header height to offset aspect ratio calculations correctly.
         const HEADER_HEIGHT = 41;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
@@ -121,6 +127,7 @@
             let newWidth = startWidth;
             let newHeight = startHeight;
 
+            // 1. Calculate base changes based on handle direction
             if (direction.includes("e")) {
                 newWidth = startWidth + dx;
             } else if (direction.includes("w")) {
@@ -143,6 +150,7 @@
                 }
             }
 
+            // 2. Aspect Ratio Enforcement (if applicable)
             if (win.aspectRatio) {
                 const ratio = win.aspectRatio;
                 if (direction === "e" || direction === "w") {
@@ -151,9 +159,11 @@
                     const contentHeight = newHeight - HEADER_HEIGHT;
                     newWidth = contentHeight * ratio;
                 } else {
+                    // Corner resizing defaults to width-dependency
                     newHeight = newWidth / ratio + HEADER_HEIGHT;
                 }
 
+                // Adjust anchor points when resizing from top/left handles
                 if (direction.includes("n")) {
                     newY = startY + (startHeight - newHeight);
                 }
@@ -162,6 +172,7 @@
                 }
             }
 
+            // 3. Min-size clamping
             if (newWidth < win.minWidth) {
                 newWidth = win.minWidth;
                 if (win.aspectRatio)
@@ -170,6 +181,7 @@
                     newX = startX + (startWidth - newWidth);
             }
 
+            // 4. Update the logic instance
             win.updatePosition(newX, newY);
             win.updateSize(newWidth, newHeight);
         };
@@ -185,32 +197,52 @@
         target.addEventListener("pointerup", onPointerUp);
     }
 
-    // State Persistence
+    /**
+     * Persistent State Auto-Save
+     * Triggers a state save to LocalStorage whenever reactive properties change.
+     */
     $effect(() => {
         if (win.persistent) {
             win.saveState();
         }
     });
 
-    // --- TITLE CLICK ROBUSTNESS ---
+    // --- INTERACTION UTILITIES ---
     let pointerDownPos = { x: 0, y: 0 };
     let pointerDownTime = 0;
 
+    /** Tracks initial data for click vs drag discrimination. */
     function handleTitlePointerDown(e: PointerEvent) {
         pointerDownPos = { x: e.clientX, y: e.clientY };
         pointerDownTime = Date.now();
     }
 
+    /** Evaluation of semantic "click" on the header. */
     function handleTitlePointerUp(e: PointerEvent) {
         const dx = Math.abs(e.clientX - pointerDownPos.x);
         const dy = Math.abs(e.clientY - pointerDownPos.y);
         const dt = Date.now() - pointerDownTime;
 
-        // If moved less than 5px and released within 300ms, consider it a click
+        // If moved less than 5px and released within 300ms, consider it a deliberate click.
         if (dx < 5 && dy < 5 && dt < 300) {
             if (win.headerAction === "toggle-mode") {
                 win.onHeaderTitleClick();
             }
+        }
+    }
+
+    /** Handles right-click behavior for both minimized and floating states. */
+    function handleContextMenu(e: MouseEvent) {
+        if (!win.isMinimized) {
+            e.preventDefault();
+            return;
+        }
+
+        if (win.hasContextMenu) {
+            e.preventDefault();
+            e.stopPropagation();
+            showSettings = !showSettings;
+            windowManager.bringToFront(win.id);
         }
     }
 </script>
@@ -231,24 +263,34 @@
     class:pinned-right={win.isPinned && win.pinSide === "right"}
     style:left={win.isMaximized
         ? "0"
-        : win.isPinned && win.pinSide === "left"
-          ? "0"
-          : `${win.x}px`}
+        : win.isMinimized
+          ? "auto"
+          : win.isPinned && win.pinSide === "left"
+            ? "0"
+            : `${win.x}px`}
     style:top={win.isMaximized
         ? "0"
-        : win.isPinned && (win.pinSide === "left" || win.pinSide === "top")
-          ? "0"
-          : `${win.y}px`}
-    style:width={win.isMaximized ? "100vw" : `${win.width}px`}
+        : win.isMinimized
+          ? "auto"
+          : win.isPinned && (win.pinSide === "left" || win.pinSide === "top")
+            ? "0"
+            : `${win.y}px`}
+    style:width={win.isMaximized
+        ? "100vw"
+        : win.isMinimized
+          ? "210px"
+          : `${win.width}px`}
     style:height={win.isMaximized
         ? "100vh"
-        : win.isPinned && (win.pinSide === "left" || win.pinSide === "right")
-          ? "100vh"
-          : `${win.height}px`}
+        : win.isMinimized
+          ? "34px"
+          : win.isPinned && (win.pinSide === "left" || win.pinSide === "right")
+            ? "100vh"
+            : `${win.height}px`}
     style:z-index={win.zIndex}
     style:opacity={win.opacity}
     onpointerdown={handlePointerDown}
-    oncontextmenu={(e) => e.preventDefault()}
+    oncontextmenu={handleContextMenu}
     use:burn={win.enableBurningBorders
         ? {
               layer: "windows",
@@ -258,20 +300,29 @@
 >
     <div
         class="window-header"
-        onpointerdown={win.isDraggable && !win.isMaximized && !win.isPinned
-            ? startDrag
-            : undefined}
-        ondblclick={() => {
-            if (win.doubleClickAction === "edgeToEdge") {
-                // Future: EdgeToEdge toggle
-                win.toggleMaximize();
-            } else {
-                win.toggleMaximize();
+        onpointerdown={(e) => {
+            if (win.isMinimized) {
+                e.stopPropagation();
+                windowManager.bringToFront(win.id);
+                // Single click activation handled by handleTitlePointerUp on the title
+                // For clicking the rest of the bar, we could add it here if needed.
+                return;
             }
+            if (win.isDraggable && !win.isMaximized && !win.isPinned) {
+                startDrag(e);
+            }
+        }}
+        ondblclick={() => {
+            if (win.isMinimized) {
+                win.restore();
+                windowManager.bringToFront(win.id);
+                return;
+            }
+            win.toggleMaximize();
         }}
     >
         <div class="header-content">
-            {#if win.showIcon}
+            {#if win.showIcon && !win.isMinimized}
                 <div
                     class="cachy-logo"
                     onpointerdown={(e) => {
@@ -299,7 +350,10 @@
                 class="title-wrapper"
                 class:clickable={win.headerAction === "toggle-mode"}
                 onpointerdown={(e) => {
-                    e.stopPropagation();
+                    // Do NOT stop propagation if minimized, so header handles restore
+                    if (!win.isMinimized) {
+                        e.stopPropagation();
+                    }
                     handleTitlePointerDown(e);
                 }}
                 onpointerup={handleTitlePointerUp}
@@ -314,7 +368,7 @@
 
                 <span class="window-title">{win.title}</span>
 
-                {#if win.headerControls.length > 0}
+                {#if win.headerControls.length > 0 && !win.isMinimized}
                     <div class="header-controls">
                         {#each win.headerControls as ctrl}
                             <button
@@ -345,7 +399,7 @@
             {/if}
         </div>
 
-        <div class="window-controls">
+        <div class="window-controls" class:hidden={win.isMinimized}>
             {#if win.allowZoom}
                 <div class="control-group">
                     <button
@@ -515,7 +569,7 @@
         </div>
     </div>
 
-    {#if win.isResizable}
+    {#if win.isResizable && !win.isMaximized && !win.isMinimized && !win.isPinned}
         <div
             class="resize-grip n"
             onpointerdown={(e) => startResize(e, "n")}
@@ -553,7 +607,7 @@
 
 <style>
     .window-frame {
-        position: fixed;
+        position: absolute;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -574,7 +628,33 @@
     .window-frame.interacting {
         transition: none !important;
     }
+    .window-frame.minimized {
+        position: relative;
+        display: flex;
+        z-index: auto !important;
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        cursor: pointer;
+    }
+    .window-frame.minimized:hover {
+        background: color-mix(in srgb, var(--bg-secondary), white 5%);
+        border-color: var(--accent-color);
+    }
+    .window-frame.minimized .window-header {
+        border-bottom: none;
+        padding: 4px 10px;
+        height: 100%;
+        opacity: 1;
+    }
+    .window-frame.minimized .window-content {
+        display: none;
+    }
+    .window-controls.hidden {
+        display: none;
+    }
     .window-frame.maximized {
+        position: fixed;
         border-radius: 0;
         z-index: 20000 !important;
     }
@@ -585,9 +665,6 @@
     .window-frame.pinned-right {
         border-radius: 12px 0 0 12px;
         border-right: none;
-    }
-    .window-frame.minimized {
-        display: none;
     }
     .window-frame.focused {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);

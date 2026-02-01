@@ -278,6 +278,9 @@ export interface Settings {
     divergences: boolean;
     marketStructure: boolean;
   };
+  // Window Docking
+  enableDockingCentered: boolean;
+  dockingPosition: "top" | "bottom";
 }
 
 const defaultSettings: Settings = {
@@ -467,6 +470,8 @@ const defaultSettings: Settings = {
     divergences: false,
     marketStructure: false,
   },
+  enableDockingCentered: true,
+  dockingPosition: "top",
 };
 
 
@@ -729,6 +734,9 @@ export class SettingsManager {
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
   enabledIndicators = $state(defaultSettings.enabledIndicators);
+
+  enableDockingCentered = $state<boolean>(defaultSettings.enableDockingCentered);
+  dockingPosition = $state<"top" | "bottom">(defaultSettings.dockingPosition);
 
   get marketMode() {
     return this._marketMode;
@@ -1126,6 +1134,9 @@ export class SettingsManager {
       this.burnGuide = merged.burnGuide ?? defaultSettings.burnGuide;
       this.fireConfig = { ...defaultSettings.fireConfig, ...(merged.fireConfig || {}) };
 
+      this.enableDockingCentered = merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
+      this.dockingPosition = merged.dockingPosition ?? defaultSettings.dockingPosition;
+
 
       if (parsed.marketDataInterval === "manual") {
         this.autoUpdatePriceInput = false;
@@ -1315,6 +1326,8 @@ export class SettingsManager {
       chartHistoryLimit: this.chartHistoryLimit,
       repairTimeframe: this.repairTimeframe,
       enabledIndicators: $state.snapshot(this.enabledIndicators),
+      enableDockingCentered: this.enableDockingCentered,
+      dockingPosition: this.dockingPosition,
     };
   }
 
