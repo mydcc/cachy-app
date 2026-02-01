@@ -20,7 +20,7 @@
     import { _ } from "../../locales/i18n";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
-    import { renderTrustedMarkdown } from "../../utils/markdownUtils";
+    import { renderStaticMarkdown } from "../../utils/markdownUtils";
     import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
 
@@ -296,7 +296,7 @@
                             {$_("chartPatterns.description")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
+                            {@html renderStaticMarkdown(
                                 getLocalizedText(currentPattern, "description"),
                             )}
                         </div>
@@ -329,7 +329,7 @@
                             {$_("chartPatterns.tradingStrategy")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
+                            {@html renderStaticMarkdown(
                                 getLocalizedText(currentPattern, "trading"),
                             )}
                         </div>
@@ -345,7 +345,7 @@
                             {$_("chartPatterns.interpretation")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
+                            {@html renderStaticMarkdown(
                                 getLocalizedText(
                                     currentPattern,
                                     "advancedConsiderations",
@@ -359,7 +359,7 @@
                             {$_("chartPatterns.performance")}
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
+                            {@html renderStaticMarkdown(
                                 getLocalizedText(
                                     currentPattern,
                                     "performanceStats",

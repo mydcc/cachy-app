@@ -137,6 +137,12 @@ class TradeService {
     }
 
     public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
+        // 0. Hardening: Cancel all open orders first to prevent naked stops
+        const cancelSuccess = await this.cancelAllOrders(symbol);
+        if (!cancelSuccess) {
+            logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close, but manual check required for naked orders.`);
+        }
+
         // 1. Get position from OMS (Source of Truth)
         let positions = omsService.getPositions();
         let position = positions.find(
@@ -301,17 +307,19 @@ class TradeService {
         }
     }
 
-    public async cancelAllOrders(symbol: string) {
-        if (!symbol) return;
+    public async cancelAllOrders(symbol: string): Promise<boolean> {
+        if (!symbol) return false;
         logger.log("market", `[Trade] Cancelling all orders for ${symbol}`);
         try {
-             return await this.signedRequest("POST", "/api/orders", {
+             await this.signedRequest("POST", "/api/orders", {
                 symbol,
                 type: "cancel-all"
              });
+             return true;
         } catch (e) {
              logger.warn("market", `[Trade] Failed to cancel orders for ${symbol}`, e);
              // We don't throw here, because we want flashClose to proceed even if cancel fails (best effort)
+             return false;
         }
     }
 

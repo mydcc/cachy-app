@@ -238,7 +238,7 @@
     if (nextFundingTime) {
       untrack(startCountdown);
     } else {
-      countdownText = "--:--:--";
+      countdownText = $_("marketOverview.countdownInit");
       if (countdownInterval) clearInterval(countdownInterval);
     }
     return () => {
@@ -552,7 +552,7 @@
     </div>
   {:else if !currentPrice && !tickerData}
     <div class="text-center text-[var(--danger-color)] text-sm py-2">
-      {$_("apiErrors.noMarketData") || "No market data available"}
+      {$_("apiErrors.noMarketData")}
     </div>
   {:else if currentPrice === null}
     <div class="flex flex-col gap-4 py-2 animate-pulse">
@@ -721,7 +721,7 @@
               onclick={(e) => {
                 e.preventDefault();
                 externalLinkService.openOrFocus(tvLink, tvTarget);
-              }}>TV</a
+              }}>{$_("marketOverview.links.tv")}</a
             >
           {/if}
           {#if settingsState.showCgHeatLink}
@@ -729,7 +729,7 @@
               href={cgHeatmapLink}
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title={$_("marketOverview.tooltips.liquidationHeatmap")}
-              onclick={handleHeatmapClick}>Heatmap</a
+              onclick={handleHeatmapClick}>{$_("marketOverview.links.heatmap")}</a
             >
           {/if}
           {#if settingsState.showBrokerLink}

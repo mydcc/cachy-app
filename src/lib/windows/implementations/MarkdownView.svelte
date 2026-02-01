@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-    import { renderTrustedMarkdown } from "../../../utils/markdownUtils";
+    import { renderStaticMarkdown } from "../../../utils/markdownUtils";
 
     interface Props {
         window: { content: string };
@@ -25,7 +25,7 @@
 </script>
 
 <div class="markdown-view-container p-6 prose dark:prose-invert">
-    {@html renderTrustedMarkdown(win.content)}
+    {@html renderStaticMarkdown(win.content)}
 </div>
 
 <style>

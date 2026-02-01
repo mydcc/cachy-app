@@ -23,7 +23,7 @@
         type PatternDefinition,
     } from "../../services/candlestickPatterns";
     import CandlestickChart from "./CandlestickChart.svelte";
-    import { renderTrustedMarkdown } from "../../utils/markdownUtils";
+    import { renderStaticMarkdown } from "../../utils/markdownUtils";
     import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
 
@@ -120,7 +120,7 @@
     }
 
     function renderMarkdown(text: string) {
-        return renderTrustedMarkdown(text);
+        return renderStaticMarkdown(text);
     }
 </script>
 

@@ -569,6 +569,11 @@
     "heatmap": "Heatmap",
     "broker": "Broker",
     "rsiSettings": "RSI Einstellungen",
+    "links": {
+      "tv": "TV",
+      "heatmap": "Heatmap"
+    },
+    "countdownInit": "--:--:--",
     "length": "Länge",
     "source": "Quelle",
     "signal": "Signal",
@@ -1252,11 +1257,11 @@
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
-    "invalidResponse": "Invalid response from API.",
-    "klineError": "Could not load candle data.",
-    "generic": "An unknown API error occurred.",
-    "noMarketData": "No market data available.",
-    "failedToLoadOrders": "Failed to load orders.",
+    "invalidResponse": "Ungültige Antwort von API.",
+    "klineError": "Konnte Kerzendaten nicht laden.",
+    "generic": "Ein unbekannter API-Fehler ist aufgetreten.",
+    "noMarketData": "Keine Marktdaten verfügbar.",
+    "failedToLoadOrders": "Konnte Orders nicht laden.",
     "failedToLoadPositions": "Failed to load positions.",
     "fetchFailed": "Fetch failed",
     "missingCredentials": "API keys missing or incomplete",

@@ -60,9 +60,10 @@ export function renderSafeMarkdown(text: string): string {
  * Renders Markdown to HTML WITHOUT client-side sanitization on the server.
  * MUST ONLY BE USED FOR TRUSTED, STATIC CONTENT (e.g. internal Markdown files).
  *
+ * @deprecated unsafe for user content - XSS vector if used with dynamic data.
  * Allows SEO content to be rendered on the server.
  */
-export function renderTrustedMarkdown(text: string): string {
+export function renderStaticMarkdown(text: string): string {
     try {
         if (!text) return "";
 

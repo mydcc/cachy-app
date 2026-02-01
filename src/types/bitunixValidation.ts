@@ -39,7 +39,7 @@ export const BitunixTickerDataSchema = z.object({
  * Strictly enforces orderId as string to prevent precision loss
  */
 export const BitunixOrderSchema = z.object({
-  orderId: z.string(), // Strict string required
+  orderId: z.union([z.string(), z.number()]).transform(String), // Coerce to string safely
   symbol: z.string(),
   side: z.string().optional(),
   type: z.string().optional(),

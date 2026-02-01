@@ -569,6 +569,11 @@
       "heatmap": "Heatmap",
       "broker": "Broker",
     "rsiSettings": "RSI Settings",
+    "links": {
+      "tv": "TV",
+      "heatmap": "Heatmap"
+    },
+    "countdownInit": "--:--:--",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",
     "length": "Length",

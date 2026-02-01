@@ -768,19 +768,14 @@ class BitunixWebSocketService {
             if (symbol && isObjectData && isPriceData(data)) {
               try {
                 // HARDENING: Check for native numbers in critical fields
-                // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
                 if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
                     const now = Date.now();
                     if (now - this.lastNumericWarning > 60000) {
                         logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
                         this.lastNumericWarning = now;
                     }
-                    // Force cast to string to prevent downstream crashes or invalid types
-                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                    if (typeof data.lp === 'number') data.lp = String(data.lp);
                 }
 
-                // const normalized = mdaService.normalizeTicker(message, "bitunix");
                 if (!this.shouldThrottle(`${symbol}:price`)) {
                     marketState.updateSymbol(symbol, {
                     // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled to prevent flickering with Ticker channel (Last Price vs Mark Price)
@@ -807,15 +802,9 @@ class BitunixWebSocketService {
           if (channel === "ticker") {
             if (symbol && isObjectData && isTickerData(data)) {
                try {
-                  // HARDENING: Force cast numeric fields to string to prevent precision loss
-                  if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                  if (typeof data.high === 'number') data.high = String(data.high);
-                  if (typeof data.low === 'number') data.low = String(data.low);
-                  if (typeof data.volume === 'number') data.volume = String(data.volume);
-                  if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
-                  // Ticker aliases
-                  if (typeof data.v === 'number') data.v = String(data.v);
-                  if (typeof data.close === 'number') data.close = String(data.close);
+                  // MdaService handles coercion, so we pass the raw message.
+                  // But mdaService modifies the object? Let's check.
+                  // Ideally we trust safeJsonParse + normalization inside mdaService.
 
                   const normalized = mdaService.normalizeTicker(message, "bitunix");
                   if (!this.shouldThrottle(`${symbol}:ticker`)) {
@@ -844,22 +833,12 @@ class BitunixWebSocketService {
                   // Bids and Asks are arrays of [price, qty]
                   const safeToString = (val: any) => typeof val === 'number' ? String(val) : val;
 
-                  // In-place mutation for performance (Fast Path)
-                  if (data.b) {
-                      for (let i = 0; i < data.b.length; i++) {
-                          data.b[i][0] = safeToString(data.b[i][0]);
-                          data.b[i][1] = safeToString(data.b[i][1]);
-                      }
-                  }
-                  if (data.a) {
-                      for (let i = 0; i < data.a.length; i++) {
-                          data.a[i][0] = safeToString(data.a[i][0]);
-                          data.a[i][1] = safeToString(data.a[i][1]);
-                      }
-                  }
+                  // Immutable transformation instead of in-place mutation
+                  const bids = data.b ? data.b.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
+                  const asks = data.a ? data.a.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
 
                   if (!this.shouldThrottle(`${symbol}:depth`)) {
-                    marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+                    marketState.updateDepth(symbol, { bids, asks });
                   }
                   return;
               } catch(fastPathError) {
