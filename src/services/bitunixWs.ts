@@ -771,10 +771,11 @@ class BitunixWebSocketService {
                     if (typeof data.lp === 'number') data.lp = String(data.lp);
                 }
 
-                const normalized = mdaService.normalizeTicker(message, "bitunix");
+                // const normalized = mdaService.normalizeTicker(message, "bitunix");
                 if (!this.shouldThrottle(`${symbol}:price`)) {
                     marketState.updateSymbol(symbol, {
-                    lastPrice: normalized.lastPrice,
+                    // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled to prevent flickering with Ticker channel (Last Price vs Mark Price)
+                    indexPrice: data.ip, // Explicitly map Index Price
                     fundingRate: data.fr,
                     nextFundingTime: data.nft ? String(data.nft) : undefined
                     });
@@ -960,11 +961,12 @@ class BitunixWebSocketService {
       if (validatedMessage.ch === "price") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
+        // const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
         if (!this.shouldThrottle(`${symbol}:price`)) {
           marketState.updateSymbol(symbol, {
-            lastPrice: normalized.lastPrice,
+            // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
+            indexPrice: (validatedMessage.data as any).ip,
             // Funding data if present in validatedMessage.data
             fundingRate: (validatedMessage.data as any).fr,
             nextFundingTime: (validatedMessage.data as any).nft ? String((validatedMessage.data as any).nft) : undefined
@@ -1212,8 +1214,8 @@ class BitunixWebSocketService {
 export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
-function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; } {
-  return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined);
+function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
+  return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined || d.ip !== undefined);
 }
 
 function isTickerData(d: any): d is { volume?: any; v?: any; lastPrice?: any; close?: any; } {
