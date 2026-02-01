@@ -56,7 +56,7 @@ const enabledIndicators = {
     choppiness: true,
 };
 
-function runBench(name, fn, iterations = 100) {
+function runBench(name: string, fn: () => void, iterations = 100) {
     // Warmup
     for(let i=0; i<10; i++) fn();
 
@@ -78,7 +78,7 @@ runBench('calculateIndicatorsFromArrays (Full)', () => {
         lows,
         closes,
         volumes,
-        settings,
+        settings as any,
         enabledIndicators
     );
 }, 100);
