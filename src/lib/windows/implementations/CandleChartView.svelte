@@ -37,12 +37,19 @@
 
     interface Props {
         symbol: string;
-        window: WindowBase;
+        window: any; // Type ChartWindow
         timeframe: string;
+        showPriceInTitle?: boolean;
         setTimeframe: (tf: string) => void;
     }
 
-    let { symbol, window: win, timeframe, setTimeframe }: Props = $props();
+    let {
+        symbol,
+        window: win,
+        timeframe,
+        showPriceInTitle,
+        setTimeframe,
+    }: Props = $props();
 
     let chartContainer: HTMLElement | null = $state(null);
     let chart: IChartApi | null = $state(null);
@@ -103,12 +110,14 @@
                 },
             },
             rightPriceScale: {
+                visible: win.showRightScale ?? true,
                 borderColor:
                     getVar("--border-color") || "rgba(255, 255, 255, 0.1)",
                 scaleMargins: {
                     top: 0.1,
                     bottom: 0.2,
                 },
+                mode: 1, // Default Logarithmic
             },
             timeScale: {
                 borderColor:
@@ -142,22 +151,23 @@
         });
 
         // Initialize EMA Series
-        // Using semi-fixed colors that feel good in most themes but could be replaced by variables
+        // Harmonized colors using semantic theme variables
         ema1Series = chart.addSeries(LineSeries, {
-            color: "#ffb300", // Gold/Amber
-            lineWidth: 1,
+            color: getVar("--success-color") || "#26a69a",
+            lineWidth: 2,
             crosshairMarkerVisible: false,
         });
         ema2Series = chart.addSeries(LineSeries, {
-            color: "#2979ff", // Blue
-            lineWidth: 1,
+            color: getVar("--danger-color") || "#ef5350",
+            lineWidth: 2,
             crosshairMarkerVisible: false,
         });
         ema3Series = chart.addSeries(LineSeries, {
-            color: "#d500f9", // Purple
-            lineWidth: 1,
+            color: getVar("--warning-color") || "#ffb300",
+            lineWidth: 2,
             crosshairMarkerVisible: false,
         });
+        untrack(() => updateColors());
 
         const handleResize = () => {
             if (chart && chartContainer) {
@@ -175,29 +185,44 @@
         let debounceTimer: any;
         const timeScale = chart.timeScale();
 
-        const handleVisibleLogicalRangeChange = (newVisibleLogicalRange: any) => {
-             if (!newVisibleLogicalRange) return;
+        const handleVisibleLogicalRangeChange = (
+            newVisibleLogicalRange: any,
+        ) => {
+            if (!newVisibleLogicalRange) return;
 
-             // Detect if we are close to the start (left side)
-             // Logical range: 0 is the last bar, negative values go back in history if not fully loaded,
-             // but here Lightweight Charts usually indexes 0 as the first point in the dataset.
-             // If we scroll to 'from' < 10, we are at the start of known history.
-             if (newVisibleLogicalRange.from < 10 && !isLoadingHistory && !allHistoryLoaded) {
-                 clearTimeout(debounceTimer);
-                 debounceTimer = setTimeout(() => {
-                     // Double check inside debounce
-                     const currentRange = timeScale.getVisibleLogicalRange();
-                     if (currentRange && currentRange.from < 10 && !isLoadingHistory && !allHistoryLoaded) {
-                         loadMore();
-                     }
-                 }, 200);
-             }
+            // Detect if we are close to the start (left side)
+            // Logical range: 0 is the last bar, negative values go back in history if not fully loaded,
+            // but here Lightweight Charts usually indexes 0 as the first point in the dataset.
+            // If we scroll to 'from' < 10, we are at the start of known history.
+            if (
+                newVisibleLogicalRange.from < 10 &&
+                !isLoadingHistory &&
+                !allHistoryLoaded
+            ) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    // Double check inside debounce
+                    const currentRange = timeScale.getVisibleLogicalRange();
+                    if (
+                        currentRange &&
+                        currentRange.from < 10 &&
+                        !isLoadingHistory &&
+                        !allHistoryLoaded
+                    ) {
+                        loadMore();
+                    }
+                }, 200);
+            }
         };
 
-        timeScale.subscribeVisibleLogicalRangeChange(handleVisibleLogicalRangeChange);
+        timeScale.subscribeVisibleLogicalRangeChange(
+            handleVisibleLogicalRangeChange,
+        );
 
         return () => {
-            timeScale.unsubscribeVisibleLogicalRangeChange(handleVisibleLogicalRangeChange);
+            timeScale.unsubscribeVisibleLogicalRangeChange(
+                handleVisibleLogicalRangeChange,
+            );
             if (chartContainer) resizeObserver.unobserve(chartContainer);
             if (chart) chart.remove();
         };
@@ -208,7 +233,10 @@
         isLoadingHistory = true;
 
         try {
-            const hasMore = await marketWatcher.loadMoreHistory(normalizeSymbol(symbol, "bitunix"), timeframe);
+            const hasMore = await marketWatcher.loadMoreHistory(
+                normalizeSymbol(symbol, "bitunix"),
+                timeframe,
+            );
             if (!hasMore) {
                 allHistoryLoaded = true;
             }
@@ -233,6 +261,7 @@
 
         const success = getVar("--success-color") || "#26a69a";
         const danger = getVar("--danger-color") || "#ef5350";
+        const warning = getVar("--warning-color") || "#ffb300";
         const text = getVar("--text-secondary") || "#d1d4dc";
         const accent = getVar("--accent-color") || "#2962ff";
         const border = getVar("--border-color") || "rgba(255, 255, 255, 0.1)";
@@ -268,11 +297,10 @@
             wickDownColor: danger,
         });
 
-        // EMA Colors - adjusting opacity or brightness based on theme could be done here
-        // For now, ensuring they are at least visible against border colors
-        if (ema1Series) ema1Series.applyOptions({ color: "#ffb300" });
-        if (ema2Series) ema2Series.applyOptions({ color: "#2979ff" });
-        if (ema3Series) ema3Series.applyOptions({ color: "#d500f9" });
+        // EMA Colors
+        if (ema1Series) ema1Series.applyOptions({ color: success });
+        if (ema2Series) ema2Series.applyOptions({ color: danger });
+        if (ema3Series) ema3Series.applyOptions({ color: warning });
     }
 
     // Registration for real-time data
@@ -319,6 +347,10 @@
                         };
                         candleSeries.update(update);
 
+                        if (win.currentPrice !== undefined) {
+                            win.currentPrice = update.close.toFixed(2);
+                        }
+
                         // Note: We skip full indicator recalculation for single tick updates to save CPU.
                         // Ideally we would update the last point of indicators too, but that requires
                         // incremental calculation support or re-running on the tail.
@@ -362,7 +394,10 @@
 
                     try {
                         candleSeries.setData(unique);
-                        lastRenderedTime = unique.length > 0 ? unique[unique.length - 1].time : null;
+                        lastRenderedTime =
+                            unique.length > 0
+                                ? unique[unique.length - 1].time
+                                : null;
 
                         // Update Indicators if enabled
                         if (
@@ -397,7 +432,12 @@
                                             };
                                         })
                                         .filter(
-                                            (d): d is { time: Time; value: number } =>
+                                            (
+                                                d,
+                                            ): d is {
+                                                time: Time;
+                                                value: number;
+                                            } =>
                                                 d !== null &&
                                                 d.value !== null &&
                                                 d.value !== undefined &&
@@ -421,7 +461,7 @@
                             ema3Series.applyOptions({ visible: false });
                         }
 
-                        if (isInitialLoad) {
+                        if (isInitialLoad || win.autoScaling) {
                             chart.timeScale().fitContent();
                             isInitialLoad = false;
                         }
@@ -434,6 +474,8 @@
             // console.warn(`[CandleChart] No data found for ${normalized} in marketState`);
         }
     });
+
+    // Reactive Options update (Scale, Visibility, etc.)
 </script>
 
 <div
@@ -444,12 +486,21 @@
         class="chart-container flex-1 min-h-0 w-full relative"
     >
         {#if isLoadingHistory}
-             <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none">
-                <div class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-full px-3 py-1 flex items-center gap-2 shadow-lg">
-                    <div class="w-3 h-3 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-[10px] text-[var(--text-secondary)] font-mono">LOADING HISTORY</span>
+            <div
+                class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none"
+            >
+                <div
+                    class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-full px-3 py-1 flex items-center gap-2 shadow-lg"
+                >
+                    <div
+                        class="w-3 h-3 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
+                    ></div>
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)] font-mono"
+                        >LOADING HISTORY</span
+                    >
                 </div>
-             </div>
+            </div>
         {/if}
 
         {#if !marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines[timeframe]}

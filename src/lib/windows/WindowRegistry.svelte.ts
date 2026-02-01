@@ -43,6 +43,12 @@ class WindowRegistry {
             allowMaximize: false,
             allowMinimize: false,
             canMinimizeToPanel: false,
+            // Harmonization defaults
+            showIcon: false,
+            hasContextMenu: false,
+            doubleClickAction: 'maximize' as 'maximize',
+            maxInstances: 0,
+            closeOnBlur: false,
         };
 
         const baseLayout = {
@@ -126,7 +132,11 @@ class WindowRegistry {
                 ...baseFlags,
                 allowMinimize: true,
                 allowZoom: false,
-                allowMultipleInstances: true
+                allowMultipleInstances: true,
+                showIcon: true,
+                hasContextMenu: true,
+                autoScaling: true,
+                showRightScale: true
             },
             layout: {
                 ...baseLayout,
@@ -200,11 +210,13 @@ class WindowRegistry {
             type: 'settings',
             flags: {
                 ...baseFlags,
-                isResizable: true,
                 isDraggable: true,
                 allowMaximize: false,
                 allowMinimize: false,
-                centerByDefault: true
+                centerByDefault: true,
+                showIcon: false,
+                isResizable: false as boolean,
+                closeOnBlur: true
             },
             layout: {
                 ...baseLayout,

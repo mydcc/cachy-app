@@ -51,7 +51,16 @@ class WindowManager {
             }
         }
 
-        // 3. Otherwise add new window
+        // 3. Global Limit Check: Max 2 Windows
+        // Toasts and Dialogs could be exempt, but for now we follow the "max 2" strictly for windows
+        const activeWindows = this._windows.filter(w => w.windowType !== 'dialog');
+        if (activeWindows.length >= 2) {
+            // Close the oldest visible window (first in list)
+            const oldest = activeWindows[0];
+            this.close(oldest.id);
+        }
+
+        // 4. Otherwise add new window
         this._windows.push(windowInstance);
         this.bringToFront(windowInstance.id);
     }

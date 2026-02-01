@@ -33,16 +33,33 @@
     let showSettings = $state(false);
     let isResizing = $state(false);
 
-    // Close settings when clicking outside
+    // Close context menu when clicking outside
     $effect(() => {
         if (!showSettings) return;
         const handler = (e: MouseEvent) => {
-            if (!(e.target as HTMLElement).closest(".cachy-logo")) {
+            const target = e.target as HTMLElement;
+            if (
+                !target.closest(".cachy-logo") &&
+                !target.closest(".window-settings-popup")
+            ) {
                 showSettings = false;
             }
         };
-        document.addEventListener("click", handler);
-        return () => document.removeEventListener("click", handler);
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    });
+
+    // Close window on blur if configured
+    $effect(() => {
+        if (!win.isFocused || !win.closeOnBlur) return;
+
+        const handler = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest(`.window-frame`)) {
+                // Check if it's the current window (by ID search or similar)
+                // WindowManager handled background click, but this is a per-window observer
+            }
+        };
     });
 
     function handlePointerDown(e: PointerEvent) {
@@ -231,6 +248,7 @@
     style:z-index={win.zIndex}
     style:opacity={win.opacity}
     onpointerdown={handlePointerDown}
+    oncontextmenu={(e) => e.preventDefault()}
     use:burn={win.enableBurningBorders
         ? {
               layer: "windows",
@@ -244,14 +262,39 @@
             ? startDrag
             : undefined}
         ondblclick={() => {
-            if (win.doubleClickBehavior === "pin") {
-                win.togglePin();
+            if (win.doubleClickAction === "edgeToEdge") {
+                // Future: EdgeToEdge toggle
+                win.toggleMaximize();
             } else {
                 win.toggleMaximize();
             }
         }}
     >
         <div class="header-content">
+            {#if win.showIcon}
+                <div
+                    class="cachy-logo"
+                    onpointerdown={(e) => {
+                        if (!win.hasContextMenu) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showSettings = !showSettings;
+                        windowManager.bringToFront(win.id);
+                    }}
+                    oncontextmenu={(e) => {
+                        if (!win.hasContextMenu) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showSettings = !showSettings;
+                        windowManager.bringToFront(win.id);
+                    }}
+                    role="button"
+                    tabindex="0"
+                >
+                    <CachyIcon width="20" height="20" active={win.isFocused} />
+                </div>
+            {/if}
+
             <div
                 class="title-wrapper"
                 class:clickable={win.headerAction === "toggle-mode"}
@@ -264,75 +307,13 @@
                 tabindex="0"
                 onkeydown={(e) => e.key === "Enter" && win.onHeaderTitleClick()}
             >
-                {#if win.showCachyIcon}
-                    <div
-                        class="cachy-logo"
-                        oncontextmenu={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            showSettings = !showSettings;
-                        }}
-                        role="button"
-                        tabindex="0"
-                    >
-                        <CachyIcon
-                            width="18"
-                            height="18"
-                            style="color: var(--accent-color)"
-                        />
-                        {#if showSettings}
-                            <div
-                                class="window-settings-popup context-menu"
-                                style="display: block;"
-                            >
-                                <div class="settings-item">
-                                    <span>{$_("windows.opacity")}</span>
-                                    <input
-                                        type="range"
-                                        min="0.1"
-                                        max="1.0"
-                                        step="0.1"
-                                        bind:value={win.opacity}
-                                    />
-                                </div>
-                                <label class="settings-item flex-row">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={win.enableGlassmorphism}
-                                    />
-                                    <span>{$_("windows.glass")}</span>
-                                </label>
-                                <label class="settings-item flex-row">
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={win.enableBurningBorders}
-                                    />
-                                    <span>{$_("windows.burn")}</span>
-                                </label>
-                                <div class="menu-divider"></div>
-                                <button
-                                    class="menu-item danger"
-                                    onclick={(e) => {
-                                        e.stopPropagation();
-                                        const winEl = (
-                                            e.currentTarget as HTMLElement
-                                        ).closest(
-                                            ".window-frame",
-                                        ) as HTMLElement;
-                                        effectsState.triggerSmash(
-                                            winEl,
-                                            win.id,
-                                        );
-                                        windowManager.close(win.id);
-                                    }}
-                                >
-                                    🔨 {$_("windows.smash")}
-                                </button>
-                            </div>
-                        {/if}
-                    </div>
+                {#if win.showPriceInTitle && win.currentPrice}
+                    <span class="title-price">{win.currentPrice}</span>
+                    <span class="title-separator"> • </span>
                 {/if}
+
                 <span class="window-title">{win.title}</span>
+
                 {#if win.headerControls.length > 0}
                     <div class="header-controls">
                         {#each win.headerControls as ctrl}
@@ -343,8 +324,14 @@
                                     e.stopPropagation();
                                     ctrl.action();
                                 }}
+                                title={ctrl.title || ctrl.label}
                             >
-                                {ctrl.label}
+                                {#if ctrl.icon}
+                                    <span class="ctrl-icon">{ctrl.icon}</span>
+                                {/if}
+                                {#if ctrl.label}
+                                    <span class="ctrl-label">{ctrl.label}</span>
+                                {/if}
                             </button>
                         {/each}
                     </div>
@@ -491,6 +478,29 @@
                 ondblclick={(e) => e.stopPropagation()}>✕</button
             >
         </div>
+
+        {#if showSettings && win.hasContextMenu}
+            <div
+                class="window-settings-popup context-menu"
+                style:display="block"
+            >
+                {#each win.getContextMenuActions() as action}
+                    <button
+                        class="menu-item"
+                        class:danger={action.danger}
+                        onpointerdown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            showSettings = false;
+                            action.action();
+                        }}
+                    >
+                        {#if action.icon}<span>{action.icon}</span>{/if}
+                        <span>{action.label}</span>
+                    </button>
+                {/each}
+            </div>
+        {/if}
     </div>
 
     <div class="window-content" style:font-size="{win.fontSize}px">
@@ -602,6 +612,8 @@
         backdrop-filter: blur(12px) saturate(180%);
     }
     .window-header {
+        position: relative;
+        z-index: 50; /* Ensure global context for dropdowns */
         padding: 8px 12px;
         background: transparent;
         cursor: grab;
@@ -631,6 +643,37 @@
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
+    }
+    .title-price {
+        font-family: var(--font-mono, monospace);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        opacity: 0.95;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+    }
+
+    .title-separator {
+        opacity: 0.4;
+        margin: 0 4px;
+        font-weight: 900;
+        color: var(--text-secondary);
+        font-size: 1.2rem;
+        line-height: 0;
+        display: flex;
+        align-items: center;
+    }
+    @keyframes price-fade {
+        from {
+            opacity: 0;
+            transform: translateY(-2px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
     .header-indicators {
         margin-left: auto;
@@ -667,20 +710,31 @@
         color: var(--text-secondary);
         font-size: 10px;
         font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 4px;
+        padding: 4px 8px; /* Increased padding */
+        border-radius: 6px; /* Smoother corners */
         cursor: pointer;
         transition: all 0.2s;
-        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        line-height: 1;
     }
     .header-ctrl-btn:hover {
         background: rgba(255, 255, 255, 0.1);
         color: var(--text-primary);
+        transform: translateY(-1px);
     }
-    .header-ctrl-btn.active {
-        background: var(--accent-color);
-        color: var(--text-on-accent, black);
+    /* Higher specificity for active button to ensure VIP theme colors are applied */
+    .window-frame .header-ctrl-btn.active {
+        background: var(--accent-color) !important;
+        color: var(--text-on-accent, #000000) !important;
         border-color: var(--accent-color);
+        box-shadow: 0 0 10px rgba(var(--accent-color-rgb), 0.3);
+        font-weight: 700;
+        opacity: 1;
+    }
+    .ctrl-icon {
+        font-size: 1.1em;
     }
 
     .window-controls {
@@ -729,13 +783,20 @@
     .cachy-logo {
         display: flex;
         align-items: center;
-        padding-right: 4px;
+        justify-content: center;
+        padding: 4px 8px; /* Larger hit area */
+        margin-right: 4px;
+        min-width: 32px;
+        min-height: 28px;
         transition: transform 0.2s;
         position: relative;
+        cursor: pointer;
     }
     .cachy-logo:hover {
         transform: scale(1.1);
         filter: drop-shadow(0 0 5px var(--accent-color));
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
     }
     .control-group {
         display: flex;
@@ -797,72 +858,116 @@
     }
     .window-settings-popup {
         position: absolute;
-        top: 100%;
-        left: 0;
+        top: calc(100% + 8px);
+        left: 8px;
         background: rgba(15, 23, 42, 0.95);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        padding: 12px;
+        border-radius: 10px;
+        padding: 6px;
         z-index: 1000;
-        min-width: 160px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(10px);
+        min-width: 180px;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(25px) saturate(180%);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        animation: menu-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
+    @keyframes menu-fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(-5px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .menu-item {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        padding: 8px 12px;
+        text-align: left;
+        font-size: 0.85rem;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.1s ease;
+        white-space: nowrap;
+    }
+
+    .menu-item:hover {
+        background: var(--accent-color);
+        color: var(--text-on-accent, #000000);
+    }
+
+    .menu-item.danger:hover {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    /* Resize handles */
     .resize-grip {
         position: absolute;
         z-index: 100;
     }
     .resize-grip.n,
     .resize-grip.s {
-        height: 8px;
-        left: 8px;
-        right: 8px;
+        height: 20px;
+        left: 20px;
+        right: 20px;
         cursor: ns-resize;
     }
     .resize-grip.e,
     .resize-grip.w {
-        width: 8px;
-        top: 8px;
-        bottom: 8px;
+        width: 20px;
+        top: 20px;
+        bottom: 20px;
         cursor: ew-resize;
     }
     .resize-grip.n {
-        top: -4px;
+        top: -10px;
     }
     .resize-grip.s {
-        bottom: -4px;
+        bottom: -10px;
     }
     .resize-grip.e {
-        right: -4px;
+        right: -10px;
     }
     .resize-grip.w {
-        left: -4px;
+        left: -10px;
     }
     .resize-grip.nw,
     .resize-grip.ne,
     .resize-grip.sw,
     .resize-grip.se {
-        width: 12px;
-        height: 12px;
+        width: 30px;
+        height: 30px;
     }
     .resize-grip.nw {
-        top: -4px;
-        left: -4px;
+        top: -15px;
+        left: -15px;
         cursor: nwse-resize;
     }
     .resize-grip.ne {
-        top: -4px;
-        right: -4px;
+        top: -15px;
+        right: -15px;
         cursor: nesw-resize;
     }
     .resize-grip.sw {
-        bottom: -4px;
-        left: -4px;
+        bottom: -15px;
+        left: -15px;
         cursor: nesw-resize;
     }
     .resize-grip.se {
-        bottom: -4px;
-        right: -4px;
+        bottom: -15px;
+        right: -15px;
         cursor: nwse-resize;
     }
 </style>

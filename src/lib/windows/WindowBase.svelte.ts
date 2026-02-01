@@ -67,6 +67,14 @@ export abstract class WindowBase {
     isResponsive = $state(false);
     edgeToEdgeBreakpoint = 768;
 
+    // --- HARMONIZATION FLAGS ---
+    showIcon = $state(true);
+    hasContextMenu = $state(false);
+    doubleClickAction: 'maximize' | 'edgeToEdge' = $state('maximize');
+    maxInstances = $state(0); // 0 = global limit applies
+    autoScaling = $state(false);
+    showRightScale = $state(false);
+
     // --- INTERACTIVE FLAGS ---
     headerAction: 'toggle-mode' | 'none' = $state('none');
     headerButtons: ('zoom' | 'export' | 'delete' | 'custom')[] = $state([]);
@@ -79,6 +87,8 @@ export abstract class WindowBase {
     enableBurningBorders = $state(true);
     opacity = $state(1.0);
     closeOnBlur = $state(false);
+    showPriceInTitle = $state(false);
+    currentPrice = $state("");
 
     // --- FEATURE STATE ---
     fontSize = $state(14);
@@ -177,7 +187,8 @@ export abstract class WindowBase {
             isPinned: this.isPinned,
             opacity: this.opacity,
             fontSize: this.fontSize,
-            zoomLevel: this.zoomLevel
+            zoomLevel: this.zoomLevel,
+            showPriceInTitle: this.showPriceInTitle
         };
         localStorage.setItem(this.storageKey, JSON.stringify(state));
     }
@@ -197,6 +208,7 @@ export abstract class WindowBase {
                 this.opacity = state.opacity ?? this.opacity;
                 this.fontSize = state.fontSize ?? this.fontSize;
                 this.zoomLevel = state.zoomLevel ?? this.zoomLevel;
+                this.showPriceInTitle = state.showPriceInTitle ?? this.showPriceInTitle;
                 if (state.x !== undefined || state.y !== undefined) {
                     this.hasRestoredPosition = true;
                 }
@@ -229,6 +241,14 @@ export abstract class WindowBase {
         this.allowFeedDuck = f.allowFeedDuck ?? true;
         this.isResponsive = f.isResponsive ?? false;
         this.edgeToEdgeBreakpoint = f.edgeToEdgeBreakpoint ?? 768;
+
+        this.showIcon = f.showIcon ?? true;
+        this.hasContextMenu = f.hasContextMenu ?? false;
+        this.doubleClickAction = f.doubleClickAction ?? 'maximize';
+        this.maxInstances = f.maxInstances ?? 0;
+        this.closeOnBlur = f.closeOnBlur ?? f.closeOnOutsideClick ?? this.closeOnBlur;
+        this.autoScaling = f.autoScaling ?? false;
+        this.showRightScale = f.showRightScale ?? false;
 
         this.headerAction = f.headerAction ?? 'none';
         this.headerButtons = f.headerButtons ?? [];
@@ -370,6 +390,29 @@ export abstract class WindowBase {
 
     onHeaderCustomAction() {
         // Implementation in subclasses
+    }
+
+    // --- CONTEXT MENU ---
+    public getContextMenuActions(): any[] {
+        // Base actions every window has
+        const actions: any[] = [];
+
+        // Add "Smash" (Close) as default danger action
+        actions.push({
+            label: "Smash",
+            icon: "🔨",
+            danger: true,
+            action: () => {
+                // This will be handled in WindowFrame via logic
+            }
+        });
+
+        return actions;
+    }
+
+    // --- AUTO SCALING ---
+    autoScale() {
+        // To be implemented by subclasses like Chart
     }
 
     // --- CORE FEATURE METHODS ---

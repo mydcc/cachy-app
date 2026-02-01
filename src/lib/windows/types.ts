@@ -41,6 +41,22 @@ export interface WindowFlags {
     showMinimizeButton?: boolean;
     isResponsive?: boolean;
     edgeToEdgeBreakpoint?: number;
+    // New Harmonization Flags
+    showIcon?: boolean;
+    hasContextMenu?: boolean;
+    doubleClickAction?: 'maximize' | 'edgeToEdge';
+    maxInstances?: number;
+    closeOnBlur?: boolean;
+    autoScaling?: boolean;
+    showRightScale?: boolean;
+}
+
+export interface ContextMenuAction {
+    label: string;
+    icon?: string;
+    action: () => void;
+    active?: boolean;
+    danger?: boolean;
 }
 
 export interface WindowLayout {

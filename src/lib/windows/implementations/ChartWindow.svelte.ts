@@ -21,6 +21,7 @@
 */
 
 import { WindowBase } from "../WindowBase.svelte";
+import { windowManager } from "../WindowManager.svelte";
 import CandleChartView from "./CandleChartView.svelte";
 
 export class ChartWindow extends WindowBase {
@@ -41,7 +42,7 @@ export class ChartWindow extends WindowBase {
     }
 
     updateHeaderControls() {
-        const tfs = ["1m", "5m", "15m", "1h", "4h", "1d"];
+        const tfs = ["3m", "5m", "15m", "1h", "4h", "1d"];
         this.headerControls = tfs.map(tf => ({
             label: tf,
             active: this.timeframe === tf,
@@ -60,10 +61,37 @@ export class ChartWindow extends WindowBase {
         return {
             symbol: this.symbol,
             timeframe: this.timeframe,
+            showPriceInTitle: this.showPriceInTitle,
             setTimeframe: (tf: string) => {
                 this.timeframe = tf;
                 this.updateHeaderControls();
             }
         };
+    }
+
+    public getContextMenuActions(): any[] {
+        return [
+            {
+                label: this.showPriceInTitle ? "✅ Show Price in Title" : "Show Price in Title",
+                icon: "💰",
+                active: this.showPriceInTitle,
+                action: () => {
+                    this.showPriceInTitle = !this.showPriceInTitle;
+                    this.saveState();
+                }
+            },
+            {
+                label: "Fenster schließen",
+                icon: "✕",
+                danger: true,
+                action: () => {
+                    windowManager.close(this.id);
+                }
+            }
+        ];
+    }
+
+    autoScale() {
+        // Implementation logic if needed
     }
 }
