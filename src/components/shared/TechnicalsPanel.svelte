@@ -2,9 +2,9 @@
   Copyright (C) 2026 MYDCT
 
   This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+  it under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -206,7 +206,7 @@
                 />
                 <button
                   class="px-2 bg-[var(--bg-tertiary)] text-xs rounded hover:bg-[var(--accent-color)] hover:text-[var(--text-on-accent)] text-[var(--text-primary)]"
-                  onclick={handleCustomTimeframeSubmit}>{$_("common.ok")}</button
+                  onclick={handleCustomTimeframeSubmit}>OK</button
                 >
               </div>
             </div>
@@ -328,7 +328,7 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("technicals.atr")}</span
+                  >ATR</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
@@ -342,7 +342,7 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("technicals.bbWidth")}</span
+                  >BB Width</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
@@ -468,7 +468,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("technicals.vwap")}</span>
+                  <span>VWAP</span>
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(
                       data.advanced.vwap,
@@ -483,7 +483,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("technicals.mfi")}</span>
+                  <span>MFI</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -596,7 +596,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("workspace.signals")}
+                Signals
               </div>
 
               {#if data.divergences && data.divergences.length > 0}

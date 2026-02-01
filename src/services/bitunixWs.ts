@@ -217,15 +217,13 @@ class BitunixWebSocketService {
           return;
         }
 
-        // [HYBRID FIX] Increased tolerance to 15s (3x Ping Interval) to prevent false positives
-        if (status === "connected" && timeSincePublic > 15000) {
+        if (status === "connected" && timeSincePublic > 5000) {
           marketState.connectionStatus = "reconnecting";
         }
 
         // Monitor for stale connection, but ONLY if connected.
         // If connecting, the connectionTimeout handles it.
-        // Increased to 25s to allow for the 15s reconnection warning window
-        if (status === "connected" && timeSincePublic > 25000) {
+        if (status === "connected" && timeSincePublic > 20000) {
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
@@ -745,14 +743,11 @@ class BitunixWebSocketService {
         this.missedPongsPrivate = 0;
       }
 
-      // [HYBRID FIX] Normalize channel (Bitunix sometimes sends 'topic' instead of 'ch')
-      const channel = message.ch || message.topic;
-
       // --- FAST PATH OPTIMIZATION ---
       // Check high-frequency messages (price, ticker, depth) BEFORE expensive Zod validation
       // Wrapped in try-catch to prevent crashing the entire socket handler
       try {
-        if (message && channel) {
+        if (message && message.ch) {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data;
@@ -760,142 +755,91 @@ class BitunixWebSocketService {
           // Common guard for object data (price, ticker, kline) - Ensure strict object type
           const isObjectData = data && typeof data === "object" && !Array.isArray(data);
 
-          if (channel === "price") {
+          if (message.ch === "price") {
             if (symbol && isObjectData && isPriceData(data)) {
-              try {
-                // HARDENING: Check for native numbers in critical fields
-                // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
-                if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                    const now = Date.now();
-                    if (now - this.lastNumericWarning > 60000) {
-                        logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
-                        this.lastNumericWarning = now;
-                    }
-                    // Force cast to string to prevent downstream crashes or invalid types
-                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                    if (typeof data.lp === 'number') data.lp = String(data.lp);
+              // HARDENING: Check for native numbers in critical fields
+              // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
+              if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
+                const now = Date.now();
+                if (now - this.lastNumericWarning > 60000) {
+                  logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
+                  this.lastNumericWarning = now;
                 }
+                // Force cast to string to prevent downstream crashes or invalid types
+                if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                if (typeof data.lp === 'number') data.lp = String(data.lp);
+              }
 
-                // const normalized = mdaService.normalizeTicker(message, "bitunix");
-                if (!this.shouldThrottle(`${symbol}:price`)) {
-                    marketState.updateSymbol(symbol, {
-                    // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled to prevent flickering with Ticker channel (Last Price vs Mark Price)
-                    indexPrice: data.ip, // Explicitly map Index Price
-                    fundingRate: data.fr,
-                    nextFundingTime: data.nft ? String(data.nft) : undefined
-                    });
-                }
-                // Fast path successful - return early
-                return;
-              } catch(fastPathError) {
-                // Specific error inside logic - log and fall through to Zod
-                if (import.meta.env.DEV) {
-                    console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
-                }
-                // Do NOT throw. Let it fall through to standard validation.
+              const normalized = mdaService.normalizeTicker(message, "bitunix");
+              if (!this.shouldThrottle(`${symbol}:price`)) {
+                marketState.updateSymbol(symbol, {
+                  lastPrice: normalized.lastPrice,
+                  fundingRate: data.fr,
+                  nextFundingTime: data.nft ? String(data.nft) : undefined
+                });
               }
             } else if (import.meta.env.DEV && data) {
               // console.warn("[BitunixWS] FastPath failed for price.", data);
             }
-            // If we fall through here, it means isPriceData failed (schema mismatch), so we let it fall through to Zod
+            return;
           }
 
-          if (channel === "ticker") {
+          if (message.ch === "ticker") {
             if (symbol && isObjectData && isTickerData(data)) {
-               try {
-                  // HARDENING: Force cast numeric fields to string to prevent precision loss
-                  if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                  if (typeof data.high === 'number') data.high = String(data.high);
-                  if (typeof data.low === 'number') data.low = String(data.low);
-                  if (typeof data.volume === 'number') data.volume = String(data.volume);
-                  if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
-                  // Ticker aliases
-                  if (typeof data.v === 'number') data.v = String(data.v);
-                  if (typeof data.close === 'number') data.close = String(data.close);
-
-                  const normalized = mdaService.normalizeTicker(message, "bitunix");
-                  if (!this.shouldThrottle(`${symbol}:ticker`)) {
-                    marketState.updateSymbol(symbol, {
-                      lastPrice: normalized.lastPrice,
-                      highPrice: normalized.high,
-                      lowPrice: normalized.low,
-                      volume: normalized.volume,
-                      quoteVolume: normalized.quoteVolume,
-                      priceChangePercent: normalized.priceChangePercent
-                    });
-                  }
-                  return;
-               } catch(fastPathError) {
-                   if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
-               }
+              const normalized = mdaService.normalizeTicker(message, "bitunix");
+              if (!this.shouldThrottle(`${symbol}:ticker`)) {
+                marketState.updateSymbol(symbol, {
+                  lastPrice: normalized.lastPrice,
+                  highPrice: normalized.high,
+                  lowPrice: normalized.low,
+                  volume: normalized.volume,
+                  quoteVolume: normalized.quoteVolume,
+                  priceChangePercent: normalized.priceChangePercent
+                });
+              }
             } else if (import.meta.env.DEV && data) {
               // console.warn("[BitunixWS] FastPath failed for ticker.", data);
             }
+            return;
           }
 
-          if (channel === "depth_book5") {
+          if (message.ch === "depth_book5") {
             if (symbol && isObjectData && isDepthData(data)) {
-              try {
-                  // HARDENING: Check depth arrays for numeric values
-                  // Bids and Asks are arrays of [price, qty]
-                  const safeToString = (val: any) => typeof val === 'number' ? String(val) : val;
-
-                  // In-place mutation for performance (Fast Path)
-                  if (data.b) {
-                      for (let i = 0; i < data.b.length; i++) {
-                          data.b[i][0] = safeToString(data.b[i][0]);
-                          data.b[i][1] = safeToString(data.b[i][1]);
-                      }
-                  }
-                  if (data.a) {
-                      for (let i = 0; i < data.a.length; i++) {
-                          data.a[i][0] = safeToString(data.a[i][0]);
-                          data.a[i][1] = safeToString(data.a[i][1]);
-                      }
-                  }
-
-                  if (!this.shouldThrottle(`${symbol}:depth`)) {
-                    marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
-                  }
-                  return;
-              } catch(fastPathError) {
-                  if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
+              if (!this.shouldThrottle(`${symbol}:depth`)) {
+                marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
               }
             } else if (import.meta.env.DEV && data) {
               // console.warn("[BitunixWS] FastPath failed for depth.", data);
             }
+            return;
           }
 
           // Klines
-          if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
+          if (message.ch.startsWith("market_kline_") || message.ch === "mark_kline_1day") {
             if (symbol && isObjectData) {
-              try {
-                  const d = data as any;
-                  if (d && (d.close || d.c || d.open || d.o)) {
-                    let timeframe = "1h";
-                    if (channel === "mark_kline_1day") timeframe = "1d";
-                    else {
-                      const match = channel.match(/market_kline_(.+)/);
-                      if (match) {
-                        const bitunixTf = match[1];
-                        const revMap: Record<string, string> = {
-                          "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                          "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
-                        };
-                        timeframe = revMap[bitunixTf] || bitunixTf;
-                      }
-                    }
-                    // [HYBRID FIX] Inject detached 'ts' from root message into data object
-                    // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
-                    const klineData = { ...d, ts: message.ts };
-                    const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
-                    marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
+              const d = data as any;
+              if (d && (d.close || d.c || d.open || d.o)) {
+                let timeframe = "1h";
+                if (message.ch === "mark_kline_1day") timeframe = "1d";
+                else {
+                  const match = message.ch.match(/market_kline_(.+)/);
+                  if (match) {
+                    const bitunixTf = match[1];
+                    const revMap: Record<string, string> = {
+                      "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
+                      "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
+                    };
+                    timeframe = revMap[bitunixTf] || bitunixTf;
                   }
-                  return;
-              } catch(fastPathError) {
-                  if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (fallback to Zod):", fastPathError);
+                }
+                // [HYBRID FIX] Inject detached 'ts' from root message into data object
+                // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
+                const klineData = { ...d, ts: message.ts };
+                const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
+                marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
               }
             }
+            return;
           }
         }
       } catch (e) {
@@ -917,7 +861,7 @@ class BitunixWebSocketService {
         // If 'event', 'op' or 'ch' are missing/wrong type, it's critical.
         // If just data fields are off, we can ignore single message without counting towards circuit breaker.
         const issues = validationResult.error.issues;
-        const criticalFields = ["event", "op", "ch", "topic", "code"];
+        const criticalFields = ["event", "op", "ch", "code"];
         // Critical if:
         // 1. Root level structure error (path is empty)
         // 2. Critical field error (path[0] is in criticalFields)
@@ -985,28 +929,26 @@ class BitunixWebSocketService {
       }
 
       // 3. Validate channel if present
-      const validatedChannel = validatedMessage.ch || validatedMessage.topic;
-      if (validatedChannel && !isAllowedChannel(validatedChannel)) {
-        logger.warn("network", "[WebSocket] Unknown channel", validatedChannel);
+      if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
+        logger.warn("network", "[WebSocket] Unknown channel", validatedMessage.ch);
         return;
       }
 
       // 4. Handle price updates
-      if (validatedChannel === "price") {
+      if (validatedMessage.ch === "price") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        // const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
+        const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
         if (!this.shouldThrottle(`${symbol}:price`)) {
           marketState.updateSymbol(symbol, {
-            // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: (validatedMessage.data as any).ip,
+            lastPrice: normalized.lastPrice,
             // Funding data if present in validatedMessage.data
             fundingRate: (validatedMessage.data as any).fr,
             nextFundingTime: (validatedMessage.data as any).nft ? String((validatedMessage.data as any).nft) : undefined
           });
         }
-      } else if (validatedChannel === "ticker") {
+      } else if (validatedMessage.ch === "ticker") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
@@ -1022,7 +964,7 @@ class BitunixWebSocketService {
           });
         }
       }
-      else if (validatedChannel === "depth_book5") {
+      else if (validatedMessage.ch === "depth_book5") {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
@@ -1033,18 +975,18 @@ class BitunixWebSocketService {
           }
         }
       } else if (
-        validatedChannel &&
-        (validatedChannel.startsWith("market_kline_") ||
-          validatedChannel === "mark_kline_1day")
+        validatedMessage.ch &&
+        (validatedMessage.ch.startsWith("market_kline_") ||
+          validatedMessage.ch === "mark_kline_1day")
       ) {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
         if (symbol && data) {
           let timeframe = "1h";
-          if (validatedChannel === "mark_kline_1day") timeframe = "1d";
+          if (validatedMessage.ch === "mark_kline_1day") timeframe = "1d";
           else {
-            const match = validatedChannel.match(/market_kline_(.+)/);
+            const match = validatedMessage.ch.match(/market_kline_(.+)/);
             if (match) {
               const bitunixTf = match[1];
               const revMap: Record<string, string> = {
@@ -1067,7 +1009,7 @@ class BitunixWebSocketService {
           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
         }
       }
-      else if (validatedChannel === "position") {
+      else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
           const items = Array.isArray(data) ? data : [data];
@@ -1081,7 +1023,7 @@ class BitunixWebSocketService {
             omsService.updatePosition(mapToOMSPosition(item));
           });
         }
-      } else if (validatedChannel === "order") {
+      } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
         if (data) {
           const sanitize = (item: any) => {
@@ -1108,7 +1050,7 @@ class BitunixWebSocketService {
             omsService.updateOrder(mapToOMSOrder(safeItem));
           }
         }
-      } else if (validatedChannel === "wallet") {
+      } else if (validatedMessage.ch === "wallet") {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))
@@ -1248,8 +1190,8 @@ class BitunixWebSocketService {
 export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
-function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
-  return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined || d.ip !== undefined);
+function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; } {
+  return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined);
 }
 
 function isTickerData(d: any): d is { volume?: any; v?: any; lastPrice?: any; close?: any; } {

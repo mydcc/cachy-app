@@ -286,7 +286,7 @@
                                 style="display: block;"
                             >
                                 <div class="settings-item">
-                                    <span>{$_("windows.opacity")}</span>
+                                    <span>Opacity</span>
                                     <input
                                         type="range"
                                         min="0.1"
@@ -300,14 +300,14 @@
                                         type="checkbox"
                                         bind:checked={win.enableGlassmorphism}
                                     />
-                                    <span>{$_("windows.glass")}</span>
+                                    <span>Glass</span>
                                 </label>
                                 <label class="settings-item flex-row">
                                     <input
                                         type="checkbox"
                                         bind:checked={win.enableBurningBorders}
                                     />
-                                    <span>{$_("windows.burn")}</span>
+                                    <span>Burn</span>
                                 </label>
                                 <div class="menu-divider"></div>
                                 <button

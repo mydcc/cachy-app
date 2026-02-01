@@ -204,10 +204,10 @@
                     <label class="toggle-card">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >{$_("settings.ai.confirmActions")}</span
+                                >Confirm Actions</span
                             >
                             <span class="text-xs text-[var(--text-secondary)]"
-                                >{$_("settings.ai.confirmActionsDesc")}</span
+                                >Ask before executing trades</span
                             >
                         </div>
                         <Toggle bind:checked={settingsState.aiConfirmActions} />
@@ -216,10 +216,10 @@
                     <label class="toggle-card">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >{$_("settings.ai.confirmClearHistory")}</span
+                                >Confirm Clear Chat</span
                             >
                             <span class="text-xs text-[var(--text-secondary)]"
-                                >{$_("settings.ai.confirmClearHistoryDesc")}</span
+                                >Prevent accidental deletion</span
                             >
                         </div>
                         <Toggle bind:checked={settingsState.aiConfirmClear} />
@@ -227,7 +227,7 @@
 
                     <!-- History Limit -->
                     <div class="field-group">
-                        <label for="history-limit">{$_("settings.ai.historyDesc")}</label>
+                        <label for="history-limit">Trade History Limit</label>
                         <input
                             id="history-limit"
                             type="number"

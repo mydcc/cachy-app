@@ -20,7 +20,6 @@
   import { _ } from "../../locales/i18n";
   import { fly } from "svelte/transition";
   import { onMount } from "svelte";
-  import { sanitizeHtml } from "../../utils/sanitizer";
 
   let visible = $state(false);
 
@@ -67,7 +66,7 @@
     <div
       class="p-4 overflow-y-auto text-sm leading-relaxed text-[var(--text-secondary)] space-y-3"
     >
-      {@html sanitizeHtml($_("legal.disclaimerBody"))}
+      {@html $_("legal.disclaimerBody")}
     </div>
 
     <!-- Footer -->

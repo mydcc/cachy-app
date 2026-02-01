@@ -84,7 +84,6 @@ export const BitunixWSMessageSchema = z.object({
   op: z.string().optional(),
   pong: z.any().optional(),
   ch: z.string().optional(),
-  topic: z.string().optional(),
   symbol: z.string().optional(),
   data: z.any().optional(),
   ts: z.number().optional(),

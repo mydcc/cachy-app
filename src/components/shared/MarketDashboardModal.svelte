@@ -175,7 +175,7 @@
                             {marketAvgRsi.toFixed(0)}
                         </span>
                         <span class="text-xs text-[var(--text-secondary)] mb-1"
-                            >{$_("marketDashboard.avgRsi")}</span
+                            >Avg RSI</span
                         >
                     </div>
                     <!-- Simple Heat Bar -->
@@ -206,7 +206,7 @@
                             {marketBullishPercent.toFixed(0)}%
                         </span>
                         <span class="text-xs text-[var(--text-secondary)] mb-1"
-                            >{$_("marketDashboard.bullish")}</span
+                            >Bullish</span
                         >
                     </div>
                     <div
@@ -257,7 +257,7 @@
                             {@html ICONS.loading}
                             <span
                                 class="animate-pulse text-[var(--accent-color)]"
-                                >{$_("dashboard.analyzing")}</span
+                                >Analyzing...</span
                             >
                         {:else}
                             <span
@@ -286,8 +286,8 @@
                 <div
                     class="grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-bold text-[var(--text-secondary)] uppercase sticky top-0 z-10"
                 >
-                    <div class="col-span-3">{$_("journal.deepDive.charts.labels.topAsset")}</div>
-                    <div class="col-span-2 text-right">{$_("dashboard.price")}</div>
+                    <div class="col-span-3">Asset</div>
+                    <div class="col-span-2 text-right">Price</div>
                     <div class="col-span-4 text-center">
                         Trend (15m - 1h - 4h - 1d)
                     </div>

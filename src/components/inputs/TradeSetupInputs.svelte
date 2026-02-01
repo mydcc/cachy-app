@@ -244,34 +244,23 @@
   // Helper to safely treat input as string, ensuring it's valid numeric format
   function parseInputVal(val: string): string | null | undefined {
     if (val === "") return null;
-
-    // Normalize dots and commas
-    const normalized = val.replace(",", ".");
-
-    // Strict validation:
-    // 1. Must be a valid number
-    // 2. Must not end with a dot (incomplete decimal)
-    // 3. Must not start with a dot without a leading zero (though parseFloat handles .123, APIs might not like it)
-
-    // Regex for complete, valid decimal number:
-    // ^\d+(\.\d+)?$  -> Matches "123", "123.45"
-    // Does NOT match "123.", ".45", "12.3.4"
-    if (/^\d+(\.\d+)?$/.test(normalized)) {
-        return normalized;
+    // Strict regex: Must have at least one digit. Disallows lone dot ".".
+    // Matches: "123", "123.", ".123", "123.456" OR with comma
+    // Does NOT match: ".", "1.2.3", "abc"
+    if (/^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(val)) {
+      return val.replace(",", ".");
     }
-
-    // Allow partial typing in local state (handled by bind:value), but return undefined for store update
-    // This prevents "123." from being sent to store until "123.4" is typed.
-    return undefined;
+    return undefined; // Invalid input
   }
 
   function handleEntryPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
+    // Normalize comma to dot immediately for UX if desired, OR keep comma and normalize only for store
+    // Here we allow local display to have comma, but store gets dot.
     const value = target.value;
     localEntryPrice = value;
 
     const validated = parseInputVal(value);
-    // Only update store if value is valid AND different
     if (validated !== undefined && entryPrice !== validated) {
       tradeState.update((s) => ({ ...s, entryPrice: validated }));
     }
@@ -296,12 +285,9 @@
     // Multiplier is still number in Store
     if (/^\d*[.,]?\d*$/.test(value)) {
       const normalized = value.replace(",", ".");
-      // Check for trailing dot to avoid parsing "1." as 1 immediately
-      if (!normalized.endsWith(".")) {
-          const num = normalized === "" ? 0 : parseFloat(normalized);
-          if (!isNaN(num) && atrMultiplier !== num) {
-            tradeState.update((s) => ({ ...s, atrMultiplier: num }));
-          }
+      const num = normalized === "" ? 0 : parseFloat(normalized);
+      if (!isNaN(num) && atrMultiplier !== num) {
+        tradeState.update((s) => ({ ...s, atrMultiplier: num }));
       }
     }
   }

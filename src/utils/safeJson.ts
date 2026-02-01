@@ -36,20 +36,14 @@ export function safeJsonParse<T = any>(jsonString: string): T {
     if (!jsonString) return jsonString as any;
     if (typeof jsonString !== 'string') return jsonString;
 
-    // Standard regex for Object properties: "key": 123456...
-    let protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*([0-9]{15,})(?!\.)/g, '"$1": "$2"');
-
-    // New regex for Array elements: [123456..., ...] or , 123456... ,
-    // Use lookahead (?=...) for trailing separator to avoid consuming it
-    // so consecutive matches work.
-
-    // Regex breakdown:
-    // ([\[,]\s*)        Group 1: Preceding delimiter ([ or ,) plus whitespace
-    // ([0-9]{15,})      Group 2: The number
-    // (?!\.)            Negative lookahead: Not a float
-    // (?=\s*[,\]])      Positive lookahead: Followed by , or ] (Non-consuming)
-
-    protectedJson = protectedJson.replace(/([\[,]\s*)([0-9]{15,})(?!\.)(?=\s*[,\]])/g, '$1"$2"');
+    // Regex explanation:
+    // "([^"]+)"                     : Capture any key (enclosed in double quotes).
+    // \s*:\s*                       : Match colon and whitespace.
+    // ([0-9]{15,})                  : Capture the number ONLY if it has 15 or more digits.
+    // (?!\.)                        : Negative lookahead to ensure it's NOT a float (e.g. 12345.5).
+    //
+    // We target 15+ to be safe (JS safe int is ~9e15).
+    const protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*([0-9]{15,})(?!\.)/g, '"$1": "$2"');
 
     return JSON.parse(protectedJson);
 }

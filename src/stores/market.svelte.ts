@@ -347,7 +347,6 @@ export class MarketManager {
 
     // Get existing history or init empty
     let history = current.klines[timeframe] || [];
-    if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
     // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
     // previously filtered REST updates if connected.

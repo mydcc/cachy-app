@@ -110,7 +110,6 @@
     }
 
     function getLocalizedText(patternId: string, key: string): string {
-        // Use candlestickPatterns root key for specific patterns
         const i18nKey = `candlestickPatterns.${patternId}.${key}` as any;
         const text = $_(i18nKey);
         if (text === i18nKey) {
@@ -135,7 +134,7 @@
         >
             <input
                 type="text"
-                placeholder={$_("chartPatterns.searchPlaceholder")}
+                placeholder="Search patterns..."
                 bind:value={searchQuery}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all"
             />
@@ -231,8 +230,8 @@
                             class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
                             onclick={() => toggleFavorite(currentPattern.id)}
                             title={favorites.has(currentPattern.id)
-                                ? $_("marketOverview.tooltips.removeFavorite")
-                                : $_("marketOverview.tooltips.addFavorite")}
+                                ? "Remove from Favorites"
+                                : "Add to Favorites"}
                         >
                             {#if favorites.has(currentPattern.id)}
                                 <svg
@@ -290,7 +289,7 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
                         >
-                            {$_("chartPatterns.description")}
+                            Description
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
                             {@html renderMarkdown(
@@ -312,7 +311,7 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
                         >
-                            {$_("chartPatterns.tradingStrategy")}
+                            Strategy & Indicators
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
                             {@html renderMarkdown(
@@ -331,7 +330,7 @@
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
                         >
-                            {$_("chartPatterns.interpretation")}
+                            Interpretation
                         </h3>
                         <div class="prose dark:prose-invert text-sm max-w-none">
                             {@html renderMarkdown(
