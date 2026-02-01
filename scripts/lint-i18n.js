@@ -84,6 +84,8 @@ const SAFE_CONTEXTS = [
     /\|\|.*Error/,              // Fallback error messages
     /alert\(/,                  // Alert calls (should use modal ideally, but temporary)
     /\/\//,                     // Code comments
+    /^\s*\*/,                   // JSDoc/Block comment continuation
+    /^\s*\/\*/,                 // Block comment start
     /aria-[\w-]+/,              // All aria attributes
     /data-[\w-]+/,              // All data attributes
     /class=/,                   // CSS classes
