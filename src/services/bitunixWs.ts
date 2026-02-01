@@ -844,22 +844,13 @@ class BitunixWebSocketService {
                   // Bids and Asks are arrays of [price, qty]
                   const safeToString = (val: any) => typeof val === 'number' ? String(val) : val;
 
-                  // In-place mutation for performance (Fast Path)
-                  if (data.b) {
-                      for (let i = 0; i < data.b.length; i++) {
-                          data.b[i][0] = safeToString(data.b[i][0]);
-                          data.b[i][1] = safeToString(data.b[i][1]);
-                      }
-                  }
-                  if (data.a) {
-                      for (let i = 0; i < data.a.length; i++) {
-                          data.a[i][0] = safeToString(data.a[i][0]);
-                          data.a[i][1] = safeToString(data.a[i][1]);
-                      }
-                  }
+                  // HARDENING: Use map to create new arrays instead of mutating data in-place
+                  // This prevents side-effects if the raw message object is used elsewhere
+                  const bids = data.b ? data.b.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
+                  const asks = data.a ? data.a.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
 
                   if (!this.shouldThrottle(`${symbol}:depth`)) {
-                    marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+                    marketState.updateDepth(symbol, { bids, asks });
                   }
                   return;
               } catch(fastPathError) {
@@ -893,14 +884,15 @@ class BitunixWebSocketService {
                     // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
                     // Correctly calculate candle start time (floor to interval)
                     let candleStart = 0;
+                    const ts = message.ts || Date.now();
+
                     if (timeframe === "1M") {
-                      const date = new Date(message.ts || Date.now());
-                      date.setUTCDate(1);
-                      date.setUTCHours(0, 0, 0, 0);
-                      candleStart = date.getTime();
+                      // Optimization: Use Date.UTC for cleaner calc (avoids mutator methods)
+                      const d = new Date(ts);
+                      candleStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
                     } else {
                       const intervalMs = getIntervalMs(timeframe);
-                      candleStart = Math.floor((message.ts || Date.now()) / intervalMs) * intervalMs;
+                      candleStart = Math.floor(ts / intervalMs) * intervalMs;
                     }
 
                     const klineData = { ...d, ts: candleStart };

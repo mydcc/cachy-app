@@ -197,6 +197,11 @@ class TradeService {
         });
 
         try {
+            // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
+            // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
+            // We await this to ensure safety, even though it adds latency. "Best Effort" (catch inside cancelAllOrders).
+            await this.cancelAllOrders(symbol);
+
             return await this.signedRequest("POST", "/api/orders", {
                 symbol,
                 side: apiSide,
