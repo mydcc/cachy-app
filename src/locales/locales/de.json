@@ -1,7 +1,10 @@
 {
   "windows": {
     "settings": "Fenster-Einstellungen",
-    "smash": "Fenster zerschmettern"
+    "smash": "Fenster zerschmettern",
+    "opacity": "Deckkraft",
+    "glass": "Glas",
+    "burn": "Verbrennen"
   },
   "app": {
     "title": "Cachy",
@@ -36,7 +39,10 @@
       "point": "Marktübersicht",
       "title": "Globale Marktanalyse",
       "avgRsi": "Ø RSI",
-      "bullish": "Bullisch %"
+      "bullish": "Bullisch",
+      "bearish": "Bärisch",
+      "neutral": "Neutral",
+      "longShortRatio": "Long/Short Verhältnis"
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
@@ -834,7 +840,9 @@
       "atr": "ATR",
       "bbWidth": "BB Breite",
       "vwap": "VWAP",
-      "mfi": "MFI"
+      "mfi": "MFI",
+      "adx": "ADX",
+      "pivot": "Pivot"
     },
     "candlestickPatterns": {
       "title": "Candlestick Muster Akademie"
