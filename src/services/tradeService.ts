@@ -143,6 +143,26 @@ class TradeService {
             (p) => p.symbol === symbol && p.side === positionSide
         );
 
+        // FRESHNESS CHECK (Hardening)
+        // If cached position is stale (> 200ms), force a refresh to ensure quantity is correct.
+        const MAX_POS_AGE_MS = 200;
+        const now = Date.now();
+        if (position && position.lastUpdated && (now - position.lastUpdated > MAX_POS_AGE_MS)) {
+             logger.warn("market", `[FlashClose] Position stale (${now - position.lastUpdated}ms). Forcing refresh.`);
+             try {
+                await this.fetchOpenPositionsFromApi();
+                positions = omsService.getPositions();
+                position = positions.find(
+                    (p) => p.symbol === symbol && p.side === positionSide
+                );
+             } catch (e) {
+                logger.error("market", `[FlashClose] Stale refresh failed`, e);
+                // Proceed with stale data? No, unsafe.
+                // But better to try than do nothing?
+                // Decision: Proceed but log critical warning.
+             }
+        }
+
         if (!position) {
             logger.warn("market", `[FlashClose] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
 
@@ -199,8 +219,8 @@ class TradeService {
         try {
             // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
             // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
-            // We await this to ensure safety, even though it adds latency. "Best Effort" (catch inside cancelAllOrders).
-            await this.cancelAllOrders(symbol);
+            // We await this to ensure safety. Now STRICT enforcement (throwOnError=true).
+            await this.cancelAllOrders(symbol, true);
 
             return await this.signedRequest("POST", "/api/orders", {
                 symbol,
@@ -306,7 +326,7 @@ class TradeService {
         }
     }
 
-    public async cancelAllOrders(symbol: string) {
+    public async cancelAllOrders(symbol: string, throwOnError = false) {
         if (!symbol) return;
         logger.log("market", `[Trade] Cancelling all orders for ${symbol}`);
         try {
@@ -316,7 +336,7 @@ class TradeService {
              });
         } catch (e) {
              logger.warn("market", `[Trade] Failed to cancel orders for ${symbol}`, e);
-             // We don't throw here, because we want flashClose to proceed even if cancel fails (best effort)
+             if (throwOnError) throw e;
         }
     }
 

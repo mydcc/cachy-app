@@ -717,11 +717,11 @@
             <a
               href={tvLink}
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-              title="TradingView Chart"
+              title={$_("marketOverview.tooltips.tradingViewChart")}
               onclick={(e) => {
                 e.preventDefault();
                 externalLinkService.openOrFocus(tvLink, tvTarget);
-              }}>TV</a
+              }}>{$_("marketOverview.tvShort")}</a
             >
           {/if}
           {#if settingsState.showCgHeatLink}
@@ -729,7 +729,7 @@
               href={cgHeatmapLink}
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title={$_("marketOverview.tooltips.liquidationHeatmap")}
-              onclick={handleHeatmapClick}>Heatmap</a
+              onclick={handleHeatmapClick}>{$_("marketOverview.heatmap")}</a
             >
           {/if}
           {#if settingsState.showBrokerLink}

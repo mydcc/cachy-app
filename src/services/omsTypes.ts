@@ -54,4 +54,5 @@ export interface OMSPosition {
     margin?: Decimal; // Hardening: Ensure margin is optional but typed
     markPrice?: Decimal; // Hardening: Ensure markPrice is optional but typed
     size?: Decimal; // Hardening
+    lastUpdated?: number; // Freshness check
 }
