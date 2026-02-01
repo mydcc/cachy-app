@@ -78,3 +78,5 @@ dist/
 .env.*
 ! .env.example
 db/
+test-results/
+reports/
