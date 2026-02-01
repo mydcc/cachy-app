@@ -749,52 +749,54 @@
             {/if}
           </div>
 
-          {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
-            {@const config = CHANNEL_CONFIG[baseAsset]}
-            {@const plotId = typeof config === "string" ? config : baseAsset}
-            {@const windowId = `channel_${plotId}`}
-            {@const isOpen = windowManager.windows.some(
-              (w) => w.id === windowId,
-            )}
+          <div class="flex items-center gap-0.5">
+            {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
+              {@const config = CHANNEL_CONFIG[baseAsset]}
+              {@const plotId = typeof config === "string" ? config : baseAsset}
+              {@const windowId = `channel_${plotId}`}
+              {@const isOpen = windowManager.windows.some(
+                (w) => w.id === windowId,
+              )}
+              <button
+                class="transition-colors p-1.5 rounded flex items-center hover:bg-[var(--bg-tertiary)]"
+                class:text-[var(--accent-color)]={isOpen}
+                class:text-[var(--text-secondary)]={!isOpen}
+                class:hover:text-[var(--accent-color)]={!isOpen}
+                title={isOpen
+                  ? $_("marketOverview.tooltips.closeChannel")
+                  : $_("marketOverview.tooltips.openChannel")}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  openChannel(e);
+                }}>{@html icons.monitor}</button
+              >
+            {/if}
+
             <button
-              class="transition-colors p-0.5 rounded flex items-center"
-              class:text-[var(--accent-color)]={isOpen}
-              class:text-[var(--text-secondary)]={!isOpen}
-              class:hover:text-[var(--accent-color)]={!isOpen}
-              title={isOpen
-                ? $_("marketOverview.tooltips.closeChannel")
-                : $_("marketOverview.tooltips.openChannel")}
+              class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1.5 flex items-center hover:bg-[var(--bg-tertiary)] rounded"
+              class:text-[var(--accent-color)]={isFavorite}
+              data-track-id="btn-toggle-favorite"
+              data-track-context={JSON.stringify({ symbol })}
               onclick={(e) => {
                 e.stopPropagation();
-                openChannel(e);
-              }}>{@html icons.monitor}</button
+                trackInteraction("btn-toggle-favorite", "click", { symbol });
+                toggleFavorite();
+              }}
+              title={isFavorite
+                ? $_("marketOverview.tooltips.removeFavorite")
+                : $_("marketOverview.tooltips.addFavorite")}
             >
-          {/if}
+              {#if isFavorite}
+                {@html icons.starFilled}
+              {:else}
+                {@html icons.starEmpty}
+              {/if}
+            </button>
+          </div>
         </div>
       {/if}
     </div>
   {/if}
-
-  <button
-    class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
-    class:text-[var(--accent-color)]={isFavorite}
-    data-track-id="btn-toggle-favorite"
-    data-track-context={JSON.stringify({ symbol })}
-    onclick={(e) => {
-      e.stopPropagation();
-      trackInteraction("btn-toggle-favorite", "click", { symbol });
-      toggleFavorite();
-    }}
-    title={isFavorite
-      ? $_("marketOverview.tooltips.removeFavorite")
-      : $_("marketOverview.tooltips.addFavorite")}
-  >
-    {#if isFavorite}
-      {@html icons.starFilled}
-    {:else}
-      {@html icons.starEmpty}
-    {/if}
-  </button>
 </div>
 
 <style>

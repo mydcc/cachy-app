@@ -157,31 +157,6 @@
   >
     {@html ICONS.sentiment}
   </button>
-
-  <!-- Minimized Windows (Taskbar) -->
-  {#if uiState.windows.some((w: any) => w.isMinimized && w.canMinimizeToPanel)}
-    <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
-    <div class="flex flex-col gap-2 mt-auto">
-      {#each uiState.windows.filter((w: any) => w.isMinimized && w.canMinimizeToPanel) as win}
-        <button
-          class="minimized-btn group"
-          onclick={() => win.restore()}
-          title="Restore {win.title}"
-        >
-          <div
-            class="w-9 h-9 flex items-center justify-center bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] group-hover:border-[var(--accent-color)] group-hover:bg-[var(--bg-secondary)] transition-all shadow-sm overflow-hidden"
-          >
-            <span
-              class="text-[9px] font-black opacity-80 uppercase tracking-tighter text-center leading-[10px] break-all px-0.5"
-            >
-              {win.title.substring(0, 4)}
-            </span>
-          </div>
-          <div class="minimized-indicator"></div>
-        </button>
-      {/each}
-    </div>
-  {/if}
 </aside>
 
 <style>
@@ -210,30 +185,5 @@
   .control-btn :global(svg) {
     width: 20px;
     height: 20px;
-  }
-
-  .minimized-btn {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease;
-  }
-
-  .minimized-btn:hover {
-    transform: scale(1.1);
-  }
-
-  .minimized-indicator {
-    position: absolute;
-    left: -2px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 12px;
-    background: var(--accent-color);
-    border-radius: 0 2px 2px 0;
-    box-shadow: 0 0 8px var(--accent-color);
   }
 </style>
