@@ -61,6 +61,20 @@ export const RSS_PRESETS: RssPreset[] = [
 ];
 
 /**
+ * Get all preset URLs for given IDs (Optimized for performance)
+ * uses a single pass loop which is faster than filter/map or Set for small arrays.
+ */
+export const getRSSUrlsByIds = (ids: string[]): string[] => {
+  const urls: string[] = [];
+  for (const p of RSS_PRESETS) {
+    if (ids.includes(p.id)) {
+      urls.push(p.url);
+    }
+  }
+  return urls;
+};
+
+/**
  * Get preset by ID
  */
 export function getPresetById(id: string): RssPreset | undefined {
