@@ -134,7 +134,12 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
     it('should use exact OMS position amount for flash close', async () => {
         await tradeService.flashClosePosition('BTCUSDT', 'long');
 
-        const callArgs = signedRequestSpy.mock.calls[0];
+        // Verify Cancel Order Call (First call)
+        const cancelArgs = signedRequestSpy.mock.calls[0];
+        expect(cancelArgs[2].type).toBe('cancel-all');
+
+        // Verify Close Order Call (Second call)
+        const callArgs = signedRequestSpy.mock.calls[1];
         const body = callArgs[2];
 
         // CRITICAL: Must use exact position size, not Safe Max
@@ -182,7 +187,8 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
     it('should prevent opening opposite position with reduceOnly flag', async () => {
         await tradeService.flashClosePosition('BTCUSDT', 'long');
 
-        const callArgs = signedRequestSpy.mock.calls[0];
+        // Check second call (actual order)
+        const callArgs = signedRequestSpy.mock.calls[1];
         const body = callArgs[2];
 
         // Opposite side for long = sell
