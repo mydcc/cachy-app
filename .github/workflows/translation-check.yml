@@ -28,10 +28,10 @@ jobs:
                   python-version: "3.x"
 
             - name: Make scripts executable
-              run: chmod +x check_translations.sh verify_translations.py audit_translations.py
+              run: chmod +x scripts/check_translations.sh scripts/verify_translations.py scripts/audit_translations.py
 
             - name: Run translation check
-              run: ./check_translations.sh
+              run: ./scripts/check_translations.sh
 
             - name: Generate detailed report on failure
               if: failure()
@@ -41,7 +41,7 @@ jobs:
                   echo "Translation check failed. Here's the detailed report:" >> $GITHUB_STEP_SUMMARY
                   echo "" >> $GITHUB_STEP_SUMMARY
                   echo '```' >> $GITHUB_STEP_SUMMARY
-                  python3 audit_translations.py . 2>&1 | head -100 >> $GITHUB_STEP_SUMMARY
+                  python3 scripts/audit_translations.py . 2>&1 | head -100 >> $GITHUB_STEP_SUMMARY
                   echo '```' >> $GITHUB_STEP_SUMMARY
 
             - name: Comment on PR (on failure)
@@ -53,5 +53,5 @@ jobs:
                         issue_number: context.issue.number,
                         owner: context.repo.owner,
                         repo: context.repo.repo,
-                        body: '⚠️ **Translation check failed!**\n\nPlease run `./audit_translations.py` locally to see detailed issues.'
+                        body: '⚠️ **Translation check failed!**\n\nPlease run `python3 scripts/audit_translations.py` locally to see detailed issues.'
                       })

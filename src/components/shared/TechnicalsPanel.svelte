@@ -328,7 +328,7 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("technicals.atr")}</span
+                  >{$_("settings.technicals.atr")}</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
@@ -342,7 +342,7 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("technicals.bbWidth")}</span
+                  >{$_("settings.technicals.bbWidth")}</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
@@ -468,7 +468,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("technicals.vwap")}</span>
+                  <span>{$_("settings.technicals.vwap")}</span>
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(
                       data.advanced.vwap,
@@ -483,7 +483,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("technicals.mfi")}</span>
+                  <span>{$_("settings.technicals.mfi")}</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -596,7 +596,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("workspace.signals")}
+                {$_("settings.workspace.signals")}
               </div>
 
               {#if data.divergences && data.divergences.length > 0}

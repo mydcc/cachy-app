@@ -1162,24 +1162,6 @@
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
     }
   },
-  "marketDashboard": {
-    "buttonTitle": "Marktübersicht öffnen",
-    "title": "Globale Marktanalyse",
-    "avgRsi": "Ø RSI",
-    "bullish": "Bullisch",
-    "bearish": "Bärisch",
-    "neutral": "Neutral",
-    "longShortRatio": "Long/Short Verhältnis"
-  },
-  "technicals": {
-    "atr": "ATR",
-    "bbWidth": "BB Breite",
-    "vwap": "VWAP",
-    "mfi": "MFI"
-  },
-  "workspace": {
-    "signals": "Signale"
-  },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
     "nextCycleIn": "Nächster Zyklus in",

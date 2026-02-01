@@ -1368,24 +1368,6 @@
     "checkSettings": "Check Settings",
     "diagnostics": "View Diagnostics"
   },
-  "marketDashboard": {
-    "buttonTitle": "Open Market Overview",
-    "title": "Global Market Analysis",
-    "avgRsi": "Avg RSI",
-    "bullish": "Bullish",
-    "bearish": "Bearish",
-    "neutral": "Neutral",
-    "longShortRatio": "Long/Short Ratio"
-  },
-  "technicals": {
-    "atr": "ATR",
-    "bbWidth": "BB Width",
-    "vwap": "VWAP",
-    "mfi": "MFI"
-  },
-  "workspace": {
-    "signals": "Signals"
-  },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analysis Status",
     "nextCycleIn": "Next Cycle In",
