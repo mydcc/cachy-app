@@ -566,6 +566,7 @@
     "24hHigh": "24h High",
     "24hLow": "24h Low",
     "vol": "Vol",
+    "tvShort": "TV",
       "heatmap": "Heatmap",
       "broker": "Broker",
     "rsiSettings": "RSI Settings",

@@ -35,7 +35,7 @@ export class ChannelWindow extends WindowBase {
     /** The target URL for the iframe content. */
     url: string;
 
-    constructor(url: string, title = "Galaxy Chat", id?: string, options: any = {}) {
+    constructor(url: string, title = "Galaxy Chat", id?: string, options: any = {}) { // i18n-ignore
         super({
             title,
             windowType: 'iframe',
