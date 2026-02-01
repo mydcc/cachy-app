@@ -209,12 +209,17 @@ export const app = {
 
       symbolDebounceTimer = setTimeout(() => {
         if (newSymbol && newSymbol !== currentWatchedSymbol) {
-          if (currentWatchedSymbol)
+          if (currentWatchedSymbol) {
             marketWatcher.unregister(currentWatchedSymbol, "price");
+            marketWatcher.unregister(currentWatchedSymbol, "ticker");
+          }
+          // Subscribe to BOTH Price (Funding/Index) and Ticker (Last/Vol/Change)
           marketWatcher.register(newSymbol, "price");
+          marketWatcher.register(newSymbol, "ticker");
           currentWatchedSymbol = newSymbol;
         } else if (!newSymbol && currentWatchedSymbol) {
           marketWatcher.unregister(currentWatchedSymbol, "price");
+          marketWatcher.unregister(currentWatchedSymbol, "ticker");
           currentWatchedSymbol = null;
         }
       }, 500);
