@@ -1252,7 +1252,11 @@ function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: 
   return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined || d.ip !== undefined);
 }
 
-function isTickerData(d: any): d is { volume?: any; v?: any; lastPrice?: any; close?: any; } {
+function isTickerData(d: any): d is {
+  volume?: any; v?: any; lastPrice?: any; close?: any;
+  high?: any; low?: any; quoteVolume?: any;
+  h?: any; l?: any; q?: any;
+} {
   return d && (d.volume !== undefined || d.v !== undefined || d.lastPrice !== undefined || d.close !== undefined);
 }
 
