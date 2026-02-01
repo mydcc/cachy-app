@@ -113,6 +113,7 @@ const SAFE_CONTEXTS = [
     /on:click/,                 // Svelte events
     /onclick=/,                 // Svelte 5 events
     /i18n-ignore/,              // Manual Ignore Comment
+    /^\s*\*/,                   // JSDoc/Block comments (lines starting with *)
 ];
 
 let violations = [];
