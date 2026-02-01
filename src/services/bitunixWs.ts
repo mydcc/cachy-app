@@ -743,11 +743,14 @@ class BitunixWebSocketService {
         this.missedPongsPrivate = 0;
       }
 
+      // [HYBRID FIX] Normalize channel (Bitunix sometimes sends 'topic' instead of 'ch')
+      const channel = message.ch || message.topic;
+
       // --- FAST PATH OPTIMIZATION ---
       // Check high-frequency messages (price, ticker, depth) BEFORE expensive Zod validation
       // Wrapped in try-catch to prevent crashing the entire socket handler
       try {
-        if (message && message.ch) {
+        if (message && channel) {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data;
@@ -755,7 +758,7 @@ class BitunixWebSocketService {
           // Common guard for object data (price, ticker, kline) - Ensure strict object type
           const isObjectData = data && typeof data === "object" && !Array.isArray(data);
 
-          if (message.ch === "price") {
+          if (channel === "price") {
             if (symbol && isObjectData && isPriceData(data)) {
               try {
                 // HARDENING: Check for native numbers in critical fields
@@ -795,7 +798,7 @@ class BitunixWebSocketService {
             // If we fall through here, it means isPriceData failed (schema mismatch), so we let it fall through to Zod
           }
 
-          if (message.ch === "ticker") {
+          if (channel === "ticker") {
             if (symbol && isObjectData && isTickerData(data)) {
                try {
                   const normalized = mdaService.normalizeTicker(message, "bitunix");
@@ -818,7 +821,7 @@ class BitunixWebSocketService {
             }
           }
 
-          if (message.ch === "depth_book5") {
+          if (channel === "depth_book5") {
             if (symbol && isObjectData && isDepthData(data)) {
               try {
                   if (!this.shouldThrottle(`${symbol}:depth`)) {
@@ -834,15 +837,15 @@ class BitunixWebSocketService {
           }
 
           // Klines
-          if (message.ch.startsWith("market_kline_") || message.ch === "mark_kline_1day") {
+          if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
             if (symbol && isObjectData) {
               try {
                   const d = data as any;
                   if (d && (d.close || d.c || d.open || d.o)) {
                     let timeframe = "1h";
-                    if (message.ch === "mark_kline_1day") timeframe = "1d";
+                    if (channel === "mark_kline_1day") timeframe = "1d";
                     else {
-                      const match = message.ch.match(/market_kline_(.+)/);
+                      const match = channel.match(/market_kline_(.+)/);
                       if (match) {
                         const bitunixTf = match[1];
                         const revMap: Record<string, string> = {
@@ -884,7 +887,7 @@ class BitunixWebSocketService {
         // If 'event', 'op' or 'ch' are missing/wrong type, it's critical.
         // If just data fields are off, we can ignore single message without counting towards circuit breaker.
         const issues = validationResult.error.issues;
-        const criticalFields = ["event", "op", "ch", "code"];
+        const criticalFields = ["event", "op", "ch", "topic", "code"];
         // Critical if:
         // 1. Root level structure error (path is empty)
         // 2. Critical field error (path[0] is in criticalFields)
@@ -952,13 +955,14 @@ class BitunixWebSocketService {
       }
 
       // 3. Validate channel if present
-      if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        logger.warn("network", "[WebSocket] Unknown channel", validatedMessage.ch);
+      const validatedChannel = validatedMessage.ch || validatedMessage.topic;
+      if (validatedChannel && !isAllowedChannel(validatedChannel)) {
+        logger.warn("network", "[WebSocket] Unknown channel", validatedChannel);
         return;
       }
 
       // 4. Handle price updates
-      if (validatedMessage.ch === "price") {
+      if (validatedChannel === "price") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         // const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
@@ -972,7 +976,7 @@ class BitunixWebSocketService {
             nextFundingTime: (validatedMessage.data as any).nft ? String((validatedMessage.data as any).nft) : undefined
           });
         }
-      } else if (validatedMessage.ch === "ticker") {
+      } else if (validatedChannel === "ticker") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
@@ -988,7 +992,7 @@ class BitunixWebSocketService {
           });
         }
       }
-      else if (validatedMessage.ch === "depth_book5") {
+      else if (validatedChannel === "depth_book5") {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
@@ -999,18 +1003,18 @@ class BitunixWebSocketService {
           }
         }
       } else if (
-        validatedMessage.ch &&
-        (validatedMessage.ch.startsWith("market_kline_") ||
-          validatedMessage.ch === "mark_kline_1day")
+        validatedChannel &&
+        (validatedChannel.startsWith("market_kline_") ||
+          validatedChannel === "mark_kline_1day")
       ) {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
         if (symbol && data) {
           let timeframe = "1h";
-          if (validatedMessage.ch === "mark_kline_1day") timeframe = "1d";
+          if (validatedChannel === "mark_kline_1day") timeframe = "1d";
           else {
-            const match = validatedMessage.ch.match(/market_kline_(.+)/);
+            const match = validatedChannel.match(/market_kline_(.+)/);
             if (match) {
               const bitunixTf = match[1];
               const revMap: Record<string, string> = {
@@ -1033,7 +1037,7 @@ class BitunixWebSocketService {
           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
         }
       }
-      else if (validatedMessage.ch === "position") {
+      else if (validatedChannel === "position") {
         const data = validatedMessage.data;
         if (data) {
           const items = Array.isArray(data) ? data : [data];
@@ -1047,7 +1051,7 @@ class BitunixWebSocketService {
             omsService.updatePosition(mapToOMSPosition(item));
           });
         }
-      } else if (validatedMessage.ch === "order") {
+      } else if (validatedChannel === "order") {
         const data = validatedMessage.data;
         if (data) {
           const sanitize = (item: any) => {
@@ -1074,7 +1078,7 @@ class BitunixWebSocketService {
             omsService.updateOrder(mapToOMSOrder(safeItem));
           }
         }
-      } else if (validatedMessage.ch === "wallet") {
+      } else if (validatedChannel === "wallet") {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))

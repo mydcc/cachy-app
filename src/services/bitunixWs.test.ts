@@ -42,19 +42,51 @@ describe('BitunixWS Fast Path Fallback', () => {
         }
     });
 
-    it('should use Fast Path for valid price message', () => {
+    it('should use Fast Path for valid price message (Price Channel updates Funding/Index)', () => {
         const msg = {
             ch: 'price',
             symbol: 'BTCUSDT',
-            data: { lastPrice: '50000', fr: '0.01' }
+            data: { lastPrice: '50000', fr: '0.01', ip: '50001' }
         };
 
         wsService.handleMessage(msg, 'public');
 
-        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({ lastPrice: '100' }));
+        // Price channel now updates Index Price and Funding Rate, NOT Last Price (to avoid flickering)
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
+            fundingRate: '0.01',
+            indexPrice: '50001'
+        }));
     });
 
-    it('should FALLBACK to standard validation if Fast Path throws', () => {
+    it('should use Fast Path for valid ticker message (Ticker Channel updates LastPrice)', () => {
+        const msg = {
+            ch: 'ticker',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', volume: '1000' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
+            lastPrice: '100' // From mock
+        }));
+    });
+
+    it('should handle topic alias for channel', () => {
+        const msg = {
+            topic: 'ticker', // Using topic instead of ch
+            symbol: 'SOLUSDT',
+            data: { lastPrice: '150' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('SOLUSDT', expect.objectContaining({
+            lastPrice: '100' // From mock
+        }));
+    });
+
+    it('should FALLBACK to standard validation if Fast Path throws (using Ticker channel)', () => {
         // Force throw in fast path
         const normalizeMock = vi.mocked(mdaService.normalizeTicker);
         normalizeMock.mockImplementationOnce(() => {
@@ -63,7 +95,7 @@ describe('BitunixWS Fast Path Fallback', () => {
 
         // Use different symbol or clear throttle (done in beforeEach)
         const msg = {
-            ch: 'price',
+            ch: 'ticker', // Must use Ticker to trigger normalizeTicker in Fast Path
             symbol: 'ETHUSDT',
             data: { lastPrice: '3000' },
             event: 'push' // Valid structure for Zod fallback
