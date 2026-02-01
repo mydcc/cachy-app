@@ -1,52 +1,28 @@
 {
-  "windows": {
-    "settings": "Fenster-Einstellungen",
-    "smash": "Fenster zerschmettern",
-    "opacity": "Deckkraft",
-    "glass": "Glas",
-    "burn": "Verbrennen"
-  },
   "app": {
     "title": "Cachy",
     "journalButton": "Journal",
     "journalButtonTitle": "Trade Journal öffnen",
     "changelogTitle": "Changelog",
-    "closeChangelogAriaLabel": "Changelog schließen",
     "guideButton": "Anleitung",
     "guideTitle": "Anleitung",
-    "closeGuideAriaLabel": "Anleitung schließen",
-    "backupButtonTitle": "Ein Backup aller Einstellungen und Daten erstellen",
-    "backupButtonAriaLabel": "Backup erstellen",
-    "restoreButtonTitle": "Daten aus einer Backup-Datei wiederherstellen",
-    "restoreButtonAriaLabel": "Backup wiederherstellen",
-    "restoreConfirmTitle": "Backup wiederherstellen?",
     "restoreConfirmMessage": "Möchten Sie dieses Backup wirklich wiederherstellen? Alle Ihre aktuellen Einstellungen, Presets und Journaleinträge werden unwiderruflich überschrieben. Diese Aktion kann nicht rückgängig gemacht werden.",
     "fileReadError": "Fehler beim Lesen der ausgewählten Datei.",
     "version": "Version",
     "privacyLegal": "Datenschutz & Rechtliches",
     "whitepaper": "Whitepaper",
-    "pro": "Pro",
-    "proActive": "Pro Aktiv",
     "backupEncryptQuestion": "Möchtest du dieses Backup mit einem Passwort verschlüsseln?",
     "backupPasswordPrompt": "Gib ein Passwort für die Verschlüsselung ein:",
     "backupPasswordRequired": "Ein Passwort ist für die Verschlüsselung erforderlich.",
     "backupPasswordEntryPrompt": "Dieses Backup ist verschlüsselt. Bitte gib das Passwort ein:",
     "backupWrongPassword": "Falsches Passwort. Wiederherstellung fehlgeschlagen.",
-    "passwordRequiredTitle": "Passwort erforderlich",
-    "enterBackupPassword": "Bitte geben Sie das Passwort für dieses Backup ein:",
     "marketDashboard": {
       "buttonTitle": "Marktübersicht öffnen",
-      "point": "Marktübersicht",
       "title": "Globale Marktanalyse",
       "avgRsi": "Ø RSI",
-      "bullish": "Bullisch",
-      "bearish": "Bärisch",
-      "neutral": "Neutral",
-      "longShortRatio": "Long/Short Verhältnis"
+      "bullish": "Bullisch"
     },
-    "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
-    "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
-    "refresh": "Aktualisieren"
+    "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung"
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -64,18 +40,13 @@
     "savePresetTitle": "Aktuelle Eingaben als Preset speichern",
     "savePresetAriaLabel": "Preset speichern",
     "deletePresetTitle": "Ausgewähltes Preset löschen",
-    "resetButton": "Zurücksetzen",
     "resetButtonTitle": "Alle Eingaben zurücksetzen",
     "themeSwitcherAriaLabel": "Theme wechseln",
-    "openPositions": "Offene Positionen",
     "favorites": "Favoriten",
     "marketActivity": "Marktaktivität",
     "positions": "Positionen",
     "orders": "Orders",
     "history": "Historie",
-    "balance": "Verfügbar",
-    "margin": "Margin",
-    "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
     "noHistory": "Keine Historie gefunden.",
     "orderHistory": {
@@ -116,12 +87,8 @@
         "mark": "Mark"
       }
     },
-    "type": "Typ",
     "price": "Preis",
-    "amount": "Menge",
-    "filled": "Gefüllt",
     "configureApiKeys": "Bitte API-Keys in den Einstellungen konfigurieren.",
-    "noOpenPositions": "Keine offenen Positionen.",
     "totalTradeMetrics": "Gesamt-Trade Metriken",
     "totalTradeMetricsTooltip": "Übersicht über die wichtigsten Kennzahlen für den gesamten Trade.",
     "riskPerTradeCurrency": "Risiko pro Trade (Währung)",
@@ -200,7 +167,6 @@
       "atrMultiplierLabel": "Multiplier",
       "selectSymbol": "Symbol auswählen",
       "priceDeviation": "Abweichung zum Markt",
-      "priceDeviationWarning": "Warnung: Einstiegspreis weicht um {percent}% vom Marktpreis ab. Eingabe prüfen.",
       "autoUpdateOn": "Auto-Update An",
       "autoUpdateOff": "Auto-Update Aus",
       "fetchAtrValue": "ATR Wert abrufen",
@@ -269,10 +235,7 @@
     },
     "visualBar": {
       "header": "Visuelle Analyse",
-      "entry": "Einstieg",
-      "ariaLabel": "Trade-Visualisierungsleiste",
-      "netProfitLabel": "Netto-Gewinn:",
-      "rrLabel": "R/R:"
+      "entry": "Einstieg"
     },
     "riskRewardRatio": "Chance-Risiko-Verhältnis",
     "promptForData": "Bitte geben Sie die erforderlichen Handelsdaten ein, um die Berechnung zu starten.",
@@ -280,51 +243,24 @@
   },
   "journal": {
     "title": "Trade Journal",
-    "closeJournalAriaLabel": "Journal schließen",
     "searchSymbolPlaceholder": "Symbol suchen...",
     "filterAll": "Alle",
     "filterOpen": "Offen",
     "filterWon": "Gewonnen",
     "filterLost": "Verloren",
-    "date": "Datum",
-    "symbol": "Symbol",
-    "type": "Typ",
-    "entry": "Einstieg",
-    "sl": "SL",
-    "rr": "R/R",
-    "status": "Status",
-    "notes": "Notizen",
-    "action": "Aktion",
     "noTradesYet": "Noch keine Trades im Journal vorhanden.",
-    "clickToExpand": "Klicken zum Ausklappen",
-    "delete": "Löschen",
     "confirmDelete": "Diesen Trade wirklich löschen?",
     "confirmRecalculateAtr": "Möchten Sie alle ATR-Werte im Journal neu berechnen? Dies kann bei vielen Trades einen Moment dauern.",
-    "performancePerSymbol": "Performance pro Symbol",
     "trades": "Trades",
-    "profitPercent": "Gewinn %",
-    "totalPL": "Gesamt P/L",
     "noData": "Keine Daten",
     "syncBitunix": "Bitunix Sync",
-    "exportCsvTitle": "Als CSV exportieren",
-    "importCsvTitle": "Trades aus CSV-Datei importieren",
     "export": "Exportieren",
     "import": "Importieren",
     "csvTooManyLines": "Zu viele Zeilen ({count} Trades). Maximum: {max} Trades pro Import. Bitte teilen Sie die CSV-Datei auf.",
     "csvEmpty": "CSV ist leer oder hat nur eine Kopfzeile.",
     "csvMissingColumns": "CSV-Datei fehlen benötigte Spalten (oder unbekannte Sprache): {columns}",
-    "csvParseError": "Fehler beim Parsen der CSV Zeile.",
-    "clearJournalTitle": "Ganzes Journal leeren",
     "clearAll": "Alles löschen",
     "showJournalInstructionsTitle": "Journal Anleitung anzeigen",
-    "showJournalInstructionsAriaLabel": "Journal Anleitung anzeigen",
-    "pagination": {
-      "rows": "Zeilen:",
-      "page": "Seite",
-      "of": "von",
-      "prev": "Zurück",
-      "next": "Weiter"
-    },
     "stats": {
       "totalPnL": "Gesamt P/L",
       "winRate": "Win Rate",
@@ -334,26 +270,17 @@
       "maxDrawdown": "Max Drawdown"
     },
     "labels": {
-      "search": "Suche",
-      "status": "Status",
       "from": "Von",
       "to": "Bis",
       "pivotMode": "Pivot Modus",
       "uploadScreenshot": "Screenshot hochladen",
-      "pasteScreenshot": "Bild einfügen (Strg+V)",
       "replaceScreenshot": "Ersetzen",
-      "deleteScreenshot": "Screenshot löschen",
-      "recalculateAtr": "ATR neu berechnen",
-      "advancedMetrics": "Erweiterte Metriken",
-      "showScreenshots": "Screenshots anzeigen",
       "tableSettings": "Tabelleneinstellungen",
       "long": "Long",
       "short": "Short",
       "gross": "Brutto",
       "net": "Netto",
-      "screenshotAlt": "Trade Screenshot",
-      "mostProfitableStrategy": "Beste Strategie",
-      "topAsset": "Top Asset"
+      "mostProfitableStrategy": "Beste Strategie"
     },
     "placeholder": {
       "notes": "Notizen hinzufügen..."
@@ -388,10 +315,6 @@
       "uploading": "Lade Screenshot hoch...",
       "syncing": "Wird synchronisiert...",
       "uploadFailed": "Screenshot-Upload fehlgeschlagen",
-      "min5Trades": "(Min. 5 Trades)",
-      "min20Trades": "(Min. 20 Trades)",
-      "noStrategyLosses": "(Keine Strategie-Verluste)",
-      "noTimingLosses": "(Keine Zeit-Verluste)",
       "atrRecalcStart": "ATR-Neuberechnung gestartet...",
       "atrRecalcError": "Fehler bei ATR-Berechnung: "
     },
@@ -589,10 +512,7 @@
     "countdown": "Countdown"
   },
   "seo": {
-    "title": "Cachy - Positionsgröße & Risikorechner",
-    "pageTitle": "Cachy - Positionsgröße & Risikorechner",
-    "description": "Cachy ist ein umfassender Trading-Rechner für Positionsgrößenbestimmung, Risikomanagement und Take-Profit-Ziele. Optimiere deine Trades mit Echtzeitberechnungen und visueller Analyse.",
-    "keywords": "Trading Rechner, Positionsgröße, Risikomanagement, Take Profit, Krypto Trading, Forex Trading, Aktien Trading, Trading Tools, Finanzrechner, Trade Optimierer"
+    "pageTitle": "Cachy - Positionsgröße & Risikorechner"
   },
   "languages": {
     "german": "Deutsch",
@@ -610,12 +530,10 @@
       "enableNews": "News Analyse aktivieren",
       "recommendation": "Empfehlung: Wähle 2-3 Zeitrahmen, die zu deinem Trading-Stil passen.",
       "profilesDesc": "Wähle ein Profil passend zu deinem Trading-Stil.",
-      "advancedDesc": "Feinsteuerung der Analyse-Schleife.",
       "intervalHelp": "Wie oft technische Indikatoren neu berechnet werden.",
       "favoritesHelp": "Wenn deaktiviert, werden nur die Top 4 Favoriten analysiert.",
       "pauseHelp": "Wenn der Tab nicht fokussiert ist, wird das Intervall verdoppelt.",
       "cacheHelp": "Maximale Anzahl an Symbolen im Speicher.",
-      "timeframesHelp": "Jeder gewählte Zeitrahmen vervielfacht API-Aufrufe.",
       "newsHelp": "Lade aktuelle Nachrichten und Stimmung für analysierte Symbole.",
       "currentConfig": "Aktuelle Konfiguration",
       "profileLabel": "Profil:",
@@ -700,14 +618,8 @@
       "burnModals": "Andere Fenster"
     },
     "theme": "Design",
-    "themeDark": "Dunkel",
-    "themeLight": "Hell",
     "fontFamily": "Schriftart",
-    "forceEnglishTechnicalTerms": "Fachbegriffe auf Englisch (Entry, TP, etc.)",
     "language": "Sprache",
-    "backup": "Sicherung",
-    "restore": "Wiederherstellen",
-    "reset": "Daten zurücksetzen",
     "resetConfirm": "Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Dies kann nicht rückgängig gemacht werden.",
     "apiQuota": {
       "title": "API Quota Überwachung",
@@ -722,70 +634,16 @@
       "noCalls": "Keine API-Aufrufe bisher durchgeführt."
     },
     "apiProvider": "API Anbieter",
-    "apiIntegration": "API Integration",
-    "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
     "marketDataInterval": "Marktdaten-Aktualisierungsrate",
     "marketDataIntervalHelp": "Wie oft Marktpreise aktualisiert werden",
-    "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
-    "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
     "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
     "enableSidePanel": "Side Panel (Chat/Notizen) aktivieren",
-    "sidePanelMode": "Side Panel Modus",
-    "modeNotes": "Meine Notizen",
-    "modeChat": "Globaler Chat",
-    "sidePanelLayout": "Layout",
-    "layoutStandard": "Standard (Farbig)",
-    "layoutStandardDesc": "Fix links, solider Hintergrund",
-    "layoutTransparent": "Transparentes Overlay",
-    "layoutTransparentDesc": "Unter der Sidebar, transparenter Hintergrund",
-    "layoutFloating": "Schwebende Blase",
-    "layoutFloatingDesc": "Ausklappbare Chatbox (max 38vh)",
     "sidePanelDesc": "Ausklappbares Panel am linken Rand.",
     "showTechnicals": "Technicals-Panel anzeigen",
-    "showIndicatorParams": "Indikator-Parameter anzeigen",
-    "hideUnfilledOrders": "Nur ausgeführte Orders anzeigen",
     "feePreference": "Gebühren-Präferenz",
     "feePreferenceDesc": "Wähle den Gebührensatz, der standardmäßig beim Synchronisieren von der API verwendet werden soll.",
-    "providerLabel": "Börsen-Anbieter",
-    "securityNote": "Schlüssel werden lokal in deinem Browser gespeichert.",
-    "imgbbHeader": "ImgBB Bild-Hosting",
-    "imgbbApiKey": "API Key",
-    "imgbbExpiration": "Ablaufzeit",
-    "rssPresetsDesc": "Wähle kuratierte Nachrichtenquellen für den KI-Kontext",
-    "customRssFeeds": "Benutzerdefinierte RSS-Feeds",
-    "customRssFeedsDesc": "Füge bis zu 5 eigene RSS-Feeds hinzu (Erweitert)",
-    "addFeed": "Feed hinzufügen",
-    "removeFeed": "Entfernen",
-    "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-    "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)",
-    "integrations": {
-      "exchanges": "Börsen Anbindung",
-      "intelligence": "KI Anbieter Keys",
-      "analytics": "News & Marktdaten",
-      "utilities": "Medien Speicher",
-      "apiKey": "API Key",
-      "apiSecret": "API Secret",
-      "enterKey": "API Key eingeben",
-      "enterSecret": "Secret eingeben",
-      "filter": "Filter",
-      "plan": "Plan",
-      "cmcApi": "CoinMarketCap API",
-      "newsApi": "NewsAPI.org Key",
-      "imgbbPrimary": "ImgBB (Primär)",
-      "autoExpiration": "Auto-Löschung (Sek)",
-      "imgurOther": "Imgur / Andere",
-      "imgurClientId": "Imgur Client ID",
-      "rssPresets": "RSS-Nachrichtenquellen",
-      "rssPresetsDesc": "Wähle kuratierte Nachrichtenquellen für den KI-Kontext",
-      "customRssFeeds": "Benutzerdefinierte RSS-Feeds",
-      "customRssFeedsDesc": "Füge bis zu 5 eigene RSS-Feeds hinzu (Erweitert)",
-      "addFeed": "Feed hinzufügen",
-      "removeFeed": "Entfernen",
-      "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
-    },
     "ai": {
       "status": {
         "confirmed": "Bestätigt",
@@ -793,20 +651,14 @@
       },
       "intelligenceTitle": "KI-Core",
       "providerDesc": "Wähle deine primäre KI-Engine für Marktanalysen und Aktionen.",
-      "modelTitle": "Modell & Prompting",
       "customSystemPrompt": "Eigener System-Prompt",
-      "customSystemPromptDesc": "Definiere die Persona der KI",
       "systemPromptPlaceholder": "Du bist ein professioneller Krypto-Trading-Assistent...",
       "openaiModel": "OpenAI Modell",
       "geminiModel": "Gemini Modell",
-      "geminiModelDesc": "Gemini 2.5 Flash bietet die beste Balance. Gemma 3 hat hohe Limits.",
-      "contextTitle": "Kontext & Datenzugriff",
       "newsDesc": "KI berücksichtigt aktuelle News-Schlagzeilen",
       "cmcDesc": "Marktstatistiken für Symbole abrufen",
       "historyDesc": "Anzahl der letzten Trades im KI-Kontext",
-      "safetyTitle": "Sicherheit & Bestätigungen",
       "confirmActions": "Aktionen bestätigen",
-      "confirmClear": "Verlauf löschen bestätigen",
       "geminiRecommended": "Gemini 2.5 Flash (Empfohlen ⭐)",
       "geminiStable": "Gemini 2.0 Flash (Stabil)",
       "geminiPreview": "Gemini 3 Flash (Vorschau 🚀)",
@@ -819,8 +671,6 @@
       "agents": "Autonome Agenten"
     },
     "technicals": {
-      "strongBuy": "Stark Kaufen",
-      "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
       "summaryAction": "Zusammenfassung",
       "marketConfluence": "Markt Konfluenz",
@@ -831,9 +681,6 @@
       "oscillators": "Oszillatoren",
       "movingAverages": "Gleitende Durchschnitte",
       "pivots": "Pivots",
-      "buy": "Kaufen",
-      "sell": "Verkaufen",
-      "neutral": "Neutral",
       "overbought": "Überkauft",
       "oversold": "Überverkauft",
       "trend": "Trend",
@@ -842,24 +689,9 @@
       "atr": "ATR",
       "bbWidth": "BB Breite",
       "vwap": "VWAP",
-      "mfi": "MFI",
-      "adx": "ADX",
-      "pivot": "Pivot"
+      "mfi": "MFI"
     },
-    "candlestickPatterns": {
-      "title": "Candlestick Muster Akademie"
-    },
-    "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
-    "imgbb10m": "10 Minuten",
-    "imgbb1h": "1 Stunde",
-    "imgbb1d": "1 Tag",
-    "imgbb1w": "1 Woche",
-    "imgbb1m": "1 Monat",
-    "imgbbGetKey": "Hole deinen Key auf",
     "showSpinButtons": "Spin-Buttons anzeigen",
-    "spinButtonsAlways": "Immer sichtbar",
-    "spinButtonsHover": "Bei Mouseover",
-    "spinButtonsHidden": "Ausgeblendet",
     "hotkeys": {
       "conflictWarning": "{newCombo} wird bereits von {existingLabel} verwendet",
       "modifierAlt": "Alt",
@@ -878,28 +710,19 @@
     },
     "tabs": {
       "general": "Allgemein",
-      "api": "API & Verbindung",
       "ai": "KI Chat",
-      "behavior": "Verhalten",
       "hotkeys": "Tastenkürzel",
-      "sidebar": "Seitenleiste",
-      "indicators": "Indikatoren",
       "system": "System",
       "data": "Datenpflege",
       "visuals": "Optik & Design",
       "trading": "Handel & Markt",
       "connections": "Verbindungen",
       "ai_assistant": "KI-Assistent",
-      "analysis": "Analyse-Logik",
       "integrations": "Integrationen",
-      "maintenance": "Wartung",
-      "profile": "Profil & Design",
-      "workspace": "Workspace & Seitenleiste"
+      "maintenance": "Wartung"
     },
     "system": {
       "performance": "Performance",
-      "pauseApp": "Im Hintergrund pausieren",
-      "pauseAppDesc": "Stoppt rechenintensive Aufgaben, wenn der Tab nicht aktiv ist.",
       "networkLogs": "Netzwerk-Logs",
       "networkLogsDesc": "Zeigt API-Verkehr in der Konsole an.",
       "debugMode": "Debug Modus",
@@ -913,10 +736,6 @@
       "restore": "Backup laden",
       "restoreDesc": "Importiere eine Sicherung aus einer Datei.",
       "dangerZone": "Gefahrenzone",
-      "dangerZoneDesc": "Warnung: Verwenden Sie diese Funktionen nur, wenn Sie wissen, was Sie tun.",
-      "deleteAllData": "Alle Daten löschen",
-      "deleteAllDataDesc": "Löscht alle Journaleinträge und setzt die App zurück.",
-      "deleteAllDataConfirm": "Wirklich alle Daten löschen? Dies kann nicht rückgängig gemacht werden!",
       "factoryReset": "Werkseinstellungen",
       "factoryResetDesc": "Alles löschen und frisch starten. Nicht umkehrbar.",
       "resetNow": "Jetzt zurücksetzen",
@@ -1000,25 +819,11 @@
       "moreHistoryDesc": "Mehr Historie = langsameres Laden. (Max: 2000)"
     },
     "profile": {
-      "appearanceTitle": "Erscheinungsbild & Identität",
-      "generalTitle": "Allgemeine Einstellungen",
-      "controlTitle": "Steuerung & Interaktion",
       "hotkeysTitle": "Tastenkürzel",
-      "activeHotkeys": "Aktive Hotkeys",
-      "customize": "Anpassen",
-      "presetInfo": "Du verwendest ein Hotkey-Preset. Wechsle zu 'Custom', um einzelne Hotkeys neu zu belegen.",
-      "switchToCustom": "Hotkeys anpassen",
       "subtabs": {
         "general": "Allgemein",
         "appearance": "Darstellung",
         "controls": "Steuerung"
-      },
-      "workspace": {
-        "subtabs": {
-          "sidebar": "Seitenleiste",
-          "market": "Markt",
-          "system": "System"
-        }
       },
       "glass": {
         "blur": "Glas Unschärfe",
@@ -1026,67 +831,20 @@
         "opacity": "Deckkraft"
       },
       "background": {
-        "title": "Hintergrund",
-        "type": "Hintergrund Typ",
         "typeNone": "Kein",
         "typeMedia": "Img / Vid",
-        "typeImage": "Bild",
-        "typeVideo": "Video",
         "typeAnimation": "Animation",
         "url": "URL",
-        "urlPlaceholder": "https://example.com/background.jpg",
         "urlHelper": "Unterstützte: .jpg, .png, .mp4",
-        "invalidUrl": "Ungültige URL oder Format",
-        "corsError": "URL konnte nicht geladen werden (CORS)",
-        "testUrl": "URL Testen",
-        "presetLabel": "Animation",
-        "presetNone": "Keine",
-        "presetGradient": "Gradient Flow",
-        "presetParticles": "Partikel",
-        "presetBreathing": "Breathing",
-        "presetWaves": "Wellen",
-        "presetAurora": "Aurora",
         "opacity": "Deckkraft",
-        "blur": "Unschärfe",
-        "intensity": "Intensität",
-        "intensityLow": "Dezent",
-        "intensityMedium": "Mittel",
-        "intensityHigh": "Hoch",
-        "reset": "Zurücksetzen",
-        "resetConfirm": "Alle Hintergrund-Einstellungen zurücksetzen?",
-        "videoSpeed": "Speed"
+        "blur": "Unschärfe"
       }
     },
     "indicators": {
-      "title": "Indikator Einstellungen",
-      "general": "Allgemein",
-      "generalSetup": "Allgemein & Setup",
-      "oscillators": "Oszillatoren",
       "trend": "Trend & Richtung",
-      "trendDirection": "Trend & Richtung",
       "volatility": "Volatilität",
       "volume": "Volumen & Signale",
-      "volumeSignals": "Volumen & Signale",
-      "precision": "Präzision",
-      "precisionDesc": "Anzahl der Dezimalstellen für Indikatorwerte",
-      "historyLimit": "Historie Limit",
-      "historyDesc": "Maximale Anzahl der Kerzen für Berechnungen",
-      "favoriteTimeframes": "Favorisierte Timeframes",
-      "addTimeframe": "Timeframe hinzufügen...",
-      "maxTimeframesSelected": "Max {max} Timeframes ausgewählt.",
-      "syncRsiTimeframe": "RSI Timeframe synchronisieren",
-      "syncRsiDesc": "RSI verwendet automatisch den gleichen Timeframe wie der Chart",
-      "pnlViewMode": "PnL Darstellungsmodus",
-      "absoluteValue": "Absoluter Wert",
-      "percentage": "Prozent %",
-      "visualBar": "Visuelle Leiste",
-      "length": "Länge",
-      "source": "Quelle",
-      "signalLine": "Signallinie",
-      "type": "Typ",
-      "overbought": "Überkauft",
-      "oversold": "Überverkauft",
-      "defaultTimeframe": "Standard Timeframe"
+      "maxTimeframesSelected": "Max {max} Timeframes ausgewählt."
     },
     "workspace": {
       "sidebartitle": "Sidebar-Titel",
@@ -1145,24 +903,7 @@
     },
     "enableCmcContext": "CMC-Kontext aktivieren",
     "enableGlassmorphism": "Glassmorphismus aktivieren",
-    "enableNewsAnalysis": "News-Analyse aktivieren",
-    "glassmorphismDesc": "Glaseffekt für Karten und Panels aktivieren",
-    "maxPrivateNotes": "Max. private Notizen",
-    "minChatProfitFactor": "Min. Chat Profit Factor",
-    "minChatProfitFactorDesc": "Mindest-Profit-Faktor für Chat-Anzeige",
-    "pnlViewMode": "PnL-Anzeigemodus",
-    "positionViewMode": "Positions-Ansichtsmodus",
-    "showMarketActivity": "Marktaktivität anzeigen",
-    "showMarketLinks": "Markt-Links anzeigen",
-    "showMarketSentiment": "Marktstimmung anzeigen",
-    "showSidebarActivity": "Sidebar-Aktivität anzeigen",
-    "maintenance": {
-      "backupTitle": "Backup & Wiederherstellung",
-      "dangerTitle": "Gefahrenzone",
-      "healthTitle": "Daten-Gesundheit",
-      "networkLogsTitle": "Netzwerk-Protokollierung",
-      "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
-    }
+    "enableNewsAnalysis": "News-Analyse aktivieren"
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -1197,22 +938,12 @@
     "pending": "Ausstehend"
   },
   "symbolPicker": {
-    "title": "Symbol auswählen",
     "searchPlaceholder": "Suchen...",
     "favorites": "Favoriten",
     "gainers": "Top Gewinner",
     "volatile": "Volatil (>5%)",
     "all": "Alle Symbole",
-    "minVol": "Min Vol",
-    "hideAlts": "Alts ausblenden",
     "noSymbolsFound": "Keine Symbole gefunden.",
-    "syncing": "Synchronisiere Markt...",
-    "sort": {
-      "az": "A-Z",
-      "gainers": "% Gewinner",
-      "losers": "% Verlierer",
-      "vol": "Volumen"
-    },
     "volFilter": {
       "all": "Alle",
       "1m": "1M",
@@ -1223,25 +954,9 @@
     "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12)."
   },
   "common": {
-    "save": "Speichern",
     "cancel": "Abbrechen",
     "ok": "OK",
-    "close": "Schließen",
-    "remove": "×",
-    "warning": "Warnung",
-    "resize": "Größe ändern"
-  },
-  "analyst": {
-    "trend": {
-      "bullish": "Bullish",
-      "bearish": "Bearish",
-      "neutral": "Neutral"
-    },
-    "condition": {
-      "overbought": "Overbought",
-      "oversold": "Oversold",
-      "trending": "Trending"
-    }
+    "remove": "×"
   },
   "chartPatterns": {
     "title": "Chartmuster Akademie",
@@ -1348,17 +1063,13 @@
   "connection": {
     "connected": "✓ Verbunden",
     "connecting": "⟳ Verbinde...",
-    "connectingTo": "⟳ Verbinde mit {provider}...",
     "reconnecting": "⟳ Neu verbinden...",
-    "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
-    "disconnected": "✗ Warte auf Verbindung...",
-    "error": "✗ Verbindungsfehler"
+    "disconnected": "✗ Warte auf Verbindung..."
   },
   "errors": {
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
-    "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
-    "saveFailed": "Speichern fehlgeschlagen."
+    "atrFetchFailed": "ATR Abruf fehlgeschlagen."
   },
   "modals": {
     "savePreset": {
@@ -1369,25 +1080,17 @@
       "title": "Reset bestätigen",
       "message": "Journal löschen?"
     },
-    "deletePreset": {
-      "title": "Preset löschen",
-      "message": "Wirklich löschen?"
-    },
     "import": {
       "title": "Import",
       "message": "{count} Trades importieren?"
     }
-  },
-  "ui": {
-    "loading": "Lade..."
   },
   "offline": {
     "title": "Verbindung verloren",
     "message": "Konnte Marktdaten-Provider nicht erreichen. Deine Berechnungen und das Journal bleiben sicher.",
     "reconnect": "Neu verbinden",
     "switchProvider": "Provider wechseln",
-    "checkSettings": "Einstellungen prüfen",
-    "diagnostics": "Diagnose anzeigen"
+    "checkSettings": "Einstellungen prüfen"
   },
   "calculator": {
     "errors": {
@@ -1400,10 +1103,6 @@
       "totalPercentExceeded": "Summe der Verkaufsanteile ({percent}%) darf 100% nicht überschreiten.",
       "slDistance": "Stop-Loss muss einen gültigen Abstand zum Einstiegspreis haben.",
       "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
-    },
-    "logic": {
-      "tpGoal": "{type}: Take-Profit Ziel {price}",
-      "sumSold": "Summe Verkaufsanteile ({percent}%)"
     }
   },
   "candlestickPatterns": {
@@ -1840,9 +1539,6 @@
     "size": "Größe",
     "close": "Schließen",
     "tpsl": "TP/SL",
-    "confirmClose": "Position {symbol} schließen?",
-    "roi": "ROI",
-    "margin": "Margin",
-    "unrealizedPnl": "uPnL"
+    "confirmClose": "Position {symbol} schließen?"
   }
 }
