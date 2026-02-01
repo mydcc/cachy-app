@@ -1190,8 +1190,6 @@ export type TranslationKey =
   | "offline.switchProvider"
   | "offline.checkSettings"
   | "offline.diagnostics"
-  | "marketDashboard.buttonTitle"
-  | "marketDashboard.title"
   | "calculationDashboard.liveAnalysisStatus"
   | "calculationDashboard.nextCycleIn"
   | "calculationDashboard.analyzing"

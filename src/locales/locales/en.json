@@ -1368,10 +1368,6 @@
     "checkSettings": "Check Settings",
     "diagnostics": "View Diagnostics"
   },
-  "marketDashboard": {
-    "buttonTitle": "Open Market Overview",
-    "title": "Global Market Analysis"
-  },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analysis Status",
     "nextCycleIn": "Next Cycle In",

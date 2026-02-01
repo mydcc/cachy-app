@@ -43,7 +43,7 @@
   <button
     class="control-btn"
     onclick={() => uiState.toggleMarketDashboardModal(true)}
-    title={$_("marketDashboard.buttonTitle") || "Market Overview"}
+    title={$_("app.marketDashboard.buttonTitle") || "Market Overview"}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
