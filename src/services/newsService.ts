@@ -36,9 +36,9 @@ export interface SentimentAnalysis {
 }
 
 const NewsItemSchema = z.object({
-  title: z.string(),
-  url: z.string(),
-  source: z.string(),
+  title: z.string().min(1),
+  url: z.string().url().or(z.string().startsWith("http")), // Strict but with fallback for internal formats
+  source: z.string().min(1),
   published_at: z.string(),
   currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
   id: z.string().optional(),
@@ -195,14 +195,16 @@ export const newsService = {
         // but good for schema evolution protection.
         let validCached = cached;
         if (cached) {
-            const validation = NewsCacheEntrySchema.safeParse(cached);
-            if (!validation.success) {
-                logger.warn("ai", `[newsService] Schema mismatch in DB for ${cacheKey}`, validation.error);
-                // Try to use it anyway if structure is somewhat valid, or discard?
-                // Discarding is safer to prevent runtime errors
-                validCached = undefined;
-                await dbService.delete("news", cacheKey);
-            }
+          const validation = NewsCacheEntrySchema.safeParse(cached);
+          if (!validation.success) {
+            logger.warn("ai", `[newsService] Schema mismatch in DB for ${cacheKey}. Attempting partial recovery or clearing.`, validation.error);
+
+            // If it's just a few items failing, we could filter them, 
+            // but since NewsCacheEntry is an object with an items array,
+            // it's cleaner to just clear and re-fetch to ensure consistency.
+            validCached = undefined;
+            await dbService.delete("news", cacheKey);
+          }
         }
 
         if (validCached && !shouldFetchNews(validCached)) {
@@ -346,9 +348,13 @@ export const newsService = {
           }
         }
 
-        // Deduplizierung basierend auf ID
+        // Deduplizierung basierend auf ID und strikte Filterung
         const uniqueNews = new Map<string, NewsItem>();
         newsItems.forEach((item) => {
+          if (!item.url || typeof item.url !== "string" || item.url.trim() === "") {
+            logger.debug("market", "[newsService] Skipping item without URL", item.title);
+            return;
+          }
           const id = item.id || generateNewsId(item);
           if (!uniqueNews.has(id)) {
             uniqueNews.set(id, { ...item, id });

@@ -36,7 +36,7 @@ export const rssParserService = {
 
       return data.items.map((item: any) => ({
         title: item.title,
-        url: item.url,
+        url: item.url || input, // Fallback to feed URL if item URL is missing
         source: item.source,
         published_at: item.published_at,
         currencies: [],
