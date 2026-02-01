@@ -711,40 +711,44 @@
 
       {#if settingsState.showMarketOverviewLinks && symbol}
         <div
-          class="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-color)]"
+          class="flex items-center justify-between mt-3 pt-2 border-t border-[var(--border-color)]"
         >
-          {#if settingsState.showTvLink}
-            <a
-              href={tvLink}
-              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-              title={$_("marketOverview.tooltips.tradingViewChart")}
-              onclick={(e) => {
-                e.preventDefault();
-                externalLinkService.openOrFocus(tvLink, tvTarget);
-              }}>{$_("marketOverview.tvShort")}</a
-            >
-          {/if}
-          {#if settingsState.showCgHeatLink}
-            <a
-              href={cgHeatmapLink}
-              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
-              title={$_("marketOverview.tooltips.liquidationHeatmap")}
-              onclick={handleHeatmapClick}>{$_("marketOverview.heatmap")}</a
-            >
-          {/if}
-          {#if settingsState.showBrokerLink}
-            <a
-              href={brokerLink}
-              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors"
-              title={$_("marketOverview.tooltips.openOnProvider", {
-                values: { provider: provider.toUpperCase() },
-              })}
-              onclick={(e) => {
-                e.preventDefault();
-                externalLinkService.openOrFocus(brokerLink, brokerTarget);
-              }}>{provider.toUpperCase()}</a
-            >
-          {/if}
+          <div class="flex items-center gap-3">
+            {#if settingsState.showTvLink}
+              <a
+                href={tvLink}
+                class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+                title={$_("marketOverview.tooltips.tradingViewChart")}
+                onclick={(e) => {
+                  e.preventDefault();
+                  externalLinkService.openOrFocus(tvLink, tvTarget);
+                }}>{$_("marketOverview.tvShort")}</a
+              >
+            {/if}
+            {#if settingsState.showCgHeatLink}
+              <a
+                href={cgHeatmapLink}
+                class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
+                title={$_("marketOverview.tooltips.liquidationHeatmap")}
+                onclick={handleHeatmapClick}
+                >{$_("marketOverview.heatmapShort")}</a
+              >
+            {/if}
+            {#if settingsState.showBrokerLink}
+              <a
+                href={brokerLink}
+                class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors"
+                title={$_("marketOverview.tooltips.openOnProvider", {
+                  values: { provider: provider.toUpperCase() },
+                })}
+                onclick={(e) => {
+                  e.preventDefault();
+                  externalLinkService.openOrFocus(brokerLink, brokerTarget);
+                }}>{provider.toUpperCase()}</a
+              >
+            {/if}
+          </div>
+
           {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
             {@const config = CHANNEL_CONFIG[baseAsset]}
             {@const plotId = typeof config === "string" ? config : baseAsset}
@@ -753,7 +757,7 @@
               (w) => w.id === windowId,
             )}
             <button
-              class="transition-colors p-0.5 rounded"
+              class="transition-colors p-0.5 rounded flex items-center"
               class:text-[var(--accent-color)]={isOpen}
               class:text-[var(--text-secondary)]={!isOpen}
               class:hover:text-[var(--accent-color)]={!isOpen}
