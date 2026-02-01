@@ -20,7 +20,7 @@ import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
-import { normalizeSymbol } from "../utils/symbolUtils";
+import { normalizeSymbol, mapTimeframeToBitunix } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
@@ -140,7 +140,7 @@ class MarketWatcher {
           bitunixChannel = "depth_book5";
         } else if (ch.startsWith("kline_")) {
           const timeframe = ch.replace("kline_", "");
-          const bitunixInterval = this.mapTimeframeToBitunix(timeframe);
+          const bitunixInterval = mapTimeframeToBitunix(timeframe);
           bitunixChannel = `market_kline_${bitunixInterval}`;
         }
         const key = `${bitunixChannel}:${symbol}`;
@@ -163,21 +163,6 @@ class MarketWatcher {
         bitunixWs.unsubscribe(symbol, channel);
       }
     });
-  }
-
-  private mapTimeframeToBitunix(tf: string): string {
-    const map: Record<string, string> = {
-      "1m": "1min",
-      "5m": "5min",
-      "15m": "15min",
-      "30m": "30min",
-      "1h": "60min",
-      "4h": "4h",
-      "1d": "1day",
-      "1w": "1week",
-      "1M": "1month",
-    };
-    return map[tf] || tf;
   }
 
   private startPolling() {

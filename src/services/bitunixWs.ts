@@ -19,7 +19,7 @@ import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
-import { normalizeSymbol } from "../utils/symbolUtils";
+import { normalizeSymbol, mapBitunixToTimeframe } from "../utils/symbolUtils";
 import { getIntervalMs } from "../utils/utils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
@@ -881,12 +881,7 @@ class BitunixWebSocketService {
                     else {
                       const match = channel.match(/market_kline_(.+)/);
                       if (match) {
-                        const bitunixTf = match[1];
-                        const revMap: Record<string, string> = {
-                          "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                          "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
-                        };
-                        timeframe = revMap[bitunixTf] || bitunixTf;
+                        timeframe = mapBitunixToTimeframe(match[1]);
                       }
                     }
                     // [HYBRID FIX] Inject detached 'ts' from root message into data object
@@ -1062,19 +1057,7 @@ class BitunixWebSocketService {
           else {
             const match = validatedChannel.match(/market_kline_(.+)/);
             if (match) {
-              const bitunixTf = match[1];
-              const revMap: Record<string, string> = {
-                "1min": "1m",
-                "5min": "5m",
-                "15min": "15m",
-                "30min": "30m",
-                "60min": "1h",
-                "4h": "4h",
-                "1day": "1d",
-                "1week": "1w",
-                "1month": "1M",
-              };
-              timeframe = revMap[bitunixTf] || bitunixTf;
+              timeframe = mapBitunixToTimeframe(match[1]);
             }
           }
           // [HYBRID FIX] Inject detached 'ts' from root message into data object

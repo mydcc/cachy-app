@@ -71,3 +71,39 @@ export function formatSymbolForDisplay(symbol: string): string {
   if (!symbol) return "";
   return symbol.replace("USDT", "").replace("P", "").replace("_UMCBL", "");
 }
+
+/**
+ * Maps app-standard timeframes (e.g., "1m", "1h") to Bitunix API format.
+ */
+export function mapTimeframeToBitunix(tf: string): string {
+  const map: Record<string, string> = {
+    "1m": "1min",
+    "5m": "5min",
+    "15m": "15min",
+    "30m": "30min",
+    "1h": "60min",
+    "4h": "4h",
+    "1d": "1day",
+    "1w": "1week",
+    "1M": "1month",
+  };
+  return map[tf] || tf;
+}
+
+/**
+ * Maps Bitunix API format to app-standard timeframes.
+ */
+export function mapBitunixToTimeframe(bitunixTf: string): string {
+  const revMap: Record<string, string> = {
+    "1min": "1m",
+    "5min": "5m",
+    "15min": "15m",
+    "30min": "30m",
+    "60min": "1h",
+    "4h": "4h",
+    "1day": "1d",
+    "1week": "1w",
+    "1month": "1M",
+  };
+  return revMap[bitunixTf] || bitunixTf;
+}

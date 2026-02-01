@@ -36,6 +36,7 @@
   import { trackInteraction } from "../../services/trackingService";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { externalLinkService } from "../../services/externalLinkService";
+  import { timeService } from "../../services/timeService.svelte";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -211,39 +212,22 @@
   // Depth Data
   let depthData = $derived(wsData?.depth);
 
-  // Countdown Logic
-  let countdownText = $state("--:--:--");
-  let countdownInterval: ReturnType<typeof setInterval> | undefined;
+  // Countdown Logic (Centralized TimeService)
+  let countdownText = $derived.by(() => {
+    if (!nextFundingTime) return "--:--:--";
 
-  function startCountdown() {
-    if (countdownInterval) clearInterval(countdownInterval);
-    const update = () => {
-      if (!nextFundingTime) return;
-      const now = Date.now();
-      const diff = nextFundingTime - now;
-      if (diff <= 0) {
-        countdownText = "00:00:00";
-      } else {
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-        countdownText = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-      }
-    };
-    update();
-    countdownInterval = setInterval(update, 1000);
-  }
+    // Subscribing to timeService.now makes this reactive every second
+    const now = timeService.now;
+    const diff = nextFundingTime - now;
 
-  $effect(() => {
-    if (nextFundingTime) {
-      untrack(startCountdown);
+    if (diff <= 0) {
+      return "00:00:00";
     } else {
-      countdownText = "--:--:--";
-      if (countdownInterval) clearInterval(countdownInterval);
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     }
-    return () => {
-      if (countdownInterval) clearInterval(countdownInterval);
-    };
   });
 
   // Watch for symbol or provider changes (Ticker & Price)

@@ -67,8 +67,11 @@ def extract_i18n_keys_from_code():
 
     # Pattern for $t('key') or $t("key")
     patterns = [
-        r"\$t\(['\"]([^'\"]+)['\"]\)",  # $t('key') or $t("key")
-        r"_\(['\"]([^'\"]+)['\"]\)",    # _('key') - alternative pattern
+        r"\$t\(['\"]([^'\"]+)['\"]\)",  # $t('key')
+        r"_\(['\"]([^'\"]+)['\"]\)",    # _('key')
+        r"\$_\(['\"]([^'\"]+)['\"]\)",  # $_('key')
+        r"Error\(['\"]([^'\"]+)['\"]\)", # new Error('key')
+        r"TradeError\([^,]+,\s*['\"]([^'\"]+)['\"]", # TradeError(msg, 'code')
     ]
 
     # Search in svelte, ts, js files
@@ -77,7 +80,7 @@ def extract_i18n_keys_from_code():
         dirs[:] = [d for d in dirs if d not in ['node_modules', 'build', '.svelte-kit']]
 
         for file in files:
-            if file.endswith(('.svelte', '.ts', '.js')):
+            if file.endswith(('.svelte', '.ts', '.js')) and not file.endswith(('.test.ts', '.spec.ts')):
                 filepath = Path(root) / file
                 try:
                     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
