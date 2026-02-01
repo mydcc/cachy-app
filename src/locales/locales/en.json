@@ -1,7 +1,10 @@
 {
   "windows": {
     "settings": "Window Settings",
-    "smash": "Smash Window"
+    "smash": "Smash Window",
+    "opacity": "Opacity",
+    "glass": "Glass",
+    "burn": "Burn"
   },
   "app": {
     "title": "Cachy",
@@ -34,7 +37,12 @@
     "marketDashboard": {
       "buttonTitle": "Open Market Overview",
       "point": "Market Overview",
-      "title": "Global Market Analysis"
+      "title": "Global Market Analysis",
+      "avgRsi": "Avg RSI",
+      "bullish": "Bullish",
+      "bearish": "Bearish",
+      "neutral": "Neutral",
+      "longShortRatio": "Long/Short Ratio"
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
@@ -800,7 +808,13 @@
       "oversold": "Oversold",
       "trend": "Trend",
       "range": "Range",
-      "noSignals": "No divergences detected"
+      "noSignals": "No divergences detected",
+      "atr": "ATR",
+      "bbWidth": "BB Width",
+      "vwap": "VWAP",
+      "mfi": "MFI",
+      "adx": "ADX",
+      "pivot": "Pivot"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
