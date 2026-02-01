@@ -767,26 +767,28 @@ class BitunixWebSocketService {
           if (channel === "price") {
             if (symbol && isObjectData && isPriceData(data)) {
               try {
+                // HARDENING: Avoid in-place mutation. Create a shallow copy for safe handling.
+                const safeData = { ...data };
+
                 // HARDENING: Check for native numbers in critical fields
                 // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
-                if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
+                if (typeof safeData.lastPrice === 'number' || typeof safeData.lp === 'number') {
                     const now = Date.now();
                     if (now - this.lastNumericWarning > 60000) {
                         logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
                         this.lastNumericWarning = now;
                     }
                     // Force cast to string to prevent downstream crashes or invalid types
-                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                    if (typeof data.lp === 'number') data.lp = String(data.lp);
+                    if (typeof safeData.lastPrice === 'number') safeData.lastPrice = String(safeData.lastPrice);
+                    if (typeof safeData.lp === 'number') safeData.lp = String(safeData.lp);
                 }
 
-                // const normalized = mdaService.normalizeTicker(message, "bitunix");
                 if (!this.shouldThrottle(`${symbol}:price`)) {
                     marketState.updateSymbol(symbol, {
                     // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled to prevent flickering with Ticker channel (Last Price vs Mark Price)
-                    indexPrice: data.ip, // Explicitly map Index Price
-                    fundingRate: data.fr,
-                    nextFundingTime: data.nft ? String(data.nft) : undefined
+                    indexPrice: safeData.ip, // Explicitly map Index Price
+                    fundingRate: safeData.fr,
+                    nextFundingTime: safeData.nft ? String(safeData.nft) : undefined
                     });
                 }
                 // Fast path successful - return early
@@ -807,17 +809,23 @@ class BitunixWebSocketService {
           if (channel === "ticker") {
             if (symbol && isObjectData && isTickerData(data)) {
                try {
-                  // HARDENING: Force cast numeric fields to string to prevent precision loss
-                  if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                  if (typeof data.high === 'number') data.high = String(data.high);
-                  if (typeof data.low === 'number') data.low = String(data.low);
-                  if (typeof data.volume === 'number') data.volume = String(data.volume);
-                  if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
-                  // Ticker aliases
-                  if (typeof data.v === 'number') data.v = String(data.v);
-                  if (typeof data.close === 'number') data.close = String(data.close);
+                  // HARDENING: Avoid in-place mutation
+                  const safeData = { ...data };
 
-                  const normalized = mdaService.normalizeTicker(message, "bitunix");
+                  // HARDENING: Force cast numeric fields to string to prevent precision loss
+                  if (typeof safeData.lastPrice === 'number') safeData.lastPrice = String(safeData.lastPrice);
+                  if (typeof safeData.high === 'number') safeData.high = String(safeData.high);
+                  if (typeof safeData.low === 'number') safeData.low = String(safeData.low);
+                  if (typeof safeData.volume === 'number') safeData.volume = String(safeData.volume);
+                  if (typeof safeData.quoteVolume === 'number') safeData.quoteVolume = String(safeData.quoteVolume);
+                  // Ticker aliases
+                  if (typeof safeData.v === 'number') safeData.v = String(safeData.v);
+                  if (typeof safeData.close === 'number') safeData.close = String(safeData.close);
+
+                  // Create a safe message object for the normalizer
+                  const safeMessage = { ...message, data: safeData };
+
+                  const normalized = mdaService.normalizeTicker(safeMessage, "bitunix");
                   if (!this.shouldThrottle(`${symbol}:ticker`)) {
                     marketState.updateSymbol(symbol, {
                       lastPrice: normalized.lastPrice,

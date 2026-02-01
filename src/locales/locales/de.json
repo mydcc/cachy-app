@@ -575,6 +575,7 @@
     "tooltips": {
       "toggleTechnicals": "Technicals umschalten",
       "openChart": "Echtzeit-Chart öffnen",
+      "tradingViewChart": "TradingView Chart",
       "refreshStats": "Statistiken aktualisieren",
       "liquidationHeatmap": "Liquidations-Heatmap",
       "openOnProvider": "Auf {provider} öffnen",
