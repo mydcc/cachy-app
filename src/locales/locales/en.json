@@ -560,14 +560,16 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
-    }
+    },
+    "saveError": "saveError",
+    "saveFailed": "saveFailed"
   },
   "marketOverview": {
     "24hHigh": "24h High",
     "24hLow": "24h Low",
     "vol": "Vol",
-      "heatmap": "Heatmap",
-      "broker": "Broker",
+    "heatmap": "Heatmap",
+    "broker": "Broker",
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",
@@ -724,7 +726,7 @@
     "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
     "marketDataInterval": "Market Data Update Rate",
-      "marketDataIntervalHelp": "How often market prices are updated",
+    "marketDataIntervalHelp": "How often market prices are updated",
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
     "showSidebars": "Show Sidebars",
@@ -1118,9 +1120,6 @@
       "resetNow": "Reset Now",
       "restore": "Load Backup",
       "restoreDesc": "Import a backup from a file.",
-      "cacheCleared": "Cache cleared.",
-      "clearCache": "Clear Cache",
-      "dashboard": "Dashboard",
       "englishTechnicalTerms": "English Technical Terms",
       "avoidTranslating": "Avoid translating technical words",
       "quickActions": "Quick Actions"
@@ -1163,7 +1162,8 @@
       "showTechnicalAnalysis": "Show technical analysis panel",
       "historyLength": "History Length (Candles)",
       "moreHistoryDesc": "More history = slower initial load. (Max: 2000)"
-    }
+    },
+    "apiKeysRequired": "apiKeysRequired"
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -1235,7 +1235,10 @@
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",
     "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "syncFailed": "Sync failed: {error}",
+    "invalidJson": "invalidJson",
+    "invalidResponseFormat": "invalidResponseFormat",
+    "responseTooLarge": "responseTooLarge"
   },
   "chartPatterns": {
     "title": "Chart Patterns Academy",
@@ -1845,5 +1848,39 @@
     "noMessages": "No messages yet.",
     "sendButton": "Send",
     "placeholder": "Say hello..."
+  },
+  "Bitget API Error": "Bitget API Error",
+  "Bot-Block": "Bot-Block",
+  "CMC API Key missing": "CMC API Key missing",
+  "CryptoService requires generic Web Crypto API (Secure Context)": "CryptoService requires generic Web Crypto API (Secure Context)",
+  "Data salt does not match session salt. Verification required.": "Data salt does not match session salt. Verification required.",
+  "Failed to connect to AI provider after retries.": "Failed to connect to AI provider after retries.",
+  "Failed to copy to clipboard": "Failed to copy to clipboard",
+  "ImgBB response did not contain a URL.": "ImgBB response did not contain a URL.",
+  "IndexedDB not supported": "IndexedDB not supported",
+  "Invalid balance data received": "Invalid balance data received",
+  "Invalid source": "Invalid source",
+  "MIN_DATA_REQUIRED": "MIN_DATA_REQUIRED",
+  "No account data found": "No account data found",
+  "No response body": "No response body",
+  "Please wait 2 seconds between messages.": "Please wait 2 seconds between messages.",
+  "Unsupported time unit:": "Unsupported time unit:",
+  "Warning: Could not save backup locally.": "Warning: Could not save backup locally.",
+  "trade": {
+    "apiError": "apiError",
+    "closeAllFailed": "closeAllFailed",
+    "fetchFailed": "fetchFailed",
+    "positionNotFound": "positionNotFound"
+  },
+  "SKIP_FRESH": "SKIP_FRESH",
+  "Session locked and no password provided": "Session locked and no password provided",
+  "Session locked or incompatible salt": "Session locked or incompatible salt",
+  "Speichern fehlgeschlagen.": "Speichern fehlgeschlagen.",
+  "Symbol not found": "Symbol not found",
+  "Timeout": "Timeout",
+  "invalid response from fetch": "invalid response from fetch",
+  "storage": {
+    "journalSaveFailed": "journalSaveFailed",
+    "quotaExceeded": "quotaExceeded"
   }
 }

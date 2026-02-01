@@ -560,7 +560,9 @@
       "fri": "Fr",
       "sat": "Sa",
       "sun": "So"
-    }
+    },
+    "saveError": "saveError",
+    "saveFailed": "saveFailed"
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1160,7 +1162,8 @@
       "healthTitle": "Daten-Gesundheit",
       "networkLogsTitle": "Netzwerk-Protokollierung",
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
-    }
+    },
+    "apiKeysRequired": "apiKeysRequired"
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -1263,7 +1266,10 @@
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",
     "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "syncFailed": "Sync failed: {error}",
+    "invalidJson": "invalidJson",
+    "invalidResponseFormat": "invalidResponseFormat",
+    "responseTooLarge": "responseTooLarge"
   },
   "bitunixErrors": {
     "10001": "Network Error",
@@ -1842,5 +1848,39 @@
     "roi": "ROI",
     "margin": "Margin",
     "unrealizedPnl": "uPnL"
+  },
+  "Bitget API Error": "Bitget API Error",
+  "Bot-Block": "Bot-Block",
+  "CMC API Key missing": "CMC API Key missing",
+  "CryptoService requires generic Web Crypto API (Secure Context)": "CryptoService requires generic Web Crypto API (Secure Context)",
+  "Data salt does not match session salt. Verification required.": "Data salt does not match session salt. Verification required.",
+  "Failed to connect to AI provider after retries.": "Failed to connect to AI provider after retries.",
+  "Failed to copy to clipboard": "Failed to copy to clipboard",
+  "ImgBB response did not contain a URL.": "ImgBB response did not contain a URL.",
+  "IndexedDB not supported": "IndexedDB not supported",
+  "Invalid balance data received": "Invalid balance data received",
+  "Invalid source": "Invalid source",
+  "MIN_DATA_REQUIRED": "MIN_DATA_REQUIRED",
+  "No account data found": "No account data found",
+  "No response body": "No response body",
+  "Please wait 2 seconds between messages.": "Please wait 2 seconds between messages.",
+  "Unsupported time unit:": "Unsupported time unit:",
+  "Warning: Could not save backup locally.": "Warning: Could not save backup locally.",
+  "trade": {
+    "apiError": "apiError",
+    "closeAllFailed": "closeAllFailed",
+    "fetchFailed": "fetchFailed",
+    "positionNotFound": "positionNotFound"
+  },
+  "SKIP_FRESH": "SKIP_FRESH",
+  "Session locked and no password provided": "Session locked and no password provided",
+  "Session locked or incompatible salt": "Session locked or incompatible salt",
+  "Speichern fehlgeschlagen.": "Speichern fehlgeschlagen.",
+  "Symbol not found": "Symbol not found",
+  "Timeout": "Timeout",
+  "invalid response from fetch": "invalid response from fetch",
+  "storage": {
+    "journalSaveFailed": "journalSaveFailed",
+    "quotaExceeded": "quotaExceeded"
   }
 }

@@ -83,7 +83,8 @@ const SAFE_CONTEXTS = [
     /describe\(/,               // Test suite descriptions
     /\|\|.*Error/,              // Fallback error messages
     /alert\(/,                  // Alert calls (should use modal ideally, but temporary)
-    /\/\//,                     // Code comments
+    /\/\//,                     // Code comments (//)
+    /\s*\*/,                    // JSDoc comments (*)
     /aria-[\w-]+/,              // All aria attributes
     /data-[\w-]+/,              // All data attributes
     /class=/,                   // CSS classes
