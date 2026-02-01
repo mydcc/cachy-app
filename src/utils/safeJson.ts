@@ -19,37 +19,33 @@
  * Copyright (C) 2026 MYDCT
  *
  * Safe JSON Parser utility
- * Hardening against JSON.parse precision loss for large integers.
+ * Hardening against JSON.parse precision loss for large integers AND high-precision floats.
  */
 
 /**
- * Parses a JSON string while protecting large integers from precision loss.
- * It uses a regex to wrap numeric values (>= 15 digits) in quotes before parsing.
+ * Parses a JSON string while protecting large numbers from precision loss.
+ * It uses a regex to wrap numeric values (>= 15 chars) in quotes before parsing.
  *
- * Target: Any key followed by a large integer.
+ * Target: Any key followed by a large integer or high-precision float.
  *
  * Example:
- * Input:  {"orderId": 1234567890123456789, "timestamp": 1600000000000000000}
- * Output: {"orderId": "1234567890123456789", "timestamp": "1600000000000000000"}
+ * Input:  {"id": 1234567890123456789, "val": 12345.123456789012}
+ * Output: {"id": "1234567890123456789", "val": "12345.123456789012"}
  */
 export function safeJsonParse<T = any>(jsonString: string): T {
     if (!jsonString) return jsonString as any;
     if (typeof jsonString !== 'string') return jsonString;
 
-    // Standard regex for Object properties: "key": 123456...
-    let protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*([0-9]{15,})(?!\.)/g, '"$1": "$2"');
+    // 1. Handle Object properties: "key": <number>
+    // Regex: Match any number-like sequence of at least 15 characters (digits, dot, scientific notation)
+    // -?            Optional negative sign
+    // \d            Start with a digit
+    // [\d.eE+-]{14,} Followed by 14+ characters of digits, dot, or scientific notation chars
+    let protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*(-?\d[\d.eE+-]{14,})(?=\s*[,}])/g, '"$1": "$2"');
 
-    // New regex for Array elements: [123456..., ...] or , 123456... ,
-    // Use lookahead (?=...) for trailing separator to avoid consuming it
-    // so consecutive matches work.
-
-    // Regex breakdown:
-    // ([\[,]\s*)        Group 1: Preceding delimiter ([ or ,) plus whitespace
-    // ([0-9]{15,})      Group 2: The number
-    // (?!\.)            Negative lookahead: Not a float
-    // (?=\s*[,\]])      Positive lookahead: Followed by , or ] (Non-consuming)
-
-    protectedJson = protectedJson.replace(/([\[,]\s*)([0-9]{15,})(?!\.)(?=\s*[,\]])/g, '$1"$2"');
+    // 2. Handle Array elements: [ <number>, ... ] or , <number>
+    // Matches numbers in arrays or lists
+    protectedJson = protectedJson.replace(/([\[,]\s*)(-?\d[\d.eE+-]{14,})(?=\s*[,\]])/g, '$1"$2"');
 
     return JSON.parse(protectedJson);
 }

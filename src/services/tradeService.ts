@@ -28,7 +28,7 @@ import { logger } from "./logger";
 import { mapToOMSPosition } from "./mappers";
 import { settingsState } from "../stores/settings.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "./apiSchemas";
+import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
 export class BitunixApiError extends Error {
