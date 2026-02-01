@@ -26,7 +26,7 @@ EXTENSIONS = {
     '.sh': 'hash',
 }
 
-SKIP_DIRS = {'node_modules', '.git', '.svelte-kit', 'dist', 'coverage', 'test-results', 'info', 'docs', '.github', '.vscode', 'benchmarks'}
+SKIP_DIRS = {'node_modules', '.git', '.svelte-kit', 'dist', 'coverage', 'test-results', 'info', 'docs', '.github', '.vscode', 'benchmarks', 'static'}
 
 def get_commented_header(style):
     if style == 'block':
@@ -52,7 +52,7 @@ def process_file(filepath):
     if not lines and os.path.getsize(filepath) == 0:
         return
 
-    # Check for shebang in any file (e.g. .js files can have it too)
+    # Check for shebang in any file
     shebang = ""
     content_lines = lines
     if lines and lines[0].startswith("#!"):
@@ -62,9 +62,7 @@ def process_file(filepath):
     full_content = "".join(lines)
 
     # Check if license already exists (loose check)
-    # Check in the first 4000 chars to be safe
     if "GNU Affero General Public License" in full_content[:4000] or "AGPL" in full_content[:4000]:
-        # print(f"Skipping {filepath}: Already has license.")
         return
 
     print(f"Adding license to {filepath}")
@@ -78,7 +76,6 @@ def process_file(filepath):
 
 def main():
     root_dirs = ['src', 'server', 'scripts', 'tests']
-    # Also include root files if they match extension
 
     # Process root directories
     for root_dir in root_dirs:
@@ -96,7 +93,6 @@ def main():
     # Process root files separately
     for file in os.listdir('.'):
         if os.path.isfile(file):
-             # Skip this script itself if it was in the root (it's in scripts/ so it's covered above)
              process_file(file)
 
 if __name__ == "__main__":
