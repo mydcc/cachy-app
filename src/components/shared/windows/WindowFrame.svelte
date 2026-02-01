@@ -261,29 +261,29 @@
     class:minimized={win.isMinimized}
     class:pinned-left={win.isPinned && win.pinSide === "left"}
     class:pinned-right={win.isPinned && win.pinSide === "right"}
-    style:left={win.isMaximized
-        ? "0"
-        : win.isMinimized
-          ? "auto"
+    style:left={win.isMinimized
+        ? "auto"
+        : win.isMaximized
+          ? "0"
           : win.isPinned && win.pinSide === "left"
             ? "0"
             : `${win.x}px`}
-    style:top={win.isMaximized
-        ? "0"
-        : win.isMinimized
-          ? "auto"
+    style:top={win.isMinimized
+        ? "auto"
+        : win.isMaximized
+          ? "0"
           : win.isPinned && (win.pinSide === "left" || win.pinSide === "top")
             ? "0"
             : `${win.y}px`}
-    style:width={win.isMaximized
-        ? "100vw"
-        : win.isMinimized
-          ? "210px"
+    style:width={win.isMinimized
+        ? "210px"
+        : win.isMaximized
+          ? "100vw"
           : `${win.width}px`}
-    style:height={win.isMaximized
-        ? "100vh"
-        : win.isMinimized
-          ? "34px"
+    style:height={win.isMinimized
+        ? "34px"
+        : win.isMaximized
+          ? "100vh"
           : win.isPinned && (win.pinSide === "left" || win.pinSide === "right")
             ? "100vh"
             : `${win.height}px`}
@@ -552,6 +552,9 @@
                                 class={win.isMaximized
                                     ? "icon-restore"
                                     : "icon-max"}
+                                style:transform={win.isMaximized
+                                    ? "scale(0.9) translate(-1px, -1px)"
+                                    : "none"}
                             ></span>
                         </button>
                     {/if}
@@ -660,8 +663,23 @@
     .window-frame.interacting {
         transition: none !important;
     }
+    .window-frame.maximized {
+        position: fixed;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        z-index: 20000 !important;
+    }
     .window-frame.minimized {
-        position: relative;
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: 210px !important;
+        height: 34px !important;
         display: flex;
         z-index: auto !important;
         border-radius: 8px;
@@ -684,11 +702,6 @@
     }
     .window-controls.hidden {
         display: none;
-    }
-    .window-frame.maximized {
-        position: fixed;
-        border-radius: 0;
-        z-index: 20000 !important;
     }
     .window-frame.pinned-left {
         border-radius: 0 12px 12px 0;
