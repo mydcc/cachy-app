@@ -20,6 +20,7 @@ import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { getIntervalMs } from "../utils/utils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
 import { omsService } from "./omsService";
@@ -890,7 +891,19 @@ class BitunixWebSocketService {
                     }
                     // [HYBRID FIX] Inject detached 'ts' from root message into data object
                     // Bitunix sends { ch: ..., ts: 12345, data: { o, h, l, c ... } }
-                    const klineData = { ...d, ts: message.ts };
+                    // Correctly calculate candle start time (floor to interval)
+                    let candleStart = 0;
+                    if (timeframe === "1M") {
+                      const date = new Date(message.ts || Date.now());
+                      date.setUTCDate(1);
+                      date.setUTCHours(0, 0, 0, 0);
+                      candleStart = date.getTime();
+                    } else {
+                      const intervalMs = getIntervalMs(timeframe);
+                      candleStart = Math.floor((message.ts || Date.now()) / intervalMs) * intervalMs;
+                    }
+
+                    const klineData = { ...d, ts: candleStart };
                     const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
                     marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
                   }
@@ -1065,7 +1078,19 @@ class BitunixWebSocketService {
             }
           }
           // [HYBRID FIX] Inject detached 'ts' from root message into data object
-          const klineData = { ...data, ts: validatedMessage.ts };
+          // Correctly calculate candle start time (floor to interval)
+          let candleStart = 0;
+          if (timeframe === "1M") {
+            const date = new Date(validatedMessage.ts || Date.now());
+            date.setUTCDate(1);
+            date.setUTCHours(0, 0, 0, 0);
+            candleStart = date.getTime();
+          } else {
+            const intervalMs = getIntervalMs(timeframe);
+            candleStart = Math.floor((validatedMessage.ts || Date.now()) / intervalMs) * intervalMs;
+          }
+
+          const klineData = { ...data, ts: candleStart };
           const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
         }
