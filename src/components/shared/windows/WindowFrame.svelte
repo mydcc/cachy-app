@@ -293,8 +293,16 @@
     oncontextmenu={handleContextMenu}
     use:burn={win.enableBurningBorders
         ? {
-              layer: "windows",
+              id: win.id,
+              layer: win.isMinimized ? "tiles" : "windows",
+              symbol: win.symbol,
               intensity: (win.isFocused ? 1.5 : 0.6) * win.burnIntensity,
+              // Push Geometry only when open (avoid layout overhead during animation).
+              // When minimized, fallback to measurement (undefined) to follow dock tile.
+              x: win.isMinimized ? undefined : win.x,
+              y: win.isMinimized ? undefined : win.y,
+              width: win.isMinimized ? undefined : win.width,
+              height: win.isMinimized ? undefined : win.height,
           }
         : undefined}
 >
@@ -316,12 +324,32 @@
             if (win.isMinimized) {
                 win.restore();
                 windowManager.bringToFront(win.id);
-                return;
+            } else {
+                // Respect doubleClickBehavior flag
+                if (
+                    win.doubleClickBehavior === "maximize" &&
+                    win.allowMaximize
+                ) {
+                    win.toggleMaximize();
+                } else if (win.doubleClickBehavior === "pin") {
+                    win.togglePin();
+                }
             }
-            win.toggleMaximize();
         }}
     >
-        <div class="header-content">
+        <div
+            class="header-content"
+            ondblclick={(e) => {
+                // Symbol/Logo/Title area double-click: Minimize/Restore
+                e.stopPropagation();
+                if (win.isMinimized) {
+                    win.restore();
+                    windowManager.bringToFront(win.id);
+                } else if (win.allowMinimize) {
+                    win.minimize();
+                }
+            }}
+        >
             {#if win.showIcon && !win.isMinimized}
                 <div
                     class="cachy-logo"
@@ -367,30 +395,34 @@
                 {/if}
 
                 <span class="window-title">{win.title}</span>
-
-                {#if win.headerControls.length > 0 && !win.isMinimized}
-                    <div class="header-controls">
-                        {#each win.headerControls as ctrl}
-                            <button
-                                class="header-ctrl-btn"
-                                class:active={ctrl.active}
-                                onclick={(e) => {
-                                    e.stopPropagation();
-                                    ctrl.action();
-                                }}
-                                title={ctrl.title || ctrl.label}
-                            >
-                                {#if ctrl.icon}
-                                    <span class="ctrl-icon">{ctrl.icon}</span>
-                                {/if}
-                                {#if ctrl.label}
-                                    <span class="ctrl-label">{ctrl.label}</span>
-                                {/if}
-                            </button>
-                        {/each}
-                    </div>
-                {/if}
             </div>
+
+            {#if win.headerControls.length > 0 && !win.isMinimized}
+                <div class="header-controls">
+                    {#each win.headerControls as ctrl}
+                        <button
+                            class="header-ctrl-btn"
+                            class:active={ctrl.active}
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                ctrl.action();
+                            }}
+                            ondblclick={(e) => e.stopPropagation()}
+                            title={ctrl.title || ctrl.label}
+                        >
+                            {#if ctrl.icon}
+                                <span class="ctrl-icon">{ctrl.icon}</span>
+                            {/if}
+                            {#if ctrl.label}
+                                <span class="ctrl-label">{ctrl.label}</span>
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
+
+            <!-- Spacer element that bubbles up dblclick to parent for maximization -->
+            <div class="header-spacer"></div>
 
             {#if win.showHeaderIndicators && win.headerSnippet}
                 <div class="header-indicators">
@@ -704,14 +736,21 @@
     .header-content {
         display: flex;
         align-items: center;
-        flex: 1;
         overflow: hidden;
+        flex: 0 1 auto;
     }
     .title-wrapper {
         display: flex;
         align-items: center;
         gap: 8px;
         overflow: hidden;
+    }
+    .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 12px;
+        flex: 0 0 auto;
     }
     .window-title {
         font-weight: 600;
@@ -775,11 +814,17 @@
         overflow-x: hidden;
         position: relative;
     }
+    .header-spacer {
+        flex: 1;
+        height: 100%;
+        min-width: 20px;
+    }
     .header-controls {
         display: flex;
         gap: 4px;
         margin-left: 12px;
         align-items: center;
+        flex: 0 0 auto;
     }
     .header-ctrl-btn {
         background: color-mix(in srgb, var(--text-primary), transparent 95%);

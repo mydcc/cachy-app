@@ -35,8 +35,6 @@ import CandleChartView from "./CandleChartView.svelte";
  * - Price-in-title display toggle via context menu.
  */
 export class ChartWindow extends WindowBase {
-    /** The financial ticker symbol (e.g., BTCUSDT). */
-    symbol = $state("");
     /** The active aggregation interval (e.g., 1h, 15m). */
     timeframe = $state("1h");
 
@@ -44,12 +42,12 @@ export class ChartWindow extends WindowBase {
         super({
             id: `chart-${symbol}`,
             title: symbol,
+            symbol: symbol,
             width: 800,
             height: 500,
             windowType: "chart",
             ...options
         });
-        this.symbol = symbol;
         this.headerAction = 'toggle-mode';
         this.updateHeaderControls();
     }
@@ -126,5 +124,13 @@ export class ChartWindow extends WindowBase {
     /** Reserved for future implementation: fit the chart to the viewport. */
     autoScale() {
         // Implementation logic if needed
+    }
+
+    public serialize(): any {
+        return {
+            ...super.serialize(),
+            symbol: this.symbol,
+            timeframe: this.timeframe
+        };
     }
 }

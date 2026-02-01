@@ -156,6 +156,8 @@ export interface WindowOptions {
     id?: string;
     /** Custom title for this instance. */
     title?: string;
+    /** Ticker symbol for financial windows. */
+    symbol?: string;
     /** Initial width. */
     width?: number;
     /** Initial height. */

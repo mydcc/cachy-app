@@ -81,7 +81,7 @@
         if (isAnyModalOpen) return false;
 
         if (layer === "windows") return hasWindowElements;
-        if (layer === "tiles") return hasTileElements && !hasWindowElements;
+        if (layer === "tiles") return hasTileElements;
 
         return false;
     });

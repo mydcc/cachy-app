@@ -30,11 +30,18 @@ export interface BurnOptions {
     layer?: 'tiles' | 'windows' | 'modals';
     id?: string;
     mode?: 'theme' | 'interactive' | 'custom' | 'classic' | 'glow';
+    symbol?: string; // Specific symbol to track for price trends
+    // Optional Geometry Push (avoid getBoundingClientRect)
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
 }
 
 export function burn(node: HTMLElement, options: BurnOptions | undefined) {
-    const id = options?.id || `burn-${idCounter++}`;
-    let lastRect: DOMRect | null = null;
+    let currentOptions = options;
+    let id = currentOptions?.id || `burn-${idCounter++}`;
+    let lastRect: any = null;
 
     // Set data attribute for debugging/styling
     node.setAttribute("data-burn-id", id);
@@ -51,10 +58,11 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     let lastThemeCheck = 0;
     let cachedUpColor = "";
     let cachedDownColor = "";
-    // Global trend state for Interactive Mode (shared across all instances)
-    let globalLastSymbol = "";
-    let globalLastPrice: any = null; // Decimal
-    let globalTrendColor = ""; // Persists until change
+
+    // Trend state for Interactive Mode (Instance-specific)
+    let localLastSymbol = "";
+    let localLastPrice: any = null; // Decimal
+    let localTrendColor = ""; // Persists until change
 
     // Reset caches on theme change
     const themeObserver = new MutationObserver(() => {
@@ -70,7 +78,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
      * Resolves the final color based on settings and options.
      * Logic is optimized to avoid repetitive getComputedStyle calls.
      */
-    const resolveColor = (inputColor?: string, localMode?: string): string => {
+    const resolveColor = (inputColor?: string, localMode?: string, inputSymbol?: string): string => {
         const mode = localMode || settingsState.borderEffectColorMode;
 
         // Common vars for theme color resolution
@@ -111,7 +119,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
             }
 
             // 2. Automatic Price Trend (Like Market Tiles Border)
-            const symbol = tradeState.symbol;
+            const symbol = inputSymbol || tradeState.symbol;
             if (symbol) {
                 const provider = settingsState.apiProvider;
                 const key = normalizeSymbol(symbol, provider);
@@ -126,21 +134,21 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
                 if (data && data.lastPrice) {
                     // Check for Symbol Change -> Reset Trend
-                    if (symbol !== globalLastSymbol) {
-                        globalLastSymbol = symbol;
-                        globalLastPrice = data.lastPrice;
-                        globalTrendColor = ""; // Reset to neutral/accent
+                    if (symbol !== localLastSymbol) {
+                        localLastSymbol = symbol;
+                        localLastPrice = data.lastPrice;
+                        localTrendColor = ""; // Reset to neutral/accent
                     }
                     // Check for Price Change -> Update Trend
-                    else if (globalLastPrice && !data.lastPrice.equals(globalLastPrice)) {
-                        const isUp = data.lastPrice.gt(globalLastPrice);
-                        globalTrendColor = isUp ? cachedUpColor : cachedDownColor;
-                        globalLastPrice = data.lastPrice;
+                    else if (localLastPrice && !data.lastPrice.equals(localLastPrice)) {
+                        const isUp = data.lastPrice.gt(localLastPrice);
+                        localTrendColor = isUp ? cachedUpColor : cachedDownColor;
+                        localLastPrice = data.lastPrice;
                     }
                 }
 
                 // Return Trend Color if established, otherwise Accent (Idle/Init)
-                return globalTrendColor || getaccent();
+                return localTrendColor || getaccent();
             }
 
             return getaccent(); // Fallback to accent
@@ -150,15 +158,29 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     };
 
     const update = (force = false) => {
-        // Use untrack to prevent reading settingsState from registering a dependency 
         untrack(() => {
-            if (!settingsState.enableBurningBorders || !options) {
+            if (!settingsState.enableBurningBorders || !currentOptions) {
                 fireStore.removeElement(id);
                 lastRect = null;
                 return;
             }
 
-            const rect = node.getBoundingClientRect();
+            // 1. Geometry resolution: Use Push (options) or Pull (getBoundingClientRect)
+            let rect: any;
+            const isPushActive = currentOptions.width !== undefined && currentOptions.height !== undefined;
+
+            if (isPushActive) {
+                // GAMING STANDARD: Use values pushed from Svelte (Zero Layout Cost)
+                rect = {
+                    top: currentOptions.y ?? 0,
+                    left: currentOptions.x ?? 0,
+                    width: currentOptions.width ?? 0,
+                    height: currentOptions.height ?? 0
+                };
+            } else {
+                // FALLBACK: Traditional measurement (Legacy or non-window elements)
+                rect = node.getBoundingClientRect();
+            }
 
             // 1. Position Update Guard with integer tolerance
             // Using 1.0 instead of 0.1 to prevent sub-pixel layout loops
@@ -169,16 +191,18 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                 Math.abs(rect.height - lastRect.height) >= 1.0;
 
             // 2. Style Update (Normalized comparison)
-            const finalColor = resolveColor(options.color, options.mode).toLowerCase();
-            const intensity = options.intensity ?? 1.0;
+            const finalColor = resolveColor(currentOptions.color, currentOptions.mode, currentOptions.symbol).toLowerCase();
+            const intensity = currentOptions.intensity ?? 1.0;
             const currentMode = settingsState.borderEffectColorMode;
-            const currentLayer = options.layer ?? "tiles";
-            const explicitMode = options.mode;
+            const currentLayer = currentOptions.layer ?? "tiles";
+            const explicitMode = currentOptions.mode;
+            const currentSymbol = currentOptions.symbol ?? "";
 
             const styleChanged = finalColor !== lastFinalColor.toLowerCase() ||
                 intensity !== lastIntensity ||
                 currentMode !== lastMode ||
-                currentLayer !== lastLayer;
+                currentLayer !== lastLayer ||
+                currentSymbol !== (currentOptions.symbol ?? ""); // Redundant but for clarity
 
             // 3. Size Guard
             if (rect.width === 0 || rect.height === 0) {
@@ -212,17 +236,31 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     // Use ResizeObserver for efficient updates when size changes
     let resizeFrame: number;
     const resizeObserver = new ResizeObserver(() => {
+        // If we have pushed geometry, we don't need the observer to trigger updates
+        if (currentOptions && currentOptions.width !== undefined) return;
+
         cancelAnimationFrame(resizeFrame);
         resizeFrame = requestAnimationFrame(() => update());
     });
     resizeObserver.observe(node);
 
-    let frameId: number;
+    // GAMING STANDARD: Occlusion Culling & Loop Management
+    let isVisible = false;
+    const visibilityObserver = new IntersectionObserver((entries) => {
+        isVisible = entries[0].isIntersecting;
+    });
+    visibilityObserver.observe(node);
+
+    let loopFrame: number;
     const loop = () => {
-        if (settingsState.enableBurningBorders && options) {
-            update();
+        // Only poll if visible AND no coordinates are pushed (e.g. Market Tiles)
+        if (isVisible && settingsState.enableBurningBorders && currentOptions) {
+            const isPushActive = currentOptions.width !== undefined && currentOptions.height !== undefined;
+            if (!isPushActive) {
+                update();
+            }
         }
-        frameId = requestAnimationFrame(loop);
+        loopFrame = requestAnimationFrame(loop);
     };
 
     // Initial start
@@ -233,15 +271,24 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
     return {
         update(newOptions: BurnOptions | undefined) {
-            options = newOptions;
+            const oldId = id;
+            currentOptions = newOptions;
+
+            // Update ID if explicitly provided and different
+            if (currentOptions?.id && currentOptions.id !== id) {
+                id = currentOptions.id;
+                fireStore.removeElement(oldId);
+            }
+
             cachedThemeColor = ""; // Reset cache on explicit option change
             requestAnimationFrame(() => update(true));
         },
         destroy() {
             resizeObserver.disconnect();
+            visibilityObserver.disconnect();
             themeObserver.disconnect();
             cancelAnimationFrame(resizeFrame);
-            cancelAnimationFrame(frameId);
+            cancelAnimationFrame(loopFrame);
             fireStore.removeElement(id);
             node.removeAttribute("data-burn-id");
         }

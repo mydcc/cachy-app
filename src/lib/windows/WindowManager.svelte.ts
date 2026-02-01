@@ -23,22 +23,89 @@
 import type { WindowBase } from "./WindowBase.svelte";
 import { ModalWindow } from "./implementations/ModalWindow.svelte";
 import { IframeWindow } from "./implementations/IframeWindow.svelte";
+// ChartWindow and ChannelWindow are imported dynamically in createFromData 
+// to avoid circular dependencies during initialization.
 
 /**
  * WindowManager is a singleton class that manages the lifecycle, stacking order,
  * and visibility of all windows in the application.
- * 
- * Key Features:
- * - Singleton pattern: only one instance exists (`windowManager`).
- * - Stacking: manages `zIndex` to ensure the focused window is always on top.
- * - Instance Control: enforces limits on multiple instances and global window counts.
- * - Interaction: handles background clicks to release focus or close "blur-to-close" windows.
  */
 class WindowManager {
     /** Reactive list of all currently open window instances. */
     private _windows = $state<WindowBase[]>([]);
     /** Internal counter for global stacking order. Incremented on every focus event. */
     private _nextZIndex = 11000;
+
+    constructor() {
+        // Automatic rehydration from session storage if available
+        if (typeof window !== 'undefined') {
+            setTimeout(() => this.rehydrate(), 100);
+
+            // Global Mouse Listener: Detects clicks on the "background" to deselect/close windows.
+            window.addEventListener('mousedown', (e) => {
+                const target = e.target as HTMLElement;
+
+                // Ignore clicks originating inside any window.
+                if (target.closest('.window-frame')) return;
+
+                // Ignore clicks on main UI components (identified by .glass-panel).
+                if (target.closest('.glass-panel')) return;
+
+                // If we reach here, the click happened in the "empty space" behind the UI.
+                this.handleBackgroundClick();
+            });
+        }
+    }
+
+    /**
+     * Persists the current list of open windows to session storage.
+     */
+    private saveSession() {
+        if (typeof sessionStorage === 'undefined') return;
+        const openWindows = this._windows
+            .filter(w => w.windowType !== 'dialog') // Don't persist temporary alerts
+            .map(w => w.serialize());
+        sessionStorage.setItem('cachy_open_windows', JSON.stringify(openWindows));
+    }
+
+    /**
+     * Attempts to recreate windows from the last browser session (tab reload).
+     */
+    private async rehydrate() {
+        if (typeof sessionStorage === 'undefined') return;
+        try {
+            const saved = sessionStorage.getItem('cachy_open_windows');
+            if (saved) {
+                const data = JSON.parse(saved);
+                for (const winData of data) {
+                    const instance = await this.createFromData(winData);
+                    if (instance) this.open(instance);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to rehydrate windows:", e);
+        }
+    }
+
+    /**
+     * Factory method to create window instances from serialized data.
+     */
+    private async createFromData(data: any): Promise<WindowBase | null> {
+        switch (data.type) {
+            case 'chart':
+                const { ChartWindow } = await import("./implementations/ChartWindow.svelte");
+                return new ChartWindow(data.symbol || "BTCUSDT", { timeframe: data.timeframe });
+            case 'iframe':
+                // Check if it's a channel window or a generic iframe
+                if (data.id && (data.id.startsWith('channel') || data.id.startsWith('market'))) {
+                    const { ChannelWindow } = await import("./implementations/ChannelWindow.svelte");
+                    return new ChannelWindow(data.url, data.title, data.id);
+                }
+                return new IframeWindow(data.url, data.title);
+            default:
+                return null;
+        }
+    }
 
     /** Returns the current list of managed windows. */
     get windows() {
@@ -80,6 +147,7 @@ class WindowManager {
         // 4. Registration and activation.
         this._windows.push(windowInstance);
         this.bringToFront(windowInstance.id);
+        this.saveSession();
     }
 
     /**
@@ -93,18 +161,10 @@ class WindowManager {
                 win.destroy();
             }
             this._windows = this._windows.filter(w => w.id !== id);
+            this.saveSession();
         }
     }
 
-    /**
-     * Toggles a window's open state by ID.
-     * 
-     * Enhanced UX: If the window is currently minimized, the first toggle 
-     * click will RESTORE it to the front instead of closing it.
-     * 
-     * @param id Unique identifier.
-     * @param createFn Closure to instantiate the window if it's currently closed.
-     */
     /**
      * Toggles a window's open state by ID.
      * 
@@ -118,18 +178,11 @@ class WindowManager {
         const existing = this._windows.find(w => w.id === id);
 
         if (existing) {
-            if (existing.isMinimized) {
-                // If minimized, restore it instead of closing.
-                // This fix ensures that windows restored from cache at startup
-                // are first expanded before being toggle-closed.
-                existing.restore();
-                this.bringToFront(id);
-            } else {
-                // If already open and active, close it.
-                this.close(id);
-            }
+            // As requested: Close the window regardless of whether it is minimized or open.
+            this.close(id);
         } else {
             // Not open yet, instantiate and register.
+            // windowInstance will restore its persistence state (e.g. isMinimized) in constructor.
             this.open(createFn());
         }
     }
@@ -178,26 +231,6 @@ class WindowManager {
         }
     }
 
-    /**
-     * Global Mouse Listener initialization.
-     * Detects clicks on the "background" to deselect/close windows.
-     */
-    constructor() {
-        if (typeof window !== 'undefined') {
-            window.addEventListener('mousedown', (e) => {
-                const target = e.target as HTMLElement;
-
-                // Ignore clicks originating inside any window.
-                if (target.closest('.window-frame')) return;
-
-                // Ignore clicks on main UI components (identified by .glass-panel).
-                if (target.closest('.glass-panel')) return;
-
-                // If we reach here, the click happened in the "empty space" behind the UI.
-                this.handleBackgroundClick();
-            });
-        }
-    }
 
     /** Evaluates and closes all windows marked for destruction on background clicks. */
     handleBackgroundClick() {

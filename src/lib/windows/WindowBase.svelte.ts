@@ -115,6 +115,7 @@ export abstract class WindowBase {
     /** Close when clicking anywhere else in the app. */
     closeOnBlur = $state(false);
     /** Specifically for financial windows (Asset price). */
+    symbol = $state("");
     showPriceInTitle = $state(false);
     currentPrice = $state("");
 
@@ -148,6 +149,7 @@ export abstract class WindowBase {
     constructor(options: WindowOptions = {}) {
         this.title = options.title || "";
         this.windowType = options.windowType || "window";
+        this.symbol = options.symbol || "";
 
         // Apply Registry Defaults first
         const config = windowRegistry.getConfig(this.windowType);
@@ -190,7 +192,7 @@ export abstract class WindowBase {
                 this.y = Math.max(10, Math.min(window.innerHeight - this.height - 10, options.y - 20));
             } else if (options.x === undefined && options.y === undefined) {
                 // Standard staggering for new windows
-                const stagger = this.centerByDefault ? 0 : (WindowBase.staggerCount % 10) * 20;
+                const stagger = this.centerByDefault ? 0 : (WindowBase.staggerCount % 10) * 40;
                 this.x = (window.innerWidth - this.width) / 2 + stagger;
                 this.y = (window.innerHeight - this.height) / 2 + stagger;
 
@@ -247,10 +249,12 @@ export abstract class WindowBase {
             isMaximized: this.isMaximized,
             isMinimized: this.isMinimized,
             isPinned: this.isPinned,
+            pinSide: this.pinSide,
             opacity: this.opacity,
             fontSize: this.fontSize,
             zoomLevel: this.zoomLevel,
-            showPriceInTitle: this.showPriceInTitle
+            showPriceInTitle: this.showPriceInTitle,
+            symbol: this.symbol
         };
         localStorage.setItem(this.storageKey, JSON.stringify(state));
     }
@@ -269,10 +273,12 @@ export abstract class WindowBase {
                 this.isMaximized = state.isMaximized ?? false;
                 this.isMinimized = state.isMinimized ?? false;
                 this.isPinned = state.isPinned ?? false;
+                this.pinSide = state.pinSide ?? this.pinSide;
                 this.opacity = state.opacity ?? this.opacity;
                 this.fontSize = state.fontSize ?? this.fontSize;
                 this.zoomLevel = state.zoomLevel ?? this.zoomLevel;
                 this.showPriceInTitle = state.showPriceInTitle ?? this.showPriceInTitle;
+                this.symbol = state.symbol ?? this.symbol;
                 if (state.x !== undefined || state.y !== undefined) {
                     this.hasRestoredPosition = true;
                 }
@@ -280,6 +286,15 @@ export abstract class WindowBase {
         } catch (e) {
             console.error("Failed to restore window state:", e);
         }
+    }
+
+    /** Returns data necessary to recreate this window in a new session. */
+    public serialize(): any {
+        return {
+            type: this.windowType,
+            id: this.id,
+            title: this.title
+        };
     }
 
     /** Mapping of registry config to internal state. */
@@ -389,7 +404,6 @@ export abstract class WindowBase {
         this.height = Math.round(newHeight);
     }
 
-    /** Toggles maximization state. */
     toggleMaximize() {
         if (!this.allowMaximize) return;
 
@@ -398,6 +412,7 @@ export abstract class WindowBase {
         } else {
             this.maximize();
         }
+        this.saveState();
     }
 
     /** Full maximization (fills viewport). Stores floating state first. */
@@ -422,6 +437,7 @@ export abstract class WindowBase {
     restore() {
         if (this.isMinimized) {
             this.isMinimized = false;
+            this.saveState();
             return;
         }
         if (this.isMaximized) {
@@ -430,6 +446,7 @@ export abstract class WindowBase {
             this.width = this.lastWidth;
             this.height = this.lastHeight;
             this.isMaximized = false;
+            this.saveState();
         }
     }
 
@@ -438,6 +455,7 @@ export abstract class WindowBase {
         if (!this.allowMinimize) return;
         this.isMinimized = true;
         this.isFocused = false;
+        this.saveState();
     }
 
     /** Pinning logic (experimental tiling). */
@@ -447,6 +465,7 @@ export abstract class WindowBase {
         if (this.isPinned) {
             this.isMaximized = false;
         }
+        this.saveState();
     }
 
     // --- INTERACTION HOOKS (TO BE OVERRIDDEN BY SUBCLASSES) ---

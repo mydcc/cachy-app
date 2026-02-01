@@ -80,4 +80,11 @@ export class ChannelWindow extends WindowBase {
     get componentProps() {
         return { url: this.url };
     }
+
+    public serialize(): any {
+        return {
+            ...super.serialize(),
+            url: this.url
+        };
+    }
 }
