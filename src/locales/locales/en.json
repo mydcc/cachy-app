@@ -34,7 +34,9 @@
     "marketDashboard": {
       "buttonTitle": "Open Market Overview",
       "point": "Market Overview",
-      "title": "Global Market Analysis"
+      "title": "Global Market Analysis",
+      "avgRsi": "Avg RSI",
+      "bullish": "Bullish %"
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
@@ -800,7 +802,11 @@
       "oversold": "Oversold",
       "trend": "Trend",
       "range": "Range",
-      "noSignals": "No divergences detected"
+      "noSignals": "No divergences detected",
+      "atr": "ATR",
+      "bbWidth": "BB Width",
+      "vwap": "VWAP",
+      "mfi": "MFI"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"

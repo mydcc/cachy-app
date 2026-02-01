@@ -34,7 +34,9 @@
     "marketDashboard": {
       "buttonTitle": "Marktübersicht öffnen",
       "point": "Marktübersicht",
-      "title": "Globale Marktanalyse"
+      "title": "Globale Marktanalyse",
+      "avgRsi": "Ø RSI",
+      "bullish": "Bullisch %"
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
@@ -828,7 +830,11 @@
       "oversold": "Überverkauft",
       "trend": "Trend",
       "range": "Seitwärts",
-      "noSignals": "Keine Divergenzen erkannt"
+      "noSignals": "Keine Divergenzen erkannt",
+      "atr": "ATR",
+      "bbWidth": "BB Breite",
+      "vwap": "VWAP",
+      "mfi": "MFI"
     },
     "candlestickPatterns": {
       "title": "Candlestick Muster Akademie"
