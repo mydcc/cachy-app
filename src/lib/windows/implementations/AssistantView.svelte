@@ -24,7 +24,7 @@
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
     import { icons } from "../../../lib/constants";
-    import { renderSafeMarkdown } from "../../../utils/markdownUtils";
+    import { markdown } from "../../../actions/markdown";
     import type { WindowBase } from "../WindowBase.svelte";
 
     interface Props {
@@ -225,9 +225,8 @@
                             <div
                                 class="markdown-content"
                                 class:terminal-md={isTerminal}
-                            >
-                                {@html renderSafeMarkdown(msg.content)}
-                            </div>
+                                use:markdown={msg.content}
+                            ></div>
                         {:else if msg.role === "system"}
                             {@const pendingMatch =
                                 msg.content.match(/\[PENDING:([^\]]+)\]/)}

@@ -20,7 +20,11 @@ import markedKatex from "marked-katex-extension";
 import DOMPurify from "dompurify";
 
 // Configure marked with KaTeX support
-marked.use(markedKatex({ throwOnError: false }));
+marked.use(markedKatex({
+    throwOnError: false,
+    displayMode: false, // Default to inline unless $$ is used
+    nonStandard: true   // Allow $ for inline math
+}));
 
 /**
  * Renders Markdown to HTML with sanitization (DOMPurify).

@@ -24,6 +24,7 @@
   import { marketState } from "../../stores/market.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
+  import { markdown } from "../../actions/markdown";
   import { _ } from "../../locales/i18n";
 
   let isFlipped = $state(false);
@@ -105,10 +106,9 @@
             {$_("quiz.question")}
           </div>
           <h3
-            class="text-xl md:text-2xl font-bold text-[var(--text-primary)] leading-relaxed select-none"
-          >
-            {quizState.activeQuestion.question}
-          </h3>
+            class="text-xl md:text-2xl font-bold text-[var(--text-primary)] leading-relaxed select-none prose prose-invert max-w-none"
+            use:markdown={quizState.activeQuestion.question}
+          ></h3>
           <div
             class="absolute bottom-6 text-xs text-[var(--text-tertiary)] animate-pulse select-none"
           >
@@ -130,16 +130,15 @@
             >
               {$_("quiz.answer")}
             </div>
-            <p
-              class="text-lg text-[var(--text-primary)] leading-relaxed overflow-y-auto max-h-[60%] w-full scrollbar-hide"
-            >
-              {quizState.activeQuestion.answer}
-            </p>
+            <div
+              class="text-lg text-[var(--text-primary)] leading-relaxed overflow-y-auto max-h-[60%] w-full scrollbar-hide prose prose-invert max-w-none"
+              use:markdown={quizState.activeQuestion.answer}
+            ></div>
           </div>
 
           <div class="flex gap-4 w-full mt-4 shrink-0">
             <button
-              class="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg hover:shadow-red-500/20 active:scale-95 transform duration-100"
+              class="flex-1 py-3 px-4 rounded-xl font-bold text-[var(--btn-danger-text)] bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] transition-colors shadow-lg hover:shadow-[var(--btn-danger-bg)]/20 active:scale-95 transform duration-100"
               onclick={(e) => {
                 e.stopPropagation();
                 handleUnknown();
@@ -148,7 +147,7 @@
               {$_("quiz.practice")}
             </button>
             <button
-              class="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 transition-colors shadow-lg hover:shadow-green-500/20 active:scale-95 transform duration-100"
+              class="flex-1 py-3 px-4 rounded-xl font-bold text-[var(--btn-success-text)] bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] transition-colors shadow-lg hover:shadow-[var(--btn-success-bg)]/20 active:scale-95 transform duration-100"
               onclick={(e) => {
                 e.stopPropagation();
                 handleKnown();

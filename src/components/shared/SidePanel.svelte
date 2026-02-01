@@ -26,7 +26,7 @@
   import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
-  import { renderSafeMarkdown } from "../../utils/markdownUtils";
+  import { markdown } from "../../actions/markdown";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
@@ -668,9 +668,7 @@
 
                   if (confirmClear) {
                     if (
-                      confirm(
-                        $_("sidePanel.clearConfirm") || "Clear history?",
-                      )
+                      confirm($_("sidePanel.clearConfirm") || "Clear history?")
                     ) {
                       clearFn();
                     }
@@ -824,9 +822,8 @@
                         class="markdown-content"
                         style="font-size: inherit"
                         class:terminal-md={isTerminal}
-                      >
-                        {@html renderSafeMarkdown(msg.content)}
-                      </div>
+                        use:markdown={msg.content}
+                      ></div>
                     {:else if msg.role === "system"}
                       {@const pendingMatch =
                         msg.content.match(/\[PENDING:([^\]]+)\]/)}
@@ -1149,7 +1146,8 @@
                   placeholder={settingsState.sidePanelMode === "ai"
                     ? isTerminal
                       ? "> ENTER COMMAND"
-                      : $_("cloud.placeholder") || "Message AI... (Shift+Enter for new line)"
+                      : $_("cloud.placeholder") ||
+                        "Message AI... (Shift+Enter for new line)"
                     : $_("journal.placeholder.notes")}
                   maxlength={settingsState.sidePanelMode === "ai" ? 2000 : 2000}
                   bind:value={messageText}

@@ -41,6 +41,8 @@ const slugify = (text: string) => {
 marked.use(
   markedKatex({
     throwOnError: false,
+    displayMode: false,
+    nonStandard: true
   }),
   {
     renderer: {
@@ -85,20 +87,20 @@ export async function loadInstruction(
     // Let's rely on the exact string.
 
     if (!modules[relativePath]) {
-        // Fallback or specific error handling if file doesn't exist for locale
-        console.warn(`Markdown file not found: ${relativePath}`);
-        if (currentLocale !== 'en') {
-             // Try fallback to 'en'
-             const fallbackPath = `/src/lib/assets/content/${name}.en.md`;
-             if (modules[fallbackPath]) {
-                 const content = (await modules[fallbackPath]()) as string;
-                 const html = await marked(content);
-                 const firstLine = content.split("\n")[0];
-                 const titleMatch = firstLine.match(/^#\s*(.*)/);
-                 return { html, title: titleMatch ? titleMatch[1] : "" };
-             }
+      // Fallback or specific error handling if file doesn't exist for locale
+      console.warn(`Markdown file not found: ${relativePath}`);
+      if (currentLocale !== 'en') {
+        // Try fallback to 'en'
+        const fallbackPath = `/src/lib/assets/content/${name}.en.md`;
+        if (modules[fallbackPath]) {
+          const content = (await modules[fallbackPath]()) as string;
+          const html = await marked(content);
+          const firstLine = content.split("\n")[0];
+          const titleMatch = firstLine.match(/^#\s*(.*)/);
+          return { html, title: titleMatch ? titleMatch[1] : "" };
         }
-        throw new Error("markdownErrors.fileNotFound");
+      }
+      throw new Error("markdownErrors.fileNotFound");
     }
 
     const markdownContent = (await modules[relativePath]()) as string;
