@@ -78,16 +78,28 @@ export const JSIndicators = {
 
     const denominator = (period * (period + 1)) / 2;
 
-    for (let i = period - 1; i < data.length; i++) {
-      let sum = 0;
-      for (let j = 0; j < period; j++) {
-        // data[i] has weight n, data[i-1] has weight n-1...
-        // standard WMA: most recent price has heaviest weight
-        // j=0 (oldest in window) -> weight 1
-        // j=period-1 (newest) -> weight period
-        sum += data[i - period + 1 + j] * (j + 1);
-      }
-      result[i] = sum / denominator;
+    // 1. Initial Window Calculation
+    let sum = 0;
+    let wmaSum = 0;
+    for (let i = 0; i < period; i++) {
+        sum += data[i];
+        wmaSum += data[i] * (i + 1);
+    }
+
+    result[period - 1] = wmaSum / denominator;
+
+    // 2. Sliding Window
+    for (let i = period; i < data.length; i++) {
+      const dropVal = data[i - period];
+      const addVal = data[i];
+
+      // WMA_t = WMA_{t-1} + n*P_t - Sum_{t-1}
+      wmaSum = wmaSum + period * addVal - sum;
+
+      result[i] = wmaSum / denominator;
+
+      // Update sum for next iteration
+      sum = sum - dropVal + addVal;
     }
     return result;
   },
