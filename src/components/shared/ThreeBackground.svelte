@@ -121,6 +121,7 @@
             randomness,
             randomnessPower,
             concentrationPower,
+            rotationSpeed,
         } = settingsState.galaxySettings;
 
         // Galaxy particle system
@@ -203,6 +204,7 @@
                 uSpinSpeed: { value: spin },
                 uRandomnessPower: { value: randomnessPower },
                 uConcentrationPower: { value: concentrationPower },
+                uRotationSpeed: { value: rotationSpeed },
                 uAlphaCutoff: { value: alphaCutoff },
             },
             vertexShader: `
@@ -215,6 +217,7 @@
                 uniform float uSpinSpeed;
                 uniform float uRandomnessPower;
                 uniform float uConcentrationPower;
+                uniform float uRotationSpeed;
                 uniform vec3 uColorOutside;
                 uniform vec3 uColorOutside2;
                 uniform vec3 uColorOutside3;
@@ -237,9 +240,9 @@
 
                     float branchId = floor(mod(particleId, uBranches));
                     float branchAngle = branchId * (2.0 * PI / uBranches);
-                    
-                    // Korrekte Spiral-Verzerrung (Spin) basierend auf Radius
-                    float spinAngle = radius * uSpinSpeed + uTime * 0.2;
+                     
+                    // Korrekte Spiral-Verzerrung (Spin) basierend auf Radius und Animation Speed
+                    float spinAngle = radius * uSpinSpeed + uTime * uRotationSpeed;
                     float angle = branchAngle + spinAngle;
 
                     vec3 particlePosition = vec3(cos(angle) * radius, 0.0, sin(angle) * radius);
@@ -380,6 +383,7 @@
         galaxyMaterial.uniforms.uRandomnessPower.value = s.randomnessPower;
         galaxyMaterial.uniforms.uConcentrationPower.value =
             s.concentrationPower;
+        galaxyMaterial.uniforms.uRotationSpeed.value = s.rotationSpeed;
 
         // Update colors with resolution
         const accent = resolveColor("--galaxy-stars-core") || "#6366f1";
@@ -530,7 +534,8 @@
     $effect(() => {
         const s = settingsState.galaxySettings;
         // Define a key for properties that require geometry regeneration
-        const structureKey = `${s.particleCount}_${s.radius}_${s.branches}_${s.randomness}_${s.randomnessPower}_${s.concentrationPower}`;
+        // Only particleCount and randomness need a full regeneration
+        const structureKey = `${s.particleCount}_${s.randomness}`;
 
         if (structureKey !== previousStructureKey) {
             generateGalaxy();

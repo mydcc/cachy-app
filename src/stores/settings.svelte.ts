@@ -90,6 +90,7 @@ export interface GalaxySettings {
   camPos: { x: number; y: number; z: number };
   galaxyRot: { x: number; y: number; z: number };
   enableGyroscope: boolean;
+  rotationSpeed: number;
 }
 
 export interface Settings {
@@ -396,6 +397,7 @@ const defaultSettings: Settings = {
     camPos: { x: 4, y: 2, z: 5 },
     galaxyRot: { x: 0, y: 0, z: 0 },
     enableGyroscope: false,
+    rotationSpeed: 0.1,
   },
   enableNetworkLogs: false,
   logSettings: {
@@ -717,6 +719,12 @@ export class SettingsManager {
 
   updateFireConfig(newConfig: Partial<Settings['fireConfig']>) {
     this.fireConfig = { ...this.fireConfig, ...newConfig };
+  }
+
+  resetGalaxySettings() {
+    this.galaxySettings = { ...defaultSettings.galaxySettings };
+    this.backgroundOpacity = 1;
+    this.backgroundBlur = 0;
   }
 
   // Market & Performance State

@@ -675,6 +675,7 @@
       "concentration": "Konzentration",
       "cameraPos": "Kamera Position",
       "rotation": "Rotation",
+      "rotationSpeed": "Rotation",
       "gyroscope": "Gyroskop Steuerung",
       "gyroscopeDesc": "Kamera mit Bewegung steuern (Mobil)",
       "appearanceTitle": "Optik & Design",

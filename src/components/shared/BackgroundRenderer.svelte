@@ -62,16 +62,13 @@
 
   $effect(() => {
     if (typeof document !== "undefined") {
-      // Force full visibility for ThreeJS to prevent "covering" by background color
-      // due to default blur/opacity settings meant for images
-      const isThree = settingsState.backgroundType === "threejs";
-      const blur = isThree ? 0 : settingsState.backgroundBlur;
-      const opacity = isThree ? 1 : settingsState.backgroundOpacity;
-
-      document.documentElement.style.setProperty("--bg-blur", `${blur}px`);
+      document.documentElement.style.setProperty(
+        "--bg-blur",
+        `${settingsState.backgroundBlur}px`,
+      );
       document.documentElement.style.setProperty(
         "--bg-opacity",
-        opacity.toString(),
+        settingsState.backgroundOpacity.toString(),
       );
     }
   });
@@ -120,7 +117,8 @@
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
-    filter: blur(var(--bg-blur, 0px)) opacity(var(--bg-opacity, 1));
+    filter: blur(var(--bg-blur, 0px));
+    opacity: var(--bg-opacity, 1);
     transition:
       filter 0.3s ease,
       opacity 0.3s ease;

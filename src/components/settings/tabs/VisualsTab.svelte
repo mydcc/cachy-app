@@ -671,6 +671,35 @@
                     <div
                         class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4"
                     >
+                        <div class="flex justify-between items-center mb-2">
+                            <h4
+                                class="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider"
+                            >
+                                {$_("settings.visuals.bgGalaxy")}
+                            </h4>
+                            <button
+                                class="px-3 py-1 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded transition-colors flex items-center gap-2"
+                                onclick={() =>
+                                    settingsState.resetGalaxySettings()}
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    ><path
+                                        d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                                    ></path><path d="M3 3v5h5"></path></svg
+                                >
+                                {$_("dashboard.resetButton")}
+                            </button>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
                                 <label for="galaxy-count"
@@ -824,6 +853,28 @@
                                     min="0.1"
                                     max="10"
                                     step="0.1"
+                                    class="range-input"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="field-group">
+                                <label for="galaxy-rotation-speed"
+                                    >{$_("settings.visuals.rotationSpeed")}: {settingsState.galaxySettings.rotationSpeed.toFixed(
+                                        2,
+                                    )}</label
+                                >
+                                <input
+                                    id="galaxy-rotation-speed"
+                                    type="range"
+                                    bind:value={
+                                        settingsState.galaxySettings
+                                            .rotationSpeed
+                                    }
+                                    min="0"
+                                    max="2"
+                                    step="0.01"
                                     class="range-input"
                                 />
                             </div>
