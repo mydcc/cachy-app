@@ -69,4 +69,67 @@ describe('PatternDetector', () => {
       const detected = patternDetector.detect([prev, curr]);
       expect(detected).toContain('bullish_engulfing');
   });
+
+  it('should filter patterns based on trend requirements', () => {
+      // Hammer requires a downtrend.
+      // Create a Hammer candle
+      const hammerCandle: CandleData = {
+          open: 100,
+          close: 102,
+          high: 103,
+          low: 80 // Long lower wick
+      };
+
+      // 1. Create an UPTREND history (5 candles) + Hammer
+      // 10, 20, 30, 40, 50 -> Uptrend
+      const uptrendHistory: CandleData[] = [
+          { open: 10, close: 15, high: 20, low: 5 },
+          { open: 20, close: 25, high: 30, low: 15 },
+          { open: 30, close: 35, high: 40, low: 25 },
+          { open: 40, close: 45, high: 50, low: 35 },
+          { open: 50, close: 55, high: 60, low: 45 },
+          hammerCandle
+      ];
+
+      const detectedUptrend = patternDetector.detect(uptrendHistory);
+      // Should NOT contain hammer because it requires downtrend
+      expect(detectedUptrend).not.toContain('hammer');
+
+      // 2. Create a DOWNTREND history (5 candles) + Hammer
+      // 100, 90, 80, 70, 60 -> Downtrend
+      const downtrendHistory: CandleData[] = [
+          { open: 100, close: 95, high: 105, low: 90 },
+          { open: 90, close: 85, high: 95, low: 80 },
+          { open: 80, close: 75, high: 85, low: 70 },
+          { open: 70, close: 65, high: 75, low: 60 },
+          { open: 60, close: 55, high: 65, low: 50 },
+          hammerCandle
+      ];
+
+      const detectedDowntrend = patternDetector.detect(downtrendHistory);
+      expect(detectedDowntrend).toContain('hammer');
+  });
+
+  it('should match legacy behavior for insufficient history (skip trend check)', () => {
+      // Hammer requires downtrend.
+      // If we only provide the hammer candle (history = 1), we can't check trend (needs 5+1).
+      // Old behavior: Skip trend check -> Match based on shape.
+      const hammerCandle: CandleData = {
+          open: 100,
+          close: 102,
+          high: 103,
+          low: 80,
+          trend: 'downtrend' // The pattern definition has this
+      };
+
+      // We need to use a pattern that actually HAS a trend requirement.
+      // 'hammer' has trend: 'downtrend'.
+
+      // Test using the public 'detect' method which we optimized
+      const detected = patternDetector.detect([hammerCandle]);
+
+      // If we preserve legacy behavior, it should MATCH (ignore missing trend).
+      // If we followed reviewer suggestion, it would NOT match.
+      expect(detected).toContain('hammer');
+  });
 });
