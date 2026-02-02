@@ -232,19 +232,20 @@
                     float particleId = float(gl_VertexID);
                     float radiusRatio = fract(particleId / ${particleCount.toFixed(1)});
                     
-                    // Option A: Simplified Math (pow is expensive, using multiplications for some powers)
-                    float coreConcentration = radiusRatio * radiusRatio; 
-                    float radius = coreConcentration * radiusRatio * uRadius; // approx pow(r, 3) if concentration is 3
+                    // Dynamische Konzentration für den Kern-Look des Originals
+                    float radius = pow(radiusRatio, uConcentrationPower) * uRadius;
 
                     float branchId = floor(mod(particleId, uBranches));
                     float branchAngle = branchId * (2.0 * PI / uBranches);
-                    float spinAngle = uTime * (1.0 - radiusRatio) * uSpinSpeed;
+                    
+                    // Korrekte Spiral-Verzerrung (Spin) basierend auf Radius
+                    float spinAngle = radius * uSpinSpeed + uTime * 0.2;
                     float angle = branchAngle + spinAngle;
 
                     vec3 particlePosition = vec3(cos(angle) * radius, 0.0, sin(angle) * radius);
                     
-                    // Simplified randomness
-                    vec3 randomOffset = aRandom * (radiusRatio + 0.2); 
+                    // Dynamische Streuung für scharfe Arme (Original-Look)
+                    vec3 randomOffset = pow(abs(aRandom), vec3(uRandomnessPower)) * sign(aRandom) * radiusRatio;
                     particlePosition += randomOffset;
 
                     vec4 modelPosition = modelMatrix * vec4(particlePosition, 1.0);
