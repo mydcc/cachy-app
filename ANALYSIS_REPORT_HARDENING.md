@@ -1,49 +1,68 @@
-# Status & Risiko-Bericht (Schritt 1)
+# Analysis Report: System Hardening
 
-## Zusammenfassung
-Die Codebasis ist grundsätzlich robust (Nutzung von `Decimal.js`, `safeJsonParse`, OMS-Watchdog), weist jedoch kritische Risiken in der Datenverarbeitung von WebSocket-Nachrichten und potenzielles Speicher-Überlauf-Verhalten im News-Service auf.
+## Overview
+This report details the findings of an in-depth code analysis of the `cachy-app` codebase, focusing on Data Integrity, Resource Management, UI/UX, and Security.
 
-## 🔴 CRITICAL (Kritisch)
-**Gefahr von Datenverlust oder Inkonsistenz**
+## Findings
 
-1.  **Präzisionsverlust bei WebSocket-IDs (`src/services/bitunixWs.ts`)**
-    *   **Befund:** Der Code warnt explizit: `CRITICAL: orderId is number!`. Die Verarbeitung verlässt sich vollständig auf `safeJsonParse`. Sollte das Regex-Matching fehlschlagen (z.B. durch geänderte JSON-Formatierung der API), werden 19-stellige IDs zu JavaScript-Numbers und verlieren Präzision (letzte Stellen werden 0).
-    *   **Risiko:** Order-Management versagt; Orders können nicht mehr storniert oder getrackt werden.
-    *   **Empfehlung:** `safeJsonParse` Regex robuster gestalten und Zod-Schema erzwingen, dass IDs Strings sein *müssen* (Parse-Fehler statt stiller Korruption).
+### 🔴 CRITICAL
+**Risk of financial loss, crash, or security vulnerability.**
 
-2.  **Unbegrenzter Speicherverbrauch (`src/services/newsService.ts`)**
-    *   **Befund:** `fetchNews` lädt via `dbService.getAll("news")` *alle* jemals gespeicherten News-Einträge in den RAM, um sie zu sortieren und zu deduplizieren (`newsItems = [...newsItems, ...mapped]`).
-    *   **Risiko:** Bei längerer Laufzeit wächst die IDB. Ein Laden von Tausenden News-Objekten (mit Strings) führt zum Absturz des Browser-Tabs (OOM).
-    *   **Empfehlung:** Limitierung der `getAll`-Abfrage oder Paginierung implementieren.
+1.  **Security: API Keys sent to Proxy Endpoint**
+    *   **File:** `src/services/tradeService.ts`, `src/routes/api/sync/positions-pending/+server.ts`
+    *   **Issue:** The client sends `apiKey` and `apiSecret` in the request body to `/api/sync/positions-pending`. While likely over HTTPS, this pattern acts as a "Backend-For-Frontend" (BFF) proxy. If the server logs request bodies on error (even partially), keys could be exposed. More importantly, this structure requires trust in the hosting environment.
+    *   **Recommendation:** Ensure strict HTTPS. Validate that error logging (e.g., in `+server.ts`) *never* logs the request body. Ideally, keys should be stored server-side if possible, but for a "self-custody" app, this is an architectural trade-off that requires strict hygiene.
 
-## 🟡 WARNING (Warnung)
-**Performance & UX Risiken**
+2.  **Data Integrity: Missing Freshness Check in `closePosition`**
+    *   **File:** `src/services/tradeService.ts`
+    *   **Issue:** `flashClosePosition` implements a "freshness check" (re-fetching positions if data is stale > 200ms). However, `closePosition` (the standard close) does *not*. It relies solely on the cached `omsService` state. If the cache is stale, the `qty` might be wrong, leading to partial closes or "reduce only" errors.
+    *   **Recommendation:** Port the freshness check logic from `flashClosePosition` to `closePosition` or a shared helper.
 
-1.  **Optimistic Order Ghosting (`src/services/tradeService.ts`)**
-    *   **Befund:** `flashClosePosition` erstellt eine optimistische Order. Bei einem Netzwerkfehler (nicht API-Fehler) bleibt diese bestehen.
-    *   **Mitigation:** `omsService.ts` enthält einen Watchdog (`removeOrphanedOptimistic`), der alle 30s aufräumt. Das ist gut, aber ein Restrisiko für "Ghost Orders" im UI für 30s bleibt.
+3.  **Resource Management: Race Condition & Memory Leak in Polling**
+    *   **File:** `src/services/marketWatcher.ts`
+    *   **Issue:** In `pollSymbolChannel`, a race condition exists. `Promise.race` is used with a timeout. If the API call completes successfully *after* the timeout fires, the API promise continues running in the background (unhandled).
+    *   **Recommendation:** Use `AbortController` to cancel the fetch request if the timeout wins. Ensure the timeout timer is cleared if the fetch wins.
 
-2.  **Hardcoded Strings (Fehlende i18n)**
-    *   **Befund:** In `src/components/shared/MarketOverview.svelte` wurden Strings gefunden:
-        *   `"No market data available"`
-        *   `"RSI Settings"` (in Tooltip)
-        *   `"Open Real-time Chart"`
-    *   **Risiko:** Inkonsistente UX für nicht-englische Nutzer.
+4.  **Type Safety: Unsafe `Set<any>`**
+    *   **File:** `src/services/marketWatcher.ts`
+    *   **Issue:** `private staggerTimeouts = new Set<any>();` is used. This defeats type safety and could mask bugs where incorrect items are added/removed.
+    *   **Recommendation:** Change to `Set<ReturnType<typeof setTimeout>>`.
 
-3.  **Thread Contention durch Timer**
-    *   **Befund:** `MarketWatcher`, `MarketManager` und `BitunixWs` nutzen jeweils eigene `setInterval`-Loops (teilweise 250ms).
-    *   **Risiko:** Erhöhte CPU-Last im Leerlauf.
+### 🟡 WARNING
+**Performance issue, UX error, potential bug.**
 
-## 🔵 REFACTOR (Technisch)
+1.  **Performance: Blocking Main Thread on Flush**
+    *   **File:** `src/stores/market.svelte.ts`
+    *   **Issue:** `flushUpdates` processes all pending updates. If `pendingKlineUpdates` accumulates thousands of candles (e.g., after a network hiccup or high volatility), the sorting and deduplication logic in `applySymbolKlines` runs synchronously on the main thread, potentially causing a UI freeze.
+    *   **Recommendation:** Use `requestIdleCallback` or chunk the processing to yield to the main thread.
 
-1.  **{@html} Usage**
-    *   **Befund:** 22 Verwendungen von `{@html}`.
-    *   **Bewertung:** Die meisten nutzen `icons` (vertrauenswürdig aus `constants.ts`) oder `renderSafeMarkdown` (sanitized).
-    *   **Aktion:** Keine direkte Gefahr, aber sollte bei Reviews stets beachtet werden.
+2.  **Data Integrity: Unsafe Base64 Encoding**
+    *   **File:** `src/services/newsService.ts`
+    *   **Issue:** `generateNewsId` uses `btoa(encodeURIComponent(...))`. While `encodeURIComponent` handles some UTF-8, `btoa` is not robust for all Unicode strings and can throw "InvalidCharacterError".
+    *   **Recommendation:** Use a robust base64 utility or `Buffer.from(...).toString('base64')` if in a Node environment (or a polyfill).
 
----
+3.  **Data Integrity: Naive Symbol Matching**
+    *   **File:** `src/services/newsService.ts`
+    *   **Issue:** `matchesSymbol` checks `text.includes(keyword)`. This leads to false positives (e.g., "BET" matches "BETTER").
+    *   **Recommendation:** Use regex with word boundaries `\b`.
 
-**Empfohlener Aktionsplan (Schritt 2):**
-1.  **Härtung `safeJsonParse`:** Unit Tests für Edge-Cases hinzufügen.
-2.  **News-Service optimieren:** `slice()` oder Index-Limitierung einbauen.
-3.  **i18n Fixes:** Hardcoded Strings extrahieren.
+4.  **UI/UX: Blocking `confirm()`**
+    *   **File:** `src/components/shared/PositionsList.svelte`
+    *   **Issue:** Uses browser-native `confirm()` which blocks the entire UI thread.
+    *   **Recommendation:** Replace with a custom non-blocking Modal. (Low priority for "hardening", but good practice).
+
+5.  **Accessibility: Missing `aria-label`**
+    *   **File:** `src/components/shared/Button.svelte`
+    *   **Issue:** Buttons might lack accessible labels if they only contain icons.
+    *   **Recommendation:** Add a required or fallback `aria-label` prop.
+
+### 🔵 REFACTOR
+**Technical debt.**
+
+1.  **Performance: Repeated Decimal Allocation**
+    *   **File:** `src/stores/market.svelte.ts`
+    *   **Issue:** `toDecimal` helper creates `new Decimal(val)` frequently.
+    *   **Recommendation:** The existing optimization checks `currentVal.toString() === String(val)`, which is good, but `String(val)` also allocates.
+
+## Next Steps
+Proceed to Phase 2: Implementation Plan.
