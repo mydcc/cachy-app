@@ -425,6 +425,36 @@ export const technicalsService = {
     return result;
   },
 
+  async shiftTechnicals(
+    symbol: string,
+    timeframe: string,
+    kline: {
+      time: number;
+      open: number | string | Decimal;
+      high: number | string | Decimal;
+      low: number | string | Decimal;
+      close: number | string | Decimal;
+      volume?: number | string | Decimal;
+    }
+  ): Promise<TechnicalsData> {
+    const { data: result } = await workerManager.postMessage({
+        type: "SHIFT",
+        payload: {
+            symbol,
+            timeframe,
+            kline: {
+                ...kline,
+                open: kline.open.toString(),
+                high: kline.high.toString(),
+                low: kline.low.toString(),
+                close: kline.close.toString(),
+                volume: kline.volume?.toString() || "0"
+            }
+        }
+    });
+    return result;
+  },
+
   async updateTechnicals(
     symbol: string,
     timeframe: string,
