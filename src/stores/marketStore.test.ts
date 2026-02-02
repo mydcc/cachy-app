@@ -82,10 +82,6 @@ describe("marketStore", () => {
         { time: timeT, open: 49000, high: 50100, low: 48900, close: 50000, volume: 100 }
       ], "ws");
 
-      let data = marketState.data[symbol].klines[tf];
-      expect(data.length).toBe(1);
-      expect(data[0].close.toNumber()).toBe(50000);
-
       // 2. REST Update arrives (lagged)
       // REST says close is 49500 (old snapshot)
       // It also brings history (T-1) which we want
@@ -94,7 +90,10 @@ describe("marketStore", () => {
         { time: timeT, open: 49000, high: 50100, low: 48900, close: 49500, volume: 90 }
       ], "rest");
 
-      data = marketState.data[symbol].klines[tf];
+      // Flush buffers (WS update should now apply on top of REST)
+      await vi.advanceTimersByTimeAsync(300);
+
+      const data = marketState.data[symbol].klines[tf];
 
       expect(data.length).toBe(2);
 
@@ -137,6 +136,9 @@ describe("marketStore", () => {
       marketState.updateSymbolKlines(symbol, tf, [
         { time: timeT, open: 100, high: 106, low: 95, close: 104, volume: 1050 }
       ], "ws");
+
+      // Wait for buffer flush
+      await vi.advanceTimersByTimeAsync(300);
 
       const data = marketState.data[symbol].klines[tf];
       expect(data.length).toBe(1);
