@@ -20,6 +20,7 @@ import { CANDLESTICK_PATTERNS, type CandleData, type PatternDefinition } from '.
 
 export class PatternDetector {
   private normalizedTemplates: Map<string, CandleData[]> = new Map();
+  private patternsByLength: Map<number, PatternDefinition[]> = new Map();
 
   constructor() {
     this.precomputeTemplates();
@@ -28,6 +29,12 @@ export class PatternDetector {
   private precomputeTemplates() {
     for (const pattern of CANDLESTICK_PATTERNS) {
       this.normalizedTemplates.set(pattern.id, this.normalizeSequence(pattern.candles));
+
+      const len = pattern.candles.length;
+      if (!this.patternsByLength.has(len)) {
+        this.patternsByLength.set(len, []);
+      }
+      this.patternsByLength.get(len)!.push(pattern);
     }
   }
 
@@ -38,14 +45,51 @@ export class PatternDetector {
    */
   public detect(candles: CandleData[]): string[] {
     const detected: string[] = [];
-    const cache = new Map<number, CandleData[]>();
+    const lookbackForTrend = 5;
 
-    // We only check for patterns ending at the last candle
-    // Loop through all defined patterns
-    for (const pattern of CANDLESTICK_PATTERNS) {
-      if (this.checkPattern(pattern, candles, cache)) {
-        detected.push(pattern.id);
-      }
+    // Iterate over unique pattern lengths (e.g., 1, 2, 3, 5)
+    for (const [length, patterns] of this.patternsByLength) {
+        if (candles.length < length) continue;
+
+        // Optimization: Slice input candles once per length
+        const currentCandles = candles.slice(-length);
+
+        // Optimization: Check trend once per length
+        let isUptrend: boolean | undefined;
+        let isDowntrend: boolean | undefined;
+
+        // Check if we have enough history for trend detection
+        if (candles.length >= length + lookbackForTrend) {
+            const trendCandles = candles.slice(-(length + lookbackForTrend), -length);
+            isUptrend = this.isUptrend(trendCandles);
+            isDowntrend = this.isDowntrend(trendCandles);
+        }
+
+        // Optimization: Normalize input candles once per length
+        // This is used for all geometric matches of this length
+        const normInput = this.normalizeSequence(currentCandles);
+
+        for (const pattern of patterns) {
+            // 1. Trend Check
+            if (pattern.candles[0].trend && isUptrend !== undefined) {
+                const requiredTrend = pattern.candles[0].trend;
+
+                if (requiredTrend === 'downtrend' && !isDowntrend) continue;
+                if ((requiredTrend === 'uptrend' || requiredTrend === 'uptrend_peak') && !isUptrend) continue;
+            }
+
+            // 2. Specific Logic overrides (for "Formula" accuracy)
+            const specificMatch = this.checkSpecificLogic(pattern.id, currentCandles);
+            if (specificMatch !== null) {
+                if (specificMatch) detected.push(pattern.id);
+                continue;
+            }
+
+            // 3. Fallback: Geometric / Template Matcher
+            if (this.geometricMatchOptimized(pattern.id, normInput)) {
+                detected.push(pattern.id);
+            }
+        }
     }
 
     return detected;
@@ -70,9 +114,16 @@ export class PatternDetector {
         if ((requiredTrend === 'uptrend' || requiredTrend === 'uptrend_peak') && !this.isUptrend(trendCandles)) return false;
     }
 
-    // 2. Specific Logic overrides (for "Formula" accuracy)
-    // We utilize strict formulas derived from LuxAlgo PineScript where possible.
-    switch (pattern.id) {
+    // 2. Specific Logic overrides
+    const specific = this.checkSpecificLogic(pattern.id, currentCandles);
+    if (specific !== null) return specific;
+
+    // 3. Fallback: Geometric / Template Matcher
+    return this.geometricMatch(pattern.id, pattern.candles, currentCandles, cache);
+  }
+
+  private checkSpecificLogic(patternId: string, currentCandles: CandleData[]): boolean | null {
+    switch (patternId) {
         case 'hammer':
             return this.isHammer(currentCandles[0]);
         case 'inverted_hammer':
@@ -91,10 +142,9 @@ export class PatternDetector {
             return this.isMorningStar(currentCandles[0], currentCandles[1], currentCandles[2]);
         case 'evening_star':
             return this.isEveningStar(currentCandles[0], currentCandles[1], currentCandles[2]);
+        default:
+            return null;
     }
-
-    // 3. Fallback: Geometric / Template Matcher
-    return this.geometricMatch(pattern.id, pattern.candles, currentCandles, cache);
   }
 
   // --- Specific Pattern Logic (Formulas) ---
@@ -209,6 +259,31 @@ export class PatternDetector {
   }
 
   // --- Geometric Matcher ---
+
+  private geometricMatchOptimized(patternId: string, normInput: CandleData[]): boolean {
+      // We assume patternId exists because we iterate over patternsByLength which comes from CANDLESTICK_PATTERNS
+      const normTemplate = this.normalizedTemplates.get(patternId);
+      if (!normTemplate) return false;
+
+      let totalDiff = 0;
+      const tolerance = 0.05 * normTemplate.length;
+
+      for (let i = 0; i < normTemplate.length; i++) {
+          const t = normTemplate[i];
+          const m = normInput[i];
+
+          // Compare O, H, L, C relative positions
+          totalDiff += Math.pow(t.open - m.open, 2);
+          totalDiff += Math.pow(t.high - m.high, 2);
+          totalDiff += Math.pow(t.low - m.low, 2);
+          totalDiff += Math.pow(t.close - m.close, 2);
+
+          // Optimization: Early exit if difference exceeds tolerance
+          if (totalDiff >= tolerance) return false;
+      }
+
+      return true;
+  }
 
   private geometricMatch(patternId: string, template: CandleData[], input: CandleData[], cache?: Map<number, CandleData[]>): boolean {
       // Normalize both to 0..1 range based on their own min/max
