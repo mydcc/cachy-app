@@ -9,7 +9,7 @@ on:
 jobs:
   i18n-lint:
     name: i18n String Compliance
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +23,7 @@ jobs:
 
   decimal-check:
     name: Decimal.js Enforcement
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
 
   test-critical:
     name: Critical Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -73,7 +73,7 @@ jobs:
 
   type-check:
     name: TypeScript Type Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 

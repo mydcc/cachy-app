@@ -12,7 +12,7 @@ on:
 
 jobs:
     check-translations:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
         permissions:
             contents: read
             pull-requests: write
