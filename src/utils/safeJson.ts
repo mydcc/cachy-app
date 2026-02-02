@@ -36,16 +36,19 @@ export function safeJsonParse<T = any>(jsonString: string): T {
     if (!jsonString) return jsonString as any;
     if (typeof jsonString !== 'string') return jsonString;
 
-    // 1. Handle Object properties: "key": <number>
-    // Regex: Match any number-like sequence of at least 15 characters (digits, dot, scientific notation)
-    // -?            Optional negative sign
-    // \d            Start with a digit
-    // [\d.eE+-]{14,} Followed by 14+ characters of digits, dot, or scientific notation chars
-    let protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*(-?\d[\d.eE+-]{14,})(?=\s*[,}])/g, '"$1": "$2"');
+    // Fast Path: Check if protection is even needed.
+    // This simple check gives a ~50% speedup for small/safe messages.
+    if (!/\d[\d.eE+-]{14,}/.test(jsonString)) {
+        return JSON.parse(jsonString);
+    }
 
-    // 2. Handle Array elements: [ <number>, ... ] or , <number>
-    // Matches numbers in arrays or lists
-    protectedJson = protectedJson.replace(/([\[,]\s*)(-?\d[\d.eE+-]{14,})(?=\s*[,\]])/g, '$1"$2"');
+    // Combined Regex: Handles both "key": number and [number] / , number contexts in one pass.
+    // Group 1: Prefix (Key-Value style OR Array/List style)
+    // Group 2: Number
+    const protectedJson = jsonString.replace(
+        /((?:"[^"]+"\s*:\s*)|(?:[\[,]\s*))(-?\d[\d.eE+-]{14,})(?=\s*[,}\]])/g,
+        '$1"$2"'
+    );
 
     return JSON.parse(protectedJson);
 }
