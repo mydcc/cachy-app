@@ -794,13 +794,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               .map((a: any) => Number(a[0])),
           }
           : null,
-        metricsTrend: marketData.metricsHistory
-          ? marketData.metricsHistory.slice(-10).map((m: any) => ({
-            t: getRelativeTimeString(new Date(m.time).toISOString(), "en"),
-            spread: m.spread.toFixed(5),
-            imb: (m.imbalance * 100).toFixed(1) + "%"
-          }))
-          : "Insufficient Data (Collecting...)"
       };
     }
 
