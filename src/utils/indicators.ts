@@ -441,7 +441,7 @@ export const JSIndicators = {
       return res;
     };
 
-    let kPoints = stochSingle(rsiRaw, kPeriod);
+    let kPoints: Float64Array = stochSingle(rsiRaw, kPeriod);
 
     if (smoothK > 1) {
       kPoints = this.sma(kPoints, smoothK);
