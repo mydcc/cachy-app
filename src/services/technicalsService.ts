@@ -30,6 +30,7 @@ import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData } from "
 import { type Kline } from "../utils/indicators";
 import {
   calculateAllIndicators,
+  calculateIndicatorsFromArrays,
   getEmptyData,
 } from "../utils/technicalsCalculator";
 
@@ -311,15 +312,24 @@ export const technicalsService = {
       const closes = new Float64Array(len);
       const volumes = new Float64Array(len);
 
+      // Helper for fast and safe conversion
+      const toNumFast = (val: any): number => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+           const p = parseFloat(val);
+           return isNaN(p) ? 0 : p;
+        }
+        try { return new Decimal(val).toNumber(); } catch { return 0; }
+      };
+
       for (let i = 0; i < len; i++) {
         const k = klinesInput[i];
         times[i] = k.time;
-        // Fast conversion: Use number if possible, else Decimal.toNumber()
-        opens[i] = typeof k.open === 'number' ? k.open : new Decimal(k.open).toNumber();
-        highs[i] = typeof k.high === 'number' ? k.high : new Decimal(k.high).toNumber();
-        lows[i] = typeof k.low === 'number' ? k.low : new Decimal(k.low).toNumber();
-        closes[i] = typeof k.close === 'number' ? k.close : new Decimal(k.close).toNumber();
-        volumes[i] = k.volume ? (typeof k.volume === 'number' ? k.volume : new Decimal(k.volume).toNumber()) : 0;
+        opens[i] = toNumFast(k.open);
+        highs[i] = toNumFast(k.high);
+        lows[i] = toNumFast(k.low);
+        closes[i] = toNumFast(k.close);
+        volumes[i] = k.volume ? toNumFast(k.volume) : 0;
       }
 
       // 3. Post Message with Transferables
@@ -402,39 +412,52 @@ export const technicalsService = {
       return cached.data;
     }
 
-    // 2. Normalize Data to strict Kline format with Decimals
-    const klines: Kline[] = [];
-    let prevClose = new Decimal(0);
+    // 2. Prepare Arrays directly (Fast Path)
+    // Avoid creating thousands of Decimal objects and Kline objects
+    const len = klinesInput.length;
+    const times: number[] = [];
+    const opens: number[] = [];
+    const highs: number[] = [];
+    const lows: number[] = [];
+    const closes: number[] = [];
+    const volumes: number[] = [];
 
-    const toDec = (
-      val: any,
-      fallback: Decimal,
-    ): Decimal => {
-      if (val instanceof Decimal) return val;
-      if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val);
-      if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
-      if (typeof val === "string") return new Decimal(val);
-      return fallback;
+    let prevClose = 0;
+
+    const toNum = (val: any, fallback: number): number => {
+        if (typeof val === 'number' && !isNaN(val)) return val;
+        if (typeof val === 'string') {
+          const parsed = parseFloat(val);
+          return isNaN(parsed) ? fallback : parsed;
+        }
+        if (val instanceof Decimal) return val.toNumber();
+        if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val).toNumber();
+        return fallback;
     };
 
-    klinesInput.forEach((k) => {
-      const time = k.time;
-      const close = toDec(k.close, prevClose);
-      const safeClose =
-        close.isZero() && !prevClose.isZero() ? prevClose : close;
-      const open = toDec(k.open, safeClose);
-      const high = toDec(k.high, safeClose);
-      const low = toDec(k.low, safeClose);
-      const volume = toDec(k.volume, new Decimal(0));
+    for (let i = 0; i < len; i++) {
+        const k = klinesInput[i];
+        const close = toNum(k.close, prevClose);
+        // Data cleaning: If close is 0 and we have a previous close, use that.
+        const safeClose = (close === 0 && prevClose !== 0) ? prevClose : close;
 
-      if (!safeClose.isZero()) {
-        klines.push({ open, high, low, close: safeClose, volume, time });
-        prevClose = safeClose;
-      }
-    });
+        if (safeClose !== 0) {
+            times.push(k.time);
+            closes.push(safeClose);
+            opens.push(toNum(k.open, safeClose));
+            highs.push(toNum(k.high, safeClose));
+            lows.push(toNum(k.low, safeClose));
+            volumes.push(k.volume ? toNum(k.volume, 0) : 0);
 
-    // Use Shared Calculator with enabled indicators filter
-    const result = calculateAllIndicators(klines, settings, enabledIndicators);
+            prevClose = safeClose;
+        }
+    }
+
+    // Use Shared Calculator with enabled indicators filter directly on arrays
+    const result = calculateIndicatorsFromArrays(
+        times, opens, highs, lows, closes, volumes,
+        settings, enabledIndicators
+    );
 
     // Store in cache with aggressive eviction
     if (calculationCache.size >= MAX_CACHE_SIZE) {
