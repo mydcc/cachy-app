@@ -28,6 +28,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { slidingWindowMax, slidingWindowMin } from "./slidingWindow";
 
 // --- Types ---
 
@@ -144,18 +145,13 @@ export const JSIndicators = {
   ): number[] {
     const result = new Array(close.length).fill(NaN);
     if (close.length < kPeriod) return result;
+
+    const highestHighs = slidingWindowMax(high, kPeriod);
+    const lowestLows = slidingWindowMin(low, kPeriod);
+
     for (let i = kPeriod - 1; i < close.length; i++) {
-      // Optimization: Manual loop instead of slice + spread
-      let lookbackHigh = -Infinity;
-      let lookbackLow = Infinity;
-      const start = i - kPeriod + 1;
-      const end = i + 1;
-
-      for (let j = start; j < end; j++) {
-        if (high[j] > lookbackHigh) lookbackHigh = high[j];
-        if (low[j] < lookbackLow) lookbackLow = low[j];
-      }
-
+      const lookbackHigh = highestHighs[i];
+      const lookbackLow = lowestLows[i];
       const range = lookbackHigh - lookbackLow;
       result[i] = range === 0 ? 50 : ((close[i] - lookbackLow) / range) * 100;
     }
@@ -275,17 +271,35 @@ export const JSIndicators = {
     const sma = this.sma(data, period);
     const upper = new Array(data.length).fill(NaN);
     const lower = new Array(data.length).fill(NaN);
+    const len = data.length;
 
-    for (let i = period - 1; i < data.length; i++) {
-      const avg = sma[i];
-      let sumSqDiff = 0;
+    if (len < period) return { middle: sma, upper, lower };
 
-      // Optimization: Manual loop
-      const start = i - period + 1;
-      const end = i + 1;
-      for (let j = start; j < end; j++) {
-        sumSqDiff += Math.pow(data[j] - avg, 2);
+    let sumSq = 0;
+    // Initial window
+    for (let i = 0; i < period; i++) {
+      sumSq += data[i] * data[i];
+    }
+
+    // Calculation
+    for (let i = period - 1; i < len; i++) {
+      // Update sliding window SumSq
+      if (i >= period) {
+        const valOut = data[i - period];
+        const valIn = data[i];
+        sumSq = sumSq - valOut * valOut + valIn * valIn;
       }
+
+      // Avoid negative sumSq due to float precision
+      if (sumSq < 0) sumSq = 0;
+
+      const avg = sma[i];
+      // Variance = E[X^2] - (E[X])^2
+      // But we need sumSqDiff = Sum((x-avg)^2) = Sum(x^2) - N*avg^2
+      let sumSqDiff = sumSq - period * avg * avg;
+
+      // Precision safety
+      if (sumSqDiff < 0) sumSqDiff = 0;
 
       const standardDev = Math.sqrt(sumSqDiff / period);
       upper[i] = avg + standardDev * stdDev;
@@ -397,17 +411,12 @@ export const JSIndicators = {
     // We need a helper for simple stochastic on a single array
     const stochSingle = (src: NumberArray, len: number) => {
       const res = new Array(src.length).fill(NaN);
-      for (let i = len - 1; i < src.length; i++) {
-        // Optimization: Manual loop
-        let min = Infinity;
-        let max = -Infinity;
-        const start = i - len + 1;
-        const end = i + 1;
-        for (let j = start; j < end; j++) {
-          if (src[j] < min) min = src[j];
-          if (src[j] > max) max = src[j];
-        }
+      const minArr = slidingWindowMin(src, len);
+      const maxArr = slidingWindowMax(src, len);
 
+      for (let i = len - 1; i < src.length; i++) {
+        const min = minArr[i];
+        const max = maxArr[i];
         const range = max - min;
         res[i] = range === 0 ? 50 : ((src[i] - min) / range) * 100;
       }
@@ -434,17 +443,12 @@ export const JSIndicators = {
     const result = new Array(close.length).fill(NaN);
     if (close.length < period) return result;
 
-    for (let i = period - 1; i < close.length; i++) {
-      // Optimization: Manual loop
-      let highestHigh = -Infinity;
-      let lowestLow = Infinity;
-      const start = i - period + 1;
-      const end = i + 1;
-      for (let j = start; j < end; j++) {
-        if (high[j] > highestHigh) highestHigh = high[j];
-        if (low[j] < lowestLow) lowestLow = low[j];
-      }
+    const highestHighs = slidingWindowMax(high, period);
+    const lowestLows = slidingWindowMin(low, period);
 
+    for (let i = period - 1; i < close.length; i++) {
+      const highestHigh = highestHighs[i];
+      const lowestLow = lowestLows[i];
       const range = highestHigh - lowestLow;
       result[i] = range === 0 ? 0 : ((highestHigh - close[i]) / range) * -100;
     }
@@ -473,20 +477,16 @@ export const JSIndicators = {
 
     const log10n = Math.log10(period);
 
+    const maxHighs = slidingWindowMax(high, period);
+    const minLows = slidingWindowMin(low, period);
+
+    let sumTr = 0;
+    for (let i = 0; i < period; i++) sumTr += tr[i];
+
     for (let i = period; i < close.length; i++) {
-      let sumTr = 0;
-      for (let j = 0; j < period; j++) sumTr += tr[i - j];
-
-      // Optimization: Manual loop
-      let maxHigh = -Infinity;
-      let minLow = Infinity;
-      const start = i - period + 1;
-      const end = i + 1;
-      for (let j = start; j < end; j++) {
-        if (high[j] > maxHigh) maxHigh = high[j];
-        if (low[j] < minLow) minLow = low[j];
-      }
-
+      sumTr = sumTr - tr[i - period] + tr[i];
+      const maxHigh = maxHighs[i];
+      const minLow = minLows[i];
       const range = maxHigh - minLow;
 
       if (range === 0) result[i] = 0;
@@ -511,23 +511,17 @@ export const JSIndicators = {
     // Senkou Span B (Leading Span B): (52-period high + 52-period low)/2
     // Chikou Span (Lagging Span): Close plotted 26 days in the past (handled by UI offset mostly, but here we just return close)
 
-    const getAvg = (period: number, idx: number) => {
-      if (idx < period - 1) return 0;
-
-      // Optimization: Manual loop
-      let h = -Infinity;
-      let l = Infinity;
-      const start = idx - period + 1;
-      const end = idx + 1;
-
-      for (let j = start; j < end; j++) {
-        if (high[j] > h) h = high[j];
-        if (low[j] < l) l = low[j];
-      }
-      return (h + l) / 2;
-    };
-
     const len = high.length;
+
+    const convHigh = slidingWindowMax(high, conversionPeriod);
+    const convLow = slidingWindowMin(low, conversionPeriod);
+
+    const baseHigh = slidingWindowMax(high, basePeriod);
+    const baseLow = slidingWindowMin(low, basePeriod);
+
+    const spanBHigh = slidingWindowMax(high, spanBPeriod);
+    const spanBLow = slidingWindowMin(low, spanBPeriod);
+
     const conversion = new Array(len).fill(NaN);
     const base = new Array(len).fill(NaN);
     const spanA = new Array(len).fill(NaN);
@@ -535,10 +529,25 @@ export const JSIndicators = {
     // const lagging = close.map((c, i) => c); // Just the close price
 
     for (let i = 0; i < len; i++) {
-      conversion[i] = getAvg(conversionPeriod, i);
-      base[i] = getAvg(basePeriod, i);
+      if (i >= conversionPeriod - 1) {
+        conversion[i] = (convHigh[i] + convLow[i]) / 2;
+      } else {
+        conversion[i] = 0;
+      }
+
+      if (i >= basePeriod - 1) {
+        base[i] = (baseHigh[i] + baseLow[i]) / 2;
+      } else {
+        base[i] = 0;
+      }
+
       spanA[i] = (conversion[i] + base[i]) / 2;
-      spanB[i] = getAvg(spanBPeriod, i);
+
+      if (i >= spanBPeriod - 1) {
+        spanB[i] = (spanBHigh[i] + spanBLow[i]) / 2;
+      } else {
+        spanB[i] = 0;
+      }
     }
 
     // Span A and B are shifted FORWARD by displacement (usually 26)
@@ -651,16 +660,12 @@ export const JSIndicators = {
     const buyStop = new Array(len).fill(NaN);
     const sellStop = new Array(len).fill(NaN);
 
+    const highestHighs = slidingWindowMax(high, period);
+    const lowestLows = slidingWindowMin(low, period);
+
     for (let i = period; i < len; i++) {
-      // Optimization: Manual loop
-      let highestHigh = -Infinity;
-      let lowestLow = Infinity;
-      const start = i - period + 1;
-      const end = i + 1;
-      for (let j = start; j < end; j++) {
-        if (high[j] > highestHigh) highestHigh = high[j];
-        if (low[j] < lowestLow) lowestLow = low[j];
-      }
+      const highestHigh = highestHighs[i];
+      const lowestLow = lowestLows[i];
 
       buyStop[i] = highestHigh - atr[i] * multiplier;
       sellStop[i] = lowestLow + atr[i] * multiplier;

@@ -4,7 +4,7 @@ import { JSIndicators } from '../../src/utils/indicators';
 import { DivergenceScanner } from '../../src/utils/divergenceScanner';
 
 // Setup data
-const LENGTH = 1000;
+const LENGTH = 5000; // Increased length to make O(N*K) more visible
 const times = new Float64Array(LENGTH);
 const opens = new Float64Array(LENGTH);
 const highs = new Float64Array(LENGTH);
@@ -81,20 +81,28 @@ runBench('calculateIndicatorsFromArrays (Full)', () => {
         settings as any,
         enabledIndicators
     );
-}, 100);
+}, 50);
+
+runBench('Bollinger Bands (20)', () => {
+    JSIndicators.bb(closes, 20, 2);
+}, 200);
+
+runBench('Stochastic (14)', () => {
+    JSIndicators.stoch(highs, lows, closes, 14);
+}, 200);
 
 // Bench Individual Heavy Hitters
 runBench('Volume Profile', () => {
     JSIndicators.volumeProfile(highs, lows, closes, volumes, 24);
-}, 500);
+}, 200);
 
 runBench('Ichimoku', () => {
     JSIndicators.ichimoku(highs, lows, 9, 26, 52, 26);
-}, 500);
+}, 200);
 
 // Mock divergence data
 const rsiData = JSIndicators.rsi(closes, 14);
 
 runBench('Divergence Scan (RSI)', () => {
     DivergenceScanner.scan(highs, lows, rsiData, 'RSI');
-}, 500);
+}, 200);
