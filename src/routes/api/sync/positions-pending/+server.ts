@@ -19,6 +19,10 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 
+// SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
+// It receives API keys from the client to perform a signed request to Bitunix.
+// Ensure strictly HTTPS is used. Request bodies are NOT logged on error.
+
 export const POST: RequestHandler = async ({ request }) => {
   const { apiKey, apiSecret } = await request.json();
 
@@ -30,7 +34,9 @@ export const POST: RequestHandler = async ({ request }) => {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
     return json({ data: positions });
   } catch (e: any) {
-    console.error(`Error fetching pending positions from Bitunix:`, e);
+    // SECURITY: Do not log the full error object if it might contain the request context or keys.
+    // Logging only the message is safer.
+    console.error(`Error fetching pending positions from Bitunix:`, e.message);
     return json(
       { error: e.message || "Failed to fetch pending positions" },
       { status: 500 },

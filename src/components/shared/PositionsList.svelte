@@ -166,7 +166,12 @@
                   onclick={togglePnlMode}
                   role="button"
                   tabindex="0"
-                  onkeydown={(e) => e.key === "Enter" && togglePnlMode()}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      togglePnlMode();
+                    }
+                  }}
                 >
                   {#if pnlMode === "bar"}
                     <!-- Bar Representation -->
@@ -248,7 +253,12 @@
                 onclick={togglePnlMode}
                 role="button"
                 tabindex="0"
-                onkeydown={(e) => e.key === "Enter" && togglePnlMode()}
+                onkeydown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    togglePnlMode();
+                  }
+                }}
               >
                 <span
                   class="font-bold text-lg leading-none"

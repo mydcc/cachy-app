@@ -136,19 +136,19 @@ class TradeService {
         return payload;
     }
 
-    public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
-        // 1. Get position from OMS (Source of Truth)
+    // Hardening: Centralized Freshness Check
+    private async ensurePositionFreshness(symbol: string, positionSide: "long" | "short") {
         let positions = omsService.getPositions();
         let position = positions.find(
             (p) => p.symbol === symbol && p.side === positionSide
         );
 
-        // FRESHNESS CHECK (Hardening)
         // If cached position is stale (> 200ms), force a refresh to ensure quantity is correct.
         const MAX_POS_AGE_MS = 200;
         const now = Date.now();
+
         if (position && position.lastUpdated && (now - position.lastUpdated > MAX_POS_AGE_MS)) {
-             logger.warn("market", `[FlashClose] Position stale (${now - position.lastUpdated}ms). Forcing refresh.`);
+             logger.warn("market", `[Freshness] Position stale (${now - position.lastUpdated}ms). Forcing refresh.`);
              try {
                 await this.fetchOpenPositionsFromApi();
                 positions = omsService.getPositions();
@@ -156,28 +156,29 @@ class TradeService {
                     (p) => p.symbol === symbol && p.side === positionSide
                 );
              } catch (e) {
-                logger.error("market", `[FlashClose] Stale refresh failed`, e);
-                // Proceed with stale data? No, unsafe.
-                // But better to try than do nothing?
-                // Decision: Proceed but log critical warning.
+                logger.error("market", `[Freshness] Stale refresh failed`, e);
              }
         }
 
         if (!position) {
-            logger.warn("market", `[FlashClose] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
-
+            logger.warn("market", `[Freshness] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
             try {
-                // Force sync open positions
                 await this.fetchOpenPositionsFromApi();
-                // Re-check
                 positions = omsService.getPositions();
                 position = positions.find(
                     (p) => p.symbol === symbol && p.side === positionSide
                 );
             } catch (e) {
-                logger.error("market", `[FlashClose] API Fallback failed`, e);
+                logger.error("market", `[Freshness] API Fallback failed`, e);
             }
         }
+
+        return position;
+    }
+
+    public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
+        // 1. Get fresh position
+        const position = await this.ensurePositionFreshness(symbol, positionSide);
 
         if (!position) {
             logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
@@ -354,11 +355,8 @@ class TradeService {
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }) {
         const { symbol, positionSide, amount } = params;
 
-        // 1. Get position from OMS
-        const positions = omsService.getPositions();
-        const position = positions.find(
-            (p) => p.symbol === symbol && p.side === positionSide
-        );
+        // 1. Get fresh position
+        const position = await this.ensurePositionFreshness(symbol, positionSide);
 
         if (!position) {
             throw new Error("tradeErrors.positionNotFound");

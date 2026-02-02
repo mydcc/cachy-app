@@ -15,6 +15,7 @@ import { logger } from "./logger";
 import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 import { dbService } from "./dbService";
 import { z } from "zod";
+import CryptoJS from "crypto-js";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -92,8 +93,11 @@ function matchesSymbol(text: string, symbol: string): boolean {
   const cleanSym = symbol.toUpperCase().replace("USDT", "").replace("USDC", "");
   const keywords = COIN_ALIASES[cleanSym] || [cleanSym];
 
-  const lowerText = text.toLowerCase();
-  return keywords.some((k) => lowerText.includes(k.toLowerCase()));
+  return keywords.some((k) => {
+      const escaped = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      return regex.test(text);
+  });
 }
 
 const CACHE_PREFIX_NEWS_COIN = "news_"; // Prefixed ID for IDB
@@ -171,9 +175,9 @@ async function pruneOldCaches() {
  */
 function generateNewsId(item: NewsItem): string {
   // Einfacher Hash aus URL + Titel
-  if (typeof btoa === 'undefined') return item.url; // Fallback for test env if polyfill fails
-  // Increase ID length to prevent collisions on similar URLs
-  return btoa(encodeURIComponent(item.url + item.title)).substring(0, 128);
+  const raw = encodeURIComponent(item.url + item.title);
+  // Using CryptoJS for consistent, safe encoding (replaces unsafe btoa)
+  return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(raw)).substring(0, 128);
 }
 
 export const newsService = {

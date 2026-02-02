@@ -223,7 +223,11 @@ export class MarketManager {
       // 1. Apply Market Data Updates (Price, Ticker, etc.)
       if (this.pendingUpdates.size > 0) {
         this.pendingUpdates.forEach((partial, symbol) => {
-          this.applyUpdate(symbol, partial);
+          try {
+            this.applyUpdate(symbol, partial);
+          } catch (e) {
+            if (import.meta.env.DEV) console.error(`[Market] Error flushing update for ${symbol}`, e);
+          }
         });
         this.pendingUpdates.clear();
       }
@@ -233,8 +237,12 @@ export class MarketManager {
         this.pendingKlineUpdates.forEach((rawKlines, key) => {
           const [symbol, timeframe] = key.split(":");
           if (symbol && timeframe) {
-            // Process the batch
-            this.applySymbolKlines(symbol, timeframe, rawKlines, "ws", true);
+            try {
+              // Process the batch
+              this.applySymbolKlines(symbol, timeframe, rawKlines, "ws", true);
+            } catch (e) {
+              if (import.meta.env.DEV) console.error(`[Market] Error flushing klines for ${key}`, e);
+            }
           }
         });
         this.pendingKlineUpdates.clear();

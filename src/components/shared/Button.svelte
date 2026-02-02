@@ -18,6 +18,7 @@
 <script lang="ts">
   interface Props {
     title?: string;
+    ariaLabel?: string;
     onClick?: () => void;
     children?: import("svelte").Snippet;
     extraClasses?: string;
@@ -26,6 +27,7 @@
 
   let {
     title,
+    ariaLabel,
     onClick,
     children,
     extraClasses = "",
@@ -38,6 +40,7 @@
   {disabled}
   onclick={onClick}
   {title}
+  aria-label={ariaLabel || title}
 >
   {#if children}
     {@render children()}

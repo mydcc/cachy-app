@@ -44,7 +44,7 @@ class MarketWatcher {
   // Helper to store subscriptions intent
   private historyLocks = new Set<string>();
 
-  private staggerTimeouts = new Set<any>(); // Track staggered requests to prevent zombie calls
+  private staggerTimeouts = new Set<ReturnType<typeof setTimeout>>(); // Track staggered requests to prevent zombie calls
   private maxConcurrentPolls = 6; // Reduced to mitigate rate limits (aligned with strict token bucket)
   private inFlight = 0;
   private lastErrorLog = 0;
@@ -433,19 +433,16 @@ class MarketWatcher {
 
             // Hardening: Wrap API calls in strict timeout
             const timeoutMs = 10000;
-            const withTimeout = <T>(promise: Promise<T>): Promise<T> => {
-              return Promise.race([
-                promise,
-                new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
-              ]);
-            };
+            // Removed redundant withTimeout wrapper which caused memory leaks.
+            // apiService handles timeout internally.
 
             if (channel === "price" || channel === "ticker") {
-                const data = await withTimeout(apiService.fetchTicker24h(
+                const data = await apiService.fetchTicker24h(
                   symbol,
                   provider,
                   priority,
-                ));
+                  timeoutMs
+                );
                 marketState.updateSymbol(symbol, {
                   lastPrice: data.lastPrice,
                   highPrice: data.highPrice,
@@ -456,9 +453,9 @@ class MarketWatcher {
                 });
             } else if (channel.startsWith("kline_")) {
                 const tf = channel.replace("kline_", "");
-                const klines = await withTimeout(provider === "bitget"
-                  ? apiService.fetchBitgetKlines(symbol, tf, 1000)
-                  : apiService.fetchBitunixKlines(symbol, tf, 1000));
+                const klines = await (provider === "bitget"
+                  ? apiService.fetchBitgetKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs)
+                  : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
 
                 if (klines && klines.length > 0) {
                   marketState.updateSymbolKlines(symbol, tf, klines, "rest");
