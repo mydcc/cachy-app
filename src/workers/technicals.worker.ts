@@ -30,6 +30,7 @@ import { Decimal } from "decimal.js";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { BufferPool } from "../utils/bufferPool";
 import { StatefulTechnicalsCalculator } from "../utils/statefulTechnicalsCalculator";
+import { WasmTechnicalsCalculator } from "../utils/WasmTechnicalsCalculator";
 import { loadWasm, isWasmAvailable } from "../utils/wasmTechnicals";
 import type { Kline } from "../utils/indicators";
 import type {
@@ -41,8 +42,15 @@ import { calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 
 const ctx: Worker = self as any;
 const pool = new BufferPool();
-const calculators = new Map<string, StatefulTechnicalsCalculator>(); // JS State
-let wasmModule: any = null; // Placeholder for WASM module
+// Unified Interface for JS and WASM calculators
+interface ITechnicalsCalculator {
+    initialize(history: Kline[], settings: any, enabledIndicators?: any): any;
+    update(tick: Kline): any;
+    shift?(newCandle: Kline): void;
+}
+
+const calculators = new Map<string, ITechnicalsCalculator>();
+let wasmModule: any = null;
 
 // Try to load WASM on worker start
 loadWasm().then(mod => {
@@ -64,15 +72,23 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     else if (type === "INITIALIZE" && payload) {
       const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
       const key = `${symbol}:${timeframe}`;
-
-      // Future WASM Integration Point:
-      // if (wasmModule && canUseWasm(settings)) {
-      //    const calc = new wasmModule.TechnicalsCalculator();
-      //    calc.initialize(...)
-      // }
-
-      const calc = new StatefulTechnicalsCalculator();
       const klinesDec = convertToDecimalKlines(klines);
+
+      let calc: ITechnicalsCalculator;
+
+      // Use WASM if available and not explicitly disabled via settings
+      // Note: Settings check logic can be added later
+      if (wasmModule) {
+          try {
+              calc = new WasmTechnicalsCalculator(wasmModule);
+              // console.log(`[Worker] Using WASM for ${key}`);
+          } catch (e) {
+              console.warn("[Worker] WASM Init failed, falling back to JS", e);
+              calc = new StatefulTechnicalsCalculator();
+          }
+      } else {
+          calc = new StatefulTechnicalsCalculator();
+      }
 
       const result = calc.initialize(klinesDec, settings, enabledIndicators);
       calculators.set(key, calc);
@@ -137,7 +153,9 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
                 close: new Decimal(kline.close),
                 volume: new Decimal(kline.volume),
             };
-            calc.shift(newCandle);
+            if (calc.shift) {
+                calc.shift(newCandle);
+            }
             // After shift, we usually want an immediate update for the new tick
             const result = calc.update(newCandle);
             ctx.postMessage({ type: "RESULT", payload: result, id });
