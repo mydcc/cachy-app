@@ -50,6 +50,11 @@ export interface MetricSnapshot {
   price: number;
 }
 
+// Permissive update type for WebSocket data (allows strings/numbers for Decimals)
+export type MarketUpdatePayload = {
+  [K in keyof MarketData]?: MarketData[K] | string | number | null;
+};
+
 export type WSStatus =
   | "disconnected"
   | "connecting"
@@ -87,7 +92,7 @@ export class MarketManager {
   });
 
   private cacheMetadata = new Map<string, CacheMetadata>();
-  private pendingUpdates = new Map<string, Partial<MarketData>>();
+  private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
   private pendingKlineUpdates = new Map<string, any[]>();
   private cleanupIntervalId: any = null;
@@ -197,7 +202,7 @@ export class MarketManager {
     }
   }
 
-  updateSymbol(symbol: string, partial: any) {
+  updateSymbol(symbol: string, partial: MarketUpdatePayload) {
     // Instead of updating immediately, we buffer updates
     const existing = this.pendingUpdates.get(symbol) || {};
 
@@ -207,9 +212,11 @@ export class MarketManager {
     this.pendingUpdates.set(symbol, { ...existing, ...partial });
 
     // Safety: Prevent memory leak if flush interval stalls
-    if (this.pendingUpdates.size > 100) {
+    // Dynamic limit based on cache size (5x cache size to allow for burst)
+    const limit = (settingsState.marketCacheSize || 20) * 5;
+    if (this.pendingUpdates.size > limit) {
       if (import.meta.env.DEV) {
-        console.warn("[Market] Flush buffer overflow, forcing flush.");
+        console.warn(`[Market] Flush buffer overflow (${this.pendingUpdates.size} > ${limit}), forcing flush.`);
       }
       this.flushUpdates();
     }
@@ -360,7 +367,9 @@ export class MarketManager {
       this.pendingKlineUpdates.set(key, pending);
 
       // Safety check: force flush if too many updates pending
-      if (this.pendingKlineUpdates.size > 200) {
+      // Klines need more buffer space (10x cache size)
+      const limit = (settingsState.marketCacheSize || 20) * 10;
+      if (this.pendingKlineUpdates.size > limit) {
         this.flushUpdates();
       }
     } else {

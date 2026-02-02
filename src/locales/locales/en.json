@@ -597,7 +597,9 @@
   },
   "languages": {
     "german": "German",
-    "english": "English"
+    "english": "English",
+    "de": "German",
+    "en": "English"
   },
   "settings": {
     "calculation": {
@@ -679,6 +681,11 @@
       "rotationSpeed": "Rotation Speed",
       "gyroscope": "Gyroscope Control",
       "gyroscopeDesc": "Control camera with device motion (Mobile)",
+      "gyroPermissionDenied": "Permission denied. Gyroscope control requires access to device sensors.",
+      "layoutModes": {
+        "standard": "Standard",
+        "floating": "Floating"
+      },
       "appearanceTitle": "Appearance & Design",
       "backgroundTitle": "Background",
       "layoutTitle": "Layout & Structure"
@@ -806,6 +813,7 @@
       "oscillators": "Oscillators",
       "movingAverages": "Moving Averages",
       "pivots": "Pivots",
+      "pivotsDesc": "Calculate standard pivot points (S/R)",
       "buy": "Buy",
       "sell": "Sell",
       "neutral": "Neutral",
@@ -819,7 +827,50 @@
       "vwap": "VWAP",
       "mfi": "MFI",
       "adx": "ADX",
-      "pivot": "Pivot"
+      "pivot": "Pivot",
+      "precision": "Data Precision",
+      "historyLimit": "History Scope (Candles)",
+      "syncRsi": "Synchronize RSI Timeframe",
+      "syncRsiDesc": "Use chart timeframe for RSI",
+      "pnlMode": "PnL Display Mode",
+      "favorites": "Favorite Timeframes",
+      "pnlModes": {
+        "absolute": "Absolute",
+        "percent": "Percent %",
+        "bar": "Visual Bar"
+      },
+      "rsi": {
+        "title": "RSI",
+        "showSignal": "Show Signal Line"
+      },
+      "stochRsi": {
+        "title": "Stoch RSI",
+        "len": "Len",
+        "rsiLen": "RSI Len"
+      },
+      "macd": {
+        "title": "MACD"
+      },
+      "superTrend": {
+        "title": "SuperTrend"
+      },
+      "bollingerBands": {
+        "title": "Bollinger Bands",
+        "stdDev": "StdDev"
+      },
+      "volumeMa": {
+        "title": "Volume MA"
+      },
+      "labels": {
+        "length": "Length",
+        "source": "Source",
+        "type": "Type",
+        "fast": "Fast",
+        "slow": "Slow",
+        "signal": "Signal",
+        "factor": "Factor",
+        "period": "Period"
+      }
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"

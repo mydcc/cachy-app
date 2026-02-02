@@ -597,7 +597,9 @@
   },
   "languages": {
     "german": "Deutsch",
-    "english": "Englisch"
+    "english": "Englisch",
+    "de": "Deutsch",
+    "en": "Englisch"
   },
   "settings": {
     "calculation": {
@@ -679,6 +681,11 @@
       "rotationSpeed": "Rotation",
       "gyroscope": "Gyroskop Steuerung",
       "gyroscopeDesc": "Kamera mit Bewegung steuern (Mobil)",
+      "gyroPermissionDenied": "Zugriff verweigert. Gyroskop-Steuerung benötigt Zugriff auf Gerätesensoren.",
+      "layoutModes": {
+        "standard": "Standard",
+        "floating": "Schwebend"
+      },
       "appearanceTitle": "Optik & Design",
       "layoutTitle": "Layout & Struktur",
       "backgroundTitle": "Hintergrund"
@@ -834,6 +841,7 @@
       "oscillators": "Oszillatoren",
       "movingAverages": "Gleitende Durchschnitte",
       "pivots": "Pivots",
+      "pivotsDesc": "Berechne Standard-Pivot-Punkte (S/R)",
       "buy": "Kaufen",
       "sell": "Verkaufen",
       "neutral": "Neutral",
@@ -847,7 +855,50 @@
       "vwap": "VWAP",
       "mfi": "MFI",
       "adx": "ADX",
-      "pivot": "Pivot"
+      "pivot": "Pivot",
+      "precision": "Datenpräzision",
+      "historyLimit": "Historien-Umfang (Kerzen)",
+      "syncRsi": "RSI-Timeframe synchronisieren",
+      "syncRsiDesc": "RSI nutzt Chart-Timeframe",
+      "pnlMode": "PnL Anzeigemodus",
+      "favorites": "Favorisierte Timeframes",
+      "pnlModes": {
+        "absolute": "Absolut",
+        "percent": "Prozent %",
+        "bar": "Visuelle Leiste"
+      },
+      "rsi": {
+        "title": "RSI",
+        "showSignal": "Signallinie anzeigen"
+      },
+      "stochRsi": {
+        "title": "Stoch RSI",
+        "len": "Len",
+        "rsiLen": "RSI Len"
+      },
+      "macd": {
+        "title": "MACD"
+      },
+      "superTrend": {
+        "title": "SuperTrend"
+      },
+      "bollingerBands": {
+        "title": "Bollinger Bänder",
+        "stdDev": "StdAbw"
+      },
+      "volumeMa": {
+        "title": "Volumen MA"
+      },
+      "labels": {
+        "length": "Länge",
+        "source": "Quelle",
+        "type": "Typ",
+        "fast": "Schnell",
+        "slow": "Langsam",
+        "signal": "Signal",
+        "factor": "Faktor",
+        "period": "Periode"
+      }
     },
     "candlestickPatterns": {
       "title": "Candlestick Muster Akademie"

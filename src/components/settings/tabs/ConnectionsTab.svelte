@@ -66,13 +66,13 @@
     const subTabs = [
         {
             id: "exchanges",
-            label: $_("settings.tabs.connections") || "Exchanges",
+            label: $_("settings.tabs.connections"),
         },
         {
             id: "data",
-            label: $_("settings.tabs.integrations") || "Data Services",
+            label: $_("settings.tabs.integrations"),
         },
-        { id: "rss", label: $_("settings.connections.rss") || "News Feeds" },
+        { id: "rss", label: $_("settings.connections.rss") },
     ];
 </script>
 
@@ -103,7 +103,7 @@
         {#if activeSubTab === "exchanges"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.connections.exchanges") || "Exchanges"}
+                    {$_("settings.connections.exchanges")}
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -121,8 +121,7 @@
                         <div class="body">
                             <div class="field-group">
                                 <label for="bitunix-key"
-                                    >{$_("settings.connections.apiKey") ||
-                                        "API Key"}</label
+                                    >{$_("settings.connections.apiKey")}</label
                                 >
                                 <div class="input-wrapper relative">
                                     <input
@@ -134,7 +133,7 @@
                                             settingsState.apiKeys.bitunix.key
                                         }
                                         class="api-input pr-8"
-                                        placeholder={$_("settings.connections.placeholders.apiKey") || "Bitunix Key"}
+                                        placeholder={$_("settings.connections.placeholders.apiKey")}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -165,8 +164,7 @@
                             </div>
                             <div class="field-group mt-3">
                                 <label for="bitunix-secret"
-                                    >{$_("settings.connections.apiSecret") ||
-                                        "API Secret"}</label
+                                    >{$_("settings.connections.apiSecret")}</label
                                 >
                                 <div class="input-wrapper relative">
                                     <input
@@ -178,7 +176,7 @@
                                             settingsState.apiKeys.bitunix.secret
                                         }
                                         class="api-input pr-8"
-                                        placeholder={$_("settings.connections.placeholders.apiSecret") || "Bitunix Secret"}
+                                        placeholder={$_("settings.connections.placeholders.apiSecret")}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -237,7 +235,7 @@
                                             settingsState.apiKeys.bitget.key
                                         }
                                         class="api-input pr-8"
-                                        placeholder={$_("settings.connections.placeholders.apiKey") || "Bitget Key"}
+                                        placeholder={$_("settings.connections.placeholders.apiKey")}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -282,7 +280,7 @@
                                             settingsState.apiKeys.bitget.secret
                                         }
                                         class="api-input pr-8"
-                                        placeholder={$_("settings.connections.placeholders.apiSecret") || "Bitget Secret"}
+                                        placeholder={$_("settings.connections.placeholders.apiSecret")}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -313,8 +311,7 @@
                             </div>
                             <div class="field-group mt-3">
                                 <label for="bitget-pass"
-                                    >{$_("settings.connections.passphrase") ||
-                                        "Passphrase"}</label
+                                    >{$_("settings.connections.passphrase")}</label
                                 >
                                 <div class="input-wrapper relative">
                                     <input
@@ -327,7 +324,7 @@
                                                 .passphrase
                                         }
                                         class="api-input pr-8"
-                                        placeholder={$_("settings.connections.placeholders.passphrase") || "Passphrase"}
+                                        placeholder={$_("settings.connections.placeholders.passphrase")}
                                     />
                                     <button
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -366,7 +363,7 @@
         {#if activeSubTab === "data"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.connections.dataServices") || "Data Services"}
+                    {$_("settings.connections.dataServices")}
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -498,7 +495,7 @@
         {#if activeSubTab === "rss"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.connections.rss") || "RSS Feeds"}
+                    {$_("settings.connections.rss")}
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -543,7 +540,7 @@
                 <h4
                     class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
                 >
-                    {$_("settings.connections.customFeeds") || "Custom Feeds"}
+                    {$_("settings.connections.customFeeds")}
                 </h4>
                 <div class="flex flex-col gap-2">
                     {#if settingsState.customRssFeeds}
@@ -553,7 +550,7 @@
                                     type="url"
                                     bind:value={settingsState.customRssFeeds[i]}
                                     class="api-input"
-                                    placeholder={$_("settings.connections.placeholders.url") || "https://..."}
+                                    placeholder={$_("settings.connections.placeholders.url")}
                                 />
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
@@ -584,7 +581,7 @@
                         disabled={(settingsState.customRssFeeds?.length || 0) >=
                             5}
                     >
-                        + {$_("settings.connections.addFeed") || "Add Feed"}
+                        + {$_("settings.connections.addFeed")}
                     </button>
                 </div>
             </section>
