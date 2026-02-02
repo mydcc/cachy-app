@@ -391,6 +391,70 @@ export const technicalsService = {
     }
   },
 
+  async initializeTechnicals(
+    symbol: string,
+    timeframe: string,
+    klines: {
+      time: number;
+      open: number | string | Decimal;
+      high: number | string | Decimal;
+      low: number | string | Decimal;
+      close: number | string | Decimal;
+      volume?: number | string | Decimal;
+    }[],
+    settings?: IndicatorSettings,
+    enabledIndicators?: Partial<Record<string, boolean>>
+  ): Promise<TechnicalsData> {
+    const { data: result } = await workerManager.postMessage({
+        type: "INITIALIZE",
+        payload: {
+            symbol,
+            timeframe,
+            klines: klines.map(k => ({
+                ...k,
+                open: k.open.toString(),
+                high: k.high.toString(),
+                low: k.low.toString(),
+                close: k.close.toString(),
+                volume: k.volume?.toString() || "0"
+            })),
+            settings,
+            enabledIndicators
+        }
+    });
+    return result;
+  },
+
+  async updateTechnicals(
+    symbol: string,
+    timeframe: string,
+    kline: {
+      time: number;
+      open: number | string | Decimal;
+      high: number | string | Decimal;
+      low: number | string | Decimal;
+      close: number | string | Decimal;
+      volume?: number | string | Decimal;
+    }
+  ): Promise<TechnicalsData> {
+    const { data: result } = await workerManager.postMessage({
+        type: "UPDATE",
+        payload: {
+            symbol,
+            timeframe,
+            kline: {
+                ...kline,
+                open: kline.open.toString(),
+                high: kline.high.toString(),
+                low: kline.low.toString(),
+                close: kline.close.toString(),
+                volume: kline.volume?.toString() || "0"
+            }
+        }
+    });
+    return result;
+  },
+
   async calculateTechnicalsFromBuffers(
     buffers: KlineBuffers,
     settings?: IndicatorSettings,

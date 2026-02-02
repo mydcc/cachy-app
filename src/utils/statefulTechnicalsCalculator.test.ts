@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { StatefulTechnicalsCalculator } from '../../src/utils/statefulTechnicalsCalculator';
 import { Decimal } from 'decimal.js';
 
-function mockKline(time, close) {
+function mockKline(time: number, close: number) {
     return {
         time,
         open: new Decimal(close),
@@ -31,6 +31,8 @@ describe('StatefulTechnicalsCalculator', () => {
         // Check Init
         const initEma = initResult.movingAverages.find(ma => ma.name === "EMA" && ma.params === "10");
         expect(initEma).toBeDefined();
+        if (!initEma) return; // TS Guard
+
         expect(initEma.value).toBeGreaterThan(100);
 
         // Update with same price (simulation of "tick" on current candle)
@@ -51,6 +53,7 @@ describe('StatefulTechnicalsCalculator', () => {
         // Let's verify it calculated correctly as a NEW point
         // PrevEMA (approx 144.5) + k * (149 - 144.5)
         // It should differ
+        if (!updateEma) throw new Error("updateEma undefined");
         expect(updateEma.value).not.toBe(initEma.value);
 
         // Update with changed price (simulation of price move)
@@ -59,34 +62,7 @@ describe('StatefulTechnicalsCalculator', () => {
         const moveResult = calc.update(movedTick);
         const moveEma = moveResult.movingAverages.find(ma => ma.name === "EMA" && ma.params === "10");
 
-        // Expected Change
-        // EMA_new = EMA_prev + K * (Price - EMA_prev)
-        // Wait, 'update' uses the PREVIOUS stored state.
-        // The stored state is the EMA at the END of the previous candle (index 48)?
-        // No, 'initialize' sets 'lastCandle' to the end of history (index 49).
-        // And 'reconstructState' sets 'prevEma' to the FINAL EMA value (index 49).
-
-        // If we call 'update', we are essentially RE-CALCULATING the current candle (index 49) or a NEW candle (index 50)?
-        // My implementation of `updateEmaGroup` uses `state.prevEma` as the anchor.
-        // If `initialize` sets `state.prevEma` to the value at T=49...
-        // And we call `update` with T=49...
-        // Then we are calculating T=50 effectively using T=49 as base?
-        // OR are we re-calculating T=49?
-
-        // Let's check `StatefulTechnicalsCalculator.reconstructState`.
-        // `this.state.ema![period] = { prevEma: ma.value };`
-        // `ma.value` is the EMA at the END of the history (T=49).
-
-        // So `state.prevEma` = EMA[49].
-
-        // `update(tick)` calls `updateEma(state.prevEma, price)`.
-        // `updateEma` does `prev + k * (price - prev)`.
-        // This calculates EMA[next].
-
-        // So `update` effectively calculates the NEXT candle (T=50) given the current Price.
-        // This is correct for "Realtime Candle formation" if history was "Closed Candles".
-        // IE: History = [0..49] (Closed). Tick is for Candle 50 (Open/Forming).
-        // Correct.
+        if (!moveEma) throw new Error("moveEma undefined");
 
         expect(moveEma.value).not.toBe(initEma.value);
         expect(moveEma.value).toBeGreaterThan(initEma.value);
@@ -106,6 +82,7 @@ describe('StatefulTechnicalsCalculator', () => {
         const calc = new StatefulTechnicalsCalculator();
         const initResult = calc.initialize(history, settings, enabled);
         const initRsi = initResult.oscillators.find(o => o.name === "RSI");
+        if (!initRsi) return; // TS Guard
 
         // Next Tick
         const nextPrice = 110; // Spike
@@ -113,6 +90,8 @@ describe('StatefulTechnicalsCalculator', () => {
 
         const updateResult = calc.update(nextTick);
         const updateRsi = updateResult.oscillators.find(o => o.name === "RSI");
+
+        if (!updateRsi) throw new Error("updateRsi undefined");
 
         expect(updateRsi.value).toBeDefined();
         expect(updateRsi.value).not.toBe(initRsi.value);
