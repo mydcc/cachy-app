@@ -1192,6 +1192,40 @@ export const JSIndicators = {
 
     return result;
   },
+
+  // --- Incremental Helpers (O(1) Updates) ---
+
+  updateEma(prev: number, val: number, period: number): number {
+    const k = 2 / (period + 1);
+    return (val - prev) * k + prev;
+  },
+
+  updateSma(prevSma: number, newVal: number, oldVal: number, period: number): number {
+    return prevSma + (newVal - oldVal) / period;
+  },
+
+  updateSmma(prev: number, val: number, period: number): number {
+    // (Prior * (n-1) + Current) / n
+    return (prev * (period - 1) + val) / period;
+  },
+
+  updateRsi(
+    prevAvgGain: number,
+    prevAvgLoss: number,
+    currentPrice: number,
+    prevPrice: number,
+    period: number,
+  ) {
+    const diff = currentPrice - prevPrice;
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+
+    const avgGain = (prevAvgGain * (period - 1) + gain) / period;
+    const avgLoss = (prevAvgLoss * (period - 1) + loss) / period;
+
+    const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    return { rsi, avgGain, avgLoss };
+  },
 };
 
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---
