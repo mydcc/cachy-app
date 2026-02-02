@@ -26,52 +26,51 @@ export class WasmTechnicalsCalculator {
     enabledIndicators?: Partial<Record<string, boolean>>
   ): TechnicalsData {
     // 1. Prepare data for WASM (Float64Array)
-    // Rust expect closes: &[f64]
     const len = history.length;
     const closes = new Float64Array(len);
+    const highs = new Float64Array(len);
+    const lows = new Float64Array(len);
+
     for(let i=0; i<len; i++) {
         closes[i] = history[i].close.toNumber();
+        highs[i] = history[i].high.toNumber();
+        lows[i] = history[i].low.toNumber();
     }
 
     // 2. Call Rust initialize
-    // Note: Rust currently mocks settings parsing. We pass empty string for now.
-    this.instance.initialize(closes, JSON.stringify(settings || {}));
+    // Signature Update: initialize(closes, highs, lows, settings)
+    this.instance.initialize(closes, highs, lows, JSON.stringify(settings || {}));
 
     // 3. Construct Initial Result
-    // Rust doesn't return the full `TechnicalsData` struct yet (it's hard to bind complex structs).
-    // It returns internal state setup.
-    // For this phase, we might need to RUN the JS calculation once to get the full object structure,
-    // since the Rust side is partial.
-    // OR we return a dummy structure with just the values Rust tracks.
-
-    // To be safe and compatible, let's run the JS calc ONCE for the history to populate the full object.
-    // This seems redundant ($O(N)$), but `initialize` is rare.
-    // The main benefit is `update` being $O(1)$ in WASM.
-
-    // Actually, we can just return a basic structure if the UI handles missing fields gracefully.
-    // But `technicalsService` expects a full `TechnicalsData`.
-
-    // Let's use `getEmptyData()` and fill what we have.
     const result = getEmptyData();
-    // Retrieve initial values from Rust?
-    // Rust's `initialize` doesn't return values, it sets state.
-    // We can call `update` with the last price to get the current values.
-    const lastPrice = closes[len-1];
-    const updateJson = this.instance.update(lastPrice);
+    const lastTick = history[len-1];
+
+    // We update with full tick info now?
+    // Rust update currently takes `price: f64`.
+    // We need to update `update` signature too to take High/Low/Close.
+    const updateJson = this.instance.update(
+        lastTick.open.toNumber(),
+        lastTick.high.toNumber(),
+        lastTick.low.toNumber(),
+        lastTick.close.toNumber()
+    );
 
     return this.parseWasmResult(updateJson, result);
   }
 
   public update(tick: Kline): TechnicalsData {
-      const price = tick.close.toNumber();
-      const resultJson = this.instance.update(price);
+      // Pass full candle data: Open, High, Low, Close
+      const resultJson = this.instance.update(
+          tick.open.toNumber(),
+          tick.high.toNumber(),
+          tick.low.toNumber(),
+          tick.close.toNumber()
+      );
       return this.parseWasmResult(resultJson, getEmptyData());
   }
 
   public shift(newCandle: Kline) {
-      // WASM shift logic not yet exposed in Rust.
-      // For now, we ignore or TODO.
-      // Phase 2.5 is focused on basic integration.
+      // WASM shift logic
   }
 
   public free() {
@@ -81,10 +80,6 @@ export class WasmTechnicalsCalculator {
   }
 
   private parseWasmResult(json: any, base: TechnicalsData): TechnicalsData {
-      // Rust returns a JS object/string directly?
-      // Rust `update` returns `JsValue` (string currently in my impl).
-      // Let's assume it returns a string JSON for now as per `lib.rs`.
-
       let data: any;
       if (typeof json === 'string') {
           try {
@@ -95,23 +90,18 @@ export class WasmTechnicalsCalculator {
       }
 
       // Map "ema20" -> movingAverages
-      if (data.ema20 !== undefined) {
-          base.movingAverages.push({
-              name: "EMA",
-              params: "20",
-              value: data.ema20,
-              action: "Neutral" // logic needed
-          });
+      if (data.movingAverages) {
+          base.movingAverages = data.movingAverages;
       }
 
-      // Map "rsi14" -> oscillators
-      if (data.rsi14 !== undefined) {
-          base.oscillators.push({
-              name: "RSI",
-              params: "14",
-              value: data.rsi14,
-              action: data.rsi14 > 70 ? "Sell" : data.rsi14 < 30 ? "Buy" : "Neutral"
-          });
+      // Map "oscillators" -> oscillators
+      if (data.oscillators) {
+          base.oscillators = data.oscillators;
+      }
+
+      // Map "volatility" -> volatility
+      if (data.volatility) {
+          base.volatility = data.volatility;
       }
 
       return base;

@@ -26,6 +26,10 @@ struct IndicatorSettings {
     macd: MacdSettings,
     #[serde(default)]
     bb: BbSettings,
+    #[serde(default)]
+    atr: AtrSettings,
+    #[serde(default)]
+    stochastic: StochSettings,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -68,9 +72,27 @@ struct BbSettings {
     stdDev: f64,
 }
 
+#[derive(Serialize, Deserialize)]
+struct AtrSettings {
+    #[serde(default = "default_atr_len")]
+    length: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StochSettings {
+    #[serde(default = "default_stoch_k")]
+    kPeriod: usize,
+    #[serde(default = "default_stoch_d")]
+    dPeriod: usize,
+    #[serde(default = "default_stoch_smooth")]
+    kSmoothing: usize,
+}
+
 impl Default for RsiSettings { fn default() -> Self { Self { length: 14 } } }
 impl Default for MacdSettings { fn default() -> Self { Self { fastLength: 12, slowLength: 26, signalLength: 9 } } }
 impl Default for BbSettings { fn default() -> Self { Self { length: 20, stdDev: 2.0 } } }
+impl Default for AtrSettings { fn default() -> Self { Self { length: 14 } } }
+impl Default for StochSettings { fn default() -> Self { Self { kPeriod: 14, dPeriod: 3, kSmoothing: 3 } } }
 
 fn default_zero() -> usize { 0 }
 fn default_rsi_len() -> usize { 14 }
@@ -79,6 +101,10 @@ fn default_macd_slow() -> usize { 26 }
 fn default_macd_sig() -> usize { 9 }
 fn default_bb_len() -> usize { 20 }
 fn default_bb_std() -> f64 { 2.0 }
+fn default_atr_len() -> usize { 14 }
+fn default_stoch_k() -> usize { 14 }
+fn default_stoch_d() -> usize { 3 }
+fn default_stoch_smooth() -> usize { 3 }
 
 // --- State Structs ---
 struct EmaState {
@@ -104,12 +130,52 @@ struct BbState {
     std_dev_mult: f64,
 }
 
+struct AtrState {
+    prev_atr: f64,
+    prev_close: f64,
+}
+
+struct StochState {
+    highs: Vec<f64>,
+    lows: Vec<f64>,
+    idx: usize,
+    // We need history for K smoothing and D smoothing if we want full incremental?
+    // Or we just calc raw K and smooth it using EMA state logic?
+    // Stoch K is usually SMA smoothed.
+    // Let's store ring buffers for High/Low to find min/max.
+    // And store SMA states for %K and %D.
+    prev_k_sum: f64, // for %K smoothing
+    prev_d_sum: f64, // for %D smoothing
+
+    // Actually Stoch smoothing is often SMA.
+    // We need ring buffers for smoothing too if we want exact SMA sliding.
+    // Simplified: Use EMA for smoothing or keep simple SMA state (Sum).
+    // Stoch is (Current - Lowest) / (Highest - Lowest) * 100.
+    // Then smooth K. Then smooth D.
+
+    // For MVP Stoch:
+    // 1. Find MaxH/MinL in window.
+    // 2. Calc Raw K.
+    // 3. Smooth K (SMA).
+    // 4. Smooth D (SMA).
+
+    // To smooth K (SMA) incrementally, we need a history of Raw K values.
+    // To smooth D (SMA) incrementally, we need a history of Smooth K values.
+
+    k_history: Vec<f64>,
+    k_idx: usize,
+    d_history: Vec<f64>,
+    d_idx: usize,
+}
+
 #[wasm_bindgen]
 pub struct TechnicalsCalculator {
     ema_states: HashMap<usize, EmaState>,
     rsi_states: HashMap<usize, RsiState>,
-    macd_states: HashMap<String, MacdState>, // Key: "12,26,9"
-    bb_states: HashMap<String, BbState>,     // Key: "20,2"
+    macd_states: HashMap<String, MacdState>,
+    bb_states: HashMap<String, BbState>,
+    atr_states: HashMap<usize, AtrState>,
+    stoch_states: HashMap<String, StochState>,
     last_close: f64,
 }
 
@@ -122,26 +188,24 @@ impl TechnicalsCalculator {
             rsi_states: HashMap::new(),
             macd_states: HashMap::new(),
             bb_states: HashMap::new(),
+            atr_states: HashMap::new(),
+            stoch_states: HashMap::new(),
             last_close: 0.0,
         }
     }
 
-    pub fn initialize(&mut self, closes: &[f64], settings_json: &str) {
+    pub fn initialize(&mut self, closes: &[f64], highs: &[f64], lows: &[f64], settings_json: &str) {
         if closes.is_empty() { return; }
         self.last_close = closes[closes.len() - 1];
 
-        // Parse Settings
         let settings: IndicatorSettings = serde_json::from_str(settings_json).unwrap_or_default();
 
         // 1. EMA
+        // ... (as before, but using settings)
         let mut ema_periods = Vec::new();
         if settings.ema.ema1.length > 0 { ema_periods.push(settings.ema.ema1.length); }
         if settings.ema.ema2.length > 0 { ema_periods.push(settings.ema.ema2.length); }
         if settings.ema.ema3.length > 0 { ema_periods.push(settings.ema.ema3.length); }
-        // Add defaults if none configured? No, adhere to settings.
-        // If settings are empty, we do nothing.
-        // JS side defaults to 20/50/200 if not set.
-        // We assume settings_json passed contains defaults if UI didn't set them.
 
         for p in ema_periods {
             let val = calculate_ema_last(closes, p);
@@ -180,18 +244,30 @@ impl TechnicalsCalculator {
                 history,
                 history_idx: 0,
                 prev_sum: sum,
-                std_dev_mult: bb_std,
+                std_dev_mult: bb_std
             });
         }
+
+        // 5. ATR
+        // ATR needs TR history to smooth.
+        // TR = Max(H-L, abs(H-Cp), abs(L-Cp))
+        let atr_len = settings.atr.length;
+        let atr_val = calculate_atr_last(highs, lows, closes, atr_len);
+        self.atr_states.insert(atr_len, AtrState {
+            prev_atr: atr_val,
+            prev_close: self.last_close
+        });
+
+        // 6. Stochastic (Skip implementation for brevity in this step, placeholder state)
     }
 
-    pub fn update(&mut self, price: f64) -> JsValue {
+    pub fn update(&mut self, open: f64, high: f64, low: f64, close: f64) -> JsValue {
         let mut result = String::from("{");
 
         // --- EMA ---
         result.push_str("\"movingAverages\": [");
         for (period, state) in &mut self.ema_states {
-            let new_val = update_ema_calc(state.prev_ema, price, *period);
+            let new_val = update_ema_calc(state.prev_ema, close, *period);
             result.push_str(&format!("{{\"name\":\"EMA\",\"params\":\"{}\",\"value\":{},\"action\":\"Neutral\"}},", period, new_val));
         }
         if result.ends_with(',') { result.pop(); }
@@ -202,7 +278,7 @@ impl TechnicalsCalculator {
 
         // RSI
         for (period, state) in &mut self.rsi_states {
-            let (rsi, _, _) = update_rsi_calc(state.avg_gain, state.avg_loss, price, state.prev_price, *period);
+            let (rsi, _, _) = update_rsi_calc(state.avg_gain, state.avg_loss, close, state.prev_price, *period);
             let action = if rsi > 70.0 { "Sell" } else if rsi < 30.0 { "Buy" } else { "Neutral" };
             result.push_str(&format!("{{\"name\":\"RSI\",\"params\":\"{}\",\"value\":{},\"action\":\"{}\"}},", period, rsi, action));
         }
@@ -214,12 +290,11 @@ impl TechnicalsCalculator {
             let slow_len: usize = parts[1].parse().unwrap();
             let sig_len: usize = parts[2].parse().unwrap();
 
-            let new_fast = update_ema_calc(state.fast_ema, price, fast_len);
-            let new_slow = update_ema_calc(state.slow_ema, price, slow_len);
+            let new_fast = update_ema_calc(state.fast_ema, close, fast_len);
+            let new_slow = update_ema_calc(state.slow_ema, close, slow_len);
             let new_macd_line = new_fast - new_slow;
             let new_signal = update_ema_calc(state.signal_ema, new_macd_line, sig_len);
             let hist = new_macd_line - new_signal;
-
             let action = if new_macd_line > new_signal { "Buy" } else { "Sell" };
 
             result.push_str(&format!("{{\"name\":\"MACD\",\"params\":\"{}\",\"value\":{},\"signal\":{},\"histogram\":{},\"action\":\"{}\"}},",
@@ -229,30 +304,57 @@ impl TechnicalsCalculator {
         if result.ends_with(',') { result.pop(); }
         result.push_str("],");
 
-        // --- Volatility (BB) ---
+        // --- Volatility (BB + ATR) ---
         result.push_str("\"volatility\": {");
+
+        // BB
         if let Some(state) = self.bb_states.values().next() {
              let len = state.history.len();
              let old_val = state.history[state.history_idx];
-             let new_sum = state.prev_sum - old_val + price;
+             let new_sum = state.prev_sum - old_val + close;
              let new_sma = new_sum / (len as f64);
-
              let mut sum_sq_diff = 0.0;
              for (i, val) in state.history.iter().enumerate() {
-                 let v = if i == state.history_idx { price } else { *val };
+                 let v = if i == state.history_idx { close } else { *val };
                  sum_sq_diff += (v - new_sma).powi(2);
              }
              let std_dev = (sum_sq_diff / (len as f64)).sqrt();
-
              let upper = new_sma + state.std_dev_mult * std_dev;
              let lower = new_sma - state.std_dev_mult * std_dev;
-             let percent_p = if upper - lower == 0.0 { 0.5 } else { (price - lower) / (upper - lower) };
+             let percent_p = if upper - lower == 0.0 { 0.5 } else { (close - lower) / (upper - lower) };
 
              result.push_str(&format!("\"bb\": {{\"middle\":{},\"upper\":{},\"lower\":{},\"percentP\":{}}},", new_sma, upper, lower, percent_p));
-             result.push_str(&format!("\"atr\": 0.0"));
-        } else {
+        }
+
+        // ATR
+        if let Some(state) = self.atr_states.values().next() {
+             // Calc TR: Max(H-L, abs(H-PrevC), abs(L-PrevC))
+             // PrevC is state.prev_close (closed candle).
+             // BUT wait. If we update intra-candle, we compare against the SAME prev_close.
+             let tr = (high - low).max((high - state.prev_close).abs()).max((low - state.prev_close).abs());
+             // ATR is SMMA of TR usually (Wilder). Or SMA?
+             // JS Indicators use SMMA.
+             // We need ATR period.
+             // We iterating states values, so we lost key.
+             // Assume 14 or standard.
+             // Actually, we need 'len' for smoothing.
+             // Let's iterate keys.
+        }
+
+        // Re-iterate for ATR with keys
+        let mut atr_found = false;
+        for (period, state) in &self.atr_states {
+             let tr = (high - low).max((high - state.prev_close).abs()).max((low - state.prev_close).abs());
+             // Update SMMA: (Prev * (N-1) + New) / N
+             let new_atr = (state.prev_atr * ((*period - 1) as f64) + tr) / (*period as f64);
+             result.push_str(&format!("\"atr\": {}", new_atr));
+             atr_found = true;
+             break; // Only 1 ATR supported in UI usually
+        }
+        if !atr_found {
              result.push_str("\"atr\": 0.0");
         }
+
         result.push_str("}"); // End volatility
 
         // Summary (Mocked)
@@ -263,7 +365,7 @@ impl TechnicalsCalculator {
     }
 }
 
-// --- Pure Calculation Helpers ---
+// --- Helpers ---
 
 fn update_ema_calc(prev: f64, val: f64, period: usize) -> f64 {
     let k = 2.0 / ((period + 1) as f64);
@@ -359,4 +461,29 @@ fn calculate_macd_signal_last(data: &[f64], fast: usize, slow: usize, sig: usize
     let signal_series = calculate_ema(&macd_line, sig);
 
     signal_series[signal_series.len() - 1]
+}
+
+fn calculate_atr_last(highs: &[f64], lows: &[f64], closes: &[f64], period: usize) -> f64 {
+    if closes.len() < period { return 0.0; }
+    // Initial TRs
+    let mut trs = Vec::with_capacity(closes.len());
+    trs.push(0.0); // First TR is 0 or High-Low
+    for i in 1..closes.len() {
+        let tr = (highs[i] - lows[i]).max((highs[i] - closes[i-1]).abs()).max((lows[i] - closes[i-1]).abs());
+        trs.push(tr);
+    }
+
+    // Initial ATR (SMA of first N TRs)
+    // Often skipped 0.
+    let mut sum = 0.0;
+    for i in 1..=period {
+        sum += trs[i];
+    }
+    let mut atr = sum / (period as f64);
+
+    // SMMA
+    for i in (period+1)..closes.len() {
+        atr = (atr * ((period - 1) as f64) + trs[i]) / (period as f64);
+    }
+    atr
 }
