@@ -15,7 +15,7 @@ describe("Sliding Window Algorithms", () => {
     // [3, 6, 7] -> 7 (index 7)
 
     const result = slidingWindowMax(data, k);
-    expect(result).toEqual(expected);
+    expect(Array.from(result)).toEqual(expected);
   });
 
   it("should calculate sliding window min correctly", () => {
@@ -31,21 +31,21 @@ describe("Sliding Window Algorithms", () => {
     // [3, 6, 7] -> 3
 
     const result = slidingWindowMin(data, k);
-    expect(result).toEqual(expected);
+    expect(Array.from(result)).toEqual(expected);
   });
 
   it("should handle period > length", () => {
     const data = [1, 2, 3];
     const k = 5;
     const result = slidingWindowMax(data, k);
-    expect(result).toEqual([NaN, NaN, NaN]);
+    expect(Array.from(result)).toEqual([NaN, NaN, NaN]);
   });
 
   it("should handle period = 1", () => {
     const data = [1, 5, 2];
     const k = 1;
-    expect(slidingWindowMax(data, k)).toEqual([1, 5, 2]);
-    expect(slidingWindowMin(data, k)).toEqual([1, 5, 2]);
+    expect(Array.from(slidingWindowMax(data, k))).toEqual([1, 5, 2]);
+    expect(Array.from(slidingWindowMin(data, k))).toEqual([1, 5, 2]);
   });
 
   it("should match naive implementation for random data", () => {
@@ -71,7 +71,7 @@ describe("Sliding Window Algorithms", () => {
       const fastMax = slidingWindowMax(data, k);
       const fastMin = slidingWindowMin(data, k);
 
-      expect(fastMax).toEqual(naiveMax);
-      expect(fastMin).toEqual(naiveMin);
+      expect(Array.from(fastMax)).toEqual(naiveMax);
+      expect(Array.from(fastMin)).toEqual(naiveMin);
   });
 });
