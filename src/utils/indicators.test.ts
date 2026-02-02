@@ -172,6 +172,26 @@ describe("JSIndicators", () => {
       expect(res[2]).toBeCloseTo(13.333, 2);
     });
   });
+
+  describe("wma", () => {
+    it("should calculate WMA correctly", () => {
+      // Prices: 10, 20, 30. Period 3.
+      // Denom = 3*4/2 = 6.
+      // Sum = 10*1 + 20*2 + 30*3 = 10 + 40 + 90 = 140.
+      // WMA = 140 / 6 = 23.333...
+
+      const data = [10, 20, 30];
+      const res = JSIndicators.wma(data, 3);
+      expect(res[2]).toBeCloseTo(23.333, 2);
+
+      // Next: 40. Window: 20, 30, 40.
+      // Sum = 20*1 + 30*2 + 40*3 = 20 + 60 + 120 = 200.
+      // WMA = 200 / 6 = 33.333...
+      const data2 = [10, 20, 30, 40];
+      const res2 = JSIndicators.wma(data2, 3);
+      expect(res2[3]).toBeCloseTo(33.333, 2);
+    });
+  });
 });
 
   describe("ichimoku", () => {
