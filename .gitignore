@@ -80,3 +80,5 @@ dist/
 db/
 test-results/
 reports/
+target/
+technicals-wasm/target/
