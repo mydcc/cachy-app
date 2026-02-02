@@ -190,65 +190,95 @@ class TechnicalsWorkerManager {
 
 const workerManager = new TechnicalsWorkerManager();
 
-function getRelevantSettings(settings: any, enabledIndicators?: Partial<Record<string, boolean>>): any {
-  if (!settings) return undefined;
-  if (!enabledIndicators) return settings;
+const INDICATOR_SETTINGS_MAP: Record<string, string> = {
+  'rsi': 'rsi',
+  'stochastic': 'stochastic',
+  'cci': 'cci',
+  'adx': 'adx',
+  'ao': 'ao',
+  'macd': 'macd',
+  'stochrsi': 'stochRsi',
+  'williamsr': 'williamsR',
+  'supertrend': 'superTrend',
+  'atrtrailingstop': 'atrTrailingStop',
+  'obv': 'obv',
+  'volumeprofile': 'volumeProfile',
+  'vwap': 'vwap',
+  'parabolicsar': 'parabolicSar',
+  'mfi': 'mfi',
+  'choppiness': 'choppiness',
+  'ichimoku': 'ichimoku',
+  'ema': 'ema',
+  'pivots': 'pivots',
+  'atr': 'atr',
+  'bb': 'bb',
+  'momentum': 'momentum',
+  'volumema': 'volumeMa',
+  'bollingerbands': 'bollingerBands'
+};
 
-  const normalizedEnabled: Record<string, boolean> = {};
-  Object.entries(enabledIndicators).forEach(([k, v]) => {
+function generateCacheKey(
+  lastTime: number,
+  lastPriceStr: string,
+  len: number,
+  firstTime: number,
+  settings: any,
+  enabledIndicators?: Partial<Record<string, boolean>>
+): string {
+  // Static parts
+  const prefix = `${lastTime}_${lastPriceStr}_${len}_${firstTime}`;
+
+  if (!enabledIndicators) {
+    return prefix + '_ALL_' + JSON.stringify(settings);
+  }
+
+  // Optimize: Normalize and determine active indicators
+  const lowerEnabled: Record<string, boolean> = {};
+  let hasTrue = false;
+  for (const k in enabledIndicators) {
+    const v = enabledIndicators[k];
     if (v !== undefined) {
-      normalizedEnabled[k.toLowerCase()] = v;
+      lowerEnabled[k.toLowerCase()] = v;
+      if (v === true) hasTrue = true;
     }
-  });
+  }
 
-  const hasAllowList = Object.values(normalizedEnabled).some((v) => v === true);
-
-  const isEnabled = (name: string) => {
-    const key = name.toLowerCase();
-    if (hasAllowList) return normalizedEnabled[key] === true;
-    return normalizedEnabled[key] !== false;
-  };
-
-  const relevant: any = {};
-  // Always include globals
-  relevant.historyLimit = settings.historyLimit;
-  relevant.precision = settings.precision;
-
-  // Map indicator names to settings keys
-  const map: Record<string, string> = {
-    'rsi': 'rsi',
-    'stochastic': 'stochastic',
-    'cci': 'cci',
-    'adx': 'adx',
-    'ao': 'ao',
-    'macd': 'macd',
-    'stochrsi': 'stochRsi',
-    'williamsr': 'williamsR',
-    'supertrend': 'superTrend',
-    'atrtrailingstop': 'atrTrailingStop',
-    'obv': 'obv',
-    'volumeprofile': 'volumeProfile',
-    'vwap': 'vwap',
-    'parabolicsar': 'parabolicSar',
-    'mfi': 'mfi',
-    'choppiness': 'choppiness',
-    'ichimoku': 'ichimoku',
-    'ema': 'ema',
-    'pivots': 'pivots',
-    'atr': 'atr',
-    'bb': 'bb',
-    'momentum': 'momentum',
-    'volumema': 'volumeMa',
-    'bollingerbands': 'bollingerBands'
-  };
-
-  Object.entries(map).forEach(([indName, settingKey]) => {
-    if (isEnabled(indName)) {
-      relevant[settingKey] = settings[settingKey];
+  const activeKeys: string[] = [];
+  if (hasTrue) {
+    // Allowlist mode
+    for (const k in lowerEnabled) {
+      if (lowerEnabled[k] === true) activeKeys.push(k);
     }
-  });
+  } else {
+    // Blocklist mode (include all except disabled)
+    const allInds = Object.keys(INDICATOR_SETTINGS_MAP);
+    for (const ind of allInds) {
+      if (lowerEnabled[ind] !== false) {
+        activeKeys.push(ind);
+      }
+    }
+  }
 
-  return relevant;
+  // Sort for determinism (important for JSON stringify order if relies on insertion order)
+  activeKeys.sort();
+
+  // Construct a minimal object to stringify
+  // This combines indicators hash and settings hash into one operation
+  const payload: any = {};
+
+  if (settings) {
+      payload._h = settings.historyLimit;
+      payload._p = settings.precision;
+
+      for (const indName of activeKeys) {
+          const settingKey = INDICATOR_SETTINGS_MAP[indName];
+          if (settingKey && settings[settingKey]) {
+             payload[settingKey] = settings[settingKey];
+          }
+      }
+  }
+
+  return prefix + '_' + JSON.stringify(payload);
 }
 
 export const technicalsService = {
@@ -273,19 +303,14 @@ export const technicalsService = {
     const lastKline = klinesInput[klinesInput.length - 1];
     const lastPrice = lastKline.close?.toString() || "0";
 
-    // Optimize: Only include relevant settings in cache key
-    const relevantSettings = getRelevantSettings(settings, enabledIndicators);
-    const settingsJson = JSON.stringify(relevantSettings);
-
-    const indicatorsHash = enabledIndicators
-      ? Object.entries(enabledIndicators)
-        .filter(([_, enabled]) => enabled)
-        .map(([name]) => name)
-        .sort()
-        .join(',')
-      : 'all';
-
-    const cacheKey = `${lastKline.time}-${lastPrice}-${klinesInput.length}-${klinesInput[0].time}-${settingsJson}-${indicatorsHash}`;
+    const cacheKey = generateCacheKey(
+        lastKline.time,
+        lastPrice,
+        klinesInput.length,
+        klinesInput[0].time,
+        settings,
+        enabledIndicators
+    );
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
@@ -318,6 +343,11 @@ export const technicalsService = {
         if (typeof val === 'string') {
            const p = parseFloat(val);
            return isNaN(p) ? 0 : p;
+        }
+        if (val instanceof Decimal) return val.toNumber();
+        // Duck typing for Decimal-like objects to avoid try/catch
+        if (val && typeof val === 'object' && (val as any).s !== undefined && (val as any).e !== undefined) {
+            return new Decimal(val).toNumber();
         }
         try { return new Decimal(val).toNumber(); } catch { return 0; }
       };
@@ -390,18 +420,14 @@ export const technicalsService = {
     const lastClose = buffers.closes[len - 1];
     const lastPrice = lastClose.toString(); // float to string might vary slightly but usually deterministic for same float
 
-    const relevantSettings = getRelevantSettings(settings, enabledIndicators);
-    const settingsJson = JSON.stringify(relevantSettings);
-
-    const indicatorsHash = enabledIndicators
-      ? Object.entries(enabledIndicators)
-        .filter(([_, enabled]) => enabled)
-        .map(([name]) => name)
-        .sort()
-        .join(',')
-      : 'all';
-
-    const cacheKey = `${lastTime}-${lastPrice}-${len}-${buffers.times[0]}-${settingsJson}-${indicatorsHash}`;
+    const cacheKey = generateCacheKey(
+        lastTime,
+        lastPrice,
+        len,
+        buffers.times[0],
+        settings,
+        enabledIndicators
+    );
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
@@ -479,17 +505,14 @@ export const technicalsService = {
     const lastKline = klinesInput[klinesInput.length - 1];
     const lastPrice = lastKline.close?.toString() || "0";
 
-    const relevantSettings = getRelevantSettings(settings, enabledIndicators);
-    const settingsJson = JSON.stringify(relevantSettings);
-
-    const indicatorsHash = enabledIndicators
-      ? Object.entries(enabledIndicators)
-        .filter(([_, enabled]) => enabled)
-        .map(([name]) => name)
-        .sort()
-        .join(',')
-      : 'all';
-    const cacheKey = `${lastKline.time}-${lastPrice}-${klinesInput.length}-${klinesInput[0].time}-${settingsJson}-${indicatorsHash}`;
+    const cacheKey = generateCacheKey(
+        lastKline.time,
+        lastPrice,
+        klinesInput.length,
+        klinesInput[0].time,
+        settings,
+        enabledIndicators
+    );
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
@@ -502,48 +525,86 @@ export const technicalsService = {
 
     // 2. Prepare Arrays directly (Fast Path)
     // Avoid creating thousands of Decimal objects and Kline objects
+    // Optimization: Use Float64Array for faster access and reduced GC
     const len = klinesInput.length;
-    const times: number[] = [];
-    const opens: number[] = [];
-    const highs: number[] = [];
-    const lows: number[] = [];
-    const closes: number[] = [];
-    const volumes: number[] = [];
+    const times = new Float64Array(len);
+    const opens = new Float64Array(len);
+    const highs = new Float64Array(len);
+    const lows = new Float64Array(len);
+    const closes = new Float64Array(len);
+    const volumes = new Float64Array(len);
 
     let prevClose = 0;
+    let writeIdx = 0;
 
-    const toNum = (val: any, fallback: number): number => {
-        if (typeof val === 'number' && !isNaN(val)) return val;
-        if (typeof val === 'string') {
-          const parsed = parseFloat(val);
-          return isNaN(parsed) ? fallback : parsed;
-        }
-        if (val instanceof Decimal) return val.toNumber();
-        if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val).toNumber();
+    // Helper for fields other than close
+    const getVal = (v: any, fallback: number): number => {
+        if (typeof v === 'number') return isNaN(v) ? fallback : v;
+        if (typeof v === 'string') { const p = parseFloat(v); return isNaN(p) ? fallback : p; }
+        if (v instanceof Decimal) return v.toNumber();
+        if (v && typeof v === 'object' && (v as any).s !== undefined) return new Decimal(v).toNumber();
         return fallback;
     };
 
     for (let i = 0; i < len; i++) {
         const k = klinesInput[i];
-        const close = toNum(k.close, prevClose);
+
+        // Inline toNum logic for 'close' with prevClose fallback
+        const valC = k.close;
+        let close: number;
+        if (typeof valC === 'number') {
+            close = valC;
+        } else if (typeof valC === 'string') {
+            const p = parseFloat(valC);
+            close = isNaN(p) ? prevClose : p;
+        } else if (valC instanceof Decimal) {
+             close = valC.toNumber();
+        } else if (valC && typeof valC === 'object' && (valC as any).s !== undefined) {
+             close = new Decimal(valC).toNumber();
+        } else {
+             close = prevClose;
+        }
+
+        if (isNaN(close)) close = prevClose;
+
         // Data cleaning: If close is 0 and we have a previous close, use that.
         const safeClose = (close === 0 && prevClose !== 0) ? prevClose : close;
 
         if (safeClose !== 0) {
-            times.push(k.time);
-            closes.push(safeClose);
-            opens.push(toNum(k.open, safeClose));
-            highs.push(toNum(k.high, safeClose));
-            lows.push(toNum(k.low, safeClose));
-            volumes.push(k.volume ? toNum(k.volume, 0) : 0);
+            times[writeIdx] = k.time;
+            closes[writeIdx] = safeClose;
 
+            opens[writeIdx] = getVal(k.open, safeClose);
+            highs[writeIdx] = getVal(k.high, safeClose);
+            lows[writeIdx] = getVal(k.low, safeClose);
+            volumes[writeIdx] = getVal(k.volume, 0);
+
+            writeIdx++;
             prevClose = safeClose;
         }
     }
 
+    // If we filtered out bad data, we need to slice the arrays
+    let finalTimes, finalOpens, finalHighs, finalLows, finalCloses, finalVolumes;
+    if (writeIdx < len) {
+        finalTimes = times.subarray(0, writeIdx);
+        finalOpens = opens.subarray(0, writeIdx);
+        finalHighs = highs.subarray(0, writeIdx);
+        finalLows = lows.subarray(0, writeIdx);
+        finalCloses = closes.subarray(0, writeIdx);
+        finalVolumes = volumes.subarray(0, writeIdx);
+    } else {
+        finalTimes = times;
+        finalOpens = opens;
+        finalHighs = highs;
+        finalLows = lows;
+        finalCloses = closes;
+        finalVolumes = volumes;
+    }
+
     // Use Shared Calculator with enabled indicators filter directly on arrays
     const result = calculateIndicatorsFromArrays(
-        times, opens, highs, lows, closes, volumes,
+        finalTimes, finalOpens, finalHighs, finalLows, finalCloses, finalVolumes,
         settings, enabledIndicators
     );
 
