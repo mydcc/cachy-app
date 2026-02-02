@@ -51,23 +51,36 @@ export class PatternDetector {
     for (const [length, patterns] of this.patternsByLength) {
         if (candles.length < length) continue;
 
-        // Optimization: Slice input candles once per length
-        const currentCandles = candles.slice(-length);
+        const startIndex = candles.length - length;
 
-        // Optimization: Check trend once per length
+        // Optimization: Check trend once per length, without slicing
         let isUptrend: boolean | undefined;
         let isDowntrend: boolean | undefined;
 
         // Check if we have enough history for trend detection
         if (candles.length >= length + lookbackForTrend) {
-            const trendCandles = candles.slice(-(length + lookbackForTrend), -length);
-            isUptrend = this.isUptrend(trendCandles);
-            isDowntrend = this.isDowntrend(trendCandles);
+            // Trend candles are from index (end - length - lookback) to (end - length)
+            // But isUptrend/Downtrend just checked first and last of that slice.
+            const trendStartIndex = candles.length - length - lookbackForTrend;
+            const trendEndIndex = candles.length - length - 1; // Last candle of the trend period
+
+            // Inline trend check logic
+            // isUptrend logic: start < end
+            isUptrend = candles[trendEndIndex].close > candles[trendStartIndex].close;
+            // isDowntrend logic: start > end
+            isDowntrend = candles[trendEndIndex].close < candles[trendStartIndex].close;
         }
 
-        // Optimization: Normalize input candles once per length
-        // This is used for all geometric matches of this length
-        const normInput = this.normalizeSequence(currentCandles);
+        // Optimization: Normalize input candles once per length, without allocating
+        let min = Infinity;
+        let max = -Infinity;
+        for (let i = startIndex; i < candles.length; i++) {
+          const c = candles[i];
+          if (c.low < min) min = c.low;
+          if (c.high > max) max = c.high;
+        }
+        const range = max - min;
+        const invRange = range === 0 ? 0 : 1 / range;
 
         for (const pattern of patterns) {
             // 1. Trend Check
@@ -79,14 +92,14 @@ export class PatternDetector {
             }
 
             // 2. Specific Logic overrides (for "Formula" accuracy)
-            const specificMatch = this.checkSpecificLogic(pattern.id, currentCandles);
+            const specificMatch = this.checkSpecificLogicNoAlloc(pattern.id, candles, startIndex);
             if (specificMatch !== null) {
                 if (specificMatch) detected.push(pattern.id);
                 continue;
             }
 
             // 3. Fallback: Geometric / Template Matcher
-            if (this.geometricMatchOptimized(pattern.id, normInput)) {
+            if (this.geometricMatchNoAlloc(pattern.id, candles, startIndex, length, min, invRange)) {
                 detected.push(pattern.id);
             }
         }
@@ -120,6 +133,31 @@ export class PatternDetector {
 
     // 3. Fallback: Geometric / Template Matcher
     return this.geometricMatch(pattern.id, pattern.candles, currentCandles, cache);
+  }
+
+  private checkSpecificLogicNoAlloc(patternId: string, candles: CandleData[], startIndex: number): boolean | null {
+    switch (patternId) {
+        case 'hammer':
+            return this.isHammer(candles[startIndex]);
+        case 'inverted_hammer':
+            return this.isInvertedHammer(candles[startIndex]);
+        case 'hanging_man':
+            // Hanging Man is morphologically a Hammer, but at the top of a trend
+            return this.isHammer(candles[startIndex]);
+        case 'shooting_star':
+            // Shooting Star is morphologically an Inverted Hammer, but at the top of a trend
+            return this.isInvertedHammer(candles[startIndex]);
+        case 'bullish_engulfing':
+            return this.isBullishEngulfing(candles[startIndex], candles[startIndex+1]);
+        case 'bearish_engulfing':
+            return this.isBearishEngulfing(candles[startIndex], candles[startIndex+1]);
+        case 'morning_star':
+            return this.isMorningStar(candles[startIndex], candles[startIndex+1], candles[startIndex+2]);
+        case 'evening_star':
+            return this.isEveningStar(candles[startIndex], candles[startIndex+1], candles[startIndex+2]);
+        default:
+            return null;
+    }
   }
 
   private checkSpecificLogic(patternId: string, currentCandles: CandleData[]): boolean | null {
@@ -279,6 +317,42 @@ export class PatternDetector {
           totalDiff += Math.pow(t.close - m.close, 2);
 
           // Optimization: Early exit if difference exceeds tolerance
+          if (totalDiff >= tolerance) return false;
+      }
+
+      return true;
+  }
+
+  private geometricMatchNoAlloc(patternId: string, input: CandleData[], startIndex: number, length: number, min: number, invRange: number): boolean {
+      const normTemplate = this.normalizedTemplates.get(patternId);
+      if (!normTemplate) return false;
+
+      let totalDiff = 0;
+      const tolerance = 0.05 * normTemplate.length;
+
+      for (let i = 0; i < length; i++) {
+          const t = normTemplate[i];
+          const m = input[startIndex + i];
+
+          let mOpen, mHigh, mLow, mClose;
+          if (invRange === 0) {
+              mOpen = 0.5; mHigh = 0.5; mLow = 0.5; mClose = 0.5;
+          } else {
+              mOpen = (m.open - min) * invRange;
+              mHigh = (m.high - min) * invRange;
+              mLow = (m.low - min) * invRange;
+              mClose = (m.close - min) * invRange;
+          }
+
+          let diff = t.open - mOpen;
+          totalDiff += diff * diff;
+          diff = t.high - mHigh;
+          totalDiff += diff * diff;
+          diff = t.low - mLow;
+          totalDiff += diff * diff;
+          diff = t.close - mClose;
+          totalDiff += diff * diff;
+
           if (totalDiff >= tolerance) return false;
       }
 
