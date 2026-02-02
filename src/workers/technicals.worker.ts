@@ -30,6 +30,7 @@ import { Decimal } from "decimal.js";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { BufferPool } from "../utils/bufferPool";
 import { StatefulTechnicalsCalculator } from "../utils/statefulTechnicalsCalculator";
+import { loadWasm, isWasmAvailable } from "../utils/wasmTechnicals";
 import type { Kline } from "../utils/indicators";
 import type {
   WorkerMessage,
