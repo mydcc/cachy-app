@@ -254,10 +254,21 @@ class TradeService {
                  }
             }
 
-            // Trigger background sync to verify state
-            this.fetchOpenPositionsFromApi().catch(err => {
-                 logger.error("market", "[FlashClose] Sync failed after error", err);
-            });
+            // Trigger background sync with RETRY LOGIC (Backoff)
+            (async () => {
+                const delays = [500, 1000, 2000, 5000];
+                for (let i = 0; i < delays.length; i++) {
+                    try {
+                        await new Promise(r => setTimeout(r, delays[i]));
+                        await this.fetchOpenPositionsFromApi();
+                        logger.log("market", `[FlashClose] Recovery sync successful on attempt ${i + 1}`);
+                        return;
+                    } catch (err) {
+                        logger.warn("market", `[FlashClose] Recovery sync failed (Attempt ${i + 1}/${delays.length})`, err);
+                    }
+                }
+                logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`);
+            })();
 
             throw e;
         }
