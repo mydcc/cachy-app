@@ -191,7 +191,7 @@ export interface WorkerCalculatePayloadSoA {
   enabledIndicators?: Partial<Record<string, boolean>>;
 }
 
-export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR";
+export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE";
 
 export interface WorkerMessage {
   type: WorkerMessageType;
@@ -199,4 +199,38 @@ export interface WorkerMessage {
   error?: string;
   id?: string;
   buffers?: KlineBuffers; // Returned buffers for recycling (Zero-Copy Ping-Pong)
+}
+
+// --- Stateful Indicator Types ---
+
+export interface EmaState {
+  prevEma: number;
+}
+
+export interface SmaState {
+  // For sliding window SMA, we usually need the full window to subtract the old value.
+  // However, for pure streaming, if we have the ring buffer of history, we can fetch old value.
+  // The worker will hold a RingBuffer of price history.
+  prevSum: number;
+}
+
+export interface RsiState {
+  avgGain: number;
+  avgLoss: number;
+  prevPrice: number;
+}
+
+export interface TechnicalsState {
+  // History Buffer (Circular)
+  // Needed for indicators that require looking back N periods (SMA, Bollinger, etc.)
+  // We only need to store 'Close' for most, but High/Low for some.
+  // For MVP, we might just store the last N candles.
+  lastCandle: Kline | null;
+
+  // Indicator States
+  ema?: Record<string, EmaState>; // Keyed by length
+  rsi?: Record<string, RsiState>;
+
+  // Last calculated result (to update incrementally)
+  lastResult?: TechnicalsData;
 }

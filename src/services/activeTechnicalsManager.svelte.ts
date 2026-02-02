@@ -55,6 +55,9 @@ class ActiveTechnicalsManager {
     private lastActiveSymbolChange = 0;
     private lastActiveSymbol = "";
 
+    // State Tracking for Worker Initialization
+    private workerState = new Map<string, { initialized: boolean, lastTime: number }>();
+
     // Memory Management: Reuse buffers to prevent GC spikes
     private pool = new BufferPool();
 
@@ -300,44 +303,6 @@ class ActiveTechnicalsManager {
         const settings = indicatorState.toJSON();
         const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
 
-        // OPTIMIZATION: Use Float64Buffers if available (Zero-Copy Path)
-        if (marketData.klinesBuffers?.[timeframe]) {
-            try {
-                const originalBuffers = marketData.klinesBuffers[timeframe];
-
-                // Prepare buffers (Clone + Realtime Injection)
-                // This is ~150x faster than legacy object preparation
-                let buffers = this.prepareBuffersWithRealtime(
-                    originalBuffers,
-                    timeframe,
-                    marketData.lastPrice || null
-                );
-
-                // Execute calculation (Zero-Copy Transfer to Worker)
-                // Returns result AND the recycled buffers (Ping-Pong strategy)
-                const { data: result, buffers: returnedBuffers } = await technicalsService.calculateTechnicalsFromBuffers(buffers, settings, enabledIndicators);
-
-                // Release buffers back to pool for next frame
-                if (returnedBuffers) {
-                    this.pool.release(returnedBuffers.times);
-                    this.pool.release(returnedBuffers.opens);
-                    this.pool.release(returnedBuffers.highs);
-                    this.pool.release(returnedBuffers.lows);
-                    this.pool.release(returnedBuffers.closes);
-                    this.pool.release(returnedBuffers.volumes);
-                }
-
-                if (result) {
-                   this.handleResult(symbol, timeframe, marketData, result);
-                }
-                return;
-
-            } catch (e) {
-                // If buffer path fails (e.g. OOM), fall back to legacy
-                logger.warn("technicals", `Buffer calculation failed for ${key}, falling back to legacy`, e);
-            }
-        }
-
         // Fallback: Legacy Object Path
         // Get history immediately from MarketState
         let history = (marketData.klines && marketData.klines[timeframe]) ? [...marketData.klines[timeframe]] : [];
@@ -350,8 +315,48 @@ class ActiveTechnicalsManager {
             this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
         }
 
+        // Determine Mode: Initialize or Update
+        // Check if we have initialized this worker
+        const state = this.workerState.get(key);
+        // Check if history shifted (new candle)
+        // history includes the phantom/realtime candle if we injected it.
+        const currentLastTime = history[history.length - 1].time;
+
+        const needsInit = !state || !state.initialized || state.lastTime !== currentLastTime;
+
+        // Wait, if lastTime changed (new candle), we treat it as "needsInit" for Phase 1 simplicity.
+        // Or if we are in the SAME candle (lastTime == state.lastTime), we update.
+        // Actually, if we injected a phantom candle, history has the NEW time.
+        // If the *previous* run had a different time, then we have a new candle.
+
+        // BUT: 'injectRealtimePrice' modifies the history array.
+        // If the candle is still forming, the time is the same as the last run.
+        // So:
+        // 1. First run: !state -> Init.
+        // 2. Second run (same candle): state.lastTime == currentLastTime -> Update.
+        // 3. New Candle: state.lastTime != currentLastTime -> Init.
+
+        let result;
+
         try {
-            const result = await technicalsService.calculateTechnicals(history, settings, enabledIndicators);
+            if (needsInit) {
+                // INITIALIZE (Full History)
+                // Note: We use the Object array for Init as `StatefulTechnicalsCalculator` expects Kline[].
+                // We could use buffers but `calculateTechnicalsFromBuffers` is legacy stateless.
+                // We need a new `technicalsService.initializeTechnicals`.
+
+                result = await technicalsService.initializeTechnicals(
+                    symbol, timeframe, history, settings, enabledIndicators
+                );
+
+                this.workerState.set(key, { initialized: true, lastTime: currentLastTime });
+            } else {
+                // UPDATE (Single Tick)
+                const lastK = history[history.length - 1];
+                result = await technicalsService.updateTechnicals(
+                    symbol, timeframe, lastK
+                );
+            }
 
             if (result) {
                 this.handleResult(symbol, timeframe, marketData, result);
@@ -359,6 +364,8 @@ class ActiveTechnicalsManager {
 
         } catch (e) {
             logger.error("technicals", `Calculation failed for ${key}`, e);
+            // On error, force re-init next time
+            this.workerState.delete(key);
         }
     }
 
