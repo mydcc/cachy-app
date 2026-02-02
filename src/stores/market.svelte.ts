@@ -88,6 +88,8 @@ export class MarketManager {
 
   private cacheMetadata = new Map<string, CacheMetadata>();
   private pendingUpdates = new Map<string, Partial<MarketData>>();
+  // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
+  private pendingKlineUpdates = new Map<string, any[]>();
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
   private telemetryIntervalId: any = null;
@@ -216,16 +218,30 @@ export class MarketManager {
   }
 
   private flushUpdates() {
-    if (this.pendingUpdates.size === 0) return;
+    if (this.pendingUpdates.size === 0 && this.pendingKlineUpdates.size === 0) return;
 
-    // Apply all buffered updates in one go
-    untrack(() => { // Ensure we don't track dependencies inside this write operation if called from effect (unlikely here but safe)
-      this.pendingUpdates.forEach((partial, symbol) => {
-        this.applyUpdate(symbol, partial);
-      });
+    untrack(() => {
+      // 1. Apply Market Data Updates (Price, Ticker, etc.)
+      if (this.pendingUpdates.size > 0) {
+        this.pendingUpdates.forEach((partial, symbol) => {
+          this.applyUpdate(symbol, partial);
+        });
+        this.pendingUpdates.clear();
+      }
+
+      // 2. Apply Kline Updates
+      if (this.pendingKlineUpdates.size > 0) {
+        this.pendingKlineUpdates.forEach((rawKlines, key) => {
+          const [symbol, timeframe] = key.split(":");
+          if (symbol && timeframe) {
+            // Process the batch
+            this.applySymbolKlines(symbol, timeframe, rawKlines, "ws", true);
+          }
+        });
+        this.pendingKlineUpdates.clear();
+      }
     });
 
-    this.pendingUpdates.clear();
     this.enforceCacheLimit();
   }
 
@@ -334,10 +350,38 @@ export class MarketManager {
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
+    if (source === "ws") {
+      // Buffer high-frequency WS updates
+      const key = `${symbol}:${timeframe}`;
+      const pending = this.pendingKlineUpdates.get(key) || [];
+      // Optimization: Just append. Logic to merge is handled in flush.
+      // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
+      for (const k of klines) pending.push(k);
+      this.pendingKlineUpdates.set(key, pending);
+
+      // Safety check: force flush if too many updates pending
+      if (this.pendingKlineUpdates.size > 200) {
+        this.flushUpdates();
+      }
+    } else {
+      // REST updates (historical data load) should be applied immediately
+      this.applySymbolKlines(symbol, timeframe, klines, source, enforceLimit);
+    }
+  }
+
+  // Internal method: Applies updates (previously updateSymbolKlines)
+  private applySymbolKlines(
+    symbol: string,
+    timeframe: string,
+    klines: any[],
+    source: "rest" | "ws" = "rest",
+    enforceLimit: boolean = true
+  ) {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
     // Normalize new klines to correct Kline type
+    // We perform this here (lazy) instead of on receipt
     let newKlines: Kline[] = klines.map(k => ({
       open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
       high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
@@ -346,6 +390,22 @@ export class MarketManager {
       volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
       time: k.time // number
     }));
+
+    // Deduplicate incoming batch (keep latest per timestamp)
+    if (newKlines.length > 1) {
+      newKlines.sort((a, b) => a.time - b.time);
+      const deduped: Kline[] = [];
+      let lastTime = -1;
+      for (const k of newKlines) {
+        if (k.time === lastTime) {
+          deduped[deduped.length - 1] = k; // Overwrite with newer
+        } else {
+          deduped.push(k);
+          lastTime = k.time;
+        }
+      }
+      newKlines = deduped;
+    }
 
     // Get existing history or init empty
     let history = current.klines[timeframe] || [];
@@ -585,8 +645,6 @@ export class MarketManager {
     // By re-assigning the symbol object below, we trigger listeners on `marketState.data[symbol]`.
     // We do both to be absolutely sure.
     this.data[symbol] = current;
-
-    this.enforceCacheLimit();
   }
 
   // Legacy update methods refactored to use updateSymbol
@@ -654,16 +712,23 @@ export class MarketManager {
 
   updateKline(symbol: string, timeframe: string, data: any) {
     try {
-      this.updateSymbolKlines(symbol, timeframe, [
-        {
-          open: new Decimal(data.o),
-          high: new Decimal(data.h),
-          low: new Decimal(data.l),
-          close: new Decimal(data.c),
-          volume: new Decimal(data.b),
-          time: data.t,
-        },
-      ]);
+      // Pass raw values (no Decimal creation here) to allow buffering
+      // applySymbolKlines handles the conversion to Decimal lazily
+      this.updateSymbolKlines(
+        symbol,
+        timeframe,
+        [
+          {
+            open: data.o,
+            high: data.h,
+            low: data.l,
+            close: data.c,
+            volume: data.b,
+            time: data.t,
+          },
+        ],
+        "ws"
+      );
     } catch (e) {
        // ...
     }
