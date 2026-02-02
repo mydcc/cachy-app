@@ -33,11 +33,13 @@ interface MarketWatchRequest {
 
 class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
-  private pollingInterval: any = null;
-  private startTimeout: any = null; // Track startup delay
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
 
   // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
   private pendingRequests = new Map<string, Promise<void>>();
+  // Track start times for zombie detection
+  private requestStartTimes = new Map<string, number>();
 
   // Helper to store subscriptions intent
   private historyLocks = new Set<string>();
@@ -224,7 +226,24 @@ class MarketWatcher {
     }
   }
 
+  private pruneZombieRequests() {
+    const now = Date.now();
+    const ZOMBIE_THRESHOLD = 30000; // 30s
+
+    this.requestStartTimes.forEach((start, key) => {
+        if (now - start > ZOMBIE_THRESHOLD) {
+            logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
+            this.pendingRequests.delete(key);
+            this.requestStartTimes.delete(key);
+            // Decrement inFlight if we assume it was counted (best effort)
+            this.inFlight = Math.max(0, this.inFlight - 1);
+        }
+    });
+  }
+
   private async performPollingCycle() {
+    this.pruneZombieRequests();
+
     const settings = settingsState;
     const provider = settings.apiProvider;
 
@@ -405,6 +424,7 @@ class MarketWatcher {
     // Create the Promise wrapper
     const requestPromise = (async () => {
         try {
+            this.requestStartTimes.set(lockKey, Date.now());
             // Determine priority: high for the main trading symbol, normal for the rest
             const isMainSymbol =
               tradeState.symbol &&
@@ -454,6 +474,7 @@ class MarketWatcher {
         } finally {
             // Release lock immediately
             this.pendingRequests.delete(lockKey);
+            this.requestStartTimes.delete(lockKey);
             this.inFlight = Math.max(0, this.inFlight - 1);
         }
     })();

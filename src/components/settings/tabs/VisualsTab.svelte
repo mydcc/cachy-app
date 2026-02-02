@@ -43,7 +43,7 @@
 
     // Background Animation Options
     const animPresets = [
-        { value: "none", label: "None" },
+        { value: "none", label: $_("settings.profile.background.typeNone") },
         { value: "gradient", label: "Gradient Flow" },
         { value: "particles", label: "Particles" },
         { value: "breathing", label: "Breathing" },
@@ -53,8 +53,8 @@
 
     // Layout Options
     const layoutModes = [
-        { value: "standard", label: "Standard" },
-        { value: "floating", label: "Floating" },
+        { value: "standard", label: $_("settings.visuals.layoutModes.standard") },
+        { value: "floating", label: $_("settings.visuals.layoutModes.floating") },
     ];
 
     const colorModeLabels: Record<string, string> = {
@@ -83,7 +83,7 @@
                             settingsState.galaxySettings.enableGyroscope = true;
                         } else {
                             alert(
-                                "Permission denied. Gyroscope control requires access to device sensors.",
+                                $_("settings.visuals.gyroPermissionDenied"),
                             );
                         }
                     })
@@ -146,8 +146,8 @@
                             onchange={(e) => setLocale(e.currentTarget.value)}
                             class="input-field"
                         >
-                            <option value="en">English</option>
-                            <option value="de">Deutsch</option>
+                            <option value="en">{$_("languages.en")}</option>
+                            <option value="de">{$_("languages.de")}</option>
                         </select>
                     </div>
 

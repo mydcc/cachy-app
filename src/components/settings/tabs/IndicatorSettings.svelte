@@ -48,23 +48,23 @@
     const activeCategory = $derived(uiState.settingsIndicatorCategory);
 
     const categories = [
-        { id: "general", label: $_("settings.tabs.general") || "General" },
+        { id: "general", label: $_("settings.tabs.general") },
         {
             id: "oscillators",
-            label: $_("settings.technicals.oscillators") || "Oscillators",
+            label: $_("settings.technicals.oscillators"),
         },
-        { id: "trend", label: $_("settings.indicators.trend") || "Trend" },
+        { id: "trend", label: $_("settings.indicators.trend") },
         {
             id: "volatility",
-            label: $_("settings.indicators.volatility") || "Volatility",
+            label: $_("settings.indicators.volatility"),
         },
-        { id: "volume", label: $_("settings.indicators.volume") || "Volume" },
+        { id: "volume", label: $_("settings.indicators.volume") },
     ] as const;
 
     const pnlModes = [
-        { value: "value", label: "Absolute" },
-        { value: "percent", label: "Percent %" },
-        { value: "bar", label: "Visual Bar" },
+        { value: "value", label: $_("settings.technicals.pnlModes.absolute") },
+        { value: "percent", label: $_("settings.technicals.pnlModes.percent") },
+        { value: "bar", label: $_("settings.technicals.pnlModes.bar") },
     ];
 </script>
 
@@ -94,7 +94,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Precision -->
                     <div class="field-group">
-                        <label for="precision">Data Precision</label>
+                        <label for="precision">{$_("settings.technicals.precision")}</label>
                         <input
                             id="precision"
                             type="number"
@@ -107,7 +107,7 @@
                     <!-- History Limit -->
                     <div class="field-group">
                         <label for="history-limit"
-                            >History Scope (Candles)</label
+                            >{$_("settings.technicals.historyLimit")}</label
                         >
                         <input
                             id="history-limit"
@@ -124,10 +124,10 @@
                 <label class="toggle-card mt-4">
                     <div class="flex flex-col">
                         <span class="text-sm font-medium"
-                            >Synchronize RSI Timeframe</span
+                            >{$_("settings.technicals.syncRsi")}</span
                         >
                         <span class="text-[10px] text-[var(--text-secondary)]"
-                            >Use chart timeframe for RSI</span
+                            >{$_("settings.technicals.syncRsiDesc")}</span
                         >
                     </div>
                     <Toggle bind:checked={settingsState.syncRsiTimeframe} />
@@ -136,11 +136,10 @@
                 <label class="toggle-card mt-2">
                     <div class="flex flex-col">
                         <span class="text-sm font-medium"
-                            >{$_("settings.technicals.pivots") ||
-                                "Pivot Points"}</span
+                            >{$_("settings.technicals.pivots")}</span
                         >
                         <span class="text-[10px] text-[var(--text-secondary)]"
-                            >Calculate standard pivot points (S/R)</span
+                            >{$_("settings.technicals.pivotsDesc")}</span
                         >
                     </div>
                     <Toggle
@@ -152,7 +151,7 @@
                 <div class="field-group mt-4">
                     <span
                         class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
-                        >PnL Display Mode</span
+                        >{$_("settings.technicals.pnlMode")}</span
                     >
                     <div class="flex gap-2">
                         {#each pnlModes as mode}
@@ -175,7 +174,7 @@
                 <div class="mt-4">
                     <span
                         class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                        >Favorite Timeframes</span
+                        >{$_("settings.technicals.favorites")}</span
                     >
                     <TimeframeSelector
                         bind:selected={settingsState.favoriteTimeframes}
@@ -189,18 +188,18 @@
                 <div
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
-                    <h4 class="text-xs font-bold uppercase mb-2">RSI</h4>
+                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.rsi.title")}</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <Field
                             id="rsi-len"
-                            label="Length"
+                            label={$_("settings.technicals.labels.length")}
                             type="number"
                             bind:value={indicatorState.rsi.length}
                             min={2}
                         />
                         <Select
                             id="rsi-src"
-                            label="Source"
+                            label={$_("settings.technicals.labels.source")}
                             bind:value={indicatorState.rsi.source}
                             options={[
                                 "close",
@@ -213,7 +212,7 @@
                         />
                     </div>
                     <div class="flex items-center justify-between mt-2">
-                        <span class="text-xs">Show Signal Line</span>
+                        <span class="text-xs">{$_("settings.technicals.rsi.showSignal")}</span>
                         <Toggle bind:checked={indicatorState.rsi.showSignal} />
                     </div>
                 </div>
@@ -221,18 +220,18 @@
                 <div
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
-                    <h4 class="text-xs font-bold uppercase mb-2">Stoch RSI</h4>
+                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.stochRsi.title")}</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <Field
                             id="srsi-len"
-                            label="Len"
+                            label={$_("settings.technicals.stochRsi.len")}
                             type="number"
                             bind:value={indicatorState.stochRsi.length}
                             min={2}
                         />
                         <Field
                             id="srsi-rlen"
-                            label="RSI Len"
+                            label={$_("settings.technicals.stochRsi.rsiLen")}
                             type="number"
                             bind:value={indicatorState.stochRsi.rsiLength}
                             min={2}
@@ -258,23 +257,23 @@
                 <div
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
-                    <h4 class="text-xs font-bold uppercase mb-2">MACD</h4>
+                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.macd.title")}</h4>
                     <div class="grid grid-cols-3 gap-2">
                         <Field
                             id="macd-fast"
-                            label="Fast"
+                            label={$_("settings.technicals.labels.fast")}
                             type="number"
                             bind:value={indicatorState.macd.fastLength}
                         />
                         <Field
                             id="macd-slow"
-                            label="Slow"
+                            label={$_("settings.technicals.labels.slow")}
                             type="number"
                             bind:value={indicatorState.macd.slowLength}
                         />
                         <Field
                             id="macd-sig"
-                            label="Signal"
+                            label={$_("settings.technicals.labels.signal")}
                             type="number"
                             bind:value={indicatorState.macd.signalLength}
                         />
@@ -284,18 +283,18 @@
                 <div
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
-                    <h4 class="text-xs font-bold uppercase mb-2">SuperTrend</h4>
+                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.superTrend.title")}</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <Field
                             id="st-fac"
-                            label="Factor"
+                            label={$_("settings.technicals.labels.factor")}
                             type="number"
                             step={0.1}
                             bind:value={indicatorState.superTrend.factor}
                         />
                         <Field
                             id="st-per"
-                            label="Period"
+                            label={$_("settings.technicals.labels.period")}
                             type="number"
                             bind:value={indicatorState.superTrend.period}
                         />
@@ -309,18 +308,18 @@
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
                     <h4 class="text-xs font-bold uppercase mb-2">
-                        Bollinger Bands
+                        {$_("settings.technicals.bollingerBands.title")}
                     </h4>
                     <div class="grid grid-cols-2 gap-2">
                         <Field
                             id="bb-len"
-                            label="Length"
+                            label={$_("settings.technicals.labels.length")}
                             type="number"
                             bind:value={indicatorState.bollingerBands.length}
                         />
                         <Field
                             id="bb-std"
-                            label="StdDev"
+                            label={$_("settings.technicals.bollingerBands.stdDev")}
                             type="number"
                             step={0.1}
                             bind:value={indicatorState.bollingerBands.stdDev}
@@ -331,10 +330,10 @@
                 <div
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
-                    <h4 class="text-xs font-bold uppercase mb-2">ATR</h4>
+                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.atr")}</h4>
                     <Field
                         id="atr-len"
-                        label="Length"
+                        label={$_("settings.technicals.labels.length")}
                         type="number"
                         bind:value={indicatorState.atr.length}
                     />
@@ -345,17 +344,17 @@
                 <div
                     class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                 >
-                    <h4 class="text-xs font-bold uppercase mb-2">Volume MA</h4>
+                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.volumeMa.title")}</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <Field
                             id="vma-len"
-                            label="Length"
+                            label={$_("settings.technicals.labels.length")}
                             type="number"
                             bind:value={indicatorState.volumeMa.length}
                         />
                         <Select
                             id="vma-type"
-                            label="Type"
+                            label={$_("settings.technicals.labels.type")}
                             bind:value={indicatorState.volumeMa.maType}
                             options={["sma", "ema", "wma"]}
                         />
