@@ -27,6 +27,15 @@ export interface Kline {
   time: number; // Unix timestamp in ms
 }
 
+export interface KlineBuffers {
+  times: Float64Array;
+  opens: Float64Array;
+  highs: Float64Array;
+  lows: Float64Array;
+  closes: Float64Array;
+  volumes: Float64Array;
+}
+
 export interface SerializedKline {
   open: string;
   high: string;
