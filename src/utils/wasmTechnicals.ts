@@ -12,6 +12,8 @@
 
 let wasmInstance: any = null;
 
+export const WASM_SUPPORTED_INDICATORS = ['ema', 'rsi', 'macd', 'bb'];
+
 export async function loadWasm() {
   if (wasmInstance) return wasmInstance;
 

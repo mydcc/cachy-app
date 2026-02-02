@@ -31,7 +31,7 @@ import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { BufferPool } from "../utils/bufferPool";
 import { StatefulTechnicalsCalculator } from "../utils/statefulTechnicalsCalculator";
 import { WasmTechnicalsCalculator } from "../utils/WasmTechnicalsCalculator";
-import { loadWasm, isWasmAvailable } from "../utils/wasmTechnicals";
+import { loadWasm, isWasmAvailable, WASM_SUPPORTED_INDICATORS } from "../utils/wasmTechnicals";
 import type { Kline } from "../utils/indicators";
 import type {
   WorkerMessage,
@@ -76,17 +76,20 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
       let calc: ITechnicalsCalculator;
 
-      // Use WASM if available and not explicitly disabled via settings
-      // Note: Settings check logic can be added later
-      if (wasmModule) {
+      // Check for WASM availability AND feature compatibility
+      // If user enabled an indicator not yet supported by WASM, fallback to JS.
+      const useWasm = wasmModule && checkWasmCompatibility(enabledIndicators);
+
+      if (useWasm) {
           try {
               calc = new WasmTechnicalsCalculator(wasmModule);
-              // console.log(`[Worker] Using WASM for ${key}`);
+              // if (import.meta.env.DEV) console.log(`[Worker] Using WASM for ${key}`);
           } catch (e) {
               console.warn("[Worker] WASM Init failed, falling back to JS", e);
               calc = new StatefulTechnicalsCalculator();
           }
       } else {
+          // if (wasmModule && import.meta.env.DEV) console.log(`[Worker] Fallback to JS for ${key} (unsupported indicators)`);
           calc = new StatefulTechnicalsCalculator();
       }
 
@@ -243,4 +246,18 @@ function convertToDecimalKlines(klines: any[]): Kline[] {
       close: new Decimal(k.close),
       volume: new Decimal(k.volume),
     }));
+}
+
+function checkWasmCompatibility(enabled: Partial<Record<string, boolean>> | undefined): boolean {
+    if (!enabled) return true; // Default usually implies "all", but here assumes standard set.
+    // If enabled list is present, check if ANY active indicator is NOT in WASM_SUPPORTED.
+
+    for (const [key, isActive] of Object.entries(enabled)) {
+        if (isActive === true) {
+            if (!WASM_SUPPORTED_INDICATORS.includes(key.toLowerCase())) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
