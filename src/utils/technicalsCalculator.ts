@@ -404,12 +404,24 @@ export function calculateIndicatorsFromArrays(
         const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
         const stochRsiSmooth = 1; // Not yet in settings, assume 1
 
+        let outK: Float64Array | undefined;
+        let outD: Float64Array | undefined;
+        if (pool) {
+            outK = pool.acquire(len);
+            outD = pool.acquire(len);
+            cleanupBuffers.push(outK);
+            cleanupBuffers.push(outD);
+        }
+
         const srRes = JSIndicators.stochRsi(
-        closesNum,
-        stochRsiRsiLen,
-        stochRsiK,
-        stochRsiD,
-        stochRsiSmooth,
+          closesNum,
+          stochRsiRsiLen,
+          stochRsiK,
+          stochRsiD,
+          stochRsiSmooth,
+          outK,
+          outD,
+          pool
         );
         const srK = srRes.k[srRes.k.length - 1];
         const srD = srRes.d[srRes.d.length - 1];
