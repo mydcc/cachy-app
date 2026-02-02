@@ -3,6 +3,7 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -14,7 +15,72 @@ extern "C" {
     fn log(s: &str);
 }
 
-// State Structs
+// --- Settings Structs ---
+#[derive(Serialize, Deserialize, Default)]
+struct IndicatorSettings {
+    #[serde(default)]
+    ema: EmaSettings,
+    #[serde(default)]
+    rsi: RsiSettings,
+    #[serde(default)]
+    macd: MacdSettings,
+    #[serde(default)]
+    bb: BbSettings,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct EmaSettings {
+    #[serde(default)]
+    ema1: LengthSetting,
+    #[serde(default)]
+    ema2: LengthSetting,
+    #[serde(default)]
+    ema3: LengthSetting,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct LengthSetting {
+    #[serde(default = "default_zero")]
+    length: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RsiSettings {
+    #[serde(default = "default_rsi_len")]
+    length: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct MacdSettings {
+    #[serde(default = "default_macd_fast")]
+    fastLength: usize,
+    #[serde(default = "default_macd_slow")]
+    slowLength: usize,
+    #[serde(default = "default_macd_sig")]
+    signalLength: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct BbSettings {
+    #[serde(default = "default_bb_len")]
+    length: usize,
+    #[serde(default = "default_bb_std")]
+    stdDev: f64,
+}
+
+impl Default for RsiSettings { fn default() -> Self { Self { length: 14 } } }
+impl Default for MacdSettings { fn default() -> Self { Self { fastLength: 12, slowLength: 26, signalLength: 9 } } }
+impl Default for BbSettings { fn default() -> Self { Self { length: 20, stdDev: 2.0 } } }
+
+fn default_zero() -> usize { 0 }
+fn default_rsi_len() -> usize { 14 }
+fn default_macd_fast() -> usize { 12 }
+fn default_macd_slow() -> usize { 26 }
+fn default_macd_sig() -> usize { 9 }
+fn default_bb_len() -> usize { 20 }
+fn default_bb_std() -> f64 { 2.0 }
+
+// --- State Structs ---
 struct EmaState {
     prev_ema: f64,
 }
@@ -32,10 +98,10 @@ struct MacdState {
 }
 
 struct BbState {
-    // Ring buffer for calculating StdDev
     history: Vec<f64>,
     history_idx: usize,
     prev_sum: f64,
+    std_dev_mult: f64,
 }
 
 #[wasm_bindgen]
@@ -64,29 +130,36 @@ impl TechnicalsCalculator {
         if closes.is_empty() { return; }
         self.last_close = closes[closes.len() - 1];
 
-        // --- Defaults (Should parse settings_json in production) ---
-        // EMA
-        let ema_periods = vec![10, 20, 50, 200];
+        // Parse Settings
+        let settings: IndicatorSettings = serde_json::from_str(settings_json).unwrap_or_default();
+
+        // 1. EMA
+        let mut ema_periods = Vec::new();
+        if settings.ema.ema1.length > 0 { ema_periods.push(settings.ema.ema1.length); }
+        if settings.ema.ema2.length > 0 { ema_periods.push(settings.ema.ema2.length); }
+        if settings.ema.ema3.length > 0 { ema_periods.push(settings.ema.ema3.length); }
+        // Add defaults if none configured? No, adhere to settings.
+        // If settings are empty, we do nothing.
+        // JS side defaults to 20/50/200 if not set.
+        // We assume settings_json passed contains defaults if UI didn't set them.
+
         for p in ema_periods {
             let val = calculate_ema_last(closes, p);
             self.ema_states.insert(p, EmaState { prev_ema: val });
         }
 
-        // RSI
-        let rsi_p = 14;
+        // 2. RSI
+        let rsi_p = settings.rsi.length;
         let (avg_gain, avg_loss) = calculate_rsi_state(closes, rsi_p);
         self.rsi_states.insert(rsi_p, RsiState { avg_gain, avg_loss, prev_price: self.last_close });
 
-        // MACD (12, 26, 9)
-        let fast = 12;
-        let slow = 26;
-        let sig = 9;
-        // Calc initial state
+        // 3. MACD
+        let fast = settings.macd.fastLength;
+        let slow = settings.macd.slowLength;
+        let sig = settings.macd.signalLength;
+
         let fast_val = calculate_ema_last(closes, fast);
         let slow_val = calculate_ema_last(closes, slow);
-        // Signal line needs history of MACD line. Hard to get exact 1-point state without replay.
-        // Simplification: Assume signal matches MACD current initially (convergence) or replay last N.
-        // Better: Replay last 'sig' points of MACD line to seed Signal EMA.
         let signal_val = calculate_macd_signal_last(closes, fast, slow, sig);
 
         self.macd_states.insert(format!("{},{},{}", fast, slow, sig), MacdState {
@@ -95,21 +168,19 @@ impl TechnicalsCalculator {
             signal_ema: signal_val
         });
 
-        // Bollinger Bands (20, 2)
-        let bb_len = 20;
-        let bb_std = 2.0;
+        // 4. Bollinger Bands
+        let bb_len = settings.bb.length;
+        let bb_std = settings.bb.stdDev;
         if closes.len() >= bb_len {
-            // Init Ring Buffer
             let start = closes.len() - bb_len;
             let history = closes[start..].to_vec();
             let sum: f64 = history.iter().sum();
 
             self.bb_states.insert(format!("{},{}", bb_len, bb_std), BbState {
                 history,
-                history_idx: 0, // Points to oldest element (implied ring start is 0 after copy?)
-                // Actually, if we copy the last N, the "next" write should be at index 0 (overwriting the oldest).
-                // Yes.
-                prev_sum: sum
+                history_idx: 0,
+                prev_sum: sum,
+                std_dev_mult: bb_std,
             });
         }
     }
@@ -121,11 +192,6 @@ impl TechnicalsCalculator {
         result.push_str("\"movingAverages\": [");
         for (period, state) in &mut self.ema_states {
             let new_val = update_ema_calc(state.prev_ema, price, *period);
-            // Don't update state here?
-            // NOTE: "update" in this context is usually "Intra-candle update".
-            // The state should remain at "Last Closed Candle".
-            // So we calculate new_val but don't save it to state.prev_ema.
-            // CORRECT.
             result.push_str(&format!("{{\"name\":\"EMA\",\"params\":\"{}\",\"value\":{},\"action\":\"Neutral\"}},", period, new_val));
         }
         if result.ends_with(',') { result.pop(); }
@@ -165,31 +231,26 @@ impl TechnicalsCalculator {
 
         // --- Volatility (BB) ---
         result.push_str("\"volatility\": {");
-        // Only one BB supported in UI typically
         if let Some(state) = self.bb_states.values().next() {
-             // BB update
-             // We need to replace the oldest value with current price to calc SMA and StdDev
-             // But we don't mutate state.
              let len = state.history.len();
-             let old_val = state.history[state.history_idx]; // This is the oldest value
+             let old_val = state.history[state.history_idx];
              let new_sum = state.prev_sum - old_val + price;
              let new_sma = new_sum / (len as f64);
 
-             // StdDev
              let mut sum_sq_diff = 0.0;
              for (i, val) in state.history.iter().enumerate() {
                  let v = if i == state.history_idx { price } else { *val };
                  sum_sq_diff += (v - new_sma).powi(2);
              }
              let std_dev = (sum_sq_diff / (len as f64)).sqrt();
-             let upper = new_sma + 2.0 * std_dev;
-             let lower = new_sma - 2.0 * std_dev;
+
+             let upper = new_sma + state.std_dev_mult * std_dev;
+             let lower = new_sma - state.std_dev_mult * std_dev;
              let percent_p = if upper - lower == 0.0 { 0.5 } else { (price - lower) / (upper - lower) };
 
              result.push_str(&format!("\"bb\": {{\"middle\":{},\"upper\":{},\"lower\":{},\"percentP\":{}}},", new_sma, upper, lower, percent_p));
-             result.push_str(&format!("\"atr\": 0.0")); // Placeholder
+             result.push_str(&format!("\"atr\": 0.0"));
         } else {
-             // Empty volatilty to match structure
              result.push_str("\"atr\": 0.0");
         }
         result.push_str("}"); // End volatility
@@ -282,9 +343,6 @@ fn calculate_macd_signal_last(data: &[f64], fast: usize, slow: usize, sig: usize
     // We need to generate the MACD series first
     // This is expensive O(N) but run only once at init
     let mut macd_line: Vec<f64> = Vec::with_capacity(data.len());
-
-    // We can't reuse calculate_ema_last easily for series.
-    // Let's implement full MACD series calc here for init.
 
     let fast_series = calculate_ema(data, fast);
     let slow_series = calculate_ema(data, slow);
