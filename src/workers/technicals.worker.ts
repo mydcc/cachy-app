@@ -41,7 +41,16 @@ import { calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 
 const ctx: Worker = self as any;
 const pool = new BufferPool();
-const calculators = new Map<string, StatefulTechnicalsCalculator>();
+const calculators = new Map<string, StatefulTechnicalsCalculator>(); // JS State
+let wasmModule: any = null; // Placeholder for WASM module
+
+// Try to load WASM on worker start
+loadWasm().then(mod => {
+    if (mod) {
+        console.log("[Worker] WASM Module Loaded");
+        wasmModule = mod;
+    }
+});
 
 // --- Main Worker Listener ---
 
@@ -55,6 +64,12 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     else if (type === "INITIALIZE" && payload) {
       const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
       const key = `${symbol}:${timeframe}`;
+
+      // Future WASM Integration Point:
+      // if (wasmModule && canUseWasm(settings)) {
+      //    const calc = new wasmModule.TechnicalsCalculator();
+      //    calc.initialize(...)
+      // }
 
       const calc = new StatefulTechnicalsCalculator();
       const klinesDec = convertToDecimalKlines(klines);
