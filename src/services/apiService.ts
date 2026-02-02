@@ -471,14 +471,20 @@ export const apiService = {
                   const low = new Decimal(k.low || k.l);
                   const close = new Decimal(k.close || k.c);
                   const volume = new Decimal(k.volume || k.vol || k.v || 0);
-                  if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
+                  if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) {
+                      logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
+                      return null;
+                  }
                   return { open, high, low, close, volume, time };
                } catch { return null; }
             }
 
             // Array Format Validation
             const validation = BitgetKlineSchema.safeParse(k);
-            if (!validation.success) return null;
+            if (!validation.success) {
+                logger.warn("network", "[Bitget] Dropping invalid kline (Schema)", { k, error: validation.error });
+                return null;
+            }
 
             const d = validation.data;
             try {
@@ -489,9 +495,13 @@ export const apiService = {
               const close = new Decimal(d[4]);
               const volume = new Decimal(d[5]);
 
-              if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
+              if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) {
+                  logger.warn("network", "[Bitget] Dropping invalid kline (NaN Array)", d);
+                  return null;
+              }
               return { open, high, low, close, volume, time };
             } catch (e) {
+              logger.warn("network", "[Bitget] Dropping invalid kline (Exception)", e);
               return null;
             }
           }).filter((k): k is Kline => k !== null);
@@ -588,7 +598,10 @@ export const apiService = {
               }
               const d = validation.data;
               const time = parseTimestamp(d.timestamp || d.time || d.ts);
-              if (time === 0) return null;
+              if (time === 0) {
+                  logger.warn("network", "[Bitunix] Dropping invalid kline (Time=0)", d);
+                  return null;
+              }
               return {
                 open: d.open,
                 high: d.high,

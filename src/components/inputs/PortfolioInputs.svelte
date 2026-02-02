@@ -27,6 +27,7 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
+  import { safeJsonParse } from "../../utils/safeJson";
 
   interface Props {
     accountSize: string | null;
@@ -109,7 +110,8 @@
         }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      const data = safeJsonParse(text);
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to fetch balance");

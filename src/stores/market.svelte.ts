@@ -360,13 +360,26 @@ export class MarketManager {
     if (source === "ws") {
       // Buffer high-frequency WS updates
       const key = `${symbol}:${timeframe}`;
-      const pending = this.pendingKlineUpdates.get(key) || [];
+      let pending = this.pendingKlineUpdates.get(key);
+      const MAX_BUFFER_LEN = 1000;
+
+      // Hardening: Prevent individual buffer from growing indefinitely (OOM protection)
+      if (pending && pending.length >= MAX_BUFFER_LEN) {
+          if (import.meta.env.DEV) console.warn(`[Market] Buffer overflow for ${key}, forcing flush.`);
+          this.flushUpdates();
+          pending = undefined; // Force refresh after flush
+      }
+
+      if (!pending) {
+          pending = [];
+          this.pendingKlineUpdates.set(key, pending);
+      }
+
       // Optimization: Just append. Logic to merge is handled in flush.
       // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
       for (const k of klines) pending.push(k);
-      this.pendingKlineUpdates.set(key, pending);
 
-      // Safety check: force flush if too many updates pending
+      // Safety check: force flush if too many SYMBOLS are pending updates
       // Klines need more buffer space (10x cache size)
       const limit = (settingsState.marketCacheSize || 20) * 10;
       if (this.pendingKlineUpdates.size > limit) {
@@ -653,6 +666,7 @@ export class MarketManager {
       // Slicing creates a new array, but it's necessary for GC
       const sliced = history.slice(-effectiveLimit);
       current.klines[timeframe] = sliced;
+      history = sliced; // Update local reference for consistency check
 
       // Slice buffers too
       if (buffers && buffers.times.length > effectiveLimit) {
@@ -670,6 +684,13 @@ export class MarketManager {
 
     current.klinesBuffers[timeframe] = buffers;
     current.lastUpdated = Date.now();
+
+    // Hardening: Runtime Consistency Check (DEV only)
+    if (import.meta.env.DEV) {
+        if (buffers && history.length !== buffers.times.length) {
+            console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer: ${buffers.times.length}`);
+        }
+    }
 
     // FORCE REACTIVITY: Svelte 5 needs to see a write to the root property or the specific nested path.
     // By re-assigning the nested array above, we trigger listeners on `current.klines[timeframe]`.

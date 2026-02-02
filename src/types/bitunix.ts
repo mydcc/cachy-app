@@ -66,7 +66,7 @@ export interface NormalizedOrder {
   symbol: string;
   type: string;
   side: string;
-  price: string; // High-precision string
+  price: string | null; // High-precision string or null
   amount: string; // High-precision string
   filled: string; // High-precision string
   status: string;
