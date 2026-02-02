@@ -455,6 +455,7 @@ export const apiService = {
           const res = await apiService.safeJson(response);
 
           if (!Array.isArray(res)) {
+            logger.error("network", `[Bitget] Invalid kline response type: ${typeof res}`, res);
             throw new Error("apiErrors.invalidResponse");
           }
 
@@ -572,7 +573,8 @@ export const apiService = {
 
           // Backend returns the mapped array directly
           if (!Array.isArray(res)) {
-            if (res.error) throw new Error("apiErrors.klineError");
+            if (res && res.error) throw new Error("apiErrors.klineError");
+            logger.error("network", `[Bitunix] Invalid kline response type: ${typeof res}`, res);
             throw new Error("apiErrors.invalidResponse");
           }
 

@@ -997,7 +997,6 @@ class BitunixWebSocketService {
       if (validatedChannel === "price") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        // const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
         if (!this.shouldThrottle(`${symbol}:price`)) {
           marketState.updateSymbol(symbol, {
