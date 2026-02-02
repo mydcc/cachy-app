@@ -664,6 +664,7 @@
       "url": "Bild / Video URL",
       "urlHelper": "Unterstützt .jpg, .png, .mp4",
       "playbackSpeed": "Wiedergabegeschwindigkeit",
+      "rotationSpeed": "Rotationsgeschwindigkeit",
       "effect": "Effekt",
       "particles": "Partikel",
       "size": "Größe",

@@ -664,6 +664,7 @@
       "url": "Image / Video URL",
       "urlHelper": "Supports .jpg, .png, .mp4",
       "playbackSpeed": "Playback Speed",
+      "rotationSpeed": "Rotation Speed",
       "effect": "Effect",
       "particles": "Particles",
       "size": "Size",
