@@ -152,7 +152,7 @@ export function calculateIndicatorsFromArrays(
   const divergences: DivergenceItem[] = [];
 
   // Temporary storage for signals to valid divergences against
-  const indSeries: Record<string, number[]> = {};
+  const indSeries: Record<string, number[] | Float64Array> = {};
 
   try {
     // 1. RSI

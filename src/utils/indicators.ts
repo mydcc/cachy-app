@@ -22,7 +22,7 @@
  * Can be used by both Main Thread and WebWorkers.
  *
  * Contains:
- * 1. JSIndicators: Fast, array-based pure math implementations (number[] -> number[]).
+ * 1. JSIndicators: Fast, array-based pure math implementations (number[] -> Float64Array).
  * 2. indicators: Decimal-based wrappers for UI/Chart precision.
  * 3. Helpers: Pivots, AO, etc.
  */
@@ -46,8 +46,8 @@ export type NumberArray = number[] | Float64Array;
 
 // --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
 export const JSIndicators = {
-  sma(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(NaN);
+  sma(data: NumberArray, period: number): Float64Array {
+    const result = new Float64Array(data.length).fill(NaN);
     if (data.length < period) return result;
     let sum = 0;
     for (let i = 0; i < period; i++) sum += data[i];
@@ -59,8 +59,8 @@ export const JSIndicators = {
     return result;
   },
 
-  wma(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(NaN);
+  wma(data: NumberArray, period: number): Float64Array {
+    const result = new Float64Array(data.length).fill(NaN);
     if (data.length < period) return result;
 
     const denominator = (period * (period + 1)) / 2;
@@ -79,8 +79,8 @@ export const JSIndicators = {
     return result;
   },
 
-  ema(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(NaN);
+  ema(data: NumberArray, period: number): Float64Array {
+    const result = new Float64Array(data.length).fill(NaN);
     if (data.length < period) return result;
     const k = 2 / (period + 1);
     let sum = 0;
@@ -94,10 +94,10 @@ export const JSIndicators = {
     return result;
   },
 
-  smma(data: NumberArray, period: number): number[] {
+  smma(data: NumberArray, period: number): Float64Array {
     // Wilder's Smoothing (RMA)
     // alpha = 1 / period
-    const result = new Array(data.length).fill(NaN);
+    const result = new Float64Array(data.length).fill(NaN);
     if (data.length < period) return result;
 
     let sum = 0;
@@ -113,8 +113,8 @@ export const JSIndicators = {
     return result;
   },
 
-  rsi(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(NaN);
+  rsi(data: NumberArray, period: number): Float64Array {
+    const result = new Float64Array(data.length).fill(NaN);
     if (data.length <= period) return result;
     let sumGain = 0;
     let sumLoss = 0;
@@ -143,8 +143,8 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     kPeriod: number,
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     if (close.length < kPeriod) return result;
 
     const highestHighs = slidingWindowMax(high, kPeriod);
@@ -163,21 +163,31 @@ export const JSIndicators = {
     const emaFast = this.ema(data, fast);
     const emaSlow = this.ema(data, slow);
     const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
-    const macdSignal = this.ema(macdLine.slice(slow - 1), signal);
-    const paddedSignal = new Array(slow - 1).fill(NaN).concat(macdSignal);
+    // macdLine is a new Float64Array
+    // We use subarray for efficiency (no copy)
+    const macdLineSub = macdLine.subarray(slow - 1);
+
+    // Calculate signal on the sliced part
+    const macdSignalPart = this.ema(macdLineSub, signal);
+
+    // Pad the signal array to match original length
+    const paddedSignal = new Float64Array(data.length).fill(NaN);
+    // Offset is slow - 1
+    paddedSignal.set(macdSignalPart, slow - 1);
+
     return { macd: macdLine, signal: paddedSignal };
   },
 
-  mom(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(NaN);
+  mom(data: NumberArray, period: number): Float64Array {
+    const result = new Float64Array(data.length).fill(NaN);
     for (let i = period; i < data.length; i++) {
       result[i] = data[i] - data[i - period];
     }
     return result;
   },
 
-  cci(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(NaN);
+  cci(data: NumberArray, period: number): Float64Array {
+    const result = new Float64Array(data.length).fill(NaN);
     if (data.length < period) return result;
 
     for (let i = period - 1; i < data.length; i++) {
@@ -212,13 +222,13 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     if (close.length < period * 2) return result;
 
-    const upMove = new Array(close.length).fill(0);
-    const downMove = new Array(close.length).fill(0);
-    const tr = new Array(close.length).fill(0);
+    const upMove = new Float64Array(close.length).fill(0);
+    const downMove = new Float64Array(close.length).fill(0);
+    const tr = new Float64Array(close.length).fill(0);
 
     for (let i = 1; i < close.length; i++) {
       const up = high[i] - high[i - 1];
@@ -237,7 +247,7 @@ export const JSIndicators = {
     const minusDI_S = this.smma(downMove, period);
     const tr_S = this.smma(tr, period);
 
-    const dx = new Array(close.length).fill(0);
+    const dx = new Float64Array(close.length).fill(0);
     for (let i = 0; i < close.length; i++) {
       const pDI = (plusDI_S[i] / (tr_S[i] || 1)) * 100;
       const mDI = (minusDI_S[i] / (tr_S[i] || 1)) * 100;
@@ -253,10 +263,10 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     if (close.length < period) return result;
-    const tr = new Array(close.length).fill(0);
+    const tr = new Float64Array(close.length).fill(0);
     for (let i = 1; i < close.length; i++) {
       tr[i] = Math.max(
         high[i] - low[i],
@@ -270,8 +280,8 @@ export const JSIndicators = {
 
   bb(data: NumberArray, period: number, stdDev: number = 2) {
     const sma = this.sma(data, period);
-    const upper = new Array(data.length).fill(NaN);
-    const lower = new Array(data.length).fill(NaN);
+    const upper = new Float64Array(data.length).fill(NaN);
+    const lower = new Float64Array(data.length).fill(NaN);
     const len = data.length;
 
     if (len < period) return { middle: sma, upper, lower };
@@ -318,8 +328,8 @@ export const JSIndicators = {
     volume: NumberArray,
     time?: NumberArray,
     anchor?: { mode: "session" | "fixed"; anchorPoint?: number },
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     let cumVol = 0;
     let cumVolPrice = 0;
     let lastDay = -1;
@@ -354,16 +364,28 @@ export const JSIndicators = {
     volume: NumberArray,
     period: number,
     typicalPrices?: NumberArray,
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     if (close.length < period + 1) return result;
 
-    const tp = typicalPrices || close.map((c, i) => (high[i] + low[i] + c) / 3);
-    const moneyFlow = new Array(close.length);
+    // Use map to create typical prices - map returns Float64Array if inputs are Float64Array
+    // But map on NumberArray (if Union) isn't guaranteed to return Float64Array unless cast
+    // Safe way:
+    let tp: NumberArray;
+    if (typicalPrices) {
+        tp = typicalPrices;
+    } else {
+        tp = new Float64Array(close.length);
+        for(let i=0; i<close.length; i++) {
+            tp[i] = (high[i] + low[i] + close[i]) / 3;
+        }
+    }
+
+    const moneyFlow = new Float64Array(close.length);
     for (let i = 0; i < close.length; i++) moneyFlow[i] = tp[i] * volume[i];
 
-    const posFlow = new Array(close.length).fill(0);
-    const negFlow = new Array(close.length).fill(0);
+    const posFlow = new Float64Array(close.length).fill(0);
+    const negFlow = new Float64Array(close.length).fill(0);
 
     // 1. Calculate Flows
     for (let i = 1; i < close.length; i++) {
@@ -404,14 +426,9 @@ export const JSIndicators = {
     smoothK: number,
   ) {
     const rsiRaw = this.rsi(data, period);
-    // Stoch of RSI
-    // Use the stoch function but on RSI data
-    // JSIndicators.stoch expects High, Low, Close.
-    // For StochRSI, High=RSI, Low=RSI, Close=RSI
 
-    // We need a helper for simple stochastic on a single array
     const stochSingle = (src: NumberArray, len: number) => {
-      const res = new Array(src.length).fill(NaN);
+      const res = new Float64Array(src.length).fill(NaN);
       const minArr = slidingWindowMin(src, len);
       const maxArr = slidingWindowMax(src, len);
 
@@ -440,8 +457,8 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     if (close.length < period) return result;
 
     const highestHighs = slidingWindowMax(high, period);
@@ -461,13 +478,13 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
-  ): number[] {
-    const result = new Array(close.length).fill(NaN);
+  ): Float64Array {
+    const result = new Float64Array(close.length).fill(NaN);
     if (close.length < period) return result;
     // CI = 100 * LOG10( SUM(ATR(1), n) / ( MaxHi(n) - MinLo(n) ) ) / LOG10(n)
 
     // First calculate TR for each candle
-    const tr = new Array(close.length).fill(0);
+    const tr = new Float64Array(close.length).fill(0);
     for (let i = 1; i < close.length; i++) {
       tr[i] = Math.max(
         high[i] - low[i],
@@ -506,12 +523,6 @@ export const JSIndicators = {
     spanBPeriod: number,
     laggingSpan2: number,
   ) {
-    // Tenkan-sen (Conversion Line): (9-period high + 9-period low)/2
-    // Kijun-sen (Base Line): (26-period high + 26-period low)/2
-    // Senkou Span A (Leading Span A): (Conversion Line + Base Line)/2
-    // Senkou Span B (Leading Span B): (52-period high + 52-period low)/2
-    // Chikou Span (Lagging Span): Close plotted 26 days in the past (handled by UI offset mostly, but here we just return close)
-
     const len = high.length;
 
     const convHigh = slidingWindowMax(high, conversionPeriod);
@@ -523,11 +534,10 @@ export const JSIndicators = {
     const spanBHigh = slidingWindowMax(high, spanBPeriod);
     const spanBLow = slidingWindowMin(low, spanBPeriod);
 
-    const conversion = new Array(len).fill(NaN);
-    const base = new Array(len).fill(NaN);
-    const spanA = new Array(len).fill(NaN);
-    const spanB = new Array(len).fill(NaN);
-    // const lagging = close.map((c, i) => c); // Just the close price
+    const conversion = new Float64Array(len).fill(NaN);
+    const base = new Float64Array(len).fill(NaN);
+    const spanA = new Float64Array(len).fill(NaN);
+    const spanB = new Float64Array(len).fill(NaN);
 
     for (let i = 0; i < len; i++) {
       if (i >= conversionPeriod - 1) {
@@ -551,18 +561,10 @@ export const JSIndicators = {
       }
     }
 
-    // Span A and B are shifted FORWARD by displacement (usually 26)
-    // We will return the raw arrays aligned to current time,
-    // the consumer must handle the "future" plotting or we shift array here?
-    // Standard: Span A/B value at index `i` is plotted at `i + displacement`.
-    // To make it easy for "Current Status" checks:
-    // The "Cloud" valid for TODAY (index i) comes from calculations made `displacement` ago.
+    const displacement = basePeriod;
 
-    const displacement = basePeriod; // Often 26
-
-    // E.g. Cloud at i = SpanA[i-26]
-    const currentSpanA = new Array(len).fill(NaN);
-    const currentSpanB = new Array(len).fill(NaN);
+    const currentSpanA = new Float64Array(len).fill(NaN);
+    const currentSpanB = new Float64Array(len).fill(NaN);
 
     for (let i = displacement; i < len; i++) {
       currentSpanA[i] = spanA[i - displacement];
@@ -572,9 +574,9 @@ export const JSIndicators = {
     return {
       conversion,
       base,
-      spanA: currentSpanA, // This is the cloud value "active" at time i
-      spanB: currentSpanB, // This is the cloud value "active" at time i
-      lagging: [], // Not needed for current signal check usually, visual only
+      spanA: currentSpanA,
+      spanB: currentSpanB,
+      lagging: new Float64Array(0),
     };
   },
 
@@ -590,11 +592,11 @@ export const JSIndicators = {
     // 1. ATR
     const atr = this.atr(high, low, close, period);
     const len = close.length;
-    const basicUpper = new Array(len).fill(NaN);
-    const basicLower = new Array(len).fill(NaN);
-    const finalUpper = new Array(len).fill(NaN);
-    const finalLower = new Array(len).fill(NaN);
-    const trend = new Array(len).fill(0); // 1 = Bull, -1 = Bear
+    const basicUpper = new Float64Array(len).fill(NaN);
+    const basicLower = new Float64Array(len).fill(NaN);
+    const finalUpper = new Float64Array(len).fill(NaN);
+    const finalLower = new Float64Array(len).fill(NaN);
+    const trend = new Int8Array(len).fill(0); // 1 = Bull, -1 = Bear
     // Initialize trend
     trend[0] = 1;
 
@@ -604,9 +606,6 @@ export const JSIndicators = {
       basicUpper[i] = hl2 + multiplier * atr[i];
       basicLower[i] = hl2 - multiplier * atr[i];
 
-      // Final Upper Band Rule
-      // If Basic Upper < Prev Final Upper OR Prev Close > Prev Final Upper: use Basic Upper
-      // Else use Prev Final Upper
       if (
         basicUpper[i] < finalUpper[i - 1] ||
         close[i - 1] > finalUpper[i - 1]
@@ -616,9 +615,6 @@ export const JSIndicators = {
         finalUpper[i] = finalUpper[i - 1];
       }
 
-      // Final Lower Band Rule
-      // If Basic Lower > Prev Final Lower OR Prev Close < Prev Final Lower: use Basic Lower
-      // Else use Prev Final Lower
       if (
         basicLower[i] > finalLower[i - 1] ||
         close[i - 1] < finalLower[i - 1]
@@ -631,18 +627,23 @@ export const JSIndicators = {
       // Trend Rule
       let currentTrend = trend[i - 1];
       if (currentTrend === 1) {
-        // Was Bullish
-        if (close[i] < finalLower[i - 1]) currentTrend = -1; // Turned Bearish
+        if (close[i] < finalLower[i - 1]) currentTrend = -1;
       } else {
-        // Was Bearish
-        if (close[i] > finalUpper[i - 1]) currentTrend = 1; // Turned Bullish
+        if (close[i] > finalUpper[i - 1]) currentTrend = 1;
       }
       trend[i] = currentTrend;
     }
 
+    // Convert trend back to float for consistent API, or just map active line
+    // Map trend to active line value
+    const value = new Float64Array(len);
+    for(let i=0; i<len; i++) {
+        value[i] = trend[i] === 1 ? finalLower[i] : finalUpper[i];
+    }
+
     return {
-      trend, // 1 or -1
-      value: trend.map((t, i) => (t === 1 ? finalLower[i] : finalUpper[i])), // The active line
+      trend,
+      value
     };
   },
 
@@ -653,13 +654,10 @@ export const JSIndicators = {
     period: number = 22,
     multiplier: number = 3,
   ) {
-    // Chandelier Exit Logic essentially
-    // Long Exit = Highest High (period) - ATR * mult
-    // Short Exit = Lowest Low (period) + ATR * mult
     const atr = this.atr(high, low, close, period);
     const len = close.length;
-    const buyStop = new Array(len).fill(NaN);
-    const sellStop = new Array(len).fill(NaN);
+    const buyStop = new Float64Array(len).fill(NaN);
+    const sellStop = new Float64Array(len).fill(NaN);
 
     const highestHighs = slidingWindowMax(high, period);
     const lowestLows = slidingWindowMin(low, period);
@@ -674,8 +672,8 @@ export const JSIndicators = {
     return { buyStop, sellStop };
   },
 
-  obv(close: NumberArray, volume: NumberArray) {
-    const result = new Array(close.length).fill(0);
+  obv(close: NumberArray, volume: NumberArray): Float64Array {
+    const result = new Float64Array(close.length).fill(0);
     let cumVol = 0;
     result[0] = cumVol;
 
@@ -700,8 +698,15 @@ export const JSIndicators = {
     if (close.length === 0) return null;
 
     // 1. Find Range
-    const minPrice = Math.min(...low);
-    const maxPrice = Math.max(...high);
+    // Math.min(...low) can stack overflow for very large arrays.
+    // Optimization: Manual loop
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    for(let i=0; i<high.length; i++) {
+        if(low[i] < minPrice) minPrice = low[i];
+        if(high[i] > maxPrice) maxPrice = high[i];
+    }
+
     if (minPrice === maxPrice) return null;
 
     const range = maxPrice - minPrice;
@@ -729,7 +734,6 @@ export const JSIndicators = {
         if (rowIdx >= 0) rows[rowIdx].volume += cVol;
       } else {
         // Distribute across overlapped rows
-        // Find start row and end row
         const startRowIdx = Math.max(
           0,
           Math.floor((cLow - minPrice) / rowSize),
@@ -742,14 +746,12 @@ export const JSIndicators = {
         const candleRange = cHigh - cLow;
 
         for (let r = startRowIdx; r <= endRowIdx; r++) {
-          // Calculate overlap
           const rStart = rows[r].priceStart;
           const rEnd = rows[r].priceEnd;
           const overlapStart = Math.max(cLow, rStart);
           const overlapEnd = Math.min(cHigh, rEnd);
           const overlap = Math.max(0, overlapEnd - overlapStart);
 
-          // Proportional Volume
           const share = overlap / candleRange;
           rows[r].volume += cVol * share;
         }
@@ -781,7 +783,7 @@ export const JSIndicators = {
       const upVol = upIdx < rowCount - 1 ? rows[upIdx + 1].volume : 0;
       const downVol = downIdx > 0 ? rows[downIdx - 1].volume : 0;
 
-      if (upVol === 0 && downVol === 0) break; // Should not happen if data exists
+      if (upVol === 0 && downVol === 0) break;
 
       if (upVol >= downVol) {
         currentVaVol += upVol;
@@ -802,9 +804,8 @@ export const JSIndicators = {
     };
   },
 
-  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2) {
-    // Wilder's Parabolic SAR
-    const result = new Array(high.length).fill(NaN);
+  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2): Float64Array {
+    const result = new Float64Array(high.length).fill(NaN);
     if (high.length < 2) return result;
 
     let isLong = true;
@@ -835,7 +836,7 @@ export const JSIndicators = {
         if (low[i] < nextSar) {
           isLong = false;
           reversed = true;
-          nextSar = ep; // SAR becomes EP on reversal
+          nextSar = ep;
           ep = low[i];
           af = accel;
         }
@@ -880,7 +881,12 @@ export function calculateAwesomeOscillator(
   slowPeriod: number,
   hl2?: NumberArray,
 ): number {
-  const _hl2 = hl2 || high.map((val, i) => (val + low[i]) / 2);
+  let _hl2: NumberArray = hl2 || new Float64Array(high.length);
+  if(!hl2) {
+      for(let i=0; i<high.length; i++) {
+          (_hl2 as Float64Array)[i] = (high[i] + low[i]) / 2;
+      }
+  }
 
   const getSMA = (data: NumberArray, period: number): number => {
     if (data.length < period) return 0;
@@ -1029,6 +1035,7 @@ export const indicators = {
   ): Decimal | null {
     if (prices.length < period + 1) return null;
     const nums = prices.map((p) => toNumFast(p));
+    // RSI returns Float64Array now, but accessing by index still works
     const rsiArr = JSIndicators.rsi(nums, period);
     const last = rsiArr[rsiArr.length - 1];
     return new Decimal(last);
