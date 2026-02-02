@@ -102,7 +102,7 @@ function cleanupStaleCache() {
 // --- Worker Manager (Singleton) ---
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
-  private pendingResolves: Map<string, (value: TechnicalsData) => void> =
+  private pendingResolves: Map<string, (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void> =
     new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
   private lastActive: number = Date.now();
@@ -139,12 +139,12 @@ class TechnicalsWorkerManager {
   }
 
   private handleMessage(e: MessageEvent) {
-    const { id, payload, error } = e.data;
+    const { id, payload, error, buffers } = e.data;
     if (this.pendingResolves.has(id)) {
       if (error) {
         this.pendingRejects.get(id)?.(error);
       } else {
-        this.pendingResolves.get(id)?.(payload);
+        this.pendingResolves.get(id)?.({ data: payload, buffers });
       }
       this.pendingResolves.delete(id);
       this.pendingRejects.delete(id);
@@ -164,7 +164,7 @@ class TechnicalsWorkerManager {
     this.pendingRejects.clear();
   }
 
-  public async postMessage(message: any, transfer: Transferable[] = []): Promise<TechnicalsData> {
+  public async postMessage(message: any, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
     const w = this.getWorker();
     if (!w) throw new Error("workerErrors.notAvailable");
 
@@ -350,7 +350,7 @@ export const technicalsService = {
 
       // 3. Post Message with Transferables
       // The worker takes ownership of the buffers. We cannot use them after this.
-      const result = await workerManager.postMessage({
+      const { data: result } = await workerManager.postMessage({
         type: "CALCULATE",
         payload: {
           times, opens, highs, lows, closes, volumes, settings, enabledIndicators
@@ -395,9 +395,9 @@ export const technicalsService = {
     buffers: KlineBuffers,
     settings?: IndicatorSettings,
     enabledIndicators?: Partial<Record<string, boolean>>,
-  ): Promise<TechnicalsData> {
+  ): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
     const len = buffers.times.length;
-    if (len === 0) return this.getEmptyData();
+    if (len === 0) return { data: this.getEmptyData() };
 
     cleanupStaleCache();
 
@@ -419,7 +419,7 @@ export const technicalsService = {
     if (cached) {
       cached.lastAccessed = Date.now();
       if (import.meta.env.DEV) console.log('[Technicals] Buffered Cache HIT');
-      return cached.data;
+      return { data: cached.data, buffers }; // Return buffers immediately (unused)
     }
 
     // 1. Worker
@@ -433,7 +433,7 @@ export const technicalsService = {
         times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer
       ];
 
-      const result = await workerManager.postMessage({
+      const { data: result, buffers: returnedBuffers } = await workerManager.postMessage({
         type: "CALCULATE",
         payload: {
           times, opens, highs, lows, closes, volumes, settings, enabledIndicators
@@ -459,7 +459,7 @@ export const technicalsService = {
         lastAccessed: Date.now()
       });
 
-      return result;
+      return { data: result, buffers: returnedBuffers };
 
     } catch (e) {
       if (import.meta.env.DEV) console.warn("[Technicals] Buffer Worker failed, falling back to inline", e);
@@ -468,10 +468,13 @@ export const technicalsService = {
       // Actually if transfer failed, they are still here. If transfer succeeded but worker errored, they are gone.
       // But typically worker error returns data.
       // We'll try inline.
-      return calculateIndicatorsFromArrays(
+      const result = calculateIndicatorsFromArrays(
         buffers.times, buffers.opens, buffers.highs, buffers.lows, buffers.closes, buffers.volumes,
         settings, enabledIndicators
       );
+
+      // Return buffers as they are still valid in main thread
+      return { data: result, buffers };
     }
   },
 

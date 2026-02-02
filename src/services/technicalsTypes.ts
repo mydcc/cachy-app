@@ -198,4 +198,5 @@ export interface WorkerMessage {
   payload?: any;
   error?: string;
   id?: string;
+  buffers?: KlineBuffers; // Returned buffers for recycling (Zero-Copy Ping-Pong)
 }

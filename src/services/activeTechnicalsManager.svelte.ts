@@ -38,6 +38,7 @@ import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import type { Kline, KlineBuffers } from "./technicalsTypes";
 import { networkMonitor } from "../utils/networkMonitor";
+import { BufferPool } from "../utils/bufferPool";
 
 class ActiveTechnicalsManager {
     // Ref counting: `symbol:timeframe` -> count
@@ -53,6 +54,9 @@ class ActiveTechnicalsManager {
     private visibleSymbols = new Set<string>();
     private lastActiveSymbolChange = 0;
     private lastActiveSymbol = "";
+
+    // Memory Management: Reuse buffers to prevent GC spikes
+    private pool = new BufferPool();
 
     constructor() {
         // Singleton
@@ -309,7 +313,19 @@ class ActiveTechnicalsManager {
                     marketData.lastPrice || null
                 );
 
-                const result = await technicalsService.calculateTechnicalsFromBuffers(buffers, settings, enabledIndicators);
+                // Execute calculation (Zero-Copy Transfer to Worker)
+                // Returns result AND the recycled buffers (Ping-Pong strategy)
+                const { data: result, buffers: returnedBuffers } = await technicalsService.calculateTechnicalsFromBuffers(buffers, settings, enabledIndicators);
+
+                // Release buffers back to pool for next frame
+                if (returnedBuffers) {
+                    this.pool.release(returnedBuffers.times);
+                    this.pool.release(returnedBuffers.opens);
+                    this.pool.release(returnedBuffers.highs);
+                    this.pool.release(returnedBuffers.lows);
+                    this.pool.release(returnedBuffers.closes);
+                    this.pool.release(returnedBuffers.volumes);
+                }
 
                 if (result) {
                    this.handleResult(symbol, timeframe, marketData, result);
@@ -387,9 +403,9 @@ class ActiveTechnicalsManager {
         // Allocate new buffers
         const newLen = updateType === 'append' ? len + 1 : len;
 
-        // Helper to allocate and copy
+        // Helper to allocate and copy (using Pool)
         const createAndCopy = (src: Float64Array) => {
-            const dest = new Float64Array(newLen);
+            const dest = this.pool.acquire(newLen);
             dest.set(src);
             return dest;
         };
