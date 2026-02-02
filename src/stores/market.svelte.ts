@@ -380,6 +380,27 @@ export class MarketManager {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
+    // Optimization: Deduplicate raw updates first to avoid unnecessary Decimal allocation
+    // This is critical for high-frequency WS updates where we might receive 100+ updates for the same candle
+    // but only the last one matters. Creating 500+ Decimal objects (open/high/low/close/vol) just to GC them is expensive.
+    if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
+        // Sort raw data
+        klines.sort((a, b) => a.time - b.time);
+
+        const dedupedRaw: any[] = [];
+        let lastTime = -1;
+        // Simple linear deduplication
+        for (const k of klines) {
+             if (k.time === lastTime) {
+                 dedupedRaw[dedupedRaw.length - 1] = k;
+             } else {
+                 dedupedRaw.push(k);
+                 lastTime = k.time;
+             }
+        }
+        klines = dedupedRaw;
+    }
+
     // Normalize new klines to correct Kline type
     // We perform this here (lazy) instead of on receipt
     let newKlines: Kline[] = klines.map(k => ({
@@ -392,6 +413,7 @@ export class MarketManager {
     }));
 
     // Deduplicate incoming batch (keep latest per timestamp)
+    // Run this again just in case (cheap if already sorted/deduped)
     if (newKlines.length > 1) {
       newKlines.sort((a, b) => a.time - b.time);
       const deduped: Kline[] = [];

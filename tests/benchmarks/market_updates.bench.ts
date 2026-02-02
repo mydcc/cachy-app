@@ -1,6 +1,6 @@
 
 import { bench, describe } from 'vitest';
-import { MarketManager } from '../../src/stores/market.svelte.ts';
+import { MarketManager } from '../../src/stores/market.svelte';
 import { Decimal } from 'decimal.js';
 
 describe('MarketManager Performance', () => {
