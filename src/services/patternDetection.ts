@@ -19,8 +19,12 @@
 import { CANDLESTICK_PATTERNS, type CandleData, type PatternDefinition } from './candlestickPatterns';
 
 export class PatternDetector {
-  private normalizedTemplates: Map<string, CandleData[]> = new Map();
+  // Flattened normalized templates (Open, High, Low, Close sequence)
+  private normalizedTemplates: Map<string, Float64Array> = new Map();
   private patternsByLength: Map<number, PatternDefinition[]> = new Map();
+  // Shared buffer for input normalization to avoid allocation
+  // Max pattern length is small (e.g. 7), so 128 doubles is enough (32 candles)
+  private sharedBuffer: Float64Array = new Float64Array(128);
 
   constructor() {
     this.precomputeTemplates();
@@ -28,7 +32,7 @@ export class PatternDetector {
 
   private precomputeTemplates() {
     for (const pattern of CANDLESTICK_PATTERNS) {
-      this.normalizedTemplates.set(pattern.id, this.normalizeSequence(pattern.candles));
+      this.normalizedTemplates.set(pattern.id, this.normalizeSequenceToBuffer(pattern.candles));
 
       const len = pattern.candles.length;
       if (!this.patternsByLength.has(len)) {
@@ -60,20 +64,18 @@ export class PatternDetector {
         // Check if we have enough history for trend detection
         if (candles.length >= length + lookbackForTrend) {
             // Trend candles are from index (end - length - lookback) to (end - length)
-            // But isUptrend/Downtrend just checked first and last of that slice.
             const trendStartIndex = candles.length - length - lookbackForTrend;
             const trendEndIndex = candles.length - length - 1; // Last candle of the trend period
 
             // Inline trend check logic
-            // isUptrend logic: start < end
             isUptrend = candles[trendEndIndex].close > candles[trendStartIndex].close;
-            // isDowntrend logic: start > end
             isDowntrend = candles[trendEndIndex].close < candles[trendStartIndex].close;
         }
 
         // Optimization: Normalize input candles once per length, without allocating
         let min = Infinity;
         let max = -Infinity;
+        // Only scan the relevant candles
         for (let i = startIndex; i < candles.length; i++) {
           const c = candles[i];
           if (c.low < min) min = c.low;
@@ -81,6 +83,23 @@ export class PatternDetector {
         }
         const range = max - min;
         const invRange = range === 0 ? 0 : 1 / range;
+
+        // Fill sharedBuffer with normalized values
+        for (let i = 0; i < length; i++) {
+          const c = candles[startIndex + i];
+          const offset = i * 4;
+          if (invRange === 0) {
+            this.sharedBuffer[offset] = 0.5;
+            this.sharedBuffer[offset + 1] = 0.5;
+            this.sharedBuffer[offset + 2] = 0.5;
+            this.sharedBuffer[offset + 3] = 0.5;
+          } else {
+            this.sharedBuffer[offset] = (c.open - min) * invRange;
+            this.sharedBuffer[offset + 1] = (c.high - min) * invRange;
+            this.sharedBuffer[offset + 2] = (c.low - min) * invRange;
+            this.sharedBuffer[offset + 3] = (c.close - min) * invRange;
+          }
+        }
 
         for (const pattern of patterns) {
             // 1. Trend Check
@@ -98,8 +117,8 @@ export class PatternDetector {
                 continue;
             }
 
-            // 3. Fallback: Geometric / Template Matcher
-            if (this.geometricMatchNoAlloc(pattern.id, candles, startIndex, length, min, invRange)) {
+            // 3. Fallback: Geometric / Template Matcher (Fast Path)
+            if (this.geometricMatchFast(pattern.id, length)) {
                 detected.push(pattern.id);
             }
         }
@@ -116,8 +135,6 @@ export class PatternDetector {
     const currentCandles = candles.slice(-patternLen);
 
     // 1. Trend Check (if required)
-    // We look at candles *before* the pattern to determine trend.
-    // Example: if pattern needs downtrend, we check the N candles before the pattern start.
     const lookbackForTrend = 5;
     if (candles.length >= patternLen + lookbackForTrend) {
         const trendCandles = candles.slice(-(patternLen + lookbackForTrend), -patternLen);
@@ -132,7 +149,33 @@ export class PatternDetector {
     if (specific !== null) return specific;
 
     // 3. Fallback: Geometric / Template Matcher
-    return this.geometricMatch(pattern.id, pattern.candles, currentCandles, cache);
+    // Normalize to sharedBuffer and use fast path
+    let min = Infinity;
+    let max = -Infinity;
+    for (const c of currentCandles) {
+        if (c.low < min) min = c.low;
+        if (c.high > max) max = c.high;
+    }
+    const range = max - min;
+    const invRange = range === 0 ? 0 : 1 / range;
+
+    for (let i = 0; i < patternLen; i++) {
+        const c = currentCandles[i];
+        const offset = i * 4;
+        if (invRange === 0) {
+            this.sharedBuffer[offset] = 0.5;
+            this.sharedBuffer[offset+1] = 0.5;
+            this.sharedBuffer[offset+2] = 0.5;
+            this.sharedBuffer[offset+3] = 0.5;
+        } else {
+            this.sharedBuffer[offset] = (c.open - min) * invRange;
+            this.sharedBuffer[offset+1] = (c.high - min) * invRange;
+            this.sharedBuffer[offset+2] = (c.low - min) * invRange;
+            this.sharedBuffer[offset+3] = (c.close - min) * invRange;
+        }
+    }
+
+    return this.geometricMatchFast(pattern.id, patternLen);
   }
 
   private checkSpecificLogicNoAlloc(patternId: string, candles: CandleData[], startIndex: number): boolean | null {
@@ -167,10 +210,8 @@ export class PatternDetector {
         case 'inverted_hammer':
             return this.isInvertedHammer(currentCandles[0]);
         case 'hanging_man':
-            // Hanging Man is morphologically a Hammer, but at the top of a trend (Trend check handled above)
             return this.isHammer(currentCandles[0]);
         case 'shooting_star':
-            // Shooting Star is morphologically an Inverted Hammer, but at the top of a trend
             return this.isInvertedHammer(currentCandles[0]);
         case 'bullish_engulfing':
             return this.isBullishEngulfing(currentCandles[0], currentCandles[1]);
@@ -228,65 +269,48 @@ export class PatternDetector {
   }
 
   private isBullishEngulfing(prev: CandleData, curr: CandleData): boolean {
-      // 1. Prev is Bearish
       if (prev.close >= prev.open) return false;
-      // 2. Curr is Bullish
       if (curr.close <= curr.open) return false;
-
-      // 3. Engulfing: Curr Body > Prev Body (and wraps it)
       return curr.open <= prev.close && curr.close >= prev.open;
   }
 
   private isBearishEngulfing(prev: CandleData, curr: CandleData): boolean {
-      // 1. Prev is Bullish
       if (prev.close <= prev.open) return false;
-      // 2. Curr is Bearish
       if (curr.close >= curr.open) return false;
-
-      // 3. Engulfing
       return curr.open >= prev.close && curr.close <= prev.open;
   }
 
   private isMorningStar(c1: CandleData, c2: CandleData, c3: CandleData): boolean {
-      // 1. Long Bearish
       if (c1.close >= c1.open) return false;
       const body1 = Math.abs(c1.open - c1.close);
       const range1 = c1.high - c1.low;
       if (body1 < range1 * 0.5) return false;
 
-      // 2. Small Body (Star)
       const body2 = Math.abs(c2.open - c2.close);
       if (body2 >= body1 * 0.5) return false;
 
-      // 3. Long Bullish
       if (c3.close <= c3.open) return false;
 
-      // 4. Position: C3 closes above midpoint of C1
       const midpoint1 = (c1.open + c1.close) / 2;
       return c3.close > midpoint1;
   }
 
   private isEveningStar(c1: CandleData, c2: CandleData, c3: CandleData): boolean {
-      // 1. Long Bullish
       if (c1.close <= c1.open) return false;
       const body1 = Math.abs(c1.open - c1.close);
       const range1 = c1.high - c1.low;
       if (body1 < range1 * 0.5) return false;
 
-      // 2. Small Body (Star)
       const body2 = Math.abs(c2.open - c2.close);
       if (body2 >= body1 * 0.5) return false;
 
-      // 3. Long Bearish
       if (c3.close >= c3.open) return false;
 
-      // 4. Position: C3 closes below midpoint of C1
       const midpoint1 = (c1.open + c1.close) / 2;
       return c3.close < midpoint1;
   }
 
   private isUptrend(candles: CandleData[]): boolean {
-      // Simple heuristic: Start < End
       if (candles.length < 2) return false;
       return candles[candles.length - 1].close > candles[0].close;
   }
@@ -298,59 +322,18 @@ export class PatternDetector {
 
   // --- Geometric Matcher ---
 
-  private geometricMatchOptimized(patternId: string, normInput: CandleData[]): boolean {
-      // We assume patternId exists because we iterate over patternsByLength which comes from CANDLESTICK_PATTERNS
+  private geometricMatchFast(patternId: string, length: number): boolean {
       const normTemplate = this.normalizedTemplates.get(patternId);
       if (!normTemplate) return false;
 
       let totalDiff = 0;
-      const tolerance = 0.05 * normTemplate.length;
+      const tolerance = 0.05 * length;
 
-      for (let i = 0; i < normTemplate.length; i++) {
-          const t = normTemplate[i];
-          const m = normInput[i];
+      // normTemplate is Float64Array of size length * 4
+      const count = length * 4;
 
-          // Compare O, H, L, C relative positions
-          totalDiff += Math.pow(t.open - m.open, 2);
-          totalDiff += Math.pow(t.high - m.high, 2);
-          totalDiff += Math.pow(t.low - m.low, 2);
-          totalDiff += Math.pow(t.close - m.close, 2);
-
-          // Optimization: Early exit if difference exceeds tolerance
-          if (totalDiff >= tolerance) return false;
-      }
-
-      return true;
-  }
-
-  private geometricMatchNoAlloc(patternId: string, input: CandleData[], startIndex: number, length: number, min: number, invRange: number): boolean {
-      const normTemplate = this.normalizedTemplates.get(patternId);
-      if (!normTemplate) return false;
-
-      let totalDiff = 0;
-      const tolerance = 0.05 * normTemplate.length;
-
-      for (let i = 0; i < length; i++) {
-          const t = normTemplate[i];
-          const m = input[startIndex + i];
-
-          let mOpen, mHigh, mLow, mClose;
-          if (invRange === 0) {
-              mOpen = 0.5; mHigh = 0.5; mLow = 0.5; mClose = 0.5;
-          } else {
-              mOpen = (m.open - min) * invRange;
-              mHigh = (m.high - min) * invRange;
-              mLow = (m.low - min) * invRange;
-              mClose = (m.close - min) * invRange;
-          }
-
-          let diff = t.open - mOpen;
-          totalDiff += diff * diff;
-          diff = t.high - mHigh;
-          totalDiff += diff * diff;
-          diff = t.low - mLow;
-          totalDiff += diff * diff;
-          diff = t.close - mClose;
+      for (let i = 0; i < count; i++) {
+          const diff = normTemplate[i] - this.sharedBuffer[i];
           totalDiff += diff * diff;
 
           if (totalDiff >= tolerance) return false;
@@ -359,46 +342,7 @@ export class PatternDetector {
       return true;
   }
 
-  private geometricMatch(patternId: string, template: CandleData[], input: CandleData[], cache?: Map<number, CandleData[]>): boolean {
-      // Normalize both to 0..1 range based on their own min/max
-      let normTemplate = this.normalizedTemplates.get(patternId);
-      if (!normTemplate) {
-        // Fallback for unknown patterns or if precomputation failed/was skipped
-        normTemplate = this.normalizeSequence(template);
-      }
-
-      let normInput = cache?.get(input.length);
-      if (!normInput) {
-        normInput = this.normalizeSequence(input);
-        cache?.set(input.length, normInput);
-      }
-
-      let totalDiff = 0;
-
-      for (let i = 0; i < template.length; i++) {
-          const t = normTemplate[i];
-          const m = normInput[i];
-
-          // Compare O, H, L, C relative positions
-          // We assume 'trend' is handled outside, so we ignore absolute price levels
-          // EXCEPT relative to the sequence range.
-
-          totalDiff += Math.pow(t.open - m.open, 2);
-          totalDiff += Math.pow(t.high - m.high, 2);
-          totalDiff += Math.pow(t.low - m.low, 2);
-          totalDiff += Math.pow(t.close - m.close, 2);
-      }
-
-      // Threshold: Heuristic.
-      // If sum of squared errors is low, it's a match.
-      // For 1 candle, max diff per point is 1. Max SSE is 4.
-      // We want ~10% tolerance? 0.1^2 * 4 = 0.04 per candle.
-      const tolerance = 0.05 * template.length;
-
-      return totalDiff < tolerance;
-  }
-
-  private normalizeSequence(candles: CandleData[]): CandleData[] {
+  private normalizeSequenceToBuffer(candles: CandleData[]): Float64Array {
       let min = Infinity;
       let max = -Infinity;
       candles.forEach(c => {
@@ -407,15 +351,26 @@ export class PatternDetector {
       });
 
       const range = max - min;
-      if (range === 0) return candles.map(c => ({ ...c, open: 0.5, high: 0.5, low: 0.5, close: 0.5 }));
+      const invRange = range === 0 ? 0 : 1 / range;
+      const len = candles.length;
+      const buffer = new Float64Array(len * 4);
 
-      return candles.map(c => ({
-          open: (c.open - min) / range,
-          high: (c.high - min) / range,
-          low: (c.low - min) / range,
-          close: (c.close - min) / range,
-          trend: c.trend
-      }));
+      for (let i = 0; i < len; i++) {
+          const c = candles[i];
+          const offset = i * 4;
+          if (invRange === 0) {
+              buffer[offset] = 0.5;
+              buffer[offset+1] = 0.5;
+              buffer[offset+2] = 0.5;
+              buffer[offset+3] = 0.5;
+          } else {
+              buffer[offset] = (c.open - min) * invRange;
+              buffer[offset+1] = (c.high - min) * invRange;
+              buffer[offset+2] = (c.low - min) * invRange;
+              buffer[offset+3] = (c.close - min) * invRange;
+          }
+      }
+      return buffer;
   }
 }
 
