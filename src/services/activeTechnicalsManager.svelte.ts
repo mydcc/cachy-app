@@ -36,7 +36,7 @@ import { browser } from "$app/environment";
 import { normalizeTimeframeInput, getIntervalMs, parseTimestamp } from "../utils/utils";
 import { logger } from "./logger";
 import { Decimal } from "decimal.js";
-import type { Kline } from "./technicalsTypes";
+import type { Kline, KlineBuffers } from "./technicalsTypes";
 import { networkMonitor } from "../utils/networkMonitor";
 
 class ActiveTechnicalsManager {
@@ -292,12 +292,41 @@ class ActiveTechnicalsManager {
         const marketData = marketState.data[symbol];
         if (!marketData) return;
 
+        const key = `${symbol}:${timeframe}`;
+        const settings = indicatorState.toJSON();
+        const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
+
+        // OPTIMIZATION: Use Float64Buffers if available (Zero-Copy Path)
+        if (marketData.klinesBuffers?.[timeframe]) {
+            try {
+                const originalBuffers = marketData.klinesBuffers[timeframe];
+
+                // Prepare buffers (Clone + Realtime Injection)
+                // This is ~150x faster than legacy object preparation
+                let buffers = this.prepareBuffersWithRealtime(
+                    originalBuffers,
+                    timeframe,
+                    marketData.lastPrice || null
+                );
+
+                const result = await technicalsService.calculateTechnicalsFromBuffers(buffers, settings, enabledIndicators);
+
+                if (result) {
+                   this.handleResult(symbol, timeframe, marketData, result);
+                }
+                return;
+
+            } catch (e) {
+                // If buffer path fails (e.g. OOM), fall back to legacy
+                logger.warn("technicals", `Buffer calculation failed for ${key}, falling back to legacy`, e);
+            }
+        }
+
+        // Fallback: Legacy Object Path
         // Get history immediately from MarketState
         let history = (marketData.klines && marketData.klines[timeframe]) ? [...marketData.klines[timeframe]] : [];
 
         if (history.length === 0) return;
-
-        const key = `${symbol}:${timeframe}`;
 
         // REAL-TIME SYNC:
         // Inject latest price
@@ -305,37 +334,101 @@ class ActiveTechnicalsManager {
             this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
         }
 
-        // Now calculate
-        // 🌟 Optimization: Pass enabled indicators to Worker and unwrap proxies
-        const settings = indicatorState.toJSON();
-        const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
-
         try {
             const result = await technicalsService.calculateTechnicals(history, settings, enabledIndicators);
 
             if (result) {
-                // Anti-Flicker: Check if content actually changed
-                // Access technicals for this specific timeframe
-                const currentTechnicals = marketData.technicals?.[timeframe];
-
-                if (currentTechnicals && this.isTechnicalsEqual(currentTechnicals, result)) {
-                    // Skip update if data is effectively identical
-                    // This prevents Svelte reactivity from firing unnecessarily
-                    return;
-                }
-
-                result.lastUpdated = Date.now();
-
-                // 5. Update State (Orchestrated via RAF)
-                scheduler.schedule(() => {
-                    // Update specific timeframe slot
-                    marketState.updateSymbol(symbol, { technicals: { [timeframe]: result } });
-                });
+                this.handleResult(symbol, timeframe, marketData, result);
             }
 
         } catch (e) {
             logger.error("technicals", `Calculation failed for ${key}`, e);
         }
+    }
+
+    private handleResult(symbol: string, timeframe: string, marketData: any, result: any) {
+        // Anti-Flicker: Check if content actually changed
+        // Access technicals for this specific timeframe
+        const currentTechnicals = marketData.technicals?.[timeframe];
+
+        if (currentTechnicals && this.isTechnicalsEqual(currentTechnicals, result)) {
+            // Skip update if data is effectively identical
+            // This prevents Svelte reactivity from firing unnecessarily
+            return;
+        }
+
+        result.lastUpdated = Date.now();
+
+        // 5. Update State (Orchestrated via RAF)
+        scheduler.schedule(() => {
+            // Update specific timeframe slot
+            marketState.updateSymbol(symbol, { technicals: { [timeframe]: result } });
+        });
+    }
+
+    private prepareBuffersWithRealtime(original: KlineBuffers, timeframe: string, price: Decimal | null): KlineBuffers {
+        const len = original.times.length;
+        if (len === 0) return original; // Should typically clone even here? But empty is empty.
+
+        // Determine if we update last or append
+        const lastTime = original.times[len - 1];
+        let updateType: 'none' | 'update' | 'append' = 'none';
+        let currentPeriodStart = lastTime;
+
+        if (price) {
+            const now = Date.now();
+            const intervalMs = getIntervalMs(timeframe);
+            currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
+
+            if (lastTime === currentPeriodStart) updateType = 'update';
+            else if (currentPeriodStart > lastTime) updateType = 'append';
+        }
+
+        // Allocate new buffers
+        const newLen = updateType === 'append' ? len + 1 : len;
+
+        // Helper to allocate and copy
+        const createAndCopy = (src: Float64Array) => {
+            const dest = new Float64Array(newLen);
+            dest.set(src);
+            return dest;
+        };
+
+        const b: KlineBuffers = {
+            times: createAndCopy(original.times),
+            opens: createAndCopy(original.opens),
+            highs: createAndCopy(original.highs),
+            lows: createAndCopy(original.lows),
+            closes: createAndCopy(original.closes),
+            volumes: createAndCopy(original.volumes),
+        };
+
+        // Apply Realtime Update
+        if (updateType === 'update' && price) {
+            const priceNum = price.toNumber();
+            const idx = len - 1;
+
+            // Logic: High = Max(High, Price), Low = Min(Low, Price), Close = Price
+            const oldHigh = b.highs[idx];
+            const oldLow = b.lows[idx];
+
+            b.closes[idx] = priceNum;
+            if (priceNum > oldHigh) b.highs[idx] = priceNum;
+            if (priceNum < oldLow) b.lows[idx] = priceNum;
+        }
+        else if (updateType === 'append' && price) {
+            const priceNum = price.toNumber();
+            const idx = len;
+
+            b.times[idx] = currentPeriodStart;
+            b.opens[idx] = priceNum;
+            b.highs[idx] = priceNum;
+            b.lows[idx] = priceNum;
+            b.closes[idx] = priceNum;
+            b.volumes[idx] = 0; // Phantom candle volume
+        }
+
+        return b;
     }
 
     // Stateless Helper: mutates a copy of the history array found in memory

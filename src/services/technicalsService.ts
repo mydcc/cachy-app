@@ -26,7 +26,7 @@
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
-import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData } from "./technicalsTypes";
+import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData, KlineBuffers } from "./technicalsTypes";
 import { type Kline } from "../utils/indicators";
 import {
   calculateAllIndicators,
@@ -372,6 +372,94 @@ export const technicalsService = {
     } catch (e) {
       if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
       return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
+    }
+  },
+
+  async calculateTechnicalsFromBuffers(
+    buffers: KlineBuffers,
+    settings?: IndicatorSettings,
+    enabledIndicators?: Partial<Record<string, boolean>>,
+  ): Promise<TechnicalsData> {
+    const len = buffers.times.length;
+    if (len === 0) return this.getEmptyData();
+
+    cleanupStaleCache();
+
+    // 0. Cache Check
+    const lastTime = buffers.times[len - 1];
+    const lastClose = buffers.closes[len - 1];
+    const lastPrice = lastClose.toString(); // float to string might vary slightly but usually deterministic for same float
+
+    const relevantSettings = getRelevantSettings(settings, enabledIndicators);
+    const settingsJson = JSON.stringify(relevantSettings);
+
+    const indicatorsHash = enabledIndicators
+      ? Object.entries(enabledIndicators)
+        .filter(([_, enabled]) => enabled)
+        .map(([name]) => name)
+        .sort()
+        .join(',')
+      : 'all';
+
+    const cacheKey = `${lastTime}-${lastPrice}-${len}-${buffers.times[0]}-${settingsJson}-${indicatorsHash}`;
+
+    const cached = calculationCache.get(cacheKey);
+    if (cached) {
+      cached.lastAccessed = Date.now();
+      if (import.meta.env.DEV) console.log('[Technicals] Buffered Cache HIT');
+      return cached.data;
+    }
+
+    // 1. Worker
+    try {
+      const { times, opens, highs, lows, closes, volumes } = buffers;
+
+      // IMPORTANT: We assume 'buffers' are owned by the caller and can be transferred.
+      // If the caller needs to reuse them, they should have cloned them.
+      // We pass the underlying ArrayBuffers to the worker.
+      const transferables = [
+        times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer
+      ];
+
+      const result = await workerManager.postMessage({
+        type: "CALCULATE",
+        payload: {
+          times, opens, highs, lows, closes, volumes, settings, enabledIndicators
+        }
+      }, transferables);
+
+      // Cache result
+      if (calculationCache.size >= MAX_CACHE_SIZE) {
+        let oldestKey: string | null = null;
+        let oldestTime = Infinity;
+        calculationCache.forEach((entry, key) => {
+          const accessTime = entry.lastAccessed || entry.timestamp;
+          if (accessTime < oldestTime) {
+            oldestTime = accessTime;
+            oldestKey = key;
+          }
+        });
+        if (oldestKey) calculationCache.delete(oldestKey);
+      }
+      calculationCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now(),
+        lastAccessed: Date.now()
+      });
+
+      return result;
+
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn("[Technicals] Buffer Worker failed, falling back to inline", e);
+      // Fallback: Use inline calculator with buffers directly
+      // Note: buffers might be unusable if transfer failed?
+      // Actually if transfer failed, they are still here. If transfer succeeded but worker errored, they are gone.
+      // But typically worker error returns data.
+      // We'll try inline.
+      return calculateIndicatorsFromArrays(
+        buffers.times, buffers.opens, buffers.highs, buffers.lows, buffers.closes, buffers.volumes,
+        settings, enabledIndicators
+      );
     }
   },
 

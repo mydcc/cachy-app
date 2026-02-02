@@ -19,7 +19,7 @@ import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
-import type { Kline } from "../services/technicalsTypes";
+import type { Kline, KlineBuffers } from "../services/technicalsTypes";
 
 export interface MarketData {
   symbol: string;
@@ -37,6 +37,7 @@ export interface MarketData {
   quoteVolume?: Decimal | null;
   priceChangePercent?: Decimal | null;
   klines: Record<string, Kline[]>;
+  klinesBuffers?: Record<string, KlineBuffers>; // SoA Buffers for performance
   technicals?: Record<string, import("../services/technicalsTypes").TechnicalsData>;
   metricsHistory?: MetricSnapshot[];
   lastUpdated?: number; // Optimization: only snapshot fresh data
@@ -142,6 +143,7 @@ export class MarketManager {
         fundingRate: null,
         nextFundingTime: null,
         klines: {},
+        klinesBuffers: {},
       };
     }
     return this.data[symbol];
@@ -349,11 +351,90 @@ export class MarketManager {
     let history = current.klines[timeframe] || [];
     if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
-    // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
-    // previously filtered REST updates if connected.
-    // REMOVED: We now trust the upstream (MarketWatcher) to only send REST updates
-    // if the WebSocket is disconnected OR if data is stale (gap detection).
-    // This ensures we don't block valid fallback updates.
+    // Get existing buffers
+    if (!current.klinesBuffers) current.klinesBuffers = {};
+    let buffers = current.klinesBuffers[timeframe];
+
+    // Helper: Build full buffers from history (Slow Path)
+    const rebuildBuffers = (sourceKlines: Kline[]) => {
+      const len = sourceKlines.length;
+      const b: KlineBuffers = {
+        times: new Float64Array(len),
+        opens: new Float64Array(len),
+        highs: new Float64Array(len),
+        lows: new Float64Array(len),
+        closes: new Float64Array(len),
+        volumes: new Float64Array(len),
+      };
+
+      for (let i = 0; i < len; i++) {
+        const k = sourceKlines[i];
+        b.times[i] = k.time;
+        b.opens[i] = k.open.toNumber();
+        b.highs[i] = k.high.toNumber();
+        b.lows[i] = k.low.toNumber();
+        b.closes[i] = k.close.toNumber();
+        b.volumes[i] = k.volume.toNumber();
+      }
+      return b;
+    };
+
+    // Helper: Append to buffers (Fast Path)
+    const appendBuffers = (oldBuffers: KlineBuffers, appendKlines: Kline[]): KlineBuffers => {
+      const oldLen = oldBuffers.times.length;
+      const newLen = oldLen + appendKlines.length;
+      const b: KlineBuffers = {
+        times: new Float64Array(newLen),
+        opens: new Float64Array(newLen),
+        highs: new Float64Array(newLen),
+        lows: new Float64Array(newLen),
+        closes: new Float64Array(newLen),
+        volumes: new Float64Array(newLen),
+      };
+
+      // Copy old data (fast native copy)
+      b.times.set(oldBuffers.times);
+      b.opens.set(oldBuffers.opens);
+      b.highs.set(oldBuffers.highs);
+      b.lows.set(oldBuffers.lows);
+      b.closes.set(oldBuffers.closes);
+      b.volumes.set(oldBuffers.volumes);
+
+      // Add new data
+      for (let i = 0; i < appendKlines.length; i++) {
+        const k = appendKlines[i];
+        const idx = oldLen + i;
+        b.times[idx] = k.time;
+        b.opens[idx] = k.open.toNumber();
+        b.highs[idx] = k.high.toNumber();
+        b.lows[idx] = k.low.toNumber();
+        b.closes[idx] = k.close.toNumber();
+        b.volumes[idx] = k.volume.toNumber();
+      }
+      return b;
+    };
+
+    // Helper: Update last N items in buffers (In-place)
+    const updateBufferTail = (bufs: KlineBuffers, updateKlines: Kline[], startIndex: number) => {
+      // NOTE: Float64Array is fixed size. If we update last item, we can do it in place.
+      // But if we need reactivity for consumers of `current.klinesBuffers[timeframe]`,
+      // we might need to clone if they use simple strict equality check.
+      // However, typical usage (worker transfer) doesn't rely on Svelte reactivity of the array content itself
+      // but usually the property reference.
+      // For now, in-place update is fastest.
+      for (let i = 0; i < updateKlines.length; i++) {
+        const k = updateKlines[i];
+        const idx = startIndex + i;
+        if (idx < bufs.times.length) {
+          bufs.times[idx] = k.time;
+          bufs.opens[idx] = k.open.toNumber();
+          bufs.highs[idx] = k.high.toNumber();
+          bufs.lows[idx] = k.low.toNumber();
+          bufs.closes[idx] = k.close.toNumber();
+          bufs.volumes[idx] = k.volume.toNumber();
+        }
+      }
+    };
 
     // Merge strategy:
     // Optimized for append-only / live update behavior
@@ -364,6 +445,7 @@ export class MarketManager {
       history = newKlines;
       // Assign new array
       current.klines[timeframe] = history;
+      buffers = rebuildBuffers(history);
     } else {
       // Ensure incoming klines are sorted (usually are, but safety first)
       newKlines.sort((a, b) => a.time - b.time);
@@ -375,20 +457,49 @@ export class MarketManager {
         // Fast Path 1: Strict Append (New candle started)
         // Optimization: Push in place instead of concat (allocates new array)
         history.push(...newKlines);
+
+        if (buffers) {
+            buffers = appendBuffers(buffers, newKlines);
+        } else {
+            buffers = rebuildBuffers(history);
+        }
+
       } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
         // Fast Path 2: Live Update (Update current candle)
         // In-place update is reactive in Svelte 5 state
         history[history.length - 1] = newKlines[0];
+
+        if (buffers && buffers.times.length === history.length) {
+            updateBufferTail(buffers, newKlines, buffers.times.length - 1);
+        } else {
+            buffers = rebuildBuffers(history);
+        }
+
       } else if (firstNewTime >= lastHistTime) {
         // Fast Path 3: Overlap at the end (e.g. update last + new candle)
         // Optimization: In-place update + push
+        const itemsToAppend: Kline[] = [];
         for (const k of newKlines) {
           if (k.time === lastHistTime) {
             history[history.length - 1] = k;
+            if (buffers && buffers.times.length === history.length) {
+                // Optimistically update tail, though we might rebuild if append happens later
+                // Actually, if we append later, `appendBuffers` copies the (updated) old data.
+                // So updating here is correct.
+                updateBufferTail(buffers, [k], buffers.times.length - 1);
+            }
           } else if (k.time > lastHistTime) {
             history.push(k);
+            itemsToAppend.push(k);
           }
         }
+
+        if (buffers && itemsToAppend.length > 0) {
+            buffers = appendBuffers(buffers, itemsToAppend);
+        } else if (!buffers) {
+            buffers = rebuildBuffers(history);
+        }
+
       } else {
         // Slow Path: Historical backfill or disordered data
         // Use linear merge algorithm (O(N+M))
@@ -430,6 +541,8 @@ export class MarketManager {
         history = merged;
         // Assign new merged array
         current.klines[timeframe] = history;
+        // Full rebuild needed
+        buffers = rebuildBuffers(history);
       }
     }
 
@@ -449,8 +562,22 @@ export class MarketManager {
       // Slicing creates a new array, but it's necessary for GC
       const sliced = history.slice(-effectiveLimit);
       current.klines[timeframe] = sliced;
+
+      // Slice buffers too
+      if (buffers && buffers.times.length > effectiveLimit) {
+        const offset = buffers.times.length - effectiveLimit;
+        buffers = {
+            times: buffers.times.slice(offset),
+            opens: buffers.opens.slice(offset),
+            highs: buffers.highs.slice(offset),
+            lows: buffers.lows.slice(offset),
+            closes: buffers.closes.slice(offset),
+            volumes: buffers.volumes.slice(offset),
+        };
+      }
     }
 
+    current.klinesBuffers[timeframe] = buffers;
     current.lastUpdated = Date.now();
 
     // FORCE REACTIVITY: Svelte 5 needs to see a write to the root property or the specific nested path.
