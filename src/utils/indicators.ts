@@ -30,6 +30,7 @@
 import { Decimal } from "decimal.js";
 import { slidingWindowMax, slidingWindowMin } from "./slidingWindow";
 import { toNumFast } from "./fastConversion";
+import type { BufferPool } from "./bufferPool";
 
 // --- Types ---
 
@@ -46,8 +47,14 @@ export type NumberArray = number[] | Float64Array;
 
 // --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
 export const JSIndicators = {
-  sma(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  sma(
+    data: NumberArray,
+    period: number,
+    out?: Float64Array,
+  ): Float64Array {
+    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    result.fill(NaN);
+
     if (data.length < period) return result;
     let sum = 0;
     for (let i = 0; i < period; i++) sum += data[i];
@@ -59,8 +66,14 @@ export const JSIndicators = {
     return result;
   },
 
-  wma(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  wma(
+    data: NumberArray,
+    period: number,
+    out?: Float64Array,
+  ): Float64Array {
+    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    result.fill(NaN);
+
     if (data.length < period) return result;
 
     const denominator = (period * (period + 1)) / 2;
@@ -79,8 +92,14 @@ export const JSIndicators = {
     return result;
   },
 
-  ema(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  ema(
+    data: NumberArray,
+    period: number,
+    out?: Float64Array,
+  ): Float64Array {
+    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    result.fill(NaN);
+
     if (data.length < period) return result;
     const k = 2 / (period + 1);
     let sum = 0;
@@ -94,10 +113,16 @@ export const JSIndicators = {
     return result;
   },
 
-  smma(data: NumberArray, period: number): Float64Array {
+  smma(
+    data: NumberArray,
+    period: number,
+    out?: Float64Array,
+  ): Float64Array {
     // Wilder's Smoothing (RMA)
     // alpha = 1 / period
-    const result = new Float64Array(data.length).fill(NaN);
+    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    result.fill(NaN);
+
     if (data.length < period) return result;
 
     let sum = 0;
@@ -113,8 +138,14 @@ export const JSIndicators = {
     return result;
   },
 
-  rsi(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  rsi(
+    data: NumberArray,
+    period: number,
+    out?: Float64Array,
+  ): Float64Array {
+    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    result.fill(NaN);
+
     if (data.length <= period) return result;
     let sumGain = 0;
     let sumLoss = 0;
@@ -143,27 +174,85 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     kPeriod: number,
+    out?: Float64Array,
+    pool?: BufferPool,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    if (close.length < kPeriod) return result;
+    const len = close.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
+    result.fill(NaN);
 
-    const highestHighs = slidingWindowMax(high, kPeriod);
-    const lowestLows = slidingWindowMin(low, kPeriod);
+    if (len < kPeriod) return result;
 
-    for (let i = kPeriod - 1; i < close.length; i++) {
+    let highestHighs: Float64Array;
+    let lowestLows: Float64Array;
+    let pooled = false;
+
+    if (pool) {
+      highestHighs = pool.acquire(len);
+      lowestLows = pool.acquire(len);
+      pooled = true;
+    } else {
+      highestHighs = new Float64Array(len);
+      lowestLows = new Float64Array(len);
+    }
+
+    slidingWindowMax(high, kPeriod, highestHighs);
+    slidingWindowMin(low, kPeriod, lowestLows);
+
+    for (let i = kPeriod - 1; i < len; i++) {
       const lookbackHigh = highestHighs[i];
       const lookbackLow = lowestLows[i];
       const range = lookbackHigh - lookbackLow;
       result[i] = range === 0 ? 50 : ((close[i] - lookbackLow) / range) * 100;
     }
+
+    if (pooled && pool) {
+      pool.release(highestHighs);
+      pool.release(lowestLows);
+    }
+
     return result;
   },
 
-  macd(data: NumberArray, fast: number, slow: number, signal: number) {
-    const emaFast = this.ema(data, fast);
-    const emaSlow = this.ema(data, slow);
-    const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
-    // macdLine is a new Float64Array
+  macd(
+    data: NumberArray,
+    fast: number,
+    slow: number,
+    signal: number,
+    outMacd?: Float64Array,
+    outSignal?: Float64Array,
+    pool?: BufferPool,
+  ) {
+    const len = data.length;
+    let emaFast: Float64Array;
+    let emaSlow: Float64Array;
+    let pooled = false;
+
+    if (pool) {
+      emaFast = pool.acquire(len);
+      emaSlow = pool.acquire(len);
+      pooled = true;
+    } else {
+      emaFast = new Float64Array(len);
+      emaSlow = new Float64Array(len);
+    }
+
+    this.ema(data, fast, emaFast);
+    this.ema(data, slow, emaSlow);
+
+    const macdLine = (outMacd && outMacd.length === len) ? outMacd : new Float64Array(len);
+    macdLine.fill(NaN);
+
+    for (let i = 0; i < len; i++) {
+      macdLine[i] = emaFast[i] - emaSlow[i];
+    }
+
+    if (pooled && pool) {
+      pool.release(emaFast);
+      pool.release(emaSlow);
+    }
+
+    // macdLine is a new Float64Array (or reused)
     // We use subarray for efficiency (no copy)
     const macdLineSub = macdLine.subarray(slow - 1);
 
@@ -171,7 +260,9 @@ export const JSIndicators = {
     const macdSignalPart = this.ema(macdLineSub, signal);
 
     // Pad the signal array to match original length
-    const paddedSignal = new Float64Array(data.length).fill(NaN);
+    const paddedSignal = (outSignal && outSignal.length === len) ? outSignal : new Float64Array(len);
+    paddedSignal.fill(NaN);
+
     // Offset is slow - 1
     paddedSignal.set(macdSignalPart, slow - 1);
 
@@ -186,8 +277,14 @@ export const JSIndicators = {
     return result;
   },
 
-  cci(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  cci(
+    data: NumberArray,
+    period: number,
+    out?: Float64Array,
+  ): Float64Array {
+    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    result.fill(NaN);
+
     if (data.length < period) return result;
 
     for (let i = period - 1; i < data.length; i++) {
@@ -222,15 +319,53 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
+    out?: Float64Array,
+    pool?: BufferPool,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    if (close.length < period * 2) return result;
+    const len = close.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
+    result.fill(NaN);
 
-    const upMove = new Float64Array(close.length).fill(0);
-    const downMove = new Float64Array(close.length).fill(0);
-    const tr = new Float64Array(close.length).fill(0);
+    if (len < period * 2) return result;
 
-    for (let i = 1; i < close.length; i++) {
+    let upMove: Float64Array;
+    let downMove: Float64Array;
+    let tr: Float64Array;
+    let plusDI_S: Float64Array;
+    let minusDI_S: Float64Array;
+    let tr_S: Float64Array;
+    let dx: Float64Array;
+    let pooled = false;
+
+    if (pool) {
+      upMove = pool.acquire(len);
+      downMove = pool.acquire(len);
+      tr = pool.acquire(len);
+      // We can reuse buffers sequentially if we are careful, but adx needs parallel vectors
+      // plusDI_S, minusDI_S, tr_S needed simultaneously for DX calc.
+      // So we need separate buffers.
+      plusDI_S = pool.acquire(len);
+      minusDI_S = pool.acquire(len);
+      tr_S = pool.acquire(len);
+      dx = pool.acquire(len);
+      pooled = true;
+    } else {
+      upMove = new Float64Array(len);
+      downMove = new Float64Array(len);
+      tr = new Float64Array(len);
+      plusDI_S = new Float64Array(len); // Allocated by smma if not passed? No, we pass logic.
+      minusDI_S = new Float64Array(len);
+      tr_S = new Float64Array(len);
+      dx = new Float64Array(len);
+    }
+
+    // Fill with 0 (since acquire might be dirty)
+    upMove.fill(0);
+    downMove.fill(0);
+    tr.fill(0);
+    // Others are filled by their producers (smma) or calc loops
+
+    for (let i = 1; i < len; i++) {
       const up = high[i] - high[i - 1];
       const down = low[i - 1] - low[i];
       upMove[i] = up > down && up > 0 ? up : 0;
@@ -243,19 +378,31 @@ export const JSIndicators = {
       );
     }
 
-    const plusDI_S = this.smma(upMove, period);
-    const minusDI_S = this.smma(downMove, period);
-    const tr_S = this.smma(tr, period);
+    this.smma(upMove, period, plusDI_S);
+    this.smma(downMove, period, minusDI_S);
+    this.smma(tr, period, tr_S);
 
-    const dx = new Float64Array(close.length).fill(0);
-    for (let i = 0; i < close.length; i++) {
+    // dx
+    for (let i = 0; i < len; i++) {
       const pDI = (plusDI_S[i] / (tr_S[i] || 1)) * 100;
       const mDI = (minusDI_S[i] / (tr_S[i] || 1)) * 100;
       const sum = pDI + mDI;
       dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
     }
 
-    return this.smma(dx, period);
+    const res = this.smma(dx, period, result);
+
+    if (pooled && pool) {
+        pool.release(upMove);
+        pool.release(downMove);
+        pool.release(tr);
+        pool.release(plusDI_S);
+        pool.release(minusDI_S);
+        pool.release(tr_S);
+        pool.release(dx);
+    }
+
+    return res;
   },
 
   atr(
@@ -263,11 +410,30 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
+    out?: Float64Array,
+    pool?: BufferPool,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    if (close.length < period) return result;
-    const tr = new Float64Array(close.length).fill(0);
-    for (let i = 1; i < close.length; i++) {
+    const len = close.length;
+    // We can assume out is passed for result, but we need TR buffer
+    const result = (out && out.length === len) ? out : new Float64Array(len);
+
+    if (len < period) {
+        result.fill(NaN);
+        return result;
+    }
+
+    let tr: Float64Array;
+    let pooled = false;
+
+    if (pool) {
+        tr = pool.acquire(len);
+        pooled = true;
+    } else {
+        tr = new Float64Array(len);
+    }
+    tr.fill(0);
+
+    for (let i = 1; i < len; i++) {
       tr[i] = Math.max(
         high[i] - low[i],
         Math.abs(high[i] - close[i - 1]),
@@ -275,14 +441,29 @@ export const JSIndicators = {
       );
     }
     // ATR is usually a smoothed moving average of TR
-    return this.smma(tr, period);
+    // Write directly to result
+    this.smma(tr, period, result);
+
+    if (pooled && pool) {
+        pool.release(tr);
+    }
+    return result;
   },
 
-  bb(data: NumberArray, period: number, stdDev: number = 2) {
-    const sma = this.sma(data, period);
-    const upper = new Float64Array(data.length).fill(NaN);
-    const lower = new Float64Array(data.length).fill(NaN);
+  bb(
+    data: NumberArray,
+    period: number,
+    stdDev: number = 2,
+    outMiddle?: Float64Array,
+    outUpper?: Float64Array,
+    outLower?: Float64Array,
+  ) {
     const len = data.length;
+    const sma = this.sma(data, period, outMiddle);
+    const upper = (outUpper && outUpper.length === len) ? outUpper : new Float64Array(len);
+    upper.fill(NaN);
+    const lower = (outLower && outLower.length === len) ? outLower : new Float64Array(len);
+    lower.fill(NaN);
 
     if (len < period) return { middle: sma, upper, lower };
 

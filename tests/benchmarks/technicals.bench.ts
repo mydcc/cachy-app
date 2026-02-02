@@ -2,6 +2,7 @@
 import { calculateIndicatorsFromArrays } from '../../src/utils/technicalsCalculator';
 import { JSIndicators } from '../../src/utils/indicators';
 import { DivergenceScanner } from '../../src/utils/divergenceScanner';
+import { BufferPool } from '../../src/utils/bufferPool';
 
 // Setup data
 const LENGTH = 5000; // Increased length to make O(N*K) more visible
@@ -70,7 +71,7 @@ function runBench(name: string, fn: () => void, iterations = 100) {
     console.log(`${name}: ${duration.toFixed(2)}ms for ${iterations} ops (${opsPerSec.toFixed(0)} ops/s) -> ${(duration/iterations).toFixed(3)} ms/op`);
 }
 
-runBench('calculateIndicatorsFromArrays (Full)', () => {
+runBench('calculateIndicatorsFromArrays (Full - No Pool)', () => {
     calculateIndicatorsFromArrays(
         times,
         opens,
@@ -80,6 +81,21 @@ runBench('calculateIndicatorsFromArrays (Full)', () => {
         volumes,
         settings as any,
         enabledIndicators
+    );
+}, 50);
+
+const pool = new BufferPool();
+runBench('calculateIndicatorsFromArrays (Full - With Pool)', () => {
+    calculateIndicatorsFromArrays(
+        times,
+        opens,
+        highs,
+        lows,
+        closes,
+        volumes,
+        settings as any,
+        enabledIndicators,
+        pool
     );
 }, 50);
 

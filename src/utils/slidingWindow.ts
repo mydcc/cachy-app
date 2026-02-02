@@ -13,9 +13,15 @@ import type { NumberArray } from "./indicators";
  * @param period Window size
  * @returns Array where result[i] is the max of data[i-period+1 ... i]
  */
-export function slidingWindowMax(data: NumberArray, period: number): Float64Array {
+export function slidingWindowMax(
+  data: NumberArray,
+  period: number,
+  out?: Float64Array,
+): Float64Array {
   const len = data.length;
-  const result = new Float64Array(len).fill(NaN);
+  const result = (out && out.length === len) ? out : new Float64Array(len);
+  result.fill(NaN);
+
   const deque: number[] = []; // Stores indices
 
   if (len < period) return result;
@@ -53,9 +59,15 @@ export function slidingWindowMax(data: NumberArray, period: number): Float64Arra
  * @param period Window size
  * @returns Array where result[i] is the min of data[i-period+1 ... i]
  */
-export function slidingWindowMin(data: NumberArray, period: number): Float64Array {
+export function slidingWindowMin(
+  data: NumberArray,
+  period: number,
+  out?: Float64Array,
+): Float64Array {
   const len = data.length;
-  const result = new Float64Array(len).fill(NaN);
+  const result = (out && out.length === len) ? out : new Float64Array(len);
+  result.fill(NaN);
+
   const deque: number[] = []; // Stores indices
 
   if (len < period) return result;

@@ -24,6 +24,7 @@
 
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
+import { BufferPool } from "../utils/bufferPool";
 import type { Kline } from "../utils/indicators";
 import type {
   WorkerMessage,
@@ -33,6 +34,7 @@ import type {
 import { calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 
 const ctx: Worker = self as any;
+const pool = new BufferPool();
 
 // --- Main Worker Listener ---
 
@@ -55,7 +57,8 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
           soa.closes as any,
           soa.volumes as any,
           soa.settings,
-          soa.enabledIndicators
+          soa.enabledIndicators,
+          pool
         );
       } else {
         // Legacy Path (Object Array)
