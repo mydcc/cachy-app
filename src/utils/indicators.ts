@@ -589,23 +589,41 @@ export const JSIndicators = {
       }
     }
 
-    // 2. Sum over period
-    for (let i = period; i < close.length; i++) {
-      let sumPos = 0;
-      let sumNeg = 0;
-      for (let j = 0; j < period; j++) {
-        sumPos += posFlow[i - j];
-        sumNeg += negFlow[i - j];
-      }
+    // 2. Sum over period (Sliding Window Optimization)
+    // Initialize first window sums (indices 1 to period)
+    let sumPos = 0;
+    let sumNeg = 0;
+    for (let i = 1; i <= period; i++) {
+        sumPos += posFlow[i];
+        sumNeg += negFlow[i];
+    }
 
-      if (sumPos + sumNeg === 0) {
-        result[i] = 50;
-      } else if (sumNeg === 0) {
-        result[i] = 100;
-      } else {
-        const mfr = sumPos / sumNeg;
-        result[i] = 100 - 100 / (1 + mfr);
-      }
+    // Set first point
+    if (close.length > period) {
+        if (sumPos + sumNeg === 0) {
+            result[period] = 50;
+        } else if (sumNeg === 0) {
+            result[period] = 100;
+        } else {
+            const mfr = sumPos / sumNeg;
+            result[period] = 100 - 100 / (1 + mfr);
+        }
+    }
+
+    // Sliding window
+    for (let i = period + 1; i < close.length; i++) {
+        // Add new, remove old
+        sumPos = sumPos + posFlow[i] - posFlow[i - period];
+        sumNeg = sumNeg + negFlow[i] - negFlow[i - period];
+
+        if (sumPos + sumNeg === 0) {
+            result[i] = 50;
+        } else if (sumNeg === 0) {
+            result[i] = 100;
+        } else {
+            const mfr = sumPos / sumNeg;
+            result[i] = 100 - 100 / (1 + mfr);
+        }
     }
 
     return result;
