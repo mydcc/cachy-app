@@ -30,6 +30,7 @@ vi.mock('../services/omsService', () => ({
         removeOrder: vi.fn(),
         updateOrder: vi.fn(),
         updatePosition: vi.fn(),
+        getOrder: vi.fn(), // Added mock
     }
 }));
 
