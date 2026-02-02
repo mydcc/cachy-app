@@ -22,31 +22,41 @@ export function slidingWindowMax(
   const result = (out && out.length === len) ? out : new Float64Array(len);
   result.fill(NaN);
 
-  const deque: number[] = []; // Stores indices
-
   if (len < period) return result;
+
+  // Ring Buffer Deque
+  const bufferSize = period + 1;
+  const deque = new Int32Array(bufferSize);
+  let head = 0;
+  let tail = 0;
 
   for (let i = 0; i < len; i++) {
     // 1. Remove indices that are out of the current window
-    // The window is [i - period + 1, i]
-    // So if deque[0] < i - period + 1, it is out.
-    if (deque.length > 0 && deque[0] <= i - period) {
-      deque.shift();
+    if (head !== tail && deque[head] <= i - period) {
+      head++;
+      if (head === bufferSize) head = 0;
     }
 
     // 2. Maintain monotonic decreasing order in deque
-    // Remove elements from the back that are smaller than or equal to current element
-    // because they can never be the max if the current element is larger and newer.
-    while (deque.length > 0 && data[deque[deque.length - 1]] <= data[i]) {
-      deque.pop();
+    while (head !== tail) {
+      let lastIdx = tail - 1;
+      if (lastIdx < 0) lastIdx = bufferSize - 1;
+
+      if (data[deque[lastIdx]] <= data[i]) {
+        tail = lastIdx; // Pop back
+      } else {
+        break;
+      }
     }
 
     // 3. Add current index
-    deque.push(i);
+    deque[tail] = i;
+    tail++;
+    if (tail === bufferSize) tail = 0;
 
     // 4. Set result if we have a full window
     if (i >= period - 1) {
-      result[i] = data[deque[0]];
+      result[i] = data[deque[head]];
     }
   }
 
@@ -68,28 +78,41 @@ export function slidingWindowMin(
   const result = (out && out.length === len) ? out : new Float64Array(len);
   result.fill(NaN);
 
-  const deque: number[] = []; // Stores indices
-
   if (len < period) return result;
+
+  // Ring Buffer Deque
+  const bufferSize = period + 1;
+  const deque = new Int32Array(bufferSize);
+  let head = 0;
+  let tail = 0;
 
   for (let i = 0; i < len; i++) {
     // 1. Remove indices out of window
-    if (deque.length > 0 && deque[0] <= i - period) {
-      deque.shift();
+    if (head !== tail && deque[head] <= i - period) {
+      head++;
+      if (head === bufferSize) head = 0;
     }
 
     // 2. Maintain monotonic increasing order in deque
-    // Remove elements from back that are larger than or equal to current
-    while (deque.length > 0 && data[deque[deque.length - 1]] >= data[i]) {
-      deque.pop();
+    while (head !== tail) {
+      let lastIdx = tail - 1;
+      if (lastIdx < 0) lastIdx = bufferSize - 1;
+
+      if (data[deque[lastIdx]] >= data[i]) {
+        tail = lastIdx; // Pop back
+      } else {
+        break;
+      }
     }
 
     // 3. Add current index
-    deque.push(i);
+    deque[tail] = i;
+    tail++;
+    if (tail === bufferSize) tail = 0;
 
     // 4. Set result
     if (i >= period - 1) {
-      result[i] = data[deque[0]];
+      result[i] = data[deque[head]];
     }
   }
 
