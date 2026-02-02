@@ -39,15 +39,7 @@ export interface MarketData {
   klines: Record<string, Kline[]>;
   klinesBuffers?: Record<string, KlineBuffers>; // SoA Buffers for performance
   technicals?: Record<string, import("../services/technicalsTypes").TechnicalsData>;
-  metricsHistory?: MetricSnapshot[];
   lastUpdated?: number; // Optimization: only snapshot fresh data
-}
-
-export interface MetricSnapshot {
-  time: number;
-  spread: number;
-  imbalance: number; // Bid Ratio (0-1)
-  price: number;
 }
 
 // Permissive update type for WebSocket data (allows strings/numbers for Decimals)
