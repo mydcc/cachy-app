@@ -73,15 +73,31 @@ export function enhancedInput(
       container.style.right = options.rightOffset;
     }
 
+    // Helper to create safe SVG
+    const createSvgIcon = (points: string) => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "5");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+
+      const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      polyline.setAttribute("points", points);
+      svg.appendChild(polyline);
+      return svg;
+    };
+
     // Up Button
     upBtn = document.createElement("div");
     upBtn.className = "spin-btn up";
-    upBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+    upBtn.appendChild(createSvgIcon("18 15 12 9 6 15"));
 
     // Down Button
     downBtn = document.createElement("div");
     downBtn.className = "spin-btn down";
-    downBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+    downBtn.appendChild(createSvgIcon("6 9 12 15 18 9"));
 
     container.appendChild(upBtn);
     container.appendChild(downBtn);
