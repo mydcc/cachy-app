@@ -173,3 +173,54 @@ describe("JSIndicators", () => {
     });
   });
 });
+
+  describe("ichimoku", () => {
+    it("should calculate ichimoku correctly", () => {
+      // Create a pattern where max/min changes
+      const len = 20;
+      const high = Array.from({ length: len }, (_, i) => 10 + i);
+      const low = Array.from({ length: len }, (_, i) => i);
+      // Conv (Period 3): Max(i, i-1, i-2) = 10+i. Min = i-2.
+      // Avg = (10+i + i-2)/2 = (8 + 2i)/2 = 4 + i.
+      // At i=2: Avg = 4+2 = 6.
+
+      const res = JSIndicators.ichimoku(high, low, 3, 5, 10, 5);
+      expect(res.conversion[2]).toBe(6);
+      expect(res.conversion[3]).toBe(7);
+    });
+  });
+
+  describe("stoch", () => {
+    it("should calculate stochastic correctly", () => {
+      // High: 10, 20, 30
+      // Low: 5, 15, 25
+      // Close: 8, 18, 28
+      // Period 3.
+      // i=2. MaxHigh(30, 20, 10) = 30. MinLow(25, 15, 5) = 5. Range=25.
+      // Close=28. (28-5)/25 * 100 = 23/25*100 = 92.
+
+      const high = [10, 20, 30];
+      const low = [5, 15, 25];
+      const close = [8, 18, 28];
+
+      const res = JSIndicators.stoch(high, low, close, 3);
+      expect(res[2]).toBe(92);
+    });
+  });
+
+  describe("bb", () => {
+    it("should calculate bollinger bands correctly", () => {
+      // 10, 20, 30.
+      // SMA(3) = 20.
+      // Var = ((10-20)^2 + (20-20)^2 + (30-20)^2)/3 = (100 + 0 + 100)/3 = 200/3 = 66.666.
+      // StdDev = sqrt(66.666) = 8.1649.
+      // Upper = 20 + 2*8.1649 = 36.329.
+      // Lower = 20 - 16.329 = 3.67.
+
+      const data = [10, 20, 30];
+      const res = JSIndicators.bb(data, 3, 2);
+      expect(res.middle[2]).toBe(20);
+      expect(res.upper[2]).toBeCloseTo(36.33, 1);
+      expect(res.lower[2]).toBeCloseTo(3.67, 1);
+    });
+  });

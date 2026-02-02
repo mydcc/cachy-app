@@ -105,6 +105,7 @@
           >
             {$_("quiz.question")}
           </div>
+          <!-- svelte-ignore a11y_missing_content -->
           <h3
             class="text-xl md:text-2xl font-bold text-[var(--text-primary)] leading-relaxed select-none prose prose-invert max-w-none"
             use:markdown={quizState.activeQuestion.question}
