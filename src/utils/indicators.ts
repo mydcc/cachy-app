@@ -29,6 +29,7 @@
 
 import { Decimal } from "decimal.js";
 import { slidingWindowMax, slidingWindowMin } from "./slidingWindow";
+import { toNumFast } from "./fastConversion";
 
 // --- Types ---
 
@@ -1027,9 +1028,7 @@ export const indicators = {
     period: number = 14,
   ): Decimal | null {
     if (prices.length < period + 1) return null;
-    const nums = prices.map((p) =>
-      p instanceof Decimal ? p.toNumber() : new Decimal(p || 0).toNumber(),
-    );
+    const nums = prices.map((p) => toNumFast(p));
     const rsiArr = JSIndicators.rsi(nums, period);
     const last = rsiArr[rsiArr.length - 1];
     return new Decimal(last);
@@ -1040,9 +1039,7 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map((p) =>
-      p instanceof Decimal ? p.toNumber() : new Decimal(p || 0).toNumber(),
-    );
+    const nums = data.map((p) => toNumFast(p));
     const res = JSIndicators.sma(nums, period);
     return new Decimal(res[res.length - 1]);
   },
@@ -1052,9 +1049,7 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map((p) =>
-      p instanceof Decimal ? p.toNumber() : new Decimal(p || 0).toNumber(),
-    );
+    const nums = data.map((p) => toNumFast(p));
     const res = JSIndicators.ema(nums, period);
     return new Decimal(res[res.length - 1]);
   },
