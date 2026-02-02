@@ -27,6 +27,7 @@ import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { mapToOMSPosition } from "./mappers";
 import { settingsState } from "../stores/settings.svelte";
+import { marketState } from "../stores/market.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
@@ -201,6 +202,10 @@ class TradeService {
 
         logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
 
+        // Retrieve current market price for optimistic UI feedback
+        // Fallback to 0 if not available, but usually MarketWatcher ensures it is.
+        const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
+
         // OPTIMISTIC UPDATE
         const clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
         omsService.addOptimisticOrder({
@@ -210,7 +215,7 @@ class TradeService {
             side: side,
             type: "market",
             status: "pending",
-            price: new Decimal(0),
+            price: currentPrice,
             amount: position.amount,
             filledAmount: new Decimal(0),
             timestamp: Date.now(),

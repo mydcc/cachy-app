@@ -375,7 +375,7 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     symbol: o.symbol,
     type: o.type,
     side: o.side,
-    price: formatApiNum(o.price) || "0",
+    price: formatApiNum(o.price) || null,
     amount: formatApiNum(o.qty) || "0",
     filled: formatApiNum(o.tradeQty) || "0",
     status: o.status || "UNKNOWN",
