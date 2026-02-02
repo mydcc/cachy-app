@@ -46,7 +46,7 @@ class IncrementalState {
     prevRsiGain = 0;
     prevRsiLoss = 0;
 
-    update(price) {
+    update(price: number) {
         // EMA: (Price - Prev) * K + Prev
         // O(1) Math
         const k = 2 / (14 + 1);
@@ -64,7 +64,7 @@ class IncrementalState {
 }
 const incrementalState = new IncrementalState();
 
-function benchmark(name, fn, iterations) {
+function benchmark(name: string, fn: () => void, iterations: number) {
     // Warmup
     for(let i=0; i<10; i++) fn();
 
@@ -88,7 +88,7 @@ console.log('--- Worker Simulation Benchmark ---\n');
 benchmark('Current: Full Recalc (1000 candles)', () => {
     calculateIndicatorsFromArrays(
         times, opens, highs, lows, closes, volumes,
-        settings, enabledIndicators, pool
+        settings as any, enabledIndicators, pool
     );
 }, 1000);
 
