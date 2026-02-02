@@ -34,6 +34,7 @@ import {
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
+import type { BufferPool } from "./bufferPool";
 import type {
   TechnicalsData,
   IndicatorResult,
@@ -88,8 +89,10 @@ export function calculateIndicatorsFromArrays(
   volumesNum: number[] | Float64Array,
   settings?: IndicatorSettings,
   enabledIndicators?: Partial<Record<string, boolean>>,
+  pool?: BufferPool,
 ): TechnicalsData {
-  const currentPrice = closesNum[closesNum.length - 1];
+  const len = closesNum.length;
+  const currentPrice = closesNum[len - 1];
 
   // Normalize enabledIndicators keys to lowercase
   const normalizedEnabled: Record<string, boolean> = {};
@@ -118,6 +121,8 @@ export function calculateIndicatorsFromArrays(
 
   // Cache for derived sources
   const sourceCache: Record<string, number[] | Float64Array> = {};
+  // Track buffers acquired from pool for cleanup
+  const cleanupBuffers: Float64Array[] = [];
 
   // Helper to get source array based on config
   const getSource = (sourceType: string): number[] | Float64Array => {
@@ -130,16 +135,30 @@ export function calculateIndicatorsFromArrays(
         return lowsNum;
       case "hl2":
         if (!sourceCache["hl2"]) {
-          sourceCache["hl2"] = (highsNum as number[]).map(
-            (h, i) => (h + lowsNum[i]) / 2,
-          );
+          if (pool) {
+            const buf = pool.acquire(len);
+            for (let i = 0; i < len; i++) buf[i] = (highsNum[i] + lowsNum[i]) / 2;
+            sourceCache["hl2"] = buf;
+            cleanupBuffers.push(buf);
+          } else {
+            sourceCache["hl2"] = (highsNum as number[]).map(
+              (h, i) => (h + lowsNum[i]) / 2,
+            );
+          }
         }
         return sourceCache["hl2"];
       case "hlc3":
         if (!sourceCache["hlc3"]) {
-          sourceCache["hlc3"] = (highsNum as number[]).map(
-            (h, i) => (h + lowsNum[i] + closesNum[i]) / 3,
-          );
+          if (pool) {
+            const buf = pool.acquire(len);
+            for (let i = 0; i < len; i++) buf[i] = (highsNum[i] + lowsNum[i] + closesNum[i]) / 3;
+            sourceCache["hlc3"] = buf;
+            cleanupBuffers.push(buf);
+          } else {
+            sourceCache["hlc3"] = (highsNum as number[]).map(
+              (h, i) => (h + lowsNum[i] + closesNum[i]) / 3,
+            );
+          }
         }
         return sourceCache["hlc3"];
       default:
@@ -159,7 +178,14 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('rsi')) {
       const rsiLen = settings?.rsi?.length || 14;
       const rsiSource = getSource(settings?.rsi?.source || "close");
-      const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
+
+      let rsiResults: Float64Array | undefined;
+      if (pool) {
+          rsiResults = pool.acquire(len);
+          cleanupBuffers.push(rsiResults);
+      }
+
+      rsiResults = JSIndicators.rsi(rsiSource, rsiLen, rsiResults);
       indSeries["RSI"] = rsiResults;
       const rsiVal = rsiResults[rsiResults.length - 1];
 
@@ -181,12 +207,45 @@ export function calculateIndicatorsFromArrays(
       const stochD = settings?.stochastic?.dPeriod || 3;
       const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
 
-      let kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
-      if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
-      const dLine = JSIndicators.sma(kLine, stochD);
-      indSeries["StochK"] = kLine;
+      let kLine: Float64Array | undefined;
+      if (pool) {
+          kLine = pool.acquire(len);
+          cleanupBuffers.push(kLine);
+      }
 
-      const stochKVal = kLine[kLine.length - 1];
+      kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK, kLine, pool);
+
+      if (stochKSmooth > 1) {
+          // If smoothing, we might need another buffer or overwrite?
+          // JSIndicators.sma returns new/out.
+          // We can overwrite kLine if we don't need raw anymore.
+          // But sma needs input and output.
+          // If we pass kLine as input and output, SMA implementation needs to be safe for in-place.
+          // SMA is safe for in-place?
+          // sum = sum - data[i-period] + data[i]. If data is result, data[i] is overwritten before read?
+          // No, result[i] is written. data[i] is read. If result === data, then data[i] is effectively new value.
+          // Next iteration reads data[i].
+          // So SMA is NOT safe for in-place if period > 1.
+
+          let smoothed: Float64Array | undefined;
+          if (pool) {
+              smoothed = pool.acquire(len);
+              cleanupBuffers.push(smoothed);
+          }
+          kLine = JSIndicators.sma(kLine!, stochKSmooth, smoothed);
+          // Note: kLine now points to smoothed. The original kLine buffer is still in cleanupBuffers.
+      }
+
+      let dLine: Float64Array | undefined;
+      if (pool) {
+          dLine = pool.acquire(len);
+          cleanupBuffers.push(dLine);
+      }
+      dLine = JSIndicators.sma(kLine!, stochD, dLine);
+
+      indSeries["StochK"] = kLine!;
+
+      const stochKVal = kLine![kLine!.length - 1];
       const stochDVal = dLine[dLine.length - 1];
 
       let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -210,9 +269,23 @@ export function calculateIndicatorsFromArrays(
       const cciLen = settings?.cci?.length || 20;
       const cciSmoothLen = settings?.cci?.smoothingLength || 1;
       const cciSource = getSource(settings?.cci?.source || "hlc3");
-      let cciResults = JSIndicators.cci(cciSource, cciLen);
-      if (cciSmoothLen > 1)
-        cciResults = JSIndicators.sma(cciResults, cciSmoothLen); // Default SMA smoothing
+
+      let cciResults: Float64Array | undefined;
+      if (pool) {
+          cciResults = pool.acquire(len);
+          cleanupBuffers.push(cciResults);
+      }
+
+      cciResults = JSIndicators.cci(cciSource, cciLen, cciResults);
+      if (cciSmoothLen > 1) {
+          let smoothed: Float64Array | undefined;
+          if (pool) {
+              smoothed = pool.acquire(len);
+              cleanupBuffers.push(smoothed);
+          }
+          cciResults = JSIndicators.sma(cciResults, cciSmoothLen, smoothed);
+      }
+
       const cciVal = cciResults[cciResults.length - 1];
       const cciThreshold = settings?.cci?.threshold || 100;
       indSeries["CCI"] = cciResults;
@@ -234,7 +307,14 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('adx')) {
       const adxLen = settings?.adx?.adxSmoothing || 14;
       const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
-      const adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+
+      let adxResults: Float64Array | undefined;
+      if (pool) {
+          adxResults = pool.acquire(len);
+          cleanupBuffers.push(adxResults);
+      }
+
+      adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen, adxResults, pool);
       // Note: JSIndicators.adx implementation might use a single length for both currently.
       // If we want separate DI length, we'd need to update JSIndicators.adx signature.
       // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
@@ -286,7 +366,17 @@ export function calculateIndicatorsFromArrays(
       const macdSlow = settings?.macd?.slowLength || 26;
       const macdSig = settings?.macd?.signalLength || 9;
       const macdSource = getSource(settings?.macd?.source || "close");
-      const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
+
+      let outMacd: Float64Array | undefined;
+      let outSignal: Float64Array | undefined;
+      if (pool) {
+          outMacd = pool.acquire(len);
+          outSignal = pool.acquire(len);
+          cleanupBuffers.push(outMacd);
+          cleanupBuffers.push(outSignal);
+      }
+
+      const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig, outMacd, outSignal, pool);
       const macdVal = macdRes.macd[macdRes.macd.length - 1];
       const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
       const macdHist = macdVal - macdSignalVal;
@@ -634,7 +724,20 @@ export function calculateIndicatorsFromArrays(
         let bbUpper = 0, bbLower = 0, bbMiddle = 0, percentP = 0;
 
         if (shouldCalculate('bb')) {
-            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev);
+            let outMiddle: Float64Array | undefined;
+            let outUpper: Float64Array | undefined;
+            let outLower: Float64Array | undefined;
+
+            if (pool) {
+              outMiddle = pool.acquire(len);
+              outUpper = pool.acquire(len);
+              outLower = pool.acquire(len);
+              cleanupBuffers.push(outMiddle);
+              cleanupBuffers.push(outUpper);
+              cleanupBuffers.push(outLower);
+            }
+
+            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev, outMiddle, outUpper, outLower);
             bbUpper = bbResults.upper[bbResults.upper.length - 1];
             bbLower = bbResults.lower[bbResults.lower.length - 1];
             bbMiddle = bbResults.middle[bbResults.middle.length - 1];
@@ -686,6 +789,13 @@ export function calculateIndicatorsFromArrays(
   };
 
   const confluence = ConfluenceAnalyzer.analyze(partialData);
+
+  // Cleanup buffers if pool was used
+  if (pool) {
+      for (const buf of cleanupBuffers) {
+          pool.release(buf);
+      }
+  }
 
   return {
     oscillators,
