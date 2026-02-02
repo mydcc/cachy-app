@@ -44,10 +44,22 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
   if (type === "CALCULATE" && payload) {
     try {
       let result;
+      let buffersToReturn;
 
       // Check for SoA Payload (Zero-Copy Path)
       if ('times' in payload && payload.times instanceof Float64Array) {
         const soa = payload as WorkerCalculatePayloadSoA;
+
+        // Capture buffers to return them for recycling
+        buffersToReturn = {
+           times: soa.times,
+           opens: soa.opens,
+           highs: soa.highs,
+           lows: soa.lows,
+           closes: soa.closes,
+           volumes: soa.volumes
+        };
+
         // Optimization: Pass TypedArrays directly (cast to any to satisfy TS signature if needed)
         result = calculateIndicatorsFromArrays(
           soa.times as any,
@@ -88,12 +100,25 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
         type: "RESULT",
         payload: result,
         id,
+        buffers: buffersToReturn,
       };
 
+      // Prepare transfer list to give ownership back to main thread
+      const transferList: Transferable[] = [];
+      if (buffersToReturn) {
+          transferList.push(
+              buffersToReturn.times.buffer,
+              buffersToReturn.opens.buffer,
+              buffersToReturn.highs.buffer,
+              buffersToReturn.lows.buffer,
+              buffersToReturn.closes.buffer,
+              buffersToReturn.volumes.buffer
+          );
+      }
+
       // If we received transferables, we technically own them. 
-      // We don't need to send them back unless requested.
-      // Result is text/JSON mostly.
-      ctx.postMessage(response);
+      // We send them back to enable buffer recycling (Ping-Pong).
+      ctx.postMessage(response, transferList);
     } catch (error: any) {
       console.error("Worker Calculation Error: ", error);
       const errorResponse: WorkerMessage = {
