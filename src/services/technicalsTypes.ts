@@ -191,7 +191,7 @@ export interface WorkerCalculatePayloadSoA {
   enabledIndicators?: Partial<Record<string, boolean>>;
 }
 
-export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE";
+export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE" | "SHIFT";
 
 export interface WorkerMessage {
   type: WorkerMessageType;
@@ -229,6 +229,7 @@ export interface TechnicalsState {
 
   // Indicator States
   ema?: Record<string, EmaState>; // Keyed by length
+  sma?: Record<string, SmaState>;
   rsi?: Record<string, RsiState>;
 
   // Last calculated result (to update incrementally)

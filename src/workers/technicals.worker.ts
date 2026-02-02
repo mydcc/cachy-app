@@ -78,11 +78,54 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             close: new Decimal(kline.close),
             volume: new Decimal(kline.volume),
         };
+
+        // Auto-Shift Detection
+        // If the new tick is for a time > last known candle time, we need to shift.
+        // We can check this inside `calc.update` or here.
+        // But `calc` internals are private.
+        // Best to expose a getter or handle logic inside.
+        // However, we didn't expose `lastCandle` publicly on `StatefulTechnicalsCalculator`.
+        // Let's assume the manager sends `UPDATE` correctly.
+        // Wait, the manager logic we wrote sends `INITIALIZE` on mismatch.
+        // We want to support `SHIFT` via `UPDATE` logic if we want to avoid re-init.
+
+        // We will modify `StatefulTechnicalsCalculator.update` to handle the check?
+        // No, keep it explicit.
+        // Let's just expose a `SHIFT` message type OR handle auto-shift if we detect time jump.
+        // But the Manager currently sends `INITIALIZE` if times differ.
+        // We need to update the Manager to send `UPDATE` even on new candle, OR add `SHIFT`.
+
+        // For now, let's keep `UPDATE` strictly for current candle updates as per Phase 1.
+        // Phase 1.5 logic is primarily in the Manager to use `shift`?
+        // No, the Manager is in the main thread. It doesn't have the Calculator instance.
+        // The Worker has the Calculator.
+        // So the Manager should send a `SHIFT` message to the Worker.
+
         const result = calc.update(tick);
         ctx.postMessage({ type: "RESULT", payload: result, id });
       } else {
         throw new Error(`Calculator not initialized for ${key}`);
       }
+    }
+    else if (type === "SHIFT" && payload) {
+        const { symbol, timeframe, kline } = payload;
+        const key = `${symbol}:${timeframe}`;
+        const calc = calculators.get(key);
+
+        if (calc) {
+             const newCandle: Kline = {
+                time: kline.time,
+                open: new Decimal(kline.open),
+                high: new Decimal(kline.high),
+                low: new Decimal(kline.low),
+                close: new Decimal(kline.close),
+                volume: new Decimal(kline.volume),
+            };
+            calc.shift(newCandle);
+            // After shift, we usually want an immediate update for the new tick
+            const result = calc.update(newCandle);
+            ctx.postMessage({ type: "RESULT", payload: result, id });
+        }
     }
 
   } catch (error: any) {
