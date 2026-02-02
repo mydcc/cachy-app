@@ -46,8 +46,9 @@ export type NumberArray = number[] | Float64Array;
 
 // --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
 export const JSIndicators = {
-  sma(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  sma(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     if (data.length < period) return result;
     let sum = 0;
     for (let i = 0; i < period; i++) sum += data[i];
@@ -59,8 +60,9 @@ export const JSIndicators = {
     return result;
   },
 
-  wma(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  wma(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     if (data.length < period) return result;
 
     const denominator = (period * (period + 1)) / 2;
@@ -79,8 +81,9 @@ export const JSIndicators = {
     return result;
   },
 
-  ema(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  ema(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     if (data.length < period) return result;
     const k = 2 / (period + 1);
     let sum = 0;
@@ -94,10 +97,11 @@ export const JSIndicators = {
     return result;
   },
 
-  smma(data: NumberArray, period: number): Float64Array {
+  smma(data: NumberArray, period: number, out?: Float64Array): Float64Array {
     // Wilder's Smoothing (RMA)
     // alpha = 1 / period
-    const result = new Float64Array(data.length).fill(NaN);
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     if (data.length < period) return result;
 
     let sum = 0;
@@ -113,8 +117,9 @@ export const JSIndicators = {
     return result;
   },
 
-  rsi(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  rsi(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     if (data.length <= period) return result;
     let sumGain = 0;
     let sumLoss = 0;
@@ -143,8 +148,10 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     kPeriod: number,
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     if (close.length < kPeriod) return result;
 
     const highestHighs = slidingWindowMax(high, kPeriod);
@@ -159,11 +166,21 @@ export const JSIndicators = {
     return result;
   },
 
-  macd(data: NumberArray, fast: number, slow: number, signal: number) {
+  macd(data: NumberArray, fast: number, slow: number, signal: number, out?: { macd?: Float64Array, signal?: Float64Array }) {
     const emaFast = this.ema(data, fast);
     const emaSlow = this.ema(data, slow);
-    const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
-    // macdLine is a new Float64Array
+
+    let macdLine: Float64Array;
+    if (out?.macd) {
+      macdLine = out.macd;
+      for (let i = 0; i < data.length; i++) {
+        macdLine[i] = emaFast[i] - emaSlow[i];
+      }
+    } else {
+      macdLine = emaFast.map((v, i) => v - emaSlow[i]) as Float64Array;
+    }
+
+    // macdLine is a new Float64Array (or reused)
     // We use subarray for efficiency (no copy)
     const macdLineSub = macdLine.subarray(slow - 1);
 
@@ -171,23 +188,26 @@ export const JSIndicators = {
     const macdSignalPart = this.ema(macdLineSub, signal);
 
     // Pad the signal array to match original length
-    const paddedSignal = new Float64Array(data.length).fill(NaN);
+    const paddedSignal = out?.signal || new Float64Array(data.length);
+    paddedSignal.fill(NaN);
     // Offset is slow - 1
     paddedSignal.set(macdSignalPart, slow - 1);
 
     return { macd: macdLine, signal: paddedSignal };
   },
 
-  mom(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  mom(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     for (let i = period; i < data.length; i++) {
       result[i] = data[i] - data[i - period];
     }
     return result;
   },
 
-  cci(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
+  cci(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(data.length);
+    result.fill(NaN);
     if (data.length < period) return result;
 
     for (let i = period - 1; i < data.length; i++) {
@@ -222,8 +242,10 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     if (close.length < period * 2) return result;
 
     const upMove = new Float64Array(close.length).fill(0);
@@ -255,7 +277,7 @@ export const JSIndicators = {
       dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
     }
 
-    return this.smma(dx, period);
+    return this.smma(dx, period, result);
   },
 
   atr(
@@ -263,8 +285,10 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     if (close.length < period) return result;
     const tr = new Float64Array(close.length).fill(0);
     for (let i = 1; i < close.length; i++) {
@@ -275,13 +299,15 @@ export const JSIndicators = {
       );
     }
     // ATR is usually a smoothed moving average of TR
-    return this.smma(tr, period);
+    return this.smma(tr, period, result);
   },
 
-  bb(data: NumberArray, period: number, stdDev: number = 2) {
-    const sma = this.sma(data, period);
-    const upper = new Float64Array(data.length).fill(NaN);
-    const lower = new Float64Array(data.length).fill(NaN);
+  bb(data: NumberArray, period: number, stdDev: number = 2, out?: { middle?: Float64Array, upper?: Float64Array, lower?: Float64Array }) {
+    const sma = this.sma(data, period, out?.middle);
+    const upper = out?.upper || new Float64Array(data.length);
+    const lower = out?.lower || new Float64Array(data.length);
+    upper.fill(NaN);
+    lower.fill(NaN);
     const len = data.length;
 
     if (len < period) return { middle: sma, upper, lower };
@@ -328,8 +354,10 @@ export const JSIndicators = {
     volume: NumberArray,
     time?: NumberArray,
     anchor?: { mode: "session" | "fixed"; anchorPoint?: number },
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     let cumVol = 0;
     let cumVolPrice = 0;
     let lastDay = -1;
@@ -364,8 +392,10 @@ export const JSIndicators = {
     volume: NumberArray,
     period: number,
     typicalPrices?: NumberArray,
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     if (close.length < period + 1) return result;
 
     // Use map to create typical prices - map returns Float64Array if inputs are Float64Array
@@ -424,11 +454,13 @@ export const JSIndicators = {
     kPeriod: number,
     dPeriod: number,
     smoothK: number,
+    out?: { k?: Float64Array, d?: Float64Array },
   ) {
     const rsiRaw = this.rsi(data, period);
 
-    const stochSingle = (src: NumberArray, len: number) => {
-      const res = new Float64Array(src.length).fill(NaN);
+    const stochSingle = (src: NumberArray, len: number, o?: Float64Array) => {
+      const res = o || new Float64Array(src.length);
+      res.fill(NaN);
       const minArr = slidingWindowMin(src, len);
       const maxArr = slidingWindowMax(src, len);
 
@@ -441,13 +473,16 @@ export const JSIndicators = {
       return res;
     };
 
-    let kPoints = stochSingle(rsiRaw, kPeriod);
+    let kPoints: Float64Array;
 
     if (smoothK > 1) {
-      kPoints = this.sma(kPoints, smoothK);
+      const rawK = stochSingle(rsiRaw, kPeriod);
+      kPoints = this.sma(rawK, smoothK, out?.k);
+    } else {
+      kPoints = stochSingle(rsiRaw, kPeriod, out?.k);
     }
 
-    const dPoints = this.sma(kPoints, dPeriod);
+    const dPoints = this.sma(kPoints, dPeriod, out?.d);
 
     return { k: kPoints, d: dPoints };
   },
@@ -457,8 +492,10 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     if (close.length < period) return result;
 
     const highestHighs = slidingWindowMax(high, period);
@@ -478,8 +515,10 @@ export const JSIndicators = {
     low: NumberArray,
     close: NumberArray,
     period: number,
+    out?: Float64Array,
   ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
+    const result = out || new Float64Array(close.length);
+    result.fill(NaN);
     if (close.length < period) return result;
     // CI = 100 * LOG10( SUM(ATR(1), n) / ( MaxHi(n) - MinLo(n) ) ) / LOG10(n)
 
@@ -522,6 +561,13 @@ export const JSIndicators = {
     basePeriod: number,
     spanBPeriod: number,
     laggingSpan2: number,
+    out?: {
+      conversion?: Float64Array;
+      base?: Float64Array;
+      spanA?: Float64Array;
+      spanB?: Float64Array;
+      lagging?: Float64Array;
+    },
   ) {
     const len = high.length;
 
@@ -534,10 +580,16 @@ export const JSIndicators = {
     const spanBHigh = slidingWindowMax(high, spanBPeriod);
     const spanBLow = slidingWindowMin(low, spanBPeriod);
 
-    const conversion = new Float64Array(len).fill(NaN);
-    const base = new Float64Array(len).fill(NaN);
-    const spanA = new Float64Array(len).fill(NaN);
-    const spanB = new Float64Array(len).fill(NaN);
+    const conversion = out?.conversion || new Float64Array(len);
+    const base = out?.base || new Float64Array(len);
+    // Intermediate buffers for spanA/B (before displacement)
+    const spanA = new Float64Array(len);
+    const spanB = new Float64Array(len);
+
+    conversion.fill(NaN);
+    base.fill(NaN);
+    spanA.fill(NaN);
+    spanB.fill(NaN);
 
     for (let i = 0; i < len; i++) {
       if (i >= conversionPeriod - 1) {
@@ -563,8 +615,10 @@ export const JSIndicators = {
 
     const displacement = basePeriod;
 
-    const currentSpanA = new Float64Array(len).fill(NaN);
-    const currentSpanB = new Float64Array(len).fill(NaN);
+    const currentSpanA = out?.spanA || new Float64Array(len);
+    const currentSpanB = out?.spanB || new Float64Array(len);
+    currentSpanA.fill(NaN);
+    currentSpanB.fill(NaN);
 
     for (let i = displacement; i < len; i++) {
       currentSpanA[i] = spanA[i - displacement];
@@ -576,7 +630,7 @@ export const JSIndicators = {
       base,
       spanA: currentSpanA,
       spanB: currentSpanB,
-      lagging: new Float64Array(0),
+      lagging: out?.lagging || new Float64Array(0),
     };
   },
 
@@ -588,6 +642,7 @@ export const JSIndicators = {
     close: NumberArray,
     period: number = 10,
     multiplier: number = 3,
+    out?: { trend?: Int8Array; value?: Float64Array },
   ) {
     // 1. ATR
     const atr = this.atr(high, low, close, period);
@@ -596,7 +651,8 @@ export const JSIndicators = {
     const basicLower = new Float64Array(len).fill(NaN);
     const finalUpper = new Float64Array(len).fill(NaN);
     const finalLower = new Float64Array(len).fill(NaN);
-    const trend = new Int8Array(len).fill(0); // 1 = Bull, -1 = Bear
+    const trend = out?.trend || new Int8Array(len);
+    trend.fill(0); // 1 = Bull, -1 = Bear
     // Initialize trend
     trend[0] = 1;
 
@@ -636,7 +692,7 @@ export const JSIndicators = {
 
     // Convert trend back to float for consistent API, or just map active line
     // Map trend to active line value
-    const value = new Float64Array(len);
+    const value = out?.value || new Float64Array(len);
     for(let i=0; i<len; i++) {
         value[i] = trend[i] === 1 ? finalLower[i] : finalUpper[i];
     }
@@ -653,11 +709,14 @@ export const JSIndicators = {
     close: NumberArray,
     period: number = 22,
     multiplier: number = 3,
+    out?: { buyStop?: Float64Array; sellStop?: Float64Array },
   ) {
     const atr = this.atr(high, low, close, period);
     const len = close.length;
-    const buyStop = new Float64Array(len).fill(NaN);
-    const sellStop = new Float64Array(len).fill(NaN);
+    const buyStop = out?.buyStop || new Float64Array(len);
+    const sellStop = out?.sellStop || new Float64Array(len);
+    buyStop.fill(NaN);
+    sellStop.fill(NaN);
 
     const highestHighs = slidingWindowMax(high, period);
     const lowestLows = slidingWindowMin(low, period);
@@ -672,8 +731,9 @@ export const JSIndicators = {
     return { buyStop, sellStop };
   },
 
-  obv(close: NumberArray, volume: NumberArray): Float64Array {
-    const result = new Float64Array(close.length).fill(0);
+  obv(close: NumberArray, volume: NumberArray, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(close.length);
+    result.fill(0);
     let cumVol = 0;
     result[0] = cumVol;
 
@@ -804,8 +864,9 @@ export const JSIndicators = {
     };
   },
 
-  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2): Float64Array {
-    const result = new Float64Array(high.length).fill(NaN);
+  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2, out?: Float64Array): Float64Array {
+    const result = out || new Float64Array(high.length);
+    result.fill(NaN);
     if (high.length < 2) return result;
 
     let isLong = true;

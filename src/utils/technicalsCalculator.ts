@@ -33,12 +33,16 @@ import {
 } from "./indicators";
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
+import { BufferPool } from "./bufferPool";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
 import type {
   TechnicalsData,
   IndicatorResult,
   DivergenceItem,
 } from "../services/technicalsTypes";
+
+// Module-level buffer pool for reusing arrays across calculations
+const bufferPool = new BufferPool();
 
 export function calculateAllIndicators(
   klines: Kline[],
@@ -89,6 +93,9 @@ export function calculateIndicatorsFromArrays(
   settings?: IndicatorSettings,
   enabledIndicators?: Partial<Record<string, boolean>>,
 ): TechnicalsData {
+  // Reset buffer pool at start of cycle to reuse memory
+  bufferPool.reset();
+
   const currentPrice = closesNum[closesNum.length - 1];
 
   // Normalize enabledIndicators keys to lowercase
@@ -130,16 +137,22 @@ export function calculateIndicatorsFromArrays(
         return lowsNum;
       case "hl2":
         if (!sourceCache["hl2"]) {
-          sourceCache["hl2"] = (highsNum as number[]).map(
-            (h, i) => (h + lowsNum[i]) / 2,
-          );
+          const len = highsNum.length;
+          const buf = bufferPool.get(len);
+          for (let i = 0; i < len; i++) {
+            buf[i] = (highsNum[i] + lowsNum[i]) / 2;
+          }
+          sourceCache["hl2"] = buf;
         }
         return sourceCache["hl2"];
       case "hlc3":
         if (!sourceCache["hlc3"]) {
-          sourceCache["hlc3"] = (highsNum as number[]).map(
-            (h, i) => (h + lowsNum[i] + closesNum[i]) / 3,
-          );
+          const len = highsNum.length;
+          const buf = bufferPool.get(len);
+          for (let i = 0; i < len; i++) {
+            buf[i] = (highsNum[i] + lowsNum[i] + closesNum[i]) / 3;
+          }
+          sourceCache["hlc3"] = buf;
         }
         return sourceCache["hlc3"];
       default:
@@ -159,7 +172,11 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('rsi')) {
       const rsiLen = settings?.rsi?.length || 14;
       const rsiSource = getSource(settings?.rsi?.source || "close");
-      const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
+      const rsiResults = JSIndicators.rsi(
+        rsiSource,
+        rsiLen,
+        bufferPool.get(rsiSource.length)
+      );
       indSeries["RSI"] = rsiResults;
       const rsiVal = rsiResults[rsiResults.length - 1];
 
@@ -181,9 +198,25 @@ export function calculateIndicatorsFromArrays(
       const stochD = settings?.stochastic?.dPeriod || 3;
       const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
 
-      let kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
-      if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
-      const dLine = JSIndicators.sma(kLine, stochD);
+      let kLine = JSIndicators.stoch(
+        highsNum,
+        lowsNum,
+        closesNum,
+        stochK,
+        bufferPool.get(closesNum.length)
+      );
+      if (stochKSmooth > 1) {
+        kLine = JSIndicators.sma(
+          kLine,
+          stochKSmooth,
+          bufferPool.get(kLine.length)
+        );
+      }
+      const dLine = JSIndicators.sma(
+        kLine,
+        stochD,
+        bufferPool.get(kLine.length)
+      );
       indSeries["StochK"] = kLine;
 
       const stochKVal = kLine[kLine.length - 1];
@@ -210,9 +243,17 @@ export function calculateIndicatorsFromArrays(
       const cciLen = settings?.cci?.length || 20;
       const cciSmoothLen = settings?.cci?.smoothingLength || 1;
       const cciSource = getSource(settings?.cci?.source || "hlc3");
-      let cciResults = JSIndicators.cci(cciSource, cciLen);
+      let cciResults = JSIndicators.cci(
+        cciSource,
+        cciLen,
+        bufferPool.get(cciSource.length)
+      );
       if (cciSmoothLen > 1)
-        cciResults = JSIndicators.sma(cciResults, cciSmoothLen); // Default SMA smoothing
+        cciResults = JSIndicators.sma(
+          cciResults,
+          cciSmoothLen,
+          bufferPool.get(cciResults.length)
+        ); // Default SMA smoothing
       const cciVal = cciResults[cciResults.length - 1];
       const cciThreshold = settings?.cci?.threshold || 100;
       indSeries["CCI"] = cciResults;
@@ -234,7 +275,13 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('adx')) {
       const adxLen = settings?.adx?.adxSmoothing || 14;
       const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
-      const adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+      const adxResults = JSIndicators.adx(
+        highsNum,
+        lowsNum,
+        closesNum,
+        adxLen,
+        bufferPool.get(closesNum.length)
+      );
       // Note: JSIndicators.adx implementation might use a single length for both currently.
       // If we want separate DI length, we'd need to update JSIndicators.adx signature.
       // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
@@ -286,7 +333,16 @@ export function calculateIndicatorsFromArrays(
       const macdSlow = settings?.macd?.slowLength || 26;
       const macdSig = settings?.macd?.signalLength || 9;
       const macdSource = getSource(settings?.macd?.source || "close");
-      const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
+      const macdRes = JSIndicators.macd(
+        macdSource,
+        macdFast,
+        macdSlow,
+        macdSig,
+        {
+          macd: bufferPool.get(macdSource.length),
+          signal: bufferPool.get(macdSource.length)
+        }
+      );
       const macdVal = macdRes.macd[macdRes.macd.length - 1];
       const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
       const macdHist = macdVal - macdSignalVal;
@@ -315,11 +371,15 @@ export function calculateIndicatorsFromArrays(
         const stochRsiSmooth = 1; // Not yet in settings, assume 1
 
         const srRes = JSIndicators.stochRsi(
-        closesNum,
-        stochRsiRsiLen,
-        stochRsiK,
-        stochRsiD,
-        stochRsiSmooth,
+          closesNum,
+          stochRsiRsiLen,
+          stochRsiK,
+          stochRsiD,
+          stochRsiSmooth,
+          {
+            k: bufferPool.get(closesNum.length),
+            d: bufferPool.get(closesNum.length)
+          }
         );
         const srK = srRes.k[srRes.k.length - 1];
         const srD = srRes.d[srRes.d.length - 1];
@@ -341,7 +401,13 @@ export function calculateIndicatorsFromArrays(
     // 8. Williams %R (NEW)
     if (shouldCalculate('williamsr')) {
         const wRLen = settings?.williamsR?.length || 14;
-        const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
+        const wR = JSIndicators.williamsR(
+          highsNum,
+          lowsNum,
+          closesNum,
+          wRLen,
+          bufferPool.get(closesNum.length)
+        );
         const wRVal = wR[wR.length - 1];
         // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
         let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -406,11 +472,14 @@ export function calculateIndicatorsFromArrays(
     // Phase 5: Pro Indicators Calculations
     if (shouldCalculate('supertrend')) {
         const stResult = JSIndicators.superTrend(
-        highsNum,
-        lowsNum,
-        closesNum,
-        settings?.superTrend?.period || 10,
-        settings?.superTrend?.factor || 3,
+          highsNum,
+          lowsNum,
+          closesNum,
+          settings?.superTrend?.period || 10,
+          settings?.superTrend?.factor || 3,
+          {
+            value: bufferPool.get(closesNum.length)
+          }
         );
         advancedInfo.superTrend = {
             value: stResult.value[stResult.value.length - 1],
@@ -420,11 +489,15 @@ export function calculateIndicatorsFromArrays(
 
     if (shouldCalculate('atrtrailingstop')) {
         const atrTsResult = JSIndicators.atrTrailingStop(
-        highsNum,
-        lowsNum,
-        closesNum,
-        settings?.atrTrailingStop?.period || 14,
-        settings?.atrTrailingStop?.multiplier || 3.5,
+          highsNum,
+          lowsNum,
+          closesNum,
+          settings?.atrTrailingStop?.period || 14,
+          settings?.atrTrailingStop?.multiplier || 3.5,
+          {
+            buyStop: bufferPool.get(closesNum.length),
+            sellStop: bufferPool.get(closesNum.length)
+          }
         );
         advancedInfo.atrTrailingStop = {
             buy: atrTsResult.buyStop[atrTsResult.buyStop.length - 1],
@@ -433,7 +506,11 @@ export function calculateIndicatorsFromArrays(
     }
 
     if (shouldCalculate('obv')) {
-        const obvResult = JSIndicators.obv(closesNum, volumesNum);
+        const obvResult = JSIndicators.obv(
+          closesNum,
+          volumesNum,
+          bufferPool.get(closesNum.length)
+        );
         advancedInfo.obv = obvResult[obvResult.length - 1];
     }
 
@@ -462,15 +539,16 @@ export function calculateIndicatorsFromArrays(
     // VWAP
     if (shouldCalculate('vwap')) {
         const vwapSeries = JSIndicators.vwap(
-        highsNum,
-        lowsNum,
-        closesNum,
-        volumesNum,
-        timesNum,
-        {
-            mode: (settings?.vwap as any)?.anchor || "session",
-            anchorPoint: (settings?.vwap as any)?.anchorPoint
-        }
+          highsNum,
+          lowsNum,
+          closesNum,
+          volumesNum,
+          timesNum,
+          {
+              mode: (settings?.vwap as any)?.anchor || "session",
+              anchorPoint: (settings?.vwap as any)?.anchorPoint
+          },
+          bufferPool.get(closesNum.length)
         );
         advancedInfo.vwap = vwapSeries[vwapSeries.length - 1];
     }
@@ -479,7 +557,13 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('parabolicsar')) {
         const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
         const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
-        const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
+        const psarSeries = JSIndicators.psar(
+          highsNum,
+          lowsNum,
+          psarStart,
+          psarMax,
+          bufferPool.get(highsNum.length)
+        );
         advancedInfo.parabolicSar = psarSeries[psarSeries.length - 1];
     }
 
@@ -487,12 +571,13 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('mfi')) {
         const mfiLen = settings?.mfi?.length || 14;
         const mfiSeries = JSIndicators.mfi(
-        highsNum,
-        lowsNum,
-        closesNum,
-        volumesNum,
-        mfiLen,
-        getSource("hlc3"),
+          highsNum,
+          lowsNum,
+          closesNum,
+          volumesNum,
+          mfiLen,
+          getSource("hlc3"),
+          bufferPool.get(closesNum.length)
         );
         const mfiVal = mfiSeries[mfiSeries.length - 1];
         let mfiAction = "Neutral";
@@ -506,10 +591,11 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('choppiness')) {
         const chopLen = settings?.choppiness?.length || 14;
         const chopSeries = JSIndicators.choppiness(
-        highsNum,
-        lowsNum,
-        closesNum,
-        chopLen,
+          highsNum,
+          lowsNum,
+          closesNum,
+          chopLen,
+          bufferPool.get(closesNum.length)
         );
         const chopVal = chopSeries[chopSeries.length - 1];
         // > 61.8 = Consolidation/Chop, < 38.2 = Trending
@@ -527,12 +613,18 @@ export function calculateIndicatorsFromArrays(
         const ichiDisp = settings?.ichimoku?.displacement || 26;
 
         const ichi = JSIndicators.ichimoku(
-        highsNum,
-        lowsNum,
-        ichiConv,
-        ichiBase,
-        ichiSpanB,
-        ichiDisp,
+          highsNum,
+          lowsNum,
+          ichiConv,
+          ichiBase,
+          ichiSpanB,
+          ichiDisp,
+          {
+            conversion: bufferPool.get(highsNum.length),
+            base: bufferPool.get(highsNum.length),
+            spanA: bufferPool.get(highsNum.length),
+            spanB: bufferPool.get(highsNum.length),
+          }
         );
         const idx = ichi.conversion.length - 1;
         const conv = ichi.conversion[idx] || 0;
@@ -580,7 +672,11 @@ export function calculateIndicatorsFromArrays(
 
         const emaPeriods = [ema1, ema2, ema3];
         for (const period of emaPeriods) {
-        const emaResults = JSIndicators.ema(emaSource, period);
+        const emaResults = JSIndicators.ema(
+          emaSource,
+          period,
+          bufferPool.get(emaSource.length)
+        );
         const rawVal = emaResults[emaResults.length - 1];
         // Handle insufficient data (NaN) by defaulting to 0
         const emaVal = (typeof rawVal === 'number' && !isNaN(rawVal)) ? rawVal : 0;
@@ -627,14 +723,24 @@ export function calculateIndicatorsFromArrays(
 
         let currentAtr = 0;
         if (shouldCalculate('atr')) {
-            const atrResults = JSIndicators.atr(highsNum, lowsNum, closesNum, atrLen);
+            const atrResults = JSIndicators.atr(
+              highsNum,
+              lowsNum,
+              closesNum,
+              atrLen,
+              bufferPool.get(closesNum.length)
+            );
             currentAtr = atrResults[atrResults.length - 1];
         }
 
         let bbUpper = 0, bbLower = 0, bbMiddle = 0, percentP = 0;
 
         if (shouldCalculate('bb')) {
-            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev);
+            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev, {
+              middle: bufferPool.get(closesNum.length),
+              upper: bufferPool.get(closesNum.length),
+              lower: bufferPool.get(closesNum.length)
+            });
             bbUpper = bbResults.upper[bbResults.upper.length - 1];
             bbLower = bbResults.lower[bbResults.lower.length - 1];
             bbMiddle = bbResults.middle[bbResults.middle.length - 1];
