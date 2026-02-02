@@ -422,28 +422,27 @@
                                     settings.ema3.length,
                                 );
 
-                                const mapToSeries = (arr: number[]) =>
-                                    arr
-                                        .map((val: number, i: number) => {
-                                            if (!unique[i]) return null;
-                                            return {
-                                                time: unique[i].time,
-                                                value: val,
-                                            };
-                                        })
-                                        .filter(
-                                            (
-                                                d,
-                                            ): d is {
-                                                time: Time;
-                                                value: number;
-                                            } =>
-                                                d !== null &&
-                                                d.value !== null &&
-                                                d.value !== undefined &&
-                                                typeof d.value === "number" &&
-                                                !isNaN(d.value),
-                                        );
+                                const mapToSeries = (arr: number[] | Float64Array) => {
+                                    const result = [];
+                                    // Use standard loop to handle both Array and Float64Array
+                                    for (let i = 0; i < arr.length; i++) {
+                                        const val = arr[i];
+                                        if (unique[i]) {
+                                            if (
+                                                val !== null &&
+                                                val !== undefined &&
+                                                typeof val === "number" &&
+                                                !isNaN(val)
+                                            ) {
+                                                result.push({
+                                                    time: unique[i].time,
+                                                    value: val,
+                                                });
+                                            }
+                                        }
+                                    }
+                                    return result;
+                                };
 
                                 ema1Series.setData(mapToSeries(ema1));
                                 ema2Series.setData(mapToSeries(ema2));
