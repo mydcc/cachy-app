@@ -33,6 +33,7 @@ import {
   calculateIndicatorsFromArrays,
   getEmptyData,
 } from "../utils/technicalsCalculator";
+import { toNumFast } from "../utils/fastConversion";
 
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
@@ -337,21 +338,6 @@ export const technicalsService = {
       const closes = new Float64Array(len);
       const volumes = new Float64Array(len);
 
-      // Helper for fast and safe conversion
-      const toNumFast = (val: any): number => {
-        if (typeof val === 'number') return val;
-        if (typeof val === 'string') {
-           const p = parseFloat(val);
-           return isNaN(p) ? 0 : p;
-        }
-        if (val instanceof Decimal) return val.toNumber();
-        // Duck typing for Decimal-like objects to avoid try/catch
-        if (val && typeof val === 'object' && (val as any).s !== undefined && (val as any).e !== undefined) {
-            return new Decimal(val).toNumber();
-        }
-        try { return new Decimal(val).toNumber(); } catch { return 0; }
-      };
-
       for (let i = 0; i < len; i++) {
         const k = klinesInput[i];
         times[i] = k.time;
@@ -537,35 +523,12 @@ export const technicalsService = {
     let prevClose = 0;
     let writeIdx = 0;
 
-    // Helper for fields other than close
-    const getVal = (v: any, fallback: number): number => {
-        if (typeof v === 'number') return isNaN(v) ? fallback : v;
-        if (typeof v === 'string') { const p = parseFloat(v); return isNaN(p) ? fallback : p; }
-        if (v instanceof Decimal) return v.toNumber();
-        if (v && typeof v === 'object' && (v as any).s !== undefined) return new Decimal(v).toNumber();
-        return fallback;
-    };
-
     for (let i = 0; i < len; i++) {
         const k = klinesInput[i];
 
         // Inline toNum logic for 'close' with prevClose fallback
-        const valC = k.close;
-        let close: number;
-        if (typeof valC === 'number') {
-            close = valC;
-        } else if (typeof valC === 'string') {
-            const p = parseFloat(valC);
-            close = isNaN(p) ? prevClose : p;
-        } else if (valC instanceof Decimal) {
-             close = valC.toNumber();
-        } else if (valC && typeof valC === 'object' && (valC as any).s !== undefined) {
-             close = new Decimal(valC).toNumber();
-        } else {
-             close = prevClose;
-        }
-
-        if (isNaN(close)) close = prevClose;
+        let close = toNumFast(k.close);
+        if (close === 0) close = prevClose; // Handle initial 0 or failure
 
         // Data cleaning: If close is 0 and we have a previous close, use that.
         const safeClose = (close === 0 && prevClose !== 0) ? prevClose : close;
@@ -574,10 +537,17 @@ export const technicalsService = {
             times[writeIdx] = k.time;
             closes[writeIdx] = safeClose;
 
-            opens[writeIdx] = getVal(k.open, safeClose);
-            highs[writeIdx] = getVal(k.high, safeClose);
-            lows[writeIdx] = getVal(k.low, safeClose);
-            volumes[writeIdx] = getVal(k.volume, 0);
+            // Use toNumFast with fallback
+            const o = toNumFast(k.open);
+            opens[writeIdx] = o === 0 ? safeClose : o;
+
+            const h = toNumFast(k.high);
+            highs[writeIdx] = h === 0 ? safeClose : h;
+
+            const l = toNumFast(k.low);
+            lows[writeIdx] = l === 0 ? safeClose : l;
+
+            volumes[writeIdx] = toNumFast(k.volume);
 
             writeIdx++;
             prevClose = safeClose;

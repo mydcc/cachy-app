@@ -1,0 +1,35 @@
+import { Decimal } from "decimal.js";
+
+/**
+ * Fast conversion helper to convert various types to number.
+ * Optimized for performance in hot loops.
+ *
+ * Order of checks:
+ * 1. number (fastest)
+ * 2. string (common API response) -> parseFloat
+ * 3. Decimal/DecimalLike (via .toNumber() check) -> prevents new Decimal() allocation
+ * 4. Serialized Decimal (state only) -> new Decimal() fallback
+ */
+export const toNumFast = (val: any): number => {
+    if (typeof val === 'number') return val;
+
+    if (typeof val === 'string') {
+       const p = parseFloat(val);
+       return isNaN(p) ? 0 : p;
+    }
+
+    if (val && typeof val === 'object') {
+        // Fast path for Decimal or objects with .toNumber()
+        // Checks property existence which is faster than instanceof in some cases
+        // and handles non-instanceof Decimal-likes
+        if (typeof val.toNumber === 'function') return val.toNumber();
+
+        // Fallback for serialized Decimal (state only, no methods)
+        // e.g. from JSON.parse()
+        if ((val as any).s !== undefined && (val as any).e !== undefined) {
+             return new Decimal(val).toNumber();
+        }
+    }
+
+    return 0;
+};
