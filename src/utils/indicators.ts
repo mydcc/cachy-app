@@ -52,14 +52,20 @@ export const JSIndicators = {
     period: number,
     out?: Float64Array,
   ): Float64Array {
-    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    const len = data.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
     result.fill(NaN);
 
-    if (data.length < period) return result;
+    let startIdx = 0;
+    while (startIdx < len && isNaN(data[startIdx])) startIdx++;
+
+    if (len - startIdx < period) return result;
+
     let sum = 0;
-    for (let i = 0; i < period; i++) sum += data[i];
-    result[period - 1] = sum / period;
-    for (let i = period; i < data.length; i++) {
+    for (let i = startIdx; i < startIdx + period; i++) sum += data[i];
+    result[startIdx + period - 1] = sum / period;
+
+    for (let i = startIdx + period; i < len; i++) {
       sum = sum - data[i - period] + data[i];
       result[i] = sum / period;
     }
@@ -71,25 +77,29 @@ export const JSIndicators = {
     period: number,
     out?: Float64Array,
   ): Float64Array {
-    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    const len = data.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
     result.fill(NaN);
 
-    if (data.length < period) return result;
+    let startIdx = 0;
+    while (startIdx < len && isNaN(data[startIdx])) startIdx++;
+
+    if (len - startIdx < period) return result;
 
     const denominator = (period * (period + 1)) / 2;
 
     // 1. Initial Window Calculation
     let sum = 0;
     let wmaSum = 0;
-    for (let i = 0; i < period; i++) {
+    for (let i = startIdx; i < startIdx + period; i++) {
         sum += data[i];
-        wmaSum += data[i] * (i + 1);
+        wmaSum += data[i] * (i - startIdx + 1);
     }
 
-    result[period - 1] = wmaSum / denominator;
+    result[startIdx + period - 1] = wmaSum / denominator;
 
     // 2. Sliding Window
-    for (let i = period; i < data.length; i++) {
+    for (let i = startIdx + period; i < len; i++) {
       const dropVal = data[i - period];
       const addVal = data[i];
 
@@ -109,16 +119,22 @@ export const JSIndicators = {
     period: number,
     out?: Float64Array,
   ): Float64Array {
-    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    const len = data.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
     result.fill(NaN);
 
-    if (data.length < period) return result;
+    let startIdx = 0;
+    while (startIdx < len && isNaN(data[startIdx])) startIdx++;
+
+    if (len - startIdx < period) return result;
     const k = 2 / (period + 1);
+
     let sum = 0;
-    for (let i = 0; i < period; i++) sum += data[i];
+    for (let i = startIdx; i < startIdx + period; i++) sum += data[i];
     let currentEma = sum / period;
-    result[period - 1] = currentEma;
-    for (let i = period; i < data.length; i++) {
+    result[startIdx + period - 1] = currentEma;
+
+    for (let i = startIdx + period; i < len; i++) {
       currentEma = (data[i] - currentEma) * k + currentEma;
       result[i] = currentEma;
     }
@@ -131,18 +147,21 @@ export const JSIndicators = {
     out?: Float64Array,
   ): Float64Array {
     // Wilder's Smoothing (RMA)
-    // alpha = 1 / period
-    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    const len = data.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
     result.fill(NaN);
 
-    if (data.length < period) return result;
+    let startIdx = 0;
+    while (startIdx < len && isNaN(data[startIdx])) startIdx++;
+
+    if (len - startIdx < period) return result;
 
     let sum = 0;
-    for (let i = 0; i < period; i++) sum += data[i];
+    for (let i = startIdx; i < startIdx + period; i++) sum += data[i];
     let currentSmma = sum / period;
-    result[period - 1] = currentSmma;
+    result[startIdx + period - 1] = currentSmma;
 
-    for (let i = period; i < data.length; i++) {
+    for (let i = startIdx + period; i < len; i++) {
       // RMA formula: (Prior * (n-1) + Current) / n
       currentSmma = (currentSmma * (period - 1) + data[i]) / period;
       result[i] = currentSmma;
@@ -155,22 +174,31 @@ export const JSIndicators = {
     period: number,
     out?: Float64Array,
   ): Float64Array {
-    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
+    const len = data.length;
+    const result = (out && out.length === len) ? out : new Float64Array(len);
     result.fill(NaN);
 
-    if (data.length <= period) return result;
+    let startIdx = 0;
+    while (startIdx < len && isNaN(data[startIdx])) startIdx++;
+
+    // Need period + 1 valid points to calculate first RSI
+    if (len - startIdx <= period) return result;
+
     let sumGain = 0;
     let sumLoss = 0;
-    for (let i = 1; i <= period; i++) {
+    // Calculation starts from startIdx
+    // First diff is at startIdx + 1
+
+    for (let i = startIdx + 1; i <= startIdx + period; i++) {
       const diff = data[i] - data[i - 1];
       if (diff >= 0) sumGain += diff;
       else sumLoss -= diff;
     }
     let avgGain = sumGain / period;
     let avgLoss = sumLoss / period;
-    result[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    result[startIdx + period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
 
-    for (let i = period + 1; i < data.length; i++) {
+    for (let i = startIdx + period + 1; i < len; i++) {
       const diff = data[i] - data[i - 1];
       const gain = diff >= 0 ? diff : 0;
       const loss = diff < 0 ? -diff : 0;
@@ -215,6 +243,12 @@ export const JSIndicators = {
       const lookbackHigh = highestHighs[i];
       const lookbackLow = lowestLows[i];
       const range = lookbackHigh - lookbackLow;
+
+      // If close[i] is NaN, result is NaN.
+      // If lookbackHigh/Low are NaN (because inputs were NaN), result is NaN.
+      // This is implicit, no special handling needed if inputs are clean.
+      // But if inputs have leading NaNs, slidingWindowMax/Min might return NaN initially.
+
       result[i] = range === 0 ? 50 : ((close[i] - lookbackLow) / range) * 100;
     }
 
@@ -269,16 +303,23 @@ export const JSIndicators = {
     const macdLineSub = macdLine.subarray(slow - 1);
 
     // Calculate signal on the sliced part
-    const macdSignalPart = this.ema(macdLineSub, signal);
+    // Note: ema now skips leading NaNs.
+    // macdLine has NaNs up to slow-1.
+    // So we don't strictly need to subarray if we pass full array?
+    // But passing full array preserves indices.
+    // If we pass subarray, we get a short array back starting with NaNs.
+    // The original logic was:
+    // const macdSignalPart = this.ema(macdLineSub, signal);
+    // paddedSignal.set(macdSignalPart, slow - 1);
 
-    // Pad the signal array to match original length
-    const paddedSignal = (outSignal && outSignal.length === len) ? outSignal : new Float64Array(len);
-    paddedSignal.fill(NaN);
+    // If macdLine has leading NaNs, we can just pass macdLine to ema!
+    // And it will return a signal line aligned with macdLine (with more NaNs).
 
-    // Offset is slow - 1
-    paddedSignal.set(macdSignalPart, slow - 1);
+    // Optimization: Avoid subarray and copy back.
+    const signalLine = (outSignal && outSignal.length === len) ? outSignal : new Float64Array(len);
+    this.ema(macdLine, signal, signalLine);
 
-    return { macd: macdLine, signal: paddedSignal };
+    return { macd: macdLine, signal: signalLine };
   },
 
   mom(data: NumberArray, period: number): Float64Array {
@@ -635,30 +676,100 @@ export const JSIndicators = {
     kPeriod: number,
     dPeriod: number,
     smoothK: number,
+    outK?: Float64Array,
+    outD?: Float64Array,
+    pool?: BufferPool,
   ) {
-    const rsiRaw = this.rsi(data, period);
+    const len = data.length;
+    let rsiRaw: Float64Array;
+    let pooledRsi = false;
+    let minArr: Float64Array;
+    let maxArr: Float64Array;
+    let pooledMinMax = false;
 
-    const stochSingle = (src: NumberArray, len: number) => {
-      const res = new Float64Array(src.length).fill(NaN);
-      const minArr = slidingWindowMin(src, len);
-      const maxArr = slidingWindowMax(src, len);
+    // Acquire RSI buffer
+    if (pool) {
+      rsiRaw = pool.acquire(len);
+      pooledRsi = true;
+    } else {
+      rsiRaw = new Float64Array(len);
+    }
 
-      for (let i = len - 1; i < src.length; i++) {
+    // Acquire Min/Max buffers
+    if (pool) {
+        minArr = pool.acquire(len);
+        maxArr = pool.acquire(len);
+        pooledMinMax = true;
+    } else {
+        minArr = new Float64Array(len);
+        maxArr = new Float64Array(len);
+    }
+
+    // Calculate RSI
+    this.rsi(data, period, rsiRaw);
+
+    // Calculate Stoch of RSI (Raw K)
+    // We need a destination for Raw K.
+    // If smoothK > 1, we can't write directly to outK if we plan to smooth it into outK later (in-place SMA unsafe).
+    // So we need a temporary buffer if smoothK > 1.
+    // If smoothK == 1, we can write directly to outK.
+
+    let rawK: Float64Array;
+    let pooledRawK = false;
+
+    if (smoothK > 1) {
+        if (pool) {
+            rawK = pool.acquire(len);
+            pooledRawK = true;
+        } else {
+            rawK = new Float64Array(len);
+        }
+    } else {
+        // Direct write
+        rawK = (outK && outK.length === len) ? outK : (pool ? pool.acquire(len) : new Float64Array(len));
+        // If we acquired it (and didn't use outK), it's conceptually "pooled" but we will return it/assign it.
+        // If we created new, we return it.
+    }
+    rawK.fill(NaN); // Safety
+
+    // Inline Stoch logic for performance and pool usage
+    slidingWindowMin(rsiRaw, kPeriod, minArr);
+    slidingWindowMax(rsiRaw, kPeriod, maxArr);
+
+    for (let i = kPeriod - 1; i < len; i++) {
         const min = minArr[i];
         const max = maxArr[i];
         const range = max - min;
-        res[i] = range === 0 ? 50 : ((src[i] - min) / range) * 100;
-      }
-      return res;
-    };
-
-    let kPoints: Float64Array = stochSingle(rsiRaw, kPeriod);
-
-    if (smoothK > 1) {
-      kPoints = this.sma(kPoints, smoothK);
+        rawK[i] = range === 0 ? 50 : ((rsiRaw[i] - min) / range) * 100;
     }
 
-    const dPoints = this.sma(kPoints, dPeriod);
+    // Release Min/Max/RSI
+    if (pooledMinMax && pool) {
+        pool.release(minArr);
+        pool.release(maxArr);
+    }
+    if (pooledRsi && pool) {
+        pool.release(rsiRaw);
+    }
+
+    // Smoothing K
+    let kPoints: Float64Array;
+    if (smoothK > 1) {
+        // Smooth rawK into kPoints (destination)
+        kPoints = (outK && outK.length === len) ? outK : (pool ? pool.acquire(len) : new Float64Array(len));
+        this.sma(rawK, smoothK, kPoints);
+
+        // Release rawK if it was temporary
+        if (pooledRawK && pool) {
+            pool.release(rawK);
+        }
+    } else {
+        kPoints = rawK;
+    }
+
+    // Calculate D (SMA of K)
+    const dPoints = (outD && outD.length === len) ? outD : (pool ? pool.acquire(len) : new Float64Array(len));
+    this.sma(kPoints, dPeriod, dPoints);
 
     return { k: kPoints, d: dPoints };
   },
