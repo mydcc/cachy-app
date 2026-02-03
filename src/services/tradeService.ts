@@ -371,10 +371,18 @@ class TradeService {
 
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
+        const targetAmount = amount || position.amount;
+
+        if (!targetAmount || targetAmount.lte(0)) {
+             logger.error("market", `[ClosePosition] Invalid amount: ${targetAmount}`);
+             throw new Error("apiErrors.invalidAmount");
+        }
+
         if (!amount) {
              logger.warn("market", `[ClosePosition] No amount specified. Defaulting to FULL CLOSE for ${symbol} ${positionSide}`);
         }
-        const qty = amount ? amount.toString() : position.amount.toString();
+
+        const qty = targetAmount.toString();
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 

@@ -152,6 +152,26 @@
     "showInstructionsTitle": "Show Instructions",
     "showInstructionsAriaLabel": "Show Instructions",
     "savedFeedback": "Saved!",
+    "performanceMonitor": {
+      "analysisTime": "Analysis Time",
+      "memory": "Memory",
+      "cacheHitRate": "Cache Hit Rate",
+      "avgLatency": "Avg Latency",
+      "networkStatus": "Network Status",
+      "tips": {
+        "highAnalysisTime": "High analysis time detected. Consider switching to",
+        "highMemory": "High memory usage. Try reducing cache size or closing",
+        "lowCacheHit": "Low cache hit rate. Increase market cache size for",
+        "highLatency": "High network latency detected. Check your internet",
+        "optimal": "Performance is optimal. You can enable more features or"
+      }
+    },
+    "technicalsPanel": {
+      "superTrend": "SuperTrend",
+      "ichimoku": "Ichimoku",
+      "val": "Val",
+      "price": "Price"
+    },
     "marketSentiment": "Market Sentiment",
     "analyzing": "Analyzing external world...",
     "noNews": "No news found.",
@@ -775,6 +795,11 @@
       },
       "intelligenceTitle": "Intelligence Core",
       "providerDesc": "Select your primary AI engine for market analysis and automated actions.",
+      "analysisDepth": "Analysis Depth",
+      "depthQuick": "Quick (Fast)",
+      "depthStandard": "Standard",
+      "depthDeep": "Deep (Detailed)",
+      "botToken": "Bot Token",
       "modelTitle": "Model & Prompting",
       "customSystemPrompt": "Custom System Prompt",
       "customSystemPromptDesc": "Define the AI persona",

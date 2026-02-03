@@ -241,17 +241,17 @@
                     <!-- Analysis Depth -->
                     <div class="field-group">
                         <label for="analysis-depth"
-                            >Analysis Depth: {settingsState.analysisDepth ||
-                                "Standard"}</label
+                            >{$_("settings.ai.analysisDepth")}: {settingsState.analysisDepth ||
+                                $_("settings.ai.depthStandard")}</label
                         >
                         <select
                             id="analysis-depth"
                             bind:value={settingsState.analysisDepth}
                             class="input-field"
                         >
-                            <option value="quick">Quick (Fast)</option>
-                            <option value="standard">Standard</option>
-                            <option value="deep">Deep (Detailed)</option>
+                            <option value="quick">{$_("settings.ai.depthQuick")}</option>
+                            <option value="standard">{$_("settings.ai.depthStandard")}</option>
+                            <option value="deep">{$_("settings.ai.depthDeep")}</option>
                         </select>
                     </div>
                 </div>
@@ -272,7 +272,7 @@
                     Discord Bot
                 </h4>
                 <div class="field-group mb-4">
-                    <label for="discord-token">Bot Token</label>
+                    <label for="discord-token">{$_("settings.ai.botToken")}</label>
                     <input
                         id="discord-token"
                         type="password"

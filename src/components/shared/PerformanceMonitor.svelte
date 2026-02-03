@@ -94,7 +94,7 @@
                     <polyline points="12 6 12 12" />
                     <line x1="12" y1="12" x2="16" y2="10" />
                 </svg>
-                <span class="metric-label">Analysis Time</span>
+                <span class="metric-label">{$_("dashboard.performanceMonitor.analysisTime")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -140,7 +140,7 @@
                     <path d="M9 15h.01" />
                     <path d="M15 15h.01" />
                 </svg>
-                <span class="metric-label">Memory</span>
+                <span class="metric-label">{$_("dashboard.performanceMonitor.memory")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -221,7 +221,7 @@
                     <path d="M12 2v20M2 12h20" />
                     <circle cx="12" cy="12" r="8" />
                 </svg>
-                <span class="metric-label">Cache Hit Rate</span>
+                <span class="metric-label">{$_("dashboard.performanceMonitor.cacheHitRate")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -261,7 +261,7 @@
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                 </svg>
-                <span class="metric-label">Avg Latency</span>
+                <span class="metric-label">{$_("dashboard.performanceMonitor.avgLatency")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -303,7 +303,7 @@
                         d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                     />
                 </svg>
-                <span class="metric-label">Network Status</span>
+                <span class="metric-label">{$_("dashboard.performanceMonitor.networkStatus")}</span>
             </div>
             <div class="metric-value text-blue-500">
                 {marketState.telemetry.activeConnections}
@@ -341,8 +341,8 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High analysis time detected. Consider switching to
-                        Light or Balanced profile.</span
+                        >{$_("dashboard.performanceMonitor.tips.highAnalysisTime")}
+                        Light / Balanced.</span
                     >
                 </div>
             {/if}
@@ -350,7 +350,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High memory usage. Try reducing cache size or closing
+                        >{$_("dashboard.performanceMonitor.tips.highMemory")}
                         unused tabs.</span
                     >
                 </div>
@@ -368,7 +368,7 @@
                 <div class="tip info">
                     <span class="tip-icon">ℹ️</span>
                     <span class="tip-text"
-                        >Low cache hit rate. Increase market cache size for
+                        >{$_("dashboard.performanceMonitor.tips.lowCacheHit")}
                         better performance.</span
                     >
                 </div>
@@ -377,7 +377,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High network latency detected. Check your internet
+                        >{$_("dashboard.performanceMonitor.tips.highLatency")}
                         connection.</span
                     >
                 </div>
@@ -386,7 +386,7 @@
                 <div class="tip success">
                     <span class="tip-icon">✓</span>
                     <span class="tip-text"
-                        >Performance is optimal. You can enable more features or
+                        >{$_("dashboard.performanceMonitor.tips.optimal")}
                         switch to Pro profile.</span
                     >
                 </div>

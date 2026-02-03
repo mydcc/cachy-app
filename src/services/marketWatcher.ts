@@ -294,7 +294,10 @@ class MarketWatcher {
         // Final dedupe check inside timeout
         const lockKey = `${symbol}:${channel}`;
         if (!this.pendingRequests.has(lockKey)) {
-          this.pollSymbolChannel(symbol, channel, provider);
+          this.pollSymbolChannel(symbol, channel, provider).catch(e => {
+             // Should be caught internally, but this is a safety net for sync errors or logic bugs
+             logger.error("market", `[MarketWatcher] Unhandled polling error for ${symbol}`, e);
+          });
         }
       }, currentStagger);
       this.staggerTimeouts.add(timeoutId);

@@ -89,14 +89,35 @@ export function parseDecimal(
       str = str.replace(/,/g, "");
     }
   } else if (hasComma) {
-    // HARDENING: Ambiguous Comma (1,200)
-    // Previous heuristic (length=3) guessed thousands separator, risking 1.2 -> 1200.
-    // New logic: Comma is ALWAYS a decimal separator if no dot is present.
-    // This prioritizes safety/European inputs (1,5) over English Thousands (1,000).
-    // Users must NOT input thousands separators.
-    // "1,200" -> "1.200" (1.2)
-    // "1,000" -> "1.000" (1)
-    str = str.replace(",", ".");
+    // Only comma present. Ambiguous case: "1,200" vs "1,2".
+    const parts = str.split(",");
+
+    // Case 1: Multiple commas -> Definitely Thousands Separators (e.g. "1,000,000")
+    if (parts.length > 2) {
+      str = str.replace(/,/g, "");
+    }
+    // Case 2: Single comma
+    else if (parts.length === 2) {
+      const prefix = parts[0];
+      const suffix = parts[1];
+
+      // "0,123" -> Always Decimal (German/European)
+      if (prefix === "0" || prefix === "-0") {
+        str = str.replace(",", ".");
+      }
+      // "1,234" -> Thousands (English) vs Decimal (German)
+      // Heuristic: If suffix is exactly 3 digits, assume Thousands (English).
+      // This fixes the "1,000 -> 1" bug.
+      // RISK: User typing "1,500" meaning 1.5 will get 1500.
+      // BUT: User typing "1,000" meaning 1000 getting 1 is a more common/severe error in pro trading (copy-paste).
+      else if (suffix.length === 3) {
+        str = str.replace(",", "");
+      }
+      // "1,5" or "1,50" -> Decimal
+      else {
+        str = str.replace(",", ".");
+      }
+    }
   }
   // If only dot, usually safe for Decimal (1200.50)
   // But could be 1.200 (DE thousands).

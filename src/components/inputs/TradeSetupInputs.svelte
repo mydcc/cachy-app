@@ -245,8 +245,30 @@
   function parseInputVal(val: string): string | null | undefined {
     if (val === "") return null;
 
-    // Normalize dots and commas
-    const normalized = val.replace(",", ".");
+    // Normalize dots and commas using strict logic (mirroring utils.parseDecimal)
+    let normalized = val;
+    if (normalized.includes(",")) {
+      const parts = normalized.split(",");
+      if (parts.length > 2) {
+        // "1,000,000" -> 1000000
+        normalized = normalized.replace(/,/g, "");
+      } else if (parts.length === 2) {
+        const prefix = parts[0];
+        const suffix = parts[1];
+        // "0,123" -> 0.123
+        if (prefix === "0" || prefix === "-0") {
+          normalized = normalized.replace(",", ".");
+        }
+        // "1,000" -> 1000 (EN Thousands)
+        else if (suffix.length === 3) {
+          normalized = normalized.replace(",", "");
+        }
+        // "1,5" -> 1.5
+        else {
+          normalized = normalized.replace(",", ".");
+        }
+      }
+    }
 
     // Strict validation:
     // 1. Must be a valid number

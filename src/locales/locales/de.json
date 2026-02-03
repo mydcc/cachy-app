@@ -152,6 +152,26 @@
     "showInstructionsTitle": "Anleitung anzeigen",
     "showInstructionsAriaLabel": "Anleitung anzeigen",
     "savedFeedback": "Gespeichert!",
+    "performanceMonitor": {
+      "analysisTime": "Analysezeit",
+      "memory": "Speicher",
+      "cacheHitRate": "Cache Hit Rate",
+      "avgLatency": "Ø Latenz",
+      "networkStatus": "Netzwerk Status",
+      "tips": {
+        "highAnalysisTime": "Hohe Analysezeit erkannt. Erwäge Wechsel zu",
+        "highMemory": "Hohe Speichernutzung. Versuche Cache zu reduzieren oder",
+        "lowCacheHit": "Niedrige Cache Hit Rate. Erhöhe Markt-Cache-Größe für",
+        "highLatency": "Hohe Netzwerk-Latenz erkannt. Prüfe dein Internet",
+        "optimal": "Leistung ist optimal. Du kannst mehr Funktionen aktivieren oder"
+      }
+    },
+    "technicalsPanel": {
+      "superTrend": "SuperTrend",
+      "ichimoku": "Ichimoku",
+      "val": "Wert",
+      "price": "Preis"
+    },
     "marketSentiment": "Marktstimmung",
     "analyzing": "Analysiere externe Welt...",
     "noNews": "Keine Nachrichten gefunden.",
@@ -803,6 +823,11 @@
       },
       "intelligenceTitle": "KI-Core",
       "providerDesc": "Wähle deine primäre KI-Engine für Marktanalysen und Aktionen.",
+      "analysisDepth": "Analyse Tiefe",
+      "depthQuick": "Schnell (Quick)",
+      "depthStandard": "Standard",
+      "depthDeep": "Tief (Detailliert)",
+      "botToken": "Bot Token",
       "modelTitle": "Modell & Prompting",
       "customSystemPrompt": "Eigener System-Prompt",
       "customSystemPromptDesc": "Definiere die Persona der KI",
