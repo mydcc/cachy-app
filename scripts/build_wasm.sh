@@ -3,11 +3,10 @@ set -e
 
 WASM_FILE="static/wasm/technicals_wasm.wasm"
 
-# Check if WASM file already exists
-if [ -f "$WASM_FILE" ]; then
-    echo "✓ WASM binary already exists at $WASM_FILE (skipping rebuild)"
-    exit 0
-fi
+WASM_FILE="static/wasm/technicals_wasm.wasm"
+
+# We removed the "skip if exists" check to ensure Rust source changes are always 
+# compiled when cargo is available. Cargo handles incremental builds efficiently.
 
 # Check if cargo is available
 if ! command -v cargo &> /dev/null; then
