@@ -214,7 +214,7 @@
     <div class="truncate">
       {#if tpDetail}
         <span title={$_("dashboard.takeProfitRow.winLabel")}>
-          Win: <span class="text-[var(--success-color)] font-medium"
+          {$_("dashboard.takeProfitRow.winLabel")} <span class="text-[var(--success-color)] font-medium"
             >+${formatProfit(tpDetail.netProfit)}</span
           >
         </span>
@@ -228,7 +228,7 @@
           class="whitespace-nowrap"
           title={$_("dashboard.takeProfitRow.rrLabel")}
         >
-          R/R: <span
+          {$_("dashboard.takeProfitRow.rrLabel")} <span
             class="font-medium {tpDetail.riskRewardRatio.gte(2)
               ? 'text-[var(--success-color)]'
               : tpDetail.riskRewardRatio.gte(1.5)

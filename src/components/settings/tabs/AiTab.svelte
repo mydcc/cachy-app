@@ -44,10 +44,10 @@
     const subTabs = [
         {
             id: "intelligence",
-            label: $_("settings.tabs.ai_assistant") || "Intelligence",
+            label: $_("settings.tabs.ai_assistant"),
         },
-        { id: "behavior", label: $_("settings.ai.behavior") || "Behavior" },
-        { id: "agents", label: $_("settings.ai.agents") || "Agents" },
+        { id: "behavior", label: $_("settings.ai.behavior") },
+        { id: "agents", label: $_("settings.ai.agents") },
     ];
 </script>
 
@@ -74,14 +74,14 @@
         {#if activeSubTab === "intelligence"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.ai.intelligenceTitle") || "Intelligence Core"}
+                    {$_("settings.ai.intelligenceTitle")}
                 </h3>
 
                 <!-- Provider Switcher -->
                 <div class="field-group mb-6">
                     <span
                         class="text-xs font-semibold color-[var(--text-secondary)] mb-1"
-                        >{$_("settings.apiProvider") || "Provider"}</span
+                        >{$_("settings.apiProvider")}</span
                     >
                     <div class="segmented-control">
                         {#each aiProviders as provider}
@@ -158,7 +158,7 @@
         {#if activeSubTab === "behavior"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.ai.behavior") || "Behavior & Persona"}
+                    {$_("settings.ai.behavior")}
                 </h3>
 
                 <div class="field-group mb-6">
@@ -241,17 +241,18 @@
                     <!-- Analysis Depth -->
                     <div class="field-group">
                         <label for="analysis-depth"
-                            >Analysis Depth: {settingsState.analysisDepth ||
-                                "Standard"}</label
+                            >{$_("settings.ai.depth.label")}: {$_(
+                                `settings.ai.depth.${settingsState.analysisDepth || "standard"}`,
+                            )}</label
                         >
                         <select
                             id="analysis-depth"
                             bind:value={settingsState.analysisDepth}
                             class="input-field"
                         >
-                            <option value="quick">Quick (Fast)</option>
-                            <option value="standard">Standard</option>
-                            <option value="deep">Deep (Detailed)</option>
+                            <option value="quick">{$_("settings.ai.depth.quick")}</option>
+                            <option value="standard">{$_("settings.ai.depth.standard")}</option>
+                            <option value="deep">{$_("settings.ai.depth.deep")}</option>
                         </select>
                     </div>
                 </div>
@@ -262,17 +263,17 @@
         {#if activeSubTab === "agents"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.ai.agents") || "Autonomous Agents"}
+                    {$_("settings.ai.agents")}
                 </h3>
 
                 <!-- Discord Bot -->
                 <h4
                     class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
                 >
-                    Discord Bot
+                    {$_("settings.ai.discord.title")}
                 </h4>
                 <div class="field-group mb-4">
-                    <label for="discord-token">Bot Token</label>
+                    <label for="discord-token">{$_("settings.ai.discord.token")}</label>
                     <input
                         id="discord-token"
                         type="password"
@@ -290,7 +291,7 @@
                                         settingsState.discordChannels[i]
                                     }
                                     class="input-field"
-                                    placeholder="Channel ID"
+                                    placeholder={$_("settings.ai.discord.channelId")}
                                 />
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
@@ -320,7 +321,7 @@
                         onclick={addDiscordChannel}
                         aria-label="Add Channel"
                     >
-                        + Add Channel
+                        {$_("settings.ai.discord.addChannel")}
                     </button>
                 </div>
             </section>

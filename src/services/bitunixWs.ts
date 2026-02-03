@@ -1261,18 +1261,46 @@ class BitunixWebSocketService {
 export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
-function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
-  return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined || d.ip !== undefined);
+// Helper to check for safe primitives (string or number)
+const isSafe = (v: any) => typeof v === 'string' || typeof v === 'number';
+
+export function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+
+  // Validate fields if they exist (Negative Checks)
+  if (d.lastPrice !== undefined && !isSafe(d.lastPrice)) return false;
+  if (d.lp !== undefined && !isSafe(d.lp)) return false;
+  if (d.la !== undefined && !isSafe(d.la)) return false;
+  if (d.ip !== undefined && !isSafe(d.ip)) return false;
+  if (d.fr !== undefined && !isSafe(d.fr)) return false;
+
+  // Ensure at least one known field exists
+  const hasSafePrice = (d.lastPrice !== undefined) ||
+                       (d.lp !== undefined) ||
+                       (d.la !== undefined) ||
+                       (d.ip !== undefined);
+
+  const hasSafeFunding = (d.fr !== undefined);
+
+  return hasSafePrice || hasSafeFunding;
 }
 
-function isTickerData(d: any): d is {
+export function isTickerData(d: any): d is {
   volume?: any; v?: any; lastPrice?: any; close?: any;
   high?: any; low?: any; quoteVolume?: any;
   h?: any; l?: any; q?: any;
 } {
-  return d && (d.volume !== undefined || d.v !== undefined || d.lastPrice !== undefined || d.close !== undefined);
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+
+  // Validate critical fields if they exist
+  if (d.lastPrice !== undefined && !isSafe(d.lastPrice)) return false;
+  if (d.close !== undefined && !isSafe(d.close)) return false;
+  if (d.volume !== undefined && !isSafe(d.volume)) return false;
+
+  // Must have at least one valid indicator
+  return (d.volume !== undefined || d.v !== undefined || d.lastPrice !== undefined || d.close !== undefined);
 }
 
-function isDepthData(d: any): d is { b: any[]; a: any[] } {
+export function isDepthData(d: any): d is { b: any[]; a: any[] } {
   return d && Array.isArray(d.b) && Array.isArray(d.a);
 }

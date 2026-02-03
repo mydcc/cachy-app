@@ -127,7 +127,7 @@
       </div>
       {#if order.tpPrice && Number(order.tpPrice) > 0}
         <div class="col-span-2 flex justify-between">
-          <span class="text-[var(--success-color)]">TP:</span>
+          <span class="text-[var(--success-color)]">{$_("common.tp")}:</span>
           <span
             >{formatDynamicDecimal(order.tpPrice)} ({order.tpStopType}) -> {order.tpOrderType}</span
           >
@@ -135,7 +135,7 @@
       {/if}
       {#if order.slPrice && Number(order.slPrice) > 0}
         <div class="col-span-2 flex justify-between">
-          <span class="text-[var(--danger-color)]">SL:</span>
+          <span class="text-[var(--danger-color)]">{$_("common.sl")}:</span>
           <span
             >{formatDynamicDecimal(order.slPrice)} ({order.slStopType}) -> {order.slOrderType}</span
           >
