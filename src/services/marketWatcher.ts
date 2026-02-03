@@ -33,7 +33,8 @@ interface MarketWatchRequest {
 
 class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
-  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private isPolling = false;
+  private pollingTimeout: ReturnType<typeof setTimeout> | null = null;
   private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
 
   // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
@@ -184,32 +185,46 @@ class MarketWatcher {
 
   private startPolling() {
     this.stopPolling(); // Ensure clean state
+    this.isPolling = true;
 
     // Initial delay to avoid startup congestion
     this.startTimeout = setTimeout(() => {
-      this.pollingInterval = setInterval(() => {
-        // [HYBRID ARCHITECTURE CHANGE]
-        // We no longer pause globally if WS is connected.
-        // We run the cycle and let 'performPollingCycle' decide per-symbol.
-        this.performPollingCycle();
-
-        // Periodic Subscription Sync (Self-Healing)
-        // Checks every 5 cycles (approx 5s) if WS subscriptions match requests
-        if (Date.now() % 5000 < 1000) {
-          this.syncSubscriptions();
-        }
-      }, 1000);
+      this.runPollingLoop();
     }, 2000);
   }
 
+  private async runPollingLoop() {
+    if (!this.isPolling) return;
+
+    try {
+      // [HYBRID ARCHITECTURE CHANGE]
+      // We no longer pause globally if WS is connected.
+      // We run the cycle and let 'performPollingCycle' decide per-symbol.
+      await this.performPollingCycle();
+
+      // Periodic Subscription Sync (Self-Healing)
+      // Checks every 5 cycles (approx 5s) if WS subscriptions match requests
+      if (Date.now() % 5000 < 1000) {
+        this.syncSubscriptions();
+      }
+    } catch (e) {
+      logger.error("market", "Polling loop error", e);
+    }
+
+    if (this.isPolling) {
+      this.pollingTimeout = setTimeout(() => this.runPollingLoop(), 1000);
+    }
+  }
+
   public stopPolling() {
+    this.isPolling = false;
     if (this.startTimeout) {
       clearTimeout(this.startTimeout);
       this.startTimeout = null;
     }
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
     }
 
     // Clear pending stagger timeouts (Zombie Prevention)
@@ -221,7 +236,7 @@ class MarketWatcher {
   }
 
   public resumePolling() {
-    if (!this.pollingInterval) {
+    if (!this.isPolling) {
       this.startPolling();
     }
   }
@@ -288,7 +303,7 @@ class MarketWatcher {
 
       const timeoutId = setTimeout(() => {
         this.staggerTimeouts.delete(timeoutId);
-        if (!this.pollingInterval) return; // Zombie Guard
+        if (!this.isPolling) return; // Zombie Guard
         if (this.inFlight >= this.maxConcurrentPolls) return;
 
         // Final dedupe check inside timeout

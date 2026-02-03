@@ -29,7 +29,7 @@ export const mdaService = {
     /**
      * Normalizes ticker data into a standard flat object.
      */
-    normalizeTicker(raw: any, provider: string): NormalizedTicker {
+    normalizeTicker(raw: any, provider: string): NormalizedTicker | null {
         const symbol = normalizeSymbol(raw.symbol || raw.s || "", provider);
 
         // Default mappings for Bitunix (Current Primary)
@@ -37,12 +37,16 @@ export const mdaService = {
             // Bitunix often nests data in a .data object OR sends it as flat message
             const d = raw.data || raw;
 
+            // HARDENING: Check critical fields. If lastPrice is missing, data is invalid.
+            const lp = d.lastPrice || d.la || d.lp || d.mp || d.ip;
+            if (lp === undefined || lp === null || lp === "") return null;
+
             return {
                 symbol,
                 provider,
                 // Primary fields and their short aliases (la=last, mp=mark, lp=last)
                 // HARDENING: Force String conversion to ensure Decimal safety downstream
-                lastPrice: String(d.lastPrice || d.la || d.lp || d.mp || d.ip || "0"),
+                lastPrice: String(lp),
                 high: String(d.highPrice || d.h || "0"),
                 low: String(d.lowPrice || d.l || "0"),
                 // Extended volume checks: b=base, v=vol, q=quote, vol=volume, amount
@@ -55,10 +59,13 @@ export const mdaService = {
 
         // Default mappings for Bitget
         if (provider === "bitget") {
+            const lp = raw.lastPrice || raw.last;
+            if (lp === undefined || lp === null || lp === "") return null;
+
             return {
                 symbol,
                 provider,
-                lastPrice: String(raw.lastPrice || raw.last || "0"),
+                lastPrice: String(lp),
                 high: String(raw.highPrice || raw.high24h || "0"),
                 low: String(raw.lowPrice || raw.low24h || "0"),
                 volume: String(raw.volume || raw.baseVolume || "0"),
@@ -69,10 +76,13 @@ export const mdaService = {
         }
 
         // Fallback/Generic
+        const genericLp = raw.price || raw.lastPrice;
+        if (genericLp === undefined || genericLp === null) return null;
+
         return {
             symbol,
             provider,
-            lastPrice: String(raw.price || raw.lastPrice || "0"),
+            lastPrice: String(genericLp),
             timestamp: Date.now()
         };
     },
@@ -83,12 +93,17 @@ export const mdaService = {
     normalizeKlines(raw: any[], provider: string): NormalizedKline[] {
         return raw.map(k => {
             if (provider === "bitunix") {
+                const open = k.open || k.o;
+                const close = k.close || k.c;
+                // Invalid candle check
+                if (open === undefined || close === undefined) return null;
+
                 return {
                     time: Number(k.time || k.t || k.ts || k.timestamp),
-                    open: k.open || k.o || "0",
-                    high: k.high || k.h || "0",
-                    low: k.low || k.l || "0",
-                    close: k.close || k.c || "0",
+                    open: open,
+                    high: k.high || k.h || open, // Fallback to open if high missing? Or strict?
+                    low: k.low || k.l || open,
+                    close: close,
                     // Extended volume checks for Klines: v=vol, q=quote (if base missing), vol
                     // IMPORTANT: Bitunix Kline API (REST & WS) swaps Base/Quote volume compared to standard.
                     // 'quoteVol' (q) is often the Quantity (BTC), while 'baseVol' is Turnover (USDT).
@@ -97,14 +112,18 @@ export const mdaService = {
                 };
             }
             // Generic / Bitget
+            const open = k[1] || k.open;
+            const close = k[4] || k.close;
+            if (open === undefined || close === undefined) return null;
+
             return {
                 time: Number(k[0] || k.time),
-                open: k[1] || k.open || "0",
-                high: k[2] || k.high || "0",
-                low: k[3] || k.low || "0",
-                close: k[4] || k.close || "0",
+                open: open,
+                high: k[2] || k.high || open,
+                low: k[3] || k.low || open,
+                close: close,
                 volume: k[5] || k.volume || "0"
             };
-        });
+        }).filter((k): k is NormalizedKline => k !== null);
     }
 };

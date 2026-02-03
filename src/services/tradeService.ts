@@ -225,8 +225,9 @@ class TradeService {
         try {
             // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
             // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
-            // We await this to ensure safety. Now STRICT enforcement (throwOnError=true).
-            await this.cancelAllOrders(symbol, true);
+            // We await this to ensure safety. Changed to Best Effort (throwOnError=false) to ensure
+            // close proceeds even if cancel fails (e.g. timeout).
+            await this.cancelAllOrders(symbol, false);
 
             return await this.signedRequest("POST", "/api/orders", {
                 symbol,
@@ -247,7 +248,19 @@ class TradeService {
             // HARDENING: Clean up optimistic order if we KNOW it failed (e.g. 4xx error)
             // BitunixApiError (checked in signedRequest) throws with code if response came back.
             // Standard Error might be network timeout.
-            if (e instanceof BitunixApiError || (e instanceof Error && e.message && (e.message.includes("400") || e.message.includes("401") || e.message.includes("403")))) {
+            const isTerminalError =
+                (e instanceof BitunixApiError) ||
+                (e instanceof Error && (
+                    e.message.includes("400") ||
+                    e.message.includes("401") ||
+                    e.message.includes("403") ||
+                    (e as any).code === "VALIDATION_ERROR" ||
+                    (e as any).status === 400 ||
+                    (e as any).status === 401 ||
+                    (e as any).status === 403
+                ));
+
+            if (isTerminalError) {
                  logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
                  omsService.removeOrder(clientOrderId);
             } else {

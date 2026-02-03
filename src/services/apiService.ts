@@ -602,6 +602,12 @@ export const apiService = {
                   logger.warn("network", "[Bitunix] Dropping invalid kline (Time=0)", d);
                   return null;
               }
+
+              // HARDENING: Check for missing or zero prices
+              if (!d.open || !d.close || d.open === "0" || d.close === "0") {
+                  return null;
+              }
+
               return {
                 open: d.open,
                 high: d.high,

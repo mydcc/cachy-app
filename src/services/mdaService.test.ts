@@ -57,8 +57,8 @@ describe('mdaService Data Hardening', () => {
   it('should handle null/undefined safely', () => {
      const raw = { symbol: 'BTCUSDT', data: {} };
      const normalized = mdaService.normalizeTicker(raw, 'bitunix');
-     expect(normalized.lastPrice).toBe('0');
-     expect(normalized.volume).toBe('0');
+     // Changed behavior: Invalid/Empty data returns null to prevent zero-price pollution
+     expect(normalized).toBeNull();
   });
 
   it('should handle fast-path flat objects', () => {
