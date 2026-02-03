@@ -34,10 +34,11 @@ describe('mdaService Data Hardening', () => {
     const normalized = mdaService.normalizeTicker(raw, 'bitunix');
 
     // Assert strict string type
-    expect(typeof normalized.lastPrice).toBe('string');
-    expect(normalized.lastPrice).toBe('50000.5'); // JS default stringification
-    expect(typeof normalized.volume).toBe('string');
-    expect(normalized.volume).toBe('1000.123');
+    expect(normalized).not.toBeNull();
+    expect(typeof normalized!.lastPrice).toBe('string');
+    expect(normalized!.lastPrice).toBe('50000.5'); // JS default stringification
+    expect(typeof normalized!.volume).toBe('string');
+    expect(normalized!.volume).toBe('1000.123');
   });
 
   it('should handle string inputs correctly (preserving precision)', () => {
@@ -50,8 +51,9 @@ describe('mdaService Data Hardening', () => {
     };
     const normalized = mdaService.normalizeTicker(raw, 'bitunix');
 
-    expect(typeof normalized.lastPrice).toBe('string');
-    expect(normalized.lastPrice).toBe('50000.500000001'); // Should not round
+    expect(normalized).not.toBeNull();
+    expect(typeof normalized!.lastPrice).toBe('string');
+    expect(normalized!.lastPrice).toBe('50000.500000001'); // Should not round
   });
 
   it('should handle null/undefined safely', () => {
@@ -69,7 +71,8 @@ describe('mdaService Data Hardening', () => {
       };
 
       const normalized = mdaService.normalizeTicker(raw, 'bitunix');
-      expect(normalized.lastPrice).toBe('3000.55');
-      expect(typeof normalized.lastPrice).toBe('string');
+      expect(normalized).not.toBeNull();
+      expect(normalized!.lastPrice).toBe('3000.55');
+      expect(typeof normalized!.lastPrice).toBe('string');
   });
 });

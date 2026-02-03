@@ -604,7 +604,8 @@ export const apiService = {
               }
 
               // HARDENING: Check for missing or zero prices
-              if (!d.open || !d.close || d.open === "0" || d.close === "0") {
+              // d.open/close are Decimals (from BitunixKlineSchema)
+              if (!d.open || !d.close || d.open.isZero() || d.close.isZero()) {
                   return null;
               }
 
