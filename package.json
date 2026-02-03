@@ -8,7 +8,8 @@
     "start": "node server/server.js",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "benchmark:technicals": "vitest bench src/benchmarks/indicator_perf.bench.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.2",
