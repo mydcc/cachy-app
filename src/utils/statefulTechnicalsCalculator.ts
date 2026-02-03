@@ -10,6 +10,7 @@ import { Decimal } from "decimal.js";
 import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState, EmaState, RsiState } from "../services/technicalsTypes";
+import { CircularBuffer } from "./circularBuffer";
 
 export class StatefulTechnicalsCalculator {
   private state: TechnicalsState = {
@@ -21,13 +22,13 @@ export class StatefulTechnicalsCalculator {
   private settings: any;
   private enabledIndicators: Partial<Record<string, boolean>> | undefined;
 
-  // History Buffers for SMA/Bollinger (Sliding Window)
-  // Key: "close", "high", "low" -> Ring Buffer
-  private historyBuffers: Record<string, Float64Array> = {};
-  private historyIndex: number = 0;
-  private historySize: number = 200; // Sufficient for standard MAs. Can be dynamic.
+  // History Buffer for price data (Circular Buffer with max 200 candles)
+  private priceHistory: CircularBuffer<number>;
+  private readonly MAX_HISTORY_SIZE = 200;
 
-  constructor() {}
+  constructor() {
+    this.priceHistory = new CircularBuffer<number>(this.MAX_HISTORY_SIZE);
+  }
 
   public initialize(
     history: Kline[],
@@ -149,11 +150,8 @@ export class StatefulTechnicalsCalculator {
       }
 
       // 2. Shift History
-      // Push the finalized lastClose to ring buffer
-      if (this.historyBuffers["close"]) {
-          this.historyBuffers["close"][this.historyIndex] = lastClose;
-          this.historyIndex = (this.historyIndex + 1) % this.historySize;
-      }
+      // Push the finalized lastClose to circular buffer
+      this.priceHistory.push(lastClose);
 
       this.state.lastCandle = newCandle;
 
@@ -252,17 +250,13 @@ export class StatefulTechnicalsCalculator {
   }
 
   private initHistoryBuffers(history: Kline[]) {
-      // Fill ring buffer with last N closes
+      // Fill circular buffer with historical closes
       const len = history.length;
-      this.historyBuffers["close"] = new Float64Array(this.historySize);
-
-      const start = Math.max(0, len - this.historySize);
-      let writeIdx = 0;
-      for(let i=start; i<len; i++) {
-          this.historyBuffers["close"][writeIdx] = history[i].close.toNumber();
-          writeIdx++;
+      const start = Math.max(0, len - this.MAX_HISTORY_SIZE);
+      
+      for (let i = start; i < len; i++) {
+          this.priceHistory.push(history[i].close.toNumber());
       }
-      this.historyIndex = writeIdx % this.historySize;
   }
 
   private updateEmaGroup(result: TechnicalsData, price: number) {
@@ -324,55 +318,44 @@ export class StatefulTechnicalsCalculator {
           const stdDev = this.settings?.bb?.stdDev || 2;
           const state = this.state.sma[len];
 
-          if (state && this.historyBuffers["close"]) {
-              // Retrieve the OLD value that is falling out of the window.
-              // The window is length 'len'.
-              // The 'current' window includes 'price'.
-              // So we need the value at index (now - len).
-              // 'historyIndex' points to next write (which is effectively T).
-              // So T-1 is at historyIndex-1.
-              // T-len is at historyIndex - len.
+          if (state && this.priceHistory.getSize() >= len) {
+              // Retrieve the OLD value that is falling out of the window
+              // CircularBuffer: index 0 = oldest, getSize()-1 = newest
+              // Window of length 'len' includes the current price
+              // So we need the value at position (currentSize - len)
+              const oldestInWindow = this.priceHistory.getSize() - len;
+              const oldVal = this.priceHistory.get(oldestInWindow);
 
-              let oldIdx = this.historyIndex - len;
-              if (oldIdx < 0) oldIdx += this.historySize;
+              if (oldVal !== undefined) {
+                  // Calc new SMA
+                  // SMA_new = (Sum_prev - Old + New) / N
+                  const newSum = state.prevSum - oldVal + price;
+                  const newSma = newSum / len;
 
-              const oldVal = this.historyBuffers["close"][oldIdx];
+                  // Update BB
+                  // Calculate StdDev by iterating the window
+                  let sumSqDiff = 0;
+                  
+                  // Iterate last 'len' values in circular buffer
+                  for (let i = 0; i < len - 1; i++) {
+                      const idx = this.priceHistory.getSize() - len + i;
+                      const val = this.priceHistory.get(idx);
+                      if (val !== undefined) {
+                          sumSqDiff += Math.pow(val - newSma, 2);
+                      }
+                  }
+                  // Add current price
+                  sumSqDiff += Math.pow(price - newSma, 2);
 
-              // Calc new SMA
-              // SMA_new = (Sum_prev - Old + New) / N
-              // Wait, 'state.prevSum' is sum of [T-N .. T-1].
-              // New Sum = prevSum - Val[T-N] + Price.
-              // This is correct.
+                  const std = Math.sqrt(sumSqDiff / len);
 
-              const newSum = state.prevSum - oldVal + price;
-              const newSma = newSum / len;
-
-              // Update BB
-              // We need StdDev for BB.
-              // Incremental StdDev is hard (requires sum of squares).
-              // For now, we can iterate the ring buffer for StdDev (O(N) but small N=20).
-              // This is much faster than iterating 1000 candles.
-
-              let sumSqDiff = 0;
-              // Iterate window to calc Variance
-              for(let i=0; i<len-1; i++) {
-                  // Reconstruct index
-                  let idx = this.historyIndex - 1 - i;
-                  if (idx < 0) idx += this.historySize;
-                  const val = this.historyBuffers["close"][idx];
-                  sumSqDiff += Math.pow(val - newSma, 2);
+                  result.volatility.bb = {
+                      middle: newSma,
+                      upper: newSma + std * stdDev,
+                      lower: newSma - std * stdDev,
+                      percentP: (result.volatility.bb.upper - result.volatility.bb.lower) === 0 ? 0.5 : (price - (newSma - std*stdDev)) / ((newSma + std*stdDev) - (newSma - std*stdDev))
+                  };
               }
-              // Add current price
-              sumSqDiff += Math.pow(price - newSma, 2);
-
-              const std = Math.sqrt(sumSqDiff / len);
-
-              result.volatility.bb = {
-                  middle: newSma,
-                  upper: newSma + std * stdDev,
-                  lower: newSma - std * stdDev,
-                  percentP: (result.volatility.bb.upper - result.volatility.bb.lower) === 0 ? 0.5 : (price - (newSma - std*stdDev)) / ((newSma + std*stdDev) - (newSma - std*stdDev))
-              };
           }
       }
   }

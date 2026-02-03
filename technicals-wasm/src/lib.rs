@@ -80,6 +80,14 @@ struct OutputData {
 #[wasm_bindgen]
 pub struct TechnicalsCalculator {
     settings: IndicatorSettings,
+    
+    // Global Price History Buffers (Shared Memory)
+    // Max 200 candles for all indicators
+    price_history_closes: VecDeque<f64>,
+    price_history_highs: VecDeque<f64>,
+    price_history_lows: VecDeque<f64>,
+    max_history_size: usize,
+    
     ema_states: HashMap<usize, EmaState>,
     rsi_states: HashMap<usize, RsiState>,
     macd_states: HashMap<String, MacdState>,
@@ -112,6 +120,13 @@ impl TechnicalsCalculator {
     pub fn new() -> TechnicalsCalculator {
         TechnicalsCalculator {
             settings: IndicatorSettings::default(),
+            
+            // Initialize global price history buffers (max 200 candles)
+            price_history_closes: VecDeque::with_capacity(200),
+            price_history_highs: VecDeque::with_capacity(200),
+            price_history_lows: VecDeque::with_capacity(200),
+            max_history_size: 200,
+            
             ema_states: HashMap::new(), rsi_states: HashMap::new(), macd_states: HashMap::new(), bb_states: HashMap::new(),
             atr_states: HashMap::new(), stoch_states: HashMap::new(), mom_states: HashMap::new(), wr_states: HashMap::new(),
             volma_states: HashMap::new(), cci_states: HashMap::new(), adx_states: HashMap::new(), st_states: HashMap::new(),
@@ -124,6 +139,15 @@ impl TechnicalsCalculator {
         self.settings = serde_json::from_str(settings_json).unwrap_or_default();
         let len = closes.len();
         if len == 0 { return; }
+
+        // Initialize global price history buffers
+        // Store last N candles (max 200)
+        let start_idx = if len > self.max_history_size { len - self.max_history_size } else { 0 };
+        for i in start_idx..len {
+            self.price_history_closes.push_back(closes[i]);
+            self.price_history_highs.push_back(highs[i]);
+            self.price_history_lows.push_back(lows[i]);
+        }
 
         // --- Core Init (Condensed) ---
         for s in &self.settings.ema {
@@ -281,6 +305,17 @@ impl TechnicalsCalculator {
     }
 
     pub fn shift(&mut self, _o: f64, h: f64, l: f64, c: f64, v: f64, _t: f64) {
+        // Update global price history buffers
+        // Push new candle, pop oldest if at capacity
+        if self.price_history_closes.len() >= self.max_history_size {
+            self.price_history_closes.pop_front();
+            self.price_history_highs.pop_front();
+            self.price_history_lows.pop_front();
+        }
+        self.price_history_closes.push_back(c);
+        self.price_history_highs.push_back(h);
+        self.price_history_lows.push_back(l);
+
         // ... Core Shifts ...
         for (_len, s) in &mut self.ema_states { if s.initialized { s.value = (c - s.value) * s.k + s.value; }}
         for (len, s) in &mut self.rsi_states { if s.initialized {
