@@ -61,8 +61,75 @@ class ActiveTechnicalsManager {
     // Memory Management: Reuse buffers to prevent GC spikes
     private pool = new BufferPool();
 
+    // Page Visibility State
+    private isTabVisible = true;
+    private pausedCalculations = new Set<string>();
+
     constructor() {
         // Singleton
+        
+        // Page Visibility API: Pause calculations when tab is hidden
+        if (browser && typeof document !== 'undefined') {
+            this.isTabVisible = !document.hidden;
+            
+            document.addEventListener('visibilitychange', () => {
+                this.handleVisibilityChange();
+            });
+        }
+    }
+
+    /**
+     * Handle Page Visibility API changes.
+     * Pauses non-critical calculations when tab is hidden.
+     */
+    private handleVisibilityChange() {
+        const wasVisible = this.isTabVisible;
+        this.isTabVisible = !document.hidden;
+
+        if (!this.isTabVisible && wasVisible) {
+            // Tab just became hidden - pause non-critical calculations
+            logger.log('general', '[ActiveManager] Tab hidden - pausing non-critical calculations');
+            this.pauseNonCriticalCalculations();
+        } else if (this.isTabVisible && !wasVisible) {
+            // Tab just became visible - resume calculations
+            logger.log('general', '[ActiveManager] Tab visible - resuming calculations');
+            this.resumeCalculations();
+        }
+    }
+
+    /**
+     * Pause all calculations except Takt 1 (active symbol).
+     */
+    private pauseNonCriticalCalculations() {
+        const activeSymbol = tradeState.symbol;
+        
+        for (const [key, timerId] of this.throttles.entries()) {
+            const [symbol] = key.split(':');
+            
+            // Keep active symbol running
+            if (symbol === activeSymbol) continue;
+            
+            // Cancel timer and mark as paused
+            clearTimeout(timerId);
+            this.throttles.delete(key);
+            this.pausedCalculations.add(key);
+        }
+    }
+
+    /**
+     * Resume paused calculations with lower priority.
+     */
+    private resumeCalculations() {
+        for (const key of this.pausedCalculations) {
+            const [symbol, timeframe] = key.split(':');
+            
+            // Resume with a slight delay to avoid thundering herd
+            setTimeout(() => {
+                this.scheduleCalculation(symbol, timeframe);
+            }, Math.random() * 1000); // Stagger 0-1s
+        }
+        
+        this.pausedCalculations.clear();
     }
 
     /**
@@ -254,10 +321,77 @@ class ActiveTechnicalsManager {
             }
         }
 
-        this.throttles.set(key, setTimeout(() => {
-            this.throttles.delete(key);
-            this.performCalculation(symbol, timeframe);
-        }, delay));
+        // Skip scheduling if tab is hidden (handled by Page Visibility API)
+        if (!this.isTabVisible && !isActiveSymbol) {
+            this.pausedCalculations.add(key);
+            return;
+        }
+
+        // Takt 1: Active Symbol → setTimeout (highest priority, realtime)
+        if (isActiveSymbol) {
+            this.throttles.set(key, setTimeout(() => {
+                this.throttles.delete(key);
+                this.performCalculation(symbol, timeframe);
+            }, delay));
+        }
+        // Takt 2/3: Non-active symbols → requestIdleCallback (low priority)
+        else {
+            const callback = (deadline?: IdleDeadline) => {
+                // Only execute if enough time remaining (min 10ms) or timeout occurred
+                if (!deadline || deadline.timeRemaining() > 10 || deadline.didTimeout) {
+                    this.throttles.delete(key);
+                    this.performCalculation(symbol, timeframe);
+                } else {
+                    // Not enough time - reschedule
+                    this.scheduleIdleCallback(key, symbol, timeframe, delay);
+                }
+            };
+
+            // Use requestIdleCallback with polyfill fallback
+            const requestIdleCb = this.getRequestIdleCallback();
+            const handle = requestIdleCb(callback, { timeout: delay }) as any;
+            this.throttles.set(key, handle);
+        }
+    }
+
+    /**
+     * Schedule calculation using requestIdleCallback.
+     * Helper method for rescheduling when not enough idle time is available.
+     */
+    private scheduleIdleCallback(key: string, symbol: string, timeframe: string, delay: number) {
+        const callback = (deadline?: IdleDeadline) => {
+            if (!deadline || deadline.timeRemaining() > 10 || deadline.didTimeout) {
+                this.throttles.delete(key);
+                this.performCalculation(symbol, timeframe);
+            } else {
+                // Still not enough time - reschedule again
+                this.scheduleIdleCallback(key, symbol, timeframe, delay);
+            }
+        };
+
+        const requestIdleCb = this.getRequestIdleCallback();
+        const handle = requestIdleCb(callback, { timeout: delay }) as any;
+        this.throttles.set(key, handle);
+    }
+
+    /**
+     * Get requestIdleCallback with polyfill fallback for older browsers.
+     */
+    private getRequestIdleCallback(): (callback: (deadline?: IdleDeadline) => void, options?: { timeout: number }) => number {
+        if (typeof window !== 'undefined' && window.requestIdleCallback) {
+            return window.requestIdleCallback.bind(window);
+        }
+
+        // Polyfill: Use setTimeout with simulated IdleDeadline
+        return (callback: (deadline?: IdleDeadline) => void, options?: { timeout: number }) => {
+            const start = Date.now();
+            return setTimeout(() => {
+                callback({
+                    didTimeout: false,
+                    timeRemaining: () => Math.max(0, 50 - (Date.now() - start))
+                } as IdleDeadline);
+            }, 1) as any;
+        };
     }
 
     // Helper for deep equality
