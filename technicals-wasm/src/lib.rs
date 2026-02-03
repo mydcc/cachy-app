@@ -45,12 +45,12 @@ pub struct IndicatorSettings {
 struct EmaState { k: f64, value: f64, initialized: bool }
 struct RsiState { avg_gain: f64, avg_loss: f64, prev_close: f64, initialized: bool }
 struct MacdState { ema_fast: f64, ema_slow: f64, signal_val: f64, k_fast: f64, k_slow: f64, k_signal: f64, initialized: bool }
-struct BbState { sum: f64, sum_sq: f64, buffer: VecDeque<f64>, std_dev_mult: f64, initialized: bool }
+struct BbState { sum: f64, sum_sq: f64, std_dev_mult: f64, initialized: bool }
 struct AtrState { value: f64, prev_close: f64, initialized: bool }
-struct StochState { highs: VecDeque<f64>, lows: VecDeque<f64>, k_buffer: VecDeque<f64>, d_val: f64, k_len: usize, d_len: usize, initialized: bool }
-struct MomState { buffer: VecDeque<f64>, initialized: bool }
-struct WrState { highs: VecDeque<f64>, lows: VecDeque<f64>, initialized: bool }
-struct VolMaState { sum: f64, buffer: VecDeque<f64>, initialized: bool }
+struct StochState { k_buffer: VecDeque<f64>, d_val: f64, k_len: usize, d_len: usize, initialized: bool }
+struct MomState { initialized: bool }
+struct WrState { initialized: bool }
+struct VolMaState { sum: f64, initialized: bool }
 
 #[allow(dead_code)]
 struct CciState { tp_buffer: VecDeque<f64>, sum_tp: f64, initialized: bool }
@@ -183,7 +183,7 @@ impl TechnicalsCalculator {
                  for &p in &closes[len - s.length..] { sum += p; sum_sq += p * p; } 
                  init = true; 
              }
-             self.bb_states.insert(s.length, BbState { sum, sum_sq, buffer: VecDeque::new(), std_dev_mult: s.std_dev, initialized: init });
+             self.bb_states.insert(s.length, BbState { sum, sum_sq, std_dev_mult: s.std_dev, initialized: init });
         }
         for s in &self.settings.atr {
              let mut val = 0.0; let mut init = false;
@@ -209,24 +209,22 @@ impl TechnicalsCalculator {
                  }
                  init = true;
              }
-             self.stoch_states.insert(format!("{}-{}-{}", s.k, s.d, s.smooth), StochState { highs: h_buf, lows: l_buf, k_buffer: k_buf, d_val, k_len: s.k, d_len: s.d, initialized: init });
+             self.stoch_states.insert(format!("{}-{}-{}", s.k, s.d, s.smooth), StochState { k_buffer: k_buf, d_val, k_len: s.k, d_len: s.d, initialized: init });
         }
 
         // Advanced Init
         for s in &self.settings.mom {
-            let mut b = VecDeque::new(); let mut init = false;
-            if len > s.length { for &p in &closes[len - s.length - 1 ..] { b.push_back(p); } init = true; }
-            self.mom_states.insert(s.length, MomState { buffer: b, initialized: init });
+            let init = len > s.length;
+            self.mom_states.insert(s.length, MomState { initialized: init });
         }
         for s in &self.settings.volma {
-            let mut b = VecDeque::new(); let mut sum = 0.0; let mut init = false;
-            if len >= s.length { for &v in &volumes[len - s.length ..] { b.push_back(v); sum += v; } init = true; }
-            self.volma_states.insert(s.length, VolMaState { buffer: b, sum, initialized: init });
+            let mut sum = 0.0; let mut init = false;
+            if len >= s.length { for &v in &volumes[len - s.length ..] { sum += v; } init = true; }
+            self.volma_states.insert(s.length, VolMaState { sum, initialized: init });
         }
         for s in &self.settings.wr {
-            let mut h_buf = VecDeque::new(); let mut l_buf = VecDeque::new(); let mut init = false;
-            if len >= s.length { for i in 0..len { h_buf.push_back(highs[i]); l_buf.push_back(lows[i]); if h_buf.len() > s.length { h_buf.pop_front(); l_buf.pop_front(); }} init = true; }
-            self.wr_states.insert(s.length, WrState { highs: h_buf, lows: l_buf, initialized: init });
+            let init = len >= s.length;
+            self.wr_states.insert(s.length, WrState { initialized: init });
         }
 
         // SuperTrend Init
@@ -290,10 +288,21 @@ impl TechnicalsCalculator {
         }}
 
         // Advanced Updates
-        for (len, s) in &self.mom_states { if s.initialized { let old = *s.buffer.front().unwrap_or(&0.0); out.oscillators.insert(format!("MOM{}", len), c - old); }}
-        for (len, s) in &self.volma_states { if s.initialized { let old = *s.buffer.front().unwrap_or(&0.0); out.moving_averages.insert(format!("VolMa{}", len), (s.sum - old + v) / *len as f64); }}
-        for (len, s) in &self.wr_states { if s.initialized {
-             let max_h = s.highs.iter().fold(h, |a, &b| a.max(b)); let min_l = s.lows.iter().fold(l, |a, &b| a.min(b));
+        for (len, s) in &self.mom_states { if s.initialized && self.price_history_closes.len() >= *len + 1 { 
+            let old = self.price_history_closes[self.price_history_closes.len() - *len - 1]; 
+            out.oscillators.insert(format!("MOM{}", len), c - old); 
+        }}
+        for (len, s) in &self.volma_states { if s.initialized && self.price_history_volumes.len() >= *len { 
+            let old = self.price_history_volumes[self.price_history_volumes.len() - *len]; 
+            out.moving_averages.insert(format!("VolMa{}", len), (s.sum - old + v) / *len as f64); 
+        }}
+        for (len, s) in &self.wr_states { if s.initialized && self.price_history_highs.len() >= *len {
+             let start = self.price_history_highs.len() - *len;
+             let mut max_h = h; let mut min_l = l;
+             for i in start..self.price_history_highs.len() {
+                 max_h = max_h.max(self.price_history_highs[i]);
+                 min_l = min_l.min(self.price_history_lows[i]);
+             }
              out.oscillators.insert(format!("WR{}", len), if max_h == min_l { -50.0 } else { (max_h - c) / (max_h - min_l) * -100.0 });
         }}
 
