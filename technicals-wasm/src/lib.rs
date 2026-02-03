@@ -270,21 +270,191 @@ impl TechnicalsCalculator {
 
 // Helpers needed for new indicators...
 fn calculate_pivots(h: f64, l: f64, c: f64, o: f64, type_: &str) -> PivotState {
-    let p = (h + l + c) / 3.0; // Classic
-    // ... logic ...
-    PivotState { p, r1:0.0, r2:0.0, r3:0.0, s1:0.0, s2:0.0, s3:0.0, basis_h:h, basis_l:l, basis_c:c, basis_o:o }
+    let p;
+    let r1;
+    let r2;
+    let r3;
+    let s1;
+    let s2;
+    let s3;
+
+    if type_ == "woodie" {
+        p = (h + l + c * 2.0) / 4.0;
+        r1 = p * 2.0 - l;
+        r2 = p + h - l;
+        s1 = p * 2.0 - h;
+        s2 = p - h + l;
+        r3 = h + (p - l) * 2.0;
+        s3 = l - (h - p) * 2.0;
+    } else if type_ == "camarilla" {
+        let range = h - l;
+        r3 = c + (range * 1.1) / 4.0;
+        r2 = c + (range * 1.1) / 6.0;
+        r1 = c + (range * 1.1) / 12.0;
+        p = c;
+        s1 = c - (range * 1.1) / 12.0;
+        s2 = c - (range * 1.1) / 6.0;
+        s3 = c - (range * 1.1) / 4.0;
+    } else if type_ == "fibonacci" {
+        p = (h + l + c) / 3.0;
+        let range = h - l;
+        r1 = p + range * 0.382;
+        r2 = p + range * 0.618;
+        r3 = p + range * 1.0;
+        s1 = p - range * 0.382;
+        s2 = p - range * 0.618;
+        s3 = p - range * 1.0;
+    } else {
+        // Classic
+        p = (h + l + c) / 3.0;
+        r1 = p * 2.0 - l;
+        s1 = p * 2.0 - h;
+        r2 = p + (h - l);
+        s2 = p - (h - l);
+        r3 = h + (p - l) * 2.0;
+        s3 = l - (h - p) * 2.0;
+    }
+
+    PivotState { p, r1, r2, r3, s1, s2, s3, basis_h:h, basis_l:l, basis_c:c, basis_o:o }
 }
 
-fn calculate_psar_state(h: &[f64], l: &[f64], s: &PsarSettings) -> PsarState {
-    PsarState { sar: 0.0, ep: 0.0, af: 0.0, is_long: true, max_af: s.max, inc_af: s.increment }
+fn calculate_psar_state(highs: &[f64], lows: &[f64], s: &PsarSettings) -> PsarState {
+    if highs.len() < 2 {
+        return PsarState { sar: 0.0, ep: 0.0, af: 0.0, is_long: true, max_af: s.max, inc_af: s.increment };
+    }
+
+    // Full Calc
+    let mut is_long = true;
+    let mut af = s.start;
+    let mut ep = highs[0];
+    let mut sar = lows[0];
+
+    for i in 1..highs.len() {
+        let mut next_sar = sar + af * (ep - sar);
+
+        if is_long {
+            if i > 0 && next_sar > lows[i-1] { next_sar = lows[i-1]; }
+            if i > 1 && next_sar > lows[i-2] { next_sar = lows[i-2]; }
+        } else {
+            if i > 0 && next_sar < highs[i-1] { next_sar = highs[i-1]; }
+            if i > 1 && next_sar < highs[i-2] { next_sar = highs[i-2]; }
+        }
+
+        let mut reversed = false;
+        if is_long {
+            if lows[i] < next_sar {
+                is_long = false;
+                reversed = true;
+                next_sar = ep;
+                ep = lows[i];
+                af = s.start;
+            }
+        } else {
+            if highs[i] > next_sar {
+                is_long = true;
+                reversed = true;
+                next_sar = ep;
+                ep = highs[i];
+                af = s.start;
+            }
+        }
+
+        if !reversed {
+            if is_long {
+                if highs[i] > ep {
+                    ep = highs[i];
+                    af = (af + s.increment).min(s.max);
+                }
+            } else {
+                if lows[i] < ep {
+                    ep = lows[i];
+                    af = (af + s.increment).min(s.max);
+                }
+            }
+        }
+        sar = next_sar;
+    }
+
+    PsarState { sar, ep, af, is_long, max_af: s.max, inc_af: s.increment }
 }
 
-fn calculate_tr_sum(h: &[f64], l: &[f64], c: &[f64], len: usize) -> f64 { 0.0 }
+fn calculate_tr_sum(h: &[f64], l: &[f64], c: &[f64], len: usize) -> f64 {
+    if c.len() < len { return 0.0; }
+    let start = c.len() - len;
+    let mut sum = 0.0;
+    // We iterate the last 'len' candles.
+    // For each candle i, TR needs C[i-1].
+    // If start=0, i=0 has no C[i-1]. TR=H-L.
+
+    for i in start..c.len() {
+        if i == 0 {
+            sum += h[i] - l[i];
+        } else {
+            let tr = (h[i] - l[i]).max((h[i] - c[i-1]).abs()).max((l[i] - c[i-1]).abs());
+            sum += tr;
+        }
+    }
+    sum
+}
 
 fn calculate_vwap_state(h: &[f64], l: &[f64], c: &[f64], v: &[f64], t: &[f64], anchor: &str) -> VwapState {
-    VwapState { cum_vol: 0.0, cum_vol_price: 0.0, last_day: 0 }
+    let mut cum_vol = 0.0;
+    let mut cum_vol_price = 0.0;
+    let mut last_day = -1;
+
+    for i in 0..c.len() {
+        if anchor == "session" {
+            // Need date parsing from timestamp `t[i]` (ms).
+            // Rust std has no date.
+            // We can simple use modulo 86400000?
+            // t is f64.
+            // Day = (t / 86400000).floor()
+            let current_day = (t[i] / 86400000.0).floor() as i32;
+            if last_day != -1 && current_day != last_day {
+                cum_vol = 0.0;
+                cum_vol_price = 0.0;
+            }
+            last_day = current_day;
+        }
+
+        let tp = (h[i] + l[i] + c[i]) / 3.0;
+        cum_vol += v[i];
+        cum_vol_price += tp * v[i];
+    }
+
+    VwapState { cum_vol, cum_vol_price, last_day }
 }
 
 fn calculate_mfi_buffers(h: &[f64], l: &[f64], c: &[f64], v: &[f64], len: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
-    (Vec::new(), Vec::new(), Vec::new())
+    // We need buffers of last 'len' elements?
+    // MFI needs:
+    // 1. Sliding Window of Positive Money Flow (PMF) and Negative (NMF).
+    // 2. Sliding Window of Typical Prices (TP) to check direction.
+    // Actually, MFI is (Sum Pos / Sum Neg).
+    // To update Sum incrementally, we need to remove the Flow from N periods ago.
+    // So we need a RingBuffer of Flows.
+
+    let total_len = c.len();
+    if total_len < len { return (Vec::new(), Vec::new(), Vec::new()); }
+
+    let mut pos_flows = vec![0.0; total_len];
+    let mut neg_flows = vec![0.0; total_len];
+    let mut tps = vec![0.0; total_len];
+
+    for i in 0..total_len {
+        tps[i] = (h[i] + l[i] + c[i]) / 3.0;
+        if i > 0 {
+            let flow = tps[i] * v[i];
+            if tps[i] > tps[i-1] { pos_flows[i] = flow; }
+            else if tps[i] < tps[i-1] { neg_flows[i] = flow; }
+        }
+    }
+
+    // Extract last N
+    let start = total_len - len;
+    let tp_buf = tps[start..].to_vec();
+    let pos_buf = pos_flows[start..].to_vec();
+    let neg_buf = neg_flows[start..].to_vec();
+
+    (tp_buf, pos_buf, neg_buf)
 }
