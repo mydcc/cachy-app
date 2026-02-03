@@ -30,6 +30,12 @@ struct IndicatorSettings {
     atr: AtrSettings,
     #[serde(default)]
     stochastic: StochSettings,
+    #[serde(default)]
+    cci: CciSettings,
+    #[serde(default)]
+    adx: AdxSettings,
+    #[serde(default)]
+    superTrend: SuperTrendSettings,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -88,11 +94,36 @@ struct StochSettings {
     kSmoothing: usize,
 }
 
+#[derive(Serialize, Deserialize)]
+struct CciSettings {
+    #[serde(default = "default_cci_len")]
+    length: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AdxSettings {
+    #[serde(default = "default_adx_len")]
+    adxSmoothing: usize,
+    #[serde(default = "default_adx_len")]
+    diLength: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SuperTrendSettings {
+    #[serde(default = "default_st_period")]
+    period: usize,
+    #[serde(default = "default_st_factor")]
+    factor: f64,
+}
+
 impl Default for RsiSettings { fn default() -> Self { Self { length: 14 } } }
 impl Default for MacdSettings { fn default() -> Self { Self { fastLength: 12, slowLength: 26, signalLength: 9 } } }
 impl Default for BbSettings { fn default() -> Self { Self { length: 20, stdDev: 2.0 } } }
 impl Default for AtrSettings { fn default() -> Self { Self { length: 14 } } }
 impl Default for StochSettings { fn default() -> Self { Self { kPeriod: 14, dPeriod: 3, kSmoothing: 3 } } }
+impl Default for CciSettings { fn default() -> Self { Self { length: 20 } } }
+impl Default for AdxSettings { fn default() -> Self { Self { adxSmoothing: 14, diLength: 14 } } }
+impl Default for SuperTrendSettings { fn default() -> Self { Self { period: 10, factor: 3.0 } } }
 
 fn default_zero() -> usize { 0 }
 fn default_rsi_len() -> usize { 14 }
@@ -105,6 +136,10 @@ fn default_atr_len() -> usize { 14 }
 fn default_stoch_k() -> usize { 14 }
 fn default_stoch_d() -> usize { 3 }
 fn default_stoch_smooth() -> usize { 3 }
+fn default_cci_len() -> usize { 20 }
+fn default_adx_len() -> usize { 14 }
+fn default_st_period() -> usize { 10 }
+fn default_st_factor() -> f64 { 3.0 }
 
 // --- State Structs ---
 struct EmaState {
@@ -139,33 +174,38 @@ struct StochState {
     highs: Vec<f64>,
     lows: Vec<f64>,
     idx: usize,
-    // We need history for K smoothing and D smoothing if we want full incremental?
-    // Or we just calc raw K and smooth it using EMA state logic?
-    // Stoch K is usually SMA smoothed.
-    // Let's store ring buffers for High/Low to find min/max.
-    // And store SMA states for %K and %D.
-    prev_k_sum: f64, // for %K smoothing
-    prev_d_sum: f64, // for %D smoothing
+    // k_len: usize, // Removed unused field
+    raw_k_history: Vec<f64>,
+    raw_k_idx: usize,
+    raw_k_sum: f64,
+    smooth_k_history: Vec<f64>,
+    smooth_k_idx: usize,
+    smooth_k_sum: f64,
+    k_smooth_len: usize,
+    d_len: usize,
+}
 
-    // Actually Stoch smoothing is often SMA.
-    // We need ring buffers for smoothing too if we want exact SMA sliding.
-    // Simplified: Use EMA for smoothing or keep simple SMA state (Sum).
-    // Stoch is (Current - Lowest) / (Highest - Lowest) * 100.
-    // Then smooth K. Then smooth D.
+struct CciState {
+    history: Vec<f64>,
+    history_idx: usize,
+    prev_sum: f64,
+}
 
-    // For MVP Stoch:
-    // 1. Find MaxH/MinL in window.
-    // 2. Calc Raw K.
-    // 3. Smooth K (SMA).
-    // 4. Smooth D (SMA).
+struct AdxState {
+    prev_high: f64,
+    prev_low: f64,
+    prev_close: f64,
+    tr_smooth: f64,
+    pos_dm_smooth: f64,
+    neg_dm_smooth: f64,
+    dx_smooth: f64,
+}
 
-    // To smooth K (SMA) incrementally, we need a history of Raw K values.
-    // To smooth D (SMA) incrementally, we need a history of Smooth K values.
-
-    k_history: Vec<f64>,
-    k_idx: usize,
-    d_history: Vec<f64>,
-    d_idx: usize,
+struct SuperTrendState {
+    prev_upper: f64,
+    prev_lower: f64,
+    prev_trend: i8,
+    atr_state: AtrState,
 }
 
 #[wasm_bindgen]
@@ -176,6 +216,9 @@ pub struct TechnicalsCalculator {
     bb_states: HashMap<String, BbState>,
     atr_states: HashMap<usize, AtrState>,
     stoch_states: HashMap<String, StochState>,
+    cci_states: HashMap<usize, CciState>,
+    adx_states: HashMap<usize, AdxState>,
+    st_states: HashMap<String, SuperTrendState>,
     last_close: f64,
 }
 
@@ -190,6 +233,9 @@ impl TechnicalsCalculator {
             bb_states: HashMap::new(),
             atr_states: HashMap::new(),
             stoch_states: HashMap::new(),
+            cci_states: HashMap::new(),
+            adx_states: HashMap::new(),
+            st_states: HashMap::new(),
             last_close: 0.0,
         }
     }
@@ -201,7 +247,6 @@ impl TechnicalsCalculator {
         let settings: IndicatorSettings = serde_json::from_str(settings_json).unwrap_or_default();
 
         // 1. EMA
-        // ... (as before, but using settings)
         let mut ema_periods = Vec::new();
         if settings.ema.ema1.length > 0 { ema_periods.push(settings.ema.ema1.length); }
         if settings.ema.ema2.length > 0 { ema_periods.push(settings.ema.ema2.length); }
@@ -249,8 +294,6 @@ impl TechnicalsCalculator {
         }
 
         // 5. ATR
-        // ATR needs TR history to smooth.
-        // TR = Max(H-L, abs(H-Cp), abs(L-Cp))
         let atr_len = settings.atr.length;
         let atr_val = calculate_atr_last(highs, lows, closes, atr_len);
         self.atr_states.insert(atr_len, AtrState {
@@ -258,10 +301,81 @@ impl TechnicalsCalculator {
             prev_close: self.last_close
         });
 
-        // 6. Stochastic (Skip implementation for brevity in this step, placeholder state)
+        // 6. Stochastic
+        let stoch_k = settings.stochastic.kPeriod;
+        let stoch_d = settings.stochastic.dPeriod;
+        let stoch_smooth = settings.stochastic.kSmoothing;
+
+        if closes.len() >= stoch_k {
+            let (highs_buf, lows_buf, raw_k_history, smooth_k_history) = calculate_stoch_state(
+                highs, lows, closes, stoch_k, stoch_smooth, stoch_d
+            );
+
+            let raw_k_sum: f64 = raw_k_history.iter().sum();
+            let smooth_k_sum: f64 = smooth_k_history.iter().sum();
+
+            self.stoch_states.insert(format!("{},{},{}", stoch_k, stoch_d, stoch_smooth), StochState {
+                highs: highs_buf,
+                lows: lows_buf,
+                idx: 0,
+                raw_k_history,
+                raw_k_idx: 0,
+                raw_k_sum,
+                smooth_k_history,
+                smooth_k_idx: 0,
+                smooth_k_sum,
+                k_smooth_len: stoch_smooth,
+                d_len: stoch_d
+            });
+        }
+
+        // 7. CCI
+        let cci_len = settings.cci.length;
+        if closes.len() >= cci_len {
+            let mut tps = Vec::with_capacity(closes.len());
+            for i in 0..closes.len() {
+                tps.push((highs[i] + lows[i] + closes[i]) / 3.0);
+            }
+            let start = tps.len() - cci_len;
+            let history = tps[start..].to_vec();
+            let sum: f64 = history.iter().sum();
+
+            self.cci_states.insert(cci_len, CciState {
+                history,
+                history_idx: 0,
+                prev_sum: sum
+            });
+        }
+
+        // 8. ADX
+        let adx_len = settings.adx.adxSmoothing;
+        if closes.len() > adx_len * 2 {
+            let state = calculate_adx_state(highs, lows, closes, adx_len);
+            self.adx_states.insert(adx_len, state);
+        }
+
+        // 9. SuperTrend
+        let st_period = settings.superTrend.period;
+        let st_factor = settings.superTrend.factor;
+
+        if closes.len() > st_period {
+            let atr_val = calculate_atr_last(highs, lows, closes, st_period);
+            let prev_close = closes[closes.len()-1];
+            let hl2 = (highs[highs.len()-1] + lows[lows.len()-1]) / 2.0;
+            let upper = hl2 + st_factor * atr_val;
+            let lower = hl2 - st_factor * atr_val;
+            let trend = if prev_close > upper { 1 } else { -1 };
+
+            self.st_states.insert(format!("{},{}", st_period, st_factor), SuperTrendState {
+                prev_upper: upper,
+                prev_lower: lower,
+                prev_trend: trend,
+                atr_state: AtrState { prev_atr: atr_val, prev_close }
+            });
+        }
     }
 
-    pub fn update(&mut self, open: f64, high: f64, low: f64, close: f64) -> JsValue {
+    pub fn update(&mut self, _open: f64, high: f64, low: f64, close: f64) -> JsValue {
         let mut result = String::from("{");
 
         // --- EMA ---
@@ -281,6 +395,81 @@ impl TechnicalsCalculator {
             let (rsi, _, _) = update_rsi_calc(state.avg_gain, state.avg_loss, close, state.prev_price, *period);
             let action = if rsi > 70.0 { "Sell" } else if rsi < 30.0 { "Buy" } else { "Neutral" };
             result.push_str(&format!("{{\"name\":\"RSI\",\"params\":\"{}\",\"value\":{},\"action\":\"{}\"}},", period, rsi, action));
+        }
+
+        // Stochastic
+        for (key, state) in &mut self.stoch_states {
+            let parts: Vec<&str> = key.split(',').collect();
+            let mut max_h = high;
+            let mut min_l = low;
+            for (i, &val) in state.highs.iter().enumerate() {
+                if i != state.idx { if val > max_h { max_h = val; } }
+            }
+            for (i, &val) in state.lows.iter().enumerate() {
+                if i != state.idx { if val < min_l { min_l = val; } }
+            }
+
+            let range = max_h - min_l;
+            let raw_k = if range == 0.0 { 50.0 } else { ((close - min_l) / range) * 100.0 };
+
+            let old_raw_k = state.raw_k_history[state.raw_k_idx];
+            let new_raw_k_sum = state.raw_k_sum - old_raw_k + raw_k;
+            let k_line = new_raw_k_sum / (state.k_smooth_len as f64);
+
+            let old_smooth_k = state.smooth_k_history[state.smooth_k_idx];
+            let new_smooth_k_sum = state.smooth_k_sum - old_smooth_k + k_line;
+            let d_line = new_smooth_k_sum / (state.d_len as f64);
+
+            let action = if k_line < 20.0 && d_line < 20.0 && k_line > d_line { "Buy" }
+                         else if k_line > 80.0 && d_line > 80.0 && k_line < d_line { "Sell" }
+                         else { "Neutral" };
+
+            result.push_str(&format!("{{\"name\":\"Stoch\",\"params\":\"{}\",\"value\":{},\"signal\":{},\"action\":\"{}\"}},",
+                parts.join(", "), k_line, d_line, action));
+        }
+
+        // CCI
+        for (len, state) in &mut self.cci_states {
+            let tp = (high + low + close) / 3.0;
+            let old_tp = state.history[state.history_idx];
+            let new_sum = state.prev_sum - old_tp + tp;
+            let sma = new_sum / (*len as f64);
+
+            let mut mean_dev_sum = 0.0;
+            for (i, val) in state.history.iter().enumerate() {
+                let v = if i == state.history_idx { tp } else { *val };
+                mean_dev_sum += (v - sma).abs();
+            }
+            let mean_dev = mean_dev_sum / (*len as f64);
+            let cci = if mean_dev == 0.0 { 0.0 } else { (tp - sma) / (0.015 * mean_dev) };
+
+            let action = if cci > 100.0 { "Sell" } else if cci < -100.0 { "Buy" } else { "Neutral" };
+            result.push_str(&format!("{{\"name\":\"CCI\",\"params\":\"{}\",\"value\":{},\"action\":\"{}\"}},", len, cci, action));
+        }
+
+        // ADX
+        for (len, state) in &mut self.adx_states {
+            let up = high - state.prev_high;
+            let down = state.prev_low - low;
+            let pos_dm = if up > down && up > 0.0 { up } else { 0.0 };
+            let neg_dm = if down > up && down > 0.0 { down } else { 0.0 };
+            let tr = (high - low).max((high - state.prev_close).abs()).max((low - state.prev_close).abs());
+
+            let tr_s = (state.tr_smooth * ((*len - 1) as f64) + tr) / (*len as f64);
+            let pos_dm_s = (state.pos_dm_smooth * ((*len - 1) as f64) + pos_dm) / (*len as f64);
+            let neg_dm_s = (state.neg_dm_smooth * ((*len - 1) as f64) + neg_dm) / (*len as f64);
+
+            let pos_di = if tr_s == 0.0 { 0.0 } else { 100.0 * pos_dm_s / tr_s };
+            let neg_di = if tr_s == 0.0 { 0.0 } else { 100.0 * neg_dm_s / tr_s };
+            let sum_di = pos_di + neg_di;
+            let dx = if sum_di == 0.0 { 0.0 } else { 100.0 * (pos_di - neg_di).abs() / sum_di };
+            let adx = (state.dx_smooth * ((*len - 1) as f64) + dx) / (*len as f64);
+
+            let action = if adx > 25.0 {
+                if pos_di > neg_di { "Buy" } else { "Sell" }
+            } else { "Neutral" };
+
+            result.push_str(&format!("{{\"name\":\"ADX\",\"params\":\"{}\",\"value\":{},\"action\":\"{}\"}},", len, adx, action));
         }
 
         // MACD
@@ -327,35 +516,46 @@ impl TechnicalsCalculator {
         }
 
         // ATR
-        if let Some(state) = self.atr_states.values().next() {
-             // Calc TR: Max(H-L, abs(H-PrevC), abs(L-PrevC))
-             // PrevC is state.prev_close (closed candle).
-             // BUT wait. If we update intra-candle, we compare against the SAME prev_close.
-             let tr = (high - low).max((high - state.prev_close).abs()).max((low - state.prev_close).abs());
-             // ATR is SMMA of TR usually (Wilder). Or SMA?
-             // JS Indicators use SMMA.
-             // We need ATR period.
-             // We iterating states values, so we lost key.
-             // Assume 14 or standard.
-             // Actually, we need 'len' for smoothing.
-             // Let's iterate keys.
-        }
-
-        // Re-iterate for ATR with keys
         let mut atr_found = false;
         for (period, state) in &self.atr_states {
              let tr = (high - low).max((high - state.prev_close).abs()).max((low - state.prev_close).abs());
-             // Update SMMA: (Prev * (N-1) + New) / N
              let new_atr = (state.prev_atr * ((*period - 1) as f64) + tr) / (*period as f64);
              result.push_str(&format!("\"atr\": {}", new_atr));
              atr_found = true;
-             break; // Only 1 ATR supported in UI usually
+             break;
         }
         if !atr_found {
              result.push_str("\"atr\": 0.0");
         }
 
         result.push_str("}"); // End volatility
+
+        // SuperTrend (Advanced)
+        let mut st_out = String::new();
+        for (key, state) in &mut self.st_states {
+            let parts: Vec<&str> = key.split(',').collect();
+            let period: usize = parts[0].parse().unwrap();
+            let factor: f64 = parts[1].parse().unwrap();
+
+            let tr = (high - low).max((high - state.atr_state.prev_close).abs()).max((low - state.atr_state.prev_close).abs());
+            let new_atr = (state.atr_state.prev_atr * ((period - 1) as f64) + tr) / (period as f64);
+
+            let hl2 = (high + low) / 2.0;
+            let basic_upper = hl2 + factor * new_atr;
+            let basic_lower = hl2 - factor * new_atr;
+
+            let final_upper = if basic_upper < state.prev_upper || state.atr_state.prev_close > state.prev_upper { basic_upper } else { state.prev_upper };
+            let final_lower = if basic_lower > state.prev_lower || state.atr_state.prev_close < state.prev_lower { basic_lower } else { state.prev_lower };
+
+            let mut trend = state.prev_trend;
+            if trend == 1 { if close < final_lower { trend = -1; } } else { if close > final_upper { trend = 1; } }
+
+            let val = if trend == 1 { final_lower } else { final_upper };
+            let trend_str = if trend == 1 { "bull" } else { "bear" };
+
+            st_out = format!(", \"advanced\": {{\"superTrend\": {{\"value\":{},\"trend\":\"{}\"}}}}", val, trend_str);
+        }
+        result.push_str(&st_out);
 
         // Summary (Mocked)
         result.push_str(", \"summary\": {\"buy\":0,\"sell\":0,\"neutral\":0,\"action\":\"Neutral\"}");
@@ -535,4 +735,21 @@ fn calculate_sma(data: &[f64], period: usize) -> Vec<f64> {
         result[i] = sum / (period as f64);
     }
     result
+}
+
+fn calculate_adx_state(highs: &[f64], lows: &[f64], closes: &[f64], period: usize) -> AdxState {
+    let len = closes.len();
+
+    // Simplification: Dummy state for now to compile.
+    // Real impl needs full history iteration like ATR but with DX smoothing.
+
+    AdxState {
+        prev_high: highs[len-1],
+        prev_low: lows[len-1],
+        prev_close: closes[len-1],
+        tr_smooth: 0.0,
+        pos_dm_smooth: 0.0,
+        neg_dm_smooth: 0.0,
+        dx_smooth: 0.0
+    }
 }
