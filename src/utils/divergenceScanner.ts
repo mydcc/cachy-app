@@ -222,7 +222,22 @@ export class DivergenceScanner {
     // Or return all found in history? The caller determines relevance.
     // Usually we only care if the END index is "recent" (e.g. within last 10 bars).
 
-    return results.filter((r) => r.endIdx >= indicatorValues.length - 15);
+    const filtered = results.filter((r) => r.endIdx >= indicatorValues.length - 15);
+
+    // Deduplicate: Multiple pivots can find the same divergence
+    // Key: startIdx + endIdx + type + side
+    const seen = new Set<string>();
+    const deduplicated: DivergenceResult[] = [];
+
+    for (const div of filtered) {
+      const key = `${div.startIdx}-${div.endIdx}-${div.type}-${div.side}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(div);
+      }
+    }
+
+    return deduplicated;
   }
 }
 
