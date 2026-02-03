@@ -1,6 +1,29 @@
 #!/bin/bash
 set -e
 
+WASM_FILE="static/wasm/technicals_wasm.wasm"
+
+# Check if WASM file already exists
+if [ -f "$WASM_FILE" ]; then
+    echo "✓ WASM binary already exists at $WASM_FILE (skipping rebuild)"
+    exit 0
+fi
+
+# Check if cargo is available
+if ! command -v cargo &> /dev/null; then
+    echo "⚠ Cargo not found. Skipping WASM build."
+    echo "  Using pre-compiled WASM binary if available."
+    exit 0
+fi
+
+# Check if wasm32-unknown-unknown target is installed
+if ! rustup target list | grep -q "wasm32-unknown-unknown (installed)"; then
+    echo "⚠ wasm32-unknown-unknown target not installed."
+    echo "  Run: rustup target add wasm32-unknown-unknown"
+    echo "  Skipping WASM build for now."
+    exit 0
+fi
+
 echo "Building WASM module..."
 cd technicals-wasm
 cargo build --release --target wasm32-unknown-unknown
@@ -15,4 +38,4 @@ echo "Generating bindings..."
 mkdir -p ../static/wasm
 cp target/wasm32-unknown-unknown/release/technicals_wasm.wasm ../static/wasm/
 
-echo "WASM build complete. Artifacts in static/wasm/"
+echo "✓ WASM build complete. Artifacts in static/wasm/"
