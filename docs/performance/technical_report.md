@@ -63,3 +63,9 @@ To achieve "Bloomberg-level" efficiency, we propose a 3-Phase Refactoring Strate
 
 ## 6. Conclusion
 The current "Stateless Full Recalc" architecture is the primary bottleneck. Migrating to a "Stateful Incremental" approach is the highest ROI activity, offering a potential 60,000x throughput improvement for the calculation step.
+
+## 7. Automated Benchmarking
+As of 2026-02-03, automated performance baselines are tracked via GitHub Actions instead of Render Cron Jobs (due to cost constraints).
+*   **Workflow:** `.github/workflows/benchmarks.yml`
+*   **Schedule:** Daily at Midnight UTC.
+*   **Artifacts:** Benchmark results are saved as build artifacts for historical analysis.
