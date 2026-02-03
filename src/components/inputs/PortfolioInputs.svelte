@@ -56,9 +56,39 @@
   const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
+  // Local state to prevent cursor jumps during updates
+  let localAccountSize = $state(format(accountSize));
+  let isAccountSizeFocused = $state(false);
+
+  let localRiskPercentage = $state(format(riskPercentage));
+  let isRiskPercentageFocused = $state(false);
+
+  let localRiskAmount = $state(format(riskAmount));
+  let isRiskAmountFocused = $state(false);
+
+  // Sync props to local state (One-way sync when NOT focused)
+  $effect(() => {
+    if (!isAccountSizeFocused && format(accountSize) !== localAccountSize) {
+      localAccountSize = format(accountSize);
+    }
+  });
+
+  $effect(() => {
+    if (!isRiskPercentageFocused && format(riskPercentage) !== localRiskPercentage) {
+      localRiskPercentage = format(riskPercentage);
+    }
+  });
+
+  $effect(() => {
+    if (!isRiskAmountFocused && format(riskAmount) !== localRiskAmount) {
+      localRiskAmount = format(riskAmount);
+    }
+  });
+
   function handleAccountSizeInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    localAccountSize = value;
     tradeState.update((s) => ({
       ...s,
       accountSize: value === "" ? null : value,
@@ -68,6 +98,7 @@
   function handleRiskPercentageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    localRiskPercentage = value;
     tradeState.update((s) => ({
       ...s,
       riskPercentage: value === "" ? null : value,
@@ -77,6 +108,7 @@
   function handleRiskAmountInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    localRiskAmount = value;
     tradeState.update((s) => ({
       ...s,
       riskAmount: value === "" ? null : value,
@@ -167,7 +199,9 @@
             rightOffset: "40px",
             showSpinButtons: false,
           }}
-          value={format(accountSize)}
+          bind:value={localAccountSize}
+          onfocus={() => (isAccountSizeFocused = true)}
+          onblur={() => (isAccountSizeFocused = false)}
           oninput={handlers(
             handleAccountSizeInput,
             onboardingService.trackFirstInput,
@@ -181,8 +215,7 @@
             ? 'animate-spin'
             : ''}"
           onclick={() => handleFetchBalance(false)}
-          title={$_("dashboard.portfolioInputs.fetchBalanceTitle") ||
-            "Fetch Balance"}
+          title={$_("dashboard.portfolioInputs.fetchBalanceTitle")}
           disabled={isFetchingBalance}
         >
           {@html icons.refresh ||
@@ -215,7 +248,9 @@
             rightOffset: "40px",
             showSpinButtons: false,
           }}
-          value={format(riskPercentage)}
+          bind:value={localRiskPercentage}
+          onfocus={() => (isRiskPercentageFocused = true)}
+          onblur={() => (isRiskPercentageFocused = false)}
           oninput={handlers(
             handleRiskPercentageInput,
             onboardingService.trackFirstInput,
@@ -245,10 +280,12 @@
             rightOffset: "40px",
             showSpinButtons: false,
           }}
-          value={format(riskAmount)}
+          bind:value={localRiskAmount}
+          onfocus={() => (isRiskAmountFocused = true)}
+          onblur={() => (isRiskAmountFocused = false)}
           oninput={handleRiskAmountInput}
           class="input-field w-full px-4 py-2 rounded-md pr-10"
-          placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder") || "e.g. 100"}
+          placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder")}
           disabled={isPositionSizeLocked}
         />
         <button
