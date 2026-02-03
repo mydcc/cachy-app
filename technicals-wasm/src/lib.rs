@@ -487,3 +487,52 @@ fn calculate_atr_last(highs: &[f64], lows: &[f64], closes: &[f64], period: usize
     }
     atr
 }
+
+fn calculate_stoch_state(highs: &[f64], lows: &[f64], closes: &[f64], k_period: usize, smooth: usize, d_period: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+    let len = closes.len();
+
+    let mut raw_k = vec![50.0; len];
+
+    for i in (k_period-1)..len {
+        let start = i + 1 - k_period;
+        let window_h = &highs[start..=i];
+        let window_l = &lows[start..=i];
+
+        let max_h = window_h.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+        let min_l = window_l.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+
+        let range = max_h - min_l;
+        if range != 0.0 {
+            raw_k[i] = (closes[i] - min_l) / range * 100.0;
+        }
+    }
+
+    let smooth_k = calculate_sma(&raw_k, smooth);
+
+    let start_hl = if len > k_period { len - k_period } else { 0 };
+    let highs_buf = highs[start_hl..].to_vec();
+    let lows_buf = lows[start_hl..].to_vec();
+
+    let start_raw = if len > smooth { len - smooth } else { 0 };
+    let raw_k_buf = raw_k[start_raw..].to_vec();
+
+    let start_smooth = if len > d_period { len - d_period } else { 0 };
+    let smooth_k_buf = smooth_k[start_smooth..].to_vec();
+
+    (highs_buf, lows_buf, raw_k_buf, smooth_k_buf)
+}
+
+fn calculate_sma(data: &[f64], period: usize) -> Vec<f64> {
+    let mut result = vec![f64::NAN; data.len()];
+    if data.len() < period { return result; }
+
+    let mut sum = 0.0;
+    for i in 0..period { sum += data[i]; }
+    result[period-1] = sum / (period as f64);
+
+    for i in period..data.len() {
+        sum = sum - data[i-period] + data[i];
+        result[i] = sum / (period as f64);
+    }
+    result
+}
