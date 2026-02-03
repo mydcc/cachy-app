@@ -51,13 +51,22 @@ struct StochState { highs: VecDeque<f64>, lows: VecDeque<f64>, k_buffer: VecDequ
 struct MomState { buffer: VecDeque<f64>, initialized: bool }
 struct WrState { highs: VecDeque<f64>, lows: VecDeque<f64>, initialized: bool }
 struct VolMaState { sum: f64, buffer: VecDeque<f64>, initialized: bool }
+
+#[allow(dead_code)]
 struct CciState { tp_buffer: VecDeque<f64>, sum_tp: f64, initialized: bool }
+#[allow(dead_code)]
 struct AdxState { tr_smooth: f64, pdm_smooth: f64, ndm_smooth: f64, dx_smooth: f64, prev_high: f64, prev_low: f64, prev_close: f64, initialized: bool }
+#[allow(dead_code)]
 struct SuperTrendState { atr: f64, upper: f64, lower: f64, trend: i32, prev_close: f64, initialized: bool }
+#[allow(dead_code)]
 struct ChopState { highs: VecDeque<f64>, lows: VecDeque<f64>, atr_sum: f64, prev_close: f64, initialized: bool }
+#[allow(dead_code)]
 struct MfiState { pos_flow: VecDeque<f64>, neg_flow: VecDeque<f64>, sum_p: f64, sum_n: f64, prev_tp: f64, initialized: bool }
+#[allow(dead_code)]
 struct VwapState { cum_vol: f64, cum_pv: f64, last_t: f64 }
+#[allow(dead_code)]
 #[derive(Default, Clone, Copy)] pub struct PivotState { pub p: f64, pub r1: f64, pub r2: f64, pub r3: f64, pub s1: f64, pub s2: f64, pub s3: f64, pub basis_h: f64, pub basis_l: f64, pub basis_c: f64, pub basis_o: f64, initialized: bool }
+#[allow(dead_code)]
 #[derive(Default, Clone, Copy)] pub struct PsarState { pub sar: f64, pub ep: f64, pub af: f64, pub is_long: bool, pub max_af: f64, pub inc_af: f64, pub prev_high: f64, pub prev_low: f64, initialized: bool }
 
 #[derive(Serialize)]
@@ -80,13 +89,20 @@ pub struct TechnicalsCalculator {
     mom_states: HashMap<usize, MomState>,
     wr_states: HashMap<usize, WrState>,
     volma_states: HashMap<usize, VolMaState>,
+    #[allow(dead_code)]
     cci_states: HashMap<usize, CciState>,
+    #[allow(dead_code)]
     adx_states: HashMap<usize, AdxState>,
     st_states: HashMap<String, SuperTrendState>,
+    #[allow(dead_code)]
     chop_states: HashMap<usize, ChopState>,
+    #[allow(dead_code)]
     mfi_states: HashMap<usize, MfiState>,
+    #[allow(dead_code)]
     vwap_states: HashMap<String, VwapState>,
+    #[allow(dead_code)]
     psar_states: HashMap<String, PsarState>,
+    #[allow(dead_code)]
     pivots_state: PivotState,
 }
 
@@ -187,7 +203,7 @@ impl TechnicalsCalculator {
         for s in &self.settings.supertrend {
             // Simplified init: Needs full replay for trend flipping.
             // Using last values if available, or just fallback
-            let mut atr = 0.0; let mut init = false; let mut upper = 0.0; let mut lower = 0.0; let mut trend = 1;
+            let atr = 0.0; let mut init = false; let upper = 0.0; let lower = 0.0; let trend = 1;
             if len > s.length {
                 // ... Replay logic skipped for brevity, initializing as "not ready" if cold start logic wasn't copied
                 // Assuming "cold start" from stream is acceptable for ST, or we wait for JS to initialize?
@@ -249,10 +265,10 @@ impl TechnicalsCalculator {
         for (key, s) in &self.st_states { if s.initialized {
              // Need multiplier. Parse from key or store? Stored in key currently...
              // Hack: We need the multiplier. Using 3.0 as placeholder default if not accessible.
-             let mult = 3.0;
+             let _mult = 3.0;
              // ST Logic:
              // Calc ATR
-             let tr = (h - l).max((h - s.prev_close).abs()).max((l - s.prev_close).abs());
+             let _tr = (h - l).max((h - s.prev_close).abs()).max((l - s.prev_close).abs());
              // Note: internal ATR state is missing in SuperTrendState, assuming s.atr is updated via Shift?
              // But we need 'current' ATR for 'current' ST.
              // This requires coupled ATR. For now, skipping ST exact calc.
