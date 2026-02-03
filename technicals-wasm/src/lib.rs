@@ -86,6 +86,7 @@ pub struct TechnicalsCalculator {
     price_history_closes: VecDeque<f64>,
     price_history_highs: VecDeque<f64>,
     price_history_lows: VecDeque<f64>,
+    price_history_volumes: VecDeque<f64>,
     max_history_size: usize,
     
     ema_states: HashMap<usize, EmaState>,
@@ -125,6 +126,7 @@ impl TechnicalsCalculator {
             price_history_closes: VecDeque::with_capacity(200),
             price_history_highs: VecDeque::with_capacity(200),
             price_history_lows: VecDeque::with_capacity(200),
+            price_history_volumes: VecDeque::with_capacity(200),
             max_history_size: 200,
             
             ema_states: HashMap::new(), rsi_states: HashMap::new(), macd_states: HashMap::new(), bb_states: HashMap::new(),
@@ -147,6 +149,7 @@ impl TechnicalsCalculator {
             self.price_history_closes.push_back(closes[i]);
             self.price_history_highs.push_back(highs[i]);
             self.price_history_lows.push_back(lows[i]);
+            self.price_history_volumes.push_back(volumes[i]);
         }
 
         // --- Core Init (Condensed) ---
@@ -175,9 +178,12 @@ impl TechnicalsCalculator {
              self.macd_states.insert(format!("{}-{}-{}", s.fast, s.slow, s.signal), MacdState { ema_fast: ef, ema_slow: es, signal_val: sv, k_fast: k_f, k_slow: k_s, k_signal: k_sig, initialized: init });
         }
         for s in &self.settings.bb {
-             let mut b = VecDeque::new(); let mut sum = 0.0; let mut sum_sq = 0.0; let mut init = false;
-             if len >= s.length { for &p in &closes[len - s.length..] { b.push_back(p); sum += p; sum_sq += p * p; } init = true; }
-             self.bb_states.insert(s.length, BbState { sum, sum_sq, buffer: b, std_dev_mult: s.std_dev, initialized: init });
+             let mut sum = 0.0; let mut sum_sq = 0.0; let mut init = false;
+             if len >= s.length { 
+                 for &p in &closes[len - s.length..] { sum += p; sum_sq += p * p; } 
+                 init = true; 
+             }
+             self.bb_states.insert(s.length, BbState { sum, sum_sq, buffer: VecDeque::new(), std_dev_mult: s.std_dev, initialized: init });
         }
         for s in &self.settings.atr {
              let mut val = 0.0; let mut init = false;
@@ -260,8 +266,9 @@ impl TechnicalsCalculator {
             let m = f - sl; let sig = (m - s.signal_val) * s.k_signal + s.signal_val;
             out.oscillators.insert(format!("{}.macd", k), m); out.oscillators.insert(format!("{}.signal", k), sig); out.oscillators.insert(format!("{}.histogram", k), m - sig);
         }}
-        for (len, s) in &self.bb_states { if s.initialized {
-            let old = *s.buffer.front().unwrap_or(&0.0); let ns = s.sum - old + c; let nsq = s.sum_sq - (old*old) + (c*c);
+        for (len, s) in &self.bb_states { if s.initialized && self.price_history_closes.len() >= *len {
+            let old = self.price_history_closes[self.price_history_closes.len() - *len]; 
+            let ns = s.sum - old + c; let nsq = s.sum_sq - (old*old) + (c*c);
             let sma = ns / *len as f64; let sd = if (nsq - (ns*ns) / *len as f64) / *len as f64 > 0.0 { ((nsq - (ns*ns) / *len as f64) / *len as f64).sqrt() } else { 0.0 };
             out.volatility.insert(format!("BB{}_upper", len), sma + s.std_dev_mult * sd); out.volatility.insert(format!("BB{}_lower", len), sma - s.std_dev_mult * sd); out.volatility.insert(format!("BB{}_basis", len), sma);
         }}
@@ -269,8 +276,13 @@ impl TechnicalsCalculator {
             let tr = (h - l).max((h - s.prev_close).abs()).max((l - s.prev_close).abs());
             out.volatility.insert(format!("ATR{}", len), (s.value * (*len as f64 - 1.0) + tr) / *len as f64);
         }}
-        for (key, s) in &self.stoch_states { if s.initialized {
-            let max_h = s.highs.iter().fold(h, |a, &b| a.max(b)); let min_l = s.lows.iter().fold(l, |a, &b| a.min(b));
+        for (key, s) in &self.stoch_states { if s.initialized && self.price_history_highs.len() >= s.k_len {
+            let start = self.price_history_highs.len() - s.k_len;
+            let mut max_h = h; let mut min_l = l;
+            for i in start..self.price_history_highs.len() {
+                max_h = max_h.max(self.price_history_highs[i]);
+                min_l = min_l.min(self.price_history_lows[i]);
+            }
             let k = if max_h == min_l { 50.0 } else { (c - min_l) / (max_h - min_l) * 100.0 };
             let mut k_sum: f64 = s.k_buffer.iter().sum();
             if !s.k_buffer.is_empty() && s.k_buffer.len() >= s.d_len { k_sum = k_sum - *s.k_buffer.front().unwrap() + k; } else { k_sum += k; }
@@ -306,15 +318,16 @@ impl TechnicalsCalculator {
 
     pub fn shift(&mut self, _o: f64, h: f64, l: f64, c: f64, v: f64, _t: f64) {
         // Update global price history buffers
-        // Push new candle, pop oldest if at capacity
         if self.price_history_closes.len() >= self.max_history_size {
             self.price_history_closes.pop_front();
             self.price_history_highs.pop_front();
             self.price_history_lows.pop_front();
+            self.price_history_volumes.pop_front();
         }
         self.price_history_closes.push_back(c);
         self.price_history_highs.push_back(h);
         self.price_history_lows.push_back(l);
+        self.price_history_volumes.push_back(v);
 
         // ... Core Shifts ...
         for (_len, s) in &mut self.ema_states { if s.initialized { s.value = (c - s.value) * s.k + s.value; }}
@@ -325,23 +338,33 @@ impl TechnicalsCalculator {
         for (_k, s) in &mut self.macd_states { if s.initialized {
             s.ema_fast = (c - s.ema_fast) * s.k_fast + s.ema_fast; s.ema_slow = (c - s.ema_slow) * s.k_slow + s.ema_slow; s.signal_val = ((s.ema_fast - s.ema_slow) - s.signal_val) * s.k_signal + s.signal_val;
         }}
-        for (_len, s) in &mut self.bb_states { if s.initialized { if let Some(old) = s.buffer.pop_front() { s.buffer.push_back(c); s.sum = s.sum - old + c; s.sum_sq = s.sum_sq - (old*old) + (c*c); }}}
+        for (len, s) in &mut self.bb_states { if s.initialized && self.price_history_closes.len() >= *len { 
+            let old = self.price_history_closes[self.price_history_closes.len() - *len]; 
+            s.sum = s.sum - old + c; s.sum_sq = s.sum_sq - (old*old) + (c*c); 
+        }}
         for (len, s) in &mut self.atr_states { if s.initialized {
              let tr = (h - l).max((h - s.prev_close).abs()).max((l - s.prev_close).abs()); s.value = (s.value * (*len as f64 - 1.0) + tr) / *len as f64; s.prev_close = c;
         }}
         for (_key, s) in &mut self.stoch_states { if s.initialized {
-            s.highs.push_back(h); s.lows.push_back(l); if s.highs.len() > s.k_len { s.highs.pop_front(); s.lows.pop_front(); }
-            let max_h = s.highs.iter().fold(f64::MIN, |a, &b| a.max(b)); let min_l = s.lows.iter().fold(f64::MAX, |a, &b| a.min(b));
+            // No longer needs internal highs/lows buffers, using global history during update()
+            // Just need to keep k_buffer for D calculation
+            let max_h = self.price_history_highs.iter().take(self.price_history_highs.len()).fold(f64::MIN, |a, &b| a.max(b));
+            let min_l = self.price_history_lows.iter().take(self.price_history_lows.len()).fold(f64::MAX, |a, &b| a.min(b));
             let k = if max_h == min_l { 50.0 } else { (c - min_l) / (max_h - min_l) * 100.0 };
             s.k_buffer.push_back(k); if s.k_buffer.len() > s.d_len { s.k_buffer.pop_front(); }
             s.d_val = s.k_buffer.iter().sum::<f64>() / s.k_buffer.len().max(1) as f64;
         }}
 
         // Advanced Shifts
-        for (_len, s) in &mut self.mom_states { if s.initialized { s.buffer.push_back(c); s.buffer.pop_front(); }}
-        for (_len, s) in &mut self.volma_states { if s.initialized { if let Some(old) = s.buffer.pop_front() { s.buffer.push_back(v); s.sum = s.sum - old + v; }}}
-        for (len, s) in &mut self.wr_states { if s.initialized {
-            s.highs.push_back(h); s.lows.push_back(l); if s.highs.len() > *len { s.highs.pop_front(); s.lows.pop_front(); }
+        for (_len, s) in &mut self.mom_states { if s.initialized { 
+            // Momentum no longer needs internal buffer, using global closes
+        }}
+        for (len, s) in &mut self.volma_states { if s.initialized && self.price_history_volumes.len() >= *len { 
+            let old = self.price_history_volumes[self.price_history_volumes.len() - *len];
+            s.sum = s.sum - old + v; 
+        }}
+        for (_len, s) in &mut self.wr_states { if s.initialized {
+            // WR no longer needs internal buffer, using global highs/lows
         }}
     }
 }

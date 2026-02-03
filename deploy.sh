@@ -192,6 +192,19 @@ health_check() {
     return 1
 }
 
+# Validate build artifacts
+validate_build() {
+    log "Validating build artifacts..."
+    
+    if [[ ! -f "build/index.js" ]]; then
+        error_exit "Build artifact missing: build/index.js"
+    fi
+    
+    if [[ ! -f "build/handler.js" ]]; then
+        error_exit "Build artifact missing: build/handler.js"
+    fi
+    
+    # Validate WASM artifact
     if [[ ! -f "build/client/wasm/technicals_wasm.wasm" ]] && [[ ! -f "static/wasm/technicals_wasm.wasm" ]]; then
         log "${YELLOW}Warning: WASM artifact not found in expected locations.${NC}"
         log "Checking for technicals_wasm.wasm..."
@@ -200,6 +213,11 @@ health_check() {
         else
             error_exit "WASM artifact missing! Technical indicators will not work."
         fi
+    fi
+    
+    local build_size=$(du -sb build 2>/dev/null | cut -f1)
+    if [[ $build_size -lt 100000 ]]; then
+        log "${YELLOW}Warning: Build size suspiciously small (${build_size} bytes)${NC}"
     fi
     
     log "Build artifacts validated"
