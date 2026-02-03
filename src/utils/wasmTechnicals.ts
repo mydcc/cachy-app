@@ -12,7 +12,10 @@
 
 let wasmInstance: any = null;
 
-export const WASM_SUPPORTED_INDICATORS = ['ema', 'rsi', 'macd', 'bb', 'atr'];
+export const WASM_SUPPORTED_INDICATORS = [
+    'ema', 'rsi', 'macd', 'bb', 'atr', 'stochastic', 'cci', 'adx', 'supertrend',
+    'momentum', 'williamsr', 'volumema', 'pivots', 'parabolicsar', 'choppiness', 'vwap', 'mfi'
+];
 
 export async function loadWasm() {
   if (wasmInstance) return wasmInstance;
