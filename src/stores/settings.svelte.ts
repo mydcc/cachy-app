@@ -19,7 +19,7 @@ export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
 export type SidePanelLayout = "standard" | "floating";
 export type AiProvider = "openai" | "gemini" | "anthropic";
-export type BackgroundType = "none" | "image" | "video" | "animation" | "threejs";
+export type BackgroundType = "none" | "image" | "video" | "animation" | "threejs" | "tradeflow";
 export type BackgroundAnimationPreset =
   | "none"
   | "gradient"
@@ -91,6 +91,14 @@ export interface GalaxySettings {
   galaxyRot: { x: number; y: number; z: number };
   enableGyroscope: boolean;
   rotationSpeed: number;
+}
+
+
+export interface TradeFlowSettings {
+  speed: number;
+  particleCount: number;
+  size: number;
+  spread: number;
 }
 
 export interface Settings {
@@ -204,6 +212,7 @@ export interface Settings {
   backgroundAnimationIntensity: AnimationIntensity;
   videoPlaybackSpeed: number;
   galaxySettings: GalaxySettings;
+  tradeFlowSettings: TradeFlowSettings;
   enableNetworkLogs: boolean;
   logSettings?: {
     technicals: boolean;
