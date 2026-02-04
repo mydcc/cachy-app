@@ -61,6 +61,8 @@ interface Subscription {
 }
 
 class BitunixWebSocketService {
+  // Trade Listeners
+  private tradeListeners = new Map<string, Set<(trade: any) => void>>();
   public static activeInstance: BitunixWebSocketService | null = null;
   private static instanceCount = 0;
   private instanceId = 0;
@@ -1080,6 +1082,23 @@ class BitunixWebSocketService {
           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
         }
       }
+
+      else if (validatedChannel === "trade") {
+        const rawSymbol = validatedMessage.symbol || "";
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
+        const data = validatedMessage.data;
+        // Fast Path: Check if valid trade data
+        if (data && (Array.isArray(data) ? isTradeData(data[0]) : isTradeData(data))) {
+             const items = Array.isArray(data) ? data : [data];
+             // Dispatch to listeners
+             const listeners = this.tradeListeners.get(symbol);
+             if (listeners) {
+                 items.forEach(item => {
+                     listeners.forEach(cb => cb(item));
+                 });
+             }
+        }
+      }
       else if (validatedChannel === "position") {
         const data = validatedMessage.data;
         if (data) {
@@ -1164,6 +1183,34 @@ class BitunixWebSocketService {
 
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
       this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+    }
+  }
+
+
+  subscribeTrade(symbol: string, callback: (trade: any) => void) {
+    if (!symbol) return;
+    const normalized = normalizeSymbol(symbol, "bitunix");
+
+    if (!this.tradeListeners.has(normalized)) {
+      this.tradeListeners.set(normalized, new Set());
+      // Actually subscribe to the WebSocket channel
+      this.subscribe(normalized, "trade");
+    }
+
+    this.tradeListeners.get(normalized)?.add(callback);
+  }
+
+  unsubscribeTrade(symbol: string, callback: (trade: any) => void) {
+    if (!symbol) return;
+    const normalized = normalizeSymbol(symbol, "bitunix");
+
+    const listeners = this.tradeListeners.get(normalized);
+    if (listeners) {
+      listeners.delete(callback);
+      if (listeners.size === 0) {
+        this.tradeListeners.delete(normalized);
+        this.unsubscribe(normalized, "trade");
+      }
     }
   }
 
@@ -1303,4 +1350,11 @@ export function isTickerData(d: any): d is {
 
 export function isDepthData(d: any): d is { b: any[]; a: any[] } {
   return d && Array.isArray(d.b) && Array.isArray(d.a);
+}
+
+
+export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+  // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
+  return (d.p !== undefined && d.v !== undefined && d.s !== undefined);
 }

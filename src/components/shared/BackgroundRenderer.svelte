@@ -23,6 +23,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import BackgroundAnimations from "./BackgroundAnimations.svelte";
   import ThreeBackground from "./ThreeBackground.svelte";
+  import TradeFlowBackground from "./backgrounds/TradeFlowBackground.svelte";
 
   let imageError = $state(false);
   let videoError = $state(false);
@@ -99,6 +100,10 @@
     {:else if settingsState.backgroundType === "threejs"}
       <div class="three-container">
         <ThreeBackground />
+      </div>
+        {:else if settingsState.backgroundType === "tradeflow"}
+      <div class="three-container">
+        <TradeFlowBackground />
       </div>
     {/if}
   </div>

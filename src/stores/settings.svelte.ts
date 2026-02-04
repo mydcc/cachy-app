@@ -19,7 +19,7 @@ export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
 export type SidePanelLayout = "standard" | "floating";
 export type AiProvider = "openai" | "gemini" | "anthropic";
-export type BackgroundType = "none" | "image" | "video" | "animation" | "threejs";
+export type BackgroundType = "none" | "image" | "video" | "animation" | "threejs" | "tradeflow";
 export type BackgroundAnimationPreset =
   | "none"
   | "gradient"
@@ -91,6 +91,14 @@ export interface GalaxySettings {
   galaxyRot: { x: number; y: number; z: number };
   enableGyroscope: boolean;
   rotationSpeed: number;
+}
+
+
+export interface TradeFlowSettings {
+  speed: number;
+  particleCount: number;
+  size: number;
+  spread: number;
 }
 
 export interface Settings {
@@ -204,6 +212,7 @@ export interface Settings {
   backgroundAnimationIntensity: AnimationIntensity;
   videoPlaybackSpeed: number;
   galaxySettings: GalaxySettings;
+  tradeFlowSettings: TradeFlowSettings;
   enableNetworkLogs: boolean;
   logSettings?: {
     technicals: boolean;
@@ -385,7 +394,13 @@ const defaultSettings: Settings = {
   backgroundAnimationPreset: "none",
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
-  galaxySettings: {
+  tradeFlowSettings: {
+      speed: 1.0,
+      particleCount: 5000,
+      size: 0.05,
+      spread: 5.0,
+    },
+    galaxySettings: {
     particleCount: 20000,
     particleSize: 0.5,
     radius: 5,
@@ -479,6 +494,7 @@ const defaultSettings: Settings = {
 
 
 export class SettingsManager {
+  tradeFlowSettings = $state<TradeFlowSettings>(defaultSettings.tradeFlowSettings);
   // Using $state for all properties
   private _apiProvider = $state<"bitunix" | "bitget">(
     defaultSettings.apiProvider,
@@ -1318,6 +1334,7 @@ export class SettingsManager {
       backgroundAnimationIntensity: this.backgroundAnimationIntensity,
       videoPlaybackSpeed: this.videoPlaybackSpeed,
       galaxySettings: $state.snapshot(this.galaxySettings),
+      tradeFlowSettings: $state.snapshot(this.tradeFlowSettings),
       enableNetworkLogs: this.enableNetworkLogs,
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,
