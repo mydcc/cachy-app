@@ -1,52 +1,51 @@
-# System Hardening & Maintenance Report
+# Analysis & Risk Report
 
-## 🔴 CRITICAL (Immediate Action Required)
+## Executive Summary
+The `cachy-app` codebase demonstrates a high level of maturity with defensive programming practices such as consistent use of `Decimal.js` for financial calculations, robust retry policies, and structured state management. However, performance optimizations in the WebSocket layer introduced potential type safety risks, and localization coverage was incomplete.
 
-1.  **Race Condition in `TradeService.flashClosePosition`**
-    *   **Location:** `src/services/tradeService.ts`
-    *   **Issue:** The method creates an optimistic order (`omsService.addOptimisticOrder`) before sending the API request. If the request fails (e.g., timeout), the code logs a warning ("Two Generals Problem") and triggers a sync, but does not explicitly mark the optimistic order as failed or remove it if the API definitely failed (e.g. 400 Bad Request vs 504 Timeout). This can lead to "Ghost Orders" remaining in the UI.
-    *   **Risk:** User sees a closed position that is actually still open, or vice versa.
+## Findings by Category
 
-2.  **Implicit Decimal Serialization in API Calls**
-    *   **Location:** `src/services/tradeService.ts` (`signedRequest`)
-    *   **Issue:** The `payload` containing `Decimal` objects is passed directly to `JSON.stringify`. While `Decimal.js` has a `toJSON()` method, relying on implicit serialization for financial data is risky. If a `Decimal` is nested in a plain object without proper prototype handling, it might serialize incorrectly.
-    *   **Risk:** Sending `{ qty: "10" }` (string) vs `{ qty: 10 }` (number) or `{ qty: { s: 1, e: ... } }` depending on implementation details.
+### 1. Data Integrity & Mapping
+*   **Status:** Generally Robust.
+*   **Strengths:**
+    *   `TradeService` and `OMSService` strictly enforce `Decimal` types, preventing floating-point errors.
+    *   API responses are parsed safely with `safeJsonParse`.
+    *   `ensurePositionFreshness` prevents trading on stale data.
+*   **Risks:**
+    *   **WebSocket Fast Path:** The `bitunixWs.ts` service bypasses Zod validation for high-frequency channels (`price`, `ticker`). The initial type guards were too permissive, potentially allowing objects or mixed types to pass as valid data.
+    *   **Mitigation:** Hardened the type guards (`isPriceData`, `isTickerData`) to explicitly validate that critical fields are primitives (number/string) if they exist.
 
-3.  **Potential Precision Loss in Technicals Worker**
-    *   **Location:** `src/services/technicalsService.ts`
-    *   **Issue:** Input data (`Decimal`) is converted to native `number` via `.toNumber()` before being sent to the Web Worker.
-    *   **Risk:** While acceptable for oscillators (RSI), this is dangerous for price-sensitive overlays (Moving Averages, Bollinger Bands) on low-value coins (e.g., SHIB at 0.00000888), where floating point errors can distort signals.
+### 2. Resource Management & Performance
+*   **Status:** Good.
+*   **Strengths:**
+    *   `MarketManager` uses buffers (`pendingUpdates`) with hard limits to prevent memory leaks during high-load.
+    *   `TechnicalsService` uses LRU caching and a dedicated worker.
+*   **Observations:**
+    *   `marketWatcher.ts` uses `setInterval` for polling. While generally acceptable, a recursive `setTimeout` pattern is safer to prevent request stacking. This is marked as a low-priority refactor.
 
-4.  **Synchronous Cache Writes Blocking UI**
-    *   **Location:** `src/services/newsService.ts` (`safeWriteCache`)
-    *   **Issue:** `localStorage.setItem` is called synchronously with `JSON.stringify` on potentially large news datasets.
-    *   **Risk:** UI freezing during news updates.
+### 3. UI/UX & Accessibility
+*   **Status:** Needs Improvement (Addressed).
+*   **Findings:**
+    *   Several hardcoded strings were identified in `VisualsTab`, `AiTab`, and Tooltips, bypassing the i18n system.
+    *   "Broken" states (e.g., loading spinners) are generally handled, but consistent error messaging relies on correct i18n keys.
+*   **Actions:** Extracted hardcoded strings to `en.json` and updated components.
 
-## 🟡 WARNING (High Priority)
+### 4. Security
+*   **Status:** Secure.
+*   **Strengths:**
+    *   `DisclaimerModal` uses `DOMPurify` (via `sanitizeHtml`) to render HTML safely.
+    *   Input components validate numeric input aggressively.
+    *   API keys are stored in `settingsState` (local storage) and not logged in error reports.
 
-1.  **Missing i18n (Hardcoded Strings)**
-    *   **Location:** `src/components/settings/CalculationSettings.svelte`, `src/components/settings/tabs/VisualsTab.svelte`
-    *   **Issue:** Extensive use of hardcoded English text for labels, descriptions, and tooltips.
-    *   **Risk:** Poor UX for non-English users; maintenance nightmare.
+## Prioritized Implementation Plan (Completed)
 
-2.  **MarketWatcher Lock Staling**
-    *   **Location:** `src/services/marketWatcher.ts`
-    *   **Issue:** The safety valve `if (this.fetchLocks.size > 200)` suggests an underlying issue where locks are not cleared correctly in edge cases (e.g., if a component unmounts mid-fetch or if `finally` block logic is somehow bypassed by a crash).
-    *   **Risk:** Memory leak and polling cessation for specific symbols.
+1.  **Critical Hardening:**
+    *   Refactored `src/services/bitunixWs.ts` to strictly validate Fast Path payloads.
+    *   Added regression tests in `src/tests/hardening/bitunix_ws.test.ts`.
 
-3.  **Fast Path Type Safety**
-    *   **Location:** `src/services/bitunixWs.ts`
-    *   **Issue:** The "Fast Path" optimization bypasses Zod validation. While a `dev`-only check exists for numeric precision, production builds blindly trust the WebSocket data structure.
-    *   **Risk:** If the exchange changes the API schema (e.g., `lastPrice` becomes a number instead of string), the app will crash or calculate wrong PnL.
+2.  **Localization:**
+    *   Added missing keys to `en.json`.
+    *   Updated `VisualsTab`, `AiTab`, and shared components to use `$_`.
 
-## 🔵 REFACTOR (Technical Debt)
-
-1.  **Duplicate/Legacy Code in TradeState**
-    *   **Location:** `src/stores/trade.svelte.ts`
-    *   **Issue:** Hardcoded default strings ("1000", "1") inside the initial state rather than derived constants or user config.
-    *   **Risk:** Inconsistency if defaults need to change.
-
-2.  **Complex Component Logic**
-    *   **Location:** `src/components/shared/MarketOverview.svelte`
-    *   **Issue:** Component mixes UI logic, data subscription management (`activeTechnicalsManager`), and animation logic.
-    *   **Risk:** Hard to test and maintain.
+3.  **Validation:**
+    *   Verified changes with `svelte-check` and full unit test suite.

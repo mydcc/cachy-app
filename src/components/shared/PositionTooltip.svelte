@@ -96,7 +96,7 @@
       </span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">ROE:</span>
+      <span class="text-[var(--text-secondary)]">{$_("common.roe")}:</span>
       <span
         class:text-[var(--success-color)]={position.unrealizedPnl > 0}
         class:text-[var(--danger-color)]={position.unrealizedPnl < 0}

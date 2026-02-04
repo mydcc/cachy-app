@@ -686,6 +686,13 @@
         "standard": "Standard",
         "floating": "Schwebend"
       },
+      "coordinates": {
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "px": "px",
+        "deg": "°"
+      },
       "appearanceTitle": "Optik & Design",
       "layoutTitle": "Layout & Struktur",
       "backgroundTitle": "Hintergrund"
@@ -826,7 +833,19 @@
       "confirmClearHistory": "Verlauf löschen bestätigen",
       "confirmClearHistoryDesc": "Fordert Bestätigung vor dem Löschen des Chat-Verlaufs",
       "behavior": "Verhalten & Persona",
-      "agents": "Autonome Agenten"
+      "agents": "Autonome Agenten",
+      "depth": {
+        "label": "Analyse Tiefe",
+        "quick": "Schnell (Fast)",
+        "standard": "Standard",
+        "deep": "Tief (Detailliert)"
+      },
+      "discord": {
+        "title": "Discord Bot",
+        "token": "Bot Token",
+        "channelId": "Kanal ID",
+        "addChannel": "+ Kanal hinzufügen"
+      }
     },
     "technicals": {
       "strongBuy": "Stark Kaufen",
@@ -1283,7 +1302,10 @@
     "close": "Schließen",
     "remove": "×",
     "warning": "Warnung",
-    "resize": "Größe ändern"
+    "resize": "Größe ändern",
+    "tp": "TP",
+    "sl": "SL",
+    "roe": "ROE"
   },
   "analyst": {
     "trend": {

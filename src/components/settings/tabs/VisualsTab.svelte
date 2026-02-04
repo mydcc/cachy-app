@@ -203,7 +203,7 @@
                                     />
                                     <span
                                         class="text-xs text-[var(--text-secondary)]"
-                                        >px</span
+                                        >{$_("settings.visuals.coordinates.px")}</span
                                     >
                                 </div>
                             </div>
@@ -891,7 +891,7 @@
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="field-group">
                                     <label for="cam-x"
-                                        >X: {settingsState.galaxySettings.camPos.x.toFixed(
+                                        >{$_("settings.visuals.coordinates.x")}: {settingsState.galaxySettings.camPos.x.toFixed(
                                             1,
                                         )}</label
                                     >
@@ -910,7 +910,7 @@
                                 </div>
                                 <div class="field-group">
                                     <label for="cam-y"
-                                        >Y: {settingsState.galaxySettings.camPos.y.toFixed(
+                                        >{$_("settings.visuals.coordinates.y")}: {settingsState.galaxySettings.camPos.y.toFixed(
                                             1,
                                         )}</label
                                     >
@@ -929,7 +929,7 @@
                                 </div>
                                 <div class="field-group">
                                     <label for="cam-z"
-                                        >Z: {settingsState.galaxySettings.camPos.z.toFixed(
+                                        >{$_("settings.visuals.coordinates.z")}: {settingsState.galaxySettings.camPos.z.toFixed(
                                             1,
                                         )}</label
                                     >
@@ -955,9 +955,9 @@
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="field-group">
                                     <label for="rot-x"
-                                        >X: {settingsState.galaxySettings.galaxyRot.x.toFixed(
+                                        >{$_("settings.visuals.coordinates.x")}: {settingsState.galaxySettings.galaxyRot.x.toFixed(
                                             1,
-                                        )}°</label
+                                        )}{$_("settings.visuals.coordinates.deg")}</label
                                     >
                                     <input
                                         id="rot-x"
@@ -974,9 +974,9 @@
                                 </div>
                                 <div class="field-group">
                                     <label for="rot-y"
-                                        >Y: {settingsState.galaxySettings.galaxyRot.y.toFixed(
+                                        >{$_("settings.visuals.coordinates.y")}: {settingsState.galaxySettings.galaxyRot.y.toFixed(
                                             1,
-                                        )}°</label
+                                        )}{$_("settings.visuals.coordinates.deg")}</label
                                     >
                                     <input
                                         id="rot-y"
@@ -993,9 +993,9 @@
                                 </div>
                                 <div class="field-group">
                                     <label for="rot-z"
-                                        >Z: {settingsState.galaxySettings.galaxyRot.z.toFixed(
+                                        >{$_("settings.visuals.coordinates.z")}: {settingsState.galaxySettings.galaxyRot.z.toFixed(
                                             1,
-                                        )}°</label
+                                        )}{$_("settings.visuals.coordinates.deg")}</label
                                     >
                                     <input
                                         id="rot-z"
