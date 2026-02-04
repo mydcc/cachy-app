@@ -26,6 +26,8 @@ import { Decimal } from "decimal.js";
 import {
   JSIndicators,
   calculateAwesomeOscillator,
+  calculateMFI,
+  calculateCCISeries,
   calculatePivots,
   getRsiAction,
   calculatePivotsFromValues,
@@ -283,7 +285,7 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('cci')) {
       const cciLen = settings?.cci?.length || 20;
       const cciSmoothLen = settings?.cci?.smoothingLength || 1;
-      const cciSource = getSource(settings?.cci?.source || "hlc3");
+      const cciSourceType = settings?.cci?.source || "hlc3";
 
       let cciResults: Float64Array | undefined;
       if (pool) {
@@ -291,7 +293,13 @@ export function calculateIndicatorsFromArrays(
           cleanupBuffers.push(cciResults);
       }
 
-      cciResults = JSIndicators.cci(cciSource, cciLen, cciResults);
+      if (cciSourceType === "hlc3") {
+          cciResults = calculateCCISeries(highsNum, lowsNum, closesNum, cciLen, cciResults);
+      } else {
+          const cciSource = getSource(cciSourceType);
+          cciResults = JSIndicators.cci(cciSource, cciLen, cciResults);
+      }
+
       if (cciSmoothLen > 1) {
           let smoothed: Float64Array | undefined;
           if (pool) {
@@ -602,15 +610,13 @@ export function calculateIndicatorsFromArrays(
     // MFI
     if (shouldCalculate('mfi')) {
         const mfiLen = settings?.mfi?.length || 14;
-        const mfiSeries = JSIndicators.mfi(
-        highsNum,
-        lowsNum,
-        closesNum,
-        volumesNum,
-        mfiLen,
-        getSource("hlc3"),
+        const mfiVal = calculateMFI(
+            highsNum,
+            lowsNum,
+            closesNum,
+            volumesNum,
+            mfiLen
         );
-        const mfiVal = mfiSeries[mfiSeries.length - 1];
         let mfiAction = "Neutral";
         if (mfiVal > 80)
         mfiAction = "Sell"; // Overbought
