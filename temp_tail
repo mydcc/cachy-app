@@ -1,98 +1,13 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-/*
- * Copyright (C) 2026 MYDCT
- *
- * Shared Calculation Logic for Technical Indicators.
- * Used by running both in Main Thread (Fallback) and Worker (Performance).
- */
-
-import { Decimal } from "decimal.js";
-import {
-  JSIndicators,
-  calculateAwesomeOscillator,
-  calculatePivots,
-  getRsiAction,
-  calculatePivotsFromValues,
-  type Kline,
-} from "./indicators";
-import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
-import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
-import type { IndicatorSettings } from "../stores/indicator.svelte";
-import { BufferPool } from "./bufferPool";
-import type {
-  TechnicalsData,
-  IndicatorResult,
-  DivergenceItem,
-} from "../services/technicalsTypes";
-
-// Global buffer pool to reuse Float64Arrays and avoid GC pressure
-const bufferPool = new BufferPool();
-
-export function calculateAllIndicators(
-  klines: Kline[],
-  settings?: IndicatorSettings,
-  enabledIndicators?: Partial<Record<string, boolean>>,
-): TechnicalsData {
-  if (klines.length < 2) return getEmptyData();
-
-  const len = klines.length;
-
-  // Acquire buffers from the pool
-  const highsNum = bufferPool.acquire(len);
-  const lowsNum = bufferPool.acquire(len);
-  const closesNum = bufferPool.acquire(len);
-  const opensNum = bufferPool.acquire(len);
-  const volumesNum = bufferPool.acquire(len);
-  const timesNum = bufferPool.acquire(len);
-
-  try {
-    // Optimization: Single loop extraction into pre-allocated Float64Arrays
-    for (let i = 0; i < len; i++) {
-      const k = klines[i];
-      highsNum[i] = k.high.toNumber();
-      lowsNum[i] = k.low.toNumber();
-      closesNum[i] = k.close.toNumber();
-      opensNum[i] = k.open.toNumber();
-      volumesNum[i] = k.volume.toNumber();
-      timesNum[i] = k.time;
-    }
-
-    return calculateIndicatorsFromArrays(
-      timesNum,
-      opensNum,
-      highsNum,
-      lowsNum,
-      closesNum,
-      volumesNum,
-      settings,
-      enabledIndicators,
-      bufferPool
-    );
-  } finally {
-    // Release buffers back to the pool
-    bufferPool.release(highsNum);
-    bufferPool.release(lowsNum);
-    bufferPool.release(closesNum);
-    bufferPool.release(opensNum);
-    bufferPool.release(volumesNum);
-    bufferPool.release(timesNum);
-  }
+  return calculateIndicatorsFromArrays(
+    timesNum,
+    opensNum,
+    highsNum,
+    lowsNum,
+    closesNum,
+    volumesNum,
+    settings,
+    enabledIndicators
+  );
 }
 
 export function calculateIndicatorsFromArrays(
