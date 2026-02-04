@@ -602,6 +602,13 @@ export const apiService = {
                   logger.warn("network", "[Bitunix] Dropping invalid kline (Time=0)", d);
                   return null;
               }
+
+              // HARDENING: Check for missing or zero prices
+              // d.open/close are Decimals (from BitunixKlineSchema)
+              if (!d.open || !d.close || d.open.isZero() || d.close.isZero()) {
+                  return null;
+              }
+
               return {
                 open: d.open,
                 high: d.high,

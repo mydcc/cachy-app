@@ -823,7 +823,7 @@ class BitunixWebSocketService {
                     const safeMessage = { ...message, data: safeData };
                     const normalized = mdaService.normalizeTicker(safeMessage, "bitunix");
 
-                    if (!this.shouldThrottle(`${symbol}:ticker`)) {
+                    if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
                       marketState.updateSymbol(symbol, {
                         lastPrice: normalized.lastPrice,
                         highPrice: normalized.high,
@@ -1012,7 +1012,7 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
-        if (!this.shouldThrottle(`${symbol}:ticker`)) {
+        if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
           marketState.updateSymbol(symbol, {
             lastPrice: normalized.lastPrice,
             highPrice: normalized.high,
