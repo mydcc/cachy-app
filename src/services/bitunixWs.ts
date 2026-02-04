@@ -61,6 +61,8 @@ interface Subscription {
 }
 
 class BitunixWebSocketService {
+  // Trade Listeners
+  private tradeListeners = new Map<string, Set<(trade: any) => void>>();
   public static activeInstance: BitunixWebSocketService | null = null;
   private static instanceCount = 0;
   private instanceId = 0;
