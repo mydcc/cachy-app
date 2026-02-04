@@ -1235,26 +1235,21 @@ export function calculateAwesomeOscillator(
   low: NumberArray,
   fastPeriod: number,
   slowPeriod: number,
-  hl2?: NumberArray,
 ): number {
-  let _hl2: NumberArray = hl2 || new Float64Array(high.length);
-  if(!hl2) {
-      for(let i=0; i<high.length; i++) {
-          (_hl2 as Float64Array)[i] = (high[i] + low[i]) / 2;
-      }
-  }
+  const len = high.length;
 
-  const getSMA = (data: NumberArray, period: number): number => {
-    if (data.length < period) return 0;
+  const getSMAOfHL2 = (period: number): number => {
+    if (len < period) return 0;
     let sum = 0;
-    for (let i = data.length - period; i < data.length; i++) {
-      sum += data[i];
+    const start = len - period;
+    for (let i = start; i < len; i++) {
+      sum += (high[i] + low[i]) / 2;
     }
     return sum / period;
   };
 
-  const fastSMA = getSMA(_hl2, fastPeriod);
-  const slowSMA = getSMA(_hl2, slowPeriod);
+  const fastSMA = getSMAOfHL2(fastPeriod);
+  const slowSMA = getSMAOfHL2(slowPeriod);
 
   return fastSMA - slowSMA;
 }

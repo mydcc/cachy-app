@@ -362,7 +362,6 @@ export function calculateIndicatorsFromArrays(
         lowsNum,
         aoFast,
         aoSlow,
-        getSource("hl2"),
       );
       // We'd need the full series for divergence, but AO helper returns single value.
       // We'll skip AO divergence for now unless we refactor helper.
