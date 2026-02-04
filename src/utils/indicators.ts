@@ -1254,6 +1254,150 @@ export function calculateAwesomeOscillator(
   return fastSMA - slowSMA;
 }
 
+export function calculateMFI(
+  high: NumberArray,
+  low: NumberArray,
+  close: NumberArray,
+  vol: NumberArray,
+  period: number
+): number {
+  const len = close.length;
+  if (len < period + 1) return 0;
+
+  // We need to look at the last 'period' changes.
+  // Changes are defined between i-1 and i.
+  // So we need indices from len - period to len - 1.
+  // And for each i, we compare with i-1.
+  // So we need data starting from len - period - 1.
+
+  let posFlow = 0;
+  let negFlow = 0;
+
+  const start = len - period;
+
+  // Calculate TP for previous day (start - 1)
+  let prevTP = (high[start - 1] + low[start - 1] + close[start - 1]) / 3;
+
+  for (let i = start; i < len; i++) {
+    const tp = (high[i] + low[i] + close[i]) / 3;
+    const rawFlow = tp * vol[i];
+
+    if (tp > prevTP) {
+      posFlow += rawFlow;
+    } else if (tp < prevTP) {
+      negFlow += rawFlow;
+    }
+    // if tp == prevTP, flow is discarded (typical MFI behavior)
+
+    prevTP = tp;
+  }
+
+  if (negFlow === 0) return 100; // Avoid div by zero, max value
+
+  const mfr = posFlow / negFlow;
+  return 100 - (100 / (1 + mfr));
+}
+
+export function calculateCCI(
+  high: NumberArray,
+  low: NumberArray,
+  close: NumberArray,
+  period: number
+): number {
+  const len = close.length;
+  if (len < period) return 0;
+
+  // 1. Compute TPs for the window
+  // We need to store them to calculate MeanDev later
+  // Avoiding generic array alloc? We can use a small stack buffer if period is small,
+  // but standard JS array is fine for small period (20).
+  const tps = new Float64Array(period);
+  let sum = 0;
+
+  const start = len - period;
+  for (let i = 0; i < period; i++) {
+    const idx = start + i;
+    const tp = (high[idx] + low[idx] + close[idx]) / 3;
+    tps[i] = tp;
+    sum += tp;
+  }
+
+  const sma = sum / period;
+
+  let sumAbsDiff = 0;
+  for (let i = 0; i < period; i++) {
+    sumAbsDiff += Math.abs(tps[i] - sma);
+  }
+
+  const meanDev = sumAbsDiff / period;
+
+  if (meanDev === 0) return 0;
+  return (tps[period - 1] - sma) / (0.015 * meanDev);
+}
+
+export function calculateCCISeries(
+  high: NumberArray,
+  low: NumberArray,
+  close: NumberArray,
+  period: number,
+  out?: Float64Array
+): Float64Array {
+  const len = close.length;
+  const result = (out && out.length === len) ? out : new Float64Array(len);
+  result.fill(NaN);
+
+  if (len < period) return result;
+
+  const tpBuf = new Float64Array(period);
+  let sum = 0;
+  let ptr = 0;
+
+  // Initialize first window
+  for (let i = 0; i < period; i++) {
+      const tp = (high[i] + low[i] + close[i]) / 3;
+      tpBuf[i] = tp;
+      sum += tp;
+  }
+
+  // Calculate first point (at index period-1)
+  let sma = sum / period;
+  let sumAbsDiff = 0;
+  for (let j = 0; j < period; j++) {
+      sumAbsDiff += Math.abs(tpBuf[j] - sma);
+  }
+  let meanDev = sumAbsDiff / period;
+  // Last added TP was at index period-1
+  result[period - 1] = meanDev === 0 ? 0 : (tpBuf[period - 1] - sma) / (0.015 * meanDev);
+
+  // Iterate the rest
+  for (let i = period; i < len; i++) {
+      const tp = (high[i] + low[i] + close[i]) / 3;
+
+      const oldTP = tpBuf[ptr];
+      sum = sum - oldTP + tp;
+
+      tpBuf[ptr] = tp;
+
+      // Calculate results
+      sma = sum / period;
+
+      sumAbsDiff = 0;
+      for (let j = 0; j < period; j++) {
+          sumAbsDiff += Math.abs(tpBuf[j] - sma);
+      }
+      meanDev = sumAbsDiff / period;
+
+      result[i] = meanDev === 0 ? 0 : (tp - sma) / (0.015 * meanDev);
+
+      ptr = (ptr + 1) % period;
+  }
+
+  return result;
+}
+
+
+
+
 export function calculatePivots(klines: Kline[], type: string) {
   if (klines.length < 2) return getEmptyPivots();
   const prev = klines[klines.length - 2];
