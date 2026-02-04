@@ -59,6 +59,7 @@ export type WSStatus =
 // Increased cache improves performance for power users tracking many symbols
 const DEFAULT_CACHE_SIZE = 20;
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
+const KLINE_BUFFER_HARD_LIMIT = 2000; // Hard cap for pending kline updates
 
 function getMaxCacheSize(): number {
   return settingsState.marketCacheSize || DEFAULT_CACHE_SIZE;
@@ -262,6 +263,12 @@ export class MarketManager {
       const toDecimal = (val: any, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
         try {
           if (val === undefined || val === null) return undefined;
+
+          // Hardening: Warn on float usage in DEV
+          if (typeof val === 'number' && import.meta.env.DEV) {
+              console.warn("[Market] Precision Warning: Received number for Decimal field. Use string/Decimal.", val);
+          }
+
           if (currentVal && currentVal.toString() === String(val)) {
              return currentVal; // Reuse existing object
           }
@@ -361,11 +368,10 @@ export class MarketManager {
       // Buffer high-frequency WS updates
       const key = `${symbol}:${timeframe}`;
       let pending = this.pendingKlineUpdates.get(key);
-      const MAX_BUFFER_LEN = 1000;
 
       // Hardening: Prevent individual buffer from growing indefinitely (OOM protection)
-      if (pending && pending.length >= MAX_BUFFER_LEN) {
-          if (import.meta.env.DEV) console.warn(`[Market] Buffer overflow for ${key}, forcing flush.`);
+      if (pending && pending.length >= KLINE_BUFFER_HARD_LIMIT) {
+          if (import.meta.env.DEV) console.warn(`[Market] Buffer overflow for ${key} (${pending.length}), forcing flush.`);
           this.flushUpdates();
           pending = undefined; // Force refresh after flush
       }
