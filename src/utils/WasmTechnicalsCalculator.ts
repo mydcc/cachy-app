@@ -9,6 +9,7 @@
 import type { Kline } from "./indicators";
 import type { TechnicalsData } from "../services/technicalsTypes";
 import { getEmptyData } from "./technicalsCalculator";
+import { toNumFast } from "./fastConversion";
 
 export class WasmTechnicalsCalculator {
   private instance: any; // WASM struct instance
@@ -34,10 +35,10 @@ export class WasmTechnicalsCalculator {
     const times = new Float64Array(len);
 
     for(let i=0; i<len; i++) {
-        closes[i] = history[i].close.toNumber();
-        highs[i] = history[i].high.toNumber();
-        lows[i] = history[i].low.toNumber();
-        volumes[i] = history[i].volume.toNumber();
+        closes[i] = toNumFast(history[i].close);
+        highs[i] = toNumFast(history[i].high);
+        lows[i] = toNumFast(history[i].low);
+        volumes[i] = toNumFast(history[i].volume);
         times[i] = history[i].time;
     }
 
@@ -50,11 +51,11 @@ export class WasmTechnicalsCalculator {
     const lastTick = history[len-1];
 
     const updateJson = this.instance.update(
-        lastTick.open.toNumber(),
-        lastTick.high.toNumber(),
-        lastTick.low.toNumber(),
-        lastTick.close.toNumber(),
-        lastTick.volume.toNumber(),
+        toNumFast(lastTick.open),
+        toNumFast(lastTick.high),
+        toNumFast(lastTick.low),
+        toNumFast(lastTick.close),
+        toNumFast(lastTick.volume),
         lastTick.time
     );
 
@@ -64,11 +65,11 @@ export class WasmTechnicalsCalculator {
   public update(tick: Kline): TechnicalsData {
       // Pass full candle data: Open, High, Low, Close, Volume, Time
       const resultJson = this.instance.update(
-          tick.open.toNumber(),
-          tick.high.toNumber(),
-          tick.low.toNumber(),
-          tick.close.toNumber(),
-          tick.volume.toNumber(),
+          toNumFast(tick.open),
+          toNumFast(tick.high),
+          toNumFast(tick.low),
+          toNumFast(tick.close),
+          toNumFast(tick.volume),
           tick.time
       );
       return this.parseWasmResult(resultJson, getEmptyData());

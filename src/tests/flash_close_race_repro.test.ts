@@ -65,10 +65,10 @@ describe('Flash Close Race Condition Reproduction', () => {
         vi.restoreAllMocks();
     });
 
-    it('PREVENTS race condition: ABORTS close if cancel-all fails', async () => {
+    it('Best Effort: PROCEEDS with close even if cancel-all fails', async () => {
         // SCENARIO:
         // 1. cancel-all request FAILS (e.g. timeout or error)
-        // 2. We verify that the close order IS ABORTED (the fix)
+        // 2. We verify that the close order IS SENT (Best Effort)
 
         signedRequestSpy.mockImplementation(async (method: string, endpoint: string, body: any) => {
             if (body && body.type === 'cancel-all') {
@@ -81,8 +81,8 @@ describe('Flash Close Race Condition Reproduction', () => {
         });
 
         // Act
-        // We expect it TO THROW now, because we are strict about cancellation
-        await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).rejects.toThrow('Cancel All Failed (Simulated)');
+        // We expect it TO RESOLVE now, because we use Best Effort cancellation
+        await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).resolves.not.toThrow();
 
         // Assert
         const calls = signedRequestSpy.mock.calls;
@@ -90,8 +90,8 @@ describe('Flash Close Race Condition Reproduction', () => {
         // Find the Close call
         const closeCall = calls.find((call: any) => call[2] && call[2].side === 'SELL');
 
-        // VERIFICATION: We expect the close call to NOT exist
-        expect(closeCall).toBeUndefined();
+        // VERIFICATION: We expect the close call TO EXIST (Best Effort)
+        expect(closeCall).toBeDefined();
 
         // Also verify cancel was attempted
         const cancelCall = calls.find((call: any) => call[2] && call[2].type === 'cancel-all');

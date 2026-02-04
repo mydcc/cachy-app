@@ -1263,21 +1263,25 @@ export function calculatePivots(klines: Kline[], type: string) {
   if (klines.length < 2) return getEmptyPivots();
   const prev = klines[klines.length - 2];
   return calculatePivotsFromValues(
-    prev.high.toNumber(),
-    prev.low.toNumber(),
-    prev.close.toNumber(),
-    prev.open.toNumber(),
+    toNumFast(prev.high),
+    toNumFast(prev.low),
+    toNumFast(prev.close),
+    toNumFast(prev.open),
     type
   );
 }
 
 export function calculatePivotsFromValues(
-  h: number,
-  l: number,
-  c: number,
-  o: number,
-  type: string
+  high: number | Decimal,
+  low: number | Decimal,
+  close: number | Decimal,
+  open: number | Decimal,
+  type: string = "classic"
 ) {
+  const h = toNumFast(high);
+  const l = toNumFast(low);
+  const c = toNumFast(close);
+  const o = toNumFast(open);
   // Use numbers for performance in pivots as well
   const high = h;
   const low = l;
@@ -1377,7 +1381,7 @@ export function getRsiAction(
   oversold: number,
 ) {
   if (!val) return "Neutral";
-  const v = val instanceof Decimal ? val.toNumber() : val;
+  const v = toNumFast(val);
   if (v >= overbought) return "Sell";
   if (v <= oversold) return "Buy";
   return "Neutral";

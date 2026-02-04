@@ -8,6 +8,7 @@
 
 import { Decimal } from "decimal.js";
 import { JSIndicators, type Kline } from "./indicators";
+import { toNumFast } from "./fastConversion";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState, EmaState, RsiState } from "../services/technicalsTypes";
 import { CircularBuffer } from "./circularBuffer";
@@ -62,8 +63,8 @@ export class StatefulTechnicalsCalculator {
     }
 
     const prevResult = this.state.lastResult;
-    const currentPrice = tick.close.toNumber();
-    const prevPrice = this.state.lastCandle.close.toNumber();
+    const currentPrice = toNumFast(tick.close);
+    const prevPrice = toNumFast(this.state.lastCandle.close);
 
     // Clone the previous result to modify it
     // Deep clone might be expensive, but structure is simple.
@@ -119,7 +120,7 @@ export class StatefulTechnicalsCalculator {
       // This is crucial. 'state.ema' currently holds the value from the *previous* close (T-1).
       // We need to advance it to the current close (T) before starting T+1.
 
-      const lastClose = this.state.lastCandle.close.toNumber();
+      const lastClose = toNumFast(this.state.lastCandle.close);
 
       // Advance EMA State
       if (this.state.ema && this.enabled("ema")) {
@@ -188,7 +189,7 @@ export class StatefulTechnicalsCalculator {
       this.state.rsi = {};
       if (this.enabled("rsi")) {
           const rsiLen = this.settings?.rsi?.length || 14;
-          const closes = history.map(k => k.close.toNumber());
+          const closes = history.map(k => toNumFast(k.close));
           // We need to calculate full RSI series to get the final Average Gain/Loss.
           // JSIndicators.rsi doesn't return state.
           // We will use a helper that does, or just "warm up" manually.
@@ -255,7 +256,7 @@ export class StatefulTechnicalsCalculator {
       const start = Math.max(0, len - this.MAX_HISTORY_SIZE);
       
       for (let i = start; i < len; i++) {
-          this.priceHistory.push(history[i].close.toNumber());
+          this.priceHistory.push(toNumFast(history[i].close));
       }
   }
 

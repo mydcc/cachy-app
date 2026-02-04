@@ -31,6 +31,7 @@ import {
   calculatePivotsFromValues,
   type Kline,
 } from "./indicators";
+import { toNumFast } from "./fastConversion";
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
@@ -65,11 +66,11 @@ export function calculateAllIndicators(
     // Optimization: Single loop extraction into pre-allocated Float64Arrays
     for (let i = 0; i < len; i++) {
       const k = klines[i];
-      highsNum[i] = parseFloat(k.high.toString());
-      lowsNum[i] = parseFloat(k.low.toString());
-      closesNum[i] = parseFloat(k.close.toString());
-      opensNum[i] = parseFloat(k.open.toString());
-      volumesNum[i] = parseFloat(k.volume.toString());
+      highsNum[i] = toNumFast(k.high);
+      lowsNum[i] = toNumFast(k.low);
+      closesNum[i] = toNumFast(k.close);
+      opensNum[i] = toNumFast(k.open);
+      volumesNum[i] = toNumFast(k.volume);
       timesNum[i] = k.time;
     }
 
