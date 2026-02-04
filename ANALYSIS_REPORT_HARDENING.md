@@ -1,68 +1,85 @@
-# Analysis Report: System Hardening
+# Status & Risk Report: Institutional Grade Hardening
 
-## Overview
-This report details the findings of an in-depth code analysis of the `cachy-app` codebase, focusing on Data Integrity, Resource Management, UI/UX, and Security.
+**Date:** 2026-05-25
+**Auditor:** Senior Lead Developer (Jules)
+**Scope:** `src/services`, `src/stores`, `src/components`
 
-## Findings
+## Executive Summary
+The codebase demonstrates a high level of maturity in certain areas (WebSocket performance, input validation, DOM sanitization), but contains **critical flaws** in data integrity regarding external IDs and order execution resilience.
 
-### 🔴 CRITICAL
-**Risk of financial loss, crash, or security vulnerability.**
+## 🔴 CRITICAL FINDINGS (Immediate Action Required)
 
-1.  **Security: API Keys sent to Proxy Endpoint**
-    *   **File:** `src/services/tradeService.ts`, `src/routes/api/sync/positions-pending/+server.ts`
-    *   **Issue:** The client sends `apiKey` and `apiSecret` in the request body to `/api/sync/positions-pending`. While likely over HTTPS, this pattern acts as a "Backend-For-Frontend" (BFF) proxy. If the server logs request bodies on error (even partially), keys could be exposed. More importantly, this structure requires trust in the hosting environment.
-    *   **Recommendation:** Ensure strict HTTPS. Validate that error logging (e.g., in `+server.ts`) *never* logs the request body. Ideally, keys should be stored server-side if possible, but for a "self-custody" app, this is an architectural trade-off that requires strict hygiene.
+### 1. Data Integrity: Snowflake ID Corruption in CSV Import
+*   **Location:** `src/services/csvService.ts`
+*   **Issue:** The service forces imported "ID" fields into JavaScript `number` types using `parseFloat`. For large IDs (like Snowflake IDs used by Bitunix/Bitget, > 15 digits), it explicitly detects the overflow risk but "solves" it by hashing the ID into a smaller number:
+    ```typescript
+    if (... !Number.isSafeInteger(parseFloat(originalIdAsString))) {
+        // ... hash = (hash * 33) ^ originalIdAsString.charCodeAt(i); ...
+        internalId = Math.abs(hash >>> 0);
+    }
+    ```
+*   **Risk:** This destroys the original ID. It makes it impossible to reconcile CSV data with the actual exchange data or database later. Collisions are guaranteed at scale.
+*   **Recommendation:** All IDs must be treated as `string`. Remove the `number` enforcement and the hashing logic. Update `JournalEntry` interface to accept `string` for `id`.
 
-2.  **Data Integrity: Missing Freshness Check in `closePosition`**
-    *   **File:** `src/services/tradeService.ts`
-    *   **Issue:** `flashClosePosition` implements a "freshness check" (re-fetching positions if data is stale > 200ms). However, `closePosition` (the standard close) does *not*. It relies solely on the cached `omsService` state. If the cache is stale, the `qty` might be wrong, leading to partial closes or "reduce only" errors.
-    *   **Recommendation:** Port the freshness check logic from `flashClosePosition` to `closePosition` or a shared helper.
+### 2. Execution Logic: "Two Generals Problem" in Flash Close
+*   **Location:** `src/services/tradeService.ts` (`flashClosePosition`)
+*   **Issue:** The code acknowledges a critical risk but handles it unsafely:
+    ```typescript
+    // HARDENING: Two Generals Problem.
+    // If request fails (timeout/network), order might be live.
+    // Do NOT remove optimistic order...
+    // omsService.removeOrder(clientOrderId); <--- UNSAFE
+    ```
+    While it attempts to "keep optimistic order", the logic flow is complex and relies on a "Best Effort" cancellation that might fail, potentially leaving a "Naked Position" (position closed, but SL/TP orders remain active).
+*   **Risk:** Financial loss. If the network times out, the user doesn't know if the position is closed. If they try again, they might open a new opposite position or double close.
+*   **Recommendation:** Implement a robust "Reconciliation Queue". If a Flash Close times out, the system must enter a "Syncing" state that blocks further actions until the exact status of that order is confirmed via REST API.
 
-3.  **Resource Management: Race Condition & Memory Leak in Polling**
-    *   **File:** `src/services/marketWatcher.ts`
-    *   **Issue:** In `pollSymbolChannel`, a race condition exists. `Promise.race` is used with a timeout. If the API call completes successfully *after* the timeout fires, the API promise continues running in the background (unhandled).
-    *   **Recommendation:** Use `AbortController` to cancel the fetch request if the timeout wins. Ensure the timeout timer is cleared if the fetch wins.
+### 3. Data Integrity: LocalStorage Precision Loss
+*   **Location:** `src/services/app.ts`
+*   **Issue:** The app loads `journal` and `presets` using native `JSON.parse()`:
+    ```typescript
+    const parsedData = JSON.parse(d);
+    ```
+*   **Risk:** If `localStorage` contains any large integers (saved previously as numbers or edited manually), they will suffer precision loss immediately upon load, before any validation can run.
+*   **Recommendation:** Switch to `safeJsonParse` (from `src/utils/safeJson.ts`) for all `localStorage` reads.
 
-4.  **Type Safety: Unsafe `Set<any>`**
-    *   **File:** `src/services/marketWatcher.ts`
-    *   **Issue:** `private staggerTimeouts = new Set<any>();` is used. This defeats type safety and could mask bugs where incorrect items are added/removed.
-    *   **Recommendation:** Change to `Set<ReturnType<typeof setTimeout>>`.
+## 🟡 WARNING FINDINGS (Priority Fixes)
 
-### 🟡 WARNING
-**Performance issue, UX error, potential bug.**
+### 1. Internationalization (I18n) Gaps
+*   **Location:** `src/components/shared/`
+    *   `TechnicalsPanel.svelte`: Indicator names ("SuperTrend", "Ichimoku") and labels ("Val:", "Price:") are hardcoded.
+    *   `PerformanceMonitor.svelte`: All metric labels ("Memory", "API Calls/min") are hardcoded.
+    *   `MarketDashboardModal.svelte`: "Score", "RSI" labels hardcoded.
+    *   `ConnectionsTab.svelte`: "API Key" label hardcoded.
+*   **Risk:** Poor UX for non-English users. Inconsistent interface.
+*   **Recommendation:** Extract all strings to `src/locales/locales/en.json` and use `$_` key lookup.
 
-1.  **Performance: Blocking Main Thread on Flush**
-    *   **File:** `src/stores/market.svelte.ts`
-    *   **Issue:** `flushUpdates` processes all pending updates. If `pendingKlineUpdates` accumulates thousands of candles (e.g., after a network hiccup or high volatility), the sorting and deduplication logic in `applySymbolKlines` runs synchronously on the main thread, potentially causing a UI freeze.
-    *   **Recommendation:** Use `requestIdleCallback` or chunk the processing to yield to the main thread.
+### 2. API Error Leakage & Status Codes
+*   **Location:** `src/routes/api/orders/+server.ts`
+*   **Issue:** The server wraps upstream exchange errors and returns them as HTTP 500:
+    ```typescript
+    return json({ error: sanitizedMsg, code: errorCode ... }, { status: 500 });
+    ```
+*   **Risk:**
+    1.  **Semantics:** HTTP 500 implies "Internal Server Error" (code crash), triggering generic error pages in clients. Exchange errors (e.g., "Insufficient Balance") should be HTTP 400 (Bad Request) or 422 (Unprocessable Entity).
+    2.  **Localization:** The `sanitizedMsg` is the English text from the exchange. The Frontend displays this directly. This breaks I18n.
+*   **Recommendation:** Map common exchange error codes to internal I18n keys (e.g., `apiErrors.insufficientBalance`). Return appropriate HTTP status codes (4xx for user errors, 502 for upstream errors).
 
-2.  **Data Integrity: Unsafe Base64 Encoding**
-    *   **File:** `src/services/newsService.ts`
-    *   **Issue:** `generateNewsId` uses `btoa(encodeURIComponent(...))`. While `encodeURIComponent` handles some UTF-8, `btoa` is not robust for all Unicode strings and can throw "InvalidCharacterError".
-    *   **Recommendation:** Use a robust base64 utility or `Buffer.from(...).toString('base64')` if in a Node environment (or a polyfill).
+## 🔵 REFACTOR (Technical Debt)
 
-3.  **Data Integrity: Naive Symbol Matching**
-    *   **File:** `src/services/newsService.ts`
-    *   **Issue:** `matchesSymbol` checks `text.includes(keyword)`. This leads to false positives (e.g., "BET" matches "BETTER").
-    *   **Recommendation:** Use regex with word boundaries `\b`.
+### 1. WebSocket Validation Duplication
+*   **Location:** `src/services/bitunixWs.ts` vs `src/services/mdaService.ts`
+*   **Issue:** The "Fast Path" in `bitunixWs` manually casts fields to strings (`typeof data.ip === 'number' ? String(data.ip) : ...`) to avoid Zod overhead. `mdaService` does similar normalization.
+*   **Recommendation:** This duplication is currently acceptable for performance, but creates a maintenance risk if API shapes change. Ensure `mdaService.normalizeTicker` is always the "Source of Truth" for data shape, even if `bitunixWs` does the raw type protection.
 
-4.  **UI/UX: Blocking `confirm()`**
-    *   **File:** `src/components/shared/PositionsList.svelte`
-    *   **Issue:** Uses browser-native `confirm()` which blocks the entire UI thread.
-    *   **Recommendation:** Replace with a custom non-blocking Modal. (Low priority for "hardening", but good practice).
+## Security & Performance Audit
+*   **Sanitization:** ✅ `DOMPurify` is correctly implemented in `sanitizer.ts` and `markdownUtils.ts`.
+*   **Input Validation:** ✅ `TradeSetupInputs` uses strict regex validation.
+*   **Resource Management:** ✅ `MarketWatcher` uses recursive `setTimeout` (good). `MarketManager` enforces buffer limits (good).
+*   **Float Safety:** ✅ `TradeService` uses `Decimal.js` correctly. `safeJson.ts` protects network payloads.
 
-5.  **Accessibility: Missing `aria-label`**
-    *   **File:** `src/components/shared/Button.svelte`
-    *   **Issue:** Buttons might lack accessible labels if they only contain icons.
-    *   **Recommendation:** Add a required or fallback `aria-label` prop.
-
-### 🔵 REFACTOR
-**Technical debt.**
-
-1.  **Performance: Repeated Decimal Allocation**
-    *   **File:** `src/stores/market.svelte.ts`
-    *   **Issue:** `toDecimal` helper creates `new Decimal(val)` frequently.
-    *   **Recommendation:** The existing optimization checks `currentVal.toString() === String(val)`, which is good, but `String(val)` also allocates.
-
-## Next Steps
-Proceed to Phase 2: Implementation Plan.
+## Next Steps (Step 2: Action Plan)
+1.  **Fix CSV Import:** Rewrite `JournalEntry` ID typing and parsing logic.
+2.  **Fix LocalStorage:** Replace `JSON.parse` with `safeJsonParse`.
+3.  **Hardening:** Implement "Reconciliation Queue" for TradeService.
+4.  **I18n:** Extract missing keys.
