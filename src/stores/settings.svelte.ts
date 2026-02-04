@@ -494,6 +494,7 @@ const defaultSettings: Settings = {
 
 
 export class SettingsManager {
+  tradeFlowSettings = $state<TradeFlowSettings>(defaultSettings.tradeFlowSettings);
   // Using $state for all properties
   private _apiProvider = $state<"bitunix" | "bitget">(
     defaultSettings.apiProvider,
@@ -1333,6 +1334,7 @@ export class SettingsManager {
       backgroundAnimationIntensity: this.backgroundAnimationIntensity,
       videoPlaybackSpeed: this.videoPlaybackSpeed,
       galaxySettings: $state.snapshot(this.galaxySettings),
+      tradeFlowSettings: $state.snapshot(this.tradeFlowSettings),
       enableNetworkLogs: this.enableNetworkLogs,
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,
