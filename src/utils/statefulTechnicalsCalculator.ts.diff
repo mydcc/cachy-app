@@ -1,3 +1,0 @@
-// Add logs for debugging
-console.log('Shift: Size', this.priceHistory.getSize(), 'Len', len, 'OldestIdx', oldestIdx, 'OldVal', oldVal, 'LastClose', lastClose);
-// Inside shift loop
