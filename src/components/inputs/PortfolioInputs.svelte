@@ -146,7 +146,7 @@
       const data = safeJsonParse(text);
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch balance");
+        throw new Error(data.error || $_("dashboard.portfolioInputs.fetchBalanceError"));
       }
 
       if (typeof data.balance === "number" || typeof data.balance === "string") {
@@ -155,11 +155,11 @@
           uiState.showFeedback("save"); // Show success feedback
         }
       } else {
-        throw new Error("Invalid balance data received");
+        throw new Error($_("dashboard.portfolioInputs.invalidBalanceData"));
       }
     } catch (e: any) {
       if (!silent) {
-        uiState.showError(e.message || "Error fetching balance");
+        uiState.showError(e.message || $_("dashboard.portfolioInputs.fetchBalanceError"));
       } else {
         console.warn("Auto-fetch balance failed:", e);
       }

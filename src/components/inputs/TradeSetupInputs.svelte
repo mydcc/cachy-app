@@ -376,7 +376,7 @@
         smileyTimer = undefined;
       }, 1000);
     } catch (err) {
-      uiState.showError("Failed to copy to clipboard");
+      uiState.showError($_("dashboard.tradeSetupInputs.copyFailed"));
     }
   }
 </script>
