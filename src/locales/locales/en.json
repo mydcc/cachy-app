@@ -187,7 +187,9 @@
       "riskAmountLabel": "Risk Amount",
       "riskAmountPlaceholder": "e.g. 100",
       "toggleRiskAmountLockTitle": "Lock/Unlock Risk Amount",
-      "fetchBalanceTitle": "Fetch Balance"
+      "fetchBalanceTitle": "Fetch Balance",
+      "fetchBalanceError": "Error fetching balance",
+      "invalidBalanceData": "Invalid balance data received"
     },
     "tradeSetupInputs": {
       "header": "Trade Setup",
@@ -195,6 +197,7 @@
       "atrModeAuto": "Auto",
       "toggleAutoUpdatePrice": "Toggle auto-update price",
       "copyToClipboard": "Copy to clipboard",
+      "copyFailed": "Failed to copy to clipboard",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
       "atrMultiplierLabel": "Multiplier",

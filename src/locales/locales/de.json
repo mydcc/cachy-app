@@ -187,7 +187,9 @@
       "riskAmountLabel": "Risikobetrag",
       "riskAmountPlaceholder": "z.B. 100",
       "toggleRiskAmountLockTitle": "Risikobetrag sperren/entsperren",
-      "fetchBalanceTitle": "Guthaben abrufen"
+      "fetchBalanceTitle": "Guthaben abrufen",
+      "fetchBalanceError": "Fehler beim Abrufen des Guthabens",
+      "invalidBalanceData": "Ungültige Guthabendaten empfangen"
     },
     "tradeSetupInputs": {
       "header": "Trade Setup",
@@ -195,6 +197,7 @@
       "atrModeAuto": "Auto",
       "toggleAutoUpdatePrice": "Automatische Preisaktualisierung umschalten",
       "copyToClipboard": "In Zwischenablage kopieren",
+      "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
       "atrMultiplierLabel": "Multiplier",

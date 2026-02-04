@@ -1,68 +1,59 @@
-# Code Analysis & Hardening Report
+# Code Analysis & Risk Report
 
-## Status Quo
-The codebase generally exhibits a high standard of engineering ("Institutional Grade" aspirations) with robust patterns for data safety (`Decimal.js`, `safeJsonParse`), state management (Svelte 5 Runes), and resource handling. However, several risks regarding error localization, "Fast Path" complexity, and debug logging remain.
+**Date:** 2026-10-25
+**Scope:** `src/services`, `src/stores`, `src/components/inputs`
+**Focus:** Data Integrity, Resource Management, UI/UX, Security
+
+## Executive Summary
+
+The codebase exhibits a high degree of "Institutional Grade" maturity. Critical financial logic uses `Decimal.js` consistently, ensuring precision. The WebSocket and API layers employ sophisticated resilience patterns (deduplication, token bucket rate limiting, circuit breakers, and "Fast Path" optimization).
+
+However, there are localized UX/I18n gaps and specific architectural trade-offs (e.g., "Best Effort" order cancellation) that present operational risks.
 
 ## Findings
 
-### 🔴 CRITICAL (Risk of Data Loss / Crash / Inconsistency)
+### 🔴 CRITICAL (Financial Risk / Data Integrity)
 
-1. **Backend Error Propagation (I18n/Safety)**
-   - **Location:** `src/routes/api/orders/+server.ts`
-   - **Issue:** The server endpoint throws raw error strings from the exchange API directly (e.g., `throw new Error(res.msg)` or `throw new Error("Bitunix error: " + res.code)`).
-   - **Risk:**
-     1. **Data Leak:** Raw backend errors might expose internal logic or sensitive fields.
-     2. **UX Failure:** The frontend expects localized error keys (e.g., `tradeErrors.positionNotFound`). Receiving "Parameter Error" or Chinese error messages breaks the UI experience.
-   - **Recommendation:** Map all backend error codes to `apiErrors.*` or `tradeErrors.*` keys before throwing.
+*   **"Naked Stop Loss" Risk in `TradeService.ts`**:
+    *   **Context:** `flashClosePosition` calls `cancelAllOrders(symbol, false)`. The `false` flag means if the cancellation fails (e.g., network timeout), the code *proceeds* to close the position anyway.
+    *   **Risk:** If the close succeeds but the cancellation failed, the user is left with a closed position but active Stop Loss/Take Profit orders. If price moves, these could trigger unintended new positions.
+    *   **Recommendation:** This is a design trade-off (Prioritize Closing > Clean State). It requires a robust "Unconfirmed Order" UI notification to alert the user to manually check open orders.
 
-2. **WebSocket "Fast Path" Precision Risk**
-   - **Location:** `src/services/bitunixWs.ts`
-   - **Issue:** The "Fast Path" logic bypasses Zod validation for performance. It relies on `safeJsonParse` having already converted large numbers to strings.
-   - **Detail:**
-     ```typescript
-     // bitunixWs.ts
-     const ip = typeof data.ip === 'number' ? String(data.ip) : data.ip;
-     ```
-     If `safeJsonParse`'s regex (`\d[\d.eE+-]{14,}`) fails to catch a 13-digit high-precision number (e.g., `0.000000001234`), `JSON.parse` will convert it to a `number`, potentially introducing floating-point artifacts *before* this line executes.
-   - **Recommendation:** Audit `safeJsonParse` regex to ensure it catches high-precision small decimals, or enforce string parsing at the `safeJsonParse` level for *all* numeric values in specific fields.
+*   **Numeric Precision in WebSocket (`bitunixWs.ts`)**:
+    *   **Context:** Fast Path parsing casts `data.lastPrice` to string.
+    *   **Risk:** If the exchange sends a standard JavaScript number for a price with >15 digits of precision, native JSON parsing *before* our handler runs could lose precision.
+    *   **Mitigation:** The code includes a check (`lastNumericWarning`) to log this. No immediate fix possible without a custom JSON parser, but the current string casting is the correct mitigation.
 
-### 🟡 WARNING (UX / Performance / Maintainability)
+### 🟡 WARNING (UX / I18n / Performance)
 
-1. **Production Console Logging**
-   - **Location:**
-     - `src/routes/+layout.svelte` (`console.log`)
-     - `src/stores/floatingWindows.svelte.ts` (`console.log` for window events)
-     - `src/hooks.server.ts` (Overrides `console.log` - risky if implementation is buggy)
-   - **Risk:** Clutters production logs, potential performance hit in tight loops (though rare here), and potential data leakage if objects are logged.
-   - **Recommendation:** Replace all `console.log` with `logger.debug` or remove them.
+*   **Missing I18n Keys (Hardcoded Strings)**:
+    *   `src/components/inputs/PortfolioInputs.svelte`:
+        *   "Failed to fetch balance"
+        *   "Invalid balance data received"
+        *   "Error fetching balance"
+    *   `src/components/inputs/TradeSetupInputs.svelte`:
+        *   "Failed to copy to clipboard"
+    *   **Impact:** Poor UX for non-English users.
 
-2. **Error String Hardcoding**
-   - **Location:** `src/services/tradeService.ts`
-   - **Issue:** `TRADE_ERRORS` constants are string keys (`"trade.positionNotFound"`), which is good, but some `Error` instantiations in helper methods might use raw strings that aren't keys.
-   - **Verification:** `tradeService.ts` seems mostly clean, using keys. But `apiService.ts` and `orders/+server.ts` are the main offenders.
+*   **Error Swallowing in `TradeService`**:
+    *   **Context:** `fetchOpenPositionsFromApi` catches errors and logs them (`logger.warn`), but does not propagate them up to the UI in some flows.
+    *   **Impact:** User might see stale data without an error banner if the sync fails silently.
 
-3. **Symbol & Key Normalization Complexity**
-   - **Location:** `src/services/mdaService.ts` vs `bitunixWs.ts`
-   - **Issue:** Normalization logic is duplicated or split. `bitunixWs.ts` does manual normalization in the fast path: `const symbol = normalizeSymbol(rawSymbol, "bitunix");`.
-   - **Risk:** If `normalizeSymbol` logic changes, the fast path might drift.
+*   **Hardcoded Coin Aliases (`NewsService.ts`)**:
+    *   **Context:** `COIN_ALIASES` contains a hardcoded list (BTC, ETH, etc.).
+    *   **Risk:** Missing coverage for new assets (e.g., SUI, APT) without code changes.
 
 ### 🔵 REFACTOR (Technical Debt)
 
-1. **MarketWatcher Complexity**
-   - **Location:** `src/services/marketWatcher.ts`
-   - **Issue:** The `performPollingCycle` uses a complex mix of `Set`, `Map`, and recursive `setTimeout`. While functional, it's hard to debug.
-   - **Recommendation:** Consider a dedicated `Scheduler` class or library if complexity grows.
+*   **`MarketWatcher` Complexity**: The class mixes polling, WebSocket coordination, and history backfilling. While robust, it is difficult to test.
+*   **Magic Numbers**: `TradeSetupInputs` uses `1000` as a deviation threshold. Should be a constant.
 
-2. **Duplicate Error Definitions**
-   - **Location:** `src/types/apiSchemas.ts` vs `src/locales/locales/en.json`
-   - **Issue:** Error logic is spread between schema validation messages and locale files.
+## Recommendations for Step 2 (Implementation)
 
-## Action Items (Prioritized)
-
-1. **[Hardening]** Refactor `src/routes/api/orders/+server.ts` to throw typed `ApiError` with localized keys.
-2. **[Cleanup]** Remove `console.log` from `src/routes/+layout.svelte` and stores.
-3. **[Safety]** Add unit test for `safeJsonParse` specifically targeting 12-13 digit high-precision small decimals.
-4. **[Validation]** Verify `TradeSetupInputs` handles the "Fast Path" data correctly if it bypasses stores.
+1.  **I18n Hardening:** Extract all identified hardcoded strings to `src/locales/locales/en.json` and regenerate types.
+2.  **Safety Verification:** Add a regression test for `TradeService.flashClosePosition` to verify the "Unconfirmed" state handling.
+3.  **News Service:** Externalize `COIN_ALIASES` or fetch from a dynamic list.
 
 ## Conclusion
-The application is in a very strong state. The risks are primarily in "Edge Case Error Handling" and "Logging Hygiene". Addressing the `orders` endpoint error handling is the highest priority for "Institutional Grade" robustness.
+
+The system is solid. The primary tasks are "polishing" (I18n) and ensuring the "Risk Trade-offs" (like the naked SL) are visible to the user via the UI.
