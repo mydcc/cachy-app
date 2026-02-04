@@ -394,7 +394,13 @@ const defaultSettings: Settings = {
   backgroundAnimationPreset: "none",
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
-  galaxySettings: {
+  tradeFlowSettings: {
+      speed: 1.0,
+      particleCount: 5000,
+      size: 0.05,
+      spread: 5.0,
+    },
+    galaxySettings: {
     particleCount: 20000,
     particleSize: 0.5,
     radius: 5,

@@ -4,7 +4,7 @@
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
-  import { browser } from "/environment";
+  import { browser } from "$app/environment";
 
   // Configuration
   let container: HTMLDivElement;

@@ -1082,6 +1082,8 @@ class BitunixWebSocketService {
       }
 
       else if (validatedChannel === "trade") {
+        const rawSymbol = validatedMessage.symbol || "";
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
         // Fast Path: Check if valid trade data
         if (data && (Array.isArray(data) ? isTradeData(data[0]) : isTradeData(data))) {
