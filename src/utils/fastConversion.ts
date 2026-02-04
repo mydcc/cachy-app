@@ -19,6 +19,11 @@ export const toNumFast = (val: any): number => {
     }
 
     if (val && typeof val === 'object') {
+        // Optimization: Decimal.js toString()+parseFloat is significantly faster than .toNumber()
+        if (val instanceof Decimal) {
+             return parseFloat(val.toString());
+        }
+
         // Fast path for Decimal or objects with .toNumber()
         // Checks property existence which is faster than instanceof in some cases
         // and handles non-instanceof Decimal-likes
