@@ -212,6 +212,7 @@ export interface SmaState {
   // However, for pure streaming, if we have the ring buffer of history, we can fetch old value.
   // The worker will hold a RingBuffer of price history.
   prevSum: number;
+  prevSumSq?: number; // Optimization for Variance
 }
 
 export interface RsiState {

@@ -119,7 +119,7 @@ export class StatefulTechnicalsCalculator {
       // This is crucial. 'state.ema' currently holds the value from the *previous* close (T-1).
       // We need to advance it to the current close (T) before starting T+1.
 
-      const lastClose = this.state.lastCandle.close.toNumber();
+      const lastClose = newCandle.close.toNumber(); // Corrected to use the shifting-in candle
 
       // Advance EMA State
       if (this.state.ema && this.enabled("ema")) {
@@ -149,7 +149,44 @@ export class StatefulTechnicalsCalculator {
           });
       }
 
-      // 2. Shift History
+
+      // Advance SMA State (and SumSq)
+      if (this.state.sma) {
+          Object.keys(this.state.sma).forEach(k => {
+              const len = parseInt(k);
+              const state = this.state.sma![len];
+
+              // We need to shift the window.
+              // Remove oldest, Add lastClose.
+              // But wait, 'this.priceHistory' still contains the OLD history (lastClose not added yet).
+              // So 'oldest' is at index (size - len).
+
+              if (this.priceHistory.getSize() >= len) {
+                  const oldestIdx = this.priceHistory.getSize() - len;
+                  const oldVal = this.priceHistory.get(oldestIdx);
+
+                  if (oldVal !== undefined) {
+                       // Update Sum
+                       state.prevSum = state.prevSum - oldVal + lastClose;
+
+                       // Update SumSq if tracked
+                       if (state.prevSumSq !== undefined) {
+                           state.prevSumSq = state.prevSumSq - (oldVal * oldVal) + (lastClose * lastClose);
+                       }
+                  }
+              } else {
+                  // Buffer not full, just add?
+                  // If buffer not full, SMA is not valid yet?
+                  // Or we are building up.
+                  state.prevSum += lastClose;
+                   if (state.prevSumSq !== undefined) {
+                       state.prevSumSq += (lastClose * lastClose);
+                   }
+              }
+          });
+      }
+
+// 2. Shift History
       // Push the finalized lastClose to circular buffer
       this.priceHistory.push(lastClose);
 
@@ -245,7 +282,16 @@ export class StatefulTechnicalsCalculator {
           // Let's use generic "SMA:length".
           // We need to know which indicator uses it during update.
           // For now, let's just store it for BB.
-          this.state.sma[len] = { prevSum: smaVal * len };
+
+          // Optimization: Calculate initial SumSq for O(1) Variance updates
+          let sumSq = 0;
+          const histLen = history.length;
+          const startIdx = Math.max(0, histLen - len);
+          for (let i = startIdx; i < histLen; i++) {
+              const val = history[i].close.toNumber();
+              sumSq += val * val;
+          }
+          this.state.sma[len] = { prevSum: smaVal * len, prevSumSq: sumSq };
       }
   }
 
@@ -333,21 +379,15 @@ export class StatefulTechnicalsCalculator {
                   const newSma = newSum / len;
 
                   // Update BB
-                  // Calculate StdDev by iterating the window
-                  let sumSqDiff = 0;
-                  
-                  // Iterate last 'len' values in circular buffer
-                  for (let i = 0; i < len - 1; i++) {
-                      const idx = this.priceHistory.getSize() - len + i;
-                      const val = this.priceHistory.get(idx);
-                      if (val !== undefined) {
-                          sumSqDiff += Math.pow(val - newSma, 2);
-                      }
-                  }
-                  // Add current price
-                  sumSqDiff += Math.pow(price - newSma, 2);
+                  // Optimization: Incremental Variance (O(1))
+                  // Update SumSq: Remove old^2, Add new^2
+                  // Note: state.prevSumSq is from the PREVIOUS closed candle.
+                  const prevSumSq = state.prevSumSq || 0;
+                  const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
 
-                  const std = Math.sqrt(sumSqDiff / len);
+                  // Var = E[X^2] - (E[X])^2
+                  const variance = Math.max(0, (newSumSq / len) - (newSma * newSma));
+                  const std = Math.sqrt(variance);
 
                   result.volatility.bb = {
                       middle: newSma,
