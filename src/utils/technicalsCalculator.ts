@@ -34,12 +34,15 @@ import {
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
-import type { BufferPool } from "./bufferPool";
+import { BufferPool } from "./bufferPool";
 import type {
   TechnicalsData,
   IndicatorResult,
   DivergenceItem,
 } from "../services/technicalsTypes";
+
+// Global buffer pool to reuse Float64Arrays and avoid GC pressure
+const bufferPool = new BufferPool();
 
 export function calculateAllIndicators(
   klines: Kline[],
@@ -48,36 +51,48 @@ export function calculateAllIndicators(
 ): TechnicalsData {
   if (klines.length < 2) return getEmptyData();
 
-  // Prepare data arrays (number[] for speed)
-  // Optimization: Single loop extraction with pre-allocated arrays
   const len = klines.length;
-  const highsNum = new Array(len);
-  const lowsNum = new Array(len);
-  const closesNum = new Array(len);
-  const opensNum = new Array(len);
-  const volumesNum = new Array(len);
-  const timesNum = new Array(len);
 
-  for (let i = 0; i < len; i++) {
-    const k = klines[i];
-    highsNum[i] = k.high.toNumber();
-    lowsNum[i] = k.low.toNumber();
-    closesNum[i] = k.close.toNumber();
-    opensNum[i] = k.open.toNumber();
-    volumesNum[i] = k.volume.toNumber();
-    timesNum[i] = k.time;
+  // Acquire buffers from the pool
+  const highsNum = bufferPool.acquire(len);
+  const lowsNum = bufferPool.acquire(len);
+  const closesNum = bufferPool.acquire(len);
+  const opensNum = bufferPool.acquire(len);
+  const volumesNum = bufferPool.acquire(len);
+  const timesNum = bufferPool.acquire(len);
+
+  try {
+    // Optimization: Single loop extraction into pre-allocated Float64Arrays
+    for (let i = 0; i < len; i++) {
+      const k = klines[i];
+      highsNum[i] = k.high.toNumber();
+      lowsNum[i] = k.low.toNumber();
+      closesNum[i] = k.close.toNumber();
+      opensNum[i] = k.open.toNumber();
+      volumesNum[i] = k.volume.toNumber();
+      timesNum[i] = k.time;
+    }
+
+    return calculateIndicatorsFromArrays(
+      timesNum,
+      opensNum,
+      highsNum,
+      lowsNum,
+      closesNum,
+      volumesNum,
+      settings,
+      enabledIndicators,
+      bufferPool
+    );
+  } finally {
+    // Release buffers back to the pool
+    bufferPool.release(highsNum);
+    bufferPool.release(lowsNum);
+    bufferPool.release(closesNum);
+    bufferPool.release(opensNum);
+    bufferPool.release(volumesNum);
+    bufferPool.release(timesNum);
   }
-
-  return calculateIndicatorsFromArrays(
-    timesNum,
-    opensNum,
-    highsNum,
-    lowsNum,
-    closesNum,
-    volumesNum,
-    settings,
-    enabledIndicators
-  );
 }
 
 export function calculateIndicatorsFromArrays(
