@@ -64,9 +64,8 @@
     camera: THREE.PerspectiveCamera | null;
     renderer: THREE.WebGLRenderer | null;
     geometry: THREE.BufferGeometry | null;
-    material: THREE.PointsMaterial | null;
+    material: THREE.ShaderMaterial | null; // Changed to ShaderMaterial
     points: THREE.Points | null;
-    raycaster: THREE.Raycaster | null;
   }
 
   let resources: ThreeResources = {
@@ -76,7 +75,6 @@
     geometry: null,
     material: null,
     points: null,
-    raycaster: null
   };
 
   // ========================================
@@ -89,11 +87,14 @@
   let mouse = new THREE.Vector2(-1, -1);
 
   // Particle Data Arrays
+  // Warning: We update these infrequently now!
   let positions: Float32Array;
   let colors: Float32Array;
   let sizes: Float32Array;
+  let speeds: Float32Array;      // [GPU] Speed attribute
+  let birthTimes: Float32Array;  // [GPU] Birth timestamp for shader animation
 
-  // Metadata for tooltips
+  // Metadata for tooltips (CPU side sync)
   let metaData: Array<{ price: number; size: number; side: string }> = [];
 
   // Particle Ring Buffer
@@ -112,7 +113,7 @@
   let lastFrameTime = 0;
   let fps = 0;
   let lastRaycastTime = 0;
-  const RAYCAST_THROTTLE_MS = 16; // ~60fps max
+  const RAYCAST_THROTTLE_MS = 32; // ~30fps raycast is enough
 
   // Theme Colors
   let colorUp = new THREE.Color(0x00b894);
@@ -120,6 +121,70 @@
 
   // Settings Shortcuts
   const settings = $derived(settingsState.tradeFlowSettings);
+
+  // ========================================
+  // SHADER DEFINITIONS
+  // ========================================
+
+  const vertexShader = `
+    uniform float uTime;
+    uniform float uSize;
+    
+    attribute float aSize;
+    attribute float aSpeed;
+    attribute float aBirthTime;
+    
+    varying vec3 vColor;
+    
+    void main() {
+      vColor = color;
+      
+      // Calculate time delta since birth
+      float age = (uTime - aBirthTime); // Time in seconds
+      
+      // If age < 0 (future birth), keeping it hidden behind camera
+      if (age < 0.0) age = 0.0; 
+      
+      vec3 pos = position;
+      
+      // Z movement logic:
+      // Move from back (-100 or wherever) towards camera (+Z)
+      // pos.z += aSpeed * age;
+      // BUT our CPU logic was: spawn at random X/Y/Z, move +Z until +10, then reset.
+      // Shader logic:
+      // currentZ = initialZ + speed * age
+      
+      pos.z = position.z + aSpeed * age;
+      
+      // Reset logic (Modulo-ish or Dissolve)
+      // Simplification: If Z > 10.0, we can clip it or let it fly.
+      // For now, let it fly. 
+      
+      vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+      
+      // Size attenuation
+      gl_PointSize = uSize * aSize * (300.0 / -mvPosition.z);
+      
+      // Hide if behind camera or too close
+      if (mvPosition.z > -1.0) {
+          gl_PointSize = 0.0;
+      }
+
+      gl_Position = projectionMatrix * mvPosition;
+    }
+  `;
+
+  const fragmentShader = `
+    varying vec3 vColor;
+    
+    void main() {
+      // Circular particle
+      vec2 coord = gl_PointCoord - vec2(0.5);
+      if (length(coord) > 0.5) discard;
+      
+      gl_FragColor = vec4(vColor, 1.0); // opacity managed via color mixing or uniform
+    }
+  `;
 
   // ========================================
   // VALIDATION & INITIALIZATION
@@ -158,38 +223,54 @@
     positions = new Float32Array(particleCount * 3);
     colors = new Float32Array(particleCount * 3);
     sizes = new Float32Array(particleCount);
+    speeds = new Float32Array(particleCount);
+    birthTimes = new Float32Array(particleCount);
 
-    // Fill with invisible points initially (behind camera)
+    // Initial fill
+    const now = performance.now() / 1000;
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3 + 2] = -1000; // Far behind
+        // Initialize way behind camera so they aren't seen until officially "spawned"
+      positions[i * 3 + 2] = -5000; 
+      birthTimes[i] = now + 999999; // Future birth = inactive
     }
 
     resources.geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     resources.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    resources.geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    resources.geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+    resources.geometry.setAttribute("aSpeed", new THREE.BufferAttribute(speeds, 1));
+    resources.geometry.setAttribute("aBirthTime", new THREE.BufferAttribute(birthTimes, 1));
 
-    // Material
-    resources.material = new THREE.PointsMaterial({
-      size: settings.size,
-      vertexColors: true,
+    // Shader Material
+    resources.material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uSize: { value: settings.size }
+      },
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
       transparent: true,
-      opacity: 0.8,
-      sizeAttenuation: true,
+      depthWrite: false, // For better transparency if needed
       blending: THREE.AdditiveBlending
     });
 
     resources.points = new THREE.Points(resources.geometry, resources.material);
+    // Important: Prevent frustum culling because particles move in shader!
+    resources.points.frustumCulled = false; 
     resources.scene.add(resources.points);
 
     // Initialize MetaData
     metaData = new Array(particleCount).fill(null).map(() => ({ price: 0, size: 0, side: "" }));
     
-    log(LogLevel.DEBUG, '✅ Particle system setup complete');
+    // Explicitly set references for resource manager
+    resources.points = resources.points;
+    resources.material = resources.material;
+    
+    log(LogLevel.DEBUG, '✅ GPU Particle system setup complete');
   }
 
   function initThree(): { success: boolean; error?: string } {
     try {
-      log(LogLevel.INFO, '🚀 Starting Three.js initialization...');
+      log(LogLevel.INFO, '🚀 Starting Three.js initialization (GPU Mode)...');
 
       // WebGL Check
       if (!checkWebGLSupport()) {
@@ -206,7 +287,8 @@
 
       // Scene Setup
       resources.scene = new THREE.Scene();
-      resources.scene.fog = new THREE.FogExp2(0x000000, 0.02);
+      // Fog is tricky with ShaderMaterial, skipping for now or handle in shader
+      // resources.scene.fog = new THREE.FogExp2(0x000000, 0.02); 
 
       // Camera Setup
       resources.camera = new THREE.PerspectiveCamera(
@@ -238,16 +320,12 @@
         display: getComputedStyle(canvas).display
       });
 
-      // Raycaster
-      resources.raycaster = new THREE.Raycaster();
-      resources.raycaster.params.Points.threshold = 0.2;
-
       // Setup Particle System
       setupParticleSystem();
-      setupAmbientParticles(); // Initialize background noise
-      
-      // Start Demo Mode after 3 seconds if no trades
-      setTimeout(() => {
+      setupAmbientParticles();
+
+      // Start Demo Mode
+       setTimeout(() => {
           if (!hasReceivedRealTrades) {
               startDemoMode();
           }
@@ -304,9 +382,8 @@
     if (lifecycleState === LifecycleState.READY) {
       log(LogLevel.INFO, '🔄 Symbol changed:', tradeState.symbol);
       updateSubscription(tradeState.symbol);
-      // Reset state for new symbol
       hasReceivedRealTrades = false;
-      startDemoMode(); // Restart demo mode until new trades arrive
+      startDemoMode(); 
     }
   });
 
@@ -361,12 +438,11 @@
   let tradeCount = 0;
   
   function onTrade(trade: any) {
-    // Flag real trade activity
     if (!hasReceivedRealTrades) {
         hasReceivedRealTrades = true;
         stopDemoMode();
     }
-  
+
     const price = parseFloat(trade.p || trade.lastPrice || "0");
     const size = parseFloat(trade.v || trade.volume || "0");
     const side = trade.s === "buy" ? "buy" : "sell";
@@ -374,13 +450,11 @@
     if (!price) return;
     if (size < settings.minVolume) return;
 
-    // Debug: Log first few trades
     if (tradeCount < 3) {
       log(LogLevel.DEBUG, '📊 Trade received:', { price, size, side });
       tradeCount++;
     }
 
-    // Update Average
     runningSum += price;
     runningCount++;
     if (runningCount > 100) {
@@ -400,26 +474,32 @@
   // PARTICLE MANAGEMENT
   // ========================================
 
-  // ========================================
-  // PARTICLE MANAGEMENT
-  // ========================================
-
   function addPoint(price: number, size: number, side: string) {
     if (!resources.geometry) return;
 
     const idx = head;
     const baseIndex = idx * 3;
+    
+    // Set Birth Time (NOW)
+    const now = performance.now() / 1000;
+    
+    // Set Speed (Constant + Layout factor)
+    const speed = settings.speed * 0.5;
 
-    // Layout-specific positioning
+    // Layout-specific positioning (Start Position)
+    // IMPORTANT: The shader will apply "z += speed * age"
+    // So we spawn them deep in Z (-50 or -100) and they fly towards camera (+5)
+    
+    const startZ = -100;
+
     if (settings.layout === "tunnel") {
       const deviation = avgPrice > 0 ? (price - avgPrice) / avgPrice * 1000 : (Math.random() - 0.5) * 2;
       const y = Math.max(Math.min(deviation, 3), -3);
       const x = (Math.random() - 0.5) * settings.spread;
-      const z = -50;
 
       positions[baseIndex] = x;
       positions[baseIndex + 1] = y;
-      positions[baseIndex + 2] = z;
+      positions[baseIndex + 2] = startZ;
     } else {
       const deviation = avgPrice > 0 ? (price - avgPrice) / avgPrice * 10 : (Math.random() - 0.5) * 2;
       const x = Math.max(Math.min(deviation, 5), -5);
@@ -428,13 +508,14 @@
       const gridX = Math.floor(gridPos / settings.gridLength);
       const gridZ = gridPos % settings.gridLength;
       
-      const z = (gridZ / settings.gridLength - 0.5) * 10;
+      const zOffset = (gridZ / settings.gridLength - 0.5) * 10;
       const xOffset = (gridX / settings.gridWidth - 0.5) * 10;
       const y = Math.log10(size + 1) * 0.5;
 
       positions[baseIndex] = x + xOffset;
       positions[baseIndex + 1] = y;
-      positions[baseIndex + 2] = z;
+      // We add some variation to startZ based on grid
+      positions[baseIndex + 2] = startZ + zOffset; 
     }
 
     // Color
@@ -445,10 +526,43 @@
     colors[baseIndex + 1] = color.g * intensity;
     colors[baseIndex + 2] = color.b * intensity;
 
+    // Size
+    sizes[idx] = Math.max(0.5, Math.log10(size + 1));
+    
+    // Speed
+    speeds[idx] = speed;
+    
+    // Birth Time
+    birthTimes[idx] = now;
+
+    // Metadata
     metaData[idx] = { price, size, side };
 
-    resources.geometry.attributes.position.needsUpdate = true;
-    resources.geometry.attributes.color.needsUpdate = true;
+    // Update GPU (Only ranges that changed)
+    // Since we are using a ring buffer, we technically only change 1 index.
+    // Three.js BufferAttribute updateRange can optimize this.
+    
+    const geom = resources.geometry;
+    
+    geom.attributes.position.setXYZ(idx, positions[baseIndex], positions[baseIndex+1], positions[baseIndex+2]);
+    (geom.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.position as THREE.BufferAttribute).updateRange = { offset: baseIndex, count: 3 };
+
+    geom.attributes.color.setXYZ(idx, colors[baseIndex], colors[baseIndex+1], colors[baseIndex+2]);
+    (geom.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.color as THREE.BufferAttribute).updateRange = { offset: baseIndex, count: 3 };
+
+    geom.attributes.aSize.setX(idx, sizes[idx]);
+    (geom.attributes.aSize as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.aSize as THREE.BufferAttribute).updateRange = { offset: idx, count: 1 };
+    
+    geom.attributes.aSpeed.setX(idx, speeds[idx]);
+    (geom.attributes.aSpeed as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.aSpeed as THREE.BufferAttribute).updateRange = { offset: idx, count: 1 };
+    
+    geom.attributes.aBirthTime.setX(idx, birthTimes[idx]);
+    (geom.attributes.aBirthTime as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.aBirthTime as THREE.BufferAttribute).updateRange = { offset: idx, count: 1 };
 
     head = (head + 1) % settings.particleCount;
   }
@@ -465,118 +579,71 @@
     
     log(LogLevel.INFO, '✨ Generating ambient particles...');
     
-    // Fill 10% of particles as ambient background noise
     const ambientCount = Math.floor(settings.particleCount * 0.1);
+    const now = performance.now() / 1000;
+    const geom = resources.geometry;
     
     for (let i = 0; i < ambientCount; i++) {
         const idx = i;
         const baseIndex = idx * 3;
         
-        // Random spread position
-        positions[baseIndex] = (Math.random() - 0.5) * 20; // x
-        positions[baseIndex + 1] = (Math.random() - 0.5) * 10; // y
-        positions[baseIndex + 2] = -Math.random() * 50; // z (depth)
+        // Random spread
+        positions[baseIndex] = (Math.random() - 0.5) * 20; 
+        positions[baseIndex + 1] = (Math.random() - 0.5) * 10; 
+        // Random start Z deep in tunnel
+        positions[baseIndex + 2] = -50 - Math.random() * 50; 
         
         // Faint color
         const isUp = Math.random() > 0.5;
         const color = isUp ? colorUp : colorDown;
-        const intensity = 0.3; // Low intensity for ambient
+        const intensity = 0.3; 
         
         colors[baseIndex] = color.r * intensity;
         colors[baseIndex + 1] = color.g * intensity;
         colors[baseIndex + 2] = color.b * intensity;
         
-        // Dummy metadata
+        sizes[idx] = 0.5 + Math.random();
+        speeds[idx] = settings.speed * 0.5 * 0.5; // Slower ambient
+        birthTimes[idx] = now - Math.random() * 100; // Past birth = already moving
+        
         metaData[idx] = { price: 0, size: 0, side: isUp ? "buy" : "sell" };
     }
     
-    head = ambientCount; // Start ring buffer after ambient particles
-    
-    resources.geometry.attributes.position.needsUpdate = true;
-    resources.geometry.attributes.color.needsUpdate = true;
+    // Bulk update for init
+    (geom.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.aSize as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.aSpeed as THREE.BufferAttribute).needsUpdate = true;
+    (geom.attributes.aBirthTime as THREE.BufferAttribute).needsUpdate = true;
+
+    head = ambientCount;
   }
 
   function startDemoMode() {
       if (demoModeInterval || hasReceivedRealTrades) return;
-      
-      log(LogLevel.INFO, '🤖 Starting Demo Mode (waiting for real trades)...');
-      
+      log(LogLevel.INFO, '🤖 Starting Demo Mode...');
       demoModeInterval = window.setInterval(() => {
-          if (hasReceivedRealTrades) {
-              stopDemoMode();
-              return;
-          }
+          if (hasReceivedRealTrades) { stopDemoMode(); return; }
           
-          // Generate fake trade
           const side = Math.random() > 0.5 ? "buy" : "sell";
           const basePrice = avgPrice > 0 ? avgPrice : 50000;
           const price = basePrice + (Math.random() - 0.5) * (basePrice * 0.001);
           const size = Math.random() * 2;
-          
           addPoint(price, size, side);
-          
-      }, 100); // 10 trades per second
+      }, 100); 
   }
 
   function stopDemoMode() {
       if (demoModeInterval) {
           clearInterval(demoModeInterval);
           demoModeInterval = null;
-          log(LogLevel.INFO, '🤖 Demo Mode stopped (real trades active)');
+          log(LogLevel.INFO, '🤖 Demo Mode stopped');
       }
   }
 
   // ========================================
   // ANIMATION & RENDERING
   // ========================================
-
-  function updateParticlePositions() {
-    if (!resources.geometry) return;
-
-    const speed = settings.speed * 0.5;
-    const positionsArr = resources.geometry.attributes.position.array as Float32Array;
-    let activePoints = 0;
-    
-    for (let i = 0; i < settings.particleCount; i++) {
-      const zIdx = i * 3 + 2;
-      if (positionsArr[zIdx] > -900) {
-        positionsArr[zIdx] += speed;
-
-        if (positionsArr[zIdx] > 10) {
-          positionsArr[zIdx] = -1000;
-        } else {
-          activePoints++;
-        }
-      }
-    }
-
-    if (activePoints > 0) {
-      resources.geometry.attributes.position.needsUpdate = true;
-    }
-  }
-
-  function performRaycast() {
-    if (!resources.raycaster || !resources.camera || !resources.points) return;
-    
-    resources.raycaster.setFromCamera(mouse, resources.camera);
-    const intersects = resources.raycaster.intersectObject(resources.points);
-    
-    if (intersects.length > 0) {
-      const index = intersects[0].index;
-      if (index !== undefined && index !== hoveredIndex) {
-        hoveredIndex = index;
-        const p = intersects[0].point.clone();
-        p.project(resources.camera);
-        const x = (p.x * .5 + .5) * canvas.clientWidth;
-        const y = (p.y * -.5 + .5) * canvas.clientHeight;
-
-        hoveredPoint = { x, y, ...metaData[index] };
-      }
-    } else {
-      hoveredIndex = -1;
-      hoveredPoint = null;
-    }
-  }
 
   function animate(time: number) {
     rafId = requestAnimationFrame(animate);
@@ -585,20 +652,87 @@
     lastFrameTime = time;
     if (delta > 0) fps = 1000 / delta;
 
-    if (!resources.scene || !resources.geometry || !resources.renderer || !resources.camera) {
+    if (!resources.material || !resources.renderer || !resources.scene || !resources.camera) {
       return;
     }
 
-    updateParticlePositions();
+    // GPU TIME UPDATE -> This drives the animation!
+    // No more heavy loop here!
+    resources.material.uniforms.uTime.value = performance.now() / 1000;
 
-    // Raycasting with throttling
+    // Raycasting Throttled
     const now = performance.now();
     if (now - lastRaycastTime > RAYCAST_THROTTLE_MS && mouse.x !== -1) {
-      performRaycast();
+      performOptimizedRaycast(now / 1000);
       lastRaycastTime = now;
     }
 
     resources.renderer.render(resources.scene, resources.camera);
+  }
+
+  function performOptimizedRaycast(currentTime: number) {
+      // CUSTOM RAYCASTING FOR SHADER ANIMATED PARTICLES
+      // The geometry.position is STATIC (Start Position).
+      // The visual position is dynamic.
+      // We must check: ProjectedPosition( StartPos + Speed * Age ) vs Mouse
+      
+      if (!resources.camera || !canvas) return;
+      
+      const count = settings.particleCount;
+      let foundIndex = -1;
+      let foundPoint: THREE.Vector3 | null = null;
+      
+      const p = new THREE.Vector3();
+      
+      for (let i=0; i<count; i++) {
+          // Check if active
+          const bTime = birthTimes[i];
+          const age = currentTime - bTime;
+          if (age < 0) continue; // Future
+          
+          // Get Start Pos
+          const sx = positions[i*3];
+          const sy = positions[i*3+1];
+          const sz = positions[i*3+2];
+          const spd = speeds[i];
+          
+          // Current Z
+          const cz = sz + spd * age;
+          
+          // Frustum Check Z
+          if (cz > 5) continue; // Past camera (Camera at Z=5)
+          if (cz < -200) continue; // Too far
+          
+          // Project to Screen
+          p.set(sx, sy, cz);
+          p.project(resources.camera);
+          
+          // Distance to Mouse (NDC space: -1 to 1)
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const distSq = dx*dx + dy*dy;
+          
+          // Threshold (e.g. 0.05 in NDC is roughly 20-50 pixels)
+          if (distSq < 0.002) { 
+              foundIndex = i;
+              foundPoint = new THREE.Vector3(sx, sy, cz); // Real world pos
+              break; 
+          }
+      }
+      
+      if (foundIndex !== -1 && foundIndex !== hoveredIndex) {
+          hoveredIndex = foundIndex;
+          if (foundPoint) {
+              // Calculate screen coordinates for tooltip
+              foundPoint.project(resources.camera);
+              const x = (foundPoint.x * .5 + .5) * canvas.clientWidth;
+              const y = (foundPoint.y * -.5 + .5) * canvas.clientHeight;
+              hoveredPoint = { x, y, ...metaData[foundIndex] };
+          }
+      } else if (foundIndex === -1 && hoveredIndex !== -1) {
+          hoveredIndex = -1;
+          hoveredPoint = null;
+      }
   }
 
   // ========================================
@@ -650,7 +784,7 @@
 
   function disposeAll() {
     if (resources.points && resources.scene) {
-      resources.scene.remove(resources.points);
+        resources.scene.remove(resources.points);
     }
     
     disposeGeometry();
@@ -660,7 +794,6 @@
     resources.scene = null;
     resources.camera = null;
     resources.points = null;
-    resources.raycaster = null;
   }
 
   function cleanup() {
@@ -677,7 +810,6 @@
       bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
     }
     
-    // Stop Demo Mode
     stopDemoMode();
     
     // Remove event listeners
@@ -698,78 +830,87 @@
   }
 </script>
 
-<div class="tradeflow-container" bind:this={container}>
-   <!-- Tooltip Overlay -->
-   {#if hoveredPoint}
-     <div class="tooltip" style="left: {hoveredPoint.x}px; top: {hoveredPoint.y}px">
-        <div class="row">
-             <span class="label">Price:</span>
-             <span class="value">{hoveredPoint.price.toFixed(2)}</span>
-        </div>
-        <div class="row">
-             <span class="label">Size:</span>
-             <span class="value">{hoveredPoint.size.toFixed(4)}</span>
-        </div>
-        <div class="row">
-             <span class="tag {hoveredPoint.side}">{hoveredPoint.side.toUpperCase()}</span>
-        </div>
-     </div>
-   {/if}
-</div>
+<div
+  bind:this={container}
+  class="tradeflow-container"
+  role="img"
+  aria-label="3D Trade Flow Visualization"
+></div>
+
+{#if lifecycleError}
+  <div class="error-overlay">
+    <p>⚠️ {lifecycleError}</p>
+    <button onclick={() => window.location.reload()}>Reload</button>
+  </div>
+{/if}
+
+{#if hoveredPoint}
+  <div 
+    class="tooltip"
+    style="left: {hoveredPoint.x}px; top: {hoveredPoint.y}px;"
+  >
+    <div class="tooltip-content {hoveredPoint.side}">
+      <span class="price">{hoveredPoint.price.toFixed(2)}</span>
+      <span class="size">{hoveredPoint.size.toFixed(4)}</span>
+    </div>
+  </div>
+{/if}
 
 <style>
   .tradeflow-container {
-    width: 100%;
-    height: 100%;
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     z-index: 0;
-    pointer-events: auto;
+    pointer-events: none; /* Let clicks pass through to UI */
+  }
+
+  .error-overlay {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(200, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    z-index: 1000;
   }
 
   .tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid var(--accent-color, #444);
-      padding: 8px;
-      border-radius: 4px;
-      pointer-events: none;
-      transform: translate(15px, -50%);
-      color: white;
-      font-size: 12px;
-      font-family: var(--app-font-family, sans-serif);
-      z-index: 100;
+    position: absolute;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+    z-index: 10;
   }
 
-  .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 2px;
+  .tooltip-content {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .label {
-      color: #888;
+  .tooltip-content.buy {
+    border-color: var(--color-up, #00b894);
   }
 
-  .tag {
-      font-weight: bold;
-      padding: 1px 4px;
-      border-radius: 2px;
-      font-size: 10px;
-      width: 100%;
-      text-align: center;
+  .tooltip-content.sell {
+    border-color: var(--color-down, #d63031);
   }
 
-  .tag.buy {
-      background: rgba(0, 255, 0, 0.2);
-      color: var(--color-up, #00b894);
+  .price {
+    font-weight: bold;
+    color: white;
   }
 
-  .tag.sell {
-      background: rgba(255, 0, 0, 0.2);
-      color: var(--color-down, #d63031);
+  .size {
+    opacity: 0.7;
+    color: white;
   }
 </style>
