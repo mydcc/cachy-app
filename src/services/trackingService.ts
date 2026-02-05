@@ -133,3 +133,27 @@ export function trackInteraction(
 
   pushToDataLayer(eventData);
 }
+
+/**
+ * Tracks a page view event in Matomo.
+ * Pushes the standard 'mtm.PageView' event with URL and title.
+ *
+ * @param url The current full URL (e.g. from page.url.href)
+ * @param title The document title
+ */
+export function trackPageView(url: string, title?: string) {
+  // Check if window exists (SSR guard) and if _mtm is available
+  if (typeof window === "undefined" || !window._mtm) {
+    if (import.meta.env.DEV) {
+      console.warn("Matomo Tag Manager not available. Skipping PageView:", url);
+    }
+    return;
+  }
+
+  window._mtm.push({
+    event: "mtm.PageView",
+    pageUrl: url,
+    pageTitle: title,
+    mtm: { startTime: new Date().getTime() },
+  });
+}

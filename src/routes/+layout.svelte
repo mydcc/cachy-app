@@ -16,6 +16,13 @@
 -->
 
 <script lang="ts">
+  import { afterNavigate } from "$app/navigation";
+  import { page } from "$app/stores";
+  import { trackPageView } from "../services/trackingService";
+
+  afterNavigate(() => {
+    trackPageView($page.url.href, document.title);
+  });
   import favicon from "../assets/favicon.svg";
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
