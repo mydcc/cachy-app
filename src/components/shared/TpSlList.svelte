@@ -173,12 +173,12 @@
               class="grid grid-cols-2 gap-x-2 text-[11px] text-[var(--text-secondary)] mb-1"
             >
               <div>
-                Trigger: <span class="text-[var(--text-primary)]"
+                {$_("dashboard.tpslManager.trigger")} <span class="text-[var(--text-primary)]"
                   >{formatDynamicDecimal(order.triggerPrice)}</span
                 >
               </div>
               <div class="text-right">
-                Amt: <span class="text-[var(--text-primary)]"
+                {$_("dashboard.tpslManager.amount")} <span class="text-[var(--text-primary)]"
                   >{formatDynamicDecimal(order.qty || order.amount)}</span
                 >
               </div>
@@ -195,7 +195,7 @@
                 <div class="flex gap-2">
                   <button
                     class="text-[var(--text-secondary)] hover:text-[var(--accent-color)]"
-                    title="Edit"
+                    title={$_("dashboard.tpslManager.editTooltip")}
                     onclick={() => openEdit(order)}
                   >
                     <svg
@@ -215,7 +215,7 @@
                   </button>
                   <button
                     class="text-[var(--text-secondary)] hover:text-[var(--danger-color)]"
-                    title="Cancel"
+                    title={$_("dashboard.tpslManager.cancelTooltip")}
                     onclick={() => handleCancel(order)}
                   >
                     <svg

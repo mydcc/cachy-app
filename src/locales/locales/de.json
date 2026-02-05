@@ -161,7 +161,11 @@
     "tpsl": "TP/SL",
     "tpslManager": {
       "pending": "Ausstehend",
-      "history": "Verlauf"
+      "history": "Verlauf",
+      "trigger": "Trigger:",
+      "amount": "Menge:",
+      "cancelTooltip": "Abbrechen",
+      "editTooltip": "Bearbeiten"
     },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
