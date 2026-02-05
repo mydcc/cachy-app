@@ -237,6 +237,11 @@
       "addTargetTitle": "Weiteres Ziel hinzufügen",
       "emptyState": "Keine Ziele definiert. Füge oben ein Ziel hinzu."
     },
+    "tpslList": {
+      "pending": "Offen",
+      "history": "Verlauf",
+      "plan": "Plan"
+    },
     "summaryResults": {
       "header": "Zusammenfassung",
       "positionSizeLabel": "Positionsgröße",
@@ -665,6 +670,8 @@
       "fire": "Feuer",
       "glow": "Neon Leuchten",
       "colorMode": "Farbmodus",
+      "buyColor": "Kauf-Farbe",
+      "sellColor": "Verkaufs-Farbe",
       "intensity": "Intensität",
       "customColor": "Eigene Farbe",
       "backgroundType": "Hintergrund Typ",
@@ -909,6 +916,9 @@
       },
       "superTrend": {
         "title": "SuperTrend"
+      },
+      "atrStop": {
+        "title": "ATR Stop (L)"
       },
       "bollingerBands": {
         "title": "Bollinger Bänder",
