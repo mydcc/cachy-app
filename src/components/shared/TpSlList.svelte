@@ -47,7 +47,7 @@
     const keys = settingsState.apiKeys[provider];
 
     if (!keys?.key || !keys?.secret) {
-      error = "No API keys configured";
+      error = $_("dashboard.alerts.noApiKeys");
       return;
     }
 
@@ -136,14 +136,14 @@
       );
     } catch (e) {
       console.error("TP/SL Global Error:", e);
-      error = "Failed to load TP/SL orders";
+      error = $_("apiErrors.failedToLoadOrders");
     } finally {
       loading = false;
     }
   }
 
   async function handleCancel(order: any) {
-    if (!confirm("Cancel this TP/SL order?")) return;
+    if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
 
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
@@ -246,7 +246,7 @@
       </div>
     {:else if orders.length === 0}
       <div class="text-xs text-[var(--text-secondary)] text-center p-4">
-        No {view} TP/SL orders found.
+        {$_("dashboard.noTpSlOrders", { values: { view: view } })}
       </div>
     {:else}
       <div class="flex flex-col gap-2">

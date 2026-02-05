@@ -258,7 +258,8 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
         throw new Error(`Cancel failed: ${text}`);
     }
 
-    const res = await response.json();
+    const text = await response.text();
+    const res = safeJsonParse(text);
     if (String(res.code) !== "0") throw new Error(res.msg);
     return res.data;
 }
@@ -331,7 +332,8 @@ async function placeBitunixOrder(
     throw err;
   }
 
-  const res: BitunixResponse<BitunixOrder> = await response.json();
+  const text = await response.text();
+  const res: BitunixResponse<BitunixOrder> = safeJsonParse(text);
   if (String(res.code) !== "0") {
     const err: any = new Error(res.msg); // Use msg as main error text for legacy compatibility
     err.code = String(res.code);
@@ -358,7 +360,8 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
   });
 
   if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
-  const res = (await response.json()) as BitunixResponse<BitunixOrder[] | BitunixOrderListWrapper>;
+  const text = await response.text();
+  const res = safeJsonParse(text) as BitunixResponse<BitunixOrder[] | BitunixOrderListWrapper>;
   if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
 
   let listData: BitunixOrder[] = [];
@@ -425,7 +428,8 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
   });
 
   if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
-  const res = (await response.json());
+  const text = await response.text();
+  const res = safeJsonParse(text);
   if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
 
   let listData: BitunixOrder[] = [];
@@ -514,7 +518,8 @@ async function placeBitgetOrder(
         throw err;
     }
 
-    const res = await response.json();
+    const text = await response.text();
+    const res = safeJsonParse(text);
     if (res.code !== "00000") {
         let msg = res.msg;
         if (msg && (msg.toLowerCase().includes("mode") || msg.toLowerCase().includes("position") || msg.toLowerCase().includes("side"))) {
@@ -550,7 +555,8 @@ async function fetchBitgetPendingOrders(
     });
 
     if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
-    const res = await response.json();
+    const text = await response.text();
+    const res = safeJsonParse(text);
     if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
@@ -598,7 +604,8 @@ async function fetchBitgetHistoryOrders(
     });
 
     if (!response.ok) return []; // Fail gracefully
-    const res = await response.json();
+    const text = await response.text();
+    const res = safeJsonParse(text);
     if (res.code !== "00000") return [];
 
     const orders = res.data || [];

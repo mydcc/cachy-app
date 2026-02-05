@@ -341,10 +341,13 @@ export const csvService = {
           const originalIdAsString = entry.ID;
           let internalId: number;
 
-          const parsedId = parseFloat(originalIdAsString);
-          const isSafe = !isNaN(parsedId) &&
-                         Number.isSafeInteger(parsedId) &&
-                         originalIdAsString.length < 16;
+          // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
+          const isTooLarge = originalIdAsString.length >= 16;
+          const parsedId = isTooLarge ? NaN : parseFloat(originalIdAsString);
+
+          const isSafe = !isTooLarge &&
+                         !isNaN(parsedId) &&
+                         Number.isSafeInteger(parsedId);
 
           if (isSafe) {
             internalId = parsedId;

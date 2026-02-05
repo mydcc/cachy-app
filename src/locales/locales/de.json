@@ -78,6 +78,7 @@
     "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
     "noHistory": "Keine Historie gefunden.",
+    "noTpSlOrders": "Keine {view} TP/SL Orders gefunden.",
     "orderHistory": {
       "maker": "M",
       "taker": "T",
@@ -167,7 +168,9 @@
       "loadedIntoInputs": "{symbol} in Trade-Eingaben geladen. Konfiguriere dort TP/SL.",
       "failedClose": "Senden der Close-Order fehlgeschlagen.",
       "orderCancelled": "Bestellung storniert",
-      "cancelFailed": "Stornierung fehlgeschlagen"
+      "cancelFailed": "Stornierung fehlgeschlagen",
+      "confirmCancel": "Diesen TP/SL Auftrag stornieren?",
+      "noApiKeys": "Keine API-Keys konfiguriert"
     },
     "generalInputs": {
       "header": "Allgemein",
