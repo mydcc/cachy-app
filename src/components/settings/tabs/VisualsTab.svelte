@@ -1081,7 +1081,7 @@
 
                         <!-- Layout Toggle -->
                         <div class="field-group">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Layout</span>
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.subtabs.layout")}</span>
                             <div class="flex gap-2">
                                 {#each [{ v: "tunnel", l: "Tunnel" }, { v: "grid", l: "Grid" }] as layout}
                                     <button
@@ -1098,7 +1098,7 @@
 
                         <!-- Color Mode -->
                         <div class="field-group">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Color Mode</span>
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
                             <div class="flex gap-2">
                                 {#each [{ v: "theme", l: $_("settings.appearance.modeTheme") }, { v: "interactive", l: $_("settings.appearance.modeInteractive") }, { v: "custom", l: $_("settings.appearance.modeCustom") }] as mode}
                                     <button
@@ -1117,7 +1117,7 @@
                         {#if settingsState.tradeFlowSettings.colorMode === "custom"}
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="field-group">
-                                    <label for="tf-color-up">Buy Color</label>
+                                    <label for="tf-color-up">{$_("settings.visuals.buyColor")}</label>
                                     <div class="flex items-center gap-2">
                                         <input
                                             id="tf-color-up"
@@ -1131,7 +1131,7 @@
                                     </div>
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-color-down">Sell Color</label>
+                                    <label for="tf-color-down">{$_("settings.visuals.sellColor")}</label>
                                     <div class="flex items-center gap-2">
                                         <input
                                             id="tf-color-down"

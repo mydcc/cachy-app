@@ -435,11 +435,11 @@ class MarketWatcher {
     }
 
     this.inFlight++;
+    this.requestStartTimes.set(lockKey, Date.now());
 
     // Create the Promise wrapper
     const requestPromise = (async () => {
         try {
-            this.requestStartTimes.set(lockKey, Date.now());
             // Determine priority: high for the main trading symbol, normal for the rest
             const isMainSymbol =
               tradeState.symbol &&

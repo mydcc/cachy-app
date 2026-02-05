@@ -17,9 +17,7 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { settingsState } from "../../stores/settings.svelte";
-  import { accountState } from "../../stores/account.svelte";
-  import { tradeState } from "../../stores/trade.svelte";
+  import { tradeService } from "../../services/tradeService";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import TpSlEditModal from "./TpSlEditModal.svelte";
@@ -43,100 +41,17 @@
   async function fetchOrders() {
     if (!isActive) return;
 
-    const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
-
-    if (!keys?.key || !keys?.secret) {
-      error = $_("dashboard.alerts.noApiKeys");
-      return;
-    }
-
     loading = true;
     error = "";
     try {
-      if (provider === "bitunix") {
-        // Bitunix default behavior
-        const symbolsToFetch = new Set<string>();
-        if (tradeState.symbol) symbolsToFetch.add(tradeState.symbol);
-        accountState.positions.forEach((p) => symbolsToFetch.add(p.symbol));
-
-        const fetchList =
-          symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
-        const results: any[] = [];
-
-        // Rate limit handling: Batch requests (max 5 concurrent)
-        const BATCH_SIZE = 5;
-        for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
-          const batch = fetchList.slice(i, i + BATCH_SIZE);
-          const batchResults = await Promise.all(
-            batch.map(async (sym) => {
-              try {
-                const params: any = {};
-                if (sym) params.symbol = sym;
-                const response = await fetch("/api/tpsl", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    exchange: provider,
-                    apiKey: keys.key,
-                    apiSecret: keys.secret,
-                    action: view,
-                    params,
-                  }),
-                });
-                const data = await response.json();
-                if (data.error) {
-                  // Suppress specific symbol errors, just warn
-                  if (!data.error.includes("code: 2")) {
-                    console.warn(`TP/SL fetch warning for ${sym}:`, data.error);
-                  }
-                  return [];
-                }
-                return Array.isArray(data) ? data : data.rows || [];
-              } catch (e) {
-                console.warn(`TP/SL network error for ${sym}:`, e);
-                return [];
-              }
-            }),
-          );
-          results.push(...batchResults.flat());
-        }
-
-        // Deduplicate
-        const uniqueOrders = new Map();
-        results.forEach((o) => {
-          const id = o.id || o.orderId || o.planId;
-          if (id) uniqueOrders.set(id, o);
-        });
-        orders = Array.from(uniqueOrders.values());
+      orders = await tradeService.fetchTpSlOrders(view);
+    } catch (e: any) {
+      if (e.message === "apiErrors.missingCredentials") {
+        error = $_("dashboard.alerts.noApiKeys");
       } else {
-        // Standard fetch for other providers (e.g. Binance)
-        const response = await fetch("/api/tpsl", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            exchange: provider,
-            apiKey: keys.key,
-            apiSecret: keys.secret,
-            action: view,
-          }),
-        });
-        const data = await response.json();
-        if (data.error) error = data.error;
-        else {
-          const list = Array.isArray(data) ? data : data.rows || [];
-          orders = list;
-        }
+        console.error("TP/SL Global Error:", e);
+        error = $_("apiErrors.failedToLoadOrders");
       }
-
-      // Sort by time (newest first)
-      orders.sort(
-        (a, b) =>
-          (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0),
-      );
-    } catch (e) {
-      console.error("TP/SL Global Error:", e);
-      error = $_("apiErrors.failedToLoadOrders");
     } finally {
       loading = false;
     }
@@ -145,33 +60,13 @@
   async function handleCancel(order: any) {
     if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
 
-    const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
-
     try {
-      const response = await fetch("/api/tpsl", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
-          action: "cancel",
-          params: {
-            orderId: order.orderId || order.id,
-            symbol: order.symbol,
-            planType: order.planType,
-          },
-        }),
-      });
-      const res = await response.json();
-      if (res.error) toastService.error(res.error);
-      else {
-        toastService.success($_("dashboard.alerts.orderCancelled"));
-        fetchOrders(); // Refresh
-      }
-    } catch (e) {
-      toastService.error($_("dashboard.alerts.cancelFailed"));
+      await tradeService.cancelTpSlOrder(order);
+      toastService.success($_("dashboard.alerts.orderCancelled"));
+      fetchOrders(); // Refresh
+    } catch (e: any) {
+      const msg = e?.message || $_("dashboard.alerts.cancelFailed");
+      toastService.error(msg);
     }
   }
 
@@ -203,9 +98,9 @@
 
   // Helper to determine type label
   function getTypeLabel(o: any) {
-    if (o.planType === "PROFIT") return "TP";
-    if (o.planType === "LOSS") return "SL";
-    return "Plan";
+    if (o.planType === "PROFIT") return $_("common.tp");
+    if (o.planType === "LOSS") return $_("common.sl");
+    return $_("dashboard.tpslList.plan");
   }
 </script>
 
@@ -220,7 +115,7 @@
       class:bg-[var(--bg-secondary)]={view === "pending"}
       onclick={() => (view = "pending")}
     >
-      Pending
+      {$_("dashboard.tpslList.pending")}
     </button>
     <button
       class="flex-1 py-1.5 font-bold transition-colors"
@@ -228,7 +123,7 @@
       class:bg-[var(--bg-secondary)]={view === "history"}
       onclick={() => (view = "history")}
     >
-      History
+      {$_("dashboard.tpslList.history")}
     </button>
   </div>
 

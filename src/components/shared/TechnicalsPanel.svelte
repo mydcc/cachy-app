@@ -512,7 +512,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>SuperTrend</span>
+                  <span>{$_("settings.technicals.superTrend.title")}</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -540,7 +540,7 @@
                   class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <div class="flex justify-between">
-                    <span>ATR Stop (L)</span>
+                    <span>{$_("settings.technicals.atrStop.title")}</span>
                     <span class="font-mono text-[var(--danger-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.sell,

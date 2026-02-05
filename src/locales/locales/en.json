@@ -237,6 +237,11 @@
       "addTargetTitle": "Add another target",
       "emptyState": "No targets defined. Add a target above."
     },
+    "tpslList": {
+      "pending": "Pending",
+      "history": "History",
+      "plan": "Plan"
+    },
     "summaryResults": {
       "header": "Summary",
       "positionSizeLabel": "Position Size",
@@ -665,6 +670,8 @@
       "fire": "Fire",
       "glow": "Neon Glow",
       "colorMode": "Color Mode",
+      "buyColor": "Buy Color",
+      "sellColor": "Sell Color",
       "intensity": "Intensity",
       "customColor": "Custom Color",
       "backgroundType": "Background Type",
@@ -881,6 +888,9 @@
       },
       "superTrend": {
         "title": "SuperTrend"
+      },
+      "atrStop": {
+        "title": "ATR Stop (L)"
       },
       "bollingerBands": {
         "title": "Bollinger Bands",

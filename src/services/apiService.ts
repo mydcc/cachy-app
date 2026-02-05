@@ -45,7 +45,7 @@ export interface Ticker24h {
 }
 
 // --- Rate Limiter (Token Bucket) ---
-class RateLimiter {
+export class RateLimiter {
   private tokens: number;
   private lastRefill: number;
   private readonly capacity: number;
@@ -59,20 +59,21 @@ class RateLimiter {
   }
 
   async waitForToken(): Promise<void> {
-    this.refill();
+    while (true) {
+      this.refill();
 
-    if (this.tokens >= 1) {
-      this.tokens -= 1;
-      return;
-    }
+      if (this.tokens >= 1) {
+        this.tokens -= 1;
+        return;
+      }
 
-    // Calculate wait time for 1 token
-    const needed = 1 - this.tokens;
-    const waitTime = needed / this.refillRateMs;
+      // Calculate wait time for 1 token
+      const needed = 1 - this.tokens;
+      const waitTime = needed / this.refillRateMs;
 
-    if (waitTime > 0) {
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-      return this.waitForToken(); // Recurse to re-check/refill
+      if (waitTime > 0) {
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
     }
   }
 

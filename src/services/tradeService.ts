@@ -29,6 +29,7 @@ import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
+import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
@@ -412,6 +413,79 @@ class TradeService {
         }
 
         return results;
+    }
+
+    public async fetchTpSlOrders(view: "pending" | "history"): Promise<any[]> {
+        const provider = settingsState.apiProvider || "bitunix";
+
+        if (provider === "bitunix") {
+            // Batch Logic for Bitunix
+            const symbolsToFetch = new Set<string>();
+            if (tradeState.symbol) symbolsToFetch.add(tradeState.symbol);
+
+            const positions = omsService.getPositions();
+            positions.forEach(p => symbolsToFetch.add(p.symbol));
+
+            const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
+            const results: any[] = [];
+            const BATCH_SIZE = 5;
+
+            for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
+                const batch = fetchList.slice(i, i + BATCH_SIZE);
+                const batchPromises = batch.map(async (sym) => {
+                    try {
+                        const params: any = {};
+                        if (sym) params.symbol = sym;
+
+                        // signedRequest handles safeJsonParse and Error Codes
+                        const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                            exchange: provider,
+                            action: view,
+                            params
+                        });
+                        return Array.isArray(data) ? data : data.rows || [];
+                    } catch (e) {
+                        logger.warn("market", `TP/SL fetch warning for ${sym}`, e);
+                        return [];
+                    }
+                });
+
+                const batchResults = await Promise.all(batchPromises);
+                results.push(...batchResults.flat());
+            }
+
+            // Deduplicate
+            const uniqueOrders = new Map();
+            results.forEach((o) => {
+                const id = o.id || o.orderId || o.planId;
+                if (id) uniqueOrders.set(id, o);
+            });
+
+            const orders = Array.from(uniqueOrders.values());
+            return orders.sort((a, b) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+
+        } else {
+            // Generic Provider
+            const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                exchange: provider,
+                action: view
+            });
+            const list = Array.isArray(data) ? data : data.rows || [];
+            return list.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+        }
+    }
+
+    public async cancelTpSlOrder(order: any) {
+        const provider = settingsState.apiProvider || "bitunix";
+        return this.signedRequest("POST", "/api/tpsl", {
+            exchange: provider,
+            action: "cancel",
+            params: {
+                orderId: order.orderId || order.id,
+                symbol: order.symbol,
+                planType: order.planType,
+            },
+        });
     }
 }
 
