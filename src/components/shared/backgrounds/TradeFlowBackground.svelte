@@ -47,11 +47,13 @@
   // Settings Shortcuts
   const settings = $derived(settingsState.tradeFlowSettings);
 
-  // Initialize with $effect
+  // Initialize with $effect - wait for container to be bound
   let initialized = $state(false);
   
   $effect(() => {
-    if (!browser || initialized) return;
+    if (!browser || initialized || !container) return;
+    
+    console.log("[TradeFlow] Initializing...", { container, settings });
     
     initThree();
     updateThemeColors();
@@ -63,14 +65,18 @@
 
     animate(0);
     initialized = true;
+    
+    console.log("[TradeFlow] Initialized successfully");
 
     return () => {
+      console.log("[TradeFlow] Cleanup");
       cleanup();
     };
   });
 
   $effect(() => {
     if (initialized) {
+      console.log("[TradeFlow] Symbol changed:", tradeState.symbol);
       updateSubscription(tradeState.symbol);
     }
   });
@@ -170,14 +176,12 @@
   function updateSubscription(symbol: string) {
     if (!symbol) return;
 
-    // Unsub old (if we tracked it, but bitunixWs handles logic)
-    // We just subscribe to new. The component logic is stateless regarding symbol transition
-    // except we might want to clear points?
-    // Let's keep points for visual continuity (tunnel effect).
-
+    console.log("[TradeFlow] Subscribing to trades:", symbol);
     bitunixWs.subscribeTrade(symbol, onTrade);
   }
 
+  let tradeCount = 0;
+  
   function onTrade(trade: any) {
     // trade: { p: price, v: vol, s: side, ... }
     const price = parseFloat(trade.p || trade.lastPrice || "0");
@@ -188,6 +192,12 @@
     
     // Volume filter
     if (size < settings.minVolume) return;
+
+    // Debug: Log first few trades
+    if (tradeCount < 5) {
+      console.log("[TradeFlow] Trade received:", { price, size, side, minVolume: settings.minVolume });
+      tradeCount++;
+    }
 
     // Update Average
     runningSum += price;

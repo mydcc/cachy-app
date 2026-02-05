@@ -402,14 +402,14 @@ const defaultSettings: Settings = {
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
   tradeFlowSettings: {
-      speed: 1.0,
-      particleCount: 5000,
-      size: 0.05,
-      spread: 5.0,
+      speed: 0.8,
+      particleCount: 3000,
+      size: 0.08,
+      spread: 8.0,
       layout: "tunnel",
       colorMode: "theme",
-      customColorUp: "#00ff00",
-      customColorDown: "#ff0000",
+      customColorUp: "#00ff88",
+      customColorDown: "#ff4444",
       minVolume: 0,
       gridWidth: 80,
       gridLength: 160,
@@ -752,9 +752,17 @@ export class SettingsManager {
   }
 
   resetGalaxySettings() {
-    this.galaxySettings = { ...defaultSettings.galaxySettings };
+    this.galaxySettings = {
+      ...defaultSettings.galaxySettings,
+    };
     this.backgroundOpacity = 1;
     this.backgroundBlur = 0;
+  }
+
+  resetTradeFlowSettings() {
+    this.tradeFlowSettings = {
+      ...defaultSettings.tradeFlowSettings,
+    };
   }
 
   // Market & Performance State
