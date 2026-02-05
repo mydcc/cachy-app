@@ -298,9 +298,13 @@
       const normalized = value.replace(",", ".");
       // Check for trailing dot to avoid parsing "1." as 1 immediately
       if (!normalized.endsWith(".")) {
-          const num = normalized === "" ? 0 : parseFloat(normalized);
-          if (!isNaN(num) && atrMultiplier !== num) {
-            tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+          try {
+            const num = normalized === "" ? 0 : new Decimal(normalized).toNumber();
+            if (!isNaN(num) && atrMultiplier !== num) {
+              tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+            }
+          } catch {
+            // Invalid decimal input
           }
       }
     }

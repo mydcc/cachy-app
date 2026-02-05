@@ -575,6 +575,7 @@
     "heatmap": "Heatmap",
     "heatmapShort": "Heat",
     "broker": "Broker",
+    "rsiTitle": "RSI",
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",

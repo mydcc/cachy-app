@@ -509,6 +509,7 @@ export type TranslationKey =
   | "marketOverview.heatmap"
   | "marketOverview.heatmapShort"
   | "marketOverview.broker"
+  | "marketOverview.rsiTitle"
   | "marketOverview.rsiSettings"
   | "marketOverview.fundingRate"
   | "marketOverview.countdown"

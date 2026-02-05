@@ -30,6 +30,7 @@ import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
 import { modalState } from "../stores/modal.svelte";
 import { normalizeJournalEntry, parseDecimal } from "../utils/utils";
+import { safeJsonParse } from "../utils/safeJson";
 import type {
   JournalEntry,
   TradeValues,
@@ -283,7 +284,7 @@ export const app = {
     try {
       const d =
         localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
-      const parsedData = JSON.parse(d);
+      const parsedData = safeJsonParse(d);
       return Array.isArray(parsedData)
         ? parsedData.map(normalizeJournalEntry)
         : [];
@@ -388,8 +389,8 @@ export const app = {
       "prompt",
     );
     if (typeof name === "string" && name) {
-      const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+      const presets = safeJsonParse(
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
       );
       presets[name] = app.getInputsAsObject();
       localStorage.setItem(
@@ -402,8 +403,8 @@ export const app = {
   },
 
   loadPreset: (name: string) => {
-    const presets = JSON.parse(
-      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+    const presets = safeJsonParse(
+      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
     );
     const p = presets[name];
     if (p) {
@@ -423,8 +424,8 @@ export const app = {
   },
 
   deletePreset: async (name: string) => {
-    const presets = JSON.parse(
-      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+    const presets = safeJsonParse(
+      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
     );
     delete presets[name];
     localStorage.setItem(
@@ -435,8 +436,8 @@ export const app = {
   },
 
   populatePresetLoader: () => {
-    const presets = JSON.parse(
-      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+    const presets = safeJsonParse(
+      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
     );
     presetState.availablePresets = Object.keys(presets);
   },
