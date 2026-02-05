@@ -1,59 +1,93 @@
-# Code Analysis & Risk Report
+# Status & Risk Report: Cachy-App Codebase Analysis
 
-**Date:** 2026-10-25
-**Scope:** `src/services`, `src/stores`, `src/components/inputs`
-**Focus:** Data Integrity, Resource Management, UI/UX, Security
+**Date:** 2026-05-25
+**Auditor:** Jules (Senior Lead Developer)
+**Scope:** Full Repository Scan (Services, Stores, UI)
+**Status:** 🟡 WARNING (Requires Hardening before Production)
 
 ## Executive Summary
 
-The codebase exhibits a high degree of "Institutional Grade" maturity. Critical financial logic uses `Decimal.js` consistently, ensuring precision. The WebSocket and API layers employ sophisticated resilience patterns (deduplication, token bucket rate limiting, circuit breakers, and "Fast Path" optimization).
+The codebase demonstrates a high degree of sophistication ("Institutional Grade") in several areas:
+- **State Management:** `market.svelte.ts` uses advanced buffering, SoA (Structure of Arrays) for Klines, and Svelte 5 runes correctly.
+- **Resilience:** `TradeService` implements "Two Generals" problem handling for network failures during closing.
+- **Performance:** `BitunixWs` employs a "Fast Path" to bypass Zod validation for high-frequency ticks.
 
-However, there are localized UX/I18n gaps and specific architectural trade-offs (e.g., "Best Effort" order cancellation) that present operational risks.
+However, critical vulnerabilities related to floating-point precision in API handling and widespread I18n gaps in the UI pose significant risks.
 
-## Findings
+---
 
-### 🔴 CRITICAL (Financial Risk / Data Integrity)
+## 🔴 CRITICAL (High Priority)
+*Risk of financial loss, data corruption, or severe crash.*
 
-*   **"Naked Stop Loss" Risk in `TradeService.ts`**:
-    *   **Context:** `flashClosePosition` calls `cancelAllOrders(symbol, false)`. The `false` flag means if the cancellation fails (e.g., network timeout), the code *proceeds* to close the position anyway.
-    *   **Risk:** If the close succeeds but the cancellation failed, the user is left with a closed position but active Stop Loss/Take Profit orders. If price moves, these could trigger unintended new positions.
-    *   **Recommendation:** This is a design trade-off (Prioritize Closing > Clean State). It requires a robust "Unconfirmed Order" UI notification to alert the user to manually check open orders.
+1.  **Precision Vulnerability in `apiService.ts` (`fetchTicker24h`)**
+    -   **Location:** `src/services/apiService.ts` (Line ~442)
+    -   **Issue:** The method calls `const data = await response.json()` directly.
+    -   **Risk:** This bypasses `safeJsonParse`. Large numeric values (prices, volumes) will be parsed as native JavaScript numbers, causing precision loss for assets with high decimal granularity or large integers (e.g. SHIB volume).
+    -   **Fix:** Replace with `await apiService.safeJson(response)`.
 
-*   **Numeric Precision in WebSocket (`bitunixWs.ts`)**:
-    *   **Context:** Fast Path parsing casts `data.lastPrice` to string.
-    *   **Risk:** If the exchange sends a standard JavaScript number for a price with >15 digits of precision, native JSON parsing *before* our handler runs could lose precision.
-    *   **Mitigation:** The code includes a check (`lastNumericWarning`) to log this. No immediate fix possible without a custom JSON parser, but the current string casting is the correct mitigation.
+2.  **Unsafe Default in `closePosition`**
+    -   **Location:** `src/services/tradeService.ts`
+    -   **Issue:** If `amount` is not provided to `closePosition`, it defaults to closing the **entire** position.
+    -   **Risk:** Accidental full closure of a position when a partial close was intended, if the UI passes `undefined`.
+    -   **Fix:** Throw an error if `amount` is missing, or require an explicit `closeAll` flag.
 
-### 🟡 WARNING (UX / I18n / Performance)
+3.  **Direct API Calls bypassing Service Layer**
+    -   **Location:** `src/components/shared/TpSlEditModal.svelte`
+    -   **Issue:** Uses `fetch("/api/tpsl", ...)` directly instead of `tradeService`.
+    -   **Risk:** Bypasses centralized error handling, retry policies, and logging defined in `TradeService`.
+    -   **Fix:** Refactor to use `tradeService.modifyPosition()`.
 
-*   **Missing I18n Keys (Hardcoded Strings)**:
-    *   `src/components/inputs/PortfolioInputs.svelte`:
-        *   "Failed to fetch balance"
-        *   "Invalid balance data received"
-        *   "Error fetching balance"
-    *   `src/components/inputs/TradeSetupInputs.svelte`:
-        *   "Failed to copy to clipboard"
-    *   **Impact:** Poor UX for non-English users.
+---
 
-*   **Error Swallowing in `TradeService`**:
-    *   **Context:** `fetchOpenPositionsFromApi` catches errors and logs them (`logger.warn`), but does not propagate them up to the UI in some flows.
-    *   **Impact:** User might see stale data without an error banner if the sync fails silently.
+## 🟡 WARNING (Medium Priority)
+*UX degradation, potential instability, or missing standards.*
 
-*   **Hardcoded Coin Aliases (`NewsService.ts`)**:
-    *   **Context:** `COIN_ALIASES` contains a hardcoded list (BTC, ETH, etc.).
-    *   **Risk:** Missing coverage for new assets (e.g., SUI, APT) without code changes.
+1.  **Recursive Polling Risk in `MarketWatcher`**
+    -   **Location:** `src/services/marketWatcher.ts`
+    -   **Issue:** Uses `setTimeout` to recursively call `runPollingLoop`. If `performPollingCycle` hangs (promise never resolves), the loop terminates permanently.
+    -   **Fix:** Wrap `performPollingCycle` in a `Promise.race` with a timeout to ensure the loop always continues.
 
-### 🔵 REFACTOR (Technical Debt)
+2.  **Loose Type Guards in WebSocket Fast Path**
+    -   **Location:** `src/services/bitunixWs.ts`
+    -   **Issue:** `isPriceData` relies on negative checks (`typeof d !== 'object'`). While currently safe, it is fragile against API schema changes.
+    -   **Fix:** Add stronger property existence checks.
 
-*   **`MarketWatcher` Complexity**: The class mixes polling, WebSocket coordination, and history backfilling. While robust, it is difficult to test.
-*   **Magic Numbers**: `TradeSetupInputs` uses `1000` as a deviation threshold. Should be a constant.
+3.  **Widespread Missing I18n (Hardcoded Strings)**
+    -   **Locations:**
+        -   `src/components/shared/MarketDashboardModal.svelte` (Headers, Status, Empty States)
+        -   `src/components/shared/TpSlEditModal.svelte` (Entire component)
+        -   `src/components/settings/tabs/SystemTab.svelte` (`alert` messages)
+    -   **Issue:** UI contains English strings mixed with translation keys.
+    -   **Fix:** Extract all strings to `src/locales/locales/en.json`.
 
-## Recommendations for Step 2 (Implementation)
+4.  **Blocking User Experience (`alert()`)**
+    -   **Location:** `TpSlList.svelte`, `VisualsTab.svelte`.
+    -   **Issue:** Uses native `window.alert()` for errors.
+    -   **Fix:** Replace with `toastService.error()`.
 
-1.  **I18n Hardening:** Extract all identified hardcoded strings to `src/locales/locales/en.json` and regenerate types.
-2.  **Safety Verification:** Add a regression test for `TradeService.flashClosePosition` to verify the "Unconfirmed" state handling.
-3.  **News Service:** Externalize `COIN_ALIASES` or fetch from a dynamic list.
+5.  **Use of `parseFloat` in Financial Inputs**
+    -   **Location:** `src/components/inputs/TradeSetupInputs.svelte`
+    -   **Issue:** `parseFloat` is used for `atrMultiplier` and `priceStep`.
+    -   **Risk:** Minor precision issues.
+    -   **Fix:** Use `new Decimal()` or string manipulation for all input logic.
 
-## Conclusion
+---
 
-The system is solid. The primary tasks are "polishing" (I18n) and ensuring the "Risk Trade-offs" (like the naked SL) are visible to the user via the UI.
+## 🔵 REFACTOR (Low Priority)
+*Technical debt and code hygiene.*
+
+1.  **Console Log Leftovers**
+    -   **Location:** `src/routes/+layout.svelte`, `src/services/bitunixWs.ts` (commented out logs).
+    -   **Action:** Remove `console.log` in production code; use `logger` service.
+
+2.  **JSON.parse usage in Stores**
+    -   **Location:** `trade.svelte.ts`, `journal.svelte.ts`.
+    -   **Action:** Verify if these stores persist large numbers. If so, switch to `safeJsonParse`.
+
+---
+
+## Next Steps (Action Plan)
+
+1.  **Fix Criticals:** Patch `apiService` and `tradeService`.
+2.  **Hardening:** Secure `MarketWatcher` loop and remove `alert()`.
+3.  **Localization:** Extract strings for `MarketDashboardModal` and `TpSlEditModal`.
