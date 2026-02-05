@@ -465,7 +465,12 @@ export const newsService = {
 
         return analysis;
       } catch (e: any) {
-        logger.error("ai", "Sentiment Analysis Failed", e);
+        const msg = e?.message || String(e);
+        if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY")) {
+          logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
+        } else {
+          logger.error("ai", "Sentiment Analysis Failed", e);
+        }
         return {
           score: 0,
           regime: "UNCERTAIN",

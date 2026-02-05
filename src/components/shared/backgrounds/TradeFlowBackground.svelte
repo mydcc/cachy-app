@@ -296,7 +296,8 @@
       fragmentShader: fragmentShader,
       transparent: true,
       depthWrite: false, // For better transparency if needed
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+      vertexColors: true
     });
 
     resources.points = new THREE.Points(resources.geometry, resources.material);
