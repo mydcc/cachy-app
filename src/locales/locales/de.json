@@ -159,6 +159,10 @@
     "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
     "configure": "Konfigurieren",
     "tpsl": "TP/SL",
+    "tpslManager": {
+      "pending": "Ausstehend",
+      "history": "Verlauf"
+    },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
     "focus": "Fokus",
@@ -695,6 +699,18 @@
         "standard": "Standard",
         "floating": "Schwebend"
       },
+      "tradeFlow": {
+        "buyColor": "Kauf-Farbe",
+        "sellColor": "Verkauf-Farbe",
+        "minVolume": "Min. Volumen Filter",
+        "gridWidth": "Gitterbreite",
+        "gridLength": "Gitterlänge",
+        "speed": "Flussgeschwindigkeit",
+        "spread": "Tunnel-Verbreiterung",
+        "size": "Partikelgröße",
+        "count": "Partikelanzahl",
+        "filterHelp": "Trades unter diesem Volumen ausblenden"
+      },
       "coordinates": {
         "x": "X",
         "y": "Y",
@@ -916,6 +932,9 @@
       },
       "volumeMa": {
         "title": "Volumen MA"
+      },
+      "atrStop": {
+        "title": "ATR Stopp (L)"
       },
       "labels": {
         "length": "Länge",
