@@ -819,7 +819,7 @@
 
             if (observer) observer.disconnect();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
-window.removeEventListener("resize", onWindowResize);
+            window.removeEventListener("resize", onWindowResize);
             if (performanceMonitor) performanceMonitor.stop();
             window.removeEventListener("mousemove", onInteraction);
 
