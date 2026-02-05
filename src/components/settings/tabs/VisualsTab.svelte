@@ -1047,6 +1047,44 @@
                     </div>
                 {/if}
 
+
+                {#if settingsState.backgroundType === "tradeflow"}
+                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4">
+                        <h4 class="text-sm font-semibold text-[var(--accent-color)] mb-2">Trade Flow Configuration</h4>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div class="field-group">
+                                <label for="tf-speed">Flow Speed: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                                <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
+                                    bind:value={settingsState.tradeFlowSettings.speed}
+                                    class="range-input" />
+                            </div>
+
+                            <div class="field-group">
+                                <label for="tf-spread">Tunnel Spread: {settingsState.tradeFlowSettings.spread.toFixed(1)}</label>
+                                <input id="tf-spread" type="range" min="1.0" max="20.0" step="0.5"
+                                    bind:value={settingsState.tradeFlowSettings.spread}
+                                    class="range-input" />
+                            </div>
+
+                            <div class="field-group">
+                                <label for="tf-size">Particle Size: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                                <input id="tf-size" type="range" min="0.01" max="0.5" step="0.01"
+                                    bind:value={settingsState.tradeFlowSettings.size}
+                                    class="range-input" />
+                            </div>
+
+                             <div class="field-group">
+                                <label for="tf-count">Particle Count: {settingsState.tradeFlowSettings.particleCount}</label>
+                                <input id="tf-count" type="range" min="100" max="5000" step="100"
+                                    bind:value={settingsState.tradeFlowSettings.particleCount}
+                                    class="range-input" />
+                            </div>
+                        </div>
+                    </div>
+                {/if}
+
+
                 {#if settingsState.backgroundType !== "none"}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="field-group">
