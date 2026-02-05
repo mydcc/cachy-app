@@ -84,6 +84,7 @@ describe('NewsService Limits', () => {
 
         const mockResponse = {
             ok: true,
+            text: async () => JSON.stringify({ results: manyItems }),
             json: async () => ({ results: manyItems })
         };
         (global.fetch as any).mockResolvedValue(mockResponse);
@@ -102,6 +103,7 @@ describe('NewsService Limits', () => {
     it('should call getAll with limit 50 during prune', async () => {
         const mockResponse = {
             ok: true,
+            text: async () => JSON.stringify({ results: [] }),
             json: async () => ({ results: [] })
         };
         (global.fetch as any).mockResolvedValue(mockResponse);

@@ -448,13 +448,13 @@ class TradeService {
                               const response = await fetch("/api/tpsl", {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({
+                                  body: JSON.stringify(this.serializePayload({
                                       exchange: provider,
                                       apiKey: keys.key,
                                       apiSecret: keys.secret,
                                       action: view,
                                       params
-                                  })
+                                  }))
                               });
 
                               const text = await response.text();
@@ -517,7 +517,7 @@ class TradeService {
         const response = await fetch("/api/tpsl", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+            body: JSON.stringify(this.serializePayload({
                 exchange: provider,
                 apiKey: keys.key,
                 apiSecret: keys.secret,
@@ -527,7 +527,7 @@ class TradeService {
                     symbol: order.symbol,
                     planType: order.planType,
                 },
-            }),
+            })),
         });
 
         const text = await response.text();
