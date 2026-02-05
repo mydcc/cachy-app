@@ -210,6 +210,7 @@
       "atrModeAuto": "Auto",
       "toggleAutoUpdatePrice": "Automatische Preisaktualisierung umschalten",
       "copyToClipboard": "In Zwischenablage kopieren",
+      "copiedFeedback": "Kopiert!",
       "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
@@ -1942,6 +1943,11 @@
     "noMessages": "Noch keine Nachrichten.",
     "sendButton": "Senden",
     "placeholder": "Sag Hallo..."
+  },
+  "jules": {
+    "title": "Jules Inspektor",
+    "analyzing": "Analysiere Systemstatus...",
+    "close": "Bericht schließen"
   },
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",
