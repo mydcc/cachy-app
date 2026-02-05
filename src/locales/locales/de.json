@@ -159,6 +159,14 @@
     "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
     "configure": "Konfigurieren",
     "tpsl": "TP/SL",
+    "tpslManager": {
+      "pending": "Ausstehend",
+      "history": "Verlauf",
+      "trigger": "Trigger:",
+      "amount": "Menge:",
+      "cancelTooltip": "Abbrechen",
+      "editTooltip": "Bearbeiten"
+    },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
     "focus": "Fokus",
