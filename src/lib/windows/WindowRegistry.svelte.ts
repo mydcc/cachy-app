@@ -142,7 +142,8 @@ class WindowRegistry {
                 showIcon: true,
                 hasContextMenu: true,
                 autoScaling: true,
-                showRightScale: true
+                showRightScale: true,
+                headerAction: 'toggle-mode'
             },
             layout: {
                 ...baseLayout,
@@ -211,7 +212,9 @@ class WindowRegistry {
                 centerByDefault: true,
                 showIcon: false,
                 isResizable: false as boolean,
-                closeOnBlur: true
+                closeOnBlur: true,
+                isResponsive: true,
+                edgeToEdgeBreakpoint: 768
             },
             layout: {
                 ...baseLayout,
@@ -255,12 +258,30 @@ class WindowRegistry {
                 isDraggable: true,
                 allowMaximize: true,
                 allowMinimize: true,
-                canMinimizeToPanel: true
+                canMinimizeToPanel: true,
+                headerAction: 'toggle-mode',
+                headerButtons: ['export', 'delete'],
+                pinSide: 'left',
+                doubleClickBehavior: 'pin',
+                allowFontSize: true,
+                allowZoom: false
             },
             layout: {
                 ...baseLayout,
                 width: 450,
                 height: 600
+            }
+        });
+
+        /** Specialized Media/Channel Window (e.g. Galaxy Chat) */
+        this.configs.set('channel', {
+            type: 'channel', // Requires type update in types.ts if STRICT (but mostly likely string union)
+            flags: {
+                ...baseFlags
+            },
+            layout: {
+                ...baseLayout,
+                aspectRatio: 16 / 9
             }
         });
     }

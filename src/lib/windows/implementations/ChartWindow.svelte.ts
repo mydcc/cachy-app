@@ -48,7 +48,6 @@ export class ChartWindow extends WindowBase {
             windowType: "chart",
             ...options
         });
-        this.headerAction = 'toggle-mode';
         this.updateHeaderControls();
     }
 

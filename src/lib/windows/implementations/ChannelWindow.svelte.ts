@@ -38,7 +38,7 @@ export class ChannelWindow extends WindowBase {
     constructor(url: string, title = "Galaxy Chat", id?: string, options: any = {}) {
         super({
             title,
-            windowType: 'iframe',
+            windowType: 'channel',
             ...options
         });
 
@@ -46,8 +46,6 @@ export class ChannelWindow extends WindowBase {
         if (id) this.id = id;
         this.url = url;
 
-        // Default to common widescreen ratio.
-        this.aspectRatio = 16 / 9;
 
         // Listen for communication from the embedded application.
         if (typeof window !== 'undefined') {

@@ -195,4 +195,5 @@ export type WindowType =
     | 'privacy'
     | 'whitepaper'
     | 'assistant'
+    | 'channel'
     | 'dialog';

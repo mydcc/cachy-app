@@ -35,14 +35,6 @@ export class AssistantWindow extends WindowBase {
             title,
             windowType: "assistant"
         });
-
-        // Assistant specific overrides
-        this.headerAction = 'toggle-mode';
-        this.headerButtons = ['export', 'delete'];
-        this.pinSide = 'left';
-        this.doubleClickBehavior = 'pin';
-        this.allowFontSize = true;
-        this.allowZoom = false;
     }
 
     override get title() {
