@@ -25,6 +25,9 @@
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount } from "svelte";
+import { afterNavigate } from "$app/navigation";
+  import { page } from "$app/stores";
+  import { trackPageView } from "../services/trackingService";
   import { initZoomPlugin } from "../lib/chartSetup";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
@@ -127,6 +130,10 @@
         evtSource.close();
       }
     };
+  });
+
+  afterNavigate(() => {
+    trackPageView($page.url.href, document.title);
   });
 
   onMount(() => {
@@ -265,6 +272,7 @@
   });
 
   // Start Market Analyst
+
   onMount(() => {
     import("../services/marketAnalyst").then(({ marketAnalyst }) => {
       marketAnalyst.start();

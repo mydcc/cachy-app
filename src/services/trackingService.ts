@@ -133,3 +133,24 @@ export function trackInteraction(
 
   pushToDataLayer(eventData);
 }
+
+/**
+ * Tracks a page view event explicitly for Matomo.
+ * Ensures the 'mtm.PageView' event is sent with the correct structure.
+ *
+ * @param url The current page URL
+ * @param title The page title (optional)
+ */
+export function trackPageView(url: string, title?: string) {
+  // SSR Guard
+  if (typeof window === "undefined" || !window._mtm) {
+    return;
+  }
+
+  window._mtm.push({
+    event: 'mtm.PageView',
+    pageUrl: url,
+    pageTitle: title,
+    mtm: { startTime: new Date().getTime() }
+  });
+}
