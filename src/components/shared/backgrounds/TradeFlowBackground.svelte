@@ -5,6 +5,7 @@
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
+  import { PerformanceMonitor } from "../../../utils/performanceMonitor";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -54,6 +55,51 @@
 
   let lifecycleState = $state<LifecycleStateType>(LifecycleState.IDLE);
   let lifecycleError = $state<string | null>(null);
+
+  // FPS Throttling & Performance
+  let performanceMonitor: PerformanceMonitor;
+  let fpsInterval = 1000 / 30; // 30 FPS default
+  let lastDrawTime = 0;
+  let isHighPerformance = false;
+  let highPerfTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  let isVisible = true;
+  let observer: IntersectionObserver | null = null;
+
+  function startAnimationLoop() {
+      if (!rafId && lifecycleState === LifecycleState.READY) {
+          animate(performance.now());
+      }
+  }
+
+  function stopAnimationLoop() {
+      if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+      }
+  }
+
+  function handleVisibilityChange() {
+      if (document.hidden) {
+          stopAnimationLoop();
+      } else if (isVisible) {
+          startAnimationLoop();
+      }
+  }
+
+  function onInteraction() {
+      if (!isHighPerformance) {
+          isHighPerformance = true;
+          fpsInterval = 1000 / 60;
+      }
+
+      if (highPerfTimeout) clearTimeout(highPerfTimeout);
+      highPerfTimeout = setTimeout(() => {
+          isHighPerformance = false;
+          fpsInterval = 1000 / 30;
+      }, 1000);
+  }
+
 
   // ========================================
   // RESOURCE MANAGEMENT
@@ -353,6 +399,9 @@
     lifecycleState = LifecycleState.INITIALIZING;
     
     const result = initThree();
+        performanceMonitor = new PerformanceMonitor("TradeFlow");
+        performanceMonitor.start(resources.renderer || undefined);
+
     
     if (!result.success) {
       lifecycleState = LifecycleState.ERROR;
@@ -368,7 +417,21 @@
     updateSubscription(tradeState.symbol);
     animate(0);
     
-    lifecycleState = LifecycleState.READY;
+
+        // Visibility Culling
+        observer = new IntersectionObserver(([entry]) => {
+            isVisible = entry.isIntersecting;
+            if (isVisible && !document.hidden) {
+                startAnimationLoop();
+            } else {
+                stopAnimationLoop();
+            }
+        });
+        observer.observe(container);
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      lifecycleState = LifecycleState.READY;
     log(LogLevel.INFO, '✅ Component ready - State:', lifecycleState);
     
     return () => {
@@ -546,23 +609,23 @@
     
     geom.attributes.position.setXYZ(idx, positions[baseIndex], positions[baseIndex+1], positions[baseIndex+2]);
     (geom.attributes.position as THREE.BufferAttribute).needsUpdate = true;
-    (geom.attributes.position as THREE.BufferAttribute).updateRange = { offset: baseIndex, count: 3 };
+    (geom.attributes.position as any).updateRange = { offset: baseIndex, count: 3 };
 
     geom.attributes.color.setXYZ(idx, colors[baseIndex], colors[baseIndex+1], colors[baseIndex+2]);
     (geom.attributes.color as THREE.BufferAttribute).needsUpdate = true;
-    (geom.attributes.color as THREE.BufferAttribute).updateRange = { offset: baseIndex, count: 3 };
+    (geom.attributes.color as any).updateRange = { offset: baseIndex, count: 3 };
 
     geom.attributes.aSize.setX(idx, sizes[idx]);
     (geom.attributes.aSize as THREE.BufferAttribute).needsUpdate = true;
-    (geom.attributes.aSize as THREE.BufferAttribute).updateRange = { offset: idx, count: 1 };
+    (geom.attributes.aSize as any).updateRange = { offset: idx, count: 1 };
     
     geom.attributes.aSpeed.setX(idx, speeds[idx]);
     (geom.attributes.aSpeed as THREE.BufferAttribute).needsUpdate = true;
-    (geom.attributes.aSpeed as THREE.BufferAttribute).updateRange = { offset: idx, count: 1 };
+    (geom.attributes.aSpeed as any).updateRange = { offset: idx, count: 1 };
     
     geom.attributes.aBirthTime.setX(idx, birthTimes[idx]);
     (geom.attributes.aBirthTime as THREE.BufferAttribute).needsUpdate = true;
-    (geom.attributes.aBirthTime as THREE.BufferAttribute).updateRange = { offset: idx, count: 1 };
+    (geom.attributes.aBirthTime as any).updateRange = { offset: idx, count: 1 };
 
     head = (head + 1) % settings.particleCount;
   }
@@ -646,28 +709,32 @@
   // ========================================
 
   function animate(time: number) {
-    rafId = requestAnimationFrame(animate);
-
-    const delta = time - lastFrameTime;
-    lastFrameTime = time;
-    if (delta > 0) fps = 1000 / delta;
-
     if (!resources.material || !resources.renderer || !resources.scene || !resources.camera) {
       return;
     }
 
-    // GPU TIME UPDATE -> This drives the animation!
-    // No more heavy loop here!
-    resources.material.uniforms.uTime.value = performance.now() / 1000;
+    rafId = requestAnimationFrame(animate);
 
-    // Raycasting Throttled
+    // Throttling
     const now = performance.now();
-    if (now - lastRaycastTime > RAYCAST_THROTTLE_MS && mouse.x !== -1) {
-      performOptimizedRaycast(now / 1000);
-      lastRaycastTime = now;
-    }
+    const elapsed = now - lastDrawTime;
+    const targetInterval = isHighPerformance ? (1000 / 60) : (1000 / 30);
 
-    resources.renderer.render(resources.scene, resources.camera);
+    if (elapsed > targetInterval) {
+        lastDrawTime = now - (elapsed % targetInterval);
+
+        // GPU TIME UPDATE
+        resources.material.uniforms.uTime.value = now / 1000;
+
+        // Raycasting Throttled
+        if (now - lastRaycastTime > RAYCAST_THROTTLE_MS && mouse.x !== -1) {
+          performOptimizedRaycast(now / 1000);
+          lastRaycastTime = now;
+        }
+
+        resources.renderer.render(resources.scene, resources.camera);
+        if (performanceMonitor) performanceMonitor.update();
+    }
   }
 
   function performOptimizedRaycast(currentTime: number) {
@@ -740,6 +807,7 @@
   // ========================================
 
   function onMouseMove(event: MouseEvent) {
+    onInteraction();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   }
@@ -783,12 +851,31 @@
   }
 
   function disposeAll() {
-    if (resources.points && resources.scene) {
-        resources.scene.remove(resources.points);
+    log(LogLevel.INFO, '🧹 Starting complete cleanup...');
+
+    if (resources.scene) {
+        resources.scene.traverse((object) => {
+            if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
+                if (object.geometry) object.geometry.dispose();
+                if (object.material) {
+                    if (Array.isArray(object.material)) {
+                        object.material.forEach(m => m.dispose());
+                    } else {
+                        object.material.dispose();
+                    }
+                }
+            }
+        });
     }
-    
+
     disposeGeometry();
     disposeMaterial();
+
+    if (resources.renderer) {
+        // @ts-ignore
+        if (resources.renderer.forceContextLoss) resources.renderer.forceContextLoss();
+    }
+
     disposeRenderer();
     
     resources.scene = null;
@@ -815,6 +902,10 @@
     // Remove event listeners
     window.removeEventListener('resize', onResize);
     window.removeEventListener('mousemove', onMouseMove);
+
+    if (observer) observer.disconnect();
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+
     
     // Dispose all Three.js resources
     disposeAll();
@@ -826,6 +917,8 @@
     head = 0;
     hasReceivedRealTrades = false;
     
+
+    if (performanceMonitor) performanceMonitor.stop();
     log(LogLevel.INFO, '✅ Cleanup complete');
   }
 </script>
