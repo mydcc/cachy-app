@@ -290,7 +290,6 @@ class BitunixWebSocketService {
   }
 
   private connectPublic(force = false) {
-    console.log('[BitunixWS-Debug] connectPublic called. Destroyed:', this.isDestroyed, 'MarketData:', settingsState.capabilities.marketData);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
