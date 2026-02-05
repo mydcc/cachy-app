@@ -78,6 +78,7 @@
     "pnl": "Total PnL",
     "noOpenOrders": "No open orders.",
     "noHistory": "No history found.",
+    "noTpSlOrders": "No {view} TP/SL orders found.",
     "orderHistory": {
       "maker": "M",
       "taker": "T",
@@ -167,7 +168,9 @@
       "loadedIntoInputs": "Loaded {symbol} into trade inputs. Configure TP/SL there and submit.",
       "failedClose": "Failed to send close order.",
       "orderCancelled": "Order cancelled",
-      "cancelFailed": "Failed to cancel order"
+      "cancelFailed": "Failed to cancel order",
+      "confirmCancel": "Cancel this TP/SL order?",
+      "noApiKeys": "No API keys configured"
     },
     "generalInputs": {
       "header": "General",
