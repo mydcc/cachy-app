@@ -99,6 +99,13 @@ export interface TradeFlowSettings {
   particleCount: number;
   size: number;
   spread: number;
+  layout: "tunnel" | "grid";
+  colorMode: "theme" | "interactive" | "custom";
+  customColorUp: string;
+  customColorDown: string;
+  minVolume: number;
+  gridWidth: number;
+  gridLength: number;
 }
 
 export interface Settings {
@@ -399,6 +406,13 @@ const defaultSettings: Settings = {
       particleCount: 5000,
       size: 0.05,
       spread: 5.0,
+      layout: "tunnel",
+      colorMode: "theme",
+      customColorUp: "#00ff00",
+      customColorDown: "#ff0000",
+      minVolume: 0,
+      gridWidth: 80,
+      gridLength: 160,
     },
     galaxySettings: {
     particleCount: 20000,

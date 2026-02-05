@@ -588,7 +588,7 @@
             <section class="settings-section animate-fade-in">
                 <!-- Type Selector -->
                 <div class="flex gap-2 mb-4 flex-wrap">
-                    {#each [{ v: "none", l: $_("settings.profile.background.typeNone") }, { v: "image", l: $_("settings.profile.background.typeMedia") }, { v: "animation", l: $_("settings.profile.background.typeAnimation") }, { v: "threejs", l: $_("settings.visuals.bgGalaxy") }] as type}
+                    {#each [{ v: "none", l: $_("settings.profile.background.typeNone") }, { v: "image", l: $_("settings.profile.background.typeMedia") }, { v: "animation", l: $_("settings.profile.background.typeAnimation") }, { v: "threejs", l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow", l: "Trade Flow" }] as type}
                         <button
                             class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
                                 type.v ||
@@ -1053,6 +1053,102 @@
                     <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4">
                         <h4 class="text-sm font-semibold text-[var(--accent-color)] mb-2">Trade Flow Configuration</h4>
 
+                        <!-- Layout Toggle -->
+                        <div class="field-group">
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Layout</span>
+                            <div class="flex gap-2">
+                                {#each [{ v: "tunnel", l: "Tunnel" }, { v: "grid", l: "Grid" }] as layout}
+                                    <button
+                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.layout === layout.v
+                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                            : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}"
+                                        onclick={() => (settingsState.tradeFlowSettings.layout = layout.v as any)}
+                                    >
+                                        {layout.l}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+
+                        <!-- Color Mode -->
+                        <div class="field-group">
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Color Mode</span>
+                            <div class="flex gap-2">
+                                {#each [{ v: "theme", l: "Theme" }, { v: "interactive", l: "Interactive" }, { v: "custom", l: "Custom" }] as mode}
+                                    <button
+                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode === mode.v
+                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                            : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}"
+                                        onclick={() => (settingsState.tradeFlowSettings.colorMode = mode.v as any)}
+                                    >
+                                        {mode.l}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+
+                        <!-- Custom Colors (only visible in custom mode) -->
+                        {#if settingsState.tradeFlowSettings.colorMode === "custom"}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="field-group">
+                                    <label for="tf-color-up">Buy Color</label>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            id="tf-color-up"
+                                            type="color"
+                                            bind:value={settingsState.tradeFlowSettings.customColorUp}
+                                            class="w-12 h-8 rounded cursor-pointer"
+                                        />
+                                        <span class="text-xs font-mono text-[var(--text-secondary)]">
+                                            {settingsState.tradeFlowSettings.customColorUp}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-color-down">Sell Color</label>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            id="tf-color-down"
+                                            type="color"
+                                            bind:value={settingsState.tradeFlowSettings.customColorDown}
+                                            class="w-12 h-8 rounded cursor-pointer"
+                                        />
+                                        <span class="text-xs font-mono text-[var(--text-secondary)]">
+                                            {settingsState.tradeFlowSettings.customColorDown}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Volume Filter -->
+                        <div class="field-group">
+                            <label for="tf-minvol">Min Volume Filter: {settingsState.tradeFlowSettings.minVolume}</label>
+                            <input id="tf-minvol" type="range" min="0" max="1000" step="10"
+                                bind:value={settingsState.tradeFlowSettings.minVolume}
+                                class="range-input" />
+                            <p class="text-[10px] text-[var(--text-secondary)]">Filter out trades below this volume</p>
+                        </div>
+
+                        <!-- Grid Dimensions (only visible in grid mode) -->
+                        {#if settingsState.tradeFlowSettings.layout === "grid"}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="field-group">
+                                    <label for="tf-grid-width">Grid Width: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                    <input id="tf-grid-width" type="range" min="20" max="200" step="10"
+                                        bind:value={settingsState.tradeFlowSettings.gridWidth}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-grid-length">Grid Length: {settingsState.tradeFlowSettings.gridLength}</label>
+                                    <input id="tf-grid-length" type="range" min="40" max="400" step="20"
+                                        bind:value={settingsState.tradeFlowSettings.gridLength}
+                                        class="range-input" />
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Existing Settings -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div class="field-group">
                                 <label for="tf-speed">Flow Speed: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>

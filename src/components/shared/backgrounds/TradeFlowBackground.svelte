@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import * as THREE from "three";
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
@@ -48,10 +47,12 @@
   // Settings Shortcuts
   const settings = $derived(settingsState.tradeFlowSettings);
 
-  // Initialize
-  onMount(() => {
-    if (!browser) return;
-
+  // Initialize with $effect
+  let initialized = $state(false);
+  
+  $effect(() => {
+    if (!browser || initialized) return;
+    
     initThree();
     updateThemeColors();
     window.addEventListener("resize", onResize);
@@ -61,6 +62,7 @@
     updateSubscription(tradeState.symbol);
 
     animate(0);
+    initialized = true;
 
     return () => {
       cleanup();
@@ -68,14 +70,12 @@
   });
 
   $effect(() => {
-    updateSubscription(tradeState.symbol);
+    if (initialized) {
+      updateSubscription(tradeState.symbol);
+    }
   });
 
   $effect(() => {
-    // Watch for theme changes implicitly via re-render or explicit observation if needed
-    // Assuming theme might change, we can poll or listen.
-    // Ideally we subscribe to a store, but here we can just update in loop or check occasionally.
-    // For now, we update once.
     updateThemeColors();
   });
 
@@ -87,6 +87,25 @@
     const down = style.getPropertyValue("--color-down").trim() || "#d63031";
     colorUp.set(up);
     colorDown.set(down);
+  }
+
+  function getTradeColors(side: string, price: number): THREE.Color {
+    const mode = settings.colorMode;
+    
+    if (mode === "custom") {
+      return side === "buy" 
+        ? new THREE.Color(settings.customColorUp)
+        : new THREE.Color(settings.customColorDown);
+    }
+    
+    if (mode === "interactive") {
+      // Interactive mode: all particles same color based on price trend
+      const trend = price > avgPrice ? "up" : "down";
+      return trend === "up" ? colorUp : colorDown;
+    }
+    
+    // Default: theme mode
+    return side === "buy" ? colorUp : colorDown;
   }
 
   function initThree() {
@@ -166,6 +185,9 @@
     const side = trade.s === "buy" ? "buy" : "sell"; // simplified
 
     if (!price) return;
+    
+    // Volume filter
+    if (size < settings.minVolume) return;
 
     // Update Average
     runningSum += price;
@@ -190,26 +212,48 @@
     const idx = head;
     const baseIndex = idx * 3;
 
-    // Y Position: Deviation from avg
-    const deviation = (price - avgPrice) / avgPrice * 1000; // Scale up
-    // Clamp Y to avoid flying off screen too far
-    const y = Math.max(Math.min(deviation, 3), -3);
+    // Layout-specific positioning
+    if (settings.layout === "tunnel") {
+      // Y Position: Deviation from avg
+      const deviation = (price - avgPrice) / avgPrice * 1000; // Scale up
+      // Clamp Y to avoid flying off screen too far
+      const y = Math.max(Math.min(deviation, 3), -3);
 
-    // X Position: Random within spread, creating a "tunnel" width
-    // Or spiral? Let's do random spread.
-    const x = (Math.random() - 0.5) * settings.spread;
+      // X Position: Random within spread, creating a "tunnel" width
+      const x = (Math.random() - 0.5) * settings.spread;
 
-    // Z Position: Start far away
-    const z = -50;
+      // Z Position: Start far away
+      const z = -50;
 
-    // Color
-    const color = side === "buy" ? colorUp : colorDown;
+      positions[baseIndex] = x;
+      positions[baseIndex + 1] = y;
+      positions[baseIndex + 2] = z;
+    } else {
+      // Grid layout: position on 2D grid
+      // X = price deviation, Z = time (sequential), Y = volume
+      const deviation = (price - avgPrice) / avgPrice * 10;
+      const x = Math.max(Math.min(deviation, 5), -5);
+      
+      // Z cycles through grid depth
+      const gridPos = idx % (settings.gridWidth * settings.gridLength);
+      const gridX = Math.floor(gridPos / settings.gridLength);
+      const gridZ = gridPos % settings.gridLength;
+      
+      const z = (gridZ / settings.gridLength - 0.5) * 10;
+      const xOffset = (gridX / settings.gridWidth - 0.5) * 10;
+      
+      // Y based on volume (log scale)
+      const y = Math.log10(size + 1) * 0.5;
+
+      positions[baseIndex] = x + xOffset;
+      positions[baseIndex + 1] = y;
+      positions[baseIndex + 2] = z;
+    }
+
+    // Color using new color mode logic
+    const color = getTradeColors(side, price);
     // Brightness based on size (log scale)
     const intensity = Math.min(1.0, Math.log10(size + 1) * 0.5 + 0.5);
-
-    positions[baseIndex] = x;
-    positions[baseIndex + 1] = y;
-    positions[baseIndex + 2] = z;
 
     colors[baseIndex] = color.r * intensity;
     colors[baseIndex + 1] = color.g * intensity;
@@ -220,15 +264,9 @@
     // Mark update
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.color.needsUpdate = true;
-    // We update the range optimization if possible, but strict "needsUpdate=true" is safest for ring buffer
-    // geometry.attributes.position.updateRange = { offset: baseIndex, count: 3 };
-    // Actually full update is fine for 5k points.
 
     // Advance head
-    head = (head + 1) % settings.particleCount; // Respect max count from settings if dynamic?
-    // Note: If buffer is MAX_POINTS=5000, and settings.particleCount < 5000, we just wrap earlier?
-    // For simplicity, we stick to MAX_POINTS buffer size, but only render effective count if we wanted to hide rest.
-    // But simplest is just use MAX_POINTS constant as capacity.
+    head = (head + 1) % settings.particleCount;
   }
 
   function animate(time: number) {
