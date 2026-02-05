@@ -16,6 +16,7 @@ import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 import { dbService } from "./dbService";
 import { z } from "zod";
 import CryptoJS from "crypto-js";
+import { safeJsonParse } from "../utils/safeJson";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -252,7 +253,8 @@ export const newsService = {
             });
 
             if (res.ok) {
-              const data = await res.json();
+              const text = await res.text();
+              const data = safeJsonParse(text);
               newsItems = data.results.map((item: any) => ({
                 title: item.title,
                 url: item.url,
@@ -295,7 +297,8 @@ export const newsService = {
             });
 
             if (res.ok) {
-              const data = await res.json();
+              const text = await res.text();
+              const data = safeJsonParse(text);
               const mapped = data.articles.map((item: any) => ({
                 title: item.title,
                 url: item.url,
@@ -451,7 +454,8 @@ export const newsService = {
           throw new Error(`Sentiment API failed (${response.status}): ${errText}`);
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        const data = safeJsonParse(text);
         if (data.error) throw new Error(data.error);
 
         const analysis: SentimentAnalysis = data.analysis;

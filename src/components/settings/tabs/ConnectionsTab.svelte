@@ -374,7 +374,7 @@
                         </div>
                         <div class="body">
                             <div class="field-group">
-                                <label for="cp-key">API Key</label>
+                                <label for="cp-key">{$_("settings.connections.apiKey")}</label>
                                 <input
                                     id="cp-key"
                                     type="password"

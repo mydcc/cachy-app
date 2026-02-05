@@ -159,6 +159,10 @@
     "connectNews": "Connect your news APIs to view sentiment analysis.",
     "configure": "Configure",
     "tpsl": "TP/SL",
+    "tpslManager": {
+      "pending": "Pending",
+      "history": "History"
+    },
     "viewMode": "View Mode",
     "detailed": "Detailed",
     "focus": "Focus",
@@ -695,6 +699,18 @@
         "standard": "Standard",
         "floating": "Floating"
       },
+      "tradeFlow": {
+        "buyColor": "Buy Color",
+        "sellColor": "Sell Color",
+        "minVolume": "Min Volume Filter",
+        "gridWidth": "Grid Width",
+        "gridLength": "Grid Length",
+        "speed": "Flow Speed",
+        "spread": "Tunnel Spread",
+        "size": "Particle Size",
+        "count": "Particle Count",
+        "filterHelp": "Filter out trades below this volume"
+      },
       "coordinates": {
         "x": "X",
         "y": "Y",
@@ -888,6 +904,9 @@
       },
       "volumeMa": {
         "title": "Volume MA"
+      },
+      "atrStop": {
+        "title": "ATR Stop (L)"
       },
       "labels": {
         "length": "Length",
