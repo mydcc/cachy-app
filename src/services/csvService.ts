@@ -337,23 +337,21 @@ export const csvService = {
           }
 
           // Handle large IDs / precision loss
+          // HARDENING: Replaced djb2 hash with random integer fallback to avoid collisions
           const originalIdAsString = entry.ID;
           let internalId: number;
 
-          // Check length first to avoid precision loss during parseFloat
-          if (
-            originalIdAsString &&
-            (originalIdAsString.length >= 16 ||
-              !Number.isSafeInteger(parseFloat(originalIdAsString)))
-          ) {
-            // Deterministic hash (djb2)
-            let hash = 5381;
-            for (let i = 0; i < originalIdAsString.length; i++) {
-              hash = (hash * 33) ^ originalIdAsString.charCodeAt(i);
-            }
-            internalId = Math.abs(hash >>> 0);
+          const parsedId = parseFloat(originalIdAsString);
+          const isSafe = !isNaN(parsedId) &&
+                         Number.isSafeInteger(parsedId) &&
+                         originalIdAsString.length < 16;
+
+          if (isSafe) {
+            internalId = parsedId;
           } else {
-            internalId = parseFloat(originalIdAsString);
+            // Generate a safe unique internal ID (Timestamp + Random)
+            // This ensures uniqueness during the import session better than a hash
+            internalId = Date.now() + Math.floor(Math.random() * 1000000);
           }
 
           const importedTrade: JournalEntry = {
@@ -395,11 +393,11 @@ export const csvService = {
               : [],
             screenshot: entry.Screenshot || undefined,
             targets: targets,
+            // HARDENING: Always store original large ID in tradeId (string)
             tradeId:
               entry["Trade ID"] ||
-              (originalIdAsString.length >= 16
-                ? originalIdAsString
-                : undefined),
+              originalIdAsString ||
+              undefined,
             orderId: entry["Order ID"] || undefined,
             fundingFee: parseDecimal(entry["Funding Fee"] || "0"),
             tradingFee: parseDecimal(entry["Trading Fee"] || "0"),

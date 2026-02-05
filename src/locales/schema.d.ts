@@ -149,6 +149,8 @@ export type TranslationKey =
   | "dashboard.alerts.closePositionSuccess"
   | "dashboard.alerts.loadedIntoInputs"
   | "dashboard.alerts.failedClose"
+  | "dashboard.alerts.orderCancelled"
+  | "dashboard.alerts.cancelFailed"
   | "dashboard.generalInputs.header"
   | "dashboard.generalInputs.longButton"
   | "dashboard.generalInputs.shortButton"

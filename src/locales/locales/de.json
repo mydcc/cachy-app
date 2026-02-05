@@ -165,7 +165,9 @@
       "closePositionError": "Fehler beim Schließen: {error}",
       "closePositionSuccess": "Close-Order gesendet!",
       "loadedIntoInputs": "{symbol} in Trade-Eingaben geladen. Konfiguriere dort TP/SL.",
-      "failedClose": "Senden der Close-Order fehlgeschlagen."
+      "failedClose": "Senden der Close-Order fehlgeschlagen.",
+      "orderCancelled": "Bestellung storniert",
+      "cancelFailed": "Stornierung fehlgeschlagen"
     },
     "generalInputs": {
       "header": "Allgemein",

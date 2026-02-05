@@ -22,6 +22,7 @@
     import { uiState } from "../../../stores/ui.svelte";
     import { locale, setLocale } from "../../../locales/i18n";
     import Toggle from "../../shared/Toggle.svelte";
+    import { toastService } from "../../../services/toastService.svelte";
 
     let { themes } = $props<{
         themes: Array<{ value: string; label: string }>;
@@ -82,7 +83,7 @@
                         if (response === "granted") {
                             settingsState.galaxySettings.enableGyroscope = true;
                         } else {
-                            alert(
+                            toastService.error(
                                 $_("settings.visuals.gyroPermissionDenied"),
                             );
                         }

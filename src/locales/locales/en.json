@@ -165,7 +165,9 @@
       "closePositionError": "Error closing position: {error}",
       "closePositionSuccess": "Close order sent!",
       "loadedIntoInputs": "Loaded {symbol} into trade inputs. Configure TP/SL there and submit.",
-      "failedClose": "Failed to send close order."
+      "failedClose": "Failed to send close order.",
+      "orderCancelled": "Order cancelled",
+      "cancelFailed": "Failed to cancel order"
     },
     "generalInputs": {
       "header": "General",

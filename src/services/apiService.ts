@@ -730,7 +730,7 @@ export const apiService = {
             throw error;
           }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
-          const data = await response.json();
+          const data = await apiService.safeJson(response);
 
           if (provider === "bitunix") {
             const validation = BitunixTickerResponseSchema.safeParse(data);

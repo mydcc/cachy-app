@@ -30,6 +30,7 @@ import type {
 import { formatApiNum } from "../../../utils/utils";
 import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
 import { Decimal } from "decimal.js";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
@@ -314,7 +315,7 @@ async function placeBitunixOrder(
 
     // Attempt to parse JSON error from exchange
     try {
-        const jsonError = JSON.parse(text);
+        const jsonError = safeJsonParse(text);
         if (jsonError.msg || jsonError.message || jsonError.error) {
             errorMsg = jsonError.msg || jsonError.message || jsonError.error;
         }

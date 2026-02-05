@@ -258,7 +258,7 @@ class TradeManager {
             (t: any) => t.price !== null && t.price !== "0",
           );
           if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
-            this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+            this.targets = structuredClone(INITIAL_TRADE_STATE.targets);
           } else {
             // Security Hardening: Cap targets to 20
             this.targets = data.targets.slice(0, 20);
