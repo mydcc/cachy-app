@@ -260,21 +260,21 @@ export class MarketManager {
       current.lastUpdated = Date.now();
 
       // Optimization: Check for equality before creating new Decimal
+      // Re-use Decimal instances if string value hasn't changed.
       const toDecimal = (val: any, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
         try {
           if (val === undefined || val === null) return undefined;
 
-          // Hardening: Warn on float usage in DEV
-          if (typeof val === 'number' && import.meta.env.DEV) {
-              console.warn("[Market] Precision Warning: Received number for Decimal field. Use string/Decimal.", val);
-          }
+          // Fast check: If it's the exact same object, return it.
+          if (currentVal === val) return currentVal;
 
-          if (currentVal && currentVal.toString() === String(val)) {
+          const valStr = String(val);
+          // Optimization: .toString() on Decimal is fast (cached).
+          if (currentVal && currentVal.toString() === valStr) {
              return currentVal; // Reuse existing object
           }
           return new Decimal(val);
         } catch (e) {
-          // Silently fail for individual fields to protect the rest of the update
           return undefined;
         }
       };

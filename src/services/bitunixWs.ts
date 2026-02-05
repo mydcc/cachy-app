@@ -802,28 +802,18 @@ class BitunixWebSocketService {
               case "ticker":
                 if (symbol && isTickerData(data)) {
                   try {
-                    // HARDENING: Force cast numeric fields to string to prevent precision loss
-                    // We modify a minimal clone or use mdaService.normalizeTicker which expects safe types
-                    // Since normalizeTicker expects a message object, we must ensure data fields are safe.
-                    // To avoid full clone, we construct a safe data object manually.
+                    // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
+                    // Avoiding full object allocation/clone for high frequency ticker
+                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                    if (typeof data.high === 'number') data.high = String(data.high);
+                    if (typeof data.low === 'number') data.low = String(data.low);
+                    if (typeof data.volume === 'number') data.volume = String(data.volume);
+                    if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
+                    if (typeof data.v === 'number') data.v = String(data.v);
+                    if (typeof data.close === 'number') data.close = String(data.close);
 
-                    const safeData: any = {};
-                    // Copy and sanitize known fields
-                    safeData.lastPrice = typeof data.lastPrice === 'number' ? String(data.lastPrice) : data.lastPrice;
-                    safeData.high = typeof data.high === 'number' ? String(data.high) : data.high;
-                    safeData.low = typeof data.low === 'number' ? String(data.low) : data.low;
-                    safeData.volume = typeof data.volume === 'number' ? String(data.volume) : data.volume;
-                    safeData.quoteVolume = typeof data.quoteVolume === 'number' ? String(data.quoteVolume) : data.quoteVolume;
-                    safeData.v = typeof data.v === 'number' ? String(data.v) : data.v;
-                    safeData.close = typeof data.close === 'number' ? String(data.close) : data.close;
-
-                    // Copy other props lightly (shallow)
-                    Object.assign(safeData, data);
-                    // Ensure sanitized fields overwrite
-                    if (typeof data.lastPrice === 'number') safeData.lastPrice = String(data.lastPrice);
-
-                    const safeMessage = { ...message, data: safeData };
-                    const normalized = mdaService.normalizeTicker(safeMessage, "bitunix");
+                    // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
+                    const normalized = mdaService.normalizeTicker(message, "bitunix");
 
                     if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
                       marketState.updateSymbol(symbol, {
