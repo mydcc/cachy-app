@@ -873,7 +873,6 @@
 
     if (resources.renderer) {
         // @ts-ignore
-        if (resources.renderer.forceContextLoss) resources.renderer.forceContextLoss();
     }
 
     disposeRenderer();
