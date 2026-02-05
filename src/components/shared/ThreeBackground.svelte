@@ -312,11 +312,13 @@
 
       // Dispose renderer
       if (resources.renderer) {
+          if (resources.renderer.domElement && container) {
+              container.removeChild(resources.renderer.domElement);
+          }
           resources.renderer.dispose();
           // Use type assertion if forceContextLoss is missing from types, or just call it if valid
           // Using any to bypass TS check if needed, but here we assume standard three.js
           resources.renderer.forceContextLoss();
-          // resources.renderer.domElement = null;
       }
       
       resources.renderer = null;
