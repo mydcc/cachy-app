@@ -159,6 +159,14 @@
     "connectNews": "Connect your news APIs to view sentiment analysis.",
     "configure": "Configure",
     "tpsl": "TP/SL",
+    "tpslManager": {
+      "pending": "Pending",
+      "history": "History",
+      "trigger": "Trigger:",
+      "amount": "Amt:",
+      "cancelTooltip": "Cancel",
+      "editTooltip": "Edit"
+    },
     "viewMode": "View Mode",
     "detailed": "Detailed",
     "focus": "Focus",

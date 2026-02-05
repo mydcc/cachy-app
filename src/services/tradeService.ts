@@ -226,9 +226,12 @@ class TradeService {
         try {
             // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
             // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
-            // We await this to ensure safety. Changed to Best Effort (throwOnError=false) to ensure
-            // close proceeds even if cancel fails (e.g. timeout).
-            await this.cancelAllOrders(symbol, false);
+            try {
+                await this.cancelAllOrders(symbol, true);
+            } catch (cancelError) {
+                // If cancellation fails, we log it CRITICALLY but proceed to close (Panic button logic).
+                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+            }
 
             return await this.signedRequest("POST", "/api/orders", {
                 symbol,
@@ -242,7 +245,6 @@ class TradeService {
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
-            // omsService.removeOrder(clientOrderId); <--- UNSAFE
 
             logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
 
