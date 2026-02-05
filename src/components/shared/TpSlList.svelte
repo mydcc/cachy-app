@@ -23,6 +23,7 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import TpSlEditModal from "./TpSlEditModal.svelte";
+  import { toastService } from "../../services/toastService.svelte";
 
   interface Props {
     isActive?: boolean;
@@ -164,10 +165,13 @@
         }),
       });
       const res = await response.json();
-      if (res.error) alert(res.error);
-      else fetchOrders(); // Refresh
+      if (res.error) toastService.error(res.error);
+      else {
+        toastService.success("Order cancelled");
+        fetchOrders(); // Refresh
+      }
     } catch (e) {
-      alert("Failed to cancel order");
+      toastService.error("Failed to cancel order");
     }
   }
 

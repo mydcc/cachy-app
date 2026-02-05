@@ -24,6 +24,7 @@
     import CalculationDashboard from "../../shared/CalculationDashboard.svelte";
     import PerformanceMonitor from "../../shared/PerformanceMonitor.svelte";
     import DataMaintenance from "../DataMaintenance.svelte";
+    import { toastService } from "../../../services/toastService.svelte";
 
     let { onBackup, onRestore, onReset } = $props<{
         onBackup: () => void;
@@ -34,7 +35,7 @@
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
         localStorage.removeItem("cachy_market_cache"); // Hypothetical
-        alert($_("settings.system.cacheCleared") || "Cache cleared.");
+        toastService.success($_("settings.system.cacheCleared") || "Cache cleared.");
     }
 
     function reloadApp() {
