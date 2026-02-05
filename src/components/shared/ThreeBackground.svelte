@@ -713,7 +713,7 @@
         log(LogLevel.ERROR, '❌ Initialization failed:', error);
         return { 
           success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          error: error instanceof Error ? error.message : 'Unknown error' // i18n-ignore
         };
       }
     }
@@ -775,7 +775,7 @@
 
         if (!result.success) {
             lifecycleState = LifecycleState.ERROR;
-            lifecycleError = result.error || 'Unknown error';
+            lifecycleError = result.error || 'Unknown error' // i18n-ignore;
             log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
             return;
         }
