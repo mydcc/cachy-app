@@ -1100,7 +1100,7 @@
                         <div class="field-group">
                             <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Color Mode</span>
                             <div class="flex gap-2">
-                                {#each [{ v: "theme", l: "Theme" }, { v: "interactive", l: "Interactive" }, { v: "custom", l: "Custom" }] as mode}
+                                {#each [{ v: "theme", l: $_("settings.appearance.modeTheme") }, { v: "interactive", l: $_("settings.appearance.modeInteractive") }, { v: "custom", l: $_("settings.appearance.modeCustom") }] as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode === mode.v
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
