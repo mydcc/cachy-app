@@ -167,11 +167,11 @@
       const res = await response.json();
       if (res.error) toastService.error(res.error);
       else {
-        toastService.success("Order cancelled");
+        toastService.success($_("dashboard.alerts.orderCancelled"));
         fetchOrders(); // Refresh
       }
     } catch (e) {
-      toastService.error("Failed to cancel order");
+      toastService.error($_("dashboard.alerts.cancelFailed"));
     }
   }
 
