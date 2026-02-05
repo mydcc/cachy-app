@@ -22,11 +22,94 @@
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
     import { settingsState } from "../../stores/settings.svelte";
 
-    // Galaxy Parameters from settings
-    // We use a derived or effect to react to changes?
-    // Since we are inside a component, we can access settingsState directly.
+    // ========================================
+    // LIFECYCLE STATE MANAGEMENT
+    // ========================================
+    
+    const LifecycleState = {
+      IDLE: 'IDLE',
+      INITIALIZING: 'INITIALIZING',
+      READY: 'READY',
+      ERROR: 'ERROR',
+      DISPOSED: 'DISPOSED'
+    } as const;
+
+    type LifecycleStateType = typeof LifecycleState[keyof typeof LifecycleState];
+
+    const LogLevel = {
+      NONE: 0,
+      ERROR: 1,
+      WARN: 2,
+      INFO: 3,
+      DEBUG: 4
+    } as const;
+
+    type LogLevelType = typeof LogLevel[keyof typeof LogLevel];
+
+    const LOG_LEVEL = LogLevel.INFO; // Configurable log level
+
+    function log(level: LogLevelType, message: string, ...args: any[]) {
+      if (level <= LOG_LEVEL) {
+        const prefix = '[Galaxy]';
+        switch (level) {
+          case LogLevel.ERROR:
+            console.error(prefix, message, ...args);
+            break;
+          case LogLevel.WARN:
+            console.warn(prefix, message, ...args);
+            break;
+          case LogLevel.INFO:
+            console.info(prefix, message, ...args);
+            break;
+          case LogLevel.DEBUG:
+            console.log(prefix, message, ...args);
+            break;
+        }
+      }
+    }
+
+    let lifecycleState = $state<LifecycleStateType>(LifecycleState.IDLE);
+    let lifecycleError = $state<string | null>(null);
+
+    // ========================================
+    // RESOURCE MANAGEMENT
+    // ========================================
+
+    interface ThreeResources {
+      scene: THREE.Scene | null;
+      camera: THREE.PerspectiveCamera | null;
+      renderer: THREE.WebGLRenderer | null;
+      controls: OrbitControls | null;
+      galaxyGeometry: THREE.BufferGeometry | null;
+      galaxyMaterial: THREE.ShaderMaterial | null;
+      galaxyPoints: THREE.Points | null;
+      starDustGeometry: THREE.BufferGeometry | null;
+      starDustMaterial: THREE.PointsMaterial | null;
+      starDustPoints: THREE.Points | null;
+    }
+
+    let resources: ThreeResources = {
+      scene: null,
+      camera: null,
+      renderer: null,
+      controls: null,
+      galaxyGeometry: null,
+      galaxyMaterial: null,
+      galaxyPoints: null,
+      starDustGeometry: null,
+      starDustMaterial: null,
+      starDustPoints: null
+    };
+
+    // ========================================
+    // COMPONENT STATE (Legacy - will be migrated to resources)
+    // ========================================
 
     let container: HTMLDivElement;
+    let animationId: number | null = null;
+    let themeObserver: MutationObserver | null = null;
+
+    // Legacy variables (kept for compatibility during migration)
     let galaxyMaterial: THREE.ShaderMaterial | null = null;
     let galaxyGeometry: THREE.BufferGeometry | null = null;
     let galaxyPoints: THREE.Points | null = null;
@@ -37,8 +120,6 @@
     let starDustPoints: THREE.Points | null = null;
     let starDustGeometry: THREE.BufferGeometry | null = null;
     let starDustMaterial: THREE.PointsMaterial | null = null;
-    let animationId: number | null = null;
-    let themeObserver: MutationObserver | null = null;
 
     // Helper to resolve CSS variables (handles "var(--name)" references)
     // Helper to resolve CSS variables recursively without DOM layout thrashing
@@ -102,14 +183,133 @@
         updateScene();
     }
 
+    // ========================================
+    // VALIDATION & INITIALIZATION
+    // ========================================
+
+    function checkWebGLSupport(): boolean {
+      try {
+        const testCanvas = document.createElement('canvas');
+        const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+        return !!gl;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function validateContainer(): { valid: boolean; error?: string } {
+      if (!container) {
+        return { valid: false, error: 'Container not bound' };
+      }
+      
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return { 
+          valid: false, 
+          error: `Container has zero dimensions: ${rect.width}x${rect.height}` 
+        };
+      }
+      
+      return { valid: true };
+    }
+
+    // ========================================
+    // RESOURCE CLEANUP
+    // ========================================
+
+    function disposeGeometry(geometry: THREE.BufferGeometry | null) {
+      if (!geometry) return;
+      geometry.dispose();
+      log(LogLevel.DEBUG, '🗑️ Geometry disposed');
+    }
+
+    function disposeMaterial(material: THREE.Material | null) {
+      if (!material) return;
+      material.dispose();
+      log(LogLevel.DEBUG, '🗑️ Material disposed');
+    }
+
+    function disposeRenderer() {
+      if (!resources.renderer) return;
+      resources.renderer.dispose();
+      if (resources.renderer.domElement && container) {
+        container.removeChild(resources.renderer.domElement);
+      }
+      log(LogLevel.DEBUG, '🗑️ Renderer disposed');
+    }
+
+    function disposeAll() {
+      log(LogLevel.INFO, '🧹 Starting complete cleanup...');
+      
+      // Stop animation
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+      
+      // Dispose geometries
+      disposeGeometry(resources.galaxyGeometry);
+      disposeGeometry(resources.starDustGeometry);
+      
+      // Dispose materials
+      disposeMaterial(resources.galaxyMaterial);
+      disposeMaterial(resources.starDustMaterial);
+      
+      // Remove from scene
+      if (resources.scene) {
+        if (resources.galaxyPoints) resources.scene.remove(resources.galaxyPoints);
+        if (resources.starDustPoints) resources.scene.remove(resources.starDustPoints);
+      }
+      
+      // Dispose controls
+      resources.controls?.dispose();
+      
+      // Dispose renderer
+      disposeRenderer();
+      
+      // Clear resources
+      resources = {
+        scene: null,
+        camera: null,
+        renderer: null,
+        controls: null,
+        galaxyGeometry: null,
+        galaxyMaterial: null,
+        galaxyPoints: null,
+        starDustGeometry: null,
+        starDustMaterial: null,
+        starDustPoints: null
+      };
+      
+      // Clear legacy variables
+      scene = null;
+      camera = null;
+      renderer = null;
+      controls = null;
+      galaxyGeometry = null;
+      galaxyMaterial = null;
+      galaxyPoints = null;
+      starDustGeometry = null;
+      starDustMaterial = null;
+      starDustPoints = null;
+      
+      lifecycleState = LifecycleState.DISPOSED;
+      log(LogLevel.INFO, '✅ Cleanup complete');
+    }
+
+    // ========================================
+    // GALAXY GENERATION
+    // ========================================
+
+
     function generateGalaxy() {
-        if (!scene) return;
+        if (!resources.scene) return;
 
         // Dispose old galaxy
-        if (galaxyPoints) {
-            galaxyGeometry?.dispose();
-            galaxyMaterial?.dispose();
-            scene.remove(galaxyPoints);
+        if (resources.galaxyPoints) {
+            resources.galaxyGeometry?.dispose();
+            resources.galaxyMaterial?.dispose();
+            resources.scene.remove(resources.galaxyPoints);
         }
 
         const {
@@ -138,16 +338,16 @@
             positions[i3] = positions[i3 + 1] = positions[i3 + 2] = 0;
         }
 
-        galaxyGeometry = new THREE.BufferGeometry();
-        galaxyGeometry.setAttribute(
+        resources.galaxyGeometry = new THREE.BufferGeometry();
+        resources.galaxyGeometry.setAttribute(
             "position",
             new THREE.BufferAttribute(positions, 3),
         );
-        galaxyGeometry.setAttribute(
+        resources.galaxyGeometry.setAttribute(
             "aRandom",
             new THREE.BufferAttribute(randoms, 3),
         );
-        galaxyGeometry.setAttribute(
+        resources.galaxyGeometry.setAttribute(
             "aScale",
             new THREE.BufferAttribute(scales, 1),
         );
@@ -157,7 +357,7 @@
         for (let i = 0; i < particleCount; i++) {
             colorMixs[i] = Math.random();
         }
-        galaxyGeometry.setAttribute(
+        resources.galaxyGeometry.setAttribute(
             "aColorMix",
             new THREE.BufferAttribute(colorMixs, 1),
         );
@@ -187,7 +387,7 @@
         const alphaCutoff = isLight ? 0.6 : 0.2;
 
         // Shader material
-        galaxyMaterial = new THREE.ShaderMaterial({
+        resources.galaxyMaterial = new THREE.ShaderMaterial({
             depthWrite: false,
             blending: blendingMode,
             vertexColors: true,
@@ -294,27 +494,28 @@
             `,
         });
 
-        galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
+        resources.galaxyPoints = new THREE.Points(resources.galaxyGeometry, resources.galaxyMaterial);
 
         // Apply initial rotation
         const { galaxyRot } = settingsState.galaxySettings;
-        galaxyPoints.rotation.set(
+        resources.galaxyPoints.rotation.set(
             (galaxyRot?.x || 0) * (Math.PI / 180),
             (galaxyRot?.y || 0) * (Math.PI / 180),
             (galaxyRot?.z || 0) * (Math.PI / 180),
         );
 
-        scene.add(galaxyPoints);
+        resources.scene.add(resources.galaxyPoints);
+        log(LogLevel.DEBUG, '🌌 Galaxy generated');
     }
 
     function generateStarDust() {
-        if (!scene) return;
+        if (!resources.scene) return;
 
         // Dispose old dust
-        if (starDustPoints) {
-            starDustGeometry?.dispose();
-            starDustMaterial?.dispose();
-            scene.remove(starDustPoints);
+        if (resources.starDustPoints) {
+            resources.starDustGeometry?.dispose();
+            resources.starDustMaterial?.dispose();
+            resources.scene.remove(resources.starDustPoints);
         }
 
         const count = 3000;
@@ -335,13 +536,13 @@
             sizes[i] = Math.random() * 2;
         }
 
-        starDustGeometry = new THREE.BufferGeometry();
-        starDustGeometry.setAttribute(
+        resources.starDustGeometry = new THREE.BufferGeometry();
+        resources.starDustGeometry.setAttribute(
             "position",
             new THREE.BufferAttribute(positions, 3),
         );
 
-        starDustMaterial = new THREE.PointsMaterial({
+        resources.starDustMaterial = new THREE.PointsMaterial({
             size: 0.1,
             color: "#ffffff",
             transparent: true,
@@ -351,16 +552,16 @@
             sizeAttenuation: true,
         });
 
-        starDustPoints = new THREE.Points(starDustGeometry, starDustMaterial);
-        scene.add(starDustPoints);
+        resources.starDustPoints = new THREE.Points(resources.starDustGeometry, resources.starDustMaterial);
+        resources.scene.add(resources.starDustPoints);
     }
 
     function updateScene() {
         const s = settingsState.galaxySettings;
 
         // Update Galaxy Rotation (convert degrees to radians)
-        if (galaxyPoints) {
-            galaxyPoints.rotation.set(
+        if (resources.galaxyPoints) {
+            resources.galaxyPoints.rotation.set(
                 (s.galaxyRot?.x || 0) * (Math.PI / 180),
                 (s.galaxyRot?.y || 0) * (Math.PI / 180),
                 (s.galaxyRot?.z || 0) * (Math.PI / 180),
@@ -368,22 +569,22 @@
         }
 
         // Update Camera Position
-        if (camera && s.camPos) {
-            camera.position.set(s.camPos.x, s.camPos.y, s.camPos.z);
+        if (resources.camera && s.camPos) {
+            resources.camera.position.set(s.camPos.x, s.camPos.y, s.camPos.z);
         }
 
         // Force transparency so CSS gradient shows through
-        if (scene) scene.background = null;
+        if (resources.scene) resources.scene.background = null;
 
-        if (!galaxyMaterial) return;
-        galaxyMaterial.uniforms.uSize.value = s.particleSize;
-        galaxyMaterial.uniforms.uRadius.value = s.radius;
-        galaxyMaterial.uniforms.uBranches.value = s.branches;
-        galaxyMaterial.uniforms.uSpinSpeed.value = s.spin;
-        galaxyMaterial.uniforms.uRandomnessPower.value = s.randomnessPower;
-        galaxyMaterial.uniforms.uConcentrationPower.value =
+        if (!resources.galaxyMaterial) return;
+        resources.galaxyMaterial.uniforms.uSize.value = s.particleSize;
+        resources.galaxyMaterial.uniforms.uRadius.value = s.radius;
+        resources.galaxyMaterial.uniforms.uBranches.value = s.branches;
+        resources.galaxyMaterial.uniforms.uSpinSpeed.value = s.spin;
+        resources.galaxyMaterial.uniforms.uRandomnessPower.value = s.randomnessPower;
+        resources.galaxyMaterial.uniforms.uConcentrationPower.value =
             s.concentrationPower;
-        galaxyMaterial.uniforms.uRotationSpeed.value = s.rotationSpeed;
+        resources.galaxyMaterial.uniforms.uRotationSpeed.value = s.rotationSpeed;
 
         // Update colors with resolution
         const accent = resolveColor("--galaxy-stars-core") || "#6366f1";
@@ -391,10 +592,10 @@
         const highlight2 = resolveColor("--galaxy-stars-edge-2") || "#8b5cf6";
         const highlight3 = resolveColor("--galaxy-stars-edge-3") || "#6366f1";
 
-        galaxyMaterial.uniforms.uColorInside.value.set(accent);
-        galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
-        galaxyMaterial.uniforms.uColorOutside2.value.set(highlight2);
-        galaxyMaterial.uniforms.uColorOutside3.value.set(highlight3);
+        resources.galaxyMaterial.uniforms.uColorInside.value.set(accent);
+        resources.galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
+        resources.galaxyMaterial.uniforms.uColorOutside2.value.set(highlight2);
+        resources.galaxyMaterial.uniforms.uColorOutside3.value.set(highlight3);
 
         // Update Blending & Background
         const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
@@ -408,101 +609,133 @@
             : THREE.AdditiveBlending;
         const newCutoff = isLight ? 0.6 : 0.2;
 
-        if (galaxyMaterial.blending !== newBlending) {
-            galaxyMaterial.blending = newBlending;
-            galaxyMaterial.needsUpdate = true;
+        if (resources.galaxyMaterial.blending !== newBlending) {
+            resources.galaxyMaterial.blending = newBlending;
+            resources.galaxyMaterial.needsUpdate = true;
         }
 
-        if (galaxyMaterial.uniforms.uAlphaCutoff) {
-            galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
+        if (resources.galaxyMaterial.uniforms.uAlphaCutoff) {
+            resources.galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
         }
-        if (galaxyMaterial.uniforms.uAlphaCutoff) {
-            galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
+        if (resources.galaxyMaterial.uniforms.uAlphaCutoff) {
+            resources.galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
         }
     }
+
+    // ========================================
+    // INITIALIZATION & ANIMATION
+    // ========================================
+
+    function initThree(): { success: boolean; error?: string } {
+      try {
+        log(LogLevel.INFO, '🚀 Starting Three.js initialization...');
+        
+        // WebGL Check
+        if (!checkWebGLSupport()) {
+          return { success: false, error: 'WebGL not supported in this browser' };
+        }
+        log(LogLevel.DEBUG, '✅ WebGL support confirmed');
+        
+        // Container Validation
+        const validation = validateContainer();
+        if (!validation.valid) {
+          return { success: false, error: validation.error };
+        }
+        log(LogLevel.DEBUG, '✅ Container validation passed');
+        
+        // Scene Setup
+        resources.scene = new THREE.Scene();
+        
+        // Camera Setup
+        resources.camera = new THREE.PerspectiveCamera(
+          50,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          100
+        );
+        const { camPos } = settingsState.galaxySettings;
+        resources.camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
+        
+        // Renderer Setup
+        resources.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        resources.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        resources.renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(resources.renderer.domElement);
+        
+        // Controls
+        resources.controls = new OrbitControls(resources.camera, resources.renderer.domElement);
+        resources.controls.enableDamping = true;
+        resources.controls.enableZoom = false;
+        resources.controls.minDistance = 0.1;
+        resources.controls.maxDistance = 50;
+        
+        // Generate Galaxy & StarDust
+        generateGalaxy();
+        generateStarDust();
+        
+        log(LogLevel.INFO, '✅ Three.js initialization complete');
+        return { success: true };
+      } catch (error) {
+        log(LogLevel.ERROR, '❌ Initialization failed:', error);
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
+      }
+    }
+
+    function animate() {
+        if (!resources.renderer || !resources.scene || !resources.camera || !resources.galaxyMaterial) return;
+
+        // Use standard timing if needed, or simple increment
+        resources.galaxyMaterial.uniforms.uTime.value += 0.01;
+
+        if (resources.controls) {
+            resources.controls.update();
+        }
+
+        resources.renderer.render(resources.scene, resources.camera);
+        animationId = requestAnimationFrame(animate);
+    }
+
+    function onWindowResize() {
+        if (!resources.camera || !resources.renderer) return;
+
+        resources.camera.aspect = window.innerWidth / window.innerHeight;
+        resources.camera.updateProjectionMatrix();
+
+        resources.renderer.setSize(window.innerWidth, window.innerHeight);
+        resources.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        if (resources.galaxyMaterial) {
+            resources.galaxyMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+        }
+    }
+
+    // ========================================
+    // COMPONENT LIFECYCLE
+    // ========================================
 
     onMount(() => {
         if (!browser || !container) return;
 
-        // Scene
-        scene = new THREE.Scene();
-        // const bg = resolveColor("--galaxy-bg") || "#0a0e27";
-        // scene.background = new THREE.Color(bg);
+        log(LogLevel.INFO, '🎬 Component mounted, starting initialization...');
+        lifecycleState = LifecycleState.INITIALIZING;
 
-        // Camera
-        camera = new THREE.PerspectiveCamera(
-            50,
-            window.innerWidth / window.innerHeight,
-            0.1,
-            100,
-        );
-        // Initial position from settings
-        const { camPos } = settingsState.galaxySettings;
-        camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
+        const result = initThree();
 
-        // Renderer
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        container.appendChild(renderer.domElement);
-
-        // Controls
-        controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.enableZoom = false;
-        controls.minDistance = 0.1;
-        controls.maxDistance = 50;
-
-        // Initial Generation
-        generateGalaxy();
-        generateStarDust();
-
-        // Animation Loop
-        const clock = new THREE.Clock();
-        let lastFrameTime = 0;
-        const targetFPS = 40; // High efficiency background FPS
-        const frameInterval = 1 / targetFPS;
-
-        function animate() {
-            if (!renderer || !scene || !camera || !controls) return;
-
-            animationId = requestAnimationFrame(animate);
-
-            const elapsedTime = clock.getElapsedTime();
-            const deltaTime = elapsedTime - lastFrameTime;
-
-            // FPS Limiting
-            if (deltaTime < frameInterval) return;
-            lastFrameTime = elapsedTime - (deltaTime % frameInterval);
-
-            if (galaxyMaterial) {
-                galaxyMaterial.uniforms.uTime.value = elapsedTime;
-            }
-
-            if (!settingsState.galaxySettings.enableGyroscope) {
-                controls.update();
-            }
-
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
+        if (!result.success) {
+            lifecycleState = LifecycleState.ERROR;
+            lifecycleError = result.error || 'Unknown error';
+            log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
+            return;
         }
-        animate();
 
-        // Resize Handler
-        function onWindowResize() {
-            if (!camera || !renderer) return;
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            if (galaxyMaterial) {
-                galaxyMaterial.uniforms.uPixelRatio.value = Math.min(
-                    window.devicePixelRatio,
-                    2,
-                );
-            }
-        }
+        // Event Listeners
         window.addEventListener("resize", onWindowResize);
+
+        // Start Animation
+        animate();
 
         // Theme Observer
         themeObserver = new MutationObserver(() => {
@@ -513,19 +746,15 @@
             attributeFilter: ["class", "data-mode", "style"],
         });
 
+        lifecycleState = LifecycleState.READY;
+        log(LogLevel.INFO, '✅ Component ready - State:', lifecycleState);
+
+        // Cleanup
         return () => {
-            if (animationId) cancelAnimationFrame(animationId);
+            log(LogLevel.INFO, '🧹 Component unmounting, cleanup triggered');
+            if (themeObserver) themeObserver.disconnect();
             window.removeEventListener("resize", onWindowResize);
-            themeObserver?.disconnect();
-            controls?.dispose();
-            renderer?.dispose();
-            galaxyGeometry?.dispose();
-            galaxyMaterial?.dispose();
-            starDustGeometry?.dispose();
-            starDustMaterial?.dispose();
-            if (renderer && renderer.domElement && container) {
-                container.removeChild(renderer.domElement);
-            }
+            disposeAll();
         };
     });
 
