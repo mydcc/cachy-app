@@ -802,6 +802,15 @@ class BitunixWebSocketService {
               case "ticker":
                 if (symbol && isTickerData(data)) {
                   try {
+                    // TELEMETRY: Detect precision loss risk
+                    if (typeof data.lastPrice === 'number' || typeof data.volume === 'number') {
+                        const now = Date.now();
+                        if (now - this.lastNumericWarning > 60000) {
+                            logger.warn("network", `[BitunixWS] NUMERIC TICKER DATA: Received numeric ticker for ${symbol}. Casting to string.`);
+                            this.lastNumericWarning = now;
+                        }
+                    }
+
                     // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
                     // Avoiding full object allocation/clone for high frequency ticker
                     if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);

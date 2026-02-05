@@ -49,7 +49,8 @@ const ORDER_ERRORS = {
 export const POST: RequestHandler = async ({ request }) => {
   let body: unknown;
   try {
-    body = await request.json();
+    const text = await request.text();
+    body = safeJsonParse(text);
   } catch (e) {
     return json({ error: ORDER_ERRORS.INVALID_JSON }, { status: 400 });
   }

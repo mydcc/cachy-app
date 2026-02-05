@@ -15,6 +15,7 @@ import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
 import { untrack } from "svelte";
+import { safeJsonParse } from "../utils/safeJson";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
@@ -37,9 +38,17 @@ class JournalManager {
     try {
       const d =
         localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
-      const parsedData = JSON.parse(d);
+      const parsedData = safeJsonParse(d);
       if (Array.isArray(parsedData)) {
-        this.entries = parsedData.map((trade) => normalizeJournalEntry(trade));
+        // Enforce limit to prevent TBT/Crash on huge journals
+        // Taking last 1000 entries (assuming chronological order append)
+        // Ideally we should reverse logic if they are appended, but usually latest are last.
+        // Actually, users might prefer seeing latest.
+        // If we just slice, we keep first 1000. If we want latest, we might need to check sorting.
+        // Assuming append-only: latest are at the end.
+        const limit = 1000;
+        const sliced = parsedData.length > limit ? parsedData.slice(-limit) : parsedData;
+        this.entries = sliced.map((trade: any) => normalizeJournalEntry(trade));
 
         // Auto-calculate missing ATR values for closed trades
         this.autoCalculateMissingAtr();
