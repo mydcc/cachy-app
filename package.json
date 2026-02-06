@@ -12,22 +12,12 @@
     "benchmark:technicals": "vitest bench"
   },
   "devDependencies": {
-    "@sveltejs/adapter-node": "^5.5.2",
-    "@sveltejs/kit": "^2.50.1",
-    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/dompurify": "^3.0.5",
     "@types/lodash-es": "^4.17.12",
     "@vitest/ui": "^4.0.18",
-    "autoprefixer": "^10.4.23",
     "happy-dom": "^20.3.9",
-    "postcss": "^8.5.6",
     "puppeteer": "^24.36.1",
-    "svelte": "^5.48.0",
     "svelte-check": "^4.3.5",
-    "tailwindcss": "^4.1.18",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1",
     "vitest": "^4.0.18"
   },
   "dependencies": {
@@ -58,6 +48,16 @@
     "three": "^0.182.0",
     "undici": "^6.23.0",
     "ws": "^8.19.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@sveltejs/adapter-node": "^5.5.2",
+    "@sveltejs/kit": "^2.50.1",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "svelte": "^5.48.0",
+    "tailwindcss": "^4.1.18",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
   }
 }
