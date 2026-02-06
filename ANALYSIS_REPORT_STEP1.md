@@ -1,84 +1,55 @@
-# Status & Risk Report: Cachy-App Codebase Analysis
+# Analysis Report: Step 1 (Status Quo & Risk Assessment)
 
-**Date:** 2026-05-26
-**Analyst:** Jules (Senior Lead Developer)
-**Scope:** `src/services`, `src/stores`, `src/components` (Data Integrity, Performance, UI/UX, Security)
+## Executive Summary
+The `cachy-app` codebase demonstrates a high level of maturity ("Institutional Grade") in core areas such as **Resource Management** (Concurrency Control, LRU Caching), **Security** (Headers, Input Sanitization), and **Data Integrity** (Consistent use of `Decimal.js`).
 
----
+However, specific gaps in **Internationalization (i18n)** and **Type Safety** within the trading logic require immediate attention to meet the "Zero Tolerance" objective.
 
-## 1. Data Integrity & Mapping
+## Findings
 
-### 🔴 CRITICAL: Potential Promise Lockup in NewsService
-- **Location:** `src/services/newsService.ts`
-- **Issue:** The `fetch` calls for external APIs (CryptoPanic, NewsAPI) lack a signal/timeout. If the external server hangs indefinitely (socket open but no data), the `pendingNewsFetches` Map entry will never be deleted.
-- **Consequence:** Future requests for that symbol will await the hung promise forever, effectively breaking the news feature for that symbol until a page reload.
-- **Fix:** Implement `AbortController` with a strict timeout (e.g., 10s) for all external fetches.
+### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+*None identified.* The core logic for order execution and position management appears robust. `Decimal` arithmetic is used consistently to prevent floating-point errors.
 
-### 🟡 WARNING: Redundant "Fast Path" in BitunixWebSocketService
-- **Location:** `src/services/bitunixWs.ts`
-- **Issue:** The service parses JSON, then manually extracts/casts fields ("Fast Path") before *also* running Zod validation in the "Slow Path" (fallback).
-- **Risk:** High maintenance burden. Logic is duplicated. If the API changes, developers might update the Zod schema but forget the Fast Path, leading to silent bugs or data inconsistencies.
-- **Performance Note:** While intended for speed, the manual parsing of every field (checking `typeof` and casting) adds overhead that might negate the Zod avoidance benefit for moderate loads.
+### 🟡 WARNING (Performance issue, UX error, missing i18n)
 
-### 🟡 WARNING: Native `Number()` Casting in UI
-- **Location:** `src/components/shared/OrderHistoryList.svelte` (and likely others)
-- **Issue:** `Number(order.avgPrice)` is used directly.
-- **Risk:** While `safeJsonParse` handles the incoming data, casting to native Number in the UI for logic checks (e.g., `> 0`) can introduce micro-precision errors if the Decimal was preserved as a string.
-- **Fix:** Use `new Decimal(val).gt(0)` or `val.toNumber()` (if safe) consistently.
+#### 1. Missing i18n in Critical Trading Modal (`TpSlEditModal.svelte`)
+*   **Location:** `src/components/shared/TpSlEditModal.svelte`
+*   **Issue:** Several UI strings are hardcoded (e.g., "Trigger price is required", "Save", "Cancel").
+*   **Risk:** Users with non-English locales may misunderstand error messages or button actions, leading to operational errors.
+*   **Recommendation:** Move all strings to `src/locales/locales/en.json` under a new `tpslEditModal` namespace and use `$_()`.
 
----
+#### 2. Weak Type Safety in Trade Service (`TradeService.ts`)
+*   **Location:** `src/services/tradeService.ts` (Method `fetchTpSlOrders`)
+*   **Issue:** The method returns `Promise<any[]>`. The API response is cast to `any` without validation.
+*   **Risk:** If the API structure changes (e.g., `triggerPrice` field rename), the UI (Order History/TP List) will break silently or display "NaN".
+*   **Recommendation:** Define a `TpSlOrderSchema` (Zod) and validate the response. Return `Promise<TpSlOrder[]>`.
 
-## 2. Resource Management & Performance
+#### 3. Fragile "Fast Path" in WebSocket Service (`bitunixWs.ts`)
+*   **Location:** `src/services/bitunixWs.ts` (Method `handleMessage`)
+*   **Issue:** The "Fast Path" optimization manually parses properties (e.g., `data.lastPrice`) and bypasses Zod validation for performance. It uses `typeof` checks and manual casting.
+*   **Risk:** While currently functional, this code is brittle. If Bitunix changes the data format (e.g., sending a number > MAX_SAFE_INTEGER instead of a string), precision loss could occur *before* the check, or the manual casting might fail.
+*   **Recommendation:** Add a maintenance comment/warning (done) and consider a lightweight Zod schema or a dedicated "Fast Parser" function that is unit-tested against edge cases.
 
-### 🔴 CRITICAL: Svelte Store Contract Violation in MarketManager
-- **Location:** `src/stores/market.svelte.ts`
-- **Issue:** The `subscribe(fn)` method returns `$effect.root(...)`, which is an object `{ stop: () => void }`.
-- **Standard:** Svelte stores (and Svelte 5 interoperability) expect `subscribe` to return a `Unsubscriber` function (`() => void`).
-- **Consequence:** If any legacy component or standard Svelte utility uses `$marketState`, it will crash when attempting to call the returned value as a function during cleanup.
+### 🔵 REFACTOR (Code smell, technical debt)
 
-### 🟡 WARNING: N+1 API Calls in TradeService
-- **Location:** `src/services/tradeService.ts` (`fetchTpSlOrders`)
-- **Issue:** The method iterates through active symbols and fires a `fetch` request for every batch of 5.
-- **Risk:** For a user with positions in 20 symbols, this triggers 4 simultaneous HTTP requests. This might trigger strict rate limiters (WAF) or degrade client performance.
-- **Fix:** Refactor to a single bulk endpoint if available, or strictly serialize the batches with delays.
+#### 1. Loose Input Validation in News Proxy (`news/+server.ts`)
+*   **Location:** `src/routes/api/external/news/+server.ts`
+*   **Issue:** The `params` object from the request body is passed directly to `URLSearchParams` without schema validation.
+*   **Recommendation:** Use Zod to validate `params` (ensure it only contains expected query parameters) before constructing the upstream URL.
 
-### 🔵 REFACTOR: MarketWatcher Polling Loop
-- **Location:** `src/services/marketWatcher.ts`
-- **Observation:** `performPollingCycle` runs every second and iterates all requests.
-- **Status:** Acceptable for current scale, but should be monitored if the number of watched symbols grows > 100.
+#### 2. Regex Complexity in Safe JSON (`safeJson.ts`)
+*   **Location:** `src/utils/safeJson.ts`
+*   **Issue:** The regex `/\d[\d.eE+-]{14,}/` is effective but complex.
+*   **Recommendation:** Ensure unit tests cover edge cases like "keys ending in numbers" or "values with scientific notation" to prevent false positives. (Current tests likely cover this, but worth verifying during hardening).
 
----
+## Positive Highlights (Institutional Grade)
+*   **Concurrency Control:** `MarketWatcher` uses a `RequestManager` with token buckets and priority queues to prevent API rate limit violations.
+*   **Resource Management:** `MarketManager` implements an LRU cache with auto-eviction and strict buffer limits (`KLINE_BUFFER_HARD_LIMIT`) to prevent memory leaks.
+*   **Security:** `hooks.server.ts` enforces strict security headers (`X-Frame-Options`, `Permissions-Policy`).
+*   **Performance:** UI components like `MarketOverview` use `IntersectionObserver` for lazy loading and data fetching, significantly reducing initial load impact.
+*   **Data Integrity:** `TradeService` correctly implements `serializePayload` to handle `Decimal` serialization before JSON stringification.
 
-## 3. UI/UX & Accessibility (A11y)
-
-### 🔴 CRITICAL: Accessibility Barrier in OrderHistoryList
-- **Location:** `src/components/shared/OrderHistoryList.svelte`
-- **Issue:** Tooltips are triggered via `onmouseenter` on a `div` without `tabindex` or `onfocus`.
-- **Consequence:** Keyboard-only users (and screen readers) cannot access order details/tooltips.
-- **Fix:** Add `tabindex="0"`, `role="button"` (or use a `<button>`), and handle keyboard events.
-
-### 🟡 WARNING: Inconsistent Error Handling / I18n
-- **Location:** General
-- **Issue:** Some error messages are hardcoded strings, others are `apiErrors.*` keys.
-- **Fix:** Audit all `catch` blocks in Services to ensure they throw standardized `Error` objects with translation keys, not raw English strings.
-
----
-
-## 4. Security & Validation
-
-### ✅ PASS: Input Sanitization
-- `safeJsonParse` is implemented and used correctly in `BitunixWs`.
-- `TradeService` serializes payloads to string to prevent precision loss.
-
-### ✅ PASS: Defensive Coding
-- `MarketWatcher` implements "Zombie Request Pruning".
-- `BitunixWs` has a "Watchdog" timer to kill stale connections.
-
----
-
-## Summary of Priorities
-
-1.  **Fix MarketManager Store Contract** (Crash Risk)
-2.  **Add Timeouts to NewsService** (Hang Risk)
-3.  **Fix A11y in OrderHistoryList** (Compliance/UX)
-4.  **Refactor BitunixWs Fast Path** (Maintainability)
+## Next Steps (Phase 2 Plan)
+1.  **Fix i18n:** Fully localize `TpSlEditModal.svelte`.
+2.  **Harden Types:** Implement Zod schema for `fetchTpSlOrders`.
+3.  **Verify Fast Path:** Add a regression test for `bitunixWs` "Fast Path" with edge case data (numeric strings vs numbers).
