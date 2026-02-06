@@ -39,22 +39,29 @@ export const POST: RequestHandler = async ({ request }) => {
     let account = null;
     if (exchange === "bitunix") {
       const validationError = validateBitunixKeys(apiKey, apiSecret);
-      if (validationError) return json({ error: validationError }, { status: 400 });
+      if (validationError)
+        return json({ error: validationError }, { status: 400 });
       account = await fetchBitunixAccount(apiKey, apiSecret);
     } else if (exchange === "bitget") {
-      if (!passphrase) return json({ error: "Missing passphrase" }, { status: 400 });
+      if (!passphrase)
+        return json({ error: "Missing passphrase" }, { status: 400 });
       const validationError = validateBitgetKeys(apiKey, apiSecret, passphrase);
-      if (validationError) return json({ error: validationError }, { status: 400 });
+      if (validationError)
+        return json({ error: validationError }, { status: 400 });
       account = await fetchBitgetAccount(apiKey, apiSecret, passphrase);
     } else {
-        return json({ error: "Unsupported exchange" }, { status: 400 });
+      return json({ error: "Unsupported exchange" }, { status: 400 });
     }
 
     return json(account);
   } catch (e: any) {
     // Security: Sanitize error log
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`Error fetching account from ${exchange}:`, errorMsg);
+    const safeExchange = /^[a-zA-Z0-9]+$/.test(exchange) ? exchange : "unknown";
+    const safeErrorMsg = errorMsg
+      .replace(/[a-zA-Z0-9_-]{20,}/g, "[REDACTED]")
+      .slice(0, 500);
+    console.error(`Error fetching account from ${safeExchange}:`, safeErrorMsg);
     return json(
       { error: e.message || "Failed to fetch account" },
       { status: 500 },
@@ -135,41 +142,50 @@ async function fetchBitunixAccount(
 }
 
 async function fetchBitgetAccount(
-    apiKey: string,
-    apiSecret: string,
-    passphrase: string
+  apiKey: string,
+  apiSecret: string,
+  passphrase: string,
 ): Promise<any> {
-    const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/account/account";
-    const params = { productType: "umcbl", marginCoin: "USDT" };
+  const baseUrl = "https://api.bitget.com";
+  const path = "/api/mix/v1/account/account";
+  const params = { productType: "umcbl", marginCoin: "USDT" };
 
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+  const { timestamp, signature, queryString } = generateBitgetSignature(
+    apiSecret,
+    "GET",
+    path,
+    params,
+  );
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
-    });
+  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    headers: {
+      "ACCESS-KEY": apiKey,
+      "ACCESS-SIGN": signature,
+      "ACCESS-TIMESTAMP": timestamp,
+      "ACCESS-PASSPHRASE": passphrase,
+      "Content-Type": "application/json",
+    },
+  });
 
-    if (!response.ok) throw new Error("Bitget API Error");
-    const res = await response.json();
-    if (res.code !== "00000") throw new Error(res.msg);
+  if (!response.ok) throw new Error("Bitget API Error");
+  const res = await response.json();
+  if (res.code !== "00000") throw new Error(res.msg);
 
-    const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
-    if (!data) throw new Error("No account data found");
+  const data = res.data
+    ? Array.isArray(res.data)
+      ? res.data[0]
+      : res.data
+    : null;
+  if (!data) throw new Error("No account data found");
 
-    // Bitget fields: available, locked, equity, usdtEquity, unrealizedPL
-    return {
-        available: formatApiNum(data.available),
-        margin: formatApiNum(data.locked), // locked margin?
-        totalUnrealizedPnL: formatApiNum(data.unrealizedPL),
-        marginCoin: data.marginCoin,
-        frozen: formatApiNum(data.locked), // Bitget usually groups margin/frozen in locked
-        // Map other fields as needed
-        equity: formatApiNum(data.equity)
-    };
+  // Bitget fields: available, locked, equity, usdtEquity, unrealizedPL
+  return {
+    available: formatApiNum(data.available),
+    margin: formatApiNum(data.locked), // locked margin?
+    totalUnrealizedPnL: formatApiNum(data.unrealizedPL),
+    marginCoin: data.marginCoin,
+    frozen: formatApiNum(data.locked), // Bitget usually groups margin/frozen in locked
+    // Map other fields as needed
+    equity: formatApiNum(data.equity),
+  };
 }
