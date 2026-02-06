@@ -49,3 +49,31 @@ describe("apiService - normalizeSymbol", () => {
     expect(apiService.normalizeSymbol("btcusdtp", "bitunix")).toBe("BTCUSDT");
   });
 });
+
+import { vi, beforeEach, afterEach } from "vitest";
+
+describe("apiService - AbortError", () => {
+    beforeEach(() => {
+        global.fetch = vi.fn();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("should handle AbortError correctly", async () => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        // Mock fetch to throw AbortError
+        (global.fetch as any).mockImplementation(() => {
+            const e = new Error("The user aborted a request");
+            e.name = "AbortError";
+            return Promise.reject(e);
+        });
+
+        // We expect fetchBitunixKlines to rethrow AbortError
+        await expect(apiService.fetchBitunixKlines("BTCUSDT", "1h", 10, undefined, undefined, "normal", 100))
+            .rejects.toThrow("The user aborted a request");
+    });
+});

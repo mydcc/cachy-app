@@ -106,6 +106,33 @@
                     {$_("settings.connections.exchanges")}
                 </h3>
 
+                <div class="api-card mb-6">
+                    <div class="header">
+                        <span class="font-bold text-sm">Server Security</span>
+                        <span class="status-dot {settingsState.appAccessToken ? "connected" : ""}"></span>
+                    </div>
+                    <div class="body">
+                        <div class="field-group">
+                            <label for="app-access-token">{$_("settings.connections.appAccessToken")}</label>
+                            <div class="input-wrapper relative">
+                                <input
+                                    id="app-access-token"
+                                    type={showKeys["app_token"] ? "text" : "password"}
+                                    bind:value={settingsState.appAccessToken}
+                                    class="api-input pr-8"
+                                    placeholder="Enter token configured on server..."
+                                />
+                                <button
+                                    class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                    onclick={() => toggleKeyVisibility("app_token")}
+                                    aria-label="Toggle token visibility"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Bitunix -->
                     <div class="api-card">
@@ -366,6 +393,33 @@
                     {$_("settings.connections.dataServices")}
                 </h3>
 
+                <div class="api-card mb-6">
+                    <div class="header">
+                        <span class="font-bold text-sm">Server Security</span>
+                        <span class="status-dot {settingsState.appAccessToken ? "connected" : ""}"></span>
+                    </div>
+                    <div class="body">
+                        <div class="field-group">
+                            <label for="app-access-token">{$_("settings.connections.appAccessToken")}</label>
+                            <div class="input-wrapper relative">
+                                <input
+                                    id="app-access-token"
+                                    type={showKeys["app_token"] ? "text" : "password"}
+                                    bind:value={settingsState.appAccessToken}
+                                    class="api-input pr-8"
+                                    placeholder="Enter token configured on server..."
+                                />
+                                <button
+                                    class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                    onclick={() => toggleKeyVisibility("app_token")}
+                                    aria-label="Toggle token visibility"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- CryptoPanic -->
                     <div class="api-card">
@@ -374,7 +428,7 @@
                         </div>
                         <div class="body">
                             <div class="field-group">
-                                <label for="cp-key">API Key</label>
+                                <label for="cp-key">{$_("settings.connections.apiKey")}</label>
                                 <input
                                     id="cp-key"
                                     type="password"

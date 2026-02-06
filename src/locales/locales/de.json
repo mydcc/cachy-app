@@ -78,6 +78,7 @@
     "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
     "noHistory": "Keine Historie gefunden.",
+    "noTpSlOrders": "Keine {view} TP/SL Orders gefunden.",
     "orderHistory": {
       "maker": "M",
       "taker": "T",
@@ -87,6 +88,7 @@
         "buy": "Kauf",
         "sell": "Verkauf"
       },
+      "viewDetails": "Details anzeigen",
       "type": {
         "limit": "Limit",
         "market": "Markt",
@@ -158,6 +160,14 @@
     "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
     "configure": "Konfigurieren",
     "tpsl": "TP/SL",
+    "tpslManager": {
+      "pending": "Ausstehend",
+      "history": "Verlauf",
+      "trigger": "Trigger:",
+      "amount": "Menge:",
+      "cancelTooltip": "Abbrechen",
+      "editTooltip": "Bearbeiten"
+    },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
     "focus": "Fokus",
@@ -167,7 +177,9 @@
       "loadedIntoInputs": "{symbol} in Trade-Eingaben geladen. Konfiguriere dort TP/SL.",
       "failedClose": "Senden der Close-Order fehlgeschlagen.",
       "orderCancelled": "Bestellung storniert",
-      "cancelFailed": "Stornierung fehlgeschlagen"
+      "cancelFailed": "Stornierung fehlgeschlagen",
+      "confirmCancel": "Diesen TP/SL Auftrag stornieren?",
+      "noApiKeys": "Keine API-Keys konfiguriert"
     },
     "generalInputs": {
       "header": "Allgemein",
@@ -199,6 +211,7 @@
       "atrModeAuto": "Auto",
       "toggleAutoUpdatePrice": "Automatische Preisaktualisierung umschalten",
       "copyToClipboard": "In Zwischenablage kopieren",
+      "copiedFeedback": "Kopiert!",
       "copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
@@ -575,6 +588,7 @@
     "heatmap": "Heatmap",
     "heatmapShort": "Heat",
     "broker": "Broker",
+    "rsiTitle": "RSI",
     "rsiSettings": "RSI Einstellungen",
     "length": "Länge",
     "source": "Quelle",
@@ -690,6 +704,18 @@
       "layoutModes": {
         "standard": "Standard",
         "floating": "Schwebend"
+      },
+      "tradeFlow": {
+        "buyColor": "Kauf-Farbe",
+        "sellColor": "Verkauf-Farbe",
+        "minVolume": "Min. Volumen Filter",
+        "gridWidth": "Gitterbreite",
+        "gridLength": "Gitterlänge",
+        "speed": "Flussgeschwindigkeit",
+        "spread": "Tunnel-Verbreiterung",
+        "size": "Partikelgröße",
+        "count": "Partikelanzahl",
+        "filterHelp": "Trades unter diesem Volumen ausblenden"
       },
       "coordinates": {
         "x": "X",
@@ -913,6 +939,9 @@
       "volumeMa": {
         "title": "Volumen MA"
       },
+      "atrStop": {
+        "title": "ATR Stopp (L)"
+      },
       "labels": {
         "length": "Länge",
         "source": "Quelle",
@@ -1010,6 +1039,7 @@
     },
     "connections": {
       "exchanges": "Börsen",
+      "appAccessToken": "App Zugangstoken (Server Sicherheit)",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
       "passphrase": "Passphrase",
@@ -1915,6 +1945,11 @@
     "noMessages": "Noch keine Nachrichten.",
     "sendButton": "Senden",
     "placeholder": "Sag Hallo..."
+  },
+  "jules": {
+    "title": "Jules Inspektor",
+    "analyzing": "Analysiere Systemstatus...",
+    "close": "Bericht schließen"
   },
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",

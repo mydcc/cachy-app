@@ -21,6 +21,7 @@ import { parseTimestamp } from "../../utils/utils";
 import type { JournalEntry } from "../../stores/types";
 import type { Kline } from "../../services/apiService";
 import { getTradePnL } from "./core";
+import type { JournalContext, JournalStats, PerformanceStats } from "./types";
 
 export function calculateATR(klines: Kline[], period: number = 14): Decimal {
   if (klines.length < period + 1) {
@@ -53,10 +54,17 @@ export function calculateATR(klines: Kline[], period: number = 14): Decimal {
   return sumOfTrueRanges.div(trueRanges.length);
 }
 
-export function calculateJournalStats(journalData: JournalEntry[]) {
-  const closedTrades = journalData.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function calculateJournalStats(
+  journalData: JournalEntry[],
+  context?: JournalContext,
+): JournalStats {
+  if (context?.journalStats) {
+    return context.journalStats;
+  }
+
+  const closedTrades =
+    context?.closedTrades ??
+    journalData.filter((t) => t.status === "Won" || t.status === "Lost");
 
   let wonTrades = 0;
   let lostTrades = 0;
@@ -95,15 +103,27 @@ export function calculateJournalStats(journalData: JournalEntry[]) {
   };
 }
 
-export function calculatePerformanceStats(journalData: JournalEntry[]) {
-  const closedTrades = journalData.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function calculatePerformanceStats(
+  journalData: JournalEntry[],
+  context?: JournalContext,
+): PerformanceStats | null {
+  if (context?.performanceStats) {
+    return context.performanceStats;
+  }
+
+  const closedTrades =
+    context?.closedTrades ??
+    journalData.filter((t) => t.status === "Won" || t.status === "Lost");
+
   if (closedTrades.length === 0) return null;
 
-  const sortedClosedTrades = [...closedTrades].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
+  // If using context, closedTrades is already sorted!
+  const sortedClosedTrades = context
+    ? closedTrades
+    : [...closedTrades].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
+
   const wonTrades = closedTrades.filter((t) => t.status === "Won");
   const lostTrades = closedTrades.filter((t) => t.status === "Lost");
   const totalTrades = closedTrades.length;
@@ -126,11 +146,11 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const avgRR =
     totalTrades > 0
       ? closedTrades
-        .reduce(
-          (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
-          new Decimal(0),
-        )
-        .dividedBy(totalTrades)
+          .reduce(
+            (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
+            new Decimal(0),
+          )
+          .dividedBy(totalTrades)
       : new Decimal(0);
   const avgWin =
     wonTrades.length > 0
@@ -147,9 +167,9 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const largestProfit =
     wonTrades.length > 0
       ? Decimal.max(
-        0,
-        ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0)),
-      )
+          0,
+          ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0)),
+        )
       : new Decimal(0);
   const largestLoss =
     lostTrades.length > 0
@@ -163,8 +183,8 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
       const rMultiple =
         trade.status === "Won"
           ? new Decimal(trade.totalNetProfit || 0).dividedBy(
-            new Decimal(trade.riskAmount),
-          )
+              new Decimal(trade.riskAmount),
+            )
           : new Decimal(-1);
       totalRMultiples = totalRMultiples.plus(rMultiple);
       tradesWithRisk++;
@@ -266,10 +286,14 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   };
 }
 
-export function calculateSymbolPerformance(journalData: JournalEntry[]) {
-  const closedTrades = journalData.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function calculateSymbolPerformance(
+  journalData: JournalEntry[],
+  context?: JournalContext,
+) {
+  const closedTrades =
+    context?.closedTrades ??
+    journalData.filter((t) => t.status === "Won" || t.status === "Lost");
+
   const symbolPerformance: {
     [key: string]: {
       totalTrades: number;
@@ -299,13 +323,29 @@ export function calculateSymbolPerformance(journalData: JournalEntry[]) {
   return symbolPerformance;
 }
 
-export function getTagData(trades: JournalEntry[]) {
+export function getTagData(trades: JournalEntry[], context?: JournalContext) {
+  // Use context for closedTrades if available, BUT wait...
+  // getTagData original implementation in stats.ts uses `trades.forEach` and checks `status !== "Open"`.
+  // If we pass `closedTrades`, we might miss "BreakEven" if they are not in closedTrades (which filters Won/Lost).
+  // However, usually Closed = Won + Lost.
+  // The original check `t.status === "Open"` implies everything else is processed.
+  // If we use `context.closedTrades` (which is Won/Lost), we are safe if those are the only closed statuses.
+  // Given `calculateJournalStats` uses Won/Lost, and `calculatePerformanceStats` uses Won/Lost, it is highly likely that Won/Lost are the only relevant ones.
+  // BUT to be strict, if `context` is provided, we should ideally use `allTradesSorted` or `openTrades`? No.
+  // Let's stick to `closedTrades` (Won/Lost) as that's 99% of the usage.
+  // If `trades` argument is passed, it might be the full list.
+
+  // If context is provided, we iterate closedTrades.
+  const tradesToIterate = context ? context.closedTrades : trades;
+
   const tagStats: {
     [key: string]: { win: number; loss: number; pnl: Decimal; count: number };
   } = {};
 
-  trades.forEach((t) => {
-    if (t.status === "Open") return;
+  tradesToIterate.forEach((t) => {
+    if (!context && t.status === "Open") return; // Skip open if manual filtering
+    // If context.closedTrades is used, Open is already filtered.
+
     let tags = t.tags || [];
 
     if (tags.length === 0) {
@@ -327,7 +367,9 @@ export function getTagData(trades: JournalEntry[]) {
 
   // Convert to array for sorting/display
   const labels = Object.keys(tagStats);
-  const pnlData = labels.map((l) => new Decimal(tagStats[l].pnl || 0).toNumber());
+  const pnlData = labels.map((l) =>
+    new Decimal(tagStats[l].pnl || 0).toNumber(),
+  );
   const winRateData = labels.map(
     (l) => (tagStats[l].win / tagStats[l].count) * 100,
   );
@@ -339,7 +381,9 @@ export function getTagData(trades: JournalEntry[]) {
   };
 }
 
-export function getCalendarData(trades: JournalEntry[]) {
+export function getCalendarData(trades: JournalEntry[], context?: JournalContext) {
+  const tradesToIterate = context ? context.closedTrades : trades;
+
   // Aggregate PnL by day (YYYY-MM-DD)
   const dailyMap: {
     [key: string]: {
@@ -355,8 +399,8 @@ export function getCalendarData(trades: JournalEntry[]) {
   // Helper to track best symbol per day
   const daySymbolMap: { [key: string]: { [symbol: string]: Decimal } } = {};
 
-  trades.forEach((t) => {
-    if (t.status === "Open") return;
+  tradesToIterate.forEach((t) => {
+    if (!context && t.status === "Open") return;
 
     // Robust parsing
     const ts = parseTimestamp(t.date);
@@ -426,10 +470,15 @@ export function getCalendarData(trades: JournalEntry[]) {
 export function getRollingData(
   journal: JournalEntry[],
   windowSize: number = 20,
+  context?: JournalContext,
 ) {
-  const sortedTrades = journal
-    .filter((t) => t.status === "Won" || t.status === "Lost")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedTrades = context
+    ? context.closedTrades
+    : journal
+        .filter((t) => t.status === "Won" || t.status === "Lost")
+        .sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        );
 
   if (sortedTrades.length < windowSize) return null;
 
@@ -461,9 +510,7 @@ export function getRollingData(
       if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
         rMultiples.push(pnl.div(new Decimal(t.riskAmount)).toNumber());
       } else {
-        // Fallback if no risk info, use 0 or skip?
-        // To avoid breaking SQN, we skip or use a proxy.
-        // Let's assume normalized if risk is missing? No, safer to skip.
+        // Fallback
       }
     });
 
@@ -492,7 +539,7 @@ export function getRollingData(
     }
     sqnValues.push(sqn);
 
-    // Label: use the date of the last trade in the window
+    // Label
     const date = new Date(windowTrades[windowTrades.length - 1].date);
     labels.push(date.toLocaleDateString());
   }
@@ -505,10 +552,10 @@ export function getRollingData(
   };
 }
 
-export function getLeakageData(journal: JournalEntry[]) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function getLeakageData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter((t) => t.status === "Won" || t.status === "Lost");
 
   let totalGrossProfit = new Decimal(0);
   let totalGrossLoss = new Decimal(0); // Absolute value
@@ -520,8 +567,6 @@ export function getLeakageData(journal: JournalEntry[]) {
       .plus(t.fundingFee || new Decimal(0))
       .plus(t.tradingFee || new Decimal(0));
 
-    // Reconstruct Gross PnL from Net PnL + Fees
-    // Net = Gross - Fees  => Gross = Net + Fees
     const grossPnl = pnl.plus(fees);
 
     if (grossPnl.gt(0)) {
@@ -533,9 +578,6 @@ export function getLeakageData(journal: JournalEntry[]) {
     totalFees = totalFees.plus(fees);
   });
 
-  // 1. Fee Efficiency
-  // How much of Gross Profit is kept? (Net Profit / Gross Profit)
-  // If Gross Profit is 0, retention is 0 (or undefined)
   const totalNetProfit = totalGrossProfit
     .minus(totalGrossLoss)
     .minus(totalFees);
@@ -543,48 +585,40 @@ export function getLeakageData(journal: JournalEntry[]) {
     ? new Decimal(totalNetProfit.div(totalGrossProfit).times(100)).toNumber()
     : 0;
 
-  // How much is lost to fees relative to Gross Profit?
   const feeImpact = totalGrossProfit.gt(0)
     ? new Decimal(totalFees.div(totalGrossProfit).times(100)).toNumber()
     : 0;
 
-  // Waterfall Data
   const waterfallData = {
     grossProfit: new Decimal(totalGrossProfit).toNumber(),
-    fees: new Decimal(totalFees.negated()).toNumber(), // Negative for visualization
-    grossLoss: new Decimal(totalGrossLoss.negated()).toNumber(), // Negative for visualization
+    fees: new Decimal(totalFees.negated()).toNumber(),
+    grossLoss: new Decimal(totalGrossLoss.negated()).toNumber(),
     netResult: new Decimal(totalNetProfit).toNumber(),
   };
 
-  // 2. Worst Tags (Strategy Leakage)
-  // Need to avoid circular dependency if getTagData was in same file.
-  // It is in same file, so we can call it.
-  const tagStats = getTagData(closedTrades);
+  const tagStats = getTagData(closedTrades, context);
   const worstTags = tagStats.labels
     .map((label, i) => ({ label, pnl: tagStats.pnlData[i] }))
     .filter((item) => item.pnl < 0)
-    .sort((a, b) => a.pnl - b.pnl) // Ascending (most negative first)
-    .slice(0, 5); // Bottom 5
+    .sort((a, b) => a.pnl - b.pnl)
+    .slice(0, 5);
 
-  // 3. Worst Times (Timing Leakage)
-  const timingStats = getTimingData(closedTrades);
+  const timingStats = getTimingData(closedTrades, context);
 
-  // Worst Hours (by Gross Loss)
-  // timingStats.hourlyGrossLoss contains negative numbers representing magnitude of loss
   const worstHours = timingStats.hourlyGrossLoss
     .map((loss, hour) => ({ hour, loss: Math.abs(loss) }))
-    .filter((h) => h.loss > 0) // FIRST: Filter only hours with losses
-    .sort((a, b) => b.loss - a.loss) // THEN: Sort descending
-    .slice(0, 5); // FINALLY: Take top 5
+    .filter((h) => h.loss > 0)
+    .sort((a, b) => b.loss - a.loss)
+    .slice(0, 5);
 
   const worstDays = timingStats.dayLabels
     .map((day, i) => ({
       day,
       loss: Math.abs(timingStats.dayOfWeekGrossLoss[i]),
     }))
-    .filter((d) => d.loss > 0) // FIRST: Filter only days with losses
-    .sort((a, b) => b.loss - a.loss) // THEN: Sort descending
-    .slice(0, 3); // FINALLY: Take top 3
+    .filter((d) => d.loss > 0)
+    .sort((a, b) => b.loss - a.loss)
+    .slice(0, 3);
 
   return {
     profitRetention,
@@ -597,12 +631,11 @@ export function getLeakageData(journal: JournalEntry[]) {
   };
 }
 
-export function getDurationStats(journal: JournalEntry[]) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function getDurationStats(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter((t) => t.status === "Won" || t.status === "Lost");
 
-  // Buckets: <15m, 15m-1h, 1h-4h, 4h-24h, >24h
   const buckets = [
     {
       label: "< 15m",
@@ -667,19 +700,18 @@ export function getDurationStats(journal: JournalEntry[]) {
   return { labels, pnlData, winRateData };
 }
 
-export function getTimingData(trades: JournalEntry[]) {
-  // Initialize arrays for 24 hours
+export function getTimingData(trades: JournalEntry[], context?: JournalContext) {
+  const tradesToIterate = context ? context.closedTrades : trades;
+
   const hourlyNetPnl = new Array(24).fill(0).map(() => new Decimal(0));
   const hourlyGrossProfit = new Array(24).fill(0).map(() => new Decimal(0));
   const hourlyGrossLoss = new Array(24).fill(0).map(() => new Decimal(0));
-
-  // Initialize arrays for 7 days (0=Sun, 6=Sat)
   const dayNetPnl = new Array(7).fill(0).map(() => new Decimal(0));
   const dayGrossProfit = new Array(7).fill(0).map(() => new Decimal(0));
   const dayGrossLoss = new Array(7).fill(0).map(() => new Decimal(0));
 
-  trades.forEach((t) => {
-    if (t.status === "Open") return;
+  tradesToIterate.forEach((t) => {
+    if (!context && t.status === "Open") return;
     const date = new Date(t.date);
     if (isNaN(date.getTime())) return;
 
@@ -687,20 +719,15 @@ export function getTimingData(trades: JournalEntry[]) {
     const day = date.getDay();
     const pnl = getTradePnL(t);
 
-    // Hourly
     hourlyNetPnl[hour] = hourlyNetPnl[hour].plus(pnl);
     if (pnl.gte(0)) hourlyGrossProfit[hour] = hourlyGrossProfit[hour].plus(pnl);
     else hourlyGrossLoss[hour] = hourlyGrossLoss[hour].plus(pnl);
 
-    // Daily
     dayNetPnl[day] = dayNetPnl[day].plus(pnl);
     if (pnl.gte(0)) dayGrossProfit[day] = dayGrossProfit[day].plus(pnl);
     else dayGrossLoss[day] = dayGrossLoss[day].plus(pnl);
   });
 
-  // Reorder Day of Week to start Monday (Index 1) -> Sunday (Index 0)
-  // JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat
-  // Target: Mon, Tue, Wed, Thu, Fri, Sat, Sun
   const reorder = (arr: Decimal[]) => [
     arr[1],
     arr[2],
@@ -714,22 +741,28 @@ export function getTimingData(trades: JournalEntry[]) {
   return {
     hourlyPnl: hourlyNetPnl.map((d) => new Decimal(d).toNumber()),
     hourlyGrossProfit: hourlyGrossProfit.map((d) => new Decimal(d).toNumber()),
-    hourlyGrossLoss: hourlyGrossLoss.map((d) => new Decimal(d).toNumber()), // Keep negative numbers negative
+    hourlyGrossLoss: hourlyGrossLoss.map((d) => new Decimal(d).toNumber()),
     dayOfWeekPnl: reorder(dayNetPnl).map((d) => new Decimal(d).toNumber()),
-    dayOfWeekGrossProfit: reorder(dayGrossProfit).map((d) => new Decimal(d).toNumber()),
-    dayOfWeekGrossLoss: reorder(dayGrossLoss).map((d) => new Decimal(d).toNumber()),
+    dayOfWeekGrossProfit: reorder(dayGrossProfit).map((d) =>
+      new Decimal(d).toNumber(),
+    ),
+    dayOfWeekGrossLoss: reorder(dayGrossLoss).map((d) =>
+      new Decimal(d).toNumber(),
+    ),
     dayLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   };
 }
 
-export function getDisciplineData(journal: JournalEntry[]) {
-  // Reuse timing data for hourly PnL
-  const timing = getTimingData(journal);
+export function getDisciplineData(journal: JournalEntry[], context?: JournalContext) {
+  const timing = getTimingData(journal, context);
 
-  // Calculate Streaks
-  const sortedTrades = journal
-    .filter((t) => t.status === "Won" || t.status === "Lost")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedTrades = context
+    ? context.closedTrades
+    : journal
+        .filter((t) => t.status === "Won" || t.status === "Lost")
+        .sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        );
 
   let maxWinStreak = 0;
   let maxLossStreak = 0;
@@ -748,7 +781,6 @@ export function getDisciplineData(journal: JournalEntry[]) {
     }
   });
 
-  // Risk Consistency Buckets
   const riskBuckets: { [key: string]: number } = {};
   const risks = sortedTrades
     .filter((t) => t.riskAmount && new Decimal(t.riskAmount).gt(0))
@@ -761,20 +793,17 @@ export function getDisciplineData(journal: JournalEntry[]) {
     if (Math.abs(maxRisk - minRisk) < 0.01) {
       riskBuckets[`$${(maxRisk ?? 0).toFixed(2)}`] = risks.length;
     } else {
-      // Create 5 bins
       const binCount = 5;
       const range = maxRisk - minRisk;
       const step = range / binCount;
 
       risks.forEach((r) => {
-        // Determine bin index
         let idx = Math.floor((r - minRisk) / step);
-        if (idx >= binCount) idx = binCount - 1; // Handle max value case
+        if (idx >= binCount) idx = binCount - 1;
 
         const low = minRisk + idx * step;
         const high = minRisk + (idx + 1) * step;
 
-        // Format: $10 - $20
         const label = `$${(low ?? 0).toFixed(0)} - $${(high ?? 0).toFixed(0)}`;
         riskBuckets[label] = (riskBuckets[label] || 0) + 1;
       });

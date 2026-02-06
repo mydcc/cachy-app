@@ -29,6 +29,7 @@ import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
+import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
@@ -72,7 +73,7 @@ class TradeService {
 
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
-            "X-Provider": provider
+            "X-Provider": provider, ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {})
         };
 
         // Deep serialize Decimals to strings before JSON.stringify
@@ -226,9 +227,12 @@ class TradeService {
         try {
             // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
             // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
-            // We await this to ensure safety. Changed to Best Effort (throwOnError=false) to ensure
-            // close proceeds even if cancel fails (e.g. timeout).
-            await this.cancelAllOrders(symbol, false);
+            try {
+                await this.cancelAllOrders(symbol, true);
+            } catch (cancelError) {
+                // If cancellation fails, we log it CRITICALLY but proceed to close (Panic button logic).
+                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+            }
 
             return await this.signedRequest("POST", "/api/orders", {
                 symbol,
@@ -242,7 +246,6 @@ class TradeService {
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
-            // omsService.removeOrder(clientOrderId); <--- UNSAFE
 
             logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
 
@@ -301,7 +304,7 @@ class TradeService {
             // Re-use the sync endpoint which wraps the signed API call
             const pendingResponse = await fetch("/api/sync/positions-pending", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
                 body: JSON.stringify({
                     apiKey: settingsState.apiKeys.bitunix.key,
                     apiSecret: settingsState.apiKeys.bitunix.secret,
@@ -412,6 +415,125 @@ class TradeService {
         }
 
         return results;
+    }
+
+    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<any[]> {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) {
+             throw new Error("dashboard.alerts.noApiKeys");
+        }
+
+        if (provider === "bitunix") {
+             const symbolsToFetch = new Set<string>();
+             // Add current active symbol
+             if (tradeState.symbol) symbolsToFetch.add(tradeState.symbol);
+             // Add all symbols with open positions
+             const positions = omsService.getPositions();
+             positions.forEach(p => symbolsToFetch.add(p.symbol));
+
+             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
+             const results: any[] = [];
+
+             // Rate limit handling: Batch requests (max 5 concurrent)
+             const BATCH_SIZE = 5;
+             for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
+                  const batch = fetchList.slice(i, i + BATCH_SIZE);
+                  const batchResults = await Promise.all(
+                      batch.map(async (sym) => {
+                          try {
+                              const params: any = {};
+                              if (sym) params.symbol = sym;
+
+                              const response = await fetch("/api/tpsl", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+                                  body: JSON.stringify(this.serializePayload({
+                                      exchange: provider,
+                                      apiKey: keys.key,
+                                      apiSecret: keys.secret,
+                                      action: view,
+                                      params
+                                  }))
+                              });
+
+                              const text = await response.text();
+                              const data = safeJsonParse(text);
+
+                              if (data.error) {
+                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
+                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
+                                  }
+                                  return [];
+                              }
+                              return Array.isArray(data) ? data : data.rows || [];
+                          } catch (e) {
+                              logger.warn("market", `TP/SL network error for ${sym}`, e);
+                              return [];
+                          }
+                      })
+                  );
+                  results.push(...batchResults.flat());
+             }
+
+             // Deduplicate
+             const uniqueOrders = new Map();
+             results.forEach((o) => {
+                 const id = o.id || o.orderId || o.planId;
+                 if (id) uniqueOrders.set(id, o);
+             });
+             const final = Array.from(uniqueOrders.values());
+             // Sort by time (newest first)
+             final.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             return final;
+        } else {
+             // Generic provider
+             const response = await fetch("/api/tpsl", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+                  body: JSON.stringify({
+                      exchange: provider,
+                      apiKey: keys.key,
+                      apiSecret: keys.secret,
+                      action: view,
+                  })
+             });
+
+             const text = await response.text();
+             const data = safeJsonParse(text);
+             if (data.error) throw new Error(data.error);
+
+             const list = Array.isArray(data) ? data : data.rows || [];
+             list.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             return list;
+        }
+    }
+
+    public async cancelTpSlOrder(order: any) {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
+
+        const response = await fetch("/api/tpsl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+            body: JSON.stringify(this.serializePayload({
+                exchange: provider,
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                action: "cancel",
+                params: {
+                    orderId: order.orderId || order.id,
+                    symbol: order.symbol,
+                    planType: order.planType,
+                },
+            })),
+        });
+
+        const text = await response.text();
+        const res = safeJsonParse(text);
+        if (res.error) throw new Error(res.error);
+        return res;
     }
 }
 

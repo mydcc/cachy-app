@@ -77,8 +77,9 @@ class WindowManager {
             const saved = sessionStorage.getItem('cachy_open_windows');
             if (saved) {
                 const data = JSON.parse(saved);
-                for (const winData of data) {
-                    const instance = await this.createFromData(winData);
+                const instances = await Promise.all(data.map((d: any) => this.createFromData(d)));
+                for (const instance of instances) {
+
                     if (instance) this.open(instance);
                 }
             }

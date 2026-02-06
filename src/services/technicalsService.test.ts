@@ -58,7 +58,7 @@ describe("technicalsService", () => {
 
   it("should respect custom settings", async () => {
     const customSettings = {
-      ...indicatorState,
+      ...indicatorState.toJSON(),
       rsi: {
         length: 20,
         source: "close",

@@ -57,7 +57,7 @@ struct CciState { tp_buffer: VecDeque<f64>, sum_tp: f64, initialized: bool }
 #[allow(dead_code)]
 struct AdxState { tr_smooth: f64, pdm_smooth: f64, ndm_smooth: f64, dx_smooth: f64, prev_high: f64, prev_low: f64, prev_close: f64, initialized: bool }
 #[allow(dead_code)]
-struct SuperTrendState { atr: f64, upper: f64, lower: f64, trend: i32, prev_close: f64, initialized: bool }
+struct SuperTrendState { atr: f64, upper: f64, lower: f64, trend: i32, prev_close: f64, initialized: bool, multiplier: f64 }
 #[allow(dead_code)]
 struct ChopState { highs: VecDeque<f64>, lows: VecDeque<f64>, atr_sum: f64, prev_close: f64, initialized: bool }
 #[allow(dead_code)]
@@ -243,7 +243,7 @@ impl TechnicalsCalculator {
                 // Ideally we implement full replay.
                 init = true;
             }
-            self.st_states.insert(format!("{}-{}", s.length, s.multiplier), SuperTrendState { atr, upper, lower, trend, prev_close: closes[len-1], initialized: init });
+            self.st_states.insert(format!("{}-{}", s.length, s.multiplier), SuperTrendState { atr, upper, lower, trend, prev_close: closes[len-1], initialized: init, multiplier: s.multiplier });
         }
     }
 
@@ -310,7 +310,7 @@ impl TechnicalsCalculator {
         for (key, s) in &self.st_states { if s.initialized {
              // Need multiplier. Parse from key or store? Stored in key currently...
              // Hack: We need the multiplier. Using 3.0 as placeholder default if not accessible.
-             let _mult = 3.0;
+             let _mult = s.multiplier;
              // ST Logic:
              // Calc ATR
              let _tr = (h - l).max((h - s.prev_close).abs()).max((l - s.prev_close).abs());
@@ -375,5 +375,35 @@ impl TechnicalsCalculator {
         for (_len, s) in &mut self.wr_states { if s.initialized {
             // WR no longer needs internal buffer, using global highs/lows
         }}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_supertrend_multiplier() {
+        let mut calc = TechnicalsCalculator::new();
+
+        // Mock data for initialization
+        let closes = vec![100.0; 20];
+        let highs = vec![105.0; 20];
+        let lows = vec![95.0; 20];
+        let volumes = vec![1000.0; 20];
+        let times = vec![0.0; 20];
+
+        // Settings with specific multiplier 4.5
+        let settings_json = r#"{
+            "supertrend": [{ "length": 14, "multiplier": 4.5 }]
+        }"#;
+
+        calc.initialize(&closes, &highs, &lows, &volumes, &times, settings_json);
+
+        // Verify that the state was initialized with the correct multiplier
+        // Key is "14-4.5"
+        let state = calc.st_states.get("14-4.5").expect("SuperTrend state should exist");
+
+        assert_eq!(state.multiplier, 4.5, "Multiplier should be 4.5 as set in settings");
     }
 }

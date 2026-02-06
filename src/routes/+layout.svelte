@@ -289,7 +289,7 @@ import { afterNavigate } from "$app/navigation";
   <title>{$_("seo.pageTitle")}</title>
   <meta
     name="description"
-    content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis."
+    content={$_("seo.description")}
   />
   {@html `<script type="application/ld+json">
     {
@@ -304,7 +304,7 @@ import { afterNavigate } from "$app/navigation";
         "priceCurrency": "USD"
       },
       "image": "https://www.cachy.app/og-image.jpg",
-      "description": "Advanced Position Size & Risk Calculator for crypto trading. Optimize your position sizing and manage trading risk effectively."
+      "description": ${JSON.stringify($_("seo.description"))}
     }
     </script>`}
 </svelte:head>
@@ -366,7 +366,7 @@ import { afterNavigate } from "$app/navigation";
         <div class="flex items-center gap-3 mb-4">
           <span class="text-2xl">🤖</span>
           <h3 class="text-xl font-bold text-[var(--accent-color)]">
-            Jules Inspector
+            {$_("jules.title")}
           </h3>
         </div>
 
@@ -376,7 +376,7 @@ import { afterNavigate } from "$app/navigation";
               class="w-8 h-8 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
             ></div>
             <p class="text-sm text-[var(--text-secondary)] animate-pulse">
-              Analyzing system state...
+              {$_("jules.analyzing")}
             </p>
           </div>
         {:else}
@@ -393,7 +393,7 @@ import { afterNavigate } from "$app/navigation";
             class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity font-bold text-sm"
             onclick={() => julesState.hideReport()}
           >
-            Close Report
+            {$_("jules.close")}
           </button>
         </div>
       </div>

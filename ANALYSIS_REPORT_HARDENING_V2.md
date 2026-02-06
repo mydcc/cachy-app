@@ -1,67 +1,58 @@
-# Systematische Code-Analyse & Hardening Report (Status Quo)
+# Systematic Maintenance & Hardening Report (V2)
 
-**Datum:** 2026-05-21
-**Rolle:** Senior Lead Developer & Systems Architect
-**Scope:** `src/services`, `src/components`, `src/routes/api`
+**Date:** 2026-05-26
+**Auditor:** Jules (Senior Lead Developer)
+**Scope:** Full Codebase Scan
+**Status:** Analysis Complete
 
-## 1. Executive Summary
-Die Codebasis zeigt solide Ansätze in Architektur (Service-Pattern) und Sicherheit (Zod-Validierung, Secret-Redaction). Jedoch bestehen **kritische Risiken** im Ressourcen-Management des Order Management Systems (OMS) und in der Typsicherheit finanzieller Berechnungen. Zudem ist die User Experience durch fehlende Übersetzungen und "Silent Failures" bei API-Fehlern beeinträchtigt.
+## Executive Summary
+The codebase exhibits a critical "Split-Brain" architecture regarding API handling. While the client-side `apiService` has been hardened with `safeJson` and `Decimal` support, the server-side proxy routes (`src/routes/api/orders/+server.ts`) rely on native `response.json()`, creating a vulnerability where large Order IDs (19 digits) are corrupted before they ever reach the frontend. Additionally, CSV import logic compromises data integrity for large IDs.
 
-## 2. 🔴 CRITICAL (Sofortiger Handlungsbedarf)
+---
 
-### 2.1 OMS Memory Leak Risk (Resource Management)
-*   **Ort:** `src/services/omsService.ts`
-*   **Problem:** Die Logik enthält einen expliziten Bypass des `MAX_ORDERS` Limits (1000) für "finalized orders" (`isFinalized`).
-    ```typescript
-    // CRITICAL FIX: Allow finalized orders to bypass limit temporarily...
-    ```
-*   **Risiko:** Bei einem Hochfrequenz-Szenario oder einem API-Reconnect-Flood können tausende "filled/cancelled" Orders den Speicher fluten, bevor der `pruneOrders()` Zyklus greift. Dies kann zum Browser-Crash führen.
-*   **Empfehlung:** Strict Limit Enforcement. Finalized Orders sollten *sofort* ältere Einträge verdrängen oder gar nicht erst gespeichert werden, wenn das Limit erreicht ist, anstatt das Limit temporär zu verletzen.
+## 🔴 CRITICAL FINDINGS (Risk of Financial Loss / Data Integrity)
 
-### 2.2 Typsicherheit in Finanz-Kalkulationen (Data Integrity)
-*   **Ort:** `src/services/calculatorService.ts`
-*   **Problem:** Verwendung von `any` Typen in kritischen Berechnungsschleifen.
-    ```typescript
-    values.targets.forEach((tp: any, index: number) => { ... })
-    ```
-*   **Risiko:** Laufzeitfehler, wenn `tp.price` oder `tp.percent` nicht existieren oder keine `Decimal` Instanzen sind. Dies führt zu NaN-Werten oder Abstürzen während der Trade-Planung.
-*   **Empfehlung:** Strikte Typisierung mit Interfaces (`TradeTarget`) und Runtime-Checks (`instanceof Decimal`).
+### 1. Server-Side Proxy Precision Loss (`src/routes/api/orders/+server.ts`)
+*   **Issue:** The server-side handler for order placement, cancellation, and fetching uses `const res = await response.json()` to parse responses from Bitunix/Bitget.
+*   **Impact:** Bitunix uses 19-digit IDs (e.g., `1234567890123456789`). JavaScript's native `JSON.parse` (used by `response.json()`) rounds this to the nearest safe integer (15-16 digits), altering the ID.
+*   **Consequence:** The frontend receives the wrong Order ID. Subsequent "Cancel" or "Modify" requests will fail or, worse, act on the wrong order if the hash collision occurs.
+*   **Fix:** Must read `response.text()` and use `safeJsonParse()` (with string-wrapping for large numbers) for **all** upstream exchange interactions.
 
-## 3. 🟡 WARNING (Priorität vor nächstem Release)
+### 2. CSV Import ID Corruption (`src/services/csvService.ts`)
+*   **Issue:** `parseFloat(originalIdAsString)` is used on the `ID` column.
+*   **Impact:** Similar to above, importing a trade history with real exchange IDs will corrupt the IDs if they are large integers. The fallback logic (`isSafe`) generates a random internal ID, breaking the link to the external trade.
+*   **Fix:** Do not parse IDs as numbers. Store them strictly as strings in `tradeId` and `orderId` fields.
 
-### 3.1 Hardcoded Strings & Mixed Languages (UI/UX)
-*   **Ort:** `CalculationSettings.svelte`, `PerformanceMonitor.svelte`, `ApiQuotaStatus.svelte`.
-*   **Problem:** Viele UI-Elemente enthalten harten Text (teils Englisch, teils Deutsch gemischt), der nicht durch das i18n-System (`$_`) läuft.
-    *   Beispiele: "Performance Profiles", "Calls insgesamt".
-*   **Risiko:** Inkonsistente UX, fehlende Professionalität, Barrieren für internationale Nutzer.
-*   **Empfehlung:** Extraktion aller Strings in `en.json` und Nutzung von `$_()`.
+### 3. Unsafe Order Quantity Logic
+*   **Issue:** `src/routes/api/orders/+server.ts` validates `invalid amount` but relies on `formatApiNum` which might return a string representation of a float.
+*   **Fix:** Ensure strict `Decimal` validation is passed to the exchange.
 
-### 3.2 Silent API Failures (Data Integrity/UX)
-*   **Ort:** `src/routes/api/orders/+server.ts` -> `fetchBitgetHistoryOrders`
-*   **Problem:** Bei API-Fehlern (außer Auth) wird ein leeres Array zurückgegeben.
-    ```typescript
-    if (!response.ok) return []; // Fail gracefully
-    ```
-*   **Risiko:** Der Nutzer sieht "Keine Orders gefunden", obwohl die API down ist. Dies ist irreführend und verhindert Fehlersuche.
-*   **Empfehlung:** Fehler explizit werfen und im Frontend als Warnung anzeigen ("Konnte Historie nicht laden").
+---
 
-### 3.3 Untracked Timers (Resource Management)
-*   **Ort:** `src/services/marketWatcher.ts`
-*   **Problem:** Ein `setTimeout` im `finally`-Block von `pollSymbolChannel` wird nicht in `staggerTimeouts` getrackt.
-*   **Risiko:** Wenn das Polling gestoppt wird, feuert dieser Timer trotzdem und versucht, `fetchLocks` zu manipulieren. Dies ist eine Race Condition.
+## 🟡 WARNING FINDINGS (UX, Performance, Missing i18n)
 
-## 4. 🔵 REFACTOR (Technische Schuld)
+### 1. Hardcoded Strings & Alerts (`src/components/shared/TpSlList.svelte`)
+*   **Issue:** Contains hardcoded English strings: `"Cancel this TP/SL order?"`, `"No API keys configured"`.
+*   **Issue:** Uses native `confirm()` dialog, which blocks the UI thread and looks unprofessional.
+*   **Fix:** Move strings to `src/locales/locales/en.json` and replace `confirm()` with a modal or a "Hold to Cancel" interaction (or at minimum a non-blocking check).
 
-### 4.1 Loose Service Typing
-*   **Ort:** `bitunixWs.ts`, `bitgetWs.ts`, `newsService.ts`
-*   **Problem:** Extensive Nutzung von `: any`.
-*   **Empfehlung:** Definition von Zod-Schemas für alle externen Datenquellen.
+### 2. Console Log Spam (`src/services/marketAnalyst.ts`, `src/routes/+layout.svelte`)
+*   **Issue:** `console.log` is used for high-frequency debug info.
+*   **Fix:** Replace with `logger.debug` or remove.
 
-### 4.2 Inconsistent API Error Codes
-*   **Ort:** `tradeService.ts`
-*   **Problem:** Fehlercodes sind mal `number`, mal `string`.
-*   **Empfehlung:** Standardisierung auf `string` Konstanten (`ERR_CODE_...`).
+---
 
-## 5. Security Note (Positiv)
-*   **API Logs:** Vorbildliche Redaction von Secrets (`apiKey`, `passphrase`) in `src/routes/api/orders/+server.ts`.
-*   **XSS:** Keine unsichere `{@html}` Nutzung mit User-Input gefunden.
+## 🔵 REFACTOR OPPORTUNITIES
+
+### 1. Server-Side Shared Utils
+*   **Issue:** Server routes repeat the same fetch/error handling logic.
+*   **Proposal:** Create a `serverApiService` utility that wraps `fetch` with `safeJsonParse` and standardized error logging, mirroring the client-side `apiService`.
+
+---
+
+## Strategic Action Plan (Proposed)
+
+1.  **Immediate Hotfix:** Patch `src/routes/api/orders/+server.ts` to use `safeJsonParse`. (Critical)
+2.  **Data Repair:** Patch `src/services/csvService.ts` to handle IDs as strings. (Critical)
+3.  **UX Polish:** Externalize strings in `TpSlList.svelte` and remove blocking alerts. (Warning)
+4.  **Cleanup:** Sweep `console.log` from production files. (Refactor)

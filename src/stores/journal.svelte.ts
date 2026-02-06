@@ -15,6 +15,7 @@ import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
 import { untrack } from "svelte";
+import { safeJsonParse } from "../utils/safeJson";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
@@ -37,9 +38,17 @@ class JournalManager {
     try {
       const d =
         localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
-      const parsedData = JSON.parse(d);
+      const parsedData = safeJsonParse(d);
       if (Array.isArray(parsedData)) {
-        this.entries = parsedData.map((trade) => normalizeJournalEntry(trade));
+        // Enforce limit to prevent TBT/Crash on huge journals
+        // Taking last 1000 entries (assuming chronological order append)
+        // Ideally we should reverse logic if they are appended, but usually latest are last.
+        // Actually, users might prefer seeing latest.
+        // If we just slice, we keep first 1000. If we want latest, we might need to check sorting.
+        // Assuming append-only: latest are at the end.
+        const limit = 1000;
+        const sliced = parsedData.length > limit ? parsedData.slice(-limit) : parsedData;
+        this.entries = sliced.map((trade: any) => normalizeJournalEntry(trade));
 
         // Auto-calculate missing ATR values for closed trades
         this.autoCalculateMissingAtr();
@@ -127,36 +136,32 @@ class JournalManager {
 
   // -- Derived Metrics ($derived) --
 
-  performanceMetrics = $derived(calculator.getPerformanceData(this.entries));
-  qualityMetrics = $derived(calculator.getQualityData(this.entries));
-  directionMetrics = $derived(calculator.getDirectionData(this.entries));
-  tagMetrics = $derived(calculator.getTagData(this.entries));
-  calendarMetrics = $derived(calculator.getCalendarData(this.entries));
-  disciplineMetrics = $derived(calculator.getDisciplineData(this.entries));
-  costMetrics = $derived(calculator.getCostData(this.entries));
+  private analysisContext = $derived(calculator.getJournalContext(this.entries));
+
+  performanceMetrics = $derived(calculator.getPerformanceData(this.entries, this.analysisContext));
+  qualityMetrics = $derived(calculator.getQualityData(this.entries, this.analysisContext));
+  directionMetrics = $derived(calculator.getDirectionData(this.entries, this.analysisContext));
+  tagMetrics = $derived(calculator.getTagData(this.entries, this.analysisContext));
+  calendarMetrics = $derived(calculator.getCalendarData(this.entries, this.analysisContext));
+  disciplineMetrics = $derived(calculator.getDisciplineData(this.entries, this.analysisContext));
+  costMetrics = $derived(calculator.getCostData(this.entries, this.analysisContext));
 
   // Deep Dive
-  timingMetrics = $derived(calculator.getTimingData(this.entries));
-  confluenceMetrics = $derived(calculator.getConfluenceData(this.entries));
-  durationStatsMetrics = $derived(calculator.getDurationStats(this.entries));
-  durationDataMetrics = $derived(calculator.getDurationData(this.entries));
-  tagEvolutionMetrics = $derived(calculator.getTagEvolution(this.entries));
-  assetMetrics = $derived(calculator.getAssetData(this.entries));
-  riskMetrics = $derived(calculator.getRiskData(this.entries));
-  marketMetrics = $derived(calculator.getMarketData(this.entries));
-  psychologyMetrics = $derived(calculator.getPsychologyData(this.entries));
+  timingMetrics = $derived(calculator.getTimingData(this.entries, this.analysisContext));
+  confluenceMetrics = $derived(calculator.getConfluenceData(this.entries, this.analysisContext));
+  durationStatsMetrics = $derived(calculator.getDurationStats(this.entries, this.analysisContext));
+  durationDataMetrics = $derived(calculator.getDurationData(this.entries, this.analysisContext));
+  tagEvolutionMetrics = $derived(calculator.getTagEvolution(this.entries, this.analysisContext));
+  assetMetrics = $derived(calculator.getAssetData(this.entries, this.analysisContext));
+  riskMetrics = $derived(calculator.getRiskData(this.entries, this.analysisContext));
+  marketMetrics = $derived(calculator.getMarketData(this.entries, this.analysisContext));
+  psychologyMetrics = $derived(calculator.getPsychologyData(this.entries, this.analysisContext));
 
   // 6-Pillars
-  executionMetrics = $derived(
-    calculator.getExecutionEfficiencyData(this.entries),
-  );
-  riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.entries));
-  marketContextMetrics = $derived(
-    calculator.getVolatilityMatrixData(this.entries),
-  );
-  systemQualityMetrics = $derived(
-    calculator.getSystemQualityData(this.entries),
-  );
+  executionMetrics = $derived(calculator.getExecutionEfficiencyData(this.entries, this.analysisContext));
+  riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.entries, this.analysisContext));
+  marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
+  systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
 
   private notifyTimer: any = null;
 

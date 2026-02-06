@@ -276,9 +276,10 @@ main() {
     git pull || error_exit "Git pull failed"
     log "Git updated successfully"
     
-    # 4. Dependencies
+# 4. Dependencies
     echo "[4/9] NPM: Installiere Dependencies..."
-    npm install --legacy-peer-deps || error_exit "npm install failed"
+    chown -R www:www "$WORK_DIR"
+    sudo -u www npm install --legacy-peer-deps || error_exit "npm install failed"
     log "Dependencies installed"
     
     # 5. Build
@@ -286,7 +287,7 @@ main() {
     notify_build_start 2>/dev/null || true
     
     BUILD_START=$(date +%s)
-    if npm run build; then
+    if sudo -u www bash -c 'source $HOME/.cargo/env 2>/dev/null; npm run build'; then
         BUILD_END=$(date +%s)
         BUILD_DURATION=$((BUILD_END - BUILD_START))
         log "Build successful (${BUILD_DURATION}s)"

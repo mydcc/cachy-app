@@ -18,6 +18,7 @@
 <script lang="ts">
     import { onMount, untrack } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
+    const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";
     import { tradeState } from "../../../stores/trade.svelte";
     import { app } from "../../../services/app";
@@ -26,7 +27,6 @@
     import { marketState } from "../../../stores/market.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import { apiService } from "../../../services/apiService";
-    import { Decimal } from "decimal.js";
     import { windowManager } from "../WindowManager.svelte";
     import type { SymbolPickerWindow } from "./SymbolPickerWindow.svelte";
 
@@ -44,12 +44,14 @@
         "favorites",
     );
     let sortMode = $state<"alpha" | "gainers" | "losers" | "volume">("alpha");
+    let favoriteSet = $derived(new Set(settingsState.favoriteSymbols || []));
 
     // Filter States
     let snapshot = $state<Record<string, any>>({});
     let isSnapshotLoading = $state(false);
     let minVolumeStr = $state("0");
     let hideAlts = $state(false);
+    let favSet = $derived(new Set(settingsState.favoriteSymbols || []));
 
     const symbols = CONSTANTS.SUGGESTED_SYMBOLS;
 
@@ -86,8 +88,7 @@
 
         // 2. Filter: Hide Alts (Only Majors)
         if (hideAlts) {
-            const majors = new Set(CONSTANTS.MAJORS);
-            result = result.filter((s) => majors.has(s));
+            result = result.filter((s) => majorsSet.has(s));
         }
 
         // 3. Filter: Min Volume
@@ -96,20 +97,18 @@
             result = result.filter((s) => {
                 const data = snapshot[s];
                 if (!data) return false;
-                return new Decimal(data.quoteVolume || 0).gte(minVol);
+                return Number(data.quoteVolume || 0) >= minVol;
             });
         }
 
         // 4. View Mode
         if (!searchQuery) {
             if (viewMode === "favorites") {
-                const favs = settingsState.favoriteSymbols || [];
-                result = result.filter((s) => favs.includes(s));
+                // optimized: using derived favSet
+                result = result.filter((s) => favSet.has(s));
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
-                    const change = new Decimal(
-                        snapshot[s]?.priceChangePercent || 0,
-                    ).toNumber();
+                    const change = Number(snapshot[s]?.priceChangePercent || 0);
                     return Math.abs(change) >= 5;
                 });
             }
@@ -121,32 +120,20 @@
 
         if (effectiveSort === "gainers") {
             result.sort((a, b) => {
-                const changeA = new Decimal(
-                    snapshot[a]?.priceChangePercent || 0,
-                ).toNumber();
-                const changeB = new Decimal(
-                    snapshot[b]?.priceChangePercent || 0,
-                ).toNumber();
+                const changeA = Number(snapshot[a]?.priceChangePercent || 0);
+                const changeB = Number(snapshot[b]?.priceChangePercent || 0);
                 return changeB - changeA;
             });
         } else if (effectiveSort === "losers") {
             result.sort((a, b) => {
-                const changeA = new Decimal(
-                    snapshot[a]?.priceChangePercent || 0,
-                ).toNumber();
-                const changeB = new Decimal(
-                    snapshot[b]?.priceChangePercent || 0,
-                ).toNumber();
+                const changeA = Number(snapshot[a]?.priceChangePercent || 0);
+                const changeB = Number(snapshot[b]?.priceChangePercent || 0);
                 return changeA - changeB;
             });
         } else if (effectiveSort === "volume") {
             result.sort((a, b) => {
-                const volA = new Decimal(
-                    snapshot[a]?.quoteVolume || 0,
-                ).toNumber();
-                const volB = new Decimal(
-                    snapshot[b]?.quoteVolume || 0,
-                ).toNumber();
+                const volA = Number(snapshot[a]?.quoteVolume || 0);
+                const volB = Number(snapshot[b]?.quoteVolume || 0);
                 return volB - volA;
             });
         } else {
@@ -182,9 +169,9 @@
     function getChangePercent(s: string) {
         const live = marketState.data[s]?.priceChangePercent;
         if (live !== undefined && live !== null)
-            return new Decimal(live).toNumber();
+            return Number(live);
         const snap = snapshot[s]?.priceChangePercent;
-        return snap ? new Decimal(snap).toNumber() : null;
+        return snap ? Number(snap) : null;
     }
 
     function selectSymbol(s: string) {
@@ -209,7 +196,7 @@
     }
 
     function isFavorite(symbol: string) {
-        return (settingsState.favoriteSymbols || []).includes(symbol);
+        return favSet.has(symbol);
     }
 
     function handleGlobalKeydown(e: KeyboardEvent) {

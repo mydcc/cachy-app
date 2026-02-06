@@ -21,6 +21,7 @@ import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { debounce } from "../utils/utils";
 import { Decimal } from "decimal.js";
+import { safeJsonParse } from "../utils/safeJson";
 import { z } from "zod";
 
 // Re-using types might require importing AppState or redefining what we need
@@ -220,7 +221,7 @@ class TradeManager {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed = safeJsonParse(stored);
 
         // Use Zod for validation and cleaning
         const result = TradeStateSchema.safeParse(parsed);

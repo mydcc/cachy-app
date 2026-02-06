@@ -100,7 +100,7 @@ class MarketAnalystService {
             }
 
             analysisState.isAnalyzing = true;
-            console.log(`[TECHNICALS] Analyst: Processing ${symbol}... (Started)`);
+            logger.log("technicals", `Analyst: Processing ${symbol}... (Started)`);
 
             const provider = settingsState.apiProvider;
             // Ensure we have the required timeframes for the dashboard matrix
@@ -117,7 +117,7 @@ class MarketAnalystService {
             };
 
             // PARALLEL: Fetch all timeframes at once
-            console.log(`[TECHNICALS] Analyst: ${symbol} Fetching ${timeframes.length} timeframes in parallel...`);
+            logger.log("technicals", `Analyst: ${symbol} Fetching ${timeframes.length} timeframes in parallel...`);
             const startFetch = performance.now();
 
             const klinesPromises = timeframes.map(tf => {
@@ -129,7 +129,7 @@ class MarketAnalystService {
 
             const klinesResults = await Promise.all(klinesPromises);
             const fetchTime = performance.now() - startFetch;
-            console.log(`[TECHNICALS] Analyst: ${symbol} All klines fetched in ${fetchTime.toFixed(0)}ms`);
+            logger.log("technicals", `Analyst: ${symbol} All klines fetched in ${fetchTime.toFixed(0)}ms`);
 
             // Build a map of timeframe -> klines
             const klinesMap: Record<string, typeof klinesResults[0]> = {};
@@ -143,7 +143,7 @@ class MarketAnalystService {
             if (!primaryKlines || primaryKlines.length < 50) throw new Error("MIN_DATA_REQUIRED");
 
             // PARALLEL: Calculate technicals for all timeframes
-            console.log(`[TECHNICALS] Analyst: ${symbol} Calculating technicals for ${timeframes.length} timeframes...`);
+            logger.log("technicals", `Analyst: ${symbol} Calculating technicals for ${timeframes.length} timeframes...`);
             const startCalc = performance.now();
 
             // Prepare settings ONCE (Optimization)
@@ -172,7 +172,7 @@ class MarketAnalystService {
 
             const techResults = await Promise.all(techPromises);
             const calcTime = performance.now() - startCalc;
-            console.log(`[TECHNICALS] Analyst: ${symbol} All technicals done in ${calcTime.toFixed(0)}ms`);
+            logger.log("technicals", `Analyst: ${symbol} All technicals done in ${calcTime.toFixed(0)}ms`);
 
             // Build a map of timeframe -> technicals
             const techMap: Record<string, typeof techResults[0]> = {};
@@ -211,7 +211,7 @@ class MarketAnalystService {
                 // Update Performance Telemetry
                 marketState.updateTelemetry({ lastCalcDuration: calcTime });
 
-                console.log(`[TECHNICALS] Analyst: ${symbol} COMPLETE - Fetch: ${fetchTime.toFixed(0)}ms, Calc: ${calcTime.toFixed(0)}ms, Total: ${(fetchTime + calcTime).toFixed(0)}ms`);
+                logger.log("technicals", `Analyst: ${symbol} COMPLETE - Fetch: ${fetchTime.toFixed(0)}ms, Calc: ${calcTime.toFixed(0)}ms, Total: ${(fetchTime + calcTime).toFixed(0)}ms`);
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
@@ -219,7 +219,7 @@ class MarketAnalystService {
             if (errorMsg === "SKIP_FRESH") {
                 // Expected skip, just log debug
                 if (import.meta.env.DEV) {
-                    // console.log(`[TECHNICALS] Skipping ${symbol} (Fresh)`);
+                    logger.debug("technicals", `Skipping ${symbol} (Fresh)`);
                 }
                 // Schedule next quickly
                 this.scheduleNext(2000);
@@ -227,8 +227,7 @@ class MarketAnalystService {
             }
 
             // Log the actual error to understand what's failing
-            console.error(`[TECHNICALS] Analyst: ERROR for ${symbol}:`, errorMsg);
-            logger.log("general", `Market Analyst error for ${symbol}: ${errorMsg}`);
+            logger.error("technicals", `Analyst: ERROR for ${symbol}:`, errorMsg);
 
             // Toast for significant errors (ignore expected data shortage)
             if (errorMsg !== "MIN_DATA_REQUIRED") {
@@ -261,7 +260,7 @@ class MarketAnalystService {
         if (this.timeoutId) clearTimeout(this.timeoutId);
         if (!this.isRunning) return;
 
-        console.log(`[TECHNICALS] Analyst: Scheduling next cycle in ${delay}ms`);
+        logger.debug("technicals", `Analyst: Scheduling next cycle in ${delay}ms`);
         this.timeoutId = setTimeout(() => {
             this.timeoutId = null; // Clear ref before running
             this.processNext();

@@ -16,6 +16,7 @@ import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 import { dbService } from "./dbService";
 import { z } from "zod";
 import CryptoJS from "crypto-js";
+import { safeJsonParse } from "../utils/safeJson";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -203,7 +204,7 @@ export const newsService = {
           if (!validation.success) {
             logger.warn("ai", `[newsService] Schema mismatch in DB for ${cacheKey}. Attempting partial recovery or clearing.`, validation.error);
 
-            // If it's just a few items failing, we could filter them, 
+            // If it's just a few items failing, we could filter them,
             // but since NewsCacheEntry is an object with an items array,
             // it's cleaner to just clear and re-fetch to ensure consistency.
             validCached = undefined;
@@ -241,18 +242,28 @@ export const newsService = {
               params.currencies = cleanSymbol;
             }
 
-            const res = await fetch("/api/external/news", {
-              method: "POST",
-              body: JSON.stringify({
-                source: "cryptopanic",
-                apiKey: cryptoPanicApiKey,
-                params,
-                plan: settingsState.cryptoPanicPlan || "developer",
-              }),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            let res;
+            try {
+              res = await fetch("/api/external/news", {
+                method: "POST",
+                body: JSON.stringify({
+                  source: "cryptopanic",
+                  apiKey: cryptoPanicApiKey,
+                  params,
+                  plan: settingsState.cryptoPanicPlan || "developer",
+                }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
             if (res.ok) {
-              const data = await res.json();
+              const text = await res.text();
+              const data = safeJsonParse(text);
               newsItems = data.results.map((item: any) => ({
                 title: item.title,
                 url: item.url,
@@ -285,17 +296,27 @@ export const newsService = {
               pageSize: "10",
             };
 
-            const res = await fetch("/api/external/news", {
-              method: "POST",
-              body: JSON.stringify({
-                source: "newsapi",
-                apiKey: newsApiKey,
-                params,
-              }),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            let res;
+            try {
+              res = await fetch("/api/external/news", {
+                method: "POST",
+                body: JSON.stringify({
+                  source: "newsapi",
+                  apiKey: newsApiKey,
+                  params,
+                }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
             if (res.ok) {
-              const data = await res.json();
+              const text = await res.text();
+              const data = safeJsonParse(text);
               const mapped = data.articles.map((item: any) => ({
                 title: item.title,
                 url: item.url,
@@ -439,19 +460,24 @@ export const newsService = {
           apiKey: aiProvider === "openai" ? openaiApiKey : geminiApiKey
         };
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s for AI
+
         // Secure Server-Side Execution
         const response = await fetch("/api/sentiment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        }).finally(() => clearTimeout(timeoutId));
 
         if (!response.ok) {
           const errText = await response.text();
           throw new Error(`Sentiment API failed (${response.status}): ${errText}`);
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        const data = safeJsonParse(text);
         if (data.error) throw new Error(data.error);
 
         const analysis: SentimentAnalysis = data.analysis;
@@ -465,7 +491,12 @@ export const newsService = {
 
         return analysis;
       } catch (e: any) {
-        logger.error("ai", "Sentiment Analysis Failed", e);
+        const msg = e?.message || String(e);
+        if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY")) {
+          logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
+        } else {
+          logger.error("ai", "Sentiment Analysis Failed", e);
+        }
         return {
           score: 0,
           regime: "UNCERTAIN",

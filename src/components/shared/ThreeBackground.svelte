@@ -21,6 +21,7 @@
     import * as THREE from "three";
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
     import { settingsState } from "../../stores/settings.svelte";
+    import { PerformanceMonitor } from "../../utils/performanceMonitor";
 
     // ========================================
     // LIFECYCLE STATE MANAGEMENT
@@ -86,6 +87,52 @@
       starDustGeometry: THREE.BufferGeometry | null;
       starDustMaterial: THREE.PointsMaterial | null;
       starDustPoints: THREE.Points | null;
+    }
+
+
+    // FPS Throttling & Performance
+    let performanceMonitor: PerformanceMonitor;
+    let fpsInterval = 1000 / 30; // 30 FPS default
+    let lastDrawTime = 0;
+    let isHighPerformance = false;
+    let highPerfTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    let isVisible = true;
+    let observer: IntersectionObserver | null = null;
+
+    function startAnimationLoop() {
+        if (!animationId && lifecycleState === LifecycleState.READY) {
+            animate();
+        }
+    }
+
+    function stopAnimationLoop() {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+    }
+
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            stopAnimationLoop();
+        } else if (isVisible) {
+            startAnimationLoop();
+        }
+    }
+
+
+    function onInteraction() {
+        if (!isHighPerformance) {
+            isHighPerformance = true;
+            fpsInterval = 1000 / 60;
+        }
+
+        if (highPerfTimeout) clearTimeout(highPerfTimeout);
+        highPerfTimeout = setTimeout(() => {
+            isHighPerformance = false;
+            fpsInterval = 1000 / 30;
+        }, 1000);
     }
 
     let resources: ThreeResources = {
@@ -238,35 +285,40 @@
       log(LogLevel.DEBUG, '🗑️ Renderer disposed');
     }
 
+
     function disposeAll() {
       log(LogLevel.INFO, '🧹 Starting complete cleanup...');
       
+      if (performanceMonitor) performanceMonitor.stop();
+
       // Stop animation
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
-      }
+      stopAnimationLoop();
       
-      // Dispose geometries
-      disposeGeometry(resources.galaxyGeometry);
-      disposeGeometry(resources.starDustGeometry);
-      
-      // Dispose materials
-      disposeMaterial(resources.galaxyMaterial);
-      disposeMaterial(resources.starDustMaterial);
-      
-      // Remove from scene
+      // Robust Dispose
       if (resources.scene) {
-        if (resources.galaxyPoints) resources.scene.remove(resources.galaxyPoints);
-        if (resources.starDustPoints) resources.scene.remove(resources.starDustPoints);
+          resources.scene.traverse((object) => {
+              if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
+                  if (object.geometry) object.geometry.dispose();
+                  if (object.material) {
+                      if (Array.isArray(object.material)) {
+                          object.material.forEach(m => m.dispose());
+                      } else {
+                          object.material.dispose();
+                      }
+                  }
+              }
+          });
+      }
+
+      // Dispose renderer
+      if (resources.renderer) {
+          resources.renderer.dispose();
+          // Using any to bypass TS check if needed, but here we assume standard three.js
+          // resources.renderer.domElement = null;
       }
       
-      // Dispose controls
-      resources.controls?.dispose();
-      
-      // Dispose renderer
-      disposeRenderer();
-      
+      resources.renderer = null;
+
       // Clear resources
       resources = {
         scene: null,
@@ -280,27 +332,7 @@
         starDustMaterial: null,
         starDustPoints: null
       };
-      
-      // Clear legacy variables
-      scene = null;
-      camera = null;
-      renderer = null;
-      controls = null;
-      galaxyGeometry = null;
-      galaxyMaterial = null;
-      galaxyPoints = null;
-      starDustGeometry = null;
-      starDustMaterial = null;
-      starDustPoints = null;
-      
-      lifecycleState = LifecycleState.DISPOSED;
-      log(LogLevel.INFO, '✅ Cleanup complete');
     }
-
-    // ========================================
-    // GALAXY GENERATION
-    // ========================================
-
 
     function generateGalaxy() {
         if (!resources.scene) return;
@@ -657,7 +689,7 @@
         resources.camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
         
         // Renderer Setup
-        resources.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        resources.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "default" });
         resources.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         resources.renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(resources.renderer.domElement);
@@ -679,7 +711,7 @@
         log(LogLevel.ERROR, '❌ Initialization failed:', error);
         return { 
           success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          error: error instanceof Error ? error.message : 'Unknown error' // i18n-ignore
         };
       }
     }
@@ -687,15 +719,26 @@
     function animate() {
         if (!resources.renderer || !resources.scene || !resources.camera || !resources.galaxyMaterial) return;
 
-        // Use standard timing if needed, or simple increment
-        resources.galaxyMaterial.uniforms.uTime.value += 0.01;
-
-        if (resources.controls) {
-            resources.controls.update();
-        }
-
-        resources.renderer.render(resources.scene, resources.camera);
         animationId = requestAnimationFrame(animate);
+
+        // Throttling
+        const now = performance.now();
+        const elapsed = now - lastDrawTime;
+        const targetInterval = isHighPerformance ? (1000 / 60) : (1000 / 30);
+
+        if (elapsed > targetInterval) {
+            lastDrawTime = now - (elapsed % targetInterval);
+
+            // Use standard timing if needed, or simple increment
+            resources.galaxyMaterial.uniforms.uTime.value += 0.01;
+
+            if (resources.controls) {
+                resources.controls.update();
+            }
+
+            resources.renderer.render(resources.scene, resources.camera);
+            if (performanceMonitor) performanceMonitor.update();
+        }
     }
 
     function onWindowResize() {
@@ -723,10 +766,14 @@
         lifecycleState = LifecycleState.INITIALIZING;
 
         const result = initThree();
+        performanceMonitor = new PerformanceMonitor("Galaxy3D");
+        performanceMonitor.start(resources.renderer || undefined);
+        window.addEventListener("mousemove", onInteraction);
+
 
         if (!result.success) {
             lifecycleState = LifecycleState.ERROR;
-            lifecycleError = result.error || 'Unknown error';
+            lifecycleError = result.error || 'Unknown error' // i18n-ignore;
             log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
             return;
         }
@@ -746,6 +793,20 @@
             attributeFilter: ["class", "data-mode", "style"],
         });
 
+
+        // Visibility Culling
+        observer = new IntersectionObserver(([entry]) => {
+            isVisible = entry.isIntersecting;
+            if (isVisible && !document.hidden) {
+                startAnimationLoop();
+            } else {
+                stopAnimationLoop();
+            }
+        });
+        observer.observe(container);
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
         lifecycleState = LifecycleState.READY;
         log(LogLevel.INFO, '✅ Component ready - State:', lifecycleState);
 
@@ -753,7 +814,13 @@
         return () => {
             log(LogLevel.INFO, '🧹 Component unmounting, cleanup triggered');
             if (themeObserver) themeObserver.disconnect();
-            window.removeEventListener("resize", onWindowResize);
+
+            if (observer) observer.disconnect();
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+window.removeEventListener("resize", onWindowResize);
+            if (performanceMonitor) performanceMonitor.stop();
+            window.removeEventListener("mousemove", onInteraction);
+
             disposeAll();
         };
     });
@@ -826,12 +893,12 @@
 
     $effect(() => {
         if (settingsState.galaxySettings.enableGyroscope) {
-            if (controls) controls.enabled = false;
+            if (controls) (controls as any).enabled = false;
             initialOrientation = null;
             // i18n-ignore
             window.addEventListener("deviceorientation", onDeviceOrientation);
         } else {
-            if (controls) controls.enabled = true;
+            if (controls) (controls as any).enabled = true;
             // i18n-ignore
             window.removeEventListener(
                 "deviceorientation", // i18n-ignore

@@ -82,3 +82,4 @@ test-results/
 reports/
 target/
 technicals-wasm/target/
+__pycache__/

@@ -1081,7 +1081,7 @@
 
                         <!-- Layout Toggle -->
                         <div class="field-group">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Layout</span>
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.subtabs.layout")}</span>
                             <div class="flex gap-2">
                                 {#each [{ v: "tunnel", l: "Tunnel" }, { v: "grid", l: "Grid" }] as layout}
                                     <button
@@ -1098,7 +1098,7 @@
 
                         <!-- Color Mode -->
                         <div class="field-group">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">Color Mode</span>
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
                             <div class="flex gap-2">
                                 {#each [{ v: "theme", l: $_("settings.appearance.modeTheme") }, { v: "interactive", l: $_("settings.appearance.modeInteractive") }, { v: "custom", l: $_("settings.appearance.modeCustom") }] as mode}
                                     <button
@@ -1117,7 +1117,7 @@
                         {#if settingsState.tradeFlowSettings.colorMode === "custom"}
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="field-group">
-                                    <label for="tf-color-up">Buy Color</label>
+                                    <label for="tf-color-up">{$_("settings.visuals.tradeFlow.buyColor")}</label>
                                     <div class="flex items-center gap-2">
                                         <input
                                             id="tf-color-up"
@@ -1131,7 +1131,7 @@
                                     </div>
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-color-down">Sell Color</label>
+                                    <label for="tf-color-down">{$_("settings.visuals.tradeFlow.sellColor")}</label>
                                     <div class="flex items-center gap-2">
                                         <input
                                             id="tf-color-down"
@@ -1149,24 +1149,24 @@
 
                         <!-- Volume Filter -->
                         <div class="field-group">
-                            <label for="tf-minvol">Min Volume Filter: {settingsState.tradeFlowSettings.minVolume}</label>
+                            <label for="tf-minvol">{$_("settings.visuals.tradeFlow.minVolume")}: {settingsState.tradeFlowSettings.minVolume}</label>
                             <input id="tf-minvol" type="range" min="0" max="1000" step="10"
                                 bind:value={settingsState.tradeFlowSettings.minVolume}
                                 class="range-input" />
-                            <p class="text-[10px] text-[var(--text-secondary)]">Filter out trades below this volume</p>
+                            <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.filterHelp")}</p>
                         </div>
 
                         <!-- Grid Dimensions (only visible in grid mode) -->
                         {#if settingsState.tradeFlowSettings.layout === "grid"}
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="field-group">
-                                    <label for="tf-grid-width">Grid Width: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                    <label for="tf-grid-width">{$_("settings.visuals.tradeFlow.gridWidth")}: {settingsState.tradeFlowSettings.gridWidth}</label>
                                     <input id="tf-grid-width" type="range" min="20" max="200" step="10"
                                         bind:value={settingsState.tradeFlowSettings.gridWidth}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-grid-length">Grid Length: {settingsState.tradeFlowSettings.gridLength}</label>
+                                    <label for="tf-grid-length">{$_("settings.visuals.tradeFlow.gridLength")}: {settingsState.tradeFlowSettings.gridLength}</label>
                                     <input id="tf-grid-length" type="range" min="40" max="400" step="20"
                                         bind:value={settingsState.tradeFlowSettings.gridLength}
                                         class="range-input" />
@@ -1177,28 +1177,28 @@
                         <!-- Existing Settings -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div class="field-group">
-                                <label for="tf-speed">Flow Speed: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                                <label for="tf-speed">{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
                                 <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
                                     bind:value={settingsState.tradeFlowSettings.speed}
                                     class="range-input" />
                             </div>
 
                             <div class="field-group">
-                                <label for="tf-spread">Tunnel Spread: {settingsState.tradeFlowSettings.spread.toFixed(1)}</label>
+                                <label for="tf-spread">{$_("settings.visuals.tradeFlow.spread")}: {settingsState.tradeFlowSettings.spread.toFixed(1)}</label>
                                 <input id="tf-spread" type="range" min="1.0" max="20.0" step="0.5"
                                     bind:value={settingsState.tradeFlowSettings.spread}
                                     class="range-input" />
                             </div>
 
                             <div class="field-group">
-                                <label for="tf-size">Particle Size: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                                <label for="tf-size">{$_("settings.visuals.tradeFlow.size")}: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
                                 <input id="tf-size" type="range" min="0.01" max="0.5" step="0.01"
                                     bind:value={settingsState.tradeFlowSettings.size}
                                     class="range-input" />
                             </div>
 
                              <div class="field-group">
-                                <label for="tf-count">Particle Count: {settingsState.tradeFlowSettings.particleCount}</label>
+                                <label for="tf-count">{$_("settings.visuals.tradeFlow.count")}: {settingsState.tradeFlowSettings.particleCount}</label>
                                 <input id="tf-count" type="range" min="100" max="5000" step="100"
                                     bind:value={settingsState.tradeFlowSettings.particleCount}
                                     class="range-input" />

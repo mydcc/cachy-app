@@ -78,6 +78,7 @@
     "pnl": "Total PnL",
     "noOpenOrders": "No open orders.",
     "noHistory": "No history found.",
+    "noTpSlOrders": "No {view} TP/SL orders found.",
     "orderHistory": {
       "maker": "M",
       "taker": "T",
@@ -87,6 +88,7 @@
         "buy": "Buy",
         "sell": "Sell"
       },
+      "viewDetails": "View Details",
       "details": {
         "leverage": "Leverage",
         "margin": "Margin",
@@ -158,6 +160,14 @@
     "connectNews": "Connect your news APIs to view sentiment analysis.",
     "configure": "Configure",
     "tpsl": "TP/SL",
+    "tpslManager": {
+      "pending": "Pending",
+      "history": "History",
+      "trigger": "Trigger:",
+      "amount": "Amt:",
+      "cancelTooltip": "Cancel",
+      "editTooltip": "Edit"
+    },
     "viewMode": "View Mode",
     "detailed": "Detailed",
     "focus": "Focus",
@@ -167,7 +177,9 @@
       "loadedIntoInputs": "Loaded {symbol} into trade inputs. Configure TP/SL there and submit.",
       "failedClose": "Failed to send close order.",
       "orderCancelled": "Order cancelled",
-      "cancelFailed": "Failed to cancel order"
+      "cancelFailed": "Failed to cancel order",
+      "confirmCancel": "Cancel this TP/SL order?",
+      "noApiKeys": "No API keys configured"
     },
     "generalInputs": {
       "header": "General",
@@ -199,6 +211,7 @@
       "atrModeAuto": "Auto",
       "toggleAutoUpdatePrice": "Toggle auto-update price",
       "copyToClipboard": "Copy to clipboard",
+      "copiedFeedback": "Copied!",
       "copyFailed": "Failed to copy to clipboard",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
@@ -575,6 +588,7 @@
     "heatmap": "Heatmap",
     "heatmapShort": "Heat",
     "broker": "Broker",
+    "rsiTitle": "RSI",
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",
@@ -690,6 +704,18 @@
       "layoutModes": {
         "standard": "Standard",
         "floating": "Floating"
+      },
+      "tradeFlow": {
+        "buyColor": "Buy Color",
+        "sellColor": "Sell Color",
+        "minVolume": "Min Volume Filter",
+        "gridWidth": "Grid Width",
+        "gridLength": "Grid Length",
+        "speed": "Flow Speed",
+        "spread": "Tunnel Spread",
+        "size": "Particle Size",
+        "count": "Particle Count",
+        "filterHelp": "Filter out trades below this volume"
       },
       "coordinates": {
         "x": "X",
@@ -884,6 +910,9 @@
       },
       "volumeMa": {
         "title": "Volume MA"
+      },
+      "atrStop": {
+        "title": "ATR Stop (L)"
       },
       "labels": {
         "length": "Length",
@@ -1112,6 +1141,7 @@
       }
     },
     "connections": {
+      "appAccessToken": "App Access Token (Server Security)",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
@@ -1925,5 +1955,10 @@
     "noMessages": "No messages yet.",
     "sendButton": "Send",
     "placeholder": "Say hello..."
+  },
+  "jules": {
+    "title": "Jules Inspector",
+    "analyzing": "Analyzing system state...",
+    "close": "Close Report"
   }
 }

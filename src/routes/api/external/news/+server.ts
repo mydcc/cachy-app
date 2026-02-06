@@ -16,9 +16,20 @@ interface CachedResponse {
   timestamp: number;
 }
 
-const newsCache = new Map<string, CachedResponse>();
+export const _newsCache = new Map<string, CachedResponse>();
 const pendingRequests = new Map<string, Promise<any>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erh\u00f6ht f\u00fcr Quota-Schonung)
+const MAX_CACHE_SIZE = 50;
+
+function setCache(key: string, data: any) {
+  if (_newsCache.has(key)) {
+    _newsCache.delete(key);
+  } else if (_newsCache.size >= MAX_CACHE_SIZE) {
+    const oldest = _newsCache.keys().next().value;
+    if (oldest !== undefined) _newsCache.delete(oldest);
+  }
+  _newsCache.set(key, { data, timestamp: Date.now() });
+}
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
   let cacheKey = ""; // Scope erweitern für catch-Block
@@ -30,12 +41,15 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}`;
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
     const now = Date.now();
 
     // Check Cache
-    const cached = newsCache.get(cacheKey);
+    const cached = _newsCache.get(cacheKey);
     if (cached && (now - cached.timestamp < CACHE_TTL)) {
+      // Refresh LRU position
+      _newsCache.delete(cacheKey);
+      _newsCache.set(cacheKey, cached);
       return json(cached.data);
     }
 
@@ -71,7 +85,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             const response = await fetch(url);
             if (response.ok) {
               const data = await response.json();
-              newsCache.set(cacheKey, { data, timestamp: Date.now() });
+              setCache(cacheKey, data);
               return data;
             }
             if (response.status === 429) {
@@ -102,7 +116,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
           throw new Error(`Upstream error (NewsAPI): ${response.status} - ${errorText}`);
         }
         const data = await response.json();
-        newsCache.set(cacheKey, { data, timestamp: Date.now() });
+        setCache(cacheKey, data);
         return data;
       } else {
         throw new Error("Invalid source");
@@ -128,7 +142,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
     // 429-Error → Nutze stale cache falls vorhanden
     if (errorMsg.includes("429") || errorMsg.includes("quota")) {
-      const staleCache = newsCache.get(cacheKey);
+      const staleCache = _newsCache.get(cacheKey);
       if (staleCache) {
         console.warn("[NewsProxy] Using stale cache due to quota exhaustion");
         return json(staleCache.data);
