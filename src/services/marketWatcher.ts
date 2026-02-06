@@ -211,6 +211,10 @@ class MarketWatcher {
     }, 2000);
   }
 
+  public resumePolling() {
+    this.startPolling();
+  }
+
   private async runPollingLoop() {
     if (!this.isPolling) return;
 
