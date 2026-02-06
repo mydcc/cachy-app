@@ -122,11 +122,15 @@ const themeHandler: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-const headersHandler: Handle = async ({ event, resolve }) => {
+export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   // Enable Cross-Origin-Opener-Policy to allow interaction with popups (like TradingView)
   // that also set this header. This helps in maintaining window references for named targets.
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  response.headers.set("X-Frame-Options", "SAMEORIGIN");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   return response;
 };
 
