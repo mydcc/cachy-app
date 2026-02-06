@@ -88,6 +88,7 @@
         "buy": "Buy",
         "sell": "Sell"
       },
+      "viewDetails": "View Details",
       "details": {
         "leverage": "Leverage",
         "margin": "Margin",
@@ -1140,6 +1141,7 @@
       }
     },
     "connections": {
+      "appAccessToken": "App Access Token (Server Security)",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
       "apiSecret": "API Secret",

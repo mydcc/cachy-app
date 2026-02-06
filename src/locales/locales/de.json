@@ -88,6 +88,7 @@
         "buy": "Kauf",
         "sell": "Verkauf"
       },
+      "viewDetails": "Details anzeigen",
       "type": {
         "limit": "Limit",
         "market": "Markt",
@@ -1038,6 +1039,7 @@
     },
     "connections": {
       "exchanges": "Börsen",
+      "appAccessToken": "App Zugangstoken (Server Sicherheit)",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
       "passphrase": "Passphrase",

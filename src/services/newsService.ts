@@ -191,7 +191,7 @@ export const newsService = {
       return pendingNewsFetches.get(symbolKey)!;
     }
 
-    const fetchLogic = async (): Promise<NewsItem[]> => {
+    const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
         // 1. Cache-Validierung (ASYNC with IDB)
         const cached = await dbService.get<NewsCacheEntry>("news", cacheKey);
@@ -202,11 +202,7 @@ export const newsService = {
         if (cached) {
           const validation = NewsCacheEntrySchema.safeParse(cached);
           if (!validation.success) {
-            logger.warn(
-              "ai",
-              `[newsService] Schema mismatch in DB for ${cacheKey}. Attempting partial recovery or clearing.`,
-              validation.error,
-            );
+            logger.warn("ai", `[newsService] Schema mismatch in DB for ${cacheKey}. Attempting partial recovery or clearing.`, validation.error);
 
             // If it's just a few items failing, we could filter them,
             // but since NewsCacheEntry is an object with an items array,
@@ -221,13 +217,9 @@ export const newsService = {
         }
 
         // 2. Prüfe Quota-Status
-        const isQuotaExhausted =
-          apiQuotaTracker.isQuotaExhausted("cryptopanic");
+        const isQuotaExhausted = apiQuotaTracker.isQuotaExhausted("cryptopanic");
         if (isQuotaExhausted) {
-          logger.warn(
-            "market",
-            `[fetchNews] API quota exhausted, using stale cache or fallback for ${symbolKey}`,
-          );
+          logger.warn("market", `[fetchNews] API quota exhausted, using stale cache or fallback for ${symbolKey}`);
           if (validCached && validCached.items.length > 0) {
             return validCached.items;
           }
@@ -250,15 +242,24 @@ export const newsService = {
               params.currencies = cleanSymbol;
             }
 
-            const res = await fetch("/api/external/news", {
-              method: "POST",
-              body: JSON.stringify({
-                source: "cryptopanic",
-                apiKey: cryptoPanicApiKey,
-                params,
-                plan: settingsState.cryptoPanicPlan || "developer",
-              }),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            let res;
+            try {
+              res = await fetch("/api/external/news", {
+                method: "POST",
+                body: JSON.stringify({
+                  source: "cryptopanic",
+                  apiKey: cryptoPanicApiKey,
+                  params,
+                  plan: settingsState.cryptoPanicPlan || "developer",
+                }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
             if (res.ok) {
               const text = await res.text();
@@ -269,26 +270,13 @@ export const newsService = {
                 source: item.source?.title || "Unknown",
                 published_at: item.published_at,
                 currencies: item.currencies,
-                id: generateNewsId({
-                  title: item.title,
-                  url: item.url,
-                  source: "",
-                  published_at: "",
-                }),
+                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
               }));
               apiQuotaTracker.logCall("cryptopanic", true);
             } else {
               const errorText = await res.text();
-              apiQuotaTracker.logCall(
-                "cryptopanic",
-                false,
-                `${res.status}: ${errorText}`,
-              );
-              logger.error(
-                "market",
-                `CryptoPanic error: ${res.status}`,
-                errorText,
-              );
+              apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
+              logger.error("market", `CryptoPanic error: ${res.status}`, errorText);
             }
           } catch (e: any) {
             const errorMsg = e?.message || String(e);
@@ -308,14 +296,23 @@ export const newsService = {
               pageSize: "10",
             };
 
-            const res = await fetch("/api/external/news", {
-              method: "POST",
-              body: JSON.stringify({
-                source: "newsapi",
-                apiKey: newsApiKey,
-                params,
-              }),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            let res;
+            try {
+              res = await fetch("/api/external/news", {
+                method: "POST",
+                body: JSON.stringify({
+                  source: "newsapi",
+                  apiKey: newsApiKey,
+                  params,
+                }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
             if (res.ok) {
               const text = await res.text();
@@ -326,22 +323,13 @@ export const newsService = {
                 source: item.source.name,
                 published_at: item.publishedAt,
                 currencies: [],
-                id: generateNewsId({
-                  title: item.title,
-                  url: item.url,
-                  source: "",
-                  published_at: "",
-                }),
+                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
               }));
               newsItems = [...newsItems, ...mapped];
               apiQuotaTracker.logCall("newsapi", true);
             } else {
               const errorText = await res.text();
-              apiQuotaTracker.logCall(
-                "newsapi",
-                false,
-                `${res.status}: ${errorText}`,
-              );
+              apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
             }
           } catch (e: any) {
             const errorMsg = e?.message || String(e);
@@ -354,9 +342,7 @@ export const newsService = {
         try {
           let discordItems = await discordService.fetchDiscordNews();
           if (symbol) {
-            discordItems = discordItems.filter((item) =>
-              matchesSymbol(item.title, symbol),
-            );
+            discordItems = discordItems.filter(item => matchesSymbol(item.title, symbol));
           }
           newsItems = [...newsItems, ...discordItems];
         } catch (e) {
@@ -390,16 +376,8 @@ export const newsService = {
         // Deduplizierung basierend auf ID und strikte Filterung
         const uniqueNews = new Map<string, NewsItem>();
         newsItems.forEach((item) => {
-          if (
-            !item.url ||
-            typeof item.url !== "string" ||
-            item.url.trim() === ""
-          ) {
-            logger.debug(
-              "market",
-              "[newsService] Skipping item without URL",
-              item.title,
-            );
+          if (!item.url || typeof item.url !== "string" || item.url.trim() === "") {
+            logger.debug("market", "[newsService] Skipping item without URL", item.title);
             return;
           }
           const id = item.id || generateNewsId(item);
@@ -433,26 +411,13 @@ export const newsService = {
         await dbService.put("news", cacheEntry);
 
         // Bereinige alte Caches (Async)
-        pruneOldCaches().catch((e) => logger.warn("ai", "Prune failed", e));
+        pruneOldCaches().catch(e => logger.warn("ai", "Prune failed", e));
 
         return newsItems;
-      } catch (e) {
-        throw e;
-      }
-    };
-
-    const TIMEOUT_MS = 30000;
-    const fetchPromise = Promise.race([
-      fetchLogic(),
-      new Promise<NewsItem[]>((_, reject) =>
-        setTimeout(() => reject(new Error("News Fetch Timeout")), TIMEOUT_MS),
-      ),
-    ]).finally(() => {
-      // Safe cleanup: only delete if this promise is still the active one
-      if (pendingNewsFetches.get(symbolKey) === fetchPromise) {
+      } finally {
         pendingNewsFetches.delete(symbolKey);
       }
-    });
+    })();
 
     pendingNewsFetches.set(symbolKey, fetchPromise);
     return fetchPromise;
@@ -467,14 +432,10 @@ export const newsService = {
     }
 
     // Immer serverseitig, kein allowClientSideAi mehr
-    const analysisLogic = async (): Promise<SentimentAnalysis | null> => {
+    const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
       try {
         // IDB Read
-        const cached = await dbService.get<{
-          data: SentimentAnalysis;
-          timestamp: number;
-          newsHash: string;
-        }>("sentiment", newsHash);
+        const cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
 
         if (
           cached &&
@@ -499,12 +460,16 @@ export const newsService = {
           apiKey: aiProvider === "openai" ? openaiApiKey : geminiApiKey
         };
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s for AI
+
         // Secure Server-Side Execution
         const response = await fetch("/api/sentiment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        }).finally(() => clearTimeout(timeoutId));
 
         if (!response.ok) {
           const errText = await response.text();
@@ -538,23 +503,10 @@ export const newsService = {
           summary: "Failed to analyze sentiment.",
           keyFactors: [],
         };
-      }
-    };
-
-    const TIMEOUT_MS = 30000;
-    const analysisPromise = Promise.race([
-      analysisLogic(),
-      new Promise<SentimentAnalysis | null>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Sentiment Analysis Timeout")),
-          TIMEOUT_MS,
-        ),
-      ),
-    ]).finally(() => {
-      if (pendingSentimentFetches.get(newsHash) === analysisPromise) {
+      } finally {
         pendingSentimentFetches.delete(newsHash);
       }
-    });
+    })();
 
     pendingSentimentFetches.set(newsHash, analysisPromise);
     return analysisPromise;

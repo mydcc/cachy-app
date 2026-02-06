@@ -1,69 +1,84 @@
-# Analysis Report & Hardening Plan (Step 1)
+# Status & Risk Report: Cachy-App Codebase Analysis
 
 **Date:** 2026-05-26
-**Auditor:** Jules (Senior Lead Developer)
-**Status:** 🔴 CRITICAL ISSUES FOUND
-
-## 1. Executive Summary
-The codebase is generally well-structured with modern Svelte 5 patterns. However, there are **critical vulnerabilities** related to data persistence and floating-point arithmetic that pose a risk of financial data corruption. specifically regarding the handling of 64-bit integers (IDs) and large arrays in `localStorage`.
-
-## 2. Prioritized Findings
-
-### 🔴 CRITICAL (Risk of Data Loss / Crash)
-
-1.  **Unsafe `JSON.parse` Usage (Precision Loss)**
-    *   **Location:** `src/services/app.ts`, `src/stores/journal.svelte.ts`, `src/stores/preset.svelte.ts`, `src/routes/api/orders/+server.ts`.
-    *   **Issue:** Native `JSON.parse` is used to load `journal`, `presets`, and API responses. JavaScript's `number` type cannot safely represent integers larger than $2^{53}-1$ (approx 9 quadrillion). Exchange Order IDs (often 19 digits) will be rounded, causing "Position Not Found" errors or wrong order cancellations.
-    *   **Evidence:** `src/services/app.ts` -> `const parsedData = JSON.parse(d);`
-    *   **Remediation:** Replace all instances with `safeJsonParse` (from `src/utils/safeJson.ts`) which wraps large numbers in strings.
-
-2.  **Unbounded LocalStorage Loading (Memory/Crash Risk)**
-    *   **Location:** `src/stores/journal.svelte.ts`.
-    *   **Issue:** The `load()` method reads the entire journal from `localStorage` and parses it. If the journal grows (e.g., 10k trades), this will block the main thread during startup (TBT) and potentially cause an OOM crash.
-    *   **Evidence:** `const d = localStorage.getItem(...) || "[]"; this.entries = JSON.parse(d);`
-    *   **Remediation:** Implement pagination or a "Load More" strategy. Enforce a hard limit (e.g., 1000 latest trades) for the initial load.
-
-### 🟡 WARNING (UX / Stability)
-
-3.  **Floating Point Math in UI Inputs**
-    *   **Location:** `src/components/inputs/TradeSetupInputs.svelte`.
-    *   **Issue:** `atrMultiplier` uses `parseFloat`. While usually small, floating point artifacts (e.g., `1.2` becoming `1.200000000002`) can confuse users or APIs.
-    *   **Remediation:** Enforce `Decimal` usage or strict string sanitization for all numeric inputs.
-
-4.  **Incomplete i18n (Hardcoded Strings)**
-    *   **Location:** `src/components/shared/MarketOverview.svelte`.
-    *   **Issue:** Hardcoded strings like "RSI" and "Channel" found in templates/logic.
-    *   **Remediation:** Extract to `en.json`.
-
-5.  **Bitunix "Fast Path" Type Looseness**
-    *   **Location:** `src/services/bitunixWs.ts`.
-    *   **Issue:** The `isPriceData` and `isTickerData` type guards use permissive checks (`isSafe`) that allow `number` types to pass through to `marketState`. While `marketState` handles conversion, passing raw numbers risks precision loss *before* they reach the state if they are large IDs (though prices are usually fine).
-    *   **Remediation:** Harden the type guards to warn more aggressively if non-string financial data is detected.
-
-### 🔵 REFACTOR (Maintainability)
-
-6.  **Redundant Code in `app.ts`**
-    *   **Issue:** `app.ts` contains mixed logic for UI state, trading, and storage.
-    *   **Remediation:** Move storage logic strictly to services.
+**Analyst:** Jules (Senior Lead Developer)
+**Scope:** `src/services`, `src/stores`, `src/components` (Data Integrity, Performance, UI/UX, Security)
 
 ---
 
-## 3. Step 2: Implementation Action Plan
+## 1. Data Integrity & Mapping
 
-### **Group A: Data Integrity (CRITICAL)**
-*   [ ] **Refactor `app.ts`**: Replace `JSON.parse` with `safeJsonParse` for Presets.
-*   [ ] **Refactor `journal.svelte.ts`**: Replace `JSON.parse` with `safeJsonParse` and add array slicing (limit 1000) on load.
-*   [ ] **Refactor `api/orders/+server.ts`**: Ensure API error parsing uses `safeJsonParse`.
-*   [ ] **Test**: Create a reproduction test case where a 19-digit ID is saved/loaded to verify precision preservation.
+### 🔴 CRITICAL: Potential Promise Lockup in NewsService
+- **Location:** `src/services/newsService.ts`
+- **Issue:** The `fetch` calls for external APIs (CryptoPanic, NewsAPI) lack a signal/timeout. If the external server hangs indefinitely (socket open but no data), the `pendingNewsFetches` Map entry will never be deleted.
+- **Consequence:** Future requests for that symbol will await the hung promise forever, effectively breaking the news feature for that symbol until a page reload.
+- **Fix:** Implement `AbortController` with a strict timeout (e.g., 10s) for all external fetches.
 
-### **Group B: Hardening & Performance (WARNING)**
-*   [ ] **Harden `TradeSetupInputs.svelte`**: Replace `parseFloat` with `Decimal` logic for multipliers.
-*   [ ] **Harden `bitunixWs.ts`**: Add telemetry log if numeric IDs are detected in "Fast Path".
-*   [ ] **Sanitize `MarketOverview.svelte`**: Extract "RSI", "Channel" to locale files.
+### 🟡 WARNING: Redundant "Fast Path" in BitunixWebSocketService
+- **Location:** `src/services/bitunixWs.ts`
+- **Issue:** The service parses JSON, then manually extracts/casts fields ("Fast Path") before *also* running Zod validation in the "Slow Path" (fallback).
+- **Risk:** High maintenance burden. Logic is duplicated. If the API changes, developers might update the Zod schema but forget the Fast Path, leading to silent bugs or data inconsistencies.
+- **Performance Note:** While intended for speed, the manual parsing of every field (checking `typeof` and casting) adds overhead that might negate the Zod avoidance benefit for moderate loads.
 
-### **Group C: Security & Verification**
-*   [ ] **Audit `@html`**: Verify all SVG icons are from trusted constants.
+### 🟡 WARNING: Native `Number()` Casting in UI
+- **Location:** `src/components/shared/OrderHistoryList.svelte` (and likely others)
+- **Issue:** `Number(order.avgPrice)` is used directly.
+- **Risk:** While `safeJsonParse` handles the incoming data, casting to native Number in the UI for logic checks (e.g., `> 0`) can introduce micro-precision errors if the Decimal was preserved as a string.
+- **Fix:** Use `new Decimal(val).gt(0)` or `val.toNumber()` (if safe) consistently.
 
-### **Test Plan for Fixes**
-1.  **Unit Test (`src/utils/tests/safeJson.test.ts`)**: Verify `safeJsonParse` correctly handles `"id": 18446744073709551615`.
-2.  **Integration Test**: Simulate a huge `localStorage` journal and ensure app boots without lag.
+---
+
+## 2. Resource Management & Performance
+
+### 🔴 CRITICAL: Svelte Store Contract Violation in MarketManager
+- **Location:** `src/stores/market.svelte.ts`
+- **Issue:** The `subscribe(fn)` method returns `$effect.root(...)`, which is an object `{ stop: () => void }`.
+- **Standard:** Svelte stores (and Svelte 5 interoperability) expect `subscribe` to return a `Unsubscriber` function (`() => void`).
+- **Consequence:** If any legacy component or standard Svelte utility uses `$marketState`, it will crash when attempting to call the returned value as a function during cleanup.
+
+### 🟡 WARNING: N+1 API Calls in TradeService
+- **Location:** `src/services/tradeService.ts` (`fetchTpSlOrders`)
+- **Issue:** The method iterates through active symbols and fires a `fetch` request for every batch of 5.
+- **Risk:** For a user with positions in 20 symbols, this triggers 4 simultaneous HTTP requests. This might trigger strict rate limiters (WAF) or degrade client performance.
+- **Fix:** Refactor to a single bulk endpoint if available, or strictly serialize the batches with delays.
+
+### 🔵 REFACTOR: MarketWatcher Polling Loop
+- **Location:** `src/services/marketWatcher.ts`
+- **Observation:** `performPollingCycle` runs every second and iterates all requests.
+- **Status:** Acceptable for current scale, but should be monitored if the number of watched symbols grows > 100.
+
+---
+
+## 3. UI/UX & Accessibility (A11y)
+
+### 🔴 CRITICAL: Accessibility Barrier in OrderHistoryList
+- **Location:** `src/components/shared/OrderHistoryList.svelte`
+- **Issue:** Tooltips are triggered via `onmouseenter` on a `div` without `tabindex` or `onfocus`.
+- **Consequence:** Keyboard-only users (and screen readers) cannot access order details/tooltips.
+- **Fix:** Add `tabindex="0"`, `role="button"` (or use a `<button>`), and handle keyboard events.
+
+### 🟡 WARNING: Inconsistent Error Handling / I18n
+- **Location:** General
+- **Issue:** Some error messages are hardcoded strings, others are `apiErrors.*` keys.
+- **Fix:** Audit all `catch` blocks in Services to ensure they throw standardized `Error` objects with translation keys, not raw English strings.
+
+---
+
+## 4. Security & Validation
+
+### ✅ PASS: Input Sanitization
+- `safeJsonParse` is implemented and used correctly in `BitunixWs`.
+- `TradeService` serializes payloads to string to prevent precision loss.
+
+### ✅ PASS: Defensive Coding
+- `MarketWatcher` implements "Zombie Request Pruning".
+- `BitunixWs` has a "Watchdog" timer to kill stale connections.
+
+---
+
+## Summary of Priorities
+
+1.  **Fix MarketManager Store Contract** (Crash Risk)
+2.  **Add Timeouts to NewsService** (Hang Risk)
+3.  **Fix A11y in OrderHistoryList** (Compliance/UX)
+4.  **Refactor BitunixWs Fast Path** (Maintainability)
