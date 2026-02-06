@@ -48,6 +48,9 @@ def test_symbol_picker(page: Page):
     # 7. Assert: Verify Majors Only filter
     # Get all visible symbol names
     visible_symbols = picker.locator(".symbol-item span.font-bold").all_text_contents()
+    
+    # Verify we have symbols displayed
+    assert len(visible_symbols) > 0, "No symbols found after filtering - picker may not have loaded correctly"
     print(f"Found {len(visible_symbols)} symbols after filtering")
     
     # Define the majors list (from src/lib/constants.ts)
@@ -64,9 +67,8 @@ def test_symbol_picker(page: Page):
     print(f"✓ All {len(visible_symbols)} symbols are majors")
     
     # 8. Assert: Verify Volume sort order
-    # Verify we have symbols and they're sorted
+    # Verify we have enough symbols to test sorting
     if len(visible_symbols) > 1:
-        print(f"✓ Volume sort is applied - displaying {len(visible_symbols)} symbols")
         print(f"  Top 3 symbols by volume: {', '.join(visible_symbols[:3])}")
         
         # BTCUSDT and ETHUSDT are typically the highest volume pairs
@@ -76,6 +78,9 @@ def test_symbol_picker(page: Page):
         top_two = visible_symbols[:2]
         assert any(symbol in high_volume_majors for symbol in top_two), \
             f"Expected one of {high_volume_majors} in top 2 positions when sorted by volume, but got {top_two}"
+        
+        # Only print success after assertion passes
+        print(f"✓ Volume sort is applied - displaying {len(visible_symbols)} symbols")
         print(f"✓ High-volume majors {[s for s in top_two if s in high_volume_majors]} correctly positioned in top 2")
     else:
         raise AssertionError("Not enough symbols to verify sort order - expected at least 2 symbols")
