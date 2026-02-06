@@ -10,7 +10,8 @@ echo "Adding wasm target..."
 rustup target add wasm32-unknown-unknown
 
 echo "Installing Node dependencies..."
-npm install
+# Ensure dev dependencies (vite, svelte-kit) are installed even if NODE_ENV=production
+npm install --include=dev
 
 echo "Building..."
 npm run build

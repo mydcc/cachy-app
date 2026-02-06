@@ -19,7 +19,7 @@ export interface NoteMessage {
 
 const LOCAL_STORAGE_KEY = "cachy_notes_history";
 
-class NotesManager {
+export class NotesManager {
   messages = $state<NoteMessage[]>([]);
 
   constructor() {
@@ -70,7 +70,7 @@ class NotesManager {
     const limit = settingsState.maxPrivateNotes || 50;
 
     const newNote: NoteMessage = {
-      id: Date.now().toString() + (Math.random() as any).toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       text,
       timestamp: Date.now(),
     };
