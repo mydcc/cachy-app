@@ -167,6 +167,19 @@
       "cancelTooltip": "Cancel",
       "editTooltip": "Edit"
     },
+    "tpsl": {
+      "edit": {
+        "titleProfit": "Edit Take Profit",
+        "titleLoss": "Edit Stop Loss",
+        "triggerPrice": "Trigger Price",
+        "amount": "Amount (Qty)",
+        "save": "Save",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "errorRequired": "Trigger price is required",
+        "errorFailed": "Failed to modify order"
+      }
+    },
     "viewMode": "View Mode",
     "detailed": "Detailed",
     "focus": "Focus",

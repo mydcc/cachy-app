@@ -535,6 +535,47 @@ class TradeService {
         if (res.error) throw new Error(res.error);
         return res;
     }
+
+    public async modifyTpSlOrder(params: {
+        orderId?: string;
+        id?: string;
+        planId?: string;
+        symbol: string;
+        planType: string;
+        triggerPrice: string | Decimal;
+        qty?: string | Decimal;
+    }) {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
+
+        // Normalize ID
+        const id = params.orderId || params.id || params.planId;
+        if (!id) throw new Error("trade.errors.missingOrderId");
+
+        const response = await fetch("/api/tpsl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+            body: JSON.stringify(this.serializePayload({
+                exchange: provider,
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                action: "modify",
+                params: {
+                    orderId: id,
+                    symbol: params.symbol,
+                    planType: params.planType,
+                    triggerPrice: params.triggerPrice,
+                    qty: params.qty
+                }
+            }))
+        });
+
+        const text = await response.text();
+        const res = safeJsonParse(text);
+        if (res.error) throw new Error(res.error);
+        return res;
+    }
 }
 
 export const tradeService = new TradeService();
