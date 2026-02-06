@@ -9,7 +9,7 @@ WASM_FILE="static/wasm/technicals_wasm.wasm"
 # compiled when cargo is available. Cargo handles incremental builds efficiently.
 
 # Check if cargo is available
-if ! command -v cargo &> /dev/null; then
+if ! command -v cargo > /dev/null 2>&1; then
     echo "⚠ Cargo not found. Skipping WASM build."
     echo "  Using pre-compiled WASM binary if available."
     exit 0
