@@ -5,24 +5,30 @@ const mockEnv = vi.hoisted(() => ({
   LOG_STREAM_KEY: undefined as string | undefined
 }));
 
+// Mutable mock app environment
+const mockAppEnv = vi.hoisted(() => ({
+  dev: false
+}));
+
 vi.mock("$env/dynamic/private", () => ({
   env: mockEnv
 }));
+
+vi.mock("$app/environment", () => ({
+  get dev() { return mockAppEnv.dev; },
+  building: false,
+  browser: false
+}));
+
 
 // Import the handler
 import { GET } from "../../routes/api/stream-logs/+server";
 
 describe("GET /api/stream-logs Security", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv.LOG_STREAM_KEY = undefined;
-    process.env.NODE_ENV = "test";
-  });
-
-  afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    mockAppEnv.dev = true; // Default to dev for safety in tests unless specified
   });
 
   const createRequest = (urlStr: string) => {
@@ -33,7 +39,7 @@ describe("GET /api/stream-logs Security", () => {
   };
 
   it("should allow access in development mode without token", async () => {
-    process.env.NODE_ENV = "development";
+    mockAppEnv.dev = true;
 
     // Simulate Request
     const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
@@ -45,7 +51,7 @@ describe("GET /api/stream-logs Security", () => {
   });
 
   it("should deny access in production if LOG_STREAM_KEY is not set", async () => {
-    process.env.NODE_ENV = "production";
+    mockAppEnv.dev = false;
     mockEnv.LOG_STREAM_KEY = undefined;
 
     const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
@@ -56,7 +62,7 @@ describe("GET /api/stream-logs Security", () => {
   });
 
   it("should deny access in production if token is missing", async () => {
-    process.env.NODE_ENV = "production";
+    mockAppEnv.dev = false;
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
     const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
@@ -66,7 +72,7 @@ describe("GET /api/stream-logs Security", () => {
   });
 
   it("should deny access in production if token is wrong", async () => {
-    process.env.NODE_ENV = "production";
+    mockAppEnv.dev = false;
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
     const event = { request: createRequest("http://localhost/api/stream-logs?token=wrong"), url: new URL("http://localhost/api/stream-logs?token=wrong") } as any;
@@ -76,7 +82,7 @@ describe("GET /api/stream-logs Security", () => {
   });
 
   it("should allow access in production if token is correct", async () => {
-    process.env.NODE_ENV = "production";
+    mockAppEnv.dev = false;
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
     const event = { request: createRequest("http://localhost/api/stream-logs?token=super-secret"), url: new URL("http://localhost/api/stream-logs?token=super-secret") } as any;
