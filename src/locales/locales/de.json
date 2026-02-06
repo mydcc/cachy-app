@@ -167,6 +167,19 @@
       "cancelTooltip": "Abbrechen",
       "editTooltip": "Bearbeiten"
     },
+    "tpsl": {
+      "edit": {
+        "titleProfit": "Take Profit bearbeiten",
+        "titleLoss": "Stop Loss bearbeiten",
+        "triggerPrice": "Trigger-Preis",
+        "amount": "Menge (Anzahl)",
+        "save": "Speichern",
+        "cancel": "Abbrechen",
+        "saving": "Speichere...",
+        "errorRequired": "Trigger-Preis ist erforderlich",
+        "errorFailed": "Bearbeitung fehlgeschlagen"
+      }
+    },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
     "focus": "Fokus",
