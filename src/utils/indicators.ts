@@ -520,31 +520,17 @@ export const JSIndicators = {
 
     if (len < period) return { middle: sma, upper, lower };
 
-    let sumSq = 0;
-    // Initial window
-    for (let i = 0; i < period; i++) {
-      sumSq += data[i] * data[i];
-    }
-
-    // Calculation
+    // Use stable Two-Pass algorithm (or just re-loop) for Variance to avoid catastrophic cancellation.
+    // O(N * Period) is fine for typically small periods (20).
     for (let i = period - 1; i < len; i++) {
-      // Update sliding window SumSq
-      if (i >= period) {
-        const valOut = data[i - period];
-        const valIn = data[i];
-        sumSq = sumSq - valOut * valOut + valIn * valIn;
-      }
-
-      // Avoid negative sumSq due to float precision
-      if (sumSq < 0) sumSq = 0;
-
       const avg = sma[i];
-      // Variance = E[X^2] - (E[X])^2
-      // But we need sumSqDiff = Sum((x-avg)^2) = Sum(x^2) - N*avg^2
-      let sumSqDiff = sumSq - period * avg * avg;
+      let sumSqDiff = 0;
 
-      // Precision safety
-      if (sumSqDiff < 0) sumSqDiff = 0;
+      // Manual loop for variance sum
+      for (let j = 0; j < period; j++) {
+        const diff = data[i - j] - avg;
+        sumSqDiff += diff * diff;
+      }
 
       const standardDev = Math.sqrt(sumSqDiff / period);
       upper[i] = avg + standardDev * stdDev;
@@ -553,7 +539,6 @@ export const JSIndicators = {
     return { middle: sma, upper, lower };
   },
 
-  // --- Advanced Indicators ---
 
   vwap(
     high: NumberArray,
