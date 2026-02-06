@@ -135,7 +135,7 @@
               onkeydown={(e) => handleKeyDown(e, order)}
               tabindex="0"
               role="button"
-              aria-label={$_("dashboard.orderHistory.details")}
+              aria-label={$_("dashboard.orderHistory.viewDetails")}
             >
               <span
                 class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"
