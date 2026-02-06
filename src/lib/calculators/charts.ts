@@ -83,11 +83,9 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
       .filter((t) => t.status === "Won" || t.status === "Lost")
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const won = closedTrades.filter((t) => t.status === "Won").length;
-  const lost = closedTrades.filter((t) => t.status === "Lost").length;
-
   // 1. Win/Loss Distribution (Old) - Keep for backward compatibility if needed
-  const winLossData = [won, lost];
+  let won = 0;
+  let lost = 0;
 
   // 1b. Enhanced 6-Segment Distribution
   let winLong = 0,
@@ -109,6 +107,8 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
   let countShortWin = 0;
 
   closedTrades.forEach((t) => {
+    if (t.status === "Won") won++;
+    else if (t.status === "Lost") lost++;
     const pnl = getTradePnL(t);
     const isLong = t.tradeType?.toLowerCase() === CONSTANTS.TRADE_TYPE_LONG;
 
@@ -142,6 +142,8 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
       else beShort++;
     }
   });
+
+  const winLossData = [won, lost];
 
   const sixSegmentData = [
     winLong,
