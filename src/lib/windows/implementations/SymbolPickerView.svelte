@@ -45,6 +45,7 @@
         "favorites",
     );
     let sortMode = $state<"alpha" | "gainers" | "losers" | "volume">("alpha");
+    let favoriteSet = $derived(new Set(settingsState.favoriteSymbols || []));
 
     // Filter States
     let snapshot = $state<Record<string, any>>({});
