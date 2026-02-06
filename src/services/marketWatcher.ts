@@ -103,13 +103,20 @@ class MarketWatcher {
       // Start polling for all channels (Price/Ticker/Kline)
       untrack(() => {
         const provider = settingsState.apiProvider;
-        this.pollSymbolChannel(normSymbol, channel, provider);
+        if (provider === "bitunix") {
+             // Only subscribe to WS if using Bitunix
+             if (channel === "price" || channel === "ticker") {
+                 bitunixWs.subscribe(normSymbol, "ticker");
+             } else if (channel.startsWith("kline_")) {
+                 bitunixWs.subscribe(normSymbol, channel);
+             }
+        }
       });
     }
   }
 
   /**
-   * Unregister interest.
+   * Unregister interest in a channel.
    */
   unregister(symbol: string, channel: string) {
     if (!symbol) return;
@@ -151,55 +158,50 @@ class MarketWatcher {
     this.requests.forEach((channels, symbol) => {
       channels.forEach((_, ch) => {
         let bitunixChannel = ch;
-        if (ch === "price") {
-          bitunixChannel = "price";
-        } else if (ch === "ticker") {
-          bitunixChannel = "ticker";
-        } else if (ch === "depth_book5") {
-          bitunixChannel = "depth_book5";
-        } else if (ch.startsWith("kline_")) {
-          const timeframe = ch.replace("kline_", "");
-          const bitunixInterval = this.mapTimeframeToBitunix(timeframe);
-          bitunixChannel = `market_kline_${bitunixInterval}`;
-        }
+        // Map generic "price" to Bitunix "ticker"
+        if (ch === "price") bitunixChannel = "ticker";
         const key = `${bitunixChannel}:${symbol}`;
         intended.set(key, { symbol, channel: bitunixChannel });
       });
     });
 
-    // 2. Diff and Sync
-    // Subscribe to additions
-    intended.forEach((sub, key) => {
-      if (!bitunixWs.pendingSubscriptions.has(key)) {
-        bitunixWs.subscribe(sub.symbol, sub.channel);
-      }
+    // 2. Unsubscribe from extras
+    // Iterate over what is currently subscribed in WS service
+    // We access the internal set via pendingSubscriptions to be safe
+    const current = bitunixWs.pendingSubscriptions;
+    current.forEach((key: string) => {
+        if (!intended.has(key)) {
+             const [channel, symbol] = key.split(":");
+             bitunixWs.unsubscribe(symbol, channel);
+        }
     });
 
-    // Unsubscribe from removals
-    bitunixWs.pendingSubscriptions.forEach((key: string) => {
-      if (!intended.has(key)) {
-        const [channel, symbol] = key.split(":");
-        bitunixWs.unsubscribe(symbol, channel);
-      }
+    // 3. Subscribe to missing
+    intended.forEach(({ symbol, channel }, key) => {
+        if (!current.has(key)) {
+             bitunixWs.subscribe(symbol, channel);
+        }
     });
   }
 
-  private mapTimeframeToBitunix(tf: string): string {
-    const map: Record<string, string> = {
-      "1m": "1min",
-      "5m": "5min",
-      "15m": "15min",
-      "30m": "30min",
-      "1h": "60min",
-      "4h": "4h",
-      "1d": "1day",
-      "1w": "1week",
-      "1M": "1month",
-    };
-    return map[tf] || tf;
+  // Zombie Request Pruning (Self-Correction)
+  private pruneZombieRequests() {
+    const now = Date.now();
+    const timeout = 20000; // 20s hard limit for HTTP requests
+    this.requestStartTimes.forEach((start, key) => {
+        if (now - start > timeout) {
+            logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
+            this.pendingRequests.delete(key);
+            this.requestStartTimes.delete(key);
+            // Decrease inFlight count if it was counted
+            // Since we don't know for sure if it finished or hung, we decrement carefully
+            this.inFlight = Math.max(0, this.inFlight - 1);
+        }
+    });
   }
 
-  private startPolling() {
+  public startPolling() {
+    if (this.isPolling) return;
     this.stopPolling(); // Ensure clean state
     this.isPolling = true;
 
@@ -242,34 +244,9 @@ class MarketWatcher {
       clearTimeout(this.pollingTimeout);
       this.pollingTimeout = null;
     }
-
-    // Clear pending stagger timeouts (Zombie Prevention)
-    this.staggerTimeouts.forEach((t) => clearTimeout(t));
+    // Also clear stagger timeouts
+    this.staggerTimeouts.forEach(id => clearTimeout(id));
     this.staggerTimeouts.clear();
-
-    // Clear locks
-    this.pendingRequests.clear();
-  }
-
-  public resumePolling() {
-    if (!this.isPolling) {
-      this.startPolling();
-    }
-  }
-
-  private pruneZombieRequests() {
-    const now = Date.now();
-    const ZOMBIE_THRESHOLD = 30000; // 30s
-
-    this.requestStartTimes.forEach((start, key) => {
-        if (now - start > ZOMBIE_THRESHOLD) {
-            logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
-            this.pendingRequests.delete(key);
-            this.requestStartTimes.delete(key);
-            // Decrement inFlight if we assume it was counted (best effort)
-            this.inFlight = Math.max(0, this.inFlight - 1);
-        }
-    });
   }
 
   private async performPollingCycle() {
@@ -374,24 +351,37 @@ class MarketWatcher {
                 if (effectiveBatches > 0) {
                     const oldestTime = klines1[0].time;
                     const intervalMs = tfToMs(tf);
-                    const tasks: Promise<any>[] = [];
 
-                    for (let i = 0; i < effectiveBatches; i++) {
-                         const batchEndTime = oldestTime - (i * batchSize * intervalMs);
+                    const results: any[] = [];
+                    // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
+                    // This ensures real-time polling (high priority) and other requests have breathing room.
+                    const concurrency = 3;
 
-                         tasks.push(apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
-                             .catch(e => {
-                                 logger.warn("market", `[History] Backfill batch ${i} failed`, e);
-                                 return [];
-                             })
-                         );
+                    for (let i = 0; i < effectiveBatches; i += concurrency) {
+                        if (!this.isPolling) {
+                             logger.debug("market", `[History] Polling stopped, aborting backfill for ${symbol}`);
+                             break;
+                        }
+
+                        const chunkTasks: Promise<any>[] = [];
+                        for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
+                             const batchIdx = i + j;
+                             const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
+
+                             chunkTasks.push(
+                                 apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
+                                     .catch(e => {
+                                         logger.warn("market", `[History] Backfill batch ${batchIdx} failed`, e);
+                                         return [];
+                                     })
+                             );
+                        }
+
+                        const chunkResults = await Promise.all(chunkTasks);
+                        results.push(...chunkResults);
                     }
 
-                    // Run in parallel
-                    const results = await Promise.all(tasks);
-
                     if (!this.isPolling) {
-                         logger.debug("market", `[History] Polling stopped, discarding backfill for ${symbol}`);
                          return;
                     }
 
