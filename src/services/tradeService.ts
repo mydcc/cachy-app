@@ -73,7 +73,7 @@ class TradeService {
 
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
-            "X-Provider": provider
+            "X-Provider": provider, ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {})
         };
 
         // Deep serialize Decimals to strings before JSON.stringify
@@ -304,7 +304,7 @@ class TradeService {
             // Re-use the sync endpoint which wraps the signed API call
             const pendingResponse = await fetch("/api/sync/positions-pending", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
                 body: JSON.stringify({
                     apiKey: settingsState.apiKeys.bitunix.key,
                     apiSecret: settingsState.apiKeys.bitunix.secret,
@@ -447,7 +447,7 @@ class TradeService {
 
                               const response = await fetch("/api/tpsl", {
                                   method: "POST",
-                                  headers: { "Content-Type": "application/json" },
+                                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
                                   body: JSON.stringify(this.serializePayload({
                                       exchange: provider,
                                       apiKey: keys.key,
@@ -490,7 +490,7 @@ class TradeService {
              // Generic provider
              const response = await fetch("/api/tpsl", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
+                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
                   body: JSON.stringify({
                       exchange: provider,
                       apiKey: keys.key,
@@ -516,7 +516,7 @@ class TradeService {
 
         const response = await fetch("/api/tpsl", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
             body: JSON.stringify(this.serializePayload({
                 exchange: provider,
                 apiKey: keys.key,

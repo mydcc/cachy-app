@@ -27,8 +27,11 @@ import {
 } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
+import { checkAppAuth } from "../../../lib/server/auth";
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
 
   if (!exchange || !apiKey || !apiSecret) {

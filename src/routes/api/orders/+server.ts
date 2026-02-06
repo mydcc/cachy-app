@@ -31,6 +31,7 @@ import { formatApiNum } from "../../../utils/utils";
 import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
 import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { checkAppAuth } from "../../../lib/server/auth";
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
@@ -47,6 +48,8 @@ const ORDER_ERRORS = {
 };
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
   let body: unknown;
   try {
     const text = await request.text();
