@@ -103,8 +103,8 @@
         // 4. View Mode
         if (!searchQuery) {
             if (viewMode === "favorites") {
-                const favs = settingsState.favoriteSymbols || [];
-                result = result.filter((s) => favs.includes(s));
+                const favs = new Set(settingsState.favoriteSymbols || []);
+                result = result.filter((s) => favs.has(s));
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
                     const change = new Decimal(
