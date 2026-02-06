@@ -1,0 +1,106 @@
+<<<<<<< SEARCH
+  // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
+  private pendingRequests = new Map<string, Promise<void>>();
+  // Track start times for zombie detection
+  private requestStartTimes = new Map<string, number>();
+
+  // Helper to store subscriptions intent
+  private historyLocks = new Set<string>();
+
+  private staggerTimeouts = new Set<ReturnType<typeof setTimeout>>(); // Track staggered requests to prevent zombie calls
+=======
+  // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
+  private pendingRequests = new Map<string, Promise<void>>();
+  // Track start times for zombie detection
+  private requestStartTimes = new Map<string, number>();
+  // Performance: Batch subscription updates
+  private _subscriptionsDirty = false;
+
+  // Helper to store subscriptions intent
+  private historyLocks = new Set<string>();
+
+  private staggerTimeouts = new Set<ReturnType<typeof setTimeout>>(); // Track staggered requests to prevent zombie calls
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    // Only sync if this is the first requester for this channel
+    if (count === 0) {
+      this.syncSubscriptions();
+
+      // Trigger history sync for Klines
+      if (channel.startsWith("kline_")) {
+=======
+    // Only sync if this is the first requester for this channel
+    if (count === 0) {
+      this._subscriptionsDirty = true;
+
+      // Trigger history sync for Klines
+      if (channel.startsWith("kline_")) {
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if (channels && channels.has(channel)) {
+      const count = channels.get(channel)!;
+      if (count <= 1) {
+        channels.delete(channel);
+        if (channels.size === 0) {
+          this.requests.delete(normSymbol);
+        }
+        this.syncSubscriptions();
+      } else {
+        channels.set(channel, count - 1);
+=======
+    if (channels && channels.has(channel)) {
+      const count = channels.get(channel)!;
+      if (count <= 1) {
+        channels.delete(channel);
+        if (channels.size === 0) {
+          this.requests.delete(normSymbol);
+        }
+        this._subscriptionsDirty = true;
+      } else {
+        channels.set(channel, count - 1);
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+      // [HYBRID ARCHITECTURE CHANGE]
+      // We no longer pause globally if WS is connected.
+      // We run the cycle and let 'performPollingCycle' decide per-symbol.
+      await this.performPollingCycle();
+
+      // Periodic Subscription Sync (Self-Healing)
+      // Checks every 5 cycles (approx 5s) if WS subscriptions match requests
+      if (Date.now() % 5000 < 1000) {
+        this.syncSubscriptions();
+      }
+    } catch (e) {
+=======
+      // [HYBRID ARCHITECTURE CHANGE]
+      // We no longer pause globally if WS is connected.
+      // We run the cycle and let 'performPollingCycle' decide per-symbol.
+      await this.performPollingCycle();
+
+      // [PERFORMANCE] Only sync if dirty (Batched updates)
+      if (this._subscriptionsDirty) {
+        this.syncSubscriptions();
+        this._subscriptionsDirty = false;
+      }
+    } catch (e) {
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+  // Safety valve: Force cleanup
+  public forceCleanup() {
+    this.requests.clear();
+    this.pendingRequests.clear();
+    this.inFlight = 0;
+    this.syncSubscriptions();
+    logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
+  }
+=======
+  // Safety valve: Force cleanup
+  public forceCleanup() {
+    this.requests.clear();
+    this.pendingRequests.clear();
+    this.inFlight = 0;
+    this.syncSubscriptions();
+    this._subscriptionsDirty = false;
+    logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
+  }
+>>>>>>> REPLACE
