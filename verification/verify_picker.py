@@ -39,11 +39,38 @@ def test_symbol_picker(page: Page):
     # 6. Act: Sort by Volume
     # Button with text "Vol"
     print("Sorting by Volume...")
+    
+    # Capture the first symbol before sorting
+    first_symbol_item = picker.locator(".symbol-item").first
+    first_symbol_text_locator = first_symbol_item.locator("span.font-bold")
+    first_symbol_before = first_symbol_text_locator.text_content()
+    print(f"First symbol before sort: {first_symbol_before}")
+    
     vol_sort_btn = picker.get_by_role("button", name="Vol")
     vol_sort_btn.click()
 
-    # Wait a bit for sorting/filtering to settle
-    page.wait_for_timeout(1000)
+    # Wait for the sort to complete by detecting a UI change
+    # Instead of a fixed timeout, we wait for the first symbol to change,
+    # which confirms the sort operation has completed and the UI has updated.
+    # We use a timeout to avoid infinite waiting if the sort doesn't change the order.
+    try:
+        # Wait up to 3 seconds for the first symbol to be different
+        page.wait_for_function(
+            f"""() => {{
+                const picker = document.querySelector('.symbol-picker-content');
+                if (!picker) return false;
+                const firstSymbol = picker.querySelector('.symbol-item span.font-bold');
+                if (!firstSymbol) return false;
+                return firstSymbol.textContent !== '{first_symbol_before}';
+            }}""",
+            timeout=3000
+        )
+        first_symbol_after = first_symbol_text_locator.text_content()
+        print(f"Sort complete - First symbol changed to: {first_symbol_after}")
+    except:
+        # If the first symbol didn't change, the sort might not have affected the order
+        # or the list was already sorted correctly. This is acceptable.
+        print(f"First symbol unchanged after sort: {first_symbol_before}")
 
     # 7. Screenshot
     page.screenshot(path="verification/picker_optimized.png")
