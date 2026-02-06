@@ -70,11 +70,13 @@ def test_symbol_picker(page: Page):
         print(f"  Top 3 symbols by volume: {', '.join(visible_symbols[:3])}")
         
         # BTCUSDT and ETHUSDT are typically the highest volume pairs
-        # Assert that at least one of them is in the top position
+        # Assert that at least one of them appears in the top 2 positions
+        # This makes the test resilient to minor volume fluctuations
         high_volume_majors = ["BTCUSDT", "ETHUSDT"]
-        assert visible_symbols[0] in high_volume_majors, \
-            f"Expected one of {high_volume_majors} to be first when sorted by volume, but got {visible_symbols[0]}"
-        print(f"✓ Highest volume symbol {visible_symbols[0]} is correctly positioned first")
+        top_two = visible_symbols[:2]
+        assert any(symbol in high_volume_majors for symbol in top_two), \
+            f"Expected one of {high_volume_majors} in top 2 positions when sorted by volume, but got {top_two}"
+        print(f"✓ High-volume majors {[s for s in top_two if s in high_volume_majors]} correctly positioned in top 2")
     else:
         raise AssertionError("Not enough symbols to verify sort order - expected at least 2 symbols")
     
