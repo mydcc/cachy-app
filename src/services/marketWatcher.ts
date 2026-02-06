@@ -353,10 +353,19 @@ class MarketWatcher {
             let oldestTime = klines1[0].time;
 
             while (limit > 1000 && currentData.length < limit && iterations < MAX_ITERATIONS) {
+                // Hardening: Zombie Loop Prevention
+                if (!this.isPolling) {
+                    logger.debug("market", `[History] Polling stopped, aborting backfill for ${symbol}`);
+                    break;
+                }
+
                 iterations++;
 
                 // Fetch older batch (before oldestTime)
                 const olderKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+
+                // Hardening: Check again after await in case stopPolling was called during fetch
+                if (!this.isPolling) break;
 
                 if (!olderKlines || olderKlines.length === 0) {
                     break; // No more history available
