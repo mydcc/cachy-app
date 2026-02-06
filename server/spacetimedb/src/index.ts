@@ -40,8 +40,11 @@ spacetimedb.clientDisconnected((ctx) => {
   console.info(`Client disconnected: ${ctx.sender}`);
 });
 
-// Reducer to send a message
-spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
+export const sendMessage = (ctx: any, { text }: { text: string }) => {
+  if (text.length > 1000) {
+    throw new Error('Message too long');
+  }
+
   const senderId = ctx.sender.toHexString().substring(0, 8); // Short ID
   const timestamp = Date.now();
 
@@ -52,4 +55,7 @@ spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
     text: text,
     sent_at: timestamp
   });
-});
+};
+
+// Reducer to send a message
+spacetimedb.reducer('send_message', { text: t.string() }, sendMessage);
