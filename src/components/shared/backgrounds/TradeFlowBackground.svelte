@@ -133,6 +133,7 @@
     attribute float aSize;
     attribute float aSpeed;
     attribute float aBirthTime;
+    attribute vec3 color;
     
     varying vec3 vColor;
     
