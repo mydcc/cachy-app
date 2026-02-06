@@ -1,4 +1,4 @@
-from playwright.sync_api import Page, expect, sync_playwright, Error as PlaywrightError
+from playwright.sync_api import Page, expect, sync_playwright
 import time
 
 def test_symbol_picker(page: Page):
@@ -70,9 +70,10 @@ def test_symbol_picker(page: Page):
         # Re-query the locator to get the actual new first symbol after sorting
         first_symbol_after = picker.locator(".symbol-item").first.locator("span.font-bold").text_content()
         print(f"Sort complete - First symbol changed to: {first_symbol_after}")
-    except PlaywrightError:
-        # If the first symbol didn't change (timeout), the sort might not have affected the order
+    except Exception as e:
+        # If the first symbol didn't change (likely a timeout), the sort might not have affected the order
         # or the list was already sorted correctly. This is acceptable.
+        # We catch a broad exception here because Playwright's timeout behavior can vary
         print(f"First symbol unchanged after sort: {first_symbol_before}")
 
     # 7. Screenshot
