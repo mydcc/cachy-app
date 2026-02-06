@@ -1,4 +1,3 @@
-
 import { bench, describe } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { toNumFast } from '../../src/utils/fastConversion';

@@ -721,7 +721,7 @@ class BitunixWebSocketService {
           byte.toString(16).padStart(2, "0"),
         ).join("");
       } else {
-        nonce = (Math.random() as any).toString(36).substring(2, 15);
+        nonce = crypto.randomUUID().replace(/-/g, "");
       }
 
       const timestamp = Math.floor(Date.now() / 1000);
