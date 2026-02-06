@@ -18,6 +18,7 @@
 <script lang="ts">
     import { onMount, untrack } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
+    const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";
     import { tradeState } from "../../../stores/trade.svelte";
     import { app } from "../../../services/app";
@@ -86,8 +87,7 @@
 
         // 2. Filter: Hide Alts (Only Majors)
         if (hideAlts) {
-            const majors = new Set(CONSTANTS.MAJORS);
-            result = result.filter((s) => majors.has(s));
+            result = result.filter((s) => majorsSet.has(s));
         }
 
         // 3. Filter: Min Volume
