@@ -41,6 +41,8 @@ class MarketWatcher {
   private pendingRequests = new Map<string, Promise<void>>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
+  // Performance: Batch subscription updates
+  private _subscriptionsDirty = false;
 
   // Helper to store subscriptions intent
   private historyLocks = new Set<string>();
@@ -76,7 +78,7 @@ class MarketWatcher {
 
     // Only sync if this is the first requester for this channel
     if (count === 0) {
-      this.syncSubscriptions();
+      this._subscriptionsDirty = true;
 
       // Trigger history sync for Klines
       if (channel.startsWith("kline_")) {
@@ -107,7 +109,7 @@ class MarketWatcher {
         if (channels.size === 0) {
           this.requests.delete(normSymbol);
         }
-        this.syncSubscriptions();
+        this._subscriptionsDirty = true;
       } else {
         channels.set(channel, count - 1);
       }
@@ -202,10 +204,10 @@ class MarketWatcher {
       // We run the cycle and let 'performPollingCycle' decide per-symbol.
       await this.performPollingCycle();
 
-      // Periodic Subscription Sync (Self-Healing)
-      // Checks every 5 cycles (approx 5s) if WS subscriptions match requests
-      if (Date.now() % 5000 < 1000) {
+      // [PERFORMANCE] Only sync if dirty (Batched updates)
+      if (this._subscriptionsDirty) {
         this.syncSubscriptions();
+        this._subscriptionsDirty = false;
       }
     } catch (e) {
       logger.error("market", "Polling loop error", e);
@@ -506,6 +508,7 @@ class MarketWatcher {
     this.pendingRequests.clear();
     this.inFlight = 0;
     this.syncSubscriptions();
+    this._subscriptionsDirty = false;
     logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
   }
 }
