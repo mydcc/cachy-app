@@ -106,9 +106,24 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
   let countShort = 0;
   let countShortWin = 0;
 
+  // 2. R-Multiple Buckets Initialization
+  const buckets: { [key: string]: number } = {
+    "<-1R": 0,
+    "-1R to 0R": 0,
+    "0R to 1R": 0,
+    "1R to 2R": 0,
+    "2R to 3R": 0,
+    ">3R": 0,
+  };
+
+  // 3. Cumulative R Curve Initialization
+  let cumulativeR = new Decimal(0);
+  const cumulativeRCurve: { x: any; y: number }[] = [];
+
   closedTrades.forEach((t) => {
     if (t.status === "Won") won++;
     else if (t.status === "Lost") lost++;
+
     const pnl = getTradePnL(t);
     const isLong = t.tradeType?.toLowerCase() === CONSTANTS.TRADE_TYPE_LONG;
 
@@ -141,6 +156,24 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
       if (isLong) beLong++;
       else beShort++;
     }
+
+    // R-Multiple Logic & Cumulative R
+    let rDec = new Decimal(0);
+    if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
+      rDec = pnl.div(t.riskAmount);
+      const rVal = rDec.toNumber();
+
+      // Bucket Logic
+      if (rVal < -1) buckets["<-1R"]++;
+      else if (rVal < 0) buckets["-1R to 0R"]++;
+      else if (rVal < 1) buckets["0R to 1R"]++;
+      else if (rVal < 2) buckets["1R to 2R"]++;
+      else if (rVal < 3) buckets["2R to 3R"]++;
+      else buckets[">3R"]++;
+    }
+
+    cumulativeR = cumulativeR.plus(rDec);
+    cumulativeRCurve.push({ x: t.date, y: cumulativeR.toNumber() });
   });
 
   const winLossData = [won, lost];
@@ -179,50 +212,6 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
     winRateLong,
     winRateShort,
   };
-
-  // 2. R-Multiple Distribution
-  const rMultiples: number[] = [];
-
-  closedTrades.forEach((t) => {
-    // Only calculate R if riskAmount is present and positive
-    if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
-      const pnl = getTradePnL(t);
-      rMultiples.push(new Decimal(pnl.div(t.riskAmount)).toNumber());
-    }
-  });
-
-  // Bucketing R-Multiples
-  const buckets: { [key: string]: number } = {
-    "<-1R": 0,
-    "-1R to 0R": 0,
-    "0R to 1R": 0,
-    "1R to 2R": 0,
-    "2R to 3R": 0,
-    ">3R": 0,
-  };
-  rMultiples.forEach((r) => {
-    if (r < -1) buckets["<-1R"]++;
-    else if (r < 0) buckets["-1R to 0R"]++;
-    else if (r < 1) buckets["0R to 1R"]++;
-    else if (r < 2) buckets["1R to 2R"]++;
-    else if (r < 3) buckets["2R to 3R"]++;
-    else buckets[">3R"]++;
-  });
-
-  // 3. Cumulative R Curve
-  let cumulativeR = new Decimal(0);
-  const cumulativeRCurve = closedTrades.map((t) => {
-    let r = new Decimal(0);
-    if (t.riskAmount && t.riskAmount.gt(0)) {
-      const pnl = getTradePnL(t);
-      r = pnl.div(t.riskAmount);
-    } else {
-      r = new Decimal(0);
-    }
-
-    cumulativeR = cumulativeR.plus(r);
-    return { x: t.date, y: new Decimal(cumulativeR).toNumber() };
-  });
 
   // 4. KPI
   const stats = calculateJournalStats(journal, context);
@@ -886,7 +875,7 @@ export function getSystemQualityData(journal: JournalEntry[], context?: JournalC
 
   const rMultiples: number[] = [];
   closedTrades.forEach((t) => {
-    if (t.riskAmount && t.riskAmount.gt(0)) {
+    if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
       rMultiples.push(getTradePnL(t).div(t.riskAmount).toNumber());
     }
   });
