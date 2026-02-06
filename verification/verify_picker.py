@@ -7,8 +7,8 @@ def test_symbol_picker(page: Page):
 
     # Wait for app to load
     page.wait_for_selector("body")
-    # Wait a bit more for hydration
-    page.wait_for_timeout(2000)
+    # Wait for network to be idle (app hydrated)
+    page.wait_for_load_state('networkidle')
 
     # 2. Act: Open Symbol Picker
     # Press Alt+F
