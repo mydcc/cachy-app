@@ -16,6 +16,7 @@
  */
 
 import { schema, table, t } from 'spacetimedb/server';
+import { sendMessage } from './reducer';
 
 export const spacetimedb = schema(
   table(
@@ -41,15 +42,4 @@ spacetimedb.clientDisconnected((ctx) => {
 });
 
 // Reducer to send a message
-spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
-  const senderId = ctx.sender.toHexString().substring(0, 8); // Short ID
-  const timestamp = Date.now();
-
-  console.info(`Message from ${senderId}: ${text}`);
-
-  ctx.db.global_message.insert({
-    sender: senderId,
-    text: text,
-    sent_at: timestamp
-  });
-});
+spacetimedb.reducer('send_message', { text: t.string() }, sendMessage);
