@@ -40,7 +40,8 @@ spacetimedb.clientDisconnected((ctx) => {
   console.info(`Client disconnected: ${ctx.sender}`);
 });
 
-export const sendMessage = (ctx: any, { text }: { text: string }) => {
+// Reducer to send a message
+spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
   if (text.length > 1000) {
     throw new Error('Message too long');
   }
@@ -50,12 +51,10 @@ export const sendMessage = (ctx: any, { text }: { text: string }) => {
 
   console.info(`Message from ${senderId}: ${text}`);
 
-  ctx.db.global_message.insert({
+  // Use globalMessage (camelCase) as required by SpacetimeDB Typescript bindings
+  ctx.db.globalMessage.insert({
     sender: senderId,
     text: text,
     sent_at: timestamp
   });
-};
-
-// Reducer to send a message
-spacetimedb.reducer('send_message', { text: t.string() }, sendMessage);
+});
