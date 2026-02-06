@@ -1,5 +1,6 @@
 {
   "type": "module",
+  "engines": { "node": ">=20.0.0" },
   "scripts": {
     "build:wasm": "./scripts/build_wasm.sh",
     "dev": "npm run build:wasm && vite dev",
