@@ -69,7 +69,6 @@ class MarketWatcher {
 
   constructor() {
     if (browser) {
-      this.startPolling();
     }
   }
 
@@ -528,6 +527,9 @@ class MarketWatcher {
     this.syncSubscriptions();
     this._subscriptionsDirty = false;
     logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
+  }
+  public resumePolling() {
+    this.startPolling();
   }
 }
 
