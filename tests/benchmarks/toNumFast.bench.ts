@@ -1,12 +1,11 @@
-
 import { bench, describe } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { toNumFast } from '../../src/utils/fastConversion';
 
 // Setup data
-const decimals = Array(1000).fill(0).map(() => new Decimal(Math.random()));
-const strings = Array(1000).fill(0).map(() => Math.random().toString());
-const numbers = Array(1000).fill(0).map(() => Math.random());
+const decimals = Array(1000).fill(0).map(() => new Decimal((Math.random() as any)));
+const strings = Array(1000).fill(0).map(() => (Math.random() as any).toString());
+const numbers = Array(1000).fill(0).map(() => (Math.random() as any));
 const decimalLikes = Array(1000).fill(0).map(() => ({ s: 1, e: 1, d: [123], toNumber: () => 0.123 }));
 
 // Current implementation (inside function - representative of old code)

@@ -18,13 +18,14 @@
 import * as Core from "./calculators/core";
 import * as Stats from "./calculators/stats";
 import * as Charts from "./calculators/charts";
-import { getJournalAnalysis } from "./calculators/aggregator";
+import { getJournalAnalysis, getJournalContext } from "./calculators/aggregator";
 
 export const calculator = {
   ...Core,
   ...Stats,
   ...Charts,
   getJournalAnalysis,
+  getJournalContext,
 };
 
 // Re-export specific functions if needed by some imports that use destructuring from the module instead of the object
@@ -70,4 +71,4 @@ export const {
   getSystemQualityData,
 } = Charts;
 
-export { getJournalAnalysis };
+export { getJournalAnalysis, getJournalContext };

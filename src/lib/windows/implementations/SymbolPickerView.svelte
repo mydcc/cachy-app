@@ -97,7 +97,7 @@
             result = result.filter((s) => {
                 const data = snapshot[s];
                 if (!data) return false;
-                return (Number(data.quoteVolume) || 0) >= minVol;
+                return Number(data.quoteVolume || 0) >= minVol;
             });
         }
 
