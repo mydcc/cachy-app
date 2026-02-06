@@ -51,6 +51,7 @@
     let isSnapshotLoading = $state(false);
     let minVolumeStr = $state("0");
     let hideAlts = $state(false);
+    let favSet = $derived(new Set(settingsState.favoriteSymbols || []));
 
     const symbols = CONSTANTS.SUGGESTED_SYMBOLS;
 
@@ -103,8 +104,8 @@
         // 4. View Mode
         if (!searchQuery) {
             if (viewMode === "favorites") {
-                const favs = new Set(settingsState.favoriteSymbols || []);
-                result = result.filter((s) => favs.has(s));
+                // optimized: using derived favSet
+                result = result.filter((s) => favSet.has(s));
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
                     const change = new Decimal(
@@ -209,7 +210,7 @@
     }
 
     function isFavorite(symbol: string) {
-        return (settingsState.favoriteSymbols || []).includes(symbol);
+        return favSet.has(symbol);
     }
 
     function handleGlobalKeydown(e: KeyboardEvent) {
