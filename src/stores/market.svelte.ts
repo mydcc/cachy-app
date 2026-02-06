@@ -812,7 +812,7 @@ export class MarketManager {
 
   subscribe(fn: (value: Record<string, MarketData>) => void) {
     fn(this.data);
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         // Track.
         this.data;
@@ -825,11 +825,12 @@ export class MarketManager {
         });
       });
     });
+    return () => cleanup();
   }
 
   subscribeStatus(fn: (value: WSStatus) => void) {
     fn(this.connectionStatus);
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         this.connectionStatus; // Track
         untrack(() => {
@@ -841,6 +842,7 @@ export class MarketManager {
         });
       });
     });
+    return () => cleanup();
   }
 }
 

@@ -242,15 +242,24 @@ export const newsService = {
               params.currencies = cleanSymbol;
             }
 
-            const res = await fetch("/api/external/news", {
-              method: "POST",
-              body: JSON.stringify({
-                source: "cryptopanic",
-                apiKey: cryptoPanicApiKey,
-                params,
-                plan: settingsState.cryptoPanicPlan || "developer",
-              }),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            let res;
+            try {
+              res = await fetch("/api/external/news", {
+                method: "POST",
+                body: JSON.stringify({
+                  source: "cryptopanic",
+                  apiKey: cryptoPanicApiKey,
+                  params,
+                  plan: settingsState.cryptoPanicPlan || "developer",
+                }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
             if (res.ok) {
               const text = await res.text();
@@ -287,14 +296,23 @@ export const newsService = {
               pageSize: "10",
             };
 
-            const res = await fetch("/api/external/news", {
-              method: "POST",
-              body: JSON.stringify({
-                source: "newsapi",
-                apiKey: newsApiKey,
-                params,
-              }),
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            let res;
+            try {
+              res = await fetch("/api/external/news", {
+                method: "POST",
+                body: JSON.stringify({
+                  source: "newsapi",
+                  apiKey: newsApiKey,
+                  params,
+                }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
 
             if (res.ok) {
               const text = await res.text();
@@ -442,12 +460,16 @@ export const newsService = {
           apiKey: aiProvider === "openai" ? openaiApiKey : geminiApiKey
         };
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s for AI
+
         // Secure Server-Side Execution
         const response = await fetch("/api/sentiment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        }).finally(() => clearTimeout(timeoutId));
 
         if (!response.ok) {
           const errText = await response.text();
