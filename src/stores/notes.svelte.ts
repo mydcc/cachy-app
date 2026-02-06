@@ -70,7 +70,7 @@ class NotesManager {
     const limit = settingsState.maxPrivateNotes || 50;
 
     const newNote: NoteMessage = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + (Math.random() as number).toString(36).substr(2, 9),
       text,
       timestamp: Date.now(),
     };
