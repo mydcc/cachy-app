@@ -287,7 +287,7 @@ main() {
     notify_build_start 2>/dev/null || true
     
     BUILD_START=$(date +%s)
-    if npm run build; then
+    if sudo -u www npm run build; then
         BUILD_END=$(date +%s)
         BUILD_DURATION=$((BUILD_END - BUILD_START))
         log "Build successful (${BUILD_DURATION}s)"
