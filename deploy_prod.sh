@@ -276,9 +276,10 @@ main() {
     git pull || error_exit "Git pull failed"
     log "Git updated successfully"
     
-    # 4. Dependencies
+# 4. Dependencies
     echo "[4/9] NPM: Installiere Dependencies..."
-    npm install --legacy-peer-deps || error_exit "npm install failed"
+    chown -R www:www "$WORK_DIR"
+    sudo -u www npm install --legacy-peer-deps || error_exit "npm install failed"
     log "Dependencies installed"
     
     # 5. Build
