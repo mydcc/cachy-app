@@ -265,6 +265,14 @@ export class MarketManager {
         try {
           if (val === undefined || val === null) return undefined;
 
+          // Hardening: Dev warning for precision loss
+          if (import.meta.env.DEV && typeof val === "number" && !Number.isInteger(val)) {
+            console.warn(
+              `[Market] Precision Warning: Received float for Decimal field in ${symbol}. Use string or Decimal to avoid floating point errors. Val:`,
+              val,
+            );
+          }
+
           // Fast check: If it's the exact same object, return it.
           if (currentVal === val) return currentVal;
 
