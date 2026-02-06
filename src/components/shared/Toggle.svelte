@@ -26,7 +26,7 @@
   let {
     checked = $bindable(false),
     disabled = false,
-    id = "toggle-" + Math.random().toString(36).substr(2, 9),
+    id = "toggle-" + (Math.random() as any).toString(36).substr(2, 9),
     onchange
   }: Props = $props();
 

@@ -37,7 +37,7 @@ import {
   getSystemQualityData,
 } from "./charts";
 
-export function getJournalAnalysis(journal: JournalEntry[]) {
+export function getJournalContext(journal: JournalEntry[]): JournalContext {
   // 1. Single Pass Filtering & Sorting
   const closedTrades: JournalEntry[] = [];
   const openTrades: JournalEntry[] = [];
@@ -71,6 +71,12 @@ export function getJournalAnalysis(journal: JournalEntry[]) {
   // calculatePerformanceStats iterates closedTrades multiple times (sorts, filters won/lost, etc)
   // Our refactored version uses context.closedTrades (sorted), so it skips sort!
   context.performanceStats = calculatePerformanceStats(journal, context) || undefined;
+
+  return context;
+}
+
+export function getJournalAnalysis(journal: JournalEntry[]) {
+  const context = getJournalContext(journal);
 
   // 3. Compute All Metrics using Shared Context
   return {
