@@ -1,69 +1,49 @@
-# Analysis Report & Hardening Plan (Step 1)
+# Status & Risk Report: Cachy-App Hardening (Step 1)
 
 **Date:** 2026-05-26
 **Auditor:** Jules (Senior Lead Developer)
-**Status:** 🔴 CRITICAL ISSUES FOUND
+**Scope:** `src/services`, `src/components`, `src/utils`
 
-## 1. Executive Summary
-The codebase is generally well-structured with modern Svelte 5 patterns. However, there are **critical vulnerabilities** related to data persistence and floating-point arithmetic that pose a risk of financial data corruption. specifically regarding the handling of 64-bit integers (IDs) and large arrays in `localStorage`.
+## 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
 
-## 2. Prioritized Findings
+1.  **Performance & Rate Limit Risk in `TradeService` (N+1 Problem)**
+    *   **Location:** `src/services/tradeService.ts` (lines 350-380, `fetchTpSlOrders`)
+    *   **Finding:** The method iterates through *all* active symbols (from open positions) and executes a separate HTTP POST to `/api/tpsl` for each, inside a batched `Promise.all`.
+    *   **Risk:** If a user has 20+ positions, this triggers 20+ concurrent (or near-concurrent) API calls. This drastically increases the risk of:
+        *   Hitting the 5 req/s rate limit (defined in `apiService`).
+        *   Self-imposed DDoS causing UI freeze or network timeout.
+        *   Partial failure where some orders load and others don't, leading to a misleading UI state.
+    *   **Recommendation:** Implement a bulk fetch endpoint (`/api/tpsl/all`) or refactor the backend to accept an array of symbols.
 
-### 🔴 CRITICAL (Risk of Data Loss / Crash)
+2.  **WebSocket "Fast Path" Precision Dependency**
+    *   **Location:** `src/services/bitunixWs.ts` (lines 352-446)
+    *   **Finding:** The WebSocket message handler employs a "Fast Path" optimization that bypasses full Zod validation. It relies on `typeof val === 'number'` checks. While `safeJsonParse` is used upstream, any failure in `safeJsonParse`'s regex (e.g., unexpected formatting from the exchange) would allow a large integer to pass as a native `number`, causing immediate precision loss before the check `typeof val === 'number'` executes.
+    *   **Risk:** Financial data corruption (e.g., Order IDs or very small prices) if the upstream parser misses an edge case.
+    *   **Recommendation:** Enforce strict `string` type guards even in the Fast Path, or explicitly check `if (val > MAX_SAFE_INTEGER)` as a fail-safe.
 
-1.  **Unsafe `JSON.parse` Usage (Precision Loss)**
-    *   **Location:** `src/services/app.ts`, `src/stores/journal.svelte.ts`, `src/stores/preset.svelte.ts`, `src/routes/api/orders/+server.ts`.
-    *   **Issue:** Native `JSON.parse` is used to load `journal`, `presets`, and API responses. JavaScript's `number` type cannot safely represent integers larger than $2^{53}-1$ (approx 9 quadrillion). Exchange Order IDs (often 19 digits) will be rounded, causing "Position Not Found" errors or wrong order cancellations.
-    *   **Evidence:** `src/services/app.ts` -> `const parsedData = JSON.parse(d);`
-    *   **Remediation:** Replace all instances with `safeJsonParse` (from `src/utils/safeJson.ts`) which wraps large numbers in strings.
+## 🟡 WARNING (Performance, UX, i18n)
 
-2.  **Unbounded LocalStorage Loading (Memory/Crash Risk)**
-    *   **Location:** `src/stores/journal.svelte.ts`.
-    *   **Issue:** The `load()` method reads the entire journal from `localStorage` and parses it. If the journal grows (e.g., 10k trades), this will block the main thread during startup (TBT) and potentially cause an OOM crash.
-    *   **Evidence:** `const d = localStorage.getItem(...) || "[]"; this.entries = JSON.parse(d);`
-    *   **Remediation:** Implement pagination or a "Load More" strategy. Enforce a hard limit (e.g., 1000 latest trades) for the initial load.
+1.  **Missing i18n (Hardcoded Strings)**
+    *   **Location:** `src/components/shared/TpSlList.svelte`
+    *   **Finding:** Logic-based strings "TP", "SL", and "Plan" are hardcoded in `getTypeLabel`.
+    *   **Location:** `src/components/shared/ChartPatternsView.svelte`
+    *   **Finding:** Fallback text "No description available." and category filtering logic ("All", "Favorites") relies on English strings.
+    *   **Risk:** Broken UX for non-English users.
 
-### 🟡 WARNING (UX / Stability)
+2.  **Hardcoded Error Logic in UI**
+    *   **Location:** `src/components/shared/TpSlList.svelte`
+    *   **Finding:** The component contains specific error mapping logic (`e.message.startsWith("dashboard.alerts")`).
+    *   **Risk:** Tight coupling between the UI and backend error string formats. If the backend changes error codes, the UI will display generic fallback messages.
 
-3.  **Floating Point Math in UI Inputs**
-    *   **Location:** `src/components/inputs/TradeSetupInputs.svelte`.
-    *   **Issue:** `atrMultiplier` uses `parseFloat`. While usually small, floating point artifacts (e.g., `1.2` becoming `1.200000000002`) can confuse users or APIs.
-    *   **Remediation:** Enforce `Decimal` usage or strict string sanitization for all numeric inputs.
+## 🔵 REFACTOR (Technical Debt)
 
-4.  **Incomplete i18n (Hardcoded Strings)**
-    *   **Location:** `src/components/shared/MarketOverview.svelte`.
-    *   **Issue:** Hardcoded strings like "RSI" and "Channel" found in templates/logic.
-    *   **Remediation:** Extract to `en.json`.
+1.  **MarketWatcher Polling Complexity**
+    *   **Location:** `src/services/marketWatcher.ts`
+    *   **Finding:** The `performPollingCycle` method uses randomized staggered timeouts (`setTimeout` + `Math.random`) to distribute load. While currently functional and protected against zombies, this logic is brittle and hard to unit test deterministically.
+    *   **Recommendation:** Move to a `Scheduler` class or use a deterministic queue system in the future (Low priority as it is currently working).
 
-5.  **Bitunix "Fast Path" Type Looseness**
-    *   **Location:** `src/services/bitunixWs.ts`.
-    *   **Issue:** The `isPriceData` and `isTickerData` type guards use permissive checks (`isSafe`) that allow `number` types to pass through to `marketState`. While `marketState` handles conversion, passing raw numbers risks precision loss *before* they reach the state if they are large IDs (though prices are usually fine).
-    *   **Remediation:** Harden the type guards to warn more aggressively if non-string financial data is detected.
+## ✅ CLEARED ITEMS (Previously suspected, now verified safe)
 
-### 🔵 REFACTOR (Maintainability)
-
-6.  **Redundant Code in `app.ts`**
-    *   **Issue:** `app.ts` contains mixed logic for UI state, trading, and storage.
-    *   **Remediation:** Move storage logic strictly to services.
-
----
-
-## 3. Step 2: Implementation Action Plan
-
-### **Group A: Data Integrity (CRITICAL)**
-*   [ ] **Refactor `app.ts`**: Replace `JSON.parse` with `safeJsonParse` for Presets.
-*   [ ] **Refactor `journal.svelte.ts`**: Replace `JSON.parse` with `safeJsonParse` and add array slicing (limit 1000) on load.
-*   [ ] **Refactor `api/orders/+server.ts`**: Ensure API error parsing uses `safeJsonParse`.
-*   [ ] **Test**: Create a reproduction test case where a 19-digit ID is saved/loaded to verify precision preservation.
-
-### **Group B: Hardening & Performance (WARNING)**
-*   [ ] **Harden `TradeSetupInputs.svelte`**: Replace `parseFloat` with `Decimal` logic for multipliers.
-*   [ ] **Harden `bitunixWs.ts`**: Add telemetry log if numeric IDs are detected in "Fast Path".
-*   [ ] **Sanitize `MarketOverview.svelte`**: Extract "RSI", "Channel" to locale files.
-
-### **Group C: Security & Verification**
-*   [ ] **Audit `@html`**: Verify all SVG icons are from trusted constants.
-
-### **Test Plan for Fixes**
-1.  **Unit Test (`src/utils/tests/safeJson.test.ts`)**: Verify `safeJsonParse` correctly handles `"id": 18446744073709551615`.
-2.  **Integration Test**: Simulate a huge `localStorage` journal and ensure app boots without lag.
+*   **Recursive RateLimiter:** `src/services/apiService.ts` uses an iterative `while` loop for `waitForToken`, eliminating stack overflow risk.
+*   **Zombie Request Locks:** `src/services/marketWatcher.ts` implements `pruneZombieRequests()` to auto-release locks after 20s.
+*   **JSON Precision:** `src/utils/safeJson.ts` correctly implements regex-based number stringification for integers >= 14 digits.
