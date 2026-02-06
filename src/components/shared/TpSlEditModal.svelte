@@ -16,7 +16,8 @@
 -->
 
 <script lang="ts">
-  import { settingsState } from "../../stores/settings.svelte";
+  import { tradeService } from "../../services/tradeService";
+  import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
@@ -41,11 +42,8 @@
   let error = $state("");
 
   async function handleSave() {
-    const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
-
     if (!triggerPrice) {
-      error = "Trigger price is required";
+      error = $_("tpslEditModal.errorTriggerPrice");
       return;
     }
 
@@ -53,31 +51,16 @@
     error = "";
 
     try {
-      const response = await fetch("/api/tpsl", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
-          action: "modify",
-          params: {
-            orderId: order.orderId || order.id || order.planId, // Check ID field name
-            symbol: order.symbol,
-            planType: order.planType,
-            triggerPrice: String(triggerPrice),
-            qty: amount ? String(amount) : undefined,
-          },
-        }),
+      await tradeService.modifyTpSlOrder({
+        orderId: order.orderId || order.id || order.planId,
+        symbol: order.symbol,
+        planType: order.planType,
+        triggerPrice: String(triggerPrice),
+        qty: amount ? String(amount) : undefined,
       });
-      const res = await response.json();
-      if (res.error) {
-        error = res.error;
-      } else {
-        onsuccess?.();
-      }
-    } catch (e) {
-      error = "Failed to modify order";
+      onsuccess?.();
+    } catch (e: any) {
+      error = e.message || $_("tpslEditModal.errorGeneric");
     } finally {
       loading = false;
     }
@@ -85,7 +68,14 @@
 </script>
 
 <ModalFrame
-  title="Edit {order?.planType === 'PROFIT' ? 'Take Profit' : 'Stop Loss'}"
+  title={$_("tpslEditModal.title", {
+    values: {
+      type:
+        order?.planType === "PROFIT"
+          ? $_("tpslEditModal.takeProfit")
+          : $_("tpslEditModal.stopLoss"),
+    },
+  })}
   {onclose}
   isOpen={true}
 >
@@ -100,7 +90,7 @@
       <label
         for="tpsl-trigger-price"
         class="text-xs font-bold text-[var(--text-secondary)]"
-        >Trigger Price</label
+        >{$_("tpslEditModal.triggerPrice")}</label
       >
       <input
         id="tpsl-trigger-price"
@@ -116,7 +106,7 @@
       <label
         for="tpsl-amount"
         class="text-xs font-bold text-[var(--text-secondary)]"
-        >Amount (Qty)</label
+        >{$_("tpslEditModal.amount")}</label
       >
       <input
         id="tpsl-amount"
@@ -138,14 +128,14 @@
         onclick={() => onclose?.()}
         disabled={loading}
       >
-        Cancel
+        {$_("tpslEditModal.cancel")}
       </button>
       <button
         class="px-3 py-1.5 rounded text-xs font-bold text-white bg-[var(--accent-color)] hover:bg-opacity-90 disabled:opacity-50"
         onclick={handleSave}
         disabled={loading}
       >
-        {loading ? "Saving..." : "Save"}
+        {loading ? $_("tpslEditModal.saving") : $_("tpslEditModal.save")}
       </button>
     </div>
   </div>

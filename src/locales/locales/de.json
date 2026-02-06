@@ -1959,5 +1959,17 @@
     "roi": "ROI",
     "margin": "Margin",
     "unrealizedPnl": "uPnL"
+  },
+  "tpslEditModal": {
+    "title": "{type} bearbeiten",
+    "takeProfit": "Take Profit",
+    "stopLoss": "Stop Loss",
+    "triggerPrice": "Trigger-Preis",
+    "amount": "Menge (Qty)",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saving": "Speichere...",
+    "errorTriggerPrice": "Trigger-Preis ist erforderlich",
+    "errorGeneric": "Fehler beim Bearbeiten der Order"
   }
 }

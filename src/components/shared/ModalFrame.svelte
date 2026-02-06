@@ -76,7 +76,7 @@
       title === $_("app.changelogTitle") ||
       title === $_("app.privacyLegal") ||
       title === $_("app.whitepaper") ||
-      title === "Trading Academy";
+      title === $_("academy.title");
 
     if (isGuide) {
       if (!settingsState.burnGuide) return undefined;
@@ -127,7 +127,7 @@
         </div>
         <button
           class="modal-close-btn"
-          aria-label="Schließen"
+          aria-label={$_("common.close")}
           onclick={handleClose}>{$_("common.remove")}</button
         >
       </div>

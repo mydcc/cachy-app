@@ -535,6 +535,45 @@ class TradeService {
         if (res.error) throw new Error(res.error);
         return res;
     }
+
+    public async modifyTpSlOrder(params: {
+        orderId: string;
+        symbol: string;
+        planType: "PROFIT" | "LOSS";
+        triggerPrice: string | Decimal;
+        qty?: string | Decimal;
+    }) {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
+
+        // Use safe serialization for Decimal
+        const safeParams = this.serializePayload({
+            orderId: params.orderId,
+            symbol: params.symbol,
+            planType: params.planType,
+            triggerPrice: params.triggerPrice,
+            qty: params.qty
+        });
+
+        const response = await fetch("/api/tpsl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+            body: JSON.stringify({
+                exchange: provider,
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                action: "modify",
+                params: safeParams,
+            }),
+        });
+
+        const text = await response.text();
+        const res = safeJsonParse(text);
+
+        if (res.error) throw new Error(res.error);
+        return res;
+    }
 }
 
 export const tradeService = new TradeService();

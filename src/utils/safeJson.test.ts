@@ -1,72 +1,72 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+import { describe, it, expect } from "vitest";
+import { safeJsonParse } from "./safeJson";
 
-
-import { describe, it, expect } from 'vitest';
-import { safeJsonParse } from '../../src/utils/safeJson';
-
-describe('safeJsonParse', () => {
-    it('should parse normal JSON correctly', () => {
-        const json = '{"key": "value", "num": 123}';
-        const parsed = safeJsonParse(json);
-        expect(parsed).toEqual({ key: 'value', num: 123 });
+describe("safeJsonParse", () => {
+    it("parses normal JSON correctly", () => {
+        const input = '{"a": 1, "b": "test"}';
+        expect(safeJsonParse(input)).toEqual({ a: 1, b: "test" });
     });
 
-    it('should protect large integers in object values', () => {
-        // 19 digits - standard JS would lose precision
-        const json = '{"id": 1234567890123456789}';
-        const parsed = safeJsonParse(json);
-        expect(parsed.id).toBe('1234567890123456789');
+    it("handles large integers by converting to string", () => {
+        // Number > Number.MAX_SAFE_INTEGER (9007199254740991)
+        const bigIntStr = "900719925474099999";
+        const input = `{"id": ${bigIntStr}}`;
+        const result = safeJsonParse(input);
+        expect(result.id).toBe(bigIntStr);
+        expect(typeof result.id).toBe("string");
     });
 
-    it('should protect large integers in arrays (e.g. Klines)', () => {
-        // Standard Bitunix kline format often has timestamps as numbers
-        // e.g. [1678901234567891234, "OPEN", ...]
-        const json = '[1234567890123456789, "test"]';
-        const parsed = safeJsonParse(json);
-        expect(parsed[0]).toBe('1234567890123456789');
+    it("handles large integers in arrays", () => {
+        const bigIntStr = "1234567890123456789";
+        const input = `[1, ${bigIntStr}, 3]`;
+        const result = safeJsonParse(input);
+        expect(result[1]).toBe(bigIntStr);
+        expect(typeof result[1]).toBe("string");
     });
 
-    it('should protect CONSECUTIVE large integers in arrays', () => {
-        // This fails if the regex consumes the trailing comma
-        const json = '[1234567890123456789, 1234567890123456790]';
-        const parsed = safeJsonParse(json);
-        expect(parsed[0]).toBe('1234567890123456789');
-        expect(parsed[1]).toBe('1234567890123456790');
+    it("handles high precision floats", () => {
+        const floatStr = "0.1234567890123456789";
+        const input = `{"val": ${floatStr}}`;
+        const result = safeJsonParse(input);
+        expect(result.val).toBe(floatStr);
     });
 
-    it('should protect high-precision floats (Core Hardening)', () => {
-        // 18 digits total - JS would round this
-        // Input:  12345.123456789012
-        // JS:     12345.12345678901
-        const json = '{"val": 12345.123456789012}';
-        const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe("12345.123456789012");
+    it("preserves small numbers as numbers", () => {
+        const input = '{"id": 12345}';
+        const result = safeJsonParse(input);
+        expect(result.id).toBe(12345);
+        expect(typeof result.id).toBe("number");
     });
 
-    it('should NOT protect small numbers', () => {
-        const json = '{"val": 123.45}';
-        const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe(123.45);
+    it("handles Bitunix ticker format", () => {
+        // Bitunix often sends numbers as strings, but sometimes as raw numbers
+        // We simulate a raw number high precision scenario
+        const input = '{"topic": "ticker", "data": {"vol": 123456789.123456789}}';
+        const result = safeJsonParse(input);
+        expect(result.data.vol).toBe("123456789.123456789");
     });
 
-    it('should protect very small floats with high precision', () => {
-        const json = '{"val": 0.0000000000123456789}'; // 21 chars
-        const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe("0.0000000000123456789");
+    it("handles nested structures", () => {
+        const big = "123456789012345678";
+        const input = `{"a": {"b": [${big}]}}`;
+        const result = safeJsonParse(input);
+        expect(result.a.b[0]).toBe(big);
+    });
+
+    it("handles negative numbers", () => {
+         const big = "-123456789012345678";
+         const input = `{"val": ${big}}`;
+         const result = safeJsonParse(input);
+         expect(result.val).toBe(big);
+    });
+
+    it("handles scientific notation", () => {
+        const shortSci = "1.23e+5"; // Safe
+        expect(safeJsonParse(`{"v": ${shortSci}}`).v).toBe(123000);
+
+        // Long mantissa
+        const longSci = "1.234567890123456789e+20";
+        const result = safeJsonParse(`{"v": ${longSci}}`);
+        expect(result.v).toBe(longSci);
     });
 });

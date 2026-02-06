@@ -23,6 +23,7 @@
     import { onMount } from "svelte";
     import type { Toast } from "../../services/toastService.svelte";
     import { toastService } from "../../services/toastService.svelte";
+    import { _ } from "../../locales/i18n";
 
     interface Props {
         toast: Toast;
@@ -63,7 +64,7 @@
     <div class="content">
         {toast.message}
     </div>
-    <button class="close-btn" onclick={close} aria-label="Close">
+    <button class="close-btn" onclick={close} aria-label={$_("common.close")}>
         <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"

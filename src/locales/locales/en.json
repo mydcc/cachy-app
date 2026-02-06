@@ -1959,5 +1959,17 @@
     "title": "Jules Inspector",
     "analyzing": "Analyzing system state...",
     "close": "Close Report"
+  },
+  "tpslEditModal": {
+    "title": "Edit {type}",
+    "takeProfit": "Take Profit",
+    "stopLoss": "Stop Loss",
+    "triggerPrice": "Trigger Price",
+    "amount": "Amount (Qty)",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "errorTriggerPrice": "Trigger price is required",
+    "errorGeneric": "Failed to modify order"
   }
 }
