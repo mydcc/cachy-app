@@ -17,15 +17,15 @@
 
 import { logger } from "$lib/server/logger";
 import { env } from "$env/dynamic/private";
-import { dev } from "$app/environment";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
+  const isDev = process.env.NODE_ENV === "development";
   const secret = env.LOG_STREAM_KEY;
   const token = url.searchParams.get("token");
 
-  if (!dev) {
+  if (!isDev) {
     if (!secret) {
       return new Response("Log streaming is disabled in production (LOG_STREAM_KEY not set)", {
         status: 403,
