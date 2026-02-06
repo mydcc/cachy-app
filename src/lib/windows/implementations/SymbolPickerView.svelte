@@ -45,6 +45,7 @@
         "favorites",
     );
     let sortMode = $state<"alpha" | "gainers" | "losers" | "volume">("alpha");
+    let favoriteSet = $derived(new Set(settingsState.favoriteSymbols || []));
 
     // Filter States
     let snapshot = $state<Record<string, any>>({});
@@ -103,8 +104,7 @@
         // 4. View Mode
         if (!searchQuery) {
             if (viewMode === "favorites") {
-                const favs = new Set(settingsState.favoriteSymbols || []);
-                result = result.filter((s) => favs.has(s));
+                result = result.filter((s) => favoriteSet.has(s));
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
                     const change = new Decimal(
@@ -209,7 +209,7 @@
     }
 
     function isFavorite(symbol: string) {
-        return (settingsState.favoriteSymbols || []).includes(symbol);
+        return favoriteSet.has(symbol);
     }
 
     function handleGlobalKeydown(e: KeyboardEvent) {
