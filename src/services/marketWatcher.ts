@@ -31,6 +31,20 @@ interface MarketWatchRequest {
   channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
 }
 
+function tfToMs(tf: string): number {
+    const unit = tf.slice(-1);
+    const val = parseInt(tf.slice(0, -1));
+    if (isNaN(val)) return 60000;
+    switch (unit) {
+        case 'm': return val * 60 * 1000;
+        case 'h': return val * 60 * 60 * 1000;
+        case 'd': return val * 24 * 60 * 60 * 1000;
+        case 'w': return val * 7 * 24 * 60 * 60 * 1000;
+        case 'M': return val * 30 * 24 * 60 * 60 * 1000;
+        default: return 60000;
+    }
+}
+
 class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private isPolling = false;
@@ -347,37 +361,47 @@ class MarketWatcher {
             storageService.saveKlines(symbol, tf, klines1); // Async save
 
             // Check if we have enough history now
-            let currentData = marketState.data[symbol]?.klines[tf] || [];
-            let iterations = 0;
-            const MAX_ITERATIONS = 30; // Safety cap (e.g. 30k candles max per session load)
+            const currentLen = klines1.length;
 
-            // Backfill Loop
-            let oldestTime = klines1[0].time;
+            // Optimization: Parallel Backfill
+            if (currentLen < limit) {
+                const remaining = limit - currentLen;
+                const batchSize = 1000;
+                const batchesNeeded = Math.ceil(remaining / batchSize);
+                // Cap batches to avoid crazy fetch storms (e.g. max 10 batches = 10k candles)
+                const effectiveBatches = Math.min(batchesNeeded, 10);
 
-            while (limit > 1000 && currentData.length < limit && iterations < MAX_ITERATIONS) {
-                iterations++;
+                if (effectiveBatches > 0) {
+                    const oldestTime = klines1[0].time;
+                    const intervalMs = tfToMs(tf);
+                    const tasks: Promise<any>[] = [];
 
-                // Fetch older batch (before oldestTime)
-                const olderKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+                    for (let i = 0; i < effectiveBatches; i++) {
+                         const batchEndTime = oldestTime - (i * batchSize * intervalMs);
 
-                if (!olderKlines || olderKlines.length === 0) {
-                    break; // No more history available
+                         tasks.push(apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
+                             .catch(e => {
+                                 logger.warn("market", `[History] Backfill batch ${i} failed`, e);
+                                 return [];
+                             })
+                         );
+                    }
+
+                    // Run in parallel
+                    const results = await Promise.all(tasks);
+
+                    if (!this.isPolling) {
+                         logger.debug("market", `[History] Polling stopped, discarding backfill for ${symbol}`);
+                         return;
+                    }
+
+                    // Flatten and process
+                    const allBackfilled = results.flat();
+                    if (allBackfilled.length > 0) {
+                        marketState.updateSymbolKlines(symbol, tf, allBackfilled, "rest");
+                        storageService.saveKlines(symbol, tf, allBackfilled);
+                    }
                 }
-
-                marketState.updateSymbolKlines(symbol, tf, olderKlines, "rest");
-                storageService.saveKlines(symbol, tf, olderKlines);
-
-                // Update state for next iteration
-                currentData = marketState.data[symbol]?.klines[tf] || [];
-                const newOldest = olderKlines[0].time;
-
-                if (newOldest >= oldestTime) {
-                    break;
-                }
-                oldestTime = newOldest;
-
-                // Rate Limit Courtesy
-                await new Promise(r => setTimeout(r, 100));
             }
         }
     } catch (e) {

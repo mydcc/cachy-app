@@ -998,6 +998,7 @@ export type TranslationKey =
   | "settings.connections.customFeeds"
   | "settings.connections.dataServices"
   | "settings.connections.exchanges"
+  | "settings.connections.appAccessToken"
   | "settings.connections.passphrase"
   | "settings.connections.rss"
   | "settings.connections.filter"
