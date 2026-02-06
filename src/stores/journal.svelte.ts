@@ -136,36 +136,32 @@ class JournalManager {
 
   // -- Derived Metrics ($derived) --
 
-  performanceMetrics = $derived(calculator.getPerformanceData(this.entries));
-  qualityMetrics = $derived(calculator.getQualityData(this.entries));
-  directionMetrics = $derived(calculator.getDirectionData(this.entries));
-  tagMetrics = $derived(calculator.getTagData(this.entries));
-  calendarMetrics = $derived(calculator.getCalendarData(this.entries));
-  disciplineMetrics = $derived(calculator.getDisciplineData(this.entries));
-  costMetrics = $derived(calculator.getCostData(this.entries));
+  private allMetrics = $derived(calculator.getJournalAnalysis(this.entries));
+
+  performanceMetrics = $derived(this.allMetrics.performanceMetrics);
+  qualityMetrics = $derived(this.allMetrics.qualityMetrics);
+  directionMetrics = $derived(this.allMetrics.directionMetrics);
+  tagMetrics = $derived(this.allMetrics.tagMetrics);
+  calendarMetrics = $derived(this.allMetrics.calendarMetrics);
+  disciplineMetrics = $derived(this.allMetrics.disciplineMetrics);
+  costMetrics = $derived(this.allMetrics.costMetrics);
 
   // Deep Dive
-  timingMetrics = $derived(calculator.getTimingData(this.entries));
-  confluenceMetrics = $derived(calculator.getConfluenceData(this.entries));
-  durationStatsMetrics = $derived(calculator.getDurationStats(this.entries));
-  durationDataMetrics = $derived(calculator.getDurationData(this.entries));
-  tagEvolutionMetrics = $derived(calculator.getTagEvolution(this.entries));
-  assetMetrics = $derived(calculator.getAssetData(this.entries));
-  riskMetrics = $derived(calculator.getRiskData(this.entries));
-  marketMetrics = $derived(calculator.getMarketData(this.entries));
-  psychologyMetrics = $derived(calculator.getPsychologyData(this.entries));
+  timingMetrics = $derived(this.allMetrics.timingMetrics);
+  confluenceMetrics = $derived(this.allMetrics.confluenceMetrics);
+  durationStatsMetrics = $derived(this.allMetrics.durationStatsMetrics);
+  durationDataMetrics = $derived(this.allMetrics.durationDataMetrics);
+  tagEvolutionMetrics = $derived(this.allMetrics.tagEvolutionMetrics);
+  assetMetrics = $derived(this.allMetrics.assetMetrics);
+  riskMetrics = $derived(this.allMetrics.riskMetrics);
+  marketMetrics = $derived(this.allMetrics.marketMetrics);
+  psychologyMetrics = $derived(this.allMetrics.psychologyMetrics);
 
   // 6-Pillars
-  executionMetrics = $derived(
-    calculator.getExecutionEfficiencyData(this.entries),
-  );
-  riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.entries));
-  marketContextMetrics = $derived(
-    calculator.getVolatilityMatrixData(this.entries),
-  );
-  systemQualityMetrics = $derived(
-    calculator.getSystemQualityData(this.entries),
-  );
+  executionMetrics = $derived(this.allMetrics.executionMetrics);
+  riskRadarMetrics = $derived(this.allMetrics.riskRadarMetrics);
+  marketContextMetrics = $derived(this.allMetrics.marketContextMetrics);
+  systemQualityMetrics = $derived(this.allMetrics.systemQualityMetrics);
 
   private notifyTimer: any = null;
 

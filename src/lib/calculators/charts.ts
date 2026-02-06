@@ -26,14 +26,17 @@ import {
   getTimingData,
   getDisciplineData as getDisciplineStats,
 } from "./stats";
+import type { JournalContext } from "./types";
 
 // Re-export getDisciplineData from stats for consumers who expect it here, or use the alias
 export const getDisciplineData = getDisciplineStats;
 
-export function getPerformanceData(journal: JournalEntry[]) {
-  const closedTrades = journal
-    .filter((t) => t.status === "Won" || t.status === "Lost")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+export function getPerformanceData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal
+      .filter((t) => t.status === "Won" || t.status === "Lost")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // 1. Equity Curve
   let cumulative = new Decimal(0);
@@ -73,10 +76,12 @@ export function getPerformanceData(journal: JournalEntry[]) {
   return { equityCurve, drawdownSeries, monthlyLabels, monthlyData };
 }
 
-export function getQualityData(journal: JournalEntry[]) {
-  const closedTrades = journal
-    .filter((t) => t.status === "Won" || t.status === "Lost")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+export function getQualityData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal
+      .filter((t) => t.status === "Won" || t.status === "Lost")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const won = closedTrades.filter((t) => t.status === "Won").length;
   const lost = closedTrades.filter((t) => t.status === "Lost").length;
@@ -218,7 +223,7 @@ export function getQualityData(journal: JournalEntry[]) {
   });
 
   // 4. KPI
-  const stats = calculateJournalStats(journal);
+  const stats = calculateJournalStats(journal, context);
 
   return {
     winLossData,
@@ -230,10 +235,12 @@ export function getQualityData(journal: JournalEntry[]) {
   };
 }
 
-export function getDirectionData(journal: JournalEntry[]) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function getDirectionData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => t.status === "Won" || t.status === "Lost",
+    );
 
   // 1. Long vs Short
   let longPnl = new Decimal(0);
@@ -264,9 +271,11 @@ export function getDirectionData(journal: JournalEntry[]) {
   const shortCurve: { x: any; y: number }[] = [];
 
   // Sort trades by date for evolution
-  const sortedByDate = [...closedTrades].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
+  const sortedByDate = context
+    ? closedTrades
+    : [...closedTrades].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
 
   sortedByDate.forEach((t) => {
     const pnl = getTradePnL(t);
@@ -295,10 +304,12 @@ export function getDirectionData(journal: JournalEntry[]) {
   };
 }
 
-export function getCostData(journal: JournalEntry[]) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function getCostData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => t.status === "Won" || t.status === "Lost",
+    );
 
   // 1. Gross vs Net PnL (Total)
   let totalGross = new Decimal(0);
@@ -320,8 +331,7 @@ export function getCostData(journal: JournalEntry[]) {
 
   // 2. Cumulative Fees
   let cumFees = new Decimal(0);
-  const feeCurve = closedTrades
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const feeCurve = (context ? closedTrades : [...closedTrades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
     .map((t) => {
       const fees = t.totalFees || new Decimal(0);
       const funding = t.fundingFee || new Decimal(0);
@@ -349,10 +359,14 @@ export function getCostData(journal: JournalEntry[]) {
   };
 }
 
-export function getDurationData(journal: JournalEntry[]) {
+export function getDurationData(journal: JournalEntry[], context?: JournalContext) {
   // Scatter: x = Duration (minutes), y = PnL ($)
-  const scatterData = journal
-    .filter((t) => t.status !== "Open")
+  // This function uses ALL trades except OPEN.
+  // context.closedTrades contains "Won" and "Lost".
+  // If we assume Closed = Won | Lost, we can use context.
+  const tradesToIterate = context ? context.closedTrades : journal.filter((t) => t.status !== "Open");
+
+  const scatterData = tradesToIterate
     .map((t) => {
       let startTs = 0;
       let endTs = 0;
@@ -389,13 +403,15 @@ export function getDurationData(journal: JournalEntry[]) {
   return { scatterData };
 }
 
-export function getAssetData(journal: JournalEntry[]) {
+export function getAssetData(journal: JournalEntry[], context?: JournalContext) {
+  const tradesToIterate = context ? context.closedTrades : journal; // If context, only closed. If not, filtered inside loop.
+
   const symbolStats: {
     [key: string]: { win: number; loss: number; pnl: Decimal; count: number };
   } = {};
 
-  journal.forEach((t) => {
-    if (t.status === "Open") return;
+  tradesToIterate.forEach((t) => {
+    if (!context && t.status === "Open") return;
     const sym = t.symbol;
     if (!symbolStats[sym])
       symbolStats[sym] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
@@ -428,10 +444,13 @@ export function getAssetData(journal: JournalEntry[]) {
   };
 }
 
-export function getRiskData(journal: JournalEntry[]) {
+export function getRiskData(journal: JournalEntry[], context?: JournalContext) {
   // Scatter: x = Risk Amount ($), y = Realized PnL ($)
-  const scatterData = journal
-    .filter((t) => t.status !== "Open" && t.riskAmount && t.riskAmount.gt(0))
+  // Context safe (Won/Lost).
+  const tradesToIterate = context ? context.closedTrades : journal.filter((t) => t.status !== "Open");
+
+  const scatterData = tradesToIterate
+    .filter((t) => t.riskAmount && t.riskAmount.gt(0))
     .map((t) => {
       const pnl = getTradePnL(t);
       return {
@@ -447,7 +466,9 @@ export function getRiskData(journal: JournalEntry[]) {
   };
 }
 
-export function getMarketData(journal: JournalEntry[]) {
+export function getMarketData(journal: JournalEntry[], context?: JournalContext) {
+  const tradesToIterate = context ? context.closedTrades : journal;
+
   let longWin = 0,
     longTotal = 0;
   let shortWin = 0,
@@ -460,8 +481,8 @@ export function getMarketData(journal: JournalEntry[]) {
     "50x+": 0,
   };
 
-  journal.forEach((t) => {
-    if (t.status === "Open") return;
+  tradesToIterate.forEach((t) => {
+    if (!context && t.status === "Open") return;
 
     if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
       longTotal++;
@@ -489,11 +510,13 @@ export function getMarketData(journal: JournalEntry[]) {
   };
 }
 
-export function getPsychologyData(journal: JournalEntry[]) {
+export function getPsychologyData(journal: JournalEntry[], context?: JournalContext) {
   // Streak Analysis
-  const sorted = [...journal]
-    .filter((t) => t.status === "Won" || t.status === "Lost")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sorted = context
+    ? context.closedTrades
+    : [...journal]
+        .filter((t) => t.status === "Won" || t.status === "Lost")
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   let currentWinStreak = 0;
   let currentLossStreak = 0;
@@ -549,13 +572,15 @@ export function getPsychologyData(journal: JournalEntry[]) {
   };
 }
 
-export function getTagEvolution(journal: JournalEntry[]) {
-  const closedTrades = journal
-    .filter((t) => t.status === "Won" || t.status === "Lost")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+export function getTagEvolution(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal
+      .filter((t) => t.status === "Won" || t.status === "Lost")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // Identify Top 5 Tags by Abs PnL
-  const tagStats = getTagData(closedTrades);
+  const tagStats = getTagData(closedTrades, context);
   const topTags = tagStats.labels
     .map((label, i) => ({ label, pnl: Math.abs(tagStats.pnlData[i]) }))
     .sort((a, b) => b.pnl - a.pnl)
@@ -579,10 +604,12 @@ export function getTagEvolution(journal: JournalEntry[]) {
   return { datasets };
 }
 
-export function getConfluenceData(journal: JournalEntry[]) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function getConfluenceData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => t.status === "Won" || t.status === "Lost",
+    );
 
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const matrix = Array.from({ length: 7 }, (_, dayIdx) => {
@@ -632,10 +659,13 @@ export function getMonteCarloData(
   journal: JournalEntry[],
   simulations: number = 100,
   horizon: number = 100,
+  context?: JournalContext
 ) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => t.status === "Won" || t.status === "Lost",
+    );
   const pnlDistribution = closedTrades.map((t) => getTradePnL(t).toNumber());
 
   if (pnlDistribution.length < 5) return null; // Need enough data
@@ -689,10 +719,12 @@ export function getMonteCarloData(
   };
 }
 
-export function getExecutionEfficiencyData(journal: JournalEntry[]) {
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+export function getExecutionEfficiencyData(journal: JournalEntry[], context?: JournalContext) {
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => t.status === "Won" || t.status === "Lost",
+    );
 
   const scatterPoints = closedTrades
     .map((t) => {
@@ -729,8 +761,8 @@ export function getExecutionEfficiencyData(journal: JournalEntry[]) {
   return { scatterPoints };
 }
 
-export function getVisualRiskRadarData(journal: JournalEntry[]) {
-  const stats = calculateJournalStats(journal);
+export function getVisualRiskRadarData(journal: JournalEntry[], context?: JournalContext) {
+  const stats = calculateJournalStats(journal, context);
   // Need metrics normalized to 0-100 (or close) for Radar chart
   // Dimensions: Win Rate, Profit Factor, R-Ratio, Drawdown Score, Expectancy Score
 
@@ -741,7 +773,7 @@ export function getVisualRiskRadarData(journal: JournalEntry[]) {
   const pfScore = (Math.min(pf, 5) / 5) * 100; // Cap at 5 for score
 
   // Drawdown: Need Max Drawdown from performance stats
-  const perf = calculatePerformanceStats(journal);
+  const perf = calculatePerformanceStats(journal, context);
   // Recovery Factor is also good.
   // Let's use Recovery Factor or Drawdown.
   // Drawdown (MaxDD): Lower is better.
@@ -786,15 +818,21 @@ export function getVisualRiskRadarData(journal: JournalEntry[]) {
   };
 }
 
-export function getVolatilityMatrixData(journal: JournalEntry[]) {
+export function getVolatilityMatrixData(journal: JournalEntry[], context?: JournalContext) {
   // Bin by ATR
-  const closedTrades = journal.filter(
-    (t) => (t.status === "Won" || t.status === "Lost") && t.atrValue,
-  );
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => (t.status === "Won" || t.status === "Lost") && t.atrValue,
+    );
 
-  if (closedTrades.length === 0) return null;
+  // We also need to filter by atrValue being present, which context.closedTrades might include ones without atrValue.
+  // So we filter again.
+  const tradesWithAtr = closedTrades.filter(t => t.atrValue);
 
-  const atrs = closedTrades.map((t) => t.atrValue!.toNumber());
+  if (tradesWithAtr.length === 0) return null;
+
+  const atrs = tradesWithAtr.map((t) => t.atrValue!.toNumber());
   const sumAtr = atrs.reduce((a, b) => a + b, 0);
   const avgAtr = sumAtr / atrs.length;
 
@@ -804,7 +842,7 @@ export function getVolatilityMatrixData(journal: JournalEntry[]) {
     high: { count: 0, pnl: new Decimal(0), win: 0 },
   };
 
-  closedTrades.forEach((t) => {
+  tradesWithAtr.forEach((t) => {
     const val = t.atrValue!.toNumber();
     const pnl = getTradePnL(t);
     let bucketKey: "low" | "normal" | "high" = "normal";
@@ -832,12 +870,14 @@ export function getVolatilityMatrixData(journal: JournalEntry[]) {
   };
 }
 
-export function getSystemQualityData(journal: JournalEntry[]) {
+export function getSystemQualityData(journal: JournalEntry[], context?: JournalContext) {
   // SQN is in sqnValues (array).
   // But let's recalculate simply.
-  const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost",
-  );
+  const closedTrades =
+    context?.closedTrades ??
+    journal.filter(
+      (t) => t.status === "Won" || t.status === "Lost",
+    );
   const count = closedTrades.length;
 
   if (count < 30) return null; // SQN needs sample size
