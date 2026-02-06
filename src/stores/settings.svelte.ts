@@ -110,6 +110,7 @@ export interface TradeFlowSettings {
 
 export interface Settings {
   apiProvider: "bitunix" | "bitget";
+  appAccessToken?: string;
   marketDataInterval: MarketDataInterval;
   autoUpdatePriceInput: boolean;
   autoFetchBalance: boolean;
@@ -302,6 +303,7 @@ export interface Settings {
 
 const defaultSettings: Settings = {
   apiProvider: "bitunix",
+  appAccessToken: "",
   marketDataInterval: 10,
   marketAnalysisInterval: 60,
   pauseAnalysisOnBlur: true,
@@ -525,6 +527,7 @@ export class SettingsManager {
       // Let $effect handle saving, don't call save() directly
     }
   }
+  appAccessToken = $state<string>(defaultSettings.appAccessToken || "");
   marketDataInterval = $state<number>(defaultSettings.marketDataInterval);
   autoUpdatePriceInput = $state<boolean>(defaultSettings.autoUpdatePriceInput);
   autoFetchBalance = $state<boolean>(defaultSettings.autoFetchBalance);
@@ -998,6 +1001,7 @@ export class SettingsManager {
           );
         }
       }
+      this.appAccessToken = merged.appAccessToken;
       this.marketDataInterval = merged.marketDataInterval;
       this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
       this.autoFetchBalance = merged.autoFetchBalance;
@@ -1245,6 +1249,7 @@ export class SettingsManager {
   toJSON(): Settings {
     return {
       apiProvider: this.apiProvider,
+      appAccessToken: this.appAccessToken,
       marketDataInterval: this.marketDataInterval,
       marketAnalysisInterval: this.marketAnalysisInterval,
       pauseAnalysisOnBlur: this.pauseAnalysisOnBlur,

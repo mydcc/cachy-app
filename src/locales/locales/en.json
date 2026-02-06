@@ -1140,6 +1140,7 @@
       }
     },
     "connections": {
+      "appAccessToken": "App Access Token (Server Security)",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
