@@ -41,7 +41,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
     "/v1/cryptocurrency/category",
   ];
 
-  if (!ALLOWED_ENDPOINTS.some((ep) => endpoint.startsWith(ep))) {
+  if (!ALLOWED_ENDPOINTS.includes(endpoint)) {
     return json({ error: "Endpoint not allowed" }, { status: 403 });
   }
 
