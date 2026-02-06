@@ -992,6 +992,7 @@ export type TranslationKey =
   | "settings.profile.background.intensityHigh"
   | "settings.profile.background.reset"
   | "settings.profile.background.resetConfirm"
+  | "settings.connections.appAccessToken"
   | "settings.connections.addFeed"
   | "settings.connections.apiKey"
   | "settings.connections.apiSecret"
