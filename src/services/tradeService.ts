@@ -139,6 +139,29 @@ class TradeService {
         return payload;
     }
 
+    // Hardening: Secure Fetch Helper
+    private async secureFetch(
+        endpoint: string,
+        basePayload: Record<string, any>,
+        keys: { key: string; secret: string; passphrase?: string },
+    ) {
+        const payload = {
+            ...basePayload,
+            apiKey: keys.key,
+            apiSecret: keys.secret,
+            passphrase: keys.passphrase,
+        };
+
+        // Serialize Decimals and other types safely
+        const serialized = this.serializePayload(payload);
+
+        return fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(serialized),
+        });
+    }
+
     // Hardening: Centralized Freshness Check
     private async ensurePositionFreshness(symbol: string, positionSide: "long" | "short") {
         let positions = omsService.getPositions();
@@ -302,14 +325,11 @@ class TradeService {
 
         try {
             // Re-use the sync endpoint which wraps the signed API call
-            const pendingResponse = await fetch("/api/sync/positions-pending", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    apiKey: settingsState.apiKeys.bitunix.key,
-                    apiSecret: settingsState.apiKeys.bitunix.secret,
-                }),
-            });
+            const pendingResponse = await this.secureFetch(
+                "/api/sync/positions-pending",
+                {},
+                settingsState.apiKeys.bitunix,
+            );
 
             if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
 
@@ -445,17 +465,15 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const response = await fetch("/api/tpsl", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify(this.serializePayload({
-                                      exchange: provider,
-                                      apiKey: keys.key,
-                                      apiSecret: keys.secret,
-                                      action: view,
-                                      params
-                                  }))
-                              });
+                              const response = await this.secureFetch(
+                                "/api/tpsl",
+                                {
+                                  exchange: provider,
+                                  action: view,
+                                  params,
+                                },
+                                keys,
+                              );
 
                               const text = await response.text();
                               const data = safeJsonParse(text);
@@ -488,16 +506,14 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const response = await fetch("/api/tpsl", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                      exchange: provider,
-                      apiKey: keys.key,
-                      apiSecret: keys.secret,
-                      action: view,
-                  })
-             });
+             const response = await this.secureFetch(
+               "/api/tpsl",
+               {
+                 exchange: provider,
+                 action: view,
+               },
+               keys,
+             );
 
              const text = await response.text();
              const data = safeJsonParse(text);
@@ -514,21 +530,19 @@ class TradeService {
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
 
-        const response = await fetch("/api/tpsl", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(this.serializePayload({
-                exchange: provider,
-                apiKey: keys.key,
-                apiSecret: keys.secret,
-                action: "cancel",
-                params: {
-                    orderId: order.orderId || order.id,
-                    symbol: order.symbol,
-                    planType: order.planType,
-                },
-            })),
-        });
+        const response = await this.secureFetch(
+          "/api/tpsl",
+          {
+            exchange: provider,
+            action: "cancel",
+            params: {
+              orderId: order.orderId || order.id,
+              symbol: order.symbol,
+              planType: order.planType,
+            },
+          },
+          keys,
+        );
 
         const text = await response.text();
         const res = safeJsonParse(text);
