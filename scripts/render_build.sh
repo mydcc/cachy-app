@@ -10,7 +10,7 @@ echo "Adding wasm target..."
 rustup target add wasm32-unknown-unknown
 
 echo "Installing Node dependencies..."
-npm install
+npm install --include=dev
 
 echo "Building..."
 npm run build
