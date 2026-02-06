@@ -25,12 +25,7 @@ fi
 
 echo "Building WASM module..."
 cd technicals-wasm
-
-if ! cargo build --release --target wasm32-unknown-unknown; then
-    echo "⚠ Cargo build failed. Skipping WASM generation."
-    echo "  The application will run in JS-fallback mode."
-    exit 0
-fi
+cargo build --release --target wasm32-unknown-unknown
 
 echo "Generating bindings..."
 # Since we don't have wasm-pack installed in this environment to generate the glue JS automatically,
@@ -40,9 +35,6 @@ echo "Generating bindings..."
 
 # For this environment, we just copy the .wasm file to public so it can be fetched.
 mkdir -p ../static/wasm
-if [ -f target/wasm32-unknown-unknown/release/technicals_wasm.wasm ]; then
-    cp target/wasm32-unknown-unknown/release/technicals_wasm.wasm ../static/wasm/
-    echo "✓ WASM build complete. Artifacts in static/wasm/"
-else
-    echo "⚠ WASM artifact not found after build. Skipping copy."
-fi
+cp target/wasm32-unknown-unknown/release/technicals_wasm.wasm ../static/wasm/
+
+echo "✓ WASM build complete. Artifacts in static/wasm/"
