@@ -50,6 +50,12 @@ class OrderManagementSystem {
         }
     }
 
+    public reset() {
+        this.orders.clear();
+        this.positions.clear();
+        logger.log("market", "[OMS] State Reset");
+    }
+
     public updateOrder(order: OMSOrder) {
         const isKnown = this.orders.has(order.id);
 

@@ -27,11 +27,7 @@ vi.mock("./logger", () => ({
 describe("TradeService Safety - Flash Close", () => {
     beforeEach(() => {
         // Reset OMS
-        const orders = omsService.getAllOrders();
-        orders.forEach(o => omsService.removeOrder(o.id));
-        // Reset Positions (Hack: access private map via public update or just assume we start fresh)
-        // omsService has no clear method, but we can overwrite.
-        // Since we can't easily clear positions map without 'destroy', we'll rely on unique symbols.
+        omsService.reset();
     });
 
     afterEach(() => {
