@@ -210,6 +210,7 @@
       "atrModeAuto": "Auto",
       "toggleAutoUpdatePrice": "Toggle auto-update price",
       "copyToClipboard": "Copy to clipboard",
+      "copiedFeedback": "Copied!",
       "copyFailed": "Failed to copy to clipboard",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
@@ -1952,5 +1953,10 @@
     "noMessages": "No messages yet.",
     "sendButton": "Send",
     "placeholder": "Say hello..."
+  },
+  "jules": {
+    "title": "Jules Inspector",
+    "analyzing": "Analyzing system state...",
+    "close": "Close Report"
   }
 }

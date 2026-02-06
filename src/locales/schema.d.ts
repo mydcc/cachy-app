@@ -185,6 +185,7 @@ export type TranslationKey =
   | "dashboard.tradeSetupInputs.atrModeAuto"
   | "dashboard.tradeSetupInputs.toggleAutoUpdatePrice"
   | "dashboard.tradeSetupInputs.copyToClipboard"
+  | "dashboard.tradeSetupInputs.copiedFeedback"
   | "dashboard.tradeSetupInputs.copyFailed"
   | "dashboard.tradeSetupInputs.atrTimeframeLabel"
   | "dashboard.tradeSetupInputs.atrLabel"
@@ -1592,4 +1593,7 @@ export type TranslationKey =
   | "cloud.connectButton"
   | "cloud.noMessages"
   | "cloud.sendButton"
-  | "cloud.placeholder";
+  | "cloud.placeholder"
+  | "jules.title"
+  | "jules.analyzing"
+  | "jules.close";
