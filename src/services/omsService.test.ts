@@ -27,8 +27,7 @@ describe('OrderManagementSystem', () => {
 
   beforeEach(() => {
     // Reset state
-    oms.orders.clear();
-    oms.positions.clear();
+    omsService.reset();
   });
 
   it('should accept orders up to MAX_ORDERS', () => {
@@ -50,7 +49,7 @@ describe('OrderManagementSystem', () => {
       omsService.updateOrder(order);
     }
 
-    expect(oms.orders.size).toBe(limit);
+    expect(omsService.getAllOrders().length).toBe(limit);
   });
 
   it('should evict oldest finalized order when full', () => {
@@ -73,7 +72,7 @@ describe('OrderManagementSystem', () => {
     // 2. Add one finalized order (oldest effectively, if we insert it early, but here we insert at end)
     // Actually, Map preserves insertion order.
     // Let's clear and do: 1 finalized, then 1999 active.
-    oms.orders.clear();
+    omsService.reset();
 
     const finalizedOrder: OMSOrder = {
         id: 'finalized-1',
@@ -102,8 +101,8 @@ describe('OrderManagementSystem', () => {
           });
     }
 
-    expect(oms.orders.size).toBe(limit);
-    expect(oms.orders.has('finalized-1')).toBe(true);
+    expect(omsService.getAllOrders().length).toBe(limit);
+    expect(omsService.getOrder('finalized-1')).toBeDefined();
 
     // 3. Add one more order (overflow)
     omsService.updateOrder({
@@ -119,13 +118,13 @@ describe('OrderManagementSystem', () => {
     });
 
     // 4. Expect 'finalized-1' to be gone (Safe Prune)
-    expect(oms.orders.size).toBe(limit);
-    expect(oms.orders.has('finalized-1')).toBe(false);
-    expect(oms.orders.has('overflow-1')).toBe(true);
+    expect(omsService.getAllOrders().length).toBe(limit);
+    expect(omsService.getOrder('finalized-1')).toBeUndefined();
+    expect(omsService.getOrder('overflow-1')).toBeDefined();
   });
 
   it('should evict oldest active order if no finalized orders exist (Ring Buffer)', () => {
-    oms.orders.clear();
+    omsService.reset();
     const limit = oms.MAX_ORDERS;
 
     // Fill with active orders
@@ -157,8 +156,8 @@ describe('OrderManagementSystem', () => {
     });
 
     // Expect 'active-0' (first inserted) to be gone
-    expect(oms.orders.size).toBe(limit);
-    expect(oms.orders.has('active-0')).toBe(false);
-    expect(oms.orders.has('overflow-active')).toBe(true);
+    expect(omsService.getAllOrders().length).toBe(limit);
+    expect(omsService.getOrder('active-0')).toBeUndefined();
+    expect(omsService.getOrder('overflow-active')).toBeDefined();
   });
 });
