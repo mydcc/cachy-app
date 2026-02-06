@@ -54,6 +54,8 @@ def test_symbol_picker(page: Page):
     print(f"Found {len(visible_symbols)} symbols after filtering")
     
     # Define the majors list (from src/lib/constants.ts)
+    # Note: This list is intentionally duplicated from the source code for test isolation.
+    # If the MAJORS list changes in src/lib/constants.ts, update this list accordingly.
     majors = [
         "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", 
         "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "TRXUSDT", "DOTUSDT", 
