@@ -825,7 +825,13 @@ export class MarketManager {
         });
       });
     });
-    return () => cleanup();
+    return () => {
+      if (typeof cleanup === 'function') {
+        (cleanup as Function)();
+      } else if (cleanup && typeof (cleanup as any).stop === 'function') {
+        (cleanup as any).stop();
+      }
+    };
   }
 
   subscribeStatus(fn: (value: WSStatus) => void) {
@@ -842,7 +848,13 @@ export class MarketManager {
         });
       });
     });
-    return () => cleanup();
+    return () => {
+      if (typeof cleanup === 'function') {
+        (cleanup as Function)();
+      } else if (cleanup && typeof (cleanup as any).stop === 'function') {
+        (cleanup as any).stop();
+      }
+    };
   }
 }
 
