@@ -166,7 +166,16 @@
       "trigger": "Trigger:",
       "amount": "Amt:",
       "cancelTooltip": "Cancel",
-      "editTooltip": "Edit"
+      "editTooltip": "Edit",
+      "editTitle": "Edit {type}",
+      "triggerPrice": "Trigger Price",
+      "qty": "Amount (Qty)",
+      "symbol": "Symbol:",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "triggerRequired": "Trigger price is required",
+      "failedToModify": "Failed to modify order"
     },
     "viewMode": "View Mode",
     "detailed": "Detailed",

@@ -228,10 +228,14 @@ class TradeService {
             // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
             // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
             try {
+                // We enforce throwOnError=true to catch failures
                 await this.cancelAllOrders(symbol, true);
             } catch (cancelError) {
-                // If cancellation fails, we log it CRITICALLY but proceed to close (Panic button logic).
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+                // [SAFE CLOSE] Abort operation to prevent naked stop losses
+                logger.error("market", `[FlashClose] ABORTED: Failed to cancel open orders for ${symbol}.`, cancelError);
+                // Clean up optimistic order since we are aborting
+                omsService.removeOrder(clientOrderId);
+                throw new Error("tradeErrors.cancelFailed");
             }
 
             return await this.signedRequest("POST", "/api/orders", {
@@ -526,6 +530,35 @@ class TradeService {
                     orderId: order.orderId || order.id,
                     symbol: order.symbol,
                     planType: order.planType,
+                },
+            })),
+        });
+
+        const text = await response.text();
+        const res = safeJsonParse(text);
+        if (res.error) throw new Error(res.error);
+        return res;
+    }
+
+    public async modifyTpSlOrder(order: any, triggerPrice: string, qty?: string) {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
+
+        const response = await fetch("/api/tpsl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+            body: JSON.stringify(this.serializePayload({
+                exchange: provider,
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                action: "modify",
+                params: {
+                    orderId: order.orderId || order.id || order.planId,
+                    symbol: order.symbol,
+                    planType: order.planType,
+                    triggerPrice,
+                    qty,
                 },
             })),
         });

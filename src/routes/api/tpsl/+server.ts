@@ -22,37 +22,48 @@ import {
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
 import { checkAppAuth } from "../../../lib/server/auth";
+import { TpSlRequestSchema } from "../../../types/tpslSchemas";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
-  // Wrap the entire parsing logic in try-catch to handle malformed JSON
+
+  let body: unknown;
   try {
-    const body = await request.json();
-    const { exchange, apiKey, apiSecret, action, params = {} } = body;
+    const text = await request.text();
+    body = safeJsonParse(text);
+  } catch (e) {
+    return json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
-    if (!exchange || !apiKey || !apiSecret) {
-      return json(
-        { error: "Missing credentials or exchange" },
-        { status: 400 },
-      );
-    }
+  // 1. Zod Validation
+  const validation = TpSlRequestSchema.safeParse(body);
 
-    if (exchange !== "bitunix") {
-      return json(
-        { error: "Only Bitunix is supported for TP/SL currently" },
-        { status: 400 },
-      );
-    }
+  if (!validation.success) {
+    const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
+    return json({ error: "Validation Error", details: errors }, { status: 400 });
+  }
 
-    // Security: Validate API Key length
-    const validationError = validateBitunixKeys(apiKey, apiSecret);
-    if (validationError) {
-      return json({ error: validationError }, { status: 400 });
-    }
+  const payload = validation.data;
+  const { exchange, apiKey, apiSecret, action, params } = payload;
 
+  if (exchange !== "bitunix") {
+    return json(
+      { error: "Only Bitunix is supported for TP/SL currently" },
+      { status: 400 },
+    );
+  }
+
+  // Security: Validate API Key length
+  const validationError = validateBitunixKeys(apiKey, apiSecret);
+  if (validationError) {
+    return json({ error: validationError }, { status: 400 });
+  }
+
+  try {
     let result = null;
     switch (action) {
       case "pending":
@@ -87,33 +98,44 @@ export const POST: RequestHandler = async ({ request }) => {
           params,
         );
         break;
-      default:
-        return json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing TP/SL request:`, e.message || e);
+    const errorMsg = e.message || "Internal Server Error";
+
+    // Enhanced Logging with Redaction
+    try {
+        let sanitizedBody: any = {};
+        if (typeof body === 'object' && body !== null) {
+            sanitizedBody = { ...body };
+            if ('apiKey' in sanitizedBody) sanitizedBody.apiKey = "***";
+            if ('apiSecret' in sanitizedBody) sanitizedBody.apiSecret = "***";
+        }
+
+        console.error(`[API] TP/SL Request failed: ${action}`, {
+            error: errorMsg,
+            body: sanitizedBody,
+        });
+    } catch (logErr) {
+        console.error(`[API] TP/SL Request failed`, errorMsg);
+    }
 
     // Determine appropriate status code
     let status = 500;
-    let message = e.message || "Internal Server Error";
-
-    if (message.includes("Bitunix API error")) {
-      status = 502; // Bad Gateway (upstream error)
-      // Or 400 if it's a client error from Bitunix that we want to pass through
-      if (message.includes("code:")) {
-        // If it has a specific code, it might be a logic error (e.g. invalid price)
-        status = 400;
-      }
-    } else if (message.includes("JSON")) {
-      status = 400; // Malformed JSON in request
+    if (errorMsg.includes("Bitunix API error")) {
+      status = 502; // Bad Gateway
+      if (errorMsg.includes("code:")) status = 400; // Likely business logic error
     }
+
+    // Sanitize response message
+    let sanitizedMsg = errorMsg;
+    if (apiKey && apiKey.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
+    if (apiSecret && apiSecret.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
 
     return json(
       {
-        error: message,
-        stack: process.env.NODE_ENV === "development" ? e.stack : undefined,
+        error: sanitizedMsg,
       },
       { status },
     );

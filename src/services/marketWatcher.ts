@@ -26,6 +26,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
+import type { Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -370,7 +371,7 @@ class MarketWatcher {
                     const oldestTime = klines1[0].time;
                     const intervalMs = tfToMs(tf);
 
-                    const results: any[] = [];
+                    const results: Kline[] = [];
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
                     // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
@@ -381,7 +382,7 @@ class MarketWatcher {
                              break;
                         }
 
-                        const chunkTasks: Promise<any>[] = [];
+                        const chunkTasks: Promise<Kline[]>[] = [];
                         for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
                              const batchIdx = i + j;
                              const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
@@ -396,7 +397,8 @@ class MarketWatcher {
                         }
 
                         const chunkResults = await Promise.all(chunkTasks);
-                        results.push(...chunkResults);
+                        // Correctly type the flattened push
+                        chunkResults.forEach(batch => results.push(...batch));
                     }
 
                     if (!this.isPolling) {

@@ -821,8 +821,8 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (price) for ${symbol}:`, fastPathError);
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
+                    // Log warning but allow fallback
+                    logger.warn("network", `[BitunixWS] FastPath error (price) for ${symbol}`, fastPathError);
                   }
                 }
                 break;
@@ -864,8 +864,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (ticker) for ${symbol}:`, fastPathError);
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
+                    logger.warn("network", `[BitunixWS] FastPath error (ticker) for ${symbol}`, fastPathError);
                   }
                 }
                 break;
@@ -883,8 +882,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (depth) for ${symbol}:`, fastPathError);
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
+                    logger.warn("network", `[BitunixWS] FastPath error (depth) for ${symbol}`, fastPathError);
                   }
                 }
                 break;
@@ -926,8 +924,7 @@ class BitunixWebSocketService {
                         }
                         return;
                     } catch (fastPathError) {
-                        console.debug(`[DIAGNOSTIC] Fast Path FAILED (kline) for ${symbol}:`, fastPathError);
-                        if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
+                        logger.warn("network", `[BitunixWS] FastPath error (kline) for ${symbol}`, fastPathError);
                     }
                 }
                 break;
@@ -935,9 +932,8 @@ class BitunixWebSocketService {
           }
         }
       } catch (e) {
-        if (import.meta.env.DEV) {
-          logger.warn("network", "[BitunixWS] FastPath exception (falling back to std validation)", e);
-        }
+        // Always log FastPath failures as they indicate schema drift or logic errors
+        logger.warn("network", "[BitunixWS] FastPath exception (falling back to std validation)", e);
       }
       // --- END FAST PATH ---
 
