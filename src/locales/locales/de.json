@@ -166,7 +166,16 @@
       "trigger": "Trigger:",
       "amount": "Menge:",
       "cancelTooltip": "Abbrechen",
-      "editTooltip": "Bearbeiten"
+      "editTooltip": "Bearbeiten",
+      "editTitle": "{type} bearbeiten",
+      "triggerPrice": "Auslösepreis",
+      "qty": "Menge",
+      "symbol": "Symbol:",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "saving": "Speichert...",
+      "triggerRequired": "Auslösepreis ist erforderlich",
+      "failedToModify": "Fehler beim Bearbeiten der Order"
     },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
