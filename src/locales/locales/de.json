@@ -1328,7 +1328,10 @@
       "10m": "10M",
       "50m": "50M"
     },
-    "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12)."
+    "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12).",
+    "pairs": "Paare",
+    "volLabel": "Vol:",
+    "majorsOnly": "Nur Majors"
   },
   "common": {
     "save": "Speichern",
