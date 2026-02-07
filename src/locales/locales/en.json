@@ -159,6 +159,8 @@
     "noNews": "No news found.",
     "connectNews": "Connect your news APIs to view sentiment analysis.",
     "configure": "Configure",
+    "toggleTiles": "Toggle Market Tiles",
+    "toggleSentiment": "Toggle Market Sentiment",
     "tpsl": "TP/SL",
     "tpslManager": {
       "pending": "Pending",

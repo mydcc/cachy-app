@@ -37,6 +37,7 @@ export interface SentimentAnalysis {
   keyFactors: string[];
 }
 
+// --- Validation Schemas ---
 const NewsItemSchema = z.object({
   title: z.string().min(1),
   url: z.string().url().or(z.string().startsWith("http")), // Strict but with fallback for internal formats
@@ -60,11 +61,28 @@ const SentimentAnalysisSchema = z.object({
   keyFactors: z.array(z.string()),
 });
 
-const SentimentCacheSchema = z.object({
-  data: SentimentAnalysisSchema,
-  timestamp: z.number(),
-  newsHash: z.string(),
+// External API Schemas for Validation
+const CryptoPanicResultSchema = z.object({
+  title: z.string(),
+  url: z.string(),
+  source: z.object({ title: z.string() }).optional(),
+  published_at: z.string(),
+  currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
 });
+const CryptoPanicResponseSchema = z.object({
+  results: z.array(CryptoPanicResultSchema)
+});
+
+const NewsApiArticleSchema = z.object({
+  title: z.string(),
+  url: z.string(),
+  source: z.object({ name: z.string() }),
+  publishedAt: z.string(),
+});
+const NewsApiResponseSchema = z.object({
+  articles: z.array(NewsApiArticleSchema)
+});
+
 
 const COIN_ALIASES: Record<string, string[]> = {
   BTC: ["Bitcoin", "BTC"],
@@ -263,16 +281,23 @@ export const newsService = {
 
             if (res.ok) {
               const text = await res.text();
-              const data = safeJsonParse(text);
-              newsItems = data.results.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source?.title || "Unknown",
-                published_at: item.published_at,
-                currencies: item.currencies,
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
-              }));
-              apiQuotaTracker.logCall("cryptopanic", true);
+              const rawData = safeJsonParse(text);
+              const validation = CryptoPanicResponseSchema.safeParse(rawData);
+
+              if (validation.success) {
+                  newsItems = validation.data.results.map((item) => ({
+                    title: item.title,
+                    url: item.url,
+                    source: item.source?.title || "Unknown",
+                    published_at: item.published_at,
+                    currencies: item.currencies,
+                    id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+                  }));
+                  apiQuotaTracker.logCall("cryptopanic", true);
+              } else {
+                  logger.warn("market", `[NewsService] CryptoPanic schema validation failed`, validation.error);
+                  apiQuotaTracker.logCall("cryptopanic", false, "Schema Validation Failed");
+              }
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
@@ -316,17 +341,24 @@ export const newsService = {
 
             if (res.ok) {
               const text = await res.text();
-              const data = safeJsonParse(text);
-              const mapped = data.articles.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source.name,
-                published_at: item.publishedAt,
-                currencies: [],
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
-              }));
-              newsItems = [...newsItems, ...mapped];
-              apiQuotaTracker.logCall("newsapi", true);
+              const rawData = safeJsonParse(text);
+              const validation = NewsApiResponseSchema.safeParse(rawData);
+
+              if (validation.success) {
+                  const mapped = validation.data.articles.map((item) => ({
+                    title: item.title,
+                    url: item.url,
+                    source: item.source.name,
+                    published_at: item.publishedAt,
+                    currencies: [],
+                    id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+                  }));
+                  newsItems = [...newsItems, ...mapped];
+                  apiQuotaTracker.logCall("newsapi", true);
+              } else {
+                  logger.warn("market", `[NewsService] NewsAPI schema validation failed`, validation.error);
+                  apiQuotaTracker.logCall("newsapi", false, "Schema Validation Failed");
+              }
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);

@@ -35,14 +35,14 @@ interface MarketWatchRequest {
 function tfToMs(tf: string): number {
     const unit = tf.slice(-1);
     const val = parseInt(tf.slice(0, -1));
-    if (isNaN(val)) return 60000;
+    if (isNaN(val)) throw new Error(`Invalid timeframe: ${tf}`);
     switch (unit) {
         case 'm': return val * 60 * 1000;
         case 'h': return val * 60 * 60 * 1000;
         case 'd': return val * 24 * 60 * 60 * 1000;
         case 'w': return val * 7 * 24 * 60 * 60 * 1000;
         case 'M': return val * 30 * 24 * 60 * 60 * 1000;
-        default: return 60000;
+        default: throw new Error(`Invalid timeframe unit: ${unit}`);
     }
 }
 

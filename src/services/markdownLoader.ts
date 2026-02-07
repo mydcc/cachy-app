@@ -19,6 +19,7 @@ import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
+import DOMPurify from "isomorphic-dompurify";
 
 // Helper to slugify text for heading IDs
 const slugify = (text: string) => {
@@ -95,9 +96,11 @@ export async function loadInstruction(
         if (modules[fallbackPath]) {
           const content = (await modules[fallbackPath]()) as string;
           const html = await marked(content);
+          const sanitizedHtml = DOMPurify.sanitize(html);
+
           const firstLine = content.split("\n")[0];
           const titleMatch = firstLine.match(/^#\s*(.*)/);
-          return { html, title: titleMatch ? titleMatch[1] : "" };
+          return { html: sanitizedHtml, title: titleMatch ? titleMatch[1] : "" };
         }
       }
       throw new Error("markdownErrors.fileNotFound");
@@ -105,13 +108,14 @@ export async function loadInstruction(
 
     const markdownContent = (await modules[relativePath]()) as string;
     const htmlContent = await marked(markdownContent);
+    const sanitizedHtml = DOMPurify.sanitize(htmlContent);
 
     // Extract title from the first line (assuming it's an H1)
     const firstLine = markdownContent.split("\n")[0];
     const titleMatch = firstLine.match(/^#\s*(.*)/);
     const title = titleMatch ? titleMatch[1] : "";
 
-    return { html: htmlContent, title: title };
+    return { html: sanitizedHtml, title: title };
   } catch (error) {
     console.error(
       `Failed to load or parse markdown for ${name} in ${currentLocale}:`,

@@ -935,9 +935,8 @@ class BitunixWebSocketService {
           }
         }
       } catch (e) {
-        if (import.meta.env.DEV) {
-          logger.warn("network", "[BitunixWS] FastPath exception (falling back to std validation)", e);
-        }
+        // [HARDENING] Log warning in all environments to detect schema drift
+        logger.warn("network", "[BitunixWS] FastPath exception (falling back to std validation)", e);
       }
       // --- END FAST PATH ---
 

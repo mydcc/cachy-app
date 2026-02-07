@@ -200,6 +200,13 @@ class TradeService {
             throw new Error("apiErrors.invalidAmount");
         }
 
+        // HARDENING: Double-check that the retrieved position side matches our intent
+        // (This prevents rare race conditions where a position might flip during a refresh)
+        if (position.side !== positionSide) {
+             logger.error("market", `[FlashClose] Position side mismatch. Expected ${positionSide}, got ${position.side}`);
+             throw new Error("tradeErrors.positionMismatch");
+        }
+
         const qty = position.amount.toString();
 
         logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);

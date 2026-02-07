@@ -611,12 +611,18 @@ export const apiService = {
                   return null;
               }
 
+              // HARDENING: Check for missing volume (don't default to 0, filter out invalid data)
+              const volume = d.volume || d.vol;
+              if (!volume) {
+                  return null;
+              }
+
               return {
                 open: d.open,
                 high: d.high,
                 low: d.low,
                 close: d.close,
-                volume: d.volume || d.vol || new Decimal(0),
+                volume: volume,
                 time
               };
             })
