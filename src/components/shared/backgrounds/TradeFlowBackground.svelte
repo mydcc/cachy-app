@@ -745,9 +745,13 @@
   let lastGridLength = $state(settings.gridLength);
   
   $effect(() => {
-      if (lifecycleState === LifecycleState.READY && (settings.gridWidth !== lastGridWidth || settings.gridLength !== lastGridLength)) {
-          lastGridWidth = settings.gridWidth;
-          lastGridLength = settings.gridLength;
+      // Reactive tracking for warning suppression
+      const currentGridWidth = settings.gridWidth;
+      const currentGridLength = settings.gridLength;
+
+      if (lifecycleState === LifecycleState.READY && (currentGridWidth !== lastGridWidth || currentGridLength !== lastGridLength)) {
+          lastGridWidth = currentGridWidth;
+          lastGridLength = currentGridLength;
           initSceneObjects();
       }
   });
@@ -796,7 +800,7 @@
     window.removeEventListener('resize', onResize);
     
     if (performanceMonitor) performanceMonitor.stop();
-    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol);
+    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
 
     if (scene) {
       scene.children.forEach(child => {
