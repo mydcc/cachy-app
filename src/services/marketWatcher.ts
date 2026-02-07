@@ -349,7 +349,7 @@ class MarketWatcher {
 
         // Execute Fetch Logic
         const latestLimit = 1000; // API Max
-        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit);
+        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit, Date.now());
 
         if (klines1 && klines1.length > 0) {
             marketState.updateSymbolKlines(symbol, tf, klines1, "rest");

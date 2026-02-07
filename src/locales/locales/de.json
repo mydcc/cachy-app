@@ -114,7 +114,7 @@
         "reduceOnly": "Nur reduzieren",
         "size": "Größe",
         "value": "Wert",
-        "entry": "Einstieg",
+        "entry": "Einstieg", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
         "mark": "Mark"
       }
     },
@@ -287,7 +287,7 @@
     },
     "visualBar": {
       "header": "Visuelle Analyse",
-      "entry": "Einstieg",
+      "entry": "Einstieg", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
       "ariaLabel": "Trade-Visualisierungsleiste",
       "netProfitLabel": "Netto-Gewinn:",
       "rrLabel": "R/R:"
@@ -307,7 +307,7 @@
     "date": "Datum",
     "symbol": "Symbol",
     "type": "Typ",
-    "entry": "Einstieg",
+    "entry": "Einstieg", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
     "sl": "SL",
     "rr": "R/R",
     "status": "Status",
@@ -380,7 +380,7 @@
       "date": "Datum",
       "symbol": "Symbol",
       "type": "Typ",
-      "entry": "Einstieg",
+      "entry": "Einstieg", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
       "exit": "Exit",
       "atr": "ATR",
       "sl": "SL",

@@ -445,30 +445,17 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const response = await fetch("/api/tpsl", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-                                  body: JSON.stringify(this.serializePayload({
-                                      exchange: provider,
-                                      apiKey: keys.key,
-                                      apiSecret: keys.secret,
-                                      action: view,
-                                      params
-                                  }))
+                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                                  exchange: provider,
+                                  action: view,
+                                  params
                               });
-
-                              const text = await response.text();
-                              const data = safeJsonParse(text);
-
-                              if (data.error) {
-                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
-                                  }
-                                  return [];
-                              }
                               return Array.isArray(data) ? data : data.rows || [];
-                          } catch (e) {
-                              logger.warn("market", `TP/SL network error for ${sym}`, e);
+                          } catch (e: any) {
+                              const msg = e.message || String(e);
+                              if (!msg.includes("code: 2") && !msg.includes("Symbol not found")) {
+                                  logger.warn("market", `TP/SL error for ${sym}`, e);
+                              }
                               return [];
                           }
                       })
@@ -488,21 +475,10 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const response = await fetch("/api/tpsl", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-                  body: JSON.stringify({
-                      exchange: provider,
-                      apiKey: keys.key,
-                      apiSecret: keys.secret,
-                      action: view,
-                  })
+             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                  exchange: provider,
+                  action: view
              });
-
-             const text = await response.text();
-             const data = safeJsonParse(text);
-             if (data.error) throw new Error(data.error);
-
              const list = Array.isArray(data) ? data : data.rows || [];
              list.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
@@ -514,26 +490,15 @@ class TradeService {
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
 
-        const response = await fetch("/api/tpsl", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-            body: JSON.stringify(this.serializePayload({
-                exchange: provider,
-                apiKey: keys.key,
-                apiSecret: keys.secret,
-                action: "cancel",
-                params: {
-                    orderId: order.orderId || order.id,
-                    symbol: order.symbol,
-                    planType: order.planType,
-                },
-            })),
+        return this.signedRequest("POST", "/api/tpsl", {
+            exchange: provider,
+            action: "cancel",
+            params: {
+                orderId: order.orderId || order.id,
+                symbol: order.symbol,
+                planType: order.planType,
+            },
         });
-
-        const text = await response.text();
-        const res = safeJsonParse(text);
-        if (res.error) throw new Error(res.error);
-        return res;
     }
 }
 

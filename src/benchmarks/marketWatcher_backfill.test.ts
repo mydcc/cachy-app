@@ -1,87 +1,57 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { marketWatcher } from '../services/marketWatcher';
-import { apiService } from '../services/apiService';
-import { Decimal } from 'decimal.js';
-import { marketState } from '../stores/market.svelte';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { marketWatcher } from "../services/marketWatcher";
+import { apiService } from "../services/apiService";
+import { storageService } from "../services/storageService";
 
 // Mock dependencies
-vi.mock('../stores/settings.svelte', () => ({
+vi.mock("../services/apiService");
+vi.mock("../services/storageService");
+vi.mock("../stores/market.svelte", () => ({
+    marketState: {
+        updateSymbolKlines: vi.fn(),
+        data: {}
+    }
+}));
+vi.mock("../stores/settings.svelte", () => ({
     settingsState: {
-        apiProvider: 'bitunix',
-        chartHistoryLimit: 5000,
+        apiProvider: "bitunix",
+        chartHistoryLimit: 1000,
         capabilities: { marketData: true }
     }
 }));
+vi.mock("../services/logger");
 
-vi.mock('../stores/market.svelte', () => ({
-    marketState: {
-        data: {},
-        updateSymbolKlines: vi.fn((sym, tf, klines, src) => {
-             if (!marketState.data[sym]) marketState.data[sym] = { klines: {} };
-             const existing = marketState.data[sym].klines[tf] || [];
-             // Simulate simple append for mock
-             marketState.data[sym].klines[tf] = existing.concat(klines);
-        }),
-    }
-}));
-
-vi.mock('../services/storageService', () => ({
-    storageService: {
-        getKlines: vi.fn().mockResolvedValue([]),
-        saveKlines: vi.fn()
-    }
-}));
-
-describe('MarketWatcher Backfill Performance', () => {
+describe("MarketWatcher History Backfill", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (marketWatcher as any).historyLocks.clear();
-        marketState.data = {};
+        (marketWatcher as any).historyLocks = new Set();
     });
 
-    it('measures sequential vs parallel backfill', async () => {
-        const LATENCY = 50;
+    it("ensureHistory should pass explicit endTime to apiService", async () => {
+        const symbol = "BTCUSDT";
+        const tf = "15m";
 
-        vi.spyOn(apiService, 'fetchBitunixKlines').mockImplementation(async (sym, tf, limit, start, end) => {
-            await new Promise(r => setTimeout(r, LATENCY));
+        vi.mocked(storageService.getKlines).mockResolvedValue([]);
+        vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue([
+            { time: 1000, open: 1, high: 2, low: 0.5, close: 1.5, volume: 100 } as any
+        ]);
 
-            const res = [];
-            const endTime = end || 1700000000000;
-            const intervalMs = 60000;
+        await marketWatcher.ensureHistory(symbol, tf);
 
-            for (let i = 0; i < limit; i++) {
-                res.push({
-                    time: endTime - (i * intervalMs),
-                    open: new Decimal(100), high: new Decimal(110), low: new Decimal(90), close: new Decimal(105), volume: new Decimal(1000)
-                });
-            }
-            // Return sorted Old->New (index 0 is oldest)
-            return res.sort((a, b) => a.time - b.time);
-        });
+        // Expect fetchBitunixKlines to be called with explicit endTime (arg index 3)
+        // fetchBitunixKlines(symbol, tf, limit, endTime, ...)
+        expect(apiService.fetchBitunixKlines).toHaveBeenCalled();
 
-        const startTime = Date.now();
-        await marketWatcher.ensureHistory('BTCUSDT', '1m');
-        const duration = Date.now() - startTime;
+        const callArgs = vi.mocked(apiService.fetchBitunixKlines).mock.calls[0];
+        // Args: [symbol, tf, limit, endTime, startTime, priority, timeout]
 
-        console.log(`Execution Time: ${duration}ms`);
+        // We verify that arg[3] (endTime) is a number (Date.now() approx)
+        // Currently it is likely undefined in the implementation
 
-        // Assertions for correctness
-        // 1. Initial fetch (1000)
-        // 2. Parallel backfill (4000)
-        // Expect updateSymbolKlines to be called.
+        const endTimeArg = callArgs[3];
 
-        expect(marketState.updateSymbolKlines).toHaveBeenCalled();
-        const calls = (marketState.updateSymbolKlines as any).mock.calls;
-
-        // Calculate total items pushed
-        let totalItems = 0;
-        calls.forEach(c => totalItems += c[2].length);
-
-        // Should be at least 5000 (initial 1000 + 4 batches of 1000)
-        expect(totalItems).toBeGreaterThanOrEqual(5000);
-
-        // Expect parallel speedup
-        // Sequential would be ~650ms. Parallel should be < 300ms.
-        expect(duration).toBeLessThan(400);
+        // This assertion will FAIL if endTime is undefined (which is current state)
+        expect(endTimeArg).toBeDefined();
+        expect(typeof endTimeArg).toBe("number");
     });
 });

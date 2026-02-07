@@ -822,7 +822,7 @@ class BitunixWebSocketService {
                     return;
                   } catch (fastPathError) {
                     console.debug(`[DIAGNOSTIC] Fast Path FAILED (price) for ${symbol}:`, fastPathError);
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (price):", fastPathError);
                   }
                 }
                 break;
@@ -865,7 +865,7 @@ class BitunixWebSocketService {
                     return;
                   } catch (fastPathError) {
                     console.debug(`[DIAGNOSTIC] Fast Path FAILED (ticker) for ${symbol}:`, fastPathError);
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (ticker):", fastPathError);
                   }
                 }
                 break;
@@ -884,7 +884,7 @@ class BitunixWebSocketService {
                     return;
                   } catch (fastPathError) {
                     console.debug(`[DIAGNOSTIC] Fast Path FAILED (depth) for ${symbol}:`, fastPathError);
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (depth):", fastPathError);
                   }
                 }
                 break;
@@ -927,7 +927,7 @@ class BitunixWebSocketService {
                         return;
                     } catch (fastPathError) {
                         console.debug(`[DIAGNOSTIC] Fast Path FAILED (kline) for ${symbol}:`, fastPathError);
-                        if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
+                        logger.warn("network", "[BitunixWS] FastPath error (kline):", fastPathError);
                     }
                 }
                 break;

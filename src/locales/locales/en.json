@@ -107,7 +107,7 @@
         "reduceOnly": "Reduce Only",
         "size": "Size",
         "value": "Value",
-        "entry": "Entry",
+        "entry": "Entry", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
         "mark": "Mark"
       },
       "type": {
@@ -287,7 +287,7 @@
     },
     "visualBar": {
       "header": "Visual Analysis",
-      "entry": "Entry",
+      "entry": "Entry", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
       "ariaLabel": "Trade Visualization Bar",
       "netProfitLabel": "Net Profit:",
       "rrLabel": "R/R:"
@@ -307,7 +307,7 @@
     "date": "Date",
     "symbol": "Symbol",
     "type": "Type",
-    "entry": "Entry",
+    "entry": "Entry", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
     "sl": "SL",
     "rr": "R/R",
     "status": "Status",
@@ -380,7 +380,7 @@
       "date": "Date",
       "symbol": "Symbol",
       "type": "Type",
-      "entry": "Entry",
+      "entry": "Entry", "sl": "SL", "tp": "TP", "riskReward": "{ratio}R",
       "exit": "Exit",
       "atr": "ATR",
       "sl": "SL",

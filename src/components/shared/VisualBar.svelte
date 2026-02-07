@@ -91,14 +91,14 @@
       <!-- Header: 24px -->
       <div class="header-section">
         <div class="header-left">
-          <span class="sl-badge">SL</span>
+          <span class="sl-badge">{$_("dashboard.visualBar.sl")}</span>
           <span class="title">{$_("dashboard.visualBar.header")}</span>
         </div>
         <div class="tp-container">
           {#each tpData as tp}
             <div class="tp-label" style="left: {tp.x}%">
-              <div class="tp-name">TP{tp.idx}</div>
-              <div class="tp-rr">{tp.rr}R</div>
+              <div class="tp-name">{$_("dashboard.visualBar.tp")}{tp.idx}</div>
+              <div class="tp-rr">{$_("dashboard.visualBar.riskReward", { ratio: tp.rr })}</div>
             </div>
           {/each}
         </div>
