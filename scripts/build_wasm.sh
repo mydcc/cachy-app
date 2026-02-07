@@ -3,11 +3,6 @@ set -e
 
 WASM_FILE="static/wasm/technicals_wasm.wasm"
 
-WASM_FILE="static/wasm/technicals_wasm.wasm"
-
-# We removed the "skip if exists" check to ensure Rust source changes are always 
-# compiled when cargo is available. Cargo handles incremental builds efficiently.
-
 # Check if cargo is available
 if ! command -v cargo > /dev/null 2>&1; then
     echo "⚠ Cargo not found. Skipping WASM build."
@@ -15,12 +10,19 @@ if ! command -v cargo > /dev/null 2>&1; then
     exit 0
 fi
 
-# Check if wasm32-unknown-unknown target is installed
-if ! rustup target list | grep -q "wasm32-unknown-unknown (installed)"; then
-    echo "⚠ wasm32-unknown-unknown target not installed."
-    echo "  Run: rustup target add wasm32-unknown-unknown"
-    echo "  Skipping WASM build for now."
-    exit 0
+# Check if rustup is available before checking targets
+if ! command -v rustup > /dev/null 2>&1; then
+    echo "⚠ Rustup not found (but Cargo is?). Skipping target check."
+    # If cargo exists but rustup doesn't, we assume the environment is set up manually.
+    # We proceed to build and let cargo fail if target is missing.
+else
+    # Check if wasm32-unknown-unknown target is installed
+    if ! rustup target list | grep -q "wasm32-unknown-unknown (installed)"; then
+        echo "⚠ wasm32-unknown-unknown target not installed."
+        echo "  Run: rustup target add wasm32-unknown-unknown"
+        echo "  Skipping WASM build for now."
+        exit 0
+    fi
 fi
 
 echo "Building WASM module..."

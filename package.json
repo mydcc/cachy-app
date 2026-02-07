@@ -2,6 +2,7 @@
   "type": "module",
   "engines": { "node": ">=20.0.0" },
   "scripts": {
+    "postinstall": "chmod +x scripts/build_wasm.sh",
     "build:wasm": "./scripts/build_wasm.sh",
     "dev": "npm run build:wasm && vite dev",
     "build": "npm run build:wasm && vite build",
