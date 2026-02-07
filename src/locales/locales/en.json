@@ -1343,6 +1343,7 @@
     "failedToLoadOrders": "Failed to load orders.",
     "failedToLoadPositions": "Failed to load positions.",
     "fetchFailed": "Fetch failed",
+    "unknownError": "Unknown error",
     "missingCredentials": "API keys missing or incomplete",
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",

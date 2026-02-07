@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import { browser } from "$app/environment";
   import * as THREE from "three";
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
   import { PerformanceMonitor } from "../../../utils/performanceMonitor";
+  import { _ } from "../../../locales/i18n";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -120,7 +121,7 @@
   let targetAtmosphere = new THREE.Color(0x000000);
 
   const settings = $derived(settingsState.tradeFlowSettings);
-  let lastFlowMode = $state(settings.flowMode);
+  let lastFlowMode = $state(untrack(() => settings.flowMode));
 
   // ========================================
   // SHADERS
@@ -686,7 +687,7 @@
     
     if (!result.success) {
       lifecycleState = LifecycleState.ERROR;
-      lifecycleError = result.error || 'Unknown error';
+      lifecycleError = result.error || $_("apiErrors.unknownError");
       log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
       return;
     }
@@ -741,8 +742,8 @@
   });
   
   // Re-init on Grid Size change (expensive, but necessary)
-  let lastGridWidth = $state(settings.gridWidth);
-  let lastGridLength = $state(settings.gridLength);
+  let lastGridWidth = $state(untrack(() => settings.gridWidth));
+  let lastGridLength = $state(untrack(() => settings.gridLength));
   
   $effect(() => {
       if (lifecycleState === LifecycleState.READY && (settings.gridWidth !== lastGridWidth || settings.gridLength !== lastGridLength)) {
@@ -796,7 +797,7 @@
     window.removeEventListener('resize', onResize);
     
     if (performanceMonitor) performanceMonitor.stop();
-    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol);
+    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
 
     if (scene) {
       scene.children.forEach(child => {
