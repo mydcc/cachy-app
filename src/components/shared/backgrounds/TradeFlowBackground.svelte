@@ -344,7 +344,7 @@
       log(LogLevel.ERROR, '❌ Initialization failed:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+            error: error instanceof Error ? error.message : 'apiErrors.generic'
       };
     }
   }
@@ -686,7 +686,7 @@
     
     if (!result.success) {
       lifecycleState = LifecycleState.ERROR;
-      lifecycleError = result.error || 'Unknown error';
+      lifecycleError = result.error || 'apiErrors.generic';
       log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
       return;
     }
