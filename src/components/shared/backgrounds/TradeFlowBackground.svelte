@@ -6,6 +6,7 @@
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
   import { PerformanceMonitor } from "../../../utils/performanceMonitor";
+  import { _ } from "../../../locales/i18n";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -120,7 +121,7 @@
   let targetAtmosphere = new THREE.Color(0x000000);
 
   const settings = $derived(settingsState.tradeFlowSettings);
-  let lastFlowMode = $state(settings.flowMode);
+  let lastFlowMode = $state(settingsState.tradeFlowSettings.flowMode);
 
   // ========================================
   // SHADERS
@@ -344,7 +345,7 @@
       log(LogLevel.ERROR, '❌ Initialization failed:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'errors.unknown'
       };
     }
   }
@@ -686,7 +687,7 @@
     
     if (!result.success) {
       lifecycleState = LifecycleState.ERROR;
-      lifecycleError = result.error || 'Unknown error';
+      lifecycleError = result.error || 'errors.unknown';
       log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
       return;
     }
@@ -741,8 +742,8 @@
   });
   
   // Re-init on Grid Size change (expensive, but necessary)
-  let lastGridWidth = $state(settings.gridWidth);
-  let lastGridLength = $state(settings.gridLength);
+  let lastGridWidth = $state(settingsState.tradeFlowSettings.gridWidth);
+  let lastGridLength = $state(settingsState.tradeFlowSettings.gridLength);
   
   $effect(() => {
       if (lifecycleState === LifecycleState.READY && (settings.gridWidth !== lastGridWidth || settings.gridLength !== lastGridLength)) {
@@ -796,7 +797,7 @@
     window.removeEventListener('resize', onResize);
     
     if (performanceMonitor) performanceMonitor.stop();
-    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol);
+    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
 
     if (scene) {
       scene.children.forEach(child => {
@@ -823,7 +824,7 @@
 <div bind:this={container} class="w-full h-full absolute inset-0 -z-10 overflow-hidden pointer-events-none">
     {#if lifecycleState === LifecycleState.ERROR}
         <div class="absolute inset-0 flex items-center justify-center text-red-500 bg-black/50 p-4">
-            <p>Background Error: {lifecycleError}</p>
+            <p>Background Error: {lifecycleError === 'errors.unknown' ? $_('errors.unknown') : lifecycleError}</p>
         </div>
     {/if}
 </div>

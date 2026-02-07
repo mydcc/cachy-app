@@ -1261,6 +1261,7 @@ export type TranslationKey =
   | "errors.priceFetchFailed"
   | "errors.atrFetchFailed"
   | "errors.saveFailed"
+  | "errors.unknown"
   | "modals.savePreset.title"
   | "modals.savePreset.prompt"
   | "modals.clearJournal.title"
