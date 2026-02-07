@@ -2,83 +2,67 @@
 
 **Date:** 2026-05-26
 **Analyst:** Jules (Senior Lead Developer)
-**Scope:** `src/services`, `src/stores`, `src/components` (Data Integrity, Performance, UI/UX, Security)
+**Scope:** `src/services`, `src/stores`, `src/components`
 
 ---
 
 ## 1. Data Integrity & Mapping
 
-### 🔴 CRITICAL: Potential Promise Lockup in NewsService
-- **Location:** `src/services/newsService.ts`
-- **Issue:** The `fetch` calls for external APIs (CryptoPanic, NewsAPI) lack a signal/timeout. If the external server hangs indefinitely (socket open but no data), the `pendingNewsFetches` Map entry will never be deleted.
-- **Consequence:** Future requests for that symbol will await the hung promise forever, effectively breaking the news feature for that symbol until a page reload.
-- **Fix:** Implement `AbortController` with a strict timeout (e.g., 10s) for all external fetches.
+### ✅ RESOLVED: Potential Promise Lockup in NewsService
+- **Status:** Fixed.
+- **Verification:** `src/services/newsService.ts` now uses `AbortController` with a 15s timeout for all external API calls. `pendingNewsFetches` is cleared in a `finally` block.
 
 ### 🟡 WARNING: Redundant "Fast Path" in BitunixWebSocketService
 - **Location:** `src/services/bitunixWs.ts`
-- **Issue:** The service parses JSON, then manually extracts/casts fields ("Fast Path") before *also* running Zod validation in the "Slow Path" (fallback).
-- **Risk:** High maintenance burden. Logic is duplicated. If the API changes, developers might update the Zod schema but forget the Fast Path, leading to silent bugs or data inconsistencies.
-- **Performance Note:** While intended for speed, the manual parsing of every field (checking `typeof` and casting) adds overhead that might negate the Zod avoidance benefit for moderate loads.
+- **Issue:** Manual parsing logic exists alongside Zod validation.
+- **Status:** Open.
+- **Risk:** Maintenance burden. Precision checks added, but logic duplication remains.
+- **Recommendation:** Consolidate into a single optimized parser in Phase 2.
 
-### 🟡 WARNING: Native `Number()` Casting in UI
-- **Location:** `src/components/shared/OrderHistoryList.svelte` (and likely others)
-- **Issue:** `Number(order.avgPrice)` is used directly.
-- **Risk:** While `safeJsonParse` handles the incoming data, casting to native Number in the UI for logic checks (e.g., `> 0`) can introduce micro-precision errors if the Decimal was preserved as a string.
-- **Fix:** Use `new Decimal(val).gt(0)` or `val.toNumber()` (if safe) consistently.
+### ✅ RESOLVED: Native `Number()` Casting in UI
+- **Status:** Mitigated.
+- **Verification:** `OrderHistoryList.svelte` uses `formatDynamicDecimal` and `Decimal` comparisons where critical.
 
 ---
 
 ## 2. Resource Management & Performance
 
-### 🔴 CRITICAL: Svelte Store Contract Violation in MarketManager
+### ✅ RESOLVED: Svelte Store Contract Violation in MarketManager
 - **Location:** `src/stores/market.svelte.ts`
-- **Issue:** The `subscribe(fn)` method returns `$effect.root(...)`, which is an object `{ stop: () => void }`.
-- **Standard:** Svelte stores (and Svelte 5 interoperability) expect `subscribe` to return a `Unsubscriber` function (`() => void`).
-- **Consequence:** If any legacy component or standard Svelte utility uses `$marketState`, it will crash when attempting to call the returned value as a function during cleanup.
+- **Issue:** `subscribe` potentially returned an object (from `$effect.root`) instead of a function.
+- **Status:** Fixed.
+- **Verification:** Defensive check added to `subscribe` and `subscribeStatus` to handle both function and object returns (`cleanup()` vs `cleanup.stop()`).
 
 ### 🟡 WARNING: N+1 API Calls in TradeService
 - **Location:** `src/services/tradeService.ts` (`fetchTpSlOrders`)
-- **Issue:** The method iterates through active symbols and fires a `fetch` request for every batch of 5.
-- **Risk:** For a user with positions in 20 symbols, this triggers 4 simultaneous HTTP requests. This might trigger strict rate limiters (WAF) or degrade client performance.
-- **Fix:** Refactor to a single bulk endpoint if available, or strictly serialize the batches with delays.
-
-### 🔵 REFACTOR: MarketWatcher Polling Loop
-- **Location:** `src/services/marketWatcher.ts`
-- **Observation:** `performPollingCycle` runs every second and iterates all requests.
-- **Status:** Acceptable for current scale, but should be monitored if the number of watched symbols grows > 100.
+- **Issue:** Batched requests (size 5) are better than serial, but still not a true bulk endpoint.
+- **Status:** Open (Mitigated by batching).
+- **Risk:** Rate limits on high position counts.
 
 ---
 
 ## 3. UI/UX & Accessibility (A11y)
 
-### 🔴 CRITICAL: Accessibility Barrier in OrderHistoryList
-- **Location:** `src/components/shared/OrderHistoryList.svelte`
-- **Issue:** Tooltips are triggered via `onmouseenter` on a `div` without `tabindex` or `onfocus`.
-- **Consequence:** Keyboard-only users (and screen readers) cannot access order details/tooltips.
-- **Fix:** Add `tabindex="0"`, `role="button"` (or use a `<button>`), and handle keyboard events.
+### ✅ RESOLVED: Accessibility Barrier in OrderHistoryList
+- **Status:** Fixed.
+- **Verification:** `src/components/shared/OrderHistoryList.svelte` includes `tabindex="0"`, `role="button"`, and `onkeydown` handlers for tooltips.
 
-### 🟡 WARNING: Inconsistent Error Handling / I18n
-- **Location:** General
-- **Issue:** Some error messages are hardcoded strings, others are `apiErrors.*` keys.
-- **Fix:** Audit all `catch` blocks in Services to ensure they throw standardized `Error` objects with translation keys, not raw English strings.
-
----
-
-## 4. Security & Validation
-
-### ✅ PASS: Input Sanitization
-- `safeJsonParse` is implemented and used correctly in `BitunixWs`.
-- `TradeService` serializes payloads to string to prevent precision loss.
-
-### ✅ PASS: Defensive Coding
-- `MarketWatcher` implements "Zombie Request Pruning".
-- `BitunixWs` has a "Watchdog" timer to kill stale connections.
+### 🔴 CRITICAL: Missing i18n in Trading Modals
+- **Location:** `src/components/shared/TpSlEditModal.svelte`
+- **Issue:** Hardcoded strings ("Trigger price is required", etc.).
+- **Status:** Open.
+- **Plan:** Scheduled for Phase 2 implementation.
 
 ---
 
-## Summary of Priorities
+## 4. Deployment & Infrastructure
 
-1.  **Fix MarketManager Store Contract** (Crash Risk)
-2.  **Add Timeouts to NewsService** (Hang Risk)
-3.  **Fix A11y in OrderHistoryList** (Compliance/UX)
-4.  **Refactor BitunixWs Fast Path** (Maintainability)
+### ✅ RESOLVED: Node Version Compatibility
+- **Issue:** Render deployment failed due to missing or invalid Node version.
+- **Status:** Fixed.
+- **Action:** Added `.node-version` (v20.18.0) and regenerated `package-lock.json` to ensure consistency.
+
+---
+
+## Summary
+Critical stability issues (Store Contract, Promise Lockup) have been addressed. The remaining focus for Phase 2 is **Internationalization (i18n)** and **Type Safety Hardening** (TradeService).
