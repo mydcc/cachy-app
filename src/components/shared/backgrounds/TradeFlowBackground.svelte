@@ -88,13 +88,10 @@
   let scene: THREE.Scene;
   let camera: THREE.PerspectiveCamera;
   
-  const rotateY = new THREE.Matrix4().makeRotationY( 0.005 );
-  
   let pointclouds: THREE.Points[] = [];
   let materials: THREE.ShaderMaterial[] = [];
 
   // Data Management
-  let colorAttributes: THREE.BufferAttribute[] = [];
   
   // Shared State Arrays
   let equalizerBars: Float32Array; // Shared for Equalizer and City (amplitude)
@@ -106,8 +103,6 @@
   // Sonar State
   let sonarBlips: { x: number, z: number, life: number }[] = [];
   let sonarAngle = 0;
-
-  let head = 0; 
 
   // Theme & Atmosphere
   let colorUp = new THREE.Color(0x00b894);
@@ -134,7 +129,7 @@
   const vertexShader = `
     uniform float uSize;
     uniform float uTime;
-    uniform float uMode; // 0=Tunnel, 1=Equalizer, 2=Raindrops, 3=City, 4=Sonar
+    uniform float uMode; // 1=Equalizer, 2=Raindrops, 3=City, 4=Sonar
     
     attribute float amplitude; // Used for Equalizer height, Raindrops time, City height
     varying vec3 vColor;
@@ -230,7 +225,7 @@
           case 'raindrops': return 2.0;
           case 'city': return 3.0;
           case 'sonar': return 4.0;
-          default: return 0.0; // tunnel
+          default: return 1.0; // Default to Equalizer (Tunnel removed)
       }
   }
 
@@ -251,16 +246,10 @@
               
               let x = 0, y = 0, z = 0;
 
-              if (mode === 'tunnel') {
-                  x = u - 0.5;
-                  y = ( Math.cos( u * Math.PI * 4 ) + Math.sin( v * Math.PI * 8 ) ) / 20;
-                  z = v - 0.5;
-              } else {
-                  // Grid layouts (Equalizer, Raindrops, City, Sonar)
-                  x = (u - 0.5) * 2.0; 
-                  z = (v - 0.5) * 2.0;
-                  y = 0; 
-              }
+              // Grid layouts (Equalizer, Raindrops, City, Sonar)
+              x = (u - 0.5) * 2.0; 
+              z = (v - 0.5) * 2.0;
+              y = 0; 
 
               positions[ 3 * k ] = x;
               positions[ 3 * k + 1 ] = y;
@@ -297,7 +286,6 @@
       }
       pointclouds = [];
       materials = [];
-      colorAttributes = [];
 
       const width = settings.gridWidth || 80;
       const length = settings.gridLength || 160;
@@ -308,31 +296,21 @@
           equalizerBars = new Float32Array(numPoints).fill(0);
       }
       
-      const layerCount = settings.flowMode === 'tunnel' ? 3 : 1;
-      
-      for(let i=0; i<layerCount; i++) {
-           let c = new THREE.Color(0x00b894); 
-           if (i===1) c = new THREE.Color(0x00a884);
-           if (i===2) c = new THREE.Color(0x009874);
+      // Always single layer now (Tunnel layers removed)
+      const c = new THREE.Color(0x00b894); 
 
-           const geometry = generatePointCloudGeometry(c, width, length, settings.flowMode);
-           const material = createShaderMaterial();
-           
-           const pc = new THREE.Points(geometry, material);
-           
-           pc.scale.set( 5, 10, 10 ); 
-           if (settings.flowMode !== 'tunnel') {
-              pc.scale.set(10, 10, 10); 
-              pc.position.set(0, -2, 0); 
-           } else {
-               pc.position.set( (i-1)*5, 0, 0 );
-           }
-           
-           scene.add(pc);
-           pointclouds.push(pc);
-           materials.push(material);
-           colorAttributes.push(geometry.getAttribute('color') as THREE.BufferAttribute);
-      }
+      const geometry = generatePointCloudGeometry(c, width, length, settings.flowMode);
+      const material = createShaderMaterial();
+       
+      const pc = new THREE.Points(geometry, material);
+       
+      // Unified scaling for grid modes
+      pc.scale.set(10, 10, 10); 
+      pc.position.set(0, -2, 0); 
+       
+      scene.add(pc);
+      pointclouds.push(pc);
+      materials.push(material);
   }
 
   // ========================================
@@ -373,15 +351,15 @@
   
   function updateCameraPosition() {
       if (!camera) return;
-      if (settings.flowMode === 'equalizer' || settings.flowMode === 'city') {
-          camera.position.set( 0, 15, 25 ); 
-          if(scene) camera.lookAt( 0, 0, 0 );
-      } else if (settings.flowMode === 'sonar') {
+      
+      // Sonar has unique top-down view
+      if (settings.flowMode === 'sonar') {
           camera.position.set( 0, 30, 0.1 ); // Top down view
           camera.lookAt( 0, 0, 0 );
       } else {
-          camera.position.set( 10, 10, 10 );
-          if (scene) camera.lookAt( scene.position );
+          // Standard perspective for Eq, City, Raindrops
+          camera.position.set( 0, 15, 25 ); 
+          if(scene) camera.lookAt( 0, 0, 0 );
       }
   }
 
@@ -419,10 +397,8 @@
       } else if (settings.flowMode === 'sonar') {
           animateSonar(time);
       } else {
-          // Tunnel Animation
-          camera.applyMatrix4( rotateY );
-          camera.updateMatrixWorld();
-          currentAtmosphere.lerp(targetAtmosphere, 0.02);
+          // Fallback (should typically be covered above)
+          animateDecay();
       }
 
       renderer.render( scene, camera );
@@ -464,13 +440,6 @@
       // Remove old
       activeRipples = activeRipples.filter(r => r.age < 5.0).map(r => ({...r, age: r.age + 0.05}));
       
-      if (activeRipples.length === 0 && pointclouds.length > 0) {
-          // Optimization: Check if we need to clear grid once
-          // For now, simple return might leave last frame freezing.
-          // But since we write to 'amplitude' every frame below, we should run at least once to clear?
-          // Let's just run. 
-      }
-      
       pointclouds.forEach(pc => {
           const attr = pc.geometry.getAttribute('amplitude') as THREE.BufferAttribute;
           
@@ -501,7 +470,10 @@
   }
   
   function animateSonar(time: number) {
-      sonarAngle = (time * 0.5) % (Math.PI * 2);
+      // Use settings.speed for sonar sweep speed. Default ~0.5 rad/s if settings.speed is ~1.0?
+      // settings.speed normally 0.1 to 2.0.
+      const sweepSpeed = (settings.speed || 1.0) * 0.5;
+      sonarAngle = (time * sweepSpeed) % (Math.PI * 2);
       
       // Decay blips
       sonarBlips = sonarBlips.filter(b => b.life > 0);
@@ -573,7 +545,7 @@
       const side = trade.s === "buy" ? "buy" : "sell";
 
       if (!price) return;
-      if (size < settings.minVolume) return;
+      if (settings.minVolume && size < settings.minVolume) return;
 
       const mode = settings.flowMode;
       if (mode === 'equalizer' || mode === 'city') {
@@ -583,36 +555,19 @@
       } else if (mode === 'sonar') {
           processTradeSonar(side, price, size);
       } else {
-          processTradeTunnel(side, price, size);
+          // Fallback to Equalizer
+          processTradeEqualizer(side, price, size);
       }
       
       updateAtmosphere(side);
-  }
-  
-  function processTradeTunnel(side: string, price: number, size: number) {
-       const color = getTradeColors(side, price);
-       let intensity = 1.0;
-       if (size > 0) intensity = 1.0 + Math.max(0, Math.log10(size)) * 0.8; 
-       
-       const idx = head;
-       const idx3 = idx * 3;
-       
-       colorAttributes.forEach(attr => {
-           attr.array[idx3] = color.r * intensity;
-           attr.array[idx3 + 1] = color.g * intensity;
-           attr.array[idx3 + 2] = color.b * intensity;
-           attr.needsUpdate = true;
-       });
-       
-       const numPoints = (settings.gridWidth || 80) * (settings.gridLength || 160);
-       head = (head + 1) % numPoints;
   }
   
   function processTradeEqualizer(side: string, price: number, size: number) {
       const width = settings.gridWidth || 80;
       const length = settings.gridLength || 160;
       
-      let intensity = Math.min(settings.volumeScale * (0.5 + Math.log10(size + 1)), 5.0);
+      const volScale = settings.volumeScale || 1.0;
+      let intensity = Math.min(volScale * (0.5 + Math.log10(size + 1)), 5.0);
       const splashCount = Math.max(1, Math.floor(Math.log10(size+1) * 3));
       
       for(let k=0; k<splashCount; k++) {
@@ -642,9 +597,11 @@
       const rx = Math.floor(Math.random() * width);
       const rz = Math.floor(Math.random() * length);
       
+      const volScale = settings.volumeScale || 1.0;
+
       activeRipples.push({
           x: rx, z: rz, age: 0, 
-          intensity: Math.min(size * 0.01, 2.0) // Scale volume to ripple height
+          intensity: Math.min(size * 0.01 * volScale, 2.0) 
       });
   }
   
@@ -655,7 +612,11 @@
       const rx = Math.floor(Math.random() * width);
       const rz = Math.floor(Math.random() * length);
       
-      sonarBlips.push({x: rx, z: rz, life: 1.0});
+      const volScale = settings.volumeScale || 1.0;
+      // Scale life/intensity by volume
+      const intensity = Math.min(1.0 + Math.log10(size+1) * 0.2 * volScale, 2.0);
+
+      sonarBlips.push({x: rx, z: rz, life: intensity});
   }
   
   function updateAtmosphere(side: string) {
@@ -778,6 +739,18 @@
          updateCameraPosition();
      }
   });
+  
+  // Re-init on Grid Size change (expensive, but necessary)
+  let lastGridWidth = $state(settings.gridWidth);
+  let lastGridLength = $state(settings.gridLength);
+  
+  $effect(() => {
+      if (lifecycleState === LifecycleState.READY && (settings.gridWidth !== lastGridWidth || settings.gridLength !== lastGridLength)) {
+          lastGridWidth = settings.gridWidth;
+          lastGridLength = settings.gridLength;
+          initSceneObjects();
+      }
+  });
 
   // Symbol change effect
   $effect(() => {
@@ -799,83 +772,64 @@
   });
 
   function updateThemeColors() {
-    if (typeof document === "undefined") return;
-    const style = getComputedStyle(document.documentElement);
+    const style = getComputedStyle(document.body);
+    // Use theme colors or fallbacks
     const up = style.getPropertyValue("--color-up").trim() || "#00b894";
     const down = style.getPropertyValue("--color-down").trim() || "#d63031";
     const warn = style.getPropertyValue("--color-warning").trim() || "#fdcb6e";
+    
     colorUp.set(up);
     colorDown.set(down);
     colorWarning.set(warn);
   }
 
   function cleanup() {
-      if (performanceMonitor) performanceMonitor.stop();
-      stopAnimationLoop();
-      
-      if (scene) {
-          scene.traverse((object) => {
-              if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
-                  if (object.geometry) object.geometry.dispose();
-                  if (object.material) {
-                      if (Array.isArray(object.material)) {
-                          object.material.forEach(m => m.dispose());
-                      } else {
-                          object.material.dispose();
-                      }
-                  }
-              }
-          });
-      }
-      
-      if (renderer) {
-          renderer.dispose();
-      }
-      
-      window.removeEventListener('resize', onResize);
-      if (observer) observer.disconnect();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
-      
-      lifecycleState = LifecycleState.DISPOSED;
-  }
+    lifecycleState = LifecycleState.DISPOSED;
+    stopAnimationLoop();
+    
+    if (observer) {
+        observer.disconnect();
+        observer = null;
+    }
+    
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener('resize', onResize);
+    
+    if (performanceMonitor) performanceMonitor.stop();
+    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol);
 
+    if (scene) {
+      scene.children.forEach(child => {
+        if (child instanceof THREE.Points) {
+            child.geometry.dispose();
+            if (Array.isArray(child.material)) {
+                child.material.forEach(m => m.dispose());
+            } else {
+                child.material.dispose();
+            }
+        }
+      });
+    }
+
+    if (renderer) {
+      renderer.dispose();
+      if (container && canvas && container.contains(canvas)) {
+        container.removeChild(canvas);
+      }
+    }
+  }
 </script>
 
-<div 
-  class="tradeflow-container" 
-  bind:this={container}
-  role="application"
-  aria-label="TradeFlow Background"
->
-  {#if lifecycleError}
-    <div class="error-message">
-       {lifecycleError}
-    </div>
-  {/if}
+<div bind:this={container} class="w-full h-full absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+    {#if lifecycleState === LifecycleState.ERROR}
+        <div class="absolute inset-0 flex items-center justify-center text-red-500 bg-black/50 p-4">
+            <p>Background Error: {lifecycleError}</p>
+        </div>
+    {/if}
 </div>
 
 <style>
-  .tradeflow-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: 0; 
-    pointer-events: none; /* Disable interaction */
-  }
-
-  .error-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--color-down, #ff4444);
-    background: rgba(0, 0, 0, 0.8);
-    padding: 1rem;
-    border-radius: 0.5rem;
-    pointer-events: none;
+  div {
+    contain: strict; /* Optimization hint */
   }
 </style>

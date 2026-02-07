@@ -116,7 +116,6 @@
 
     // Added labels for TradeFlow modes
     const tfModeLabels: any = {
-        tunnel: "Tunnel",
         equalizer: "Equalizer",
         raindrops: "Raindrops",
         city: "Digital City",
@@ -1094,7 +1093,7 @@
                         <div class="field-group mb-4">
                             <label for="tf-mode">Mode</label>
                             <div class="flex flex-wrap gap-2">
-                                {#each ['tunnel', 'equalizer', 'raindrops', 'city', 'sonar'] as mode}
+                                {#each ['equalizer', 'raindrops', 'city', 'sonar'] as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
@@ -1167,84 +1166,80 @@
                             <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
                         </label>
                         
-                        <div class="grid grid-cols-2 gap-4">
-                                <!-- Volume Scale -->
-                            <div class="field-group">
-                                <label for="tf-volscale">Volume Scale: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
-                                <input
-                                    id="tf-volscale"
-                                    type="range"
-                                    bind:value={settingsState.tradeFlowSettings.volumeScale}
-                                    min="0.1"
-                                    max="5.0"
-                                    step="0.1"
-                                    class="range-input"
-                                />
-                            </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <!-- Volume Scale (Eq, City, Rain, Sonar) -->
+                             {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                <div class="field-group">
+                                    <label for="tf-volscale">Volume Scale: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
+                                    <input
+                                        id="tf-volscale"
+                                        type="range"
+                                        bind:value={settingsState.tradeFlowSettings.volumeScale}
+                                        min="0.1"
+                                        max="5.0"
+                                        step="0.1"
+                                        class="range-input"
+                                    />
+                                </div>
+                             {/if}
 
-                            <!-- Decay Speed -->
-                            <div class="field-group">
-                                <label for="tf-decay">Decay Speed: {settingsState.tradeFlowSettings.decaySpeed.toFixed(2)}</label>
-                                <input
-                                    id="tf-decay"
-                                    type="range"
-                                    bind:value={settingsState.tradeFlowSettings.decaySpeed}
-                                    min="0.80"
-                                    max="0.99"
-                                    step="0.01"
-                                    class="range-input"
-                                />
-                            </div>
+                             <!-- Decay Speed (Eq, City) -->
+                             {#if ['equalizer', 'city'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                <div class="field-group">
+                                    <label for="tf-decay">Decay Speed: {settingsState.tradeFlowSettings.decaySpeed.toFixed(2)}</label>
+                                    <input
+                                        id="tf-decay"
+                                        type="range"
+                                        bind:value={settingsState.tradeFlowSettings.decaySpeed}
+                                        min="0.80"
+                                        max="0.99"
+                                        step="0.01"
+                                        class="range-input"
+                                    />
+                                </div>
+                             {/if}
+
+                             <!-- Speed (Sonar) -->
+                             {#if ['sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                <div class="field-group">
+                                    <label for="tf-speed">{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                                    <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
+                                        bind:value={settingsState.tradeFlowSettings.speed}
+                                        class="range-input" />
+                                </div>
+                             {/if}
                         </div>
                         
-                            <div class="field-group">
-                            <label for="tf-minvol">Min Volume Filter: {settingsState.tradeFlowSettings.minVolume}</label>
-                            <input id="tf-minvol" type="range" min="0" max="1000" step="10"
+                        <div class="field-group">
+                            <label for="tf-minvol">Min Trade Volume ($): {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
+                            <input id="tf-minvol" type="range" min="0" max="1000000" step="1000"
                                 bind:value={settingsState.tradeFlowSettings.minVolume}
                                 class="range-input" />
-                            <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.filterHelp")}</p>
+                            <p class="text-[10px] text-[var(--text-secondary)]">Hide trades smaller than this amount to reduce noise.</p>
                         </div>
 
-                        <!-- Grid settings for non-tunnel modes -->
-                        {#if settingsState.tradeFlowSettings.flowMode !== "tunnel"}
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="field-group">
-                                    <label for="tf-grid-width">{$_("settings.visuals.tradeFlow.gridWidth")}: {settingsState.tradeFlowSettings.gridWidth}</label>
-                                    <input id="tf-grid-width" type="range" min="20" max="200" step="10"
-                                        bind:value={settingsState.tradeFlowSettings.gridWidth}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tf-grid-length">{$_("settings.visuals.tradeFlow.gridLength")}: {settingsState.tradeFlowSettings.gridLength}</label>
-                                    <input id="tf-grid-length" type="range" min="40" max="400" step="20"
-                                        bind:value={settingsState.tradeFlowSettings.gridLength}
-                                        class="range-input" />
-                                </div>
-                            </div>
-                        {/if}
-
-                        <!-- Common Particle Settings -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="field-group">
-                                <label for="tf-speed">{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
-                                <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
-                                    bind:value={settingsState.tradeFlowSettings.speed}
-                                    class="range-input" />
-                            </div>
-
+                        <!-- Grid settings -->
+                        <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
-                                <label for="tf-size">{$_("settings.visuals.tradeFlow.size")}: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
-                                <input id="tf-size" type="range" min="0.01" max="0.5" step="0.01"
-                                    bind:value={settingsState.tradeFlowSettings.size}
+                                <label for="tf-grid-width">{$_("settings.visuals.tradeFlow.gridWidth")}: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                <input id="tf-grid-width" type="range" min="20" max="200" step="10"
+                                    bind:value={settingsState.tradeFlowSettings.gridWidth}
                                     class="range-input" />
                             </div>
-                            
                             <div class="field-group">
-                                <label for="tf-count">{$_("settings.visuals.tradeFlow.count")}: {settingsState.tradeFlowSettings.particleCount}</label>
-                                <input id="tf-count" type="range" min="100" max="5000" step="100"
-                                    bind:value={settingsState.tradeFlowSettings.particleCount}
+                                <label for="tf-grid-length">{$_("settings.visuals.tradeFlow.gridLength")}: {settingsState.tradeFlowSettings.gridLength}</label>
+                                <input id="tf-grid-length" type="range" min="40" max="400" step="20"
+                                    bind:value={settingsState.tradeFlowSettings.gridLength}
                                     class="range-input" />
                             </div>
+                        </div>
+
+                        <!-- Particle Size -->
+                        <div class="field-group">
+                            <label for="tf-size">{$_("settings.visuals.tradeFlow.size")}: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                            <input id="tf-size" type="range" min="0.01" max="0.5" step="0.01"
+                                bind:value={settingsState.tradeFlowSettings.size}
+                                class="range-input" />
                         </div>
                     </div>
                 {/if}

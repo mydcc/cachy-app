@@ -99,7 +99,7 @@ export interface TradeFlowSettings {
   particleCount: number; // Legacy total count, might derive from width/height
   size: number;
   spread: number;
-  layout: "tunnel" | "grid";
+  layout: "grid";
   colorMode: "theme" | "interactive" | "custom";
   customColorUp: string;
   customColorDown: string;
@@ -109,7 +109,7 @@ export interface TradeFlowSettings {
   gridLength: number;
   enableAtmosphere: boolean;
   volumeScale: number; // Factor to scale volume mapping
-  flowMode: "tunnel" | "equalizer" | "raindrops" | "city" | "sonar";
+  flowMode: "equalizer" | "raindrops" | "city" | "sonar";
   decaySpeed: number;
 }
 
@@ -413,7 +413,7 @@ const defaultSettings: Settings = {
     particleCount: 3000,
     size: 0.08,
     spread: 8.0,
-    layout: "tunnel",
+    layout: "grid",
     colorMode: "theme",
     customColorUp: "#00ff88",
     customColorDown: "#ff4444",
