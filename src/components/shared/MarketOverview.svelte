@@ -25,7 +25,7 @@
 
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import { untrack, onMount } from "svelte";
+  import { untrack } from "svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -48,7 +48,6 @@
   import { ChartWindow } from "../../lib/windows/implementations/ChartWindow.svelte";
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
-  import { viewport } from "../../actions/viewport";
   import { burn } from "../../actions/burn";
 
   interface Props {
@@ -70,22 +69,7 @@
   let priceTrend: "up" | "down" | null = $state(null);
   let isInitialLoad = $state(true);
 
-  // Performance Optimization: Lazy Load
-  let element: HTMLDivElement | undefined = $state();
-  let isVisible = $state(false);
 
-  onMount(() => {
-    if (!element) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        isVisible = true;
-        observer.disconnect();
-      }
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  });
 
   // Price Flashing & Trend Logic
   let flashingDigitIndexes: Set<number> = $state(new Set());
@@ -266,7 +250,7 @@
 
   // Watch for symbol or provider changes (Ticker & Price)
   $effect(() => {
-    if (symbol && isVisible) {
+    if (symbol) {
       marketWatcher.register(symbol, "price");
       marketWatcher.register(symbol, "ticker");
       return () => {
@@ -278,7 +262,7 @@
 
   // Depth Subscription
   $effect(() => {
-    if (symbol && settingsState.showMarketActivity && isVisible) {
+    if (symbol && settingsState.showMarketActivity) {
       marketWatcher.register(symbol, "depth");
       return () => {
         marketWatcher.unregister(symbol, "depth");
@@ -288,7 +272,7 @@
 
   // Cache Warming: Pre-load history for Favorites (2000 candles)
   $effect(() => {
-    if (isFavoriteTile && symbol && isVisible) {
+    if (isFavoriteTile && symbol) {
       untrack(() => {
         marketWatcher.ensureHistory(symbol, "1h");
       });
@@ -454,7 +438,6 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  bind:this={element}
   class="market-overview-card glass-panel rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] transition-all relative {isFavoriteTile
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
@@ -467,7 +450,6 @@
     ? `Load ${displaySymbol} to calculator`
     : `Market Overview for ${displaySymbol}`}
   tabindex={isFavoriteTile ? 0 : -1}
-  use:viewport={symbol}
   use:burn={settingsState.burnMarketOverviewTiles &&
   settingsState.enableBurningBorders
     ? {
