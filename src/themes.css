@@ -139,6 +139,11 @@
   /* Status Defaults */
   --info-color: var(--sky-500);
 
+  /* --- TradeFlow Harmonization --- */
+  --color-up: var(--success-color);
+  --color-down: var(--danger-color);
+  --color-warning: var(--warning-color);
+
   /* --- Motion --- */
   --transition-fast: 0.15s ease-out;
   --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);

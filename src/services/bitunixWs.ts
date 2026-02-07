@@ -1030,6 +1030,7 @@ class BitunixWebSocketService {
 
       // 3. Validate channel if present
       const validatedChannel = validatedMessage.ch || validatedMessage.topic;
+      
       if (validatedChannel && !isAllowedChannel(validatedChannel)) {
         logger.warn("network", "[WebSocket] Unknown channel", validatedChannel);
         return;
@@ -1132,10 +1133,26 @@ class BitunixWebSocketService {
              const items = Array.isArray(data) ? data : [data];
              // Dispatch to listeners
              const listeners = this.tradeListeners.get(symbol);
+             
+             // DEBUG LOG
+             if (import.meta.env.DEV) {
+                 console.log(`[BitunixWS] Received ${items.length} trades for ${symbol}. Listeners: ${listeners ? listeners.size : 0}`);
+             }
+
              if (listeners) {
                  items.forEach(item => {
                      listeners.forEach(cb => cb(item));
                  });
+             }
+             if (listeners) {
+                 items.forEach(item => {
+                     listeners.forEach(cb => cb(item));
+                 });
+             }
+        } else {
+             // FALLBACK: Log invalid trade data structure
+             if (import.meta.env.DEV) {
+                 console.warn('[BitunixWS] Received trade message but isTradeData failed:', data);
              }
         }
       }
@@ -1396,5 +1413,10 @@ export function isDepthData(d: any): d is { b: any[]; a: any[] } {
 export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
-  return (d.p !== undefined && d.v !== undefined && d.s !== undefined);
+  // OR { lastPrice, volume, side } fallbacks
+  const hasP = (d.p !== undefined || d.lastPrice !== undefined || d.price !== undefined);
+  const hasV = (d.v !== undefined || d.volume !== undefined || d.amount !== undefined);
+  const hasS = (d.s !== undefined || d.side !== undefined);
+  
+  return hasP && hasV; 
 }

@@ -5,6 +5,7 @@
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
+  import { uiState } from "../../../stores/ui.svelte";
   import { PerformanceMonitor } from "../../../utils/performanceMonitor";
 
   // ========================================
@@ -93,8 +94,10 @@
 
   // Data Management
   
-  // Shared State Arrays
-  let equalizerBars: Float32Array; // Shared for Equalizer and City (amplitude)
+  // Persistence State (Proposal 1)
+  // Key: Grid Index, Value: List of active splashes
+  // Used for Equalizer and City modes
+  let activeSplashes = new Map<number, { amount: number, expiresAt: number }[]>();
   
   // Raindrops State
   type Ripple = { x: number, z: number, age: number, intensity: number };
@@ -119,48 +122,55 @@
   let currentAtmosphere = new THREE.Color(0x000000);
   let targetAtmosphere = new THREE.Color(0x000000);
 
-  const settings = $derived(settingsState.tradeFlowSettings);
-  let lastFlowMode = $state(settings.flowMode);
+  // DIRECT ACCESS: Removed local derived 'settings' to prevent stale state issues.
+  // Access settingsState.tradeFlowSettings directly.
+
+  let lastFlowMode = $state(settingsState.tradeFlowSettings.flowMode);
 
   // ========================================
   // SHADERS
   // ========================================
 
   const vertexShader = `
-    uniform float uSize;
-    uniform float uTime;
-    uniform float uMode; // 1=Equalizer, 2=Raindrops, 3=City, 4=Sonar
-    
-    attribute float amplitude; // Used for Equalizer height, Raindrops time, City height
-    varying vec3 vColor;
-    
-    void main() {
-      vColor = color;
-      vec3 pos = position; // Base grid position
-      float pSize = uSize;
-
-      if (uMode == 1.0) { // Equalizer
-          // Bar height based on amplitude
-          pos.y = position.y + (amplitude * 5.0); 
-      }
-      else if (uMode == 2.0) { // Raindrops
-          // Amplitude here holds "Height" calculated in CPU
-          pos.y = amplitude * 2.0; 
-      }
-      else if (uMode == 3.0) { // City
-          // Similar to Equalizer but blocked/stepped
-          // Amplitude is height of building
-          pos.y = amplitude * 5.0; 
-      }
-      else if (uMode == 4.0) { // Sonar
-          // Points are stationary.
-          pos.y = 0.0;
-      }
-
-      vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-      gl_PointSize = pSize * (300.0 / -mvPosition.z);
-      gl_Position = projectionMatrix * mvPosition;
-    }
+     uniform float uSize;
+     uniform float uTime;
+     uniform float uMode; // 1=Equalizer, 2=Raindrops, 3=City, 4=Sonar
+     uniform float uSpread; // Control grid spacing dynamically
+     
+     attribute float amplitude; // Used for Equalizer height, Raindrops time, City height
+     varying vec3 vColor;
+     
+     void main() {
+       vColor = color;
+       vec3 pos = position; // Base grid position
+       float pSize = uSize;
+ 
+       // Apply dynamic spread to X/Z plane to control gap size
+       pos.x *= uSpread;
+       pos.z *= uSpread;
+ 
+       if (uMode == 1.0) { // Equalizer
+           // Bar height based on amplitude
+           pos.y = position.y + (amplitude * 5.0); 
+       }
+       else if (uMode == 2.0) { // Raindrops
+           // Amplitude here holds "Height" calculated in CPU
+           pos.y = amplitude * 2.0; 
+       }
+       else if (uMode == 3.0) { // City
+           // Similar to Equalizer but blocked/stepped
+           // Amplitude is height of building
+           pos.y = amplitude * 5.0; 
+       }
+       else if (uMode == 4.0) { // Sonar
+           // Points are stationary.
+           pos.y = 0.0;
+       }
+ 
+       vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+       gl_PointSize = pSize * (300.0 / -mvPosition.z);
+       gl_Position = projectionMatrix * mvPosition;
+     }
   `;
 
   const fragmentShader = `
@@ -204,11 +214,12 @@
   function createShaderMaterial() {
       return new THREE.ShaderMaterial({
           uniforms: {
-              uSize: { value: settings.size * 100.0 }, // Scale for display
+              uSize: { value: settingsState.tradeFlowSettings.size * 15.0 }, // Scale for display
               uTime: { value: 0.0 },
-              uMode: { value: getModeId(settings.flowMode) }, 
+              uMode: { value: getModeId(settingsState.tradeFlowSettings.flowMode) }, 
               uAtmosphere: { value: new THREE.Color(0x000000) },
-              uOpacity: { value: 1.0 }
+              uOpacity: { value: 1.0 },
+              uSpread: { value: 1.0 } // Default spread factor
           },
           vertexShader: vertexShader,
           fragmentShader: fragmentShader,
@@ -247,8 +258,10 @@
               let x = 0, y = 0, z = 0;
 
               // Grid layouts (Equalizer, Raindrops, City, Sonar)
-              x = (u - 0.5) * 2.0; 
-              z = (v - 0.5) * 2.0;
+              // OLD: x = (u - 0.5) * 2.0;
+              // NEW: Spread out based on grid dimensions (2.0 units per point = 4x larger)
+              x = (u - 0.5) * width * 2.0; 
+              z = (v - 0.5) * length * 2.0;
               y = 0; 
 
               positions[ 3 * k ] = x;
@@ -286,26 +299,21 @@
       }
       pointclouds = [];
       materials = [];
+      activeSplashes.clear(); // Reset splashes on re-init
 
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
-      
-      // Initialize shared data arrays
-      const numPoints = width * length;
-      if (!equalizerBars || equalizerBars.length !== numPoints) {
-          equalizerBars = new Float32Array(numPoints).fill(0);
-      }
+      const width = settingsState.tradeFlowSettings.gridWidth || 80;
+      const length = settingsState.tradeFlowSettings.gridLength || 160;
       
       // Always single layer now (Tunnel layers removed)
       const c = new THREE.Color(0x00b894); 
 
-      const geometry = generatePointCloudGeometry(c, width, length, settings.flowMode);
+      const geometry = generatePointCloudGeometry(c, width, length, settingsState.tradeFlowSettings.flowMode);
       const material = createShaderMaterial();
        
       const pc = new THREE.Points(geometry, material);
        
       // Unified scaling for grid modes
-      pc.scale.set(10, 10, 10); 
+      pc.scale.set(1, 1, 1); 
       pc.position.set(0, -2, 0); 
        
       scene.add(pc);
@@ -333,6 +341,7 @@
       renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
       renderer.setPixelRatio( window.devicePixelRatio );
       renderer.setSize( width, height );
+      renderer.domElement.style.pointerEvents = 'none'; // Force no interaction
       container.appendChild( renderer.domElement );
       canvas = renderer.domElement;
       
@@ -351,14 +360,24 @@
   
   function updateCameraPosition() {
       if (!camera) return;
+      const s = settingsState.tradeFlowSettings;
       
       // Sonar has unique top-down view
-      if (settings.flowMode === 'sonar') {
+      if (s.flowMode === 'sonar') {
           camera.position.set( 0, 30, 0.1 ); // Top down view
           camera.lookAt( 0, 0, 0 );
       } else {
-          // Standard perspective for Eq, City, Raindrops
-          camera.position.set( 0, 15, 25 ); 
+          // Auto-Fit Camera
+          const width = s.gridWidth || 80;
+          const length = s.gridLength || 160;
+          const maxDim = Math.max(width, length);
+          
+          // Adjust height and distance based on grid size to fit screen
+          // Heuristic: roughly 0.5x max dimension for comfortable view
+          const y = maxDim * 0.4;
+          const z = maxDim * 0.5;
+          
+          camera.position.set( 0, y, z ); 
           if(scene) camera.lookAt( 0, 0, 0 );
       }
   }
@@ -376,40 +395,56 @@
       renderer.setSize( w, h );
   }
 
+  // FPS Control
+  let lastFrameTime = 0;
+  const targetFPS = 30;
+  const frameInterval = 1000 / targetFPS;
+
   function animate() {
       if (!scene || !camera || !renderer) return;
 
       rafId = requestAnimationFrame(animate);
 
-      const time = performance.now() * 0.001;
+      const now = performance.now();
+      const elapsed = now - lastFrameTime;
+
+      if (elapsed < frameInterval) return;
+
+      lastFrameTime = now - (elapsed % frameInterval);
+
+      const time = now * 0.001;
+
+      // GET FRESH SETTINGS
+      const s = settingsState.tradeFlowSettings;
 
       // Update Uniforms
       materials.forEach(mat => {
           mat.uniforms.uTime.value = time;
           mat.uniforms.uAtmosphere.value.copy(currentAtmosphere);
+          mat.uniforms.uSize.value = s.size * 15.0; // Dynamic size update
+          if (mat.uniforms.uSpread) mat.uniforms.uSpread.value = s.spread || 1.0; // Dynamic spread
       });
 
       // Mode Specific Animation
-      if (settings.flowMode === 'equalizer' || settings.flowMode === 'city') {
-          animateDecay(); // Shared logic: things go up, then decay down
-      } else if (settings.flowMode === 'raindrops') {
-          animateRaindrops(time);
-      } else if (settings.flowMode === 'sonar') {
-          animateSonar(time);
+      if (s.flowMode === 'equalizer' || s.flowMode === 'city') {
+          animatePersistence(time, s); // Time-Based Persistence
+      } else if (s.flowMode === 'raindrops') {
+          animateRaindrops(time, s);
+      } else if (s.flowMode === 'sonar') {
+          animateSonar(time, s);
       } else {
-          // Fallback (should typically be covered above)
-          animateDecay();
+          // Fallback
+          animatePersistence(time, s);
       }
 
       renderer.render( scene, camera );
       if (performanceMonitor) performanceMonitor.update();
   }
   
-  function animateDecay() {
-      const decay = settings.decaySpeed || 0.95; 
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
-      const numPoints = width * length;
+  function animatePersistence(time: number, s: any) {
+      // Logic: Maintain active splashes until they expire.
+      // Stacking: Sum of active splashes at an index = height.
+      // Efficiency: Iterate Map keys only.
       
       pointclouds.forEach(pc => {
           const attr = pc.geometry.getAttribute('amplitude') as THREE.BufferAttribute;
@@ -417,25 +452,43 @@
           
           let needsUpdate = false;
           
-          for(let i=0; i<numPoints; i++) {
-              if (equalizerBars[i] > 0.001) {
-                  equalizerBars[i] *= decay;
-                  attr.setX(i, equalizerBars[i]);
-                  needsUpdate = true;
-              } else if (equalizerBars[i] !== 0) {
-                   equalizerBars[i] = 0;
-                   attr.setX(i, 0);
+          // Use Map.entries() to iterate [idx, splashes]
+          // Note: for...of on Map entries is standard in ES6
+          for (const [idx, splashes] of activeSplashes) {
+               // Filter expired
+               // We only want splashes where expiresAt > time
+               const validSplashes = splashes.filter(sp => sp.expiresAt > time);
+               
+               if (validSplashes.length < splashes.length) {
+                   // Changes occurred (some expired)
+                   if (validSplashes.length === 0) {
+                       activeSplashes.delete(idx);
+                       attr.setX(idx, 0); // Reset to base
+                   } else {
+                       activeSplashes.set(idx, validSplashes);
+                   }
                    needsUpdate = true;
-              }
+               }
+               
+               // Re-calculate height if we have active splashes
+               if (validSplashes.length > 0) {
+                   let total = 0;
+                   for (const sp of validSplashes) {
+                      total += sp.amount;
+                   }
+                   // Visual Clamping
+                   attr.setX(idx, Math.min(total, 15.0));
+               }
           }
+          
           if (needsUpdate) attr.needsUpdate = true;
       });
   }
   
-  function animateRaindrops(time: number) {
+  function animateRaindrops(time: number, s: any) {
       // 1. Update ripples
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
+      const width = s.gridWidth || 80;
+      const length = s.gridLength || 160;
       
       // Remove old
       activeRipples = activeRipples.filter(r => r.age < 5.0).map(r => ({...r, age: r.age + 0.05}));
@@ -469,18 +522,18 @@
       });
   }
   
-  function animateSonar(time: number) {
+  function animateSonar(time: number, s: any) {
       // Use settings.speed for sonar sweep speed. Default ~0.5 rad/s if settings.speed is ~1.0?
       // settings.speed normally 0.1 to 2.0.
-      const sweepSpeed = (settings.speed || 1.0) * 0.5;
+      const sweepSpeed = (s.speed || 1.0) * 0.5;
       sonarAngle = (time * sweepSpeed) % (Math.PI * 2);
       
       // Decay blips
       sonarBlips = sonarBlips.filter(b => b.life > 0);
       sonarBlips.forEach(b => b.life -= 0.01);
       
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
+      const width = s.gridWidth || 80;
+      const length = s.gridLength || 160;
       const centerX = width / 2;
       const centerZ = length / 2;
       
@@ -531,8 +584,15 @@
 
   function updateSubscription(symbol: string) {
     if (!symbol) return;
-    log(LogLevel.INFO, '📡 Subscribing to trades:', symbol);
-    bitunixWs.subscribeTrade(symbol, onTrade);
+    
+    // Multi-Provider Safety
+    if (settingsState.apiProvider === 'bitunix') {
+        log(LogLevel.INFO, '📡 Subscribing to trades (Bitunix):', symbol);
+        bitunixWs.subscribeTrade(symbol, onTrade);
+    } else {
+        log(LogLevel.WARN, `⚠️ TradeFlow currently only supports Bitunix (Current: ${settingsState.apiProvider})`);
+        // We could implement other providers here
+    }
   }
 
   let hasReceivedRealTrades = false; 
@@ -545,76 +605,114 @@
       const side = trade.s === "buy" ? "buy" : "sell";
 
       if (!price) return;
-      if (settings.minVolume && size < settings.minVolume) return;
+      
+      // FRESH ACCESS
+      const s = settingsState.tradeFlowSettings;
 
-      const mode = settings.flowMode;
+      // CRITICAL FIX: Use Trade Value (USD) for filtering
+      const tradeValue = price * size;
+
+      if (s.minVolume && tradeValue < s.minVolume) {
+          // Optional: log skipped trades if debugging
+          // if (Math.random() < 0.01) log(LogLevel.DEBUG, 'Skipped small trade:', tradeValue, 'Min:', s.minVolume);
+          return;
+      }
+
+      const mode = s.flowMode;
       if (mode === 'equalizer' || mode === 'city') {
-          processTradeEqualizer(side, price, size);
+          processTradeEqualizer(side, price, size, s);
       } else if (mode === 'raindrops') {
-          processTradeRaindrops(side, price, size);
+          processTradeRaindrops(side, price, size, s);
       } else if (mode === 'sonar') {
-          processTradeSonar(side, price, size);
+          processTradeSonar(side, price, size, s);
       } else {
           // Fallback to Equalizer
-          processTradeEqualizer(side, price, size);
+          processTradeEqualizer(side, price, size, s);
       }
       
       updateAtmosphere(side);
   }
   
-  function processTradeEqualizer(side: string, price: number, size: number) {
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
+  function processTradeEqualizer(side: string, price: number, size: number, s: any) {
+      const width = s.gridWidth || 80;
+      const length = s.gridLength || 160;
       
-      const volScale = settings.volumeScale || 1.0;
-      let intensity = Math.min(volScale * (0.5 + Math.log10(size + 1)), 5.0);
-      const splashCount = Math.max(1, Math.floor(Math.log10(size+1) * 3));
+      const tradeValue = price * size; // USD Value
+      const volScale = s.volumeScale || 1.0;
+      
+      // Use Trade Value (USD) for intensity and count
+      let intensity = Math.min(volScale * (0.5 + Math.log10(tradeValue + 1)), 5.0);
+      const splashCount = Math.max(1, Math.floor(Math.log10(tradeValue+1) * 3));
+      
+      // Time-Based Persistence Info
+      const now = performance.now() * 0.001;
+      const duration = s.persistenceDuration || 60;
+      const expiresAt = now + duration;
       
       for(let k=0; k<splashCount; k++) {
           const rx = Math.floor(Math.random() * width);
           const rz = Math.floor(Math.random() * length);
           const idx = rx * length + rz; 
           
-          if (idx < equalizerBars.length) {
-              equalizerBars[idx] = Math.max(equalizerBars[idx], intensity);
+          if (idx < (width * length)) {
+              // Add to active splashes
+              const current = activeSplashes.get(idx) || [];
+              current.push({ amount: intensity, expiresAt });
+              activeSplashes.set(idx, current);
               
               if (pointclouds.length > 0) {
                   const color = getTradeColors(side, price);
-                  const attr = pointclouds[0].geometry.getAttribute('color') as THREE.BufferAttribute;
-                  if (attr) {
-                      attr.setXYZ(idx, color.r, color.g, color.b);
-                      attr.needsUpdate = true;
+                  const attrColor = pointclouds[0].geometry.getAttribute('color') as THREE.BufferAttribute;
+                  const attrAmp = pointclouds[0].geometry.getAttribute('amplitude') as THREE.BufferAttribute;
+                  
+                  if (attrColor && attrAmp) {
+                      attrColor.setXYZ(idx, color.r, color.g, color.b);
+                      attrColor.needsUpdate = true;
+                      
+                      // Update amplitude immediately so we don't wait for next frame
+                      let total = 0;
+                      for(const sp of current) total += sp.amount;
+                      attrAmp.setX(idx, Math.min(total, 15.0));
+                      attrAmp.needsUpdate = true;
                   }
               }
           }
       }
   }
   
-  function processTradeRaindrops(side: string, price: number, size: number) {
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
+  function processTradeRaindrops(side: string, price: number, size: number, s: any) {
+      const width = s.gridWidth || 80;
+      const length = s.gridLength || 160;
       
       const rx = Math.floor(Math.random() * width);
       const rz = Math.floor(Math.random() * length);
       
-      const volScale = settings.volumeScale || 1.0;
-
+      const volScale = s.volumeScale || 1.0;
+      const tradeValue = price * size; // USD Value
+       
       activeRipples.push({
           x: rx, z: rz, age: 0, 
-          intensity: Math.min(size * 0.01 * volScale, 2.0) 
+          intensity: Math.min(tradeValue * 0.0001 * volScale, 2.0) 
       });
+      
+      // Cap ripples for performance
+      if (activeRipples.length > 50) {
+          activeRipples.shift();
+      }
   }
   
-  function processTradeSonar(side: string, price: number, size: number) {
-      const width = settings.gridWidth || 80;
-      const length = settings.gridLength || 160;
+  function processTradeSonar(side: string, price: number, size: number, s: any) {
+      const width = s.gridWidth || 80;
+      const length = s.gridLength || 160;
       
       const rx = Math.floor(Math.random() * width);
       const rz = Math.floor(Math.random() * length);
       
-      const volScale = settings.volumeScale || 1.0;
+      const volScale = s.volumeScale || 1.0;
       // Scale life/intensity by volume
-      const intensity = Math.min(1.0 + Math.log10(size+1) * 0.2 * volScale, 2.0);
+      const tradeValue = price * size; // USD Value
+      // Scale life/intensity by volume
+      const intensity = Math.min(1.0 + Math.log10(tradeValue+1) * 0.2 * volScale, 2.0);
 
       sonarBlips.push({x: rx, z: rz, life: intensity});
   }
@@ -635,7 +733,9 @@
       
       const ratio = (buyCount - sellCount) / total; 
       
-      if (settings.enableAtmosphere) {
+      const s = settingsState.tradeFlowSettings;
+
+      if (s.enableAtmosphere) {
           if (ratio > 0.1) {
               targetAtmosphere.copy(colorUp).multiplyScalar(0.3 * ratio); 
           } else if (ratio < -0.1) {
@@ -651,21 +751,17 @@
   let avgPrice = 0; 
 
   function getTradeColors(side: string, price: number): THREE.Color {
-    const mode = settings.colorMode;
+    const s = settingsState.tradeFlowSettings;
+    const mode = s.colorMode;
     
     if (mode === "custom") {
       return side === "buy" 
-        ? new THREE.Color(settings.customColorUp)
-        : new THREE.Color(settings.customColorDown);
+        ? new THREE.Color(s.customColorUp)
+        : new THREE.Color(s.customColorDown);
     }
     
-    if (mode === "interactive") {
-      if (avgPrice === 0) avgPrice = price;
-      avgPrice = avgPrice * 0.99 + price * 0.01;
-      
-      const trend = price > avgPrice ? "up" : "down";
-      return trend === "up" ? colorUp : colorDown;
-    }
+    // Default to Theme mode (side-based)
+    return side === "buy" ? colorUp : colorDown;
     
     return side === "buy" ? colorUp : colorDown;
   }
@@ -714,7 +810,7 @@
     log(LogLevel.INFO, '✅ Component ready - State:', lifecycleState);
     
     // Initialize lastFlowMode
-    lastFlowMode = settings.flowMode;
+    lastFlowMode = settingsState.tradeFlowSettings.flowMode;
     
     return () => {
       log(LogLevel.INFO, '🧹 Component unmounting, cleanup triggered');
@@ -724,14 +820,15 @@
 
   // Re-initialization effect when flow settings change drastically
   $effect(() => {
-     if (lifecycleState === LifecycleState.READY && settings.flowMode !== lastFlowMode) {
-         log(LogLevel.INFO, `🔄 Flow mode changed: ${lastFlowMode} -> ${settings.flowMode}`);
-         lastFlowMode = settings.flowMode;
+     const s = settingsState.tradeFlowSettings;
+     if (lifecycleState === LifecycleState.READY && s.flowMode !== lastFlowMode) {
+         log(LogLevel.INFO, `🔄 Flow mode changed: ${lastFlowMode} -> ${s.flowMode}`);
+         lastFlowMode = s.flowMode;
          
          // Safely update mode uniform
          materials.forEach(m => {
-             m.uniforms.uMode.value = getModeId(settings.flowMode);
-             m.uniforms.uSize.value = settings.size * 100.0;
+             m.uniforms.uMode.value = getModeId(s.flowMode);
+             m.uniforms.uSize.value = s.size * 30.0;
          });
          
          // Full reset of scene objects to match new geometry requirements
@@ -741,32 +838,39 @@
   });
   
   // Re-init on Grid Size change (expensive, but necessary)
-  let lastGridWidth = $state(settings.gridWidth);
-  let lastGridLength = $state(settings.gridLength);
+  let lastGridWidth = $state(settingsState.tradeFlowSettings.gridWidth);
+  let lastGridLength = $state(settingsState.tradeFlowSettings.gridLength);
   
   $effect(() => {
-      if (lifecycleState === LifecycleState.READY && (settings.gridWidth !== lastGridWidth || settings.gridLength !== lastGridLength)) {
-          lastGridWidth = settings.gridWidth;
-          lastGridLength = settings.gridLength;
+      const s = settingsState.tradeFlowSettings;
+      if (lifecycleState === LifecycleState.READY && (s.gridWidth !== lastGridWidth || s.gridLength !== lastGridLength)) {
+          lastGridWidth = s.gridWidth;
+          lastGridLength = s.gridLength;
           initSceneObjects();
       }
   });
 
-  // Symbol change effect
+  // Symbol & Provider change effect
   $effect(() => {
     if (lifecycleState === LifecycleState.READY && tradeState.symbol) {
+      // Depend on provider to trigger re-sub
+      const _p = settingsState.apiProvider; 
       updateSubscription(tradeState.symbol);
       // Reset Atmosphere on symbol change
       tradeHistory = [];
       buyCount = 0;
       sellCount = 0;
       targetAtmosphere.setHex(0x000000);
+      activeSplashes.clear();
+      activeRipples = [];
+      sonarBlips = [];
     }
   });
 
   // Theme color effect
   $effect(() => {
     if (lifecycleState === LifecycleState.READY) {
+      const _t = uiState.currentTheme; // Trigger on theme change
       updateThemeColors();
     }
   });
@@ -796,7 +900,7 @@
     window.removeEventListener('resize', onResize);
     
     if (performanceMonitor) performanceMonitor.stop();
-    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol);
+    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
 
     if (scene) {
       scene.children.forEach(child => {
@@ -820,7 +924,8 @@
   }
 </script>
 
-<div bind:this={container} class="w-full h-full absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+
+<div bind:this={container} class="w-full h-full absolute inset-0 -z-50 overflow-hidden pointer-events-none">
     {#if lifecycleState === LifecycleState.ERROR}
         <div class="absolute inset-0 flex items-center justify-center text-red-500 bg-black/50 p-4">
             <p>Background Error: {lifecycleError}</p>
@@ -829,7 +934,5 @@
 </div>
 
 <style>
-  div {
-    contain: strict; /* Optimization hint */
-  }
+  /* Removed contain: strict to avoid stacking context issues */
 </style>

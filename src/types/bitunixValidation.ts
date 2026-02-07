@@ -110,6 +110,7 @@ export const ALLOWED_CHANNELS = [
   "position",
   "order",
   "wallet",
+  "trade",
 ] as const;
 
 export type AllowedChannel = (typeof ALLOWED_CHANNELS)[number];

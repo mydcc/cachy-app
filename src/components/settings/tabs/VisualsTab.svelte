@@ -64,6 +64,19 @@
         custom: "settings.appearance.modeCustom",
         classic: "settings.appearance.modeClassic",
     };
+    
+    function handleWidthChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.gridWidth = parseInt(e.currentTarget.value);
+    }
+    function handleLengthChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.gridLength = parseInt(e.currentTarget.value);
+    }
+    function handleSpreadChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.spread = parseFloat(e.currentTarget.value);
+    }
+    function handleSizeChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.size = parseFloat(e.currentTarget.value);
+    }
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
@@ -1110,7 +1123,7 @@
                         <div class="field-group">
                             <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
                             <div class="flex gap-2">
-                                {#each [{ v: "theme", l: $_("settings.appearance.modeTheme") }, { v: "interactive", l: $_("settings.appearance.modeInteractive") }, { v: "custom", l: $_("settings.appearance.modeCustom") }] as mode}
+                                {#each [{ v: "theme", l: $_("settings.appearance.modeTheme") }, { v: "custom", l: $_("settings.appearance.modeCustom") }] as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode === mode.v
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
@@ -1183,19 +1196,24 @@
                                 </div>
                              {/if}
 
-                             <!-- Decay Speed (Eq, City) -->
-                             {#if ['equalizer', 'city'].includes(settingsState.tradeFlowSettings.flowMode)}
+                             <!-- Persistence Duration (All Modes) -->
+                             {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-decay">Decay Speed: {settingsState.tradeFlowSettings.decaySpeed.toFixed(2)}</label>
+                                    <label for="tf-persistence">Time Window: {
+                                        settingsState.tradeFlowSettings.persistenceDuration < 60 
+                                        ? settingsState.tradeFlowSettings.persistenceDuration + 's' 
+                                        : Math.floor(settingsState.tradeFlowSettings.persistenceDuration / 60) + 'm ' + (settingsState.tradeFlowSettings.persistenceDuration % 60 > 0 ? (settingsState.tradeFlowSettings.persistenceDuration % 60) + 's' : '')
+                                    }</label>
                                     <input
-                                        id="tf-decay"
+                                        id="tf-persistence"
                                         type="range"
-                                        bind:value={settingsState.tradeFlowSettings.decaySpeed}
-                                        min="0.80"
-                                        max="0.99"
-                                        step="0.01"
+                                        bind:value={settingsState.tradeFlowSettings.persistenceDuration}
+                                        min="10"
+                                        max="600"
+                                        step="10"
                                         class="range-input"
                                     />
+                                    <p class="text-[10px] text-[var(--text-secondary)]">How long trades remain visible and stack.</p>
                                 </div>
                              {/if}
 
@@ -1218,28 +1236,43 @@
                             <p class="text-[10px] text-[var(--text-secondary)]">Hide trades smaller than this amount to reduce noise.</p>
                         </div>
 
-                        <!-- Grid settings -->
+
+
+                        <!-- Grid Dimensions (Count) -->
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
-                                <label for="tf-grid-width">{$_("settings.visuals.tradeFlow.gridWidth")}: {settingsState.tradeFlowSettings.gridWidth}</label>
-                                <input id="tf-grid-width" type="range" min="20" max="200" step="10"
-                                    bind:value={settingsState.tradeFlowSettings.gridWidth}
+                                <label for="tf-width">Grid Points X: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                <input id="tf-width" type="range" min="10" max="800" step="10"
+                                    value={settingsState.tradeFlowSettings.gridWidth}
+                                    oninput={handleWidthChange}
                                     class="range-input" />
                             </div>
                             <div class="field-group">
-                                <label for="tf-grid-length">{$_("settings.visuals.tradeFlow.gridLength")}: {settingsState.tradeFlowSettings.gridLength}</label>
-                                <input id="tf-grid-length" type="range" min="40" max="400" step="20"
-                                    bind:value={settingsState.tradeFlowSettings.gridLength}
+                                <label for="tf-length">Grid Points Z: {settingsState.tradeFlowSettings.gridLength}</label>
+                                <input id="tf-length" type="range" min="10" max="800" step="10"
+                                    value={settingsState.tradeFlowSettings.gridLength}
+                                    oninput={handleLengthChange}
                                     class="range-input" />
                             </div>
                         </div>
 
-                        <!-- Particle Size -->
-                        <div class="field-group">
-                            <label for="tf-size">{$_("settings.visuals.tradeFlow.size")}: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
-                            <input id="tf-size" type="range" min="0.01" max="0.5" step="0.01"
-                                bind:value={settingsState.tradeFlowSettings.size}
-                                class="range-input" />
+                        <!-- Spacing & Size -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                             <div class="field-group">
+                                <label for="tf-spread">Point Spacing: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
+                                <input id="tf-spread" type="range" min="0.1" max="5.0" step="0.1"
+                                    value={settingsState.tradeFlowSettings.spread}
+                                    oninput={handleSpreadChange}
+                                    class="range-input" />
+                                <p class="text-[10px] text-[var(--text-secondary)]">Distance between points (The Gap)</p>
+                            </div>
+                            <div class="field-group">
+                                <label for="tf-size">Particle Size: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                                <input id="tf-size" type="range" min="0.01" max="2.0" step="0.01"
+                                    value={settingsState.tradeFlowSettings.size}
+                                    oninput={handleSizeChange}
+                                    class="range-input" />
+                            </div>
                         </div>
                     </div>
                 {/if}

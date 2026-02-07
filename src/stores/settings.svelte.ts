@@ -100,7 +100,7 @@ export interface TradeFlowSettings {
   size: number;
   spread: number;
   layout: "grid";
-  colorMode: "theme" | "interactive" | "custom";
+  colorMode: "theme" | "custom";
   customColorUp: string;
   customColorDown: string;
   minVolume: number;
@@ -110,7 +110,7 @@ export interface TradeFlowSettings {
   enableAtmosphere: boolean;
   volumeScale: number; // Factor to scale volume mapping
   flowMode: "equalizer" | "raindrops" | "city" | "sonar";
-  decaySpeed: number;
+  persistenceDuration: number;
 }
 
 export interface Settings {
@@ -424,7 +424,7 @@ const defaultSettings: Settings = {
     gridLength: 160,
     enableAtmosphere: true,
     volumeScale: 1.0,
-    decaySpeed: 0.95,
+    persistenceDuration: 60,
   } as TradeFlowSettings,
     galaxySettings: {
     particleCount: 20000,
