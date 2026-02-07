@@ -1512,7 +1512,7 @@
       "tpBelowEntry": "Short: Take-Profit Ziel {price} muss unter Einstieg liegen.",
       "totalPercentExceeded": "Summe der Verkaufsanteile ({percent}%) darf 100% nicht überschreiten.",
       "slDistance": "Stop-Loss muss einen gültigen Abstand zum Einstiegspreis haben.",
-      "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
+      "generic": "Ein Fehler ist bei der Berechnung aufgetreten.", "unknownError": "Unbekannter Fehler"
     },
     "logic": {
       "tpGoal": "{type}: Take-Profit Ziel {price}",
