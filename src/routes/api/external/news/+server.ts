@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}`;
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
     const now = Date.now();
 
     // Check Cache

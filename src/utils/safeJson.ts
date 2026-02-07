@@ -1,23 +1,6 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-/*
- * Copyright (C) 2026 MYDCT
- *
  * Safe JSON Parser utility
  * Hardening against JSON.parse precision loss for large integers AND high-precision floats.
  */
@@ -45,8 +28,9 @@ export function safeJsonParse<T = any>(jsonString: string): T {
     // Combined Regex: Handles both "key": number and [number] / , number contexts in one pass.
     // Group 1: Prefix (Key-Value style OR Array/List style)
     // Group 2: Number
+    // Refined regex to handle escaped quotes in keys: "(?:[^"\\]|\\.)*"
     const protectedJson = jsonString.replace(
-        /((?:"[^"]+"\s*:\s*)|(?:[\[,]\s*))(-?\d[\d.eE+-]{14,})(?=\s*[,}\]])/g,
+        /((?:"(?:[^"\\]|\\.)*"\s*:\s*)|(?:[\[,]\s*))(-?\d[\d.eE+-]{14,})(?=\s*[,}\]])/g,
         '$1"$2"'
     );
 

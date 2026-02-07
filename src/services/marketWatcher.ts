@@ -31,6 +31,20 @@ interface MarketWatchRequest {
   channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
 }
 
+function tfToMs(tf: string): number {
+    const unit = tf.slice(-1);
+    const val = parseInt(tf.slice(0, -1));
+    if (isNaN(val)) return 60000;
+    switch (unit) {
+        case 'm': return val * 60 * 1000;
+        case 'h': return val * 60 * 60 * 1000;
+        case 'd': return val * 24 * 60 * 60 * 1000;
+        case 'w': return val * 7 * 24 * 60 * 60 * 1000;
+        case 'M': return val * 30 * 24 * 60 * 60 * 1000;
+        default: return 60000;
+    }
+}
+
 class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private isPolling = false;
@@ -41,6 +55,8 @@ class MarketWatcher {
   private pendingRequests = new Map<string, Promise<void>>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
+  // Performance: Batch subscription updates
+  private _subscriptionsDirty = false;
 
   // Helper to store subscriptions intent
   private historyLocks = new Set<string>();
@@ -76,7 +92,7 @@ class MarketWatcher {
 
     // Only sync if this is the first requester for this channel
     if (count === 0) {
-      this.syncSubscriptions();
+      this._subscriptionsDirty = true;
 
       // Trigger history sync for Klines
       if (channel.startsWith("kline_")) {
@@ -87,13 +103,20 @@ class MarketWatcher {
       // Start polling for all channels (Price/Ticker/Kline)
       untrack(() => {
         const provider = settingsState.apiProvider;
-        this.pollSymbolChannel(normSymbol, channel, provider);
+        if (provider === "bitunix") {
+             // Only subscribe to WS if using Bitunix
+             if (channel === "price" || channel === "ticker") {
+                 bitunixWs.subscribe(normSymbol, "ticker");
+             } else if (channel.startsWith("kline_")) {
+                 bitunixWs.subscribe(normSymbol, channel);
+             }
+        }
       });
     }
   }
 
   /**
-   * Unregister interest.
+   * Unregister interest in a channel.
    */
   unregister(symbol: string, channel: string) {
     if (!symbol) return;
@@ -107,7 +130,7 @@ class MarketWatcher {
         if (channels.size === 0) {
           this.requests.delete(normSymbol);
         }
-        this.syncSubscriptions();
+        this._subscriptionsDirty = true;
       } else {
         channels.set(channel, count - 1);
       }
@@ -135,55 +158,50 @@ class MarketWatcher {
     this.requests.forEach((channels, symbol) => {
       channels.forEach((_, ch) => {
         let bitunixChannel = ch;
-        if (ch === "price") {
-          bitunixChannel = "price";
-        } else if (ch === "ticker") {
-          bitunixChannel = "ticker";
-        } else if (ch === "depth_book5") {
-          bitunixChannel = "depth_book5";
-        } else if (ch.startsWith("kline_")) {
-          const timeframe = ch.replace("kline_", "");
-          const bitunixInterval = this.mapTimeframeToBitunix(timeframe);
-          bitunixChannel = `market_kline_${bitunixInterval}`;
-        }
+        // Map generic "price" to Bitunix "ticker"
+        if (ch === "price") bitunixChannel = "ticker";
         const key = `${bitunixChannel}:${symbol}`;
         intended.set(key, { symbol, channel: bitunixChannel });
       });
     });
 
-    // 2. Diff and Sync
-    // Subscribe to additions
-    intended.forEach((sub, key) => {
-      if (!bitunixWs.pendingSubscriptions.has(key)) {
-        bitunixWs.subscribe(sub.symbol, sub.channel);
-      }
+    // 2. Unsubscribe from extras
+    // Iterate over what is currently subscribed in WS service
+    // We access the internal set via pendingSubscriptions to be safe
+    const current = bitunixWs.pendingSubscriptions;
+    current.forEach((key: string) => {
+        if (!intended.has(key)) {
+             const [channel, symbol] = key.split(":");
+             bitunixWs.unsubscribe(symbol, channel);
+        }
     });
 
-    // Unsubscribe from removals
-    bitunixWs.pendingSubscriptions.forEach((key: string) => {
-      if (!intended.has(key)) {
-        const [channel, symbol] = key.split(":");
-        bitunixWs.unsubscribe(symbol, channel);
-      }
+    // 3. Subscribe to missing
+    intended.forEach(({ symbol, channel }, key) => {
+        if (!current.has(key)) {
+             bitunixWs.subscribe(symbol, channel);
+        }
     });
   }
 
-  private mapTimeframeToBitunix(tf: string): string {
-    const map: Record<string, string> = {
-      "1m": "1min",
-      "5m": "5min",
-      "15m": "15min",
-      "30m": "30min",
-      "1h": "60min",
-      "4h": "4h",
-      "1d": "1day",
-      "1w": "1week",
-      "1M": "1month",
-    };
-    return map[tf] || tf;
+  // Zombie Request Pruning (Self-Correction)
+  private pruneZombieRequests() {
+    const now = Date.now();
+    const timeout = 20000; // 20s hard limit for HTTP requests
+    this.requestStartTimes.forEach((start, key) => {
+        if (now - start > timeout) {
+            logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
+            this.pendingRequests.delete(key);
+            this.requestStartTimes.delete(key);
+            // Decrease inFlight count if it was counted
+            // Since we don't know for sure if it finished or hung, we decrement carefully
+            this.inFlight = Math.max(0, this.inFlight - 1);
+        }
+    });
   }
 
-  private startPolling() {
+  public startPolling() {
+    if (this.isPolling) return;
     this.stopPolling(); // Ensure clean state
     this.isPolling = true;
 
@@ -191,6 +209,11 @@ class MarketWatcher {
     this.startTimeout = setTimeout(() => {
       this.runPollingLoop();
     }, 2000);
+  }
+
+  // Alias for ConnectionManager interface
+  public resumePolling() {
+    this.startPolling();
   }
 
   private async runPollingLoop() {
@@ -202,10 +225,10 @@ class MarketWatcher {
       // We run the cycle and let 'performPollingCycle' decide per-symbol.
       await this.performPollingCycle();
 
-      // Periodic Subscription Sync (Self-Healing)
-      // Checks every 5 cycles (approx 5s) if WS subscriptions match requests
-      if (Date.now() % 5000 < 1000) {
+      // [PERFORMANCE] Only sync if dirty (Batched updates)
+      if (this._subscriptionsDirty) {
         this.syncSubscriptions();
+        this._subscriptionsDirty = false;
       }
     } catch (e) {
       logger.error("market", "Polling loop error", e);
@@ -226,34 +249,9 @@ class MarketWatcher {
       clearTimeout(this.pollingTimeout);
       this.pollingTimeout = null;
     }
-
-    // Clear pending stagger timeouts (Zombie Prevention)
-    this.staggerTimeouts.forEach((t) => clearTimeout(t));
+    // Also clear stagger timeouts
+    this.staggerTimeouts.forEach(id => clearTimeout(id));
     this.staggerTimeouts.clear();
-
-    // Clear locks
-    this.pendingRequests.clear();
-  }
-
-  public resumePolling() {
-    if (!this.isPolling) {
-      this.startPolling();
-    }
-  }
-
-  private pruneZombieRequests() {
-    const now = Date.now();
-    const ZOMBIE_THRESHOLD = 30000; // 30s
-
-    this.requestStartTimes.forEach((start, key) => {
-        if (now - start > ZOMBIE_THRESHOLD) {
-            logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
-            this.pendingRequests.delete(key);
-            this.requestStartTimes.delete(key);
-            // Decrement inFlight if we assume it was counted (best effort)
-            this.inFlight = Math.max(0, this.inFlight - 1);
-        }
-    });
   }
 
   private async performPollingCycle() {
@@ -345,37 +343,60 @@ class MarketWatcher {
             storageService.saveKlines(symbol, tf, klines1); // Async save
 
             // Check if we have enough history now
-            let currentData = marketState.data[symbol]?.klines[tf] || [];
-            let iterations = 0;
-            const MAX_ITERATIONS = 30; // Safety cap (e.g. 30k candles max per session load)
+            const currentLen = klines1.length;
 
-            // Backfill Loop
-            let oldestTime = klines1[0].time;
+            // Optimization: Parallel Backfill
+            if (currentLen < limit) {
+                const remaining = limit - currentLen;
+                const batchSize = 1000;
+                const batchesNeeded = Math.ceil(remaining / batchSize);
+                // Cap batches to avoid crazy fetch storms (e.g. max 10 batches = 10k candles)
+                const effectiveBatches = Math.min(batchesNeeded, 10);
 
-            while (limit > 1000 && currentData.length < limit && iterations < MAX_ITERATIONS) {
-                iterations++;
+                if (effectiveBatches > 0) {
+                    const oldestTime = klines1[0].time;
+                    const intervalMs = tfToMs(tf);
 
-                // Fetch older batch (before oldestTime)
-                const olderKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+                    const results: any[] = [];
+                    // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
+                    // This ensures real-time polling (high priority) and other requests have breathing room.
+                    const concurrency = 3;
 
-                if (!olderKlines || olderKlines.length === 0) {
-                    break; // No more history available
+                    for (let i = 0; i < effectiveBatches; i += concurrency) {
+                        if (!this.isPolling) {
+                             logger.debug("market", `[History] Polling stopped, aborting backfill for ${symbol}`);
+                             break;
+                        }
+
+                        const chunkTasks: Promise<any>[] = [];
+                        for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
+                             const batchIdx = i + j;
+                             const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
+
+                             chunkTasks.push(
+                                 apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
+                                     .catch(e => {
+                                         logger.warn("market", `[History] Backfill batch ${batchIdx} failed`, e);
+                                         return [];
+                                     })
+                             );
+                        }
+
+                        const chunkResults = await Promise.all(chunkTasks);
+                        results.push(...chunkResults);
+                    }
+
+                    if (!this.isPolling) {
+                         return;
+                    }
+
+                    // Flatten and process
+                    const allBackfilled = results.flat();
+                    if (allBackfilled.length > 0) {
+                        marketState.updateSymbolKlines(symbol, tf, allBackfilled, "rest");
+                        storageService.saveKlines(symbol, tf, allBackfilled);
+                    }
                 }
-
-                marketState.updateSymbolKlines(symbol, tf, olderKlines, "rest");
-                storageService.saveKlines(symbol, tf, olderKlines);
-
-                // Update state for next iteration
-                currentData = marketState.data[symbol]?.klines[tf] || [];
-                const newOldest = olderKlines[0].time;
-
-                if (newOldest >= oldestTime) {
-                    break;
-                }
-                oldestTime = newOldest;
-
-                // Rate Limit Courtesy
-                await new Promise(r => setTimeout(r, 100));
             }
         }
     } catch (e) {
@@ -506,6 +527,7 @@ class MarketWatcher {
     this.pendingRequests.clear();
     this.inFlight = 0;
     this.syncSubscriptions();
+    this._subscriptionsDirty = false;
     logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
   }
 }

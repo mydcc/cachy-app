@@ -18,12 +18,15 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
+import { checkAppAuth } from "../../../../lib/server/auth";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
 // It receives API keys from the client to perform a signed request to Bitunix.
 // Ensure strictly HTTPS is used. Request bodies are NOT logged on error.
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
   const { apiKey, apiSecret } = await request.json();
 
   if (!apiKey || !apiSecret) {

@@ -754,6 +754,11 @@ class BitunixWebSocketService {
       const channel = message.ch || message.topic;
 
       // --- FAST PATH OPTIMIZATION ---
+      // [MAINTENANCE WARNING]
+      // This block manually parses/casts data to avoid Zod overhead for high-frequency events (Price/Ticker/Depth).
+      // If the API schema changes, this block MUST be updated manually.
+      // Any error here is caught silently (in Prod) and falls back to the standard Zod validation path below.
+
       // Check high-frequency messages (price, ticker, depth) BEFORE expensive Zod validation
       // Wrapped in try-catch to prevent crashing the entire socket handler
       try {
