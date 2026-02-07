@@ -255,12 +255,12 @@
                     onclick={() => (viewMode = "all")}
                     title={$_("symbolPicker.all")}
                 >
-                    <span class="label uppercase text-xs">All</span>
+                    <span class="label uppercase text-xs">{$_("symbolPicker.volFilter.all")}</span>
                 </button>
             </div>
 
             <div class="text-xs opacity-50 font-mono">
-                {sortedAndFilteredSymbols.length} Pairs
+                {sortedAndFilteredSymbols.length} {$_("symbolPicker.pairs")}
             </div>
         </div>
 
@@ -279,22 +279,22 @@
             class="flex items-center gap-4 text-xs text-[var(--text-secondary)]"
         >
             <div class="flex items-center gap-2">
-                <span class="uppercase tracking-wider opacity-60">Vol:</span>
+                <span class="uppercase tracking-wider opacity-60">{$_("symbolPicker.volLabel")}</span>
                 <select
                     bind:value={minVolumeStr}
                     class="bg-transparent border border-[var(--border-color)] rounded px-2 py-0.5 outline-none"
                 >
-                    <option value="0">All</option>
-                    <option value="1000000">1M+</option>
-                    <option value="10000000">10M+</option>
-                    <option value="50000000">50M+</option>
+                    <option value="0">{$_("symbolPicker.volFilter.all")}</option>
+                    <option value="1000000">{$_("symbolPicker.volFilter.1m")}+</option>
+                    <option value="10000000">{$_("symbolPicker.volFilter.10m")}+</option>
+                    <option value="50000000">{$_("symbolPicker.volFilter.50m")}+</option>
                 </select>
             </div>
 
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" bind:checked={hideAlts} />
                 <span class="uppercase tracking-wider opacity-60"
-                    >Majors Only</span
+                    >{$_("symbolPicker.majorsOnly")}</span
                 >
             </label>
 
@@ -302,17 +302,17 @@
                 <button
                     class="sort-pill"
                     class:active={sortMode === "alpha"}
-                    onclick={() => (sortMode = "alpha")}>AZ</button
+                    onclick={() => (sortMode = "alpha")}>{$_("symbolPicker.sort.az")}</button
                 >
                 <button
                     class="sort-pill"
                     class:active={sortMode === "gainers"}
-                    onclick={() => (sortMode = "gainers")}>%↑</button
+                    onclick={() => (sortMode = "gainers")}>{$_("symbolPicker.sort.gainers")}</button
                 >
                 <button
                     class="sort-pill"
                     class:active={sortMode === "volume"}
-                    onclick={() => (sortMode = "volume")}>Vol</button
+                    onclick={() => (sortMode = "volume")}>{$_("symbolPicker.sort.vol")}</button
                 >
             </div>
         </div>
@@ -337,6 +337,7 @@
                         <button
                             class="absolute top-1 right-1 p-1 opacity-40 hover:opacity-100 transition-opacity"
                             onclick={(e) => toggleFavorite(e, s)}
+                            aria-label={$_("symbolPicker.favorites")}
                         >
                             {@html isFavorite(s)
                                 ? icons.starFilled

@@ -230,8 +230,12 @@ class TradeService {
             try {
                 await this.cancelAllOrders(symbol, true);
             } catch (cancelError) {
-                // If cancellation fails, we log it CRITICALLY but proceed to close (Panic button logic).
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+                // HARDENING: If cancellation fails, we ABORT.
+                // Proceeding creates a "Naked Stop Loss" risk which is financially dangerous.
+                logger.error("market", `[FlashClose] ABORTED: Failed to cancel open orders for ${symbol}. Prevented Naked Stop Loss risk.`, cancelError);
+                // Remove optimistic order since we aborted
+                omsService.removeOrder(clientOrderId);
+                throw new Error("tradeErrors.failedToCancelOrders");
             }
 
             return await this.signedRequest("POST", "/api/orders", {
@@ -435,8 +439,9 @@ class TradeService {
              const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
              const results: any[] = [];
 
-             // Rate limit handling: Batch requests (max 5 concurrent)
-             const BATCH_SIZE = 5;
+             // Rate limit handling: Batch requests (max 2 concurrent)
+             // Reduced from 5 to 2 to respect global rate limit (8) and allow price updates.
+             const BATCH_SIZE = 2;
              for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
                   const batch = fetchList.slice(i, i + BATCH_SIZE);
                   const batchResults = await Promise.all(

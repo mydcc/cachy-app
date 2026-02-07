@@ -1306,7 +1306,10 @@
       "10m": "10M",
       "50m": "50M"
     },
-    "maxFavorites": "Maximum number of favorites reached (12)."
+    "maxFavorites": "Maximum number of favorites reached (12).",
+    "pairs": "Pairs",
+    "volLabel": "Vol:",
+    "majorsOnly": "Majors Only"
   },
   "common": {
     "save": "Save",

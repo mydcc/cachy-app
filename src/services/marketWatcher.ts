@@ -25,24 +25,11 @@ import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
+import { tfToMs } from "../utils/timeUtils";
 
 interface MarketWatchRequest {
   symbol: string;
   channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
-}
-
-function tfToMs(tf: string): number {
-    const unit = tf.slice(-1);
-    const val = parseInt(tf.slice(0, -1));
-    if (isNaN(val)) return 60000;
-    switch (unit) {
-        case 'm': return val * 60 * 1000;
-        case 'h': return val * 60 * 60 * 1000;
-        case 'd': return val * 24 * 60 * 60 * 1000;
-        case 'w': return val * 7 * 24 * 60 * 60 * 1000;
-        case 'M': return val * 30 * 24 * 60 * 60 * 1000;
-        default: return 60000;
-    }
 }
 
 class MarketWatcher {
@@ -362,27 +349,26 @@ class MarketWatcher {
                     // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
 
-                    for (let i = 0; i < effectiveBatches; i += concurrency) {
+                    // Create batches indices
+                    const batchIndices = Array.from({ length: effectiveBatches }, (_, i) => i);
+
+                    for (let i = 0; i < batchIndices.length; i += concurrency) {
                         if (!this.isPolling) {
                              logger.debug("market", `[History] Polling stopped, aborting backfill for ${symbol}`);
                              break;
                         }
 
-                        const chunkTasks: Promise<any>[] = [];
-                        for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
-                             const batchIdx = i + j;
+                        const chunk = batchIndices.slice(i, i + concurrency);
+                        const tasks = chunk.map(batchIdx => {
                              const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
+                             return apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
+                                 .catch(e => {
+                                     logger.warn("market", `[History] Backfill batch ${batchIdx} failed`, e);
+                                     return [];
+                                 });
+                        });
 
-                             chunkTasks.push(
-                                 apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
-                                     .catch(e => {
-                                         logger.warn("market", `[History] Backfill batch ${batchIdx} failed`, e);
-                                         return [];
-                                     })
-                             );
-                        }
-
-                        const chunkResults = await Promise.all(chunkTasks);
+                        const chunkResults = await Promise.all(tasks);
                         results.push(...chunkResults);
                     }
 
@@ -507,8 +493,11 @@ class MarketWatcher {
         } finally {
             // Release lock immediately
             this.pendingRequests.delete(lockKey);
-            this.requestStartTimes.delete(lockKey);
-            this.inFlight = Math.max(0, this.inFlight - 1);
+            // Only decrement if the request wasn't already pruned (zombie)
+            if (this.requestStartTimes.has(lockKey)) {
+                this.requestStartTimes.delete(lockKey);
+                this.inFlight = Math.max(0, this.inFlight - 1);
+            }
         }
     })();
 
