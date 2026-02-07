@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { marketWatcher } from './marketWatcher';
+import { marketWatcher, tfToMs } from './marketWatcher';
 import { apiService } from './apiService';
 import { marketState } from '../stores/market.svelte';
 
@@ -109,5 +109,17 @@ describe('MarketWatcher Locking & Deduplication', () => {
         await watcher.pollSymbolChannel('BTCUSDT', 'price', 'bitunix');
 
         expect(apiService.fetchTicker24h).toHaveBeenCalledTimes(2); // 1 fail + 1 success
+    });
+});
+
+describe('MarketWatcher Utilities', () => {
+    it('tfToMs should return correct milliseconds', () => {
+        expect(tfToMs('1m')).toBe(60000);
+        expect(tfToMs('1h')).toBe(3600000);
+    });
+
+    it('tfToMs should throw error on invalid input', () => {
+        expect(() => tfToMs('invalid')).toThrow();
+        expect(() => tfToMs('1x')).toThrow();
     });
 });

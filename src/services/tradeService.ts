@@ -432,7 +432,12 @@ class TradeService {
              const positions = omsService.getPositions();
              positions.forEach(p => symbolsToFetch.add(p.symbol));
 
-             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
+             // Hardening: If no symbols, do not call API (avoid empty requests or errors)
+             if (symbolsToFetch.size === 0) {
+                 return [];
+             }
+
+             const fetchList = Array.from(symbolsToFetch);
              const results: any[] = [];
 
              // Rate limit handling: Batch requests (max 5 concurrent)

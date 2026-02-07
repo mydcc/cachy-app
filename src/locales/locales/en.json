@@ -115,7 +115,8 @@
         "market": "Market",
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Market",
-        "trailing": "Trailing"
+        "trailing": "Trailing",
+        "unknown": "Unknown"
       }
     },
     "type": "Type",

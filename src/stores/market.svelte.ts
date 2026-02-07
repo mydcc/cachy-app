@@ -712,7 +712,8 @@ export class MarketManager {
       }
     }
 
-    current.klinesBuffers[timeframe] = buffers;
+    // Reactivity Fix: Clone object to ensure Svelte detects the change if updated in-place
+    current.klinesBuffers[timeframe] = buffers ? { ...buffers } : buffers;
     current.lastUpdated = Date.now();
 
     // Hardening: Runtime Consistency Check (DEV only)

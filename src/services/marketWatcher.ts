@@ -26,23 +26,26 @@ import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
+import type { Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;
   channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
 }
 
-function tfToMs(tf: string): number {
+export function tfToMs(tf: string): number {
     const unit = tf.slice(-1);
     const val = parseInt(tf.slice(0, -1));
-    if (isNaN(val)) return 60000;
+    if (isNaN(val)) {
+        throw new Error(`Invalid timeframe value: ${tf}`);
+    }
     switch (unit) {
         case 'm': return val * 60 * 1000;
         case 'h': return val * 60 * 60 * 1000;
         case 'd': return val * 24 * 60 * 60 * 1000;
         case 'w': return val * 7 * 24 * 60 * 60 * 1000;
         case 'M': return val * 30 * 24 * 60 * 60 * 1000;
-        default: return 60000;
+        default: throw new Error(`Invalid timeframe unit: ${unit}`);
     }
 }
 
@@ -370,7 +373,7 @@ class MarketWatcher {
                     const oldestTime = klines1[0].time;
                     const intervalMs = tfToMs(tf);
 
-                    const results: any[] = [];
+                    const results: Kline[][] = [];
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
                     // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
@@ -381,7 +384,7 @@ class MarketWatcher {
                              break;
                         }
 
-                        const chunkTasks: Promise<any>[] = [];
+                        const chunkTasks: Promise<Kline[]>[] = [];
                         for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
                              const batchIdx = i + j;
                              const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
