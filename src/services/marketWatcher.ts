@@ -118,6 +118,8 @@ class MarketWatcher {
                  bitunixWs.subscribe(normSymbol, "price");
              } else if (channel === "ticker") {
                  bitunixWs.subscribe(normSymbol, "ticker");
+             } else if (channel === "depth_book5") {
+                 bitunixWs.subscribe(normSymbol, "depth_book5");
              } else if (channel.startsWith("kline_")) {
                  bitunixWs.subscribe(normSymbol, channel);
              }

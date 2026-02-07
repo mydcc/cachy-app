@@ -279,9 +279,9 @@
   // Depth Subscription
   $effect(() => {
     if (symbol && settingsState.showMarketActivity && isVisible) {
-      marketWatcher.register(symbol, "depth_book5");
+      marketWatcher.register(symbol, "depth");
       return () => {
-        marketWatcher.unregister(symbol, "depth_book5");
+        marketWatcher.unregister(symbol, "depth");
       };
     }
   });
