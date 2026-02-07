@@ -6,6 +6,7 @@
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
   import { PerformanceMonitor } from "../../../utils/performanceMonitor";
+  import { _ } from "../../../locales/i18n";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -344,7 +345,7 @@
       log(LogLevel.ERROR, '❌ Initialization failed:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : $_('errors.unknown')
       };
     }
   }
@@ -686,7 +687,7 @@
     
     if (!result.success) {
       lifecycleState = LifecycleState.ERROR;
-      lifecycleError = result.error || 'Unknown error';
+      lifecycleError = result.error || $_('errors.unknown');
       log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
       return;
     }

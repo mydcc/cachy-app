@@ -156,8 +156,9 @@ async function pruneOldCaches() {
   if (!isBrowser) return;
 
   try {
-    // Limit retrieval to 50 to prevent OOM if cache was flooded
-    const allNews = await dbService.getAll<NewsCacheEntry>("news", 50);
+    // Fetch all items to ensure we find the oldest ones (preventing alphabet-biased leaks)
+    // We assume the number of cached symbols isn't massive (e.g. < 1000)
+    const allNews = await dbService.getAll<NewsCacheEntry>("news");
     if (allNews.length > MAX_SYMBOLS_CACHED) {
       const sorted = allNews.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       const toDelete = sorted.slice(0, allNews.length - MAX_SYMBOLS_CACHED);

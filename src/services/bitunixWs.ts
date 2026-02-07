@@ -1396,5 +1396,5 @@ export function isDepthData(d: any): d is { b: any[]; a: any[] } {
 export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
-  return (d.p !== undefined && d.v !== undefined && d.s !== undefined);
+  return (d.p !== undefined && isSafe(d.p) && d.v !== undefined && isSafe(d.v) && d.s !== undefined);
 }

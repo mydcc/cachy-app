@@ -20,6 +20,7 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
+import { parseTimestamp } from "../utils/utils";
 // [DIAGNOSTIC] Import diagnostic tool
 import { getDiagnosticInstance } from "../utils/diagnose_bitunix_flow";
 
@@ -337,28 +338,8 @@ export class MarketManager {
       }
 
       if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
-        let nft: number = 0;
-        const raw = partial.nextFundingTime;
-
-        if (typeof raw === "number") {
-          nft = raw;
-        } else if (typeof raw === "string") {
-          if (/^\d+$/.test(raw)) {
-            nft = parseInt(raw, 10);
-          } else {
-            // Falls es ein ISO-String oder ein anderes Datumsformat ist
-            const parsed = new Date(raw).getTime();
-            if (!isNaN(parsed)) {
-              nft = parsed;
-            }
-          }
-        }
-
-        // Heuristik: Sekunden in Millisekunden umrechnen (~1.7*10^9 vs ~1.7*10^12)
-        if (nft > 0 && nft < 10000000000) {
-          nft *= 1000;
-        }
-        current.nextFundingTime = nft > 0 ? nft : null;
+        const ts = parseTimestamp(partial.nextFundingTime);
+        current.nextFundingTime = ts > 0 ? ts : null;
       }
 
       if (partial.depth !== undefined) current.depth = partial.depth;
