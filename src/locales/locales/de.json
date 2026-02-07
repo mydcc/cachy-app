@@ -159,6 +159,8 @@
     "noNews": "Keine Nachrichten gefunden.",
     "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
     "configure": "Konfigurieren",
+    "toggleTiles": "Markt-Kacheln umschalten",
+    "toggleSentiment": "Marktstimmung umschalten",
     "tpsl": "TP/SL",
     "tpslManager": {
       "pending": "Ausstehend",
