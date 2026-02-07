@@ -1323,6 +1323,7 @@ export type TranslationKey =
   | "calculator.errors.totalPercentExceeded"
   | "calculator.errors.slDistance"
   | "calculator.errors.generic"
+  | "calculator.errors.unknownError"
   | "calculator.logic.tpGoal"
   | "calculator.logic.sumSold"
   | "candlestickPatterns.doji.name"

@@ -1522,7 +1522,7 @@
       "tpBelowEntry": "Short: Take-Profit target {price} must be below Entry.",
       "totalPercentExceeded": "Total sell percentage ({percent}%) must not exceed 100%.",
       "slDistance": "Stop-Loss must have a valid distance from entry price.",
-      "generic": "An error occurred during calculation."
+      "generic": "An error occurred during calculation.", "unknownError": "Unknown error"
     },
     "logic": {
       "tpGoal": "{type}: Take-Profit Target {price}",
