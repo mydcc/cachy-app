@@ -111,6 +111,11 @@ export interface TradeFlowSettings {
   volumeScale: number; // Factor to scale volume mapping
   flowMode: "equalizer" | "raindrops" | "city" | "sonar";
   persistenceDuration: number;
+  cameraHeight: number;
+  cameraDistance: number;
+  cameraRotationX: number;
+  cameraRotationY: number;
+  cameraRotationZ: number;
 }
 
 export interface Settings {
@@ -412,7 +417,7 @@ const defaultSettings: Settings = {
     speed: 0.8,
     particleCount: 3000,
     size: 0.08,
-    spread: 8.0,
+    spread: 1.0,
     layout: "grid",
     colorMode: "theme",
     customColorUp: "#00ff88",
@@ -425,6 +430,11 @@ const defaultSettings: Settings = {
     enableAtmosphere: true,
     volumeScale: 1.0,
     persistenceDuration: 60,
+    cameraHeight: 80,
+    cameraDistance: 120,
+    cameraRotationX: 0,
+    cameraRotationY: 0,
+    cameraRotationZ: 0,
   } as TradeFlowSettings,
     galaxySettings: {
     particleCount: 20000,

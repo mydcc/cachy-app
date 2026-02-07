@@ -362,23 +362,37 @@
       if (!camera) return;
       const s = settingsState.tradeFlowSettings;
       
-      // Sonar has unique top-down view
-      if (s.flowMode === 'sonar') {
-          camera.position.set( 0, 30, 0.1 ); // Top down view
+      // Sonar has unique default view but respects manual override if set
+      if (s.flowMode === 'sonar' && (!s.cameraHeight || s.cameraHeight === 80)) {
+           // Default Sonar View (Top Down)
+          camera.position.set( 0, 30, 0.1 ); 
           camera.lookAt( 0, 0, 0 );
       } else {
-          // Auto-Fit Camera
+          // Manual Camera Control (or Auto-Fit fallback)
           const width = s.gridWidth || 80;
           const length = s.gridLength || 160;
-          const maxDim = Math.max(width, length);
           
-          // Adjust height and distance based on grid size to fit screen
-          // Heuristic: roughly 0.5x max dimension for comfortable view
-          const y = maxDim * 0.4;
-          const z = maxDim * 0.5;
+          // Use manual settings if available, otherwise heuristic
+          const y = s.cameraHeight || (Math.max(width, length) * 0.4);
+          const z = s.cameraDistance || (Math.max(width, length) * 0.5);
           
           camera.position.set( 0, y, z ); 
-          if(scene) camera.lookAt( 0, 0, 0 );
+          
+          // Rotation Handling (Manual vs Auto)
+          // Check if any rotation is non-zero (using small epsilon for float safety if needed, but strict 0 is fine for default)
+          const hasManualRot = (s.cameraRotationX || 0) !== 0 || (s.cameraRotationY || 0) !== 0 || (s.cameraRotationZ || 0) !== 0;
+
+          if (hasManualRot) {
+              // Convert Degrees -> Radians
+              camera.rotation.set(
+                  (s.cameraRotationX || 0) * Math.PI / 180,
+                  (s.cameraRotationY || 0) * Math.PI / 180,
+                  (s.cameraRotationZ || 0) * Math.PI / 180
+              );
+          } else {
+              // Default behavior: Look at center
+              if(scene) camera.lookAt( 0, 0, 0 );
+          }
       }
   }
 
@@ -848,6 +862,19 @@
           lastGridLength = s.gridLength;
           initSceneObjects();
       }
+  });
+
+  // Camera Position Effect
+  $effect(() => {
+    if (lifecycleState === LifecycleState.READY) {
+        // Dependencies
+        const _h = settingsState.tradeFlowSettings.cameraHeight;
+        const _d = settingsState.tradeFlowSettings.cameraDistance;
+        const _rx = settingsState.tradeFlowSettings.cameraRotationX;
+        const _ry = settingsState.tradeFlowSettings.cameraRotationY;
+        const _rz = settingsState.tradeFlowSettings.cameraRotationZ;
+        updateCameraPosition();
+    }
   });
 
   // Symbol & Provider change effect

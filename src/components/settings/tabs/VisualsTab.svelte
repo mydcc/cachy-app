@@ -77,6 +77,21 @@
     function handleSizeChange(e: Event & { currentTarget: HTMLInputElement }) {
         settingsState.tradeFlowSettings.size = parseFloat(e.currentTarget.value);
     }
+    function handleCamHeightChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraHeight = parseInt(e.currentTarget.value);
+    }
+    function handleCamDistanceChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraDistance = parseInt(e.currentTarget.value);
+    }
+    function handleRotXChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraRotationX = parseInt(e.currentTarget.value);
+    }
+    function handleRotYChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraRotationY = parseInt(e.currentTarget.value);
+    }
+    function handleRotZChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraRotationZ = parseInt(e.currentTarget.value);
+    }
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
@@ -1271,6 +1286,49 @@
                                 <input id="tf-size" type="range" min="0.01" max="2.0" step="0.01"
                                     value={settingsState.tradeFlowSettings.size}
                                     oninput={handleSizeChange}
+                                    class="range-input" />
+                            </div>
+                        </div>
+
+                        <!-- Camera Position -->
+                         <div class="grid grid-cols-2 gap-4 mb-4 pt-4 border-t border-[var(--border-color)]">
+                            <div class="field-group">
+                                <label for="tf-cam-height">Camera Height (Y): {settingsState.tradeFlowSettings.cameraHeight}</label>
+                                <input id="tf-cam-height" type="range" min="10" max="1000" step="10"
+                                    value={settingsState.tradeFlowSettings.cameraHeight}
+                                    oninput={handleCamHeightChange}
+                                    class="range-input" />
+                            </div>
+                            <div class="field-group">
+                                <label for="tf-cam-dist">Camera Distance (Z): {settingsState.tradeFlowSettings.cameraDistance}</label>
+                                <input id="tf-cam-dist" type="range" min="10" max="1000" step="10"
+                                    value={settingsState.tradeFlowSettings.cameraDistance}
+                                    oninput={handleCamDistanceChange}
+                                    class="range-input" />
+                            </div>
+                        </div>
+
+                        <!-- Camera Rotation -->
+                         <div class="grid grid-cols-3 gap-2 mb-4">
+                            <div class="field-group">
+                                <label for="tf-cam-rx">Rot X: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
+                                <input id="tf-cam-rx" type="range" min="-180" max="180" step="5"
+                                    value={settingsState.tradeFlowSettings.cameraRotationX}
+                                    oninput={handleRotXChange}
+                                    class="range-input" />
+                            </div>
+                            <div class="field-group">
+                                <label for="tf-cam-ry">Rot Y: {settingsState.tradeFlowSettings.cameraRotationY}°</label>
+                                <input id="tf-cam-ry" type="range" min="-180" max="180" step="5"
+                                    value={settingsState.tradeFlowSettings.cameraRotationY}
+                                    oninput={handleRotYChange}
+                                    class="range-input" />
+                            </div>
+                             <div class="field-group">
+                                <label for="tf-cam-rz">Rot Z: {settingsState.tradeFlowSettings.cameraRotationZ}°</label>
+                                <input id="tf-cam-rz" type="range" min="-180" max="180" step="5"
+                                    value={settingsState.tradeFlowSettings.cameraRotationZ}
+                                    oninput={handleRotZChange}
                                     class="range-input" />
                             </div>
                         </div>
