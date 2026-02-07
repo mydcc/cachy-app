@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { browser } from "$app/environment";
   import * as THREE from "three";
+  import { _ } from "../../../locales/i18n";
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
@@ -344,7 +345,7 @@
       log(LogLevel.ERROR, '❌ Initialization failed:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : $_("errors.unknown")
       };
     }
   }
@@ -686,7 +687,7 @@
     
     if (!result.success) {
       lifecycleState = LifecycleState.ERROR;
-      lifecycleError = result.error || 'Unknown error';
+      lifecycleError = result.error || $_("errors.unknown");
       log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
       return;
     }
@@ -796,7 +797,7 @@
     window.removeEventListener('resize', onResize);
     
     if (performanceMonitor) performanceMonitor.stop();
-    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol);
+    if (bitunixWs) bitunixWs.unsubscribeTrade(tradeState.symbol, onTrade);
 
     if (scene) {
       scene.children.forEach(child => {
