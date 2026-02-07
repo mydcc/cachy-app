@@ -31,18 +31,25 @@ describe('safeJsonParse', () => {
         expect(parsed.orderId).toBe("1234567890123456789");
     });
 
-    it('should parse large integers in arbitrary keys as strings (FIX REQUIRED)', () => {
-        // This test is expected to fail with current implementation
+    it('should parse large integers in arbitrary keys as strings', () => {
         const bigIntStr = "1234567890123456789";
         const json = `{"timestamp": ${bigIntStr}, "nonce": ${bigIntStr}}`;
 
         const parsed = safeJsonParse(json);
 
-        // Current implementation: timestamp is parsed as number and loses precision
-        // Expected behavior after fix: timestamp is parsed as string
         expect(parsed.timestamp).toBe(bigIntStr);
         expect(parsed.nonce).toBe(bigIntStr);
         expect(typeof parsed.timestamp).toBe("string");
+    });
+
+    it('should parse large integers in keys with escaped quotes', () => {
+        const bigIntStr = "1234567890123456789";
+        // JSON: {"key\"": 1234567890123456789}
+        // In string literal we need to escape backslash for the quote
+        const json = `{"key\\"": ${bigIntStr}}`;
+        const parsed = safeJsonParse(json);
+        expect(parsed['key"']).toBe(bigIntStr);
+        expect(typeof parsed['key"']).toBe("string");
     });
 
     it('should not stringify small integers', () => {

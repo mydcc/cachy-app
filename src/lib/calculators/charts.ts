@@ -36,7 +36,7 @@ export function getPerformanceData(journal: JournalEntry[], context?: JournalCon
     context?.closedTrades ??
     journal
       .filter((t) => t.status === "Won" || t.status === "Lost")
-      .sort((a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0));
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // 1. Equity Curve
   let cumulative = new Decimal(0);
@@ -81,7 +81,7 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
     context?.closedTrades ??
     journal
       .filter((t) => t.status === "Won" || t.status === "Lost")
-      .sort((a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0));
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // 1. Win/Loss Distribution (Old) - Keep for backward compatibility if needed
   let won = 0;
@@ -265,7 +265,7 @@ export function getDirectionData(journal: JournalEntry[], context?: JournalConte
   const sortedByDate = context
     ? closedTrades
     : [...closedTrades].sort(
-        (a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0),
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
 
   sortedByDate.forEach((t) => {
@@ -322,7 +322,7 @@ export function getCostData(journal: JournalEntry[], context?: JournalContext) {
 
   // 2. Cumulative Fees
   let cumFees = new Decimal(0);
-  const feeCurve = (context ? closedTrades : [...closedTrades].sort((a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0)))
+  const feeCurve = (context ? closedTrades : [...closedTrades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
     .map((t) => {
       const fees = t.totalFees || new Decimal(0);
       const funding = t.fundingFee || new Decimal(0);
@@ -507,7 +507,7 @@ export function getPsychologyData(journal: JournalEntry[], context?: JournalCont
     ? context.closedTrades
     : [...journal]
         .filter((t) => t.status === "Won" || t.status === "Lost")
-        .sort((a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0));
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   let currentWinStreak = 0;
   let currentLossStreak = 0;
@@ -568,7 +568,7 @@ export function getTagEvolution(journal: JournalEntry[], context?: JournalContex
     context?.closedTrades ??
     journal
       .filter((t) => t.status === "Won" || t.status === "Lost")
-      .sort((a, b) => (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0));
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // Identify Top 5 Tags by Abs PnL
   const tagStats = getTagData(closedTrades, context);

@@ -20,6 +20,7 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
   import { OrderType } from "../../types/orderTypes";
+  import Decimal from "decimal.js";
 
   interface Props {
     orders?: any[];
@@ -38,6 +39,18 @@
 
   function handleMouseLeave() {
     uiState.hideTooltip();
+  }
+
+  function handleKeyDown(event: KeyboardEvent, order: any) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      // Calculate generic center position as we don't have mouse coordinates
+      const x = window.innerWidth / 2 - 160;
+      const y = window.innerHeight / 2 - 200;
+      uiState.showTooltip("order", order, x, y);
+    } else if (event.key === 'Escape') {
+      uiState.hideTooltip();
+    }
   }
 
   function getTooltipPosition(event: MouseEvent) {
@@ -105,9 +118,7 @@
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
-      {typeof $_ === "function"
-        ? $_("dashboard.noHistory")
-        : "No history found."}
+      {$_("dashboard.noHistory")}
     </div>
   {:else}
     <div class="flex flex-col gap-2">
@@ -118,10 +129,13 @@
           <div class="grid grid-cols-3 gap-1">
             <!-- Col 1: Identity & Time -->
             <div
-              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
+              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
               onmouseenter={(e) => handleMouseEnter(e, order)}
               onmouseleave={handleMouseLeave}
-              role="tooltip"
+              onkeydown={(e) => handleKeyDown(e, order)}
+              tabindex="0"
+              role="button"
+              aria-label={$_("dashboard.orderHistory.viewDetails")}
             >
               <span
                 class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"
@@ -163,22 +177,20 @@
               <!-- Entry/Exit Price: Prefer AvgPrice (Execution) over Price (Limit) if available -->
               <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
                 {formatDynamicDecimal(
-                  order.avgPrice && Number(order.avgPrice) > 0
+                  (new Decimal(order.avgPrice || 0)).gt(0)
                     ? order.avgPrice
                     : order.price,
                 )}
               </span>
 
               <!-- PnL -->
-              {#if (order.realizedPNL || order.realizedPnL) && Number(order.realizedPNL || order.realizedPnL) !== 0}
+              {#if (order.realizedPNL || order.realizedPnL) && !(new Decimal(order.realizedPNL || order.realizedPnL || 0).isZero())}
                 <span
                   class="text-[10px] font-bold"
-                  class:text-[var(--success-color)]={Number(order.realizedPNL || order.realizedPnL) >
-                    0}
-                  class:text-[var(--danger-color)]={Number(order.realizedPNL || order.realizedPnL) <
-                    0}
+                  class:text-[var(--success-color)]={new Decimal(order.realizedPNL || order.realizedPnL || 0).gt(0)}
+                  class:text-[var(--danger-color)]={new Decimal(order.realizedPNL || order.realizedPnL || 0).lt(0)}
                 >
-                  {Number(order.realizedPNL || order.realizedPnL) > 0
+                  {new Decimal(order.realizedPNL || order.realizedPnL || 0).gt(0)
                     ? "+"
                     : ""}{formatDynamicDecimal(order.realizedPNL || order.realizedPnL)}
                 </span>

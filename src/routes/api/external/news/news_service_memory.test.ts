@@ -31,10 +31,10 @@ describe('News Service Cache Memory', () => {
         expect(_newsCache.size).toBe(50);
 
         // Verify LRU: The last item (99) should exist, the first (0) should not
-        const cacheKeyLast = `newsapi:{"q":"test-99"}:default`;
+        const cacheKeyLast = `newsapi:{"q":"test-99"}:default:test-key`;
         expect(_newsCache.has(cacheKeyLast)).toBe(true);
 
-        const cacheKeyFirst = `newsapi:{"q":"test-0"}:default`;
+        const cacheKeyFirst = `newsapi:{"q":"test-0"}:default:test-key`;
         expect(_newsCache.has(cacheKeyFirst)).toBe(false);
     });
 });
