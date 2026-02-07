@@ -96,7 +96,7 @@ export interface GalaxySettings {
 
 export interface TradeFlowSettings {
   speed: number;
-  particleCount: number;
+  particleCount: number; // Legacy total count, might derive from width/height
   size: number;
   spread: number;
   layout: "tunnel" | "grid";
@@ -104,8 +104,13 @@ export interface TradeFlowSettings {
   customColorUp: string;
   customColorDown: string;
   minVolume: number;
+  // New Settings
   gridWidth: number;
   gridLength: number;
+  enableAtmosphere: boolean;
+  volumeScale: number; // Factor to scale volume mapping
+  flowMode: "tunnel" | "equalizer" | "raindrops" | "city" | "sonar";
+  decaySpeed: number;
 }
 
 export interface Settings {
@@ -404,18 +409,23 @@ const defaultSettings: Settings = {
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
   tradeFlowSettings: {
-      speed: 0.8,
-      particleCount: 3000,
-      size: 0.08,
-      spread: 8.0,
-      layout: "tunnel",
-      colorMode: "theme",
-      customColorUp: "#00ff88",
-      customColorDown: "#ff4444",
-      minVolume: 0,
-      gridWidth: 80,
-      gridLength: 160,
-    },
+    speed: 0.8,
+    particleCount: 3000,
+    size: 0.08,
+    spread: 8.0,
+    layout: "tunnel",
+    colorMode: "theme",
+    customColorUp: "#00ff88",
+    customColorDown: "#ff4444",
+    minVolume: 0,
+    // New Settings (V3)
+    flowMode: "equalizer",
+    gridWidth: 80,
+    gridLength: 160,
+    enableAtmosphere: true,
+    volumeScale: 1.0,
+    decaySpeed: 0.95,
+  } as TradeFlowSettings,
     galaxySettings: {
     particleCount: 20000,
     particleSize: 0.5,
