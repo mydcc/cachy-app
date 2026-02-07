@@ -593,6 +593,10 @@
     "length": "Länge",
     "source": "Quelle",
     "signal": "Signal",
+    "fundingRate": "Funding Rate",
+    "countdown": "Countdown",
+    "bid": "Bid",
+    "ask": "Ask",
     "tooltips": {
       "toggleTechnicals": "Technicals umschalten",
       "openChart": "Echtzeit-Chart öffnen",
@@ -604,9 +608,7 @@
       "removeFavorite": "Aus Favoriten entfernen",
       "openChannel": "Kanal öffnen",
       "closeChannel": "Kanal schließen"
-    },
-    "fundingRate": "Funding Rate",
-    "countdown": "Countdown"
+    }
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikorechner",

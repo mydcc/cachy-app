@@ -20,6 +20,8 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
+// [DIAGNOSTIC] Import diagnostic tool
+import { getDiagnosticInstance } from "../utils/diagnose_bitunix_flow";
 
 export interface MarketData {
   symbol: string;
@@ -218,6 +220,17 @@ export class MarketManager {
   }
 
   private flushUpdates() {
+    // [DIAGNOSTIC] Log flush execution with pending updates info
+    const totalPending = this.pendingUpdates.size + this.pendingKlineUpdates.size;
+    if (totalPending > 0) {
+      console.debug(`[DIAGNOSTIC] flushUpdates() executing - pendingUpdates: ${this.pendingUpdates.size}, pendingKlineUpdates: ${this.pendingKlineUpdates.size}`);
+    }
+    
+    const diagnostic = getDiagnosticInstance();
+    if (diagnostic) {
+      diagnostic.recordFlush(this.pendingUpdates.size);
+    }
+    
     if (this.pendingUpdates.size === 0 && this.pendingKlineUpdates.size === 0) return;
 
     untrack(() => {
@@ -257,7 +270,18 @@ export class MarketManager {
     try {
       this.touchSymbol(symbol);
       const current = this.getOrCreateSymbol(symbol);
+      const previousTimestamp = current.lastUpdated || 0;
       current.lastUpdated = Date.now();
+      
+      // [DIAGNOSTIC] Track timestamp progression
+      const diagnostic = getDiagnosticInstance();
+      if (diagnostic) {
+        diagnostic.recordUpdate(current.lastUpdated);
+      }
+      
+      if (current.lastUpdated <= previousTimestamp && previousTimestamp > 0) {
+        console.debug(`[DIAGNOSTIC] WARNING: lastUpdated timestamp NOT increasing for ${symbol} - prev: ${previousTimestamp}, new: ${current.lastUpdated}`);
+      }
 
       // Optimization: Check for equality before creating new Decimal
       // Re-use Decimal instances if string value hasn't changed.

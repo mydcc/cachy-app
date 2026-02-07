@@ -44,6 +44,8 @@ import {
   isAllowedChannel,
   validateSymbol,
 } from "../types/bitunixValidation";
+// [DIAGNOSTIC] Import diagnostic tool
+import { getDiagnosticInstance } from "../utils/diagnose_bitunix_flow";
 
 const WS_PUBLIC_URL =
   CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";
@@ -246,7 +248,15 @@ class BitunixWebSocketService {
       this.throttleMap.clear();
     }
     const last = this.throttleMap.get(key) || 0;
-    if (now - last < this.UPDATE_INTERVAL) {
+    const shouldBlock = now - last < this.UPDATE_INTERVAL;
+    
+    // [DIAGNOSTIC] Record throttle statistics
+    const diagnostic = getDiagnosticInstance();
+    if (diagnostic) {
+      diagnostic.recordThrottle(!shouldBlock);
+    }
+    
+    if (shouldBlock) {
       return true;
     }
     this.throttleMap.set(key, now);
@@ -705,6 +715,9 @@ class BitunixWebSocketService {
 
   private login(apiKey: string, apiSecret: string) {
     try {
+      // [DIAGNOSTIC] Verify credentials are present
+      console.debug(`[DIAGNOSTIC] Login attempt - apiKey present: ${!!apiKey}, apiSecret present: ${!!apiSecret}`);
+      
       if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN)
         return;
       if (!CryptoJS || !CryptoJS.SHA256) return;
@@ -736,12 +749,22 @@ class BitunixWebSocketService {
         op: "login",
         args: [{ apiKey, timestamp, nonce, sign }],
       };
+      
+      console.debug(`[DIAGNOSTIC] Login payload generated - timestamp: ${timestamp}, nonce length: ${nonce.length}`);
       this.wsPrivate.send(JSON.stringify(payload));
-    } catch (error) { }
+    } catch (error) {
+      console.error(`[DIAGNOSTIC] Login error:`, error);
+    }
   }
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
     try {
+      // [DIAGNOSTIC] Log raw message data before processing
+      const rawDataStr = JSON.stringify(message);
+      const dataSize = rawDataStr.length;
+      const messageType = message.event || message.op || message.ch || message.topic || 'unknown';
+      console.debug(`[DIAGNOSTIC] handleMessage - type: ${type}, size: ${dataSize} bytes, messageType: ${messageType}`);
+      
       if (type === "public") {
         this.awaitingPongPublic = false;
         this.missedPongsPublic = 0;
@@ -798,6 +821,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
+                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (price) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
                   }
                 }
@@ -840,6 +864,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
+                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (ticker) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
                   }
                 }
@@ -858,6 +883,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
+                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (depth) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
                   }
                 }
@@ -900,6 +926,7 @@ class BitunixWebSocketService {
                         }
                         return;
                     } catch (fastPathError) {
+                        console.debug(`[DIAGNOSTIC] Fast Path FAILED (kline) for ${symbol}:`, fastPathError);
                         if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
                     }
                 }
@@ -920,10 +947,20 @@ class BitunixWebSocketService {
       // BitunixWSMessageSchema in types/bitunixValidation.ts uses z.object({...}) which allows extra fields.
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
+        // [DIAGNOSTIC] Log Zod validation errors with details
+        const issues = validationResult.error.issues;
+        const errorSummary = issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+        console.debug(`[DIAGNOSTIC] Zod validation FAILED - ${issues.length} issues:`, errorSummary);
+        console.debug(`[DIAGNOSTIC] Zod validation details:`, issues);
+        
+        const diagnostic = getDiagnosticInstance();
+        if (diagnostic) {
+          diagnostic.recordValidationError(errorSummary);
+        }
+        
         // Check if it's a critical structure failure vs minor field mismatch
         // If 'event', 'op' or 'ch' are missing/wrong type, it's critical.
         // If just data fields are off, we can ignore single message without counting towards circuit breaker.
-        const issues = validationResult.error.issues;
         const criticalFields = ["event", "op", "ch", "topic", "code"];
         // Critical if:
         // 1. Root level structure error (path is empty)

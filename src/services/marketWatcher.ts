@@ -25,6 +25,7 @@ import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
+import { getChannelsForRequirement } from "../types/dataRequirements";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -104,8 +105,18 @@ class MarketWatcher {
       untrack(() => {
         const provider = settingsState.apiProvider;
         if (provider === "bitunix") {
-             // Only subscribe to WS if using Bitunix
-             if (channel === "price" || channel === "ticker") {
+             // Map channel to WebSocket subscriptions using data requirements
+             const wsChannels = getChannelsForRequirement(channel);
+             
+             // Subscribe to all required channels
+             wsChannels.forEach(ch => {
+               bitunixWs.subscribe(normSymbol, ch);
+             });
+             
+             // Legacy compatibility: handle old channel names
+             if (channel === "price") {
+                 bitunixWs.subscribe(normSymbol, "price");
+             } else if (channel === "ticker") {
                  bitunixWs.subscribe(normSymbol, "ticker");
              } else if (channel.startsWith("kline_")) {
                  bitunixWs.subscribe(normSymbol, channel);

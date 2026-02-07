@@ -592,6 +592,8 @@
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
     "countdown": "Countdown",
+    "bid": "Bid",
+    "ask": "Ask",
     "length": "Length",
     "source": "Source",
     "signal": "Signal",
