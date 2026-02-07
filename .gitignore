@@ -83,3 +83,4 @@ reports/
 target/
 technicals-wasm/target/
 __pycache__/
+static/wasm/technicals_wasm.wasm
