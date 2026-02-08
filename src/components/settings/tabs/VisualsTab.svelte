@@ -1095,7 +1095,7 @@
                     <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4">
                         <div class="flex justify-between items-center mb-2">
                             <h4 class="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">
-                                Trade Flow Configuration
+                                {$_("settings.visuals.tradeFlow.config")}
                             </h4>
                             <button
                                 class="px-3 py-1 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded transition-colors flex items-center gap-2"
@@ -1117,13 +1117,13 @@
                                     <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
                                     <path d="M3 21v-5h5"></path>
                                 </svg>
-                                Reset
+                                {$_("settings.visuals.tradeFlow.reset")}
                             </button>
                         </div>
 
                         <!-- Visualization Mode -->
                         <div class="field-group mb-4">
-                            <label for="tf-mode">Mode</label>
+                            <label for="tf-mode">{$_("settings.visuals.tradeFlow.mode")}</label>
                             <div class="flex flex-wrap gap-2">
                                 {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as mode}
                                     <button
@@ -1198,11 +1198,11 @@
                                     {/each}
                                 </div>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <span class="text-[10px] text-[var(--text-secondary)]">Enhanced Effects</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.enhancedEffects")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.showEnhancedVisuals} />
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <span class="text-[10px] text-[var(--text-secondary)]">Dynamic Atmosphere</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.dynamicAtmosphere")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
                                 </label>
                             </div>
@@ -1210,13 +1210,13 @@
                         
                         <!-- Section: Flow -->
                         <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
-                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">Flow</h3>
+                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.flow")}</h3>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <!-- Volume Scale (Eq, City, Sonar) -->
                                 {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-volscale">Volume Scale: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
+                                    <label for="tf-volscale">{$_("settings.visuals.tradeFlow.volumeScale")}: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
                                     <input
                                         id="tf-volscale"
                                         type="range"
@@ -1232,7 +1232,7 @@
                                 <!-- Persistence Duration (All Modes) -->
                                 {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-persistence">Time Window: {
+                                    <label for="tf-persistence">{$_("settings.visuals.tradeFlow.timeWindow")}: {
                                         settingsState.tradeFlowSettings.persistenceDuration < 60 
                                         ? settingsState.tradeFlowSettings.persistenceDuration + 's' 
                                         : Math.floor(settingsState.tradeFlowSettings.persistenceDuration / 60) + 'm ' + (settingsState.tradeFlowSettings.persistenceDuration % 60 > 0 ? (settingsState.tradeFlowSettings.persistenceDuration % 60) + 's' : '')
@@ -1246,14 +1246,14 @@
                                         step="10"
                                         class="range-input"
                                     />
-                                    <p class="text-[10px] text-[var(--text-secondary)]">How long trades remain visible.</p>
+                                    <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.timeWindowHelp")}</p>
                                 </div>
                                 {/if}
                                 
                                 <!-- Speed (Sonar) -->
                                 {#if ['sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-speed">Flow Speed: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                                    <label for="tf-speed">{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
                                     <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
                                         bind:value={settingsState.tradeFlowSettings.speed}
                                         class="range-input" />
@@ -1272,32 +1272,32 @@
 
                         <!-- Section: Grid Layout -->
                         <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
-                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">Grid Layout</h3>
+                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.gridLayout")}</h3>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div class="field-group">
-                                    <label for="tf-width">Grid Points X: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                    <label for="tf-width">{$_("settings.visuals.tradeFlow.gridPointsX")}: {settingsState.tradeFlowSettings.gridWidth}</label>
                                     <input id="tf-width" type="range" min="10" max="800" step="10"
                                         value={settingsState.tradeFlowSettings.gridWidth}
                                         oninput={handleWidthChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-length">Grid Points Z: {settingsState.tradeFlowSettings.gridLength}</label>
+                                    <label for="tf-length">{$_("settings.visuals.tradeFlow.gridPointsZ")}: {settingsState.tradeFlowSettings.gridLength}</label>
                                     <input id="tf-length" type="range" min="10" max="800" step="10"
                                         value={settingsState.tradeFlowSettings.gridLength}
                                         oninput={handleLengthChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-spread">Point Spacing: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
+                                    <label for="tf-spread">{$_("settings.visuals.tradeFlow.pointSpacing")}: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
                                     <input id="tf-spread" type="range" min="0.1" max="5.0" step="0.02"
                                         value={settingsState.tradeFlowSettings.spread}
                                         oninput={handleSpreadChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-size">Particle Size: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                                    <label for="tf-size">{$_("settings.visuals.tradeFlow.size")}: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
                                     <input id="tf-size" type="range" min="0.01" max="2.0" step="0.01"
                                         value={settingsState.tradeFlowSettings.size}
                                         oninput={handleSizeChange}
@@ -1308,26 +1308,26 @@
 
                         <!-- Section: Camera Control -->
                         <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
-                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">Camera Control</h3>
+                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.cameraControl")}</h3>
                             
                             <!-- Position -->
                             <div class="grid grid-cols-3 gap-2 mb-4">
                                 <div class="field-group">
-                                    <label for="tf-cam-posx">Position X: {settingsState.tradeFlowSettings.cameraPositionX || 0}</label>
+                                    <label for="tf-cam-posx">{$_("settings.visuals.tradeFlow.positionX")}: {settingsState.tradeFlowSettings.cameraPositionX || 0}</label>
                                     <input id="tf-cam-posx" type="range" min="-500" max="500" step="1"
                                         value={settingsState.tradeFlowSettings.cameraPositionX || 0}
                                         oninput={handleCamPosXChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-cam-height">Height (Y): {settingsState.tradeFlowSettings.cameraHeight}</label>
+                                    <label for="tf-cam-height">{$_("settings.visuals.tradeFlow.height")}: {settingsState.tradeFlowSettings.cameraHeight}</label>
                                     <input id="tf-cam-height" type="range" min="1" max="1000" step="1"
                                         value={settingsState.tradeFlowSettings.cameraHeight}
                                         oninput={handleCamHeightChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-cam-dist">Distance (Z): {settingsState.tradeFlowSettings.cameraDistance}</label>
+                                    <label for="tf-cam-dist">{$_("settings.visuals.tradeFlow.distance")}: {settingsState.tradeFlowSettings.cameraDistance}</label>
                                     <input id="tf-cam-dist" type="range" min="1" max="1000" step="1"
                                         value={settingsState.tradeFlowSettings.cameraDistance}
                                         oninput={handleCamDistanceChange}
@@ -1338,21 +1338,21 @@
                             <!-- Rotation -->
                              <div class="grid grid-cols-3 gap-2 mb-4">
                                 <div class="field-group">
-                                    <label for="tf-cam-rx">Rot X: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
+                                    <label for="tf-cam-rx">{$_("settings.visuals.tradeFlow.rotationX")}: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
                                     <input id="tf-cam-rx" type="range" min="-180" max="180" step="1"
                                         value={settingsState.tradeFlowSettings.cameraRotationX}
                                         oninput={handleRotXChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-cam-ry">Rot Y: {settingsState.tradeFlowSettings.cameraRotationY}°</label>
+                                    <label for="tf-cam-ry">{$_("settings.visuals.tradeFlow.rotationY")}: {settingsState.tradeFlowSettings.cameraRotationY}°</label>
                                     <input id="tf-cam-ry" type="range" min="-180" max="180" step="1"
                                         value={settingsState.tradeFlowSettings.cameraRotationY}
                                         oninput={handleRotYChange}
                                         class="range-input" />
                                 </div>
                                  <div class="field-group">
-                                    <label for="tf-cam-rz">Rot Z: {settingsState.tradeFlowSettings.cameraRotationZ}°</label>
+                                    <label for="tf-cam-rz">{$_("settings.visuals.tradeFlow.rotationZ")}: {settingsState.tradeFlowSettings.cameraRotationZ}°</label>
                                     <input id="tf-cam-rz" type="range" min="-180" max="180" step="1"
                                         value={settingsState.tradeFlowSettings.cameraRotationZ}
                                         oninput={handleRotZChange}
