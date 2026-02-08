@@ -1378,13 +1378,13 @@ export function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any
   if (d.ip !== undefined && !isSafe(d.ip)) return false;
   if (d.fr !== undefined && !isSafe(d.fr)) return false;
 
-  // Ensure at least one known field exists
-  const hasSafePrice = (d.lastPrice !== undefined) ||
-                       (d.lp !== undefined) ||
-                       (d.la !== undefined) ||
-                       (d.ip !== undefined);
+  // Ensure at least one known field exists AND is safe
+  const hasSafePrice = (d.lastPrice !== undefined && isSafe(d.lastPrice)) ||
+                       (d.lp !== undefined && isSafe(d.lp)) ||
+                       (d.la !== undefined && isSafe(d.la)) ||
+                       (d.ip !== undefined && isSafe(d.ip));
 
-  const hasSafeFunding = (d.fr !== undefined);
+  const hasSafeFunding = (d.fr !== undefined && isSafe(d.fr));
 
   return hasSafePrice || hasSafeFunding;
 }
@@ -1401,6 +1401,11 @@ export function isTickerData(d: any): d is {
   if (d.close !== undefined && !isSafe(d.close)) return false;
   if (d.volume !== undefined && !isSafe(d.volume)) return false;
 
+  if (d.v !== undefined && !isSafe(d.v)) return false;
+  if (d.q !== undefined && !isSafe(d.q)) return false;
+  if (d.h !== undefined && !isSafe(d.h)) return false;
+  if (d.l !== undefined && !isSafe(d.l)) return false;
+
   // Must have at least one valid indicator
   return (d.volume !== undefined || d.v !== undefined || d.lastPrice !== undefined || d.close !== undefined);
 }
@@ -1414,9 +1419,15 @@ export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
   // OR { lastPrice, volume, side } fallbacks
-  const hasP = (d.p !== undefined || d.lastPrice !== undefined || d.price !== undefined);
-  const hasV = (d.v !== undefined || d.volume !== undefined || d.amount !== undefined);
-  const hasS = (d.s !== undefined || d.side !== undefined);
   
-  return hasP && hasV; 
+  // Strict Safety Checks
+  const p = d.p ?? d.lastPrice ?? d.price;
+  const v = d.v ?? d.volume ?? d.amount;
+  // Side can be anything truthy usually, but safer to check existence
+  // const s = d.s ?? d.side; // Unused but good to know it exists
+
+  if (p === undefined || !isSafe(p)) return false;
+  if (v === undefined || !isSafe(v)) return false;
+
+  return true;
 }
