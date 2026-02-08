@@ -1450,7 +1450,8 @@
     "invalidTrade": "Invalid trade.",
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
-    "saveFailed": "Save failed."
+    "saveFailed": "Save failed.",
+    "unknown": "Unknown error"
   },
   "modals": {
     "savePreset": {
