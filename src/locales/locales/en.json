@@ -1446,6 +1446,7 @@
     "error": "✗ Connection error"
   },
   "errors": {
+    "unknown": "Unknown error",
     "invalidTrade": "Invalid trade.",
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",

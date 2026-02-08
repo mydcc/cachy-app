@@ -20,8 +20,9 @@
   import { browser } from "$app/environment";
   import { settingsState } from "../../../stores/settings.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
-  import { tradeState } from "../../../stores/trade.svelte";
-  import TradeFlowWorker from "./tradeFlow.worker?worker";
+  import { uiState } from "../../../stores/ui.svelte";
+  import { PerformanceMonitor } from "../../../utils/performanceMonitor";
+  import { _ } from "../../../locales/i18n";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -132,9 +133,14 @@
     if (isNaN(price) || isNaN(amount)) return;
     if (amount < settingsState.tradeFlowSettings.minVolume) return;
 
-    tradeHistory.push(side);
-    if (tradeHistory.length > tradeHistorySize) {
-      tradeHistory.shift();
+      log(LogLevel.INFO, '✅ Three.js initialization complete');
+      return { success: true };
+    } catch (error) {
+      log(LogLevel.ERROR, '❌ Initialization failed:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : $_('errors.unknown')
+      };
     }
     
     const buys = tradeHistory.filter(s => s === 'buy' || s === 'BUY').length;
@@ -266,15 +272,99 @@
     height: 100%;
   }
 
-  .status-overlay {
-    position: absolute;
-    bottom: 2rem;
-    right: 2rem;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2rem;
-    opacity: 0.5;
+  onMount(() => {
+    if (!browser || !container) return;
+    
+    log(LogLevel.INFO, '🎬 Component mounted, starting initialization...');
+    lifecycleState = LifecycleState.INITIALIZING;
+    
+    const result = initThree();
+    performanceMonitor = new PerformanceMonitor("TradeFlowWave");
+    performanceMonitor.start(renderer || undefined);
+    
+    if (!result.success) {
+      lifecycleState = LifecycleState.ERROR;
+      lifecycleError = result.error || $_('errors.unknown');
+      log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
+    } else {
+      lifecycleState = LifecycleState.READY;
+      isVisible = !document.hidden;
+      
+      // Auto-start animation
+      startAnimationLoop();
+      
+      // Listen for visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Resize Observer
+      const resizeObserver = new ResizeObserver(() => onResize());
+      resizeObserver.observe(container);
+      
+      // Market Data
+      if (tradeState.symbol) {
+         updateSubscription(tradeState.symbol);
+      }
+      
+       // React to settings changes safely
+       $effect(() => {
+           // Watch critical settings affecting geometry
+           const mode = settingsState.tradeFlowSettings.flowMode;
+           const width = settingsState.tradeFlowSettings.gridWidth;
+           const length = settingsState.tradeFlowSettings.gridLength;
+           const theme = uiState.currentTheme; // Trigger on theme change
+
+           // If Mode or Grid Dimensions or Theme Changed -> Re-Init
+           if (scene && lifecycleState === LifecycleState.READY) {
+               const modeChanged = lastFlowMode !== mode;
+               // Simple check if we need to rebuild
+               // We rebuid if mode or dimensions change, or if theme changes (to update colors)
+               
+               if (modeChanged) {
+                   log(LogLevel.INFO, '🔄 Flow Mode changed:', mode);
+                   lastFlowMode = mode;
+                   updateThemeColors(); // Update colors first
+                   initSceneObjects();
+               } else {
+                   // Check dimensions or theme
+                   // We just force update if anything else in dependency changed that requires rebuild
+                   updateThemeColors();
+                   initSceneObjects();
+               }
+               
+               updateCameraPosition();
+           } else if (lifecycleState === LifecycleState.READY) {
+               // Just Camera Updates for other settings
+               updateCameraPosition();
+           }
+       });
+       
+       $effect(() => {
+           if (tradeState.symbol) {
+               updateSubscription(tradeState.symbol);
+           }
+       });
+       
+       // Initial Theme Colors
+       updateThemeColors();
+    }
+  });
+  
+  function updateThemeColors() {
+      if (!browser) return;
+      const style = getComputedStyle(document.body);
+      
+      const up = style.getPropertyValue('--color-up').trim();
+      const down = style.getPropertyValue('--color-down').trim();
+      const warning = style.getPropertyValue('--color-warning').trim();
+      
+      if (up) colorUp.setStyle(up);
+      if (down) colorDown.setStyle(down);
+      if (warning) colorWarning.setStyle(warning);
+      
+      // Update Uniforms if materials exist
+      materials.forEach(mat => {
+          if (mat.uniforms.uColorUp) mat.uniforms.uColorUp.value.copy(colorUp);
+      });
   }
 
   .initializing { color: var(--color-up, #00ff88); }
