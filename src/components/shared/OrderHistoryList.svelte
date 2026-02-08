@@ -69,9 +69,9 @@
   }
 
   function formatDate(timestamp: number) {
-    if (!timestamp) return "-";
+    if (!timestamp) return $_("dashboard.orderHistory.noDate");
     const date = new Date(Number(timestamp));
-    if (isNaN(date.getTime())) return "-";
+    if (isNaN(date.getTime())) return $_("dashboard.orderHistory.noDate");
 
     // Format: DD.MM HH:mm
     const day = date.getDate().toString().padStart(2, "0");
@@ -83,7 +83,7 @@
 
   // Helper to get Fee String
   function getFeeDisplay(order: any) {
-    if (order.fee === undefined || order.fee === null) return "-";
+    if (order.fee === undefined || order.fee === null) return $_("dashboard.orderHistory.noFee");
     const roleMap: Record<string, string> = {
         MAKER: ` (${$_("dashboard.orderHistory.maker")})`,
         TAKER: ` (${$_("dashboard.orderHistory.taker")})`
@@ -101,7 +101,19 @@
     if ([OrderType.TRAILING_STOP_MARKET, "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing");
     if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq");
     if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
-    return t.length > 6 ? t.substring(0, 6) + "." : t; // Truncate long types
+    // Safe fallback using i18n
+    return $_("dashboard.orderHistory.unknownRaw", { values: { type: t.length > 6 ? t.substring(0, 6) + "." : t } });
+  }
+
+  function getErrorMessage(err: string) {
+    if (!err) return "";
+    // Try to translate if it looks like a key
+    if ((err.includes(".") || err.startsWith("bitunixErrors")) && typeof $_ === "function") {
+        const translated = $_(err as any);
+        if (translated && translated !== err) return translated;
+    }
+    // Fallback: Show raw error
+    return err;
   }
 </script>
 
@@ -114,7 +126,7 @@
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
-      {(error.startsWith("apiErrors.") || error.startsWith("bitunixErrors.")) && typeof $_ === "function" ? $_(error as any) : error}
+      {getErrorMessage(error)}
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">

@@ -31,7 +31,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, TpSlOrderListSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
 export class BitunixApiError extends Error {
@@ -466,7 +466,16 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return Array.isArray(data) ? data : data.rows || [];
+
+                              const rawList = Array.isArray(data) ? data : data.rows || [];
+                              const validation = TpSlOrderListSchema.safeParse(rawList);
+
+                              if (!validation.success) {
+                                  logger.warn("market", `TP/SL validation failed for ${sym}`, validation.error);
+                                  return [];
+                              }
+
+                              return validation.data;
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];

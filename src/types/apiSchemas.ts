@@ -109,8 +109,28 @@ export const PositionRawSchema = z.object({
 
 export const PositionListSchema = z.array(PositionRawSchema);
 
+// TP/SL Order Schema
+export const TpSlOrderSchema = z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    orderId: z.union([z.string(), z.number()]).optional(),
+    planId: z.union([z.string(), z.number()]).optional(),
+    symbol: z.string(),
+    planType: z.string().optional(),
+    triggerPrice: z.union([z.string(), z.number()]).optional(),
+    executePrice: z.union([z.string(), z.number()]).optional(),
+    side: z.string().optional(),
+    amount: z.union([z.string(), z.number()]).optional(),
+    qty: z.union([z.string(), z.number()]).optional(),
+    status: z.string().optional(),
+    ctime: z.union([z.string(), z.number()]).optional(),
+    createTime: z.union([z.string(), z.number()]).optional(),
+}).passthrough();
+
+export const TpSlOrderListSchema = z.array(TpSlOrderSchema);
+
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
+export type TpSlOrder = z.infer<typeof TpSlOrderSchema>;
 
 /**
  * Validate response size to prevent memory issues

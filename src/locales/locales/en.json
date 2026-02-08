@@ -115,8 +115,12 @@
         "market": "Market",
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Market",
-        "trailing": "Trailing"
-      }
+        "trailing": "Trailing",
+        "unknown": "Unknown"
+      },
+      "unknownRaw": "Unknown ({type})",
+      "noFee": "-",
+      "noDate": "-"
     },
     "type": "Type",
     "price": "Price",

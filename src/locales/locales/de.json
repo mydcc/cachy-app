@@ -94,8 +94,12 @@
         "market": "Markt",
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Markt",
-        "trailing": "Trailing"
+        "trailing": "Trailing",
+        "unknown": "Unbekannt"
       },
+      "unknownRaw": "Unbekannt ({type})",
+      "noFee": "-",
+      "noDate": "-",
       "details": {
         "leverage": "Hebel",
         "margin": "Margin",
