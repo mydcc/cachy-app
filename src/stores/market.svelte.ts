@@ -222,9 +222,9 @@ export class MarketManager {
   private flushUpdates() {
     // [DIAGNOSTIC] Log flush execution with pending updates info
     const totalPending = this.pendingUpdates.size + this.pendingKlineUpdates.size;
-    if (totalPending > 0) {
-      console.debug(`[DIAGNOSTIC] flushUpdates() executing - pendingUpdates: ${this.pendingUpdates.size}, pendingKlineUpdates: ${this.pendingKlineUpdates.size}`);
-    }
+    // if (totalPending > 0) {
+    //   console.debug(`[DIAGNOSTIC] flushUpdates() executing - pendingUpdates: ${this.pendingUpdates.size}, pendingKlineUpdates: ${this.pendingKlineUpdates.size}`);
+    // }
     
     const diagnostic = getDiagnosticInstance();
     if (diagnostic) {
@@ -280,7 +280,7 @@ export class MarketManager {
       }
       
       if (current.lastUpdated <= previousTimestamp && previousTimestamp > 0) {
-        console.debug(`[DIAGNOSTIC] WARNING: lastUpdated timestamp NOT increasing for ${symbol} - prev: ${previousTimestamp}, new: ${current.lastUpdated}`);
+        // console.debug(`[DIAGNOSTIC] WARNING: lastUpdated timestamp NOT increasing for ${symbol} - prev: ${previousTimestamp}, new: ${current.lastUpdated}`);
       }
 
       // Optimization: Check for equality before creating new Decimal

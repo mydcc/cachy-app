@@ -80,6 +80,9 @@
     function handleCamHeightChange(e: Event & { currentTarget: HTMLInputElement }) {
         settingsState.tradeFlowSettings.cameraHeight = parseInt(e.currentTarget.value);
     }
+    function handleCamPosXChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraPositionX = parseInt(e.currentTarget.value);
+    }
     function handleCamDistanceChange(e: Event & { currentTarget: HTMLInputElement }) {
         settingsState.tradeFlowSettings.cameraDistance = parseInt(e.currentTarget.value);
     }
@@ -147,7 +150,8 @@
         equalizer: "Equalizer",
         raindrops: "Raindrops",
         city: "Digital City",
-        sonar: "Sonar"
+        sonar: "Sonar",
+        block: "Block"
     };
 </script>
 
@@ -1121,7 +1125,7 @@
                         <div class="field-group mb-4">
                             <label for="tf-mode">Mode</label>
                             <div class="flex flex-wrap gap-2">
-                                {#each ['equalizer', 'raindrops', 'city', 'sonar'] as mode}
+                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
@@ -1134,22 +1138,7 @@
                             </div>
                         </div>
 
-                        <!-- Color Mode -->
-                        <div class="field-group">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
-                            <div class="flex gap-2">
-                                {#each [{ v: "theme", l: $_("settings.appearance.modeTheme") }, { v: "custom", l: $_("settings.appearance.modeCustom") }] as mode}
-                                    <button
-                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode === mode.v
-                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                            : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}"
-                                        onclick={() => (settingsState.tradeFlowSettings.colorMode = mode.v as any)}
-                                    >
-                                        {mode.l}
-                                    </button>
-                                {/each}
-                            </div>
-                        </div>
+
 
                         <!-- Custom Colors (only visible in custom mode) -->
                         {#if settingsState.tradeFlowSettings.colorMode === "custom"}
@@ -1185,18 +1174,47 @@
                             </div>
                         {/if}
 
-                        <!-- Atmosphere Toggle -->
-                        <label class="toggle-card mb-4">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-medium">Dynamic Atmosphere</span>
-                                <span class="text-[10px] text-[var(--text-secondary)]">Ambient color shifts with market mood</span>
+                        <!-- Color Mode & Atmosphere -->
+                        <div class="field-group mb-4">
+                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
+                            <div class="flex items-center justify-between">
+                                <div class="flex flex-wrap gap-2">
+                                    {#each ["theme", "custom"] as mode}
+                                        <button
+                                            class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode ===
+                                            mode
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                                : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                            onclick={() =>
+                                                (settingsState.tradeFlowSettings.colorMode =
+                                                    mode as any)}
+                                        >
+                                            {$_(
+                                                colorModeLabels[
+                                                    mode
+                                                ] as TranslationKey,
+                                            ) || mode}
+                                        </button>
+                                    {/each}
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <span class="text-[10px] text-[var(--text-secondary)]">Enhanced Effects</span>
+                                    <Toggle bind:checked={settingsState.tradeFlowSettings.showEnhancedVisuals} />
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <span class="text-[10px] text-[var(--text-secondary)]">Dynamic Atmosphere</span>
+                                    <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
+                                </label>
                             </div>
-                            <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
-                        </label>
+                        </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <!-- Volume Scale (Eq, City, Rain, Sonar) -->
-                             {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                        <!-- Section: Flow -->
+                        <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">Flow</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <!-- Volume Scale (Eq, City, Sonar) -->
+                                {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
                                     <label for="tf-volscale">Volume Scale: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
                                     <input
@@ -1209,10 +1227,10 @@
                                         class="range-input"
                                     />
                                 </div>
-                             {/if}
+                                {/if}
 
-                             <!-- Persistence Duration (All Modes) -->
-                             {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                <!-- Persistence Duration (All Modes) -->
+                                {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
                                     <label for="tf-persistence">Time Window: {
                                         settingsState.tradeFlowSettings.persistenceDuration < 60 
@@ -1228,108 +1246,118 @@
                                         step="10"
                                         class="range-input"
                                     />
-                                    <p class="text-[10px] text-[var(--text-secondary)]">How long trades remain visible and stack.</p>
+                                    <p class="text-[10px] text-[var(--text-secondary)]">How long trades remain visible.</p>
                                 </div>
-                             {/if}
-
-                             <!-- Speed (Sonar) -->
-                             {#if ['sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                {/if}
+                                
+                                <!-- Speed (Sonar) -->
+                                {#if ['sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-speed">{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                                    <label for="tf-speed">Flow Speed: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
                                     <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
                                         bind:value={settingsState.tradeFlowSettings.speed}
                                         class="range-input" />
                                 </div>
-                             {/if}
-                        </div>
-                        
-                        <div class="field-group">
-                            <label for="tf-minvol">Min Trade Volume ($): {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
-                            <input id="tf-minvol" type="range" min="0" max="1000000" step="1000"
-                                bind:value={settingsState.tradeFlowSettings.minVolume}
-                                class="range-input" />
-                            <p class="text-[10px] text-[var(--text-secondary)]">Hide trades smaller than this amount to reduce noise.</p>
-                        </div>
-
-
-
-                        <!-- Grid Dimensions (Count) -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="field-group">
-                                <label for="tf-width">Grid Points X: {settingsState.tradeFlowSettings.gridWidth}</label>
-                                <input id="tf-width" type="range" min="10" max="800" step="10"
-                                    value={settingsState.tradeFlowSettings.gridWidth}
-                                    oninput={handleWidthChange}
-                                    class="range-input" />
-                            </div>
-                            <div class="field-group">
-                                <label for="tf-length">Grid Points Z: {settingsState.tradeFlowSettings.gridLength}</label>
-                                <input id="tf-length" type="range" min="10" max="800" step="10"
-                                    value={settingsState.tradeFlowSettings.gridLength}
-                                    oninput={handleLengthChange}
-                                    class="range-input" />
+                                {/if}
+                                
+                                <!-- Min Volume -->
+                                <div class="field-group">
+                                    <label for="tf-minvol">Min Trade Volume ($): {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
+                                    <input id="tf-minvol" type="range" min="0" max="1000000" step="1000"
+                                        bind:value={settingsState.tradeFlowSettings.minVolume}
+                                        class="range-input" />
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Spacing & Size -->
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                             <div class="field-group">
-                                <label for="tf-spread">Point Spacing: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
-                                <input id="tf-spread" type="range" min="0.1" max="5.0" step="0.1"
-                                    value={settingsState.tradeFlowSettings.spread}
-                                    oninput={handleSpreadChange}
-                                    class="range-input" />
-                                <p class="text-[10px] text-[var(--text-secondary)]">Distance between points (The Gap)</p>
-                            </div>
-                            <div class="field-group">
-                                <label for="tf-size">Particle Size: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
-                                <input id="tf-size" type="range" min="0.01" max="2.0" step="0.01"
-                                    value={settingsState.tradeFlowSettings.size}
-                                    oninput={handleSizeChange}
-                                    class="range-input" />
+                        <!-- Section: Grid Layout -->
+                        <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">Grid Layout</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div class="field-group">
+                                    <label for="tf-width">Grid Points X: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                    <input id="tf-width" type="range" min="10" max="800" step="10"
+                                        value={settingsState.tradeFlowSettings.gridWidth}
+                                        oninput={handleWidthChange}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-length">Grid Points Z: {settingsState.tradeFlowSettings.gridLength}</label>
+                                    <input id="tf-length" type="range" min="10" max="800" step="10"
+                                        value={settingsState.tradeFlowSettings.gridLength}
+                                        oninput={handleLengthChange}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-spread">Point Spacing: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
+                                    <input id="tf-spread" type="range" min="0.1" max="5.0" step="0.02"
+                                        value={settingsState.tradeFlowSettings.spread}
+                                        oninput={handleSpreadChange}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-size">Particle Size: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                                    <input id="tf-size" type="range" min="0.01" max="2.0" step="0.01"
+                                        value={settingsState.tradeFlowSettings.size}
+                                        oninput={handleSizeChange}
+                                        class="range-input" />
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Camera Position -->
-                         <div class="grid grid-cols-2 gap-4 mb-4 pt-4 border-t border-[var(--border-color)]">
-                            <div class="field-group">
-                                <label for="tf-cam-height">Camera Height (Y): {settingsState.tradeFlowSettings.cameraHeight}</label>
-                                <input id="tf-cam-height" type="range" min="10" max="1000" step="10"
-                                    value={settingsState.tradeFlowSettings.cameraHeight}
-                                    oninput={handleCamHeightChange}
-                                    class="range-input" />
+                        <!-- Section: Camera Control -->
+                        <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">Camera Control</h3>
+                            
+                            <!-- Position -->
+                            <div class="grid grid-cols-3 gap-2 mb-4">
+                                <div class="field-group">
+                                    <label for="tf-cam-posx">Position X: {settingsState.tradeFlowSettings.cameraPositionX || 0}</label>
+                                    <input id="tf-cam-posx" type="range" min="-500" max="500" step="1"
+                                        value={settingsState.tradeFlowSettings.cameraPositionX || 0}
+                                        oninput={handleCamPosXChange}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-cam-height">Height (Y): {settingsState.tradeFlowSettings.cameraHeight}</label>
+                                    <input id="tf-cam-height" type="range" min="1" max="1000" step="1"
+                                        value={settingsState.tradeFlowSettings.cameraHeight}
+                                        oninput={handleCamHeightChange}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-cam-dist">Distance (Z): {settingsState.tradeFlowSettings.cameraDistance}</label>
+                                    <input id="tf-cam-dist" type="range" min="1" max="1000" step="1"
+                                        value={settingsState.tradeFlowSettings.cameraDistance}
+                                        oninput={handleCamDistanceChange}
+                                        class="range-input" />
+                                </div>
                             </div>
-                            <div class="field-group">
-                                <label for="tf-cam-dist">Camera Distance (Z): {settingsState.tradeFlowSettings.cameraDistance}</label>
-                                <input id="tf-cam-dist" type="range" min="10" max="1000" step="10"
-                                    value={settingsState.tradeFlowSettings.cameraDistance}
-                                    oninput={handleCamDistanceChange}
-                                    class="range-input" />
-                            </div>
-                        </div>
 
-                        <!-- Camera Rotation -->
-                         <div class="grid grid-cols-3 gap-2 mb-4">
-                            <div class="field-group">
-                                <label for="tf-cam-rx">Rot X: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
-                                <input id="tf-cam-rx" type="range" min="-180" max="180" step="5"
-                                    value={settingsState.tradeFlowSettings.cameraRotationX}
-                                    oninput={handleRotXChange}
-                                    class="range-input" />
-                            </div>
-                            <div class="field-group">
-                                <label for="tf-cam-ry">Rot Y: {settingsState.tradeFlowSettings.cameraRotationY}°</label>
-                                <input id="tf-cam-ry" type="range" min="-180" max="180" step="5"
-                                    value={settingsState.tradeFlowSettings.cameraRotationY}
-                                    oninput={handleRotYChange}
-                                    class="range-input" />
-                            </div>
-                             <div class="field-group">
-                                <label for="tf-cam-rz">Rot Z: {settingsState.tradeFlowSettings.cameraRotationZ}°</label>
-                                <input id="tf-cam-rz" type="range" min="-180" max="180" step="5"
-                                    value={settingsState.tradeFlowSettings.cameraRotationZ}
-                                    oninput={handleRotZChange}
-                                    class="range-input" />
+                            <!-- Rotation -->
+                             <div class="grid grid-cols-3 gap-2 mb-4">
+                                <div class="field-group">
+                                    <label for="tf-cam-rx">Rot X: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
+                                    <input id="tf-cam-rx" type="range" min="-180" max="180" step="1"
+                                        value={settingsState.tradeFlowSettings.cameraRotationX}
+                                        oninput={handleRotXChange}
+                                        class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="tf-cam-ry">Rot Y: {settingsState.tradeFlowSettings.cameraRotationY}°</label>
+                                    <input id="tf-cam-ry" type="range" min="-180" max="180" step="1"
+                                        value={settingsState.tradeFlowSettings.cameraRotationY}
+                                        oninput={handleRotYChange}
+                                        class="range-input" />
+                                </div>
+                                 <div class="field-group">
+                                    <label for="tf-cam-rz">Rot Z: {settingsState.tradeFlowSettings.cameraRotationZ}°</label>
+                                    <input id="tf-cam-rz" type="range" min="-180" max="180" step="1"
+                                        value={settingsState.tradeFlowSettings.cameraRotationZ}
+                                        oninput={handleRotZChange}
+                                        class="range-input" />
+                                </div>
                             </div>
                         </div>
                     </div>
