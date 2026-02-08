@@ -498,7 +498,11 @@ class TradeService {
              });
              const final = Array.from(uniqueOrders.values());
              // Sort by time (newest first)
-             final.sort((a: any, b: any) => (Number(b.ctime || b.createTime || 0)) - (Number(a.ctime || a.createTime || 0)));
+             final.sort((a: any, b: any) => {
+                 const tA = new Decimal(a.ctime || a.createTime || 0);
+                 const tB = new Decimal(b.ctime || b.createTime || 0);
+                 return tB.minus(tA).toNumber();
+             });
              return final;
         } else {
              // Generic provider

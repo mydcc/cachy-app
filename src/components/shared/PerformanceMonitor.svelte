@@ -72,10 +72,11 @@
 
 <div class="performance-monitor">
     <div class="monitor-header">
-        <h3>{$_("settings.performance.monitor") || "Performance Monitor"}</h3>
+        <h3>{$_("performance.monitor")}</h3>
         <div class="last-update">
-            {$_("settings.performance.lastUpdate") || "Last update"}:
-            {new Date(lastUpdateTime).toLocaleTimeString()}
+            {$_("performance.lastUpdate", {
+                values: { time: new Date(lastUpdateTime).toLocaleTimeString() },
+            })}
         </div>
     </div>
 
@@ -334,7 +335,7 @@
     <!-- Performance Tips -->
     <div class="performance-tips">
         <h4>
-            {$_("settings.performance.tips") || "Optimization Tips"}
+            {$_("performance.tips")}
         </h4>
         <div class="tips-list">
             {#if marketState.telemetry.lastCalcDuration > 500}
