@@ -1468,6 +1468,7 @@
     "error": "✗ Verbindungsfehler"
   },
   "errors": {
+    "unknown": "Unbekannter Fehler",
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
