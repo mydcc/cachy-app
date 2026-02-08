@@ -716,7 +716,7 @@ class BitunixWebSocketService {
   private login(apiKey: string, apiSecret: string) {
     try {
       // [DIAGNOSTIC] Verify credentials are present
-      console.debug(`[DIAGNOSTIC] Login attempt - apiKey present: ${!!apiKey}, apiSecret present: ${!!apiSecret}`);
+      // console.debug(`[DIAGNOSTIC] Login attempt - apiKey present: ${!!apiKey}, apiSecret present: ${!!apiSecret}`);
       
       if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN)
         return;
@@ -750,10 +750,10 @@ class BitunixWebSocketService {
         args: [{ apiKey, timestamp, nonce, sign }],
       };
       
-      console.debug(`[DIAGNOSTIC] Login payload generated - timestamp: ${timestamp}, nonce length: ${nonce.length}`);
+      // console.debug(`[DIAGNOSTIC] Login payload generated - timestamp: ${timestamp}, nonce length: ${nonce.length}`);
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (error) {
-      console.error(`[DIAGNOSTIC] Login error:`, error);
+      // console.error(`[DIAGNOSTIC] Login error:`, error);
     }
   }
 
@@ -763,7 +763,7 @@ class BitunixWebSocketService {
       const rawDataStr = JSON.stringify(message);
       const dataSize = rawDataStr.length;
       const messageType = message.event || message.op || message.ch || message.topic || 'unknown';
-      console.debug(`[DIAGNOSTIC] handleMessage - type: ${type}, size: ${dataSize} bytes, messageType: ${messageType}`);
+      // console.debug(`[DIAGNOSTIC] handleMessage - type: ${type}, size: ${dataSize} bytes, messageType: ${messageType}`);
       
       if (type === "public") {
         this.awaitingPongPublic = false;
@@ -821,7 +821,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (price) for ${symbol}:`, fastPathError);
+                    // console.debug(`[DIAGNOSTIC] Fast Path FAILED (price) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
                   }
                 }
@@ -864,7 +864,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (ticker) for ${symbol}:`, fastPathError);
+                    // console.debug(`[DIAGNOSTIC] Fast Path FAILED (ticker) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
                   }
                 }
@@ -883,7 +883,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    console.debug(`[DIAGNOSTIC] Fast Path FAILED (depth) for ${symbol}:`, fastPathError);
+                    // console.debug(`[DIAGNOSTIC] Fast Path FAILED (depth) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
                   }
                 }
@@ -926,7 +926,7 @@ class BitunixWebSocketService {
                         }
                         return;
                     } catch (fastPathError) {
-                        console.debug(`[DIAGNOSTIC] Fast Path FAILED (kline) for ${symbol}:`, fastPathError);
+                        // console.debug(`[DIAGNOSTIC] Fast Path FAILED (kline) for ${symbol}:`, fastPathError);
                         if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
                     }
                 }
@@ -950,8 +950,8 @@ class BitunixWebSocketService {
         // [DIAGNOSTIC] Log Zod validation errors with details
         const issues = validationResult.error.issues;
         const errorSummary = issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
-        console.debug(`[DIAGNOSTIC] Zod validation FAILED - ${issues.length} issues:`, errorSummary);
-        console.debug(`[DIAGNOSTIC] Zod validation details:`, issues);
+        // console.debug(`[DIAGNOSTIC] Zod validation FAILED - ${issues.length} issues:`, errorSummary);
+        // console.debug(`[DIAGNOSTIC] Zod validation details:`, issues);
         
         const diagnostic = getDiagnosticInstance();
         if (diagnostic) {
@@ -1136,7 +1136,7 @@ class BitunixWebSocketService {
              
              // DEBUG LOG
              if (import.meta.env.DEV) {
-                 console.log(`[BitunixWS] Received ${items.length} trades for ${symbol}. Listeners: ${listeners ? listeners.size : 0}`);
+                 // console.log(`[BitunixWS] Received ${items.length} trades for ${symbol}. Listeners: ${listeners ? listeners.size : 0}`);
              }
 
              if (listeners) {
