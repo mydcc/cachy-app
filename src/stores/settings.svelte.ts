@@ -109,7 +109,7 @@ export interface TradeFlowSettings {
   gridLength: number;
   enableAtmosphere: boolean;
   volumeScale: number; // Factor to scale volume mapping
-  flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "golden_tower";
+  flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block";
   persistenceDuration: number;
   cameraHeight: number;
   cameraDistance: number;

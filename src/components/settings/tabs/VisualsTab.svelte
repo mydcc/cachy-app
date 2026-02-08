@@ -151,7 +151,7 @@
         raindrops: "Raindrops",
         city: "Digital City",
         sonar: "Sonar",
-        golden_tower: "The Golden Tower"
+        block: "Block"
     };
 </script>
 
@@ -1125,7 +1125,7 @@
                         <div class="field-group mb-4">
                             <label for="tf-mode">Mode</label>
                             <div class="flex flex-wrap gap-2">
-                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'golden_tower'] as mode}
+                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'

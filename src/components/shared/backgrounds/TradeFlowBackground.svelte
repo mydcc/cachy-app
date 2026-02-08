@@ -131,6 +131,25 @@
   const dummy = new THREE.Object3D();
   const _tempColor = new THREE.Color();
 
+  // Golden Block State
+  const MAX_BLOCK_POINTS = 5000;
+  let blockGeometry: THREE.BufferGeometry | null = null;
+  let blockMesh: THREE.InstancedMesh | null = null; 
+  let fibonacciPlanes: THREE.Group | null = null;
+  let priceSpine: THREE.Mesh | null = null; // Central vertical beam
+  let nextBlockIdx = 0;
+  let blockMinPrice = Infinity;
+  let blockMaxPrice = -Infinity;
+  let blockPrices = new Float32Array(MAX_BLOCK_POINTS);
+  let blockTimestamps = new Float32Array(MAX_BLOCK_POINTS);
+  let blockX = new Float32Array(MAX_BLOCK_POINTS);
+  let blockZ = new Float32Array(MAX_BLOCK_POINTS);
+  let blockRot = new Float32Array(MAX_BLOCK_POINTS);
+  let blockScales = new Float32Array(MAX_BLOCK_POINTS);
+  let smoothMin = $state(0);
+  let smoothMax = $state(100);
+  const fibLevels = [0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0]; // More levels
+
   // ========================================
   // SHADERS
   // ========================================
@@ -456,56 +475,85 @@
   `;
   
   const cityFragmentShader = `
+      ... // (unchanged)
+  `;
+
+  const blockVertexShader = `
       varying vec3 vColor;
-      varying vec3 vPos;
-      uniform vec3 uAtmosphere;
-      uniform float uTime;
-      uniform float uSentiment; // NEW
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPosition;
+      varying float vAge;
       
-      uniform vec3 uColorUp;
-      uniform vec3 uColorDown;
+      attribute float aAge;
+
+      void main() {
+          vColor = instanceColor;
+          vUv = uv;
+          vAge = aAge;
+          
+          // Compute normal in view space
+          // For InstancedMesh, we need to apply instanceMatrix to normal
+          vNormal = normalize(normalMatrix * (instanceMatrix * vec4(normal, 0.0)).xyz);
+          
+          vec4 worldPosition = instanceMatrix * vec4(position, 1.0);
+          vec4 mvPosition = modelViewMatrix * worldPosition;
+          vViewPosition = -mvPosition.xyz;
+          
+          gl_Position = projectionMatrix * mvPosition;
+      }
+  `;
+
+  const blockFragmentShader = `
+      varying vec3 vColor;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPosition;
+      varying float vAge;
+      
+      uniform float uTime;
       
       void main() {
+          // Circle/Slab Shape - subtle rounding
+          vec2 centeredUv = vUv * 2.0 - 1.0;
+          float dist = max(abs(centeredUv.x), abs(centeredUv.y));
+          
+          // Fresnel (Glow Edges)
+          vec3 normal = normalize(vNormal);
+          vec3 viewDir = normalize(vViewPosition);
+          float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 1.5);
+          
+          // Digital Grid
+          vec2 gridUv = vUv * 5.0;
+          vec2 grid = abs(fract(gridUv - 0.5) - 0.5) / fwidth(gridUv);
+          float gridLine = 1.0 - smoothstep(0.0, 0.08, min(grid.x, grid.y));
+          
+          // Scannline effect
+          float scanline = sin(vUv.y * 100.0 + uTime * 5.0) * 0.1 + 0.9;
+          
           vec3 finalColor = vColor;
           
-          // Hologram Scanner Effect
-          // A light bar moving Up/Down
-          float scanSpeed = 2.0; // Slightly faster
-          float scanHeight = -2.0 + mod(uTime * scanSpeed, 12.0); // Tighter range
+          // Edge Highlights
+          finalColor += vColor * fresnel * 2.0;
           
-          // Distance from scan line
-          float dist = abs(vPos.y - scanHeight);
-          // Sharp scan line
-          float scanIntensity = smoothstep(0.3, 0.0, dist);
+          // Grid & Scanlines
+          finalColor *= (0.8 + gridLine * 0.4);
+          finalColor *= scanline;
           
-          // Add scan line additively - brighter cyan
-          finalColor += vec3(0.0, 0.8, 1.0) * scanIntensity * 0.8;
+          // Additive glow on edges
+          finalColor += vec3(0.5, 0.5, 0.5) * gridLine * fresnel;
           
-          // Scanlines (horizontal stripes)
-          // Finer lines
-          float stripes = sin(vPos.y * 30.0) * 0.5 + 0.5;
-          finalColor *= (0.7 + stripes * 0.3); // More contrast
+          // Opacity logic:
+          // Base opacity 0.4
+          // Fresnel boost up to +0.4
+          // vAge fade out (vAge is 0..1, where >0.8 starts fading)
+          float alpha = (0.4 + fresnel * 0.4);
           
-          // --- NEW CITY ATMOSPHERE ---
-          
-          float sentimentIntensity = abs(uSentiment);
-          float pulse = 1.0 + sin(uTime * (3.0 + sentimentIntensity * 2.0)) * 0.2 * sentimentIntensity;
-          
-          vec3 cityAtmos = vec3(0.0);
-          
-          if (uSentiment > 0.05) {
-              // Bullish: Sky Glow (Top of buildings)
-              float hFactor = smoothstep(0.0, 20.0, vPos.y);
-              cityAtmos = uColorUp * sentimentIntensity * hFactor * 0.5;
-          } else if (uSentiment < -0.05) {
-              // Bearish: Ground Magma (Bottom of buildings)
-              float hFactor = 1.0 - smoothstep(0.0, 10.0, vPos.y);
-              cityAtmos = uColorDown * sentimentIntensity * hFactor * 0.5;
+          if (vAge > 0.8) {
+              alpha *= (1.0 - (vAge - 0.8) / 0.2);
           }
           
-          finalColor += cityAtmos * pulse;
-          
-          gl_FragColor = vec4(finalColor, 1.0);
+          gl_FragColor = vec4(finalColor, alpha);
       }
   `;
 
@@ -682,22 +730,6 @@
   let rippleData: THREE.Vector4[] = new Array(MAX_RIPPLES).fill(null).map(() => new THREE.Vector4()); 
   let rippleIntensities = new Float32Array(MAX_RIPPLES); // intensity (Optional now, mostly in w)
   let nextRippleIdx = 0;
-  
-  // Golden Tower Data (Circular Buffer)
-  const MAX_TOWER_POINTS = 5000;
-  let towerGeometry: THREE.BufferGeometry;
-  let towerPoints: THREE.Points;
-  // Circular Buffer State
-  let nextTowerIdx = 0;
-  let towerMinPrice = Infinity;
-  let towerMaxPrice = -Infinity;
-  // We need to track price range for auto-scaling
-  let towerPrices: number[] = new Array(MAX_TOWER_POINTS).fill(0);
-  
-  // Fibonacci Planes
-  let fibonacciPlanes: THREE.Group;
-  const fibLevels = [0.0, 0.236, 0.382, 0.5, 0.618, 1.0];
-
   // GPU Uniform Data  // Sonar Data
   const MAX_SONAR_BLIPS = 50; // Increased
   let sonarData = new Float32Array(MAX_SONAR_BLIPS * 4); // x, z, time, intensity
@@ -715,6 +747,9 @@
       activeSplashes.clear();
       cityBuildings.clear();
       cityMesh = null;
+      blockMesh = null;
+      priceSpine = null;
+      fibonacciPlanes = null;
 
       // Reset GPU Data Arrays (Vector4 for Ripples)
       rippleData = new Array(MAX_RIPPLES).fill(null).map(() => new THREE.Vector4(0,0,0,0));
@@ -729,7 +764,7 @@
       const c = colorUp; // Base color
 
       // 1. Point Cloud (Default for Equalizer, Raindrops, Sonar)
-      if (settingsState.tradeFlowSettings.flowMode !== 'city') {
+      if (settingsState.tradeFlowSettings.flowMode !== 'city' && settingsState.tradeFlowSettings.flowMode !== 'block') {
           const geometry = generatePointCloudGeometry(c, width, length, settingsState.tradeFlowSettings.flowMode);
           const material = createShaderMaterial();
           const pc = new THREE.Points(geometry, material);
@@ -740,9 +775,9 @@
           materials.push(material);
       } 
       
-      // 3. Golden Tower Mode (New Particle System)
-      if (settingsState.tradeFlowSettings.flowMode === 'golden_tower') {
-          initTower();
+      // 3. Golden Block Mode (New Particle System)
+      if (settingsState.tradeFlowSettings.flowMode === 'block') {
+          initBlock();
       }
       
       // 2. City Mode (InstancedMesh) - Only if selected
@@ -783,99 +818,112 @@
       }
   }
 
-  function initTower() {
-      // 1. Particle System (Circular Buffer)
-      towerGeometry = new THREE.BufferGeometry();
+  function initBlock() {
+      if (!scene) return;
+
+      const s = settingsState.tradeFlowSettings;
       
-      const positions = new Float32Array(MAX_TOWER_POINTS * 3);
-      const colors = new Float32Array(MAX_TOWER_POINTS * 3);
-      const sizes = new Float32Array(MAX_TOWER_POINTS);
+      // 1. InstancedMesh "Glass Slabs"
+      const slabGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0); 
       
-      // Initialize off-screen or zero
-      for(let i=0; i<MAX_TOWER_POINTS; i++) {
-          positions[i*3] = 0;
-          positions[i*3+1] = -1000; // Hide initially
-          positions[i*3+2] = 0;
-          
-          sizes[i] = 0.0; 
-      }
-      
-      towerGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      towerGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      towerGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-      
-      // Custom Shader for soft glowing particles
-      const material = new THREE.ShaderMaterial({
+      const slabMat = new THREE.ShaderMaterial({
           uniforms: {
-              uTime: { value: 0 },
-              uBaseSize: { value: settingsState.tradeFlowSettings.size * 20.0 }
+              uTime: { value: 0.0 }
           },
-          vertexShader: `
-              attribute float size;
-              varying vec3 vColor;
-              uniform float uBaseSize;
-              void main() {
-                  vColor = color;
-                  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                  gl_Position = projectionMatrix * mvPosition;
-                  // Size attenuation
-                  gl_PointSize = size * uBaseSize * (300.0 / -mvPosition.z);
-              }
-          `,
-          fragmentShader: `
-              varying vec3 vColor;
-              void main() {
-                  // Soft circle
-                  vec2 coord = gl_PointCoord - vec2(0.5);
-                  float dist = length(coord);
-                  if (dist > 0.5) discard;
-                  
-                  // Glow gradient
-                  float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-                  alpha = pow(alpha, 1.5); // Soften
-                  
-                  gl_FragColor = vec4(vColor, alpha);
-              }
-          `,
+          vertexShader: blockVertexShader,
+          fragmentShader: blockFragmentShader,
           transparent: true,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending
-      });
-      
-      towerPoints = new THREE.Points(towerGeometry, material);
-      scene.add(towerPoints);
-      
-      // 2. Fibonacci Planes (Architect)
-      fibonacciPlanes = new THREE.Group();
-      
-      // Create 6 planes for levels
-      const planeGeo = new THREE.PlaneGeometry(200, 200); 
-      // Use Theme Material (transparent, glowing edge)
-      const planeMat = new THREE.MeshBasicMaterial({
-          color: colorWarning, // Will be updated to Theme Accent
-          transparent: true,
-          opacity: 0.1,
           side: THREE.DoubleSide,
           depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          vertexColors: true,
+          extensions: { derivatives: true }
+      });
+      
+      const count = MAX_BLOCK_POINTS;
+      const mesh = new THREE.InstancedMesh(slabGeo, slabMat, count);
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      mesh.frustumCulled = false;
+      
+      // Initialize Attributes
+      const ages = new Float32Array(count);
+      mesh.geometry.setAttribute('aAge', new THREE.InstancedBufferAttribute(ages, 1));
+      
+      const dummyObj = new THREE.Object3D();
+      for (let i = 0; i < count; i++) {
+          dummyObj.position.set(0, -9999, 0); 
+          dummyObj.updateMatrix();
+          mesh.setMatrixAt(i, dummyObj.matrix);
+          mesh.setColorAt(i, new THREE.Color(0x000000));
+      }
+      
+      blockMesh = mesh;
+      scene.add(blockMesh);
+      
+      // 2. Central Price Spine (The Core)
+      const spineGeo = new THREE.CylinderGeometry(0.2, 0.2, 100, 32);
+      const spineMat = new THREE.MeshBasicMaterial({
+          color: colorWarning,
+          transparent: true,
+          opacity: 0.4,
+          blending: THREE.AdditiveBlending
+      });
+      priceSpine = new THREE.Mesh(spineGeo, spineMat);
+      scene.add(priceSpine);
+
+      // 3. Fibonacci Laser Planes (Compact)
+      const group = new THREE.Group();
+      const planeGeo = new THREE.PlaneGeometry(1, 1); 
+      
+      const planeMat = new THREE.MeshBasicMaterial({
+          color: colorWarning, 
+          transparent: true,
+          opacity: 0.1, 
+          side: THREE.DoubleSide,
+          depthWrite: false, 
           blending: THREE.AdditiveBlending
       });
       
       fibLevels.forEach(level => {
           const plane = new THREE.Mesh(planeGeo, planeMat.clone());
           plane.rotation.x = -Math.PI / 2;
-          plane.userData = { ratio: level }; // Store fib ratio
-          fibonacciPlanes.add(plane);
+          plane.userData = { ratio: level }; 
           
-          // Add Text Label? (Maybe later)
+          // Rectangular Laser Border
+          const borderGeo = new THREE.PlaneGeometry(1, 1);
+          const borderMat = new THREE.MeshBasicMaterial({
+              color: colorWarning,
+              transparent: true,
+              opacity: 0.8,
+              blending: THREE.AdditiveBlending,
+              side: THREE.DoubleSide,
+              wireframe: true // Looks like a wireframe/laser frame
+          });
+          const border = new THREE.Mesh(borderGeo, borderMat);
+          // Slightly larger to avoid Z-fighting
+          border.position.z = 0.01; 
+          plane.add(border);
+
+          group.add(plane);
       });
       
-      scene.add(fibonacciPlanes);
+      fibonacciPlanes = group;
+      if (scene) scene.add(fibonacciPlanes);
       
       // Reset State
-      nextTowerIdx = 0;
-      towerMinPrice = Infinity;
-      towerMaxPrice = -Infinity;
-      towerPrices.fill(0);
+      nextBlockIdx = 0;
+      blockMinPrice = Infinity;
+      blockMaxPrice = -Infinity;
+      blockPrices.fill(0);
+      blockTimestamps.fill(0);
+      blockX.fill(0);
+      blockZ.fill(0);
+      blockRot.fill(0);
+      blockScales.fill(1);
+      smoothMin = 0;
+      smoothMax = 100;
+      
+      log(LogLevel.INFO, '🏗️ Block Mode Initialized');
   }
 
   // ========================================
@@ -903,6 +951,14 @@
       canvas = renderer.domElement;
       
       initSceneObjects();
+
+      // Add Basic Lighting for 3D Modes (Monolith/City)
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+      dirLight.position.set(100, 100, 100);
+      scene.add(dirLight);
 
       log(LogLevel.INFO, '✅ Three.js initialization complete');
       return { success: true };
@@ -999,11 +1055,23 @@
            }
       });
       
+      // Update Block Material Uniforms
+      if (blockMesh && blockMesh.material && (blockMesh.material as THREE.ShaderMaterial).uniforms) {
+          (blockMesh.material as THREE.ShaderMaterial).uniforms.uTime.value = time;
+      }
+
       // Update City Material Uniforms
-      if (cityMesh && cityMesh.material) {
+      if (cityMesh && cityMesh.material && (cityMesh.material as THREE.ShaderMaterial).uniforms) {
           (cityMesh.material as THREE.ShaderMaterial).uniforms.uTime.value = time;
           (cityMesh.material as THREE.ShaderMaterial).uniforms.uAtmosphere.value.copy(currentAtmosphere);
           (cityMesh.material as THREE.ShaderMaterial).uniforms.uSentiment.value = currentSentiment; // NEW
+      }
+
+      // Update Dynamic Atmosphere Logic (Smooth Transition)
+      if (s.enableAtmosphere) {
+          currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.05;
+      } else {
+          currentSentiment = 0.0;
       }
 
       // CPU-Side Animations
@@ -1011,8 +1079,8 @@
           animatePersistence(time, s);
       } else if (s.flowMode === 'city') {
           animateCity(time, s); 
-      } else if (s.flowMode === 'golden_tower') {
-          animateTower(time, s);
+      } else if (s.flowMode === 'block') {
+          animateBlock(time, s);
       }
       // Sonar is now fully GPU
 
@@ -1021,69 +1089,152 @@
       if (performanceMonitor) performanceMonitor.update();
   }
   
-  function animateTower(time: number, s: any) {
-      if (!towerGeometry || !fibonacciPlanes) return;
+  function animateBlock(time: number, s: any) {
+      if (!blockMesh || !fibonacciPlanes || !priceSpine) return;
       
-      // 1. Auto-Scale Height
-      // We want the tower to fit within Y = -50 to +50 roughly?
-      // Or maybe 0 to 100
+      const now = performance.now() * 0.001;
+      const duration = s.persistenceDuration || 60;
       
-      let min = towerMinPrice;
-      let max = towerMaxPrice;
+      // Rotate for architecture feeling
+      const rot = time * 0.05;
+      blockMesh.rotation.y = rot;
+      priceSpine.rotation.y = rot;
+      fibonacciPlanes.rotation.y = rot;
+
+      // 1. Recalculate Range from ACTIVE trades only
+      let activeMin = Infinity;
+      let activeMax = -Infinity;
       
-      if (min === Infinity || max === -Infinity) {
-          min = 0; max = 100; // Default
-      }
-      
-      let range = max - min;
-      if (range === 0) range = 1;
-      
-      const targetHeight = 100.0; // Desired height in world units
-      const heightScale = targetHeight / range;
-      
-      // Update Particles Y positions
-      // Efficiently? No, we have to iterate
-      const positions = towerGeometry.attributes.position.array as Float32Array;
-      // We only need to update Y if Price Range changes significantly?
-      // For now, let's update every frame to keep it smooth
-      
-      // Optimization: Only update active particles? 
-      // We don't track active start/end easily in circular buffer without extra state.
-      // Iterating 5000 floats is fast enough for JS.
-      
-      for(let i=0; i<MAX_TOWER_POINTS; i++) {
-          const rawPrice = positions[i*3+1];
-          if (rawPrice > -900) { // If active (not hidden)
-               // Map Price to Y
-               const y = (rawPrice - min) * heightScale;
-               // Centered?
-               positions[i*3+1] = y - (targetHeight / 2.0);
+      for (let i = 0; i < MAX_BLOCK_POINTS; i++) {
+          const rawPrice = blockPrices[i];
+          const age = now - blockTimestamps[i];
+          
+          if (rawPrice > 0 && age < duration) {
+              if (rawPrice < activeMin) activeMin = rawPrice;
+              if (rawPrice > activeMax) activeMax = rawPrice;
           }
       }
-      towerGeometry.attributes.position.needsUpdate = true;
       
-      // 2. Update Camera Target?
-      // Camera Control is manual now, so we let user pan. 
-      // But we might want to center the camera on the "Current Price" which is probably near the top or middle.
+      if (activeMin === Infinity || activeMax === -Infinity) { 
+          activeMin = smoothMin || (blockMinPrice !== Infinity ? blockMinPrice : 0); 
+          activeMax = smoothMax || (blockMaxPrice !== -Infinity ? blockMaxPrice : 100); 
+      }
+      
+      // Dynamic Range PADDING
+      let range = activeMax - activeMin;
+      if (range < 0.1) range = 0.1;
+      activeMin -= range * 0.05;
+      activeMax += range * 0.05;
+      range = activeMax - activeMin;
+
+      // SMOOTHING (Interpolation)
+      const lerpFactor = 0.05; 
+      if (smoothMin === 0 && smoothMax === 100) {
+          smoothMin = activeMin;
+          smoothMax = activeMax;
+      } else {
+          smoothMin = smoothMin + (activeMin - smoothMin) * lerpFactor;
+          smoothMax = smoothMax + (activeMax - smoothMax) * lerpFactor;
+      }
+      
+      const worldHeight = 60.0;
+      const heightScale = worldHeight / (smoothMax - smoothMin);
+      
+      const sizeBase = (s.size || 0.08) * 20.0;
+      const slabH = sizeBase * 0.15;
+
+      const ageAttr = blockMesh.geometry.getAttribute('aAge') as THREE.BufferAttribute;
+      
+      // 2. Update Instance Positions (Y-Axis) - Optimized loop
+      for(let i=0; i<MAX_BLOCK_POINTS; i++) {
+          const rawPrice = blockPrices[i];
+          const timestamp = blockTimestamps[i];
+          const age = now - timestamp;
+          
+          if (rawPrice > 0 && age < duration) {
+              const targetY = (rawPrice - smoothMin) * heightScale - (worldHeight / 2.0);
+              
+              const x = blockX[i];
+              const z = blockZ[i];
+              const angle = blockRot[i];
+              const scaleMag = blockScales[i];
+              
+              dummy.position.set(x, targetY, z);
+              dummy.rotation.y = angle;
+              
+              const lifePercent = age / duration;
+              let currentScale = scaleMag;
+              
+              // Scale fade (extra visual cue)
+              if (lifePercent > 0.8) {
+                  const fade = (1.0 - lifePercent) / 0.2;
+                  currentScale *= fade;
+              }
+              
+              const slabW = sizeBase * currentScale;
+              dummy.scale.set(slabW, slabH, slabW);
+              
+              dummy.updateMatrix();
+              blockMesh.setMatrixAt(i, dummy.matrix);
+              
+              if (ageAttr) ageAttr.setX(i, lifePercent);
+          } else if (rawPrice > 0) {
+              // Mark as expired and hide
+              dummy.position.set(0, -9999, 0);
+              dummy.updateMatrix();
+              blockMesh.setMatrixAt(i, dummy.matrix);
+              blockPrices[i] = 0; 
+              if (ageAttr) ageAttr.setX(i, 0);
+          }
+      }
+      blockMesh.instanceMatrix.needsUpdate = true;
+      if (ageAttr) ageAttr.needsUpdate = true;
       
       // 3. Update Fibonacci Planes
+      const foundationW = (s.gridWidth || 80) * 0.6; 
+      const foundationD = (s.gridLength || 160) * 0.6;
+      
       fibonacciPlanes.children.forEach(child => {
           const plane = child as THREE.Mesh;
           const ratio = plane.userData.ratio;
+          // Use smooth range
+          const targetY = (smoothMin + (smoothMax - smoothMin) * ratio - smoothMin) * heightScale - (worldHeight / 2.0);
+
+          plane.position.y = targetY;
+          plane.scale.set(foundationW, foundationD, 1.0);
           
-          // Price Level = Min + Range * Ratio
-          const priceLevel = min + range * ratio;
-          
-          // World Y
-          const y = (priceLevel - min) * heightScale - (targetHeight / 2.0);
-          
-          plane.position.y = y;
-          
-          // Update Color to match Theme Accent (Warning for now)
-          // We can leave color static but pulse opacity?
           const mat = plane.material as THREE.MeshBasicMaterial;
-          mat.opacity = 0.05 + Math.sin(time * 2.0 + ratio * 5.0) * 0.02;
-          mat.color.copy(colorWarning); // Ensure theme color
+          mat.opacity = 0.1 + Math.sin(time * 2.5 + ratio * 5.0) * 0.05;
+          mat.color.copy(colorWarning); 
+          
+          if (plane.children.length > 0) {
+              const border = plane.children[0] as THREE.Mesh;
+              if (border && border.material) {
+                   (border.material as THREE.MeshBasicMaterial).color.copy(colorWarning);
+              }
+          }
+      });
+
+      // 4. Update Spine & Atmosphere
+      priceSpine.scale.y = worldHeight / 100.0; 
+      priceSpine.position.y = 0; 
+      
+      const sentimentFactor = (currentSentiment + 1.0) * 0.5;
+      _tempColor.copy(colorDown).lerp(colorUp, sentimentFactor);
+      
+      (priceSpine.material as THREE.MeshBasicMaterial).color.copy(_tempColor);
+      (priceSpine.material as THREE.MeshBasicMaterial).opacity = 0.4 + Math.abs(currentSentiment) * 0.3; 
+
+      fibonacciPlanes.children.forEach(child => {
+          const plane = child as THREE.Mesh;
+          const mat = plane.material as THREE.MeshBasicMaterial;
+          mat.color.copy(_tempColor);
+          if (plane.children.length > 0) {
+              const border = plane.children[0] as THREE.Mesh;
+              if (border && border.material) {
+                   (border.material as THREE.MeshBasicMaterial).color.copy(_tempColor);
+              }
+          }
       });
   }
   
@@ -1163,6 +1314,8 @@
           processTradeRaindrops(side, price, size, s);
       } else if (mode === 'sonar') {
           processTradeSonar(side, price, size, s);
+      } else if (mode === 'block') {
+          processTradeBlock(side, price, size);
       } else {
           processTradeEqualizer(side, price, size, s);
       }
@@ -1304,64 +1457,51 @@
       nextSonarIdx = (nextSonarIdx + 1) % MAX_SONAR_BLIPS;
   }
 
-  function processTradeTower(side: string, price: number, size: number) {
-      if (!towerGeometry || !towerPoints) return;
+  function processTradeBlock(side: string, price: number, size: number) {
+      if (!blockMesh) return;
       
-      const idx = nextTowerIdx;
+      const idx = nextBlockIdx;
+      const s = settingsState.tradeFlowSettings;
       
-      // 1. Calculate Spiral Position (Phyllotaxis)
-      // Angle = index * 137.5 degrees
-      const angle = idx * 2.399963; // Golden Angle in Radians
-      const volumeScale = settingsState.tradeFlowSettings.volumeScale || 1.0;
-      const baseSpread = settingsState.tradeFlowSettings.spread || 1.0;
+      // 1. Calculate Rectangular Foundation (Linked to Grid X/Z)
+      const volScale = s.volumeScale || 1.0;
       
-      // Radius breathes with volume (Visual Interest)
-      // Log scale for volume to prevent massive outliers
-      const volRadius = Math.log10(price * size + 1) * volumeScale;
-      const radius = 10.0 * baseSpread + (volRadius * 2.0);
+      const boundX = (s.gridWidth || 80) * 0.5;
+      const boundZ = (s.gridLength || 160) * 0.5;
+      const spread = (s.spread || 1.0);
       
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      
-      // 2. Calculate Vertical Position (Price)
-      // Store raw price, normalize in animate loop or shader?
-      // Better to store raw and auto-scale in animate loop to keep history valid
-      // But we need to update the buffer.
-      // Let's store raw price in .y and handle scaling in Vertex Shader or World Position?
-      // Simple approach: Store Price in Y, but Camera must move to Price Y.
+      const x = (Math.random() - 0.5) * boundX * spread;
+      const z = (Math.random() - 0.5) * boundZ * spread;
+      const angle = Math.atan2(z, x); 
       
       // Update Price Range
-      if (price < towerMinPrice) towerMinPrice = price;
-      if (price > towerMaxPrice) towerMaxPrice = price;
+      if (price < blockMinPrice) blockMinPrice = price;
+      if (price > blockMaxPrice) blockMaxPrice = price;
       
-      towerPrices[idx] = price; // Track for auto-scaling
+      // Store in Metadata Arrays
+      blockPrices[idx] = price; 
+      blockTimestamps[idx] = performance.now() * 0.001; 
+      blockX[idx] = x;
+      blockZ[idx] = z;
+      blockRot[idx] = angle;
       
-      // 3. Update Attributes
-      const positions = towerGeometry.attributes.position.array as Float32Array;
-      const colors = towerGeometry.attributes.color.array as Float32Array;
-      const sizes = towerGeometry.attributes.size.array as Float32Array;
+      // 2. Calculate Scale
+      const tradeValue = price * size;
+      const sizeBase = (s.size || 0.08) * 20.0;
       
-      positions[idx*3] = x;
-      positions[idx*3+1] = price; // Raw Price (Will be scaled in animate)
-      positions[idx*3+2] = z;
+      const volFactor = Math.pow(size, 0.4) * (s.volumeScale || 1.0);
+      const scaleMag = Math.max(volFactor, 1.0);
+      blockScales[idx] = scaleMag; // Store relative scale
       
-      // Color
+      // We don't update matrix here anymore; animateBlock will do it for all active ones.
+      
+      // 3. Color
       const color = getTradeColors(side, price);
-      colors[idx*3] = color.r;
-      colors[idx*3+1] = color.g;
-      colors[idx*3+2] = color.b;
+      blockMesh.setColorAt(idx, color);
       
-      // Size
-      // Base size + volume bonus
-      sizes[idx] = 1.0 + (volRadius * 0.5);
+      if (blockMesh.instanceColor) blockMesh.instanceColor.needsUpdate = true;
       
-      // Mark as needing update
-      towerGeometry.attributes.position.needsUpdate = true;
-      towerGeometry.attributes.color.needsUpdate = true;
-      towerGeometry.attributes.size.needsUpdate = true;
-      
-      // Advance Buffer
-      nextTowerIdx = (nextTowerIdx + 1) % MAX_TOWER_POINTS;
+      nextBlockIdx = (nextBlockIdx + 1) % MAX_BLOCK_POINTS;
   }
   
   // Sentiment State
@@ -1385,17 +1525,9 @@
       const s = settingsState.tradeFlowSettings;
 
       if (s.enableAtmosphere) {
-          // New Logic: Sentiment is just the raw ratio (-1 to 1)
-          // We decouple it from color here, handled in shader
           targetSentiment = ratio;
-          
-          // Smooth Lerp for JS variable
-          // We can just set target, animate loop could catch up if we wanted smooth transition there,
-          // but for now direct assignment to a "target" and simple lerp in update loop is cleaner.
-          // Let's just do direct for now as ratio changes slowly anyway.
-          currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.1;
-
       } else {
+          targetSentiment = 0.0;
           currentSentiment = 0.0;
       }
   }
@@ -1552,9 +1684,15 @@
     
     if (scene) {
         scene.traverse((obj) => {
-            if (obj instanceof THREE.Points || obj instanceof THREE.InstancedMesh) {
-                obj.geometry.dispose();
-                (obj.material as THREE.Material).dispose();
+            if (obj instanceof THREE.Points || obj instanceof THREE.InstancedMesh || obj instanceof THREE.Mesh) {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(m => m.dispose());
+                    } else {
+                        obj.material.dispose();
+                    }
+                }
             }
         });
     }
