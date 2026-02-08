@@ -242,7 +242,7 @@
   {#if lifecycleState === LifecycleState.INITIALIZING}
     <div class="status-overlay initializing">Warming Neural Core...</div>
   {:else if lifecycleState === LifecycleState.ERROR}
-    <div class="status-overlay error">Neural Bridge Failure</div>
+    <div class="status-overlay error">Visual Effects Disabled</div>
   {:else if lifecycleState === LifecycleState.READY}
     <!-- Optional Debug Info or Active State Indicator -->
   {/if}

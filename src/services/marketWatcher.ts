@@ -26,24 +26,11 @@ import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
+import { safeTfToMs } from "../utils/timeUtils";
 
 interface MarketWatchRequest {
   symbol: string;
   channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
-}
-
-function tfToMs(tf: string): number {
-    const unit = tf.slice(-1);
-    const val = parseInt(tf.slice(0, -1));
-    if (isNaN(val)) return 60000;
-    switch (unit) {
-        case 'm': return val * 60 * 1000;
-        case 'h': return val * 60 * 60 * 1000;
-        case 'd': return val * 24 * 60 * 60 * 1000;
-        case 'w': return val * 7 * 24 * 60 * 60 * 1000;
-        case 'M': return val * 30 * 24 * 60 * 60 * 1000;
-        default: return 60000;
-    }
 }
 
 class MarketWatcher {
@@ -368,7 +355,7 @@ class MarketWatcher {
 
                 if (effectiveBatches > 0) {
                     const oldestTime = klines1[0].time;
-                    const intervalMs = tfToMs(tf);
+                    const intervalMs = safeTfToMs(tf);
 
                     const results: any[] = [];
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
