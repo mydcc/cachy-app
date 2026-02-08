@@ -501,7 +501,7 @@ class TradeService {
              final.sort((a: any, b: any) => {
                  const tA = new Decimal(a.ctime || a.createTime || 0);
                  const tB = new Decimal(b.ctime || b.createTime || 0);
-                 return tB.minus(tA).toNumber();
+                 return parseInt(tB.minus(tA).toString());
              });
              return final;
         } else {
