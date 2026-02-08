@@ -737,7 +737,9 @@
         "distance": "Entfernung (Z)",
         "rotationX": "Rot X",
         "rotationY": "Rot Y",
-        "rotationZ": "Rot Z"
+        "rotationZ": "Rot Z",
+        "initializing": "Wärme neuralen Kern auf...",
+        "error": "Visuelle Effekte deaktiviert"
       },
       "coordinates": {
         "x": "X",
@@ -964,6 +966,10 @@
       "atrStop": {
         "title": "ATR Stopp (L)"
       },
+      "ichimokuTitle": "Ichimoku",
+      "obvTitle": "OBV",
+      "valLabel": "Wert:",
+      "priceLabel": "Preis:",
       "labels": {
         "length": "Länge",
         "source": "Quelle",
@@ -1057,7 +1063,32 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": "Optimierungstipps",
-      "lastUpdate": "Zuletzt aktualisiert: {time}"
+      "lastUpdate": "Zuletzt aktualisiert: {time}",
+      "analysisTime": "Analysezeit",
+      "memory": "Speicher",
+      "apiCallsMin": "API Calls/min",
+      "cacheHitRate": "Cache-Trefferquote",
+      "avgLatency": "Ø Latenz",
+      "networkStatus": "Netzwerk-Status",
+      "active": "aktiv",
+      "online": "Online",
+      "offline": "Offline",
+      "highAnalysisTime": "Hohe Analysezeit erkannt. Erwäge Wechsel zu Leichtem oder Ausgewogenem Profil.",
+      "highMemory": "Hohe Speichernutzung. Versuche Cache zu verkleinern oder Tabs zu schließen.",
+      "highApiUsage": "API-Limit naht. Erwäge Intervalle zu erhöhen oder News-Analyse zu deaktivieren.",
+      "lowCacheHit": "Niedrige Cache-Trefferquote. Erhöhe Cache-Größe für bessere Performance.",
+      "highLatency": "Hohe Netzwerklatenz. Überprüfe deine Internetverbindung.",
+      "optimal": "Performance ist optimal. Du kannst mehr Funktionen aktivieren oder zum Pro-Profil wechseln.",
+      "statusHighApi": "Hohe API-Last",
+      "statusModerate": "Moderate Last",
+      "statusNormal": "Normale Last",
+      "statusExcellentCache": "Exzellentes Caching",
+      "statusGoodCache": "Gutes Caching",
+      "statusIncreaseCache": "Cache vergrößern",
+      "statusExcellentLatency": "Exzellent",
+      "statusGoodLatency": "Gut",
+      "statusAcceptableLatency": "Akzeptabel",
+      "statusHighLatency": "Hohe Latenz"
     },
     "connections": {
       "exchanges": "Börsen",

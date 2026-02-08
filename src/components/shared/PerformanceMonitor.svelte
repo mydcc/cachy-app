@@ -94,7 +94,7 @@
                     <polyline points="12 6 12 12" />
                     <line x1="12" y1="12" x2="16" y2="10" />
                 </svg>
-                <span class="metric-label">Analysis Time</span>
+                <span class="metric-label">{$_("performance.analysisTime")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -140,7 +140,7 @@
                     <path d="M9 15h.01" />
                     <path d="M15 15h.01" />
                 </svg>
-                <span class="metric-label">Memory</span>
+                <span class="metric-label">{$_("performance.memory")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -181,7 +181,7 @@
                         d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
                     />
                 </svg>
-                <span class="metric-label">API Calls/min</span>
+                <span class="metric-label">{$_("performance.apiCallsMin")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -199,11 +199,11 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.apiCallsLastMinute > 120}
-                    ⚠️ High API usage
+                    ⚠️ {$_("performance.statusHighApi")}
                 {:else if marketState.telemetry.apiCallsLastMinute > 60}
-                    ℹ️ Moderate usage
+                    ℹ️ {$_("performance.statusModerate")}
                 {:else}
-                    ✓ Normal usage
+                    ✓ {$_("performance.statusNormal")}
                 {/if}
             </div>
         </div>
@@ -221,7 +221,7 @@
                     <path d="M12 2v20M2 12h20" />
                     <circle cx="12" cy="12" r="8" />
                 </svg>
-                <span class="metric-label">Cache Hit Rate</span>
+                <span class="metric-label">{$_("performance.cacheHitRate")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -239,11 +239,11 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.cacheHitRate > 80}
-                    ✓ Excellent caching
+                    ✓ {$_("performance.statusExcellentCache")}
                 {:else if marketState.telemetry.cacheHitRate > 50}
-                    ℹ️ Good caching
+                    ℹ️ {$_("performance.statusGoodCache")}
                 {:else}
-                    ⚠️ Consider increasing cache size
+                    ⚠️ {$_("performance.statusIncreaseCache")}
                 {/if}
             </div>
         </div>
@@ -261,7 +261,7 @@
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                 </svg>
-                <span class="metric-label">Avg Latency</span>
+                <span class="metric-label">{$_("performance.avgLatency")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -276,13 +276,13 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.apiLatency < 100}
-                    ⚡ Excellent
+                    ⚡ {$_("performance.statusExcellentLatency")}
                 {:else if marketState.telemetry.apiLatency < 200}
-                    ✓ Good
+                    ✓ {$_("performance.statusGoodLatency")}
                 {:else if marketState.telemetry.apiLatency < 500}
-                    ℹ️ Acceptable
+                    ℹ️ {$_("performance.statusAcceptableLatency")}
                 {:else}
-                    ⚠️ High latency
+                    ⚠️ {$_("performance.statusHighLatency")}
                 {/if}
             </div>
         </div>
@@ -303,21 +303,21 @@
                         d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                     />
                 </svg>
-                <span class="metric-label">Network Status</span>
+                <span class="metric-label">{$_("performance.networkStatus")}</span>
             </div>
             <div class="metric-value text-blue-500">
                 {marketState.telemetry.activeConnections}
                 <span
                     class="text-sm text-[var(--text-secondary)] font-normal ml-1"
-                    >active</span
+                    >{$_("performance.active")}</span
                 >
             </div>
             <div class="metric-info flex justify-between items-center">
                 <span>
                     {#if marketState.telemetry.activeConnections > 0}
-                        🟢 Online
+                        🟢 {$_("performance.online")}
                     {:else}
-                        🔴 Offline
+                        🔴 {$_("performance.offline")}
                     {/if}
                 </span>
                 {#if marketState.telemetry.wsLatency > 0}
@@ -341,8 +341,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High analysis time detected. Consider switching to
-                        Light or Balanced profile.</span
+                        >{$_("performance.highAnalysisTime")}</span
                     >
                 </div>
             {/if}
@@ -350,8 +349,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High memory usage. Try reducing cache size or closing
-                        unused tabs.</span
+                        >{$_("performance.highMemory")}</span
                     >
                 </div>
             {/if}
@@ -359,8 +357,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >API rate limit approaching. Consider increasing
-                        intervals or disabling news analysis.</span
+                        >{$_("performance.highApiUsage")}</span
                     >
                 </div>
             {/if}
@@ -368,8 +365,7 @@
                 <div class="tip info">
                     <span class="tip-icon">ℹ️</span>
                     <span class="tip-text"
-                        >Low cache hit rate. Increase market cache size for
-                        better performance.</span
+                        >{$_("performance.lowCacheHit")}</span
                     >
                 </div>
             {/if}
@@ -377,8 +373,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High network latency detected. Check your internet
-                        connection.</span
+                        >{$_("performance.highLatency")}</span
                     >
                 </div>
             {/if}
@@ -386,8 +381,7 @@
                 <div class="tip success">
                     <span class="tip-icon">✓</span>
                     <span class="tip-text"
-                        >Performance is optimal. You can enable more features or
-                        switch to Pro profile.</span
+                        >{$_("performance.optimal")}</span
                     >
                 </div>
             {/if}

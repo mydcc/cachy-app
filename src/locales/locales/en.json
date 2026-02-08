@@ -737,7 +737,9 @@
         "distance": "Distance (Z)",
         "rotationX": "Rot X",
         "rotationY": "Rot Y",
-        "rotationZ": "Rot Z"
+        "rotationZ": "Rot Z",
+        "initializing": "Warming Neural Core...",
+        "error": "Visual Effects Disabled"
       },
       "coordinates": {
         "x": "X",
@@ -936,6 +938,10 @@
       "atrStop": {
         "title": "ATR Stop (L)"
       },
+      "ichimokuTitle": "Ichimoku",
+      "obvTitle": "OBV",
+      "valLabel": "Val:",
+      "priceLabel": "Price:",
       "labels": {
         "length": "Length",
         "source": "Source",
@@ -1257,7 +1263,32 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": "Optimization Tips",
-      "lastUpdate": "Last Updated: {time}"
+      "lastUpdate": "Last Updated: {time}",
+      "analysisTime": "Analysis Time",
+      "memory": "Memory",
+      "apiCallsMin": "API Calls/min",
+      "cacheHitRate": "Cache Hit Rate",
+      "avgLatency": "Avg Latency",
+      "networkStatus": "Network Status",
+      "active": "active",
+      "online": "Online",
+      "offline": "Offline",
+      "highAnalysisTime": "High analysis time detected. Consider switching to Light or Balanced profile.",
+      "highMemory": "High memory usage. Try reducing cache size or closing unused tabs.",
+      "highApiUsage": "API rate limit approaching. Consider increasing intervals or disabling news analysis.",
+      "lowCacheHit": "Low cache hit rate. Increase market cache size for better performance.",
+      "highLatency": "High network latency detected. Check your internet connection.",
+      "optimal": "Performance is optimal. You can enable more features or switch to Pro profile.",
+      "statusHighApi": "High API usage",
+      "statusModerate": "Moderate usage",
+      "statusNormal": "Normal usage",
+      "statusExcellentCache": "Excellent caching",
+      "statusGoodCache": "Good caching",
+      "statusIncreaseCache": "Consider increasing cache size",
+      "statusExcellentLatency": "Excellent",
+      "statusGoodLatency": "Good",
+      "statusAcceptableLatency": "Acceptable",
+      "statusHighLatency": "High latency"
     },
     "trading": {
       "chartTitle": "Chart & Data",

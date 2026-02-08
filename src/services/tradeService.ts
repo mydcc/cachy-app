@@ -31,7 +31,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, type PositionRaw, TpSlOrderListSchema } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
 export class BitunixApiError extends Error {
@@ -432,7 +432,9 @@ class TradeService {
              const positions = omsService.getPositions();
              positions.forEach(p => symbolsToFetch.add(p.symbol));
 
-             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
+             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [];
+             if (fetchList.length === 0) return []; // Optimization: No symbols, no fetch
+
              const results: any[] = [];
 
              // Rate limit handling: Batch requests (max 5 concurrent)
@@ -445,16 +447,19 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
+                              // Use safer payload construction
+                              const payload = this.serializePayload({
+                                  exchange: provider,
+                                  apiKey: keys.key,
+                                  apiSecret: keys.secret,
+                                  action: view,
+                                  params
+                              });
+
                               const response = await fetch("/api/tpsl", {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-                                  body: JSON.stringify(this.serializePayload({
-                                      exchange: provider,
-                                      apiKey: keys.key,
-                                      apiSecret: keys.secret,
-                                      action: view,
-                                      params
-                                  }))
+                                  body: JSON.stringify(payload)
                               });
 
                               const text = await response.text();
@@ -466,7 +471,16 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return Array.isArray(data) ? data : data.rows || [];
+
+                              const rawList = Array.isArray(data) ? data : (data.rows || []);
+                              // Zod Validation
+                              const validation = TpSlOrderListSchema.safeParse(rawList);
+                              if (!validation.success) {
+                                  logger.warn("market", `[TradeService] Invalid TPSL response for ${sym}`, validation.error);
+                                  return [];
+                              }
+
+                              return validation.data;
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
@@ -484,7 +498,7 @@ class TradeService {
              });
              const final = Array.from(uniqueOrders.values());
              // Sort by time (newest first)
-             final.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             final.sort((a: any, b: any) => (Number(b.ctime || b.createTime || 0)) - (Number(a.ctime || a.createTime || 0)));
              return final;
         } else {
              // Generic provider

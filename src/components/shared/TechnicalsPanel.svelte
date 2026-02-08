@@ -565,7 +565,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>OBV</span>
+                  <span>{$_("settings.technicals.obvTitle")}</span>
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(data.advanced.obv, 0)}</span
                   >
@@ -577,7 +577,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>Ichimoku</span>
+                  <span>{$_("settings.technicals.ichimokuTitle")}</span>
                   <span
                     class="font-bold {TechnicalsPresenter.getActionColor(
                       data.advanced.ichimoku.action,
@@ -619,13 +619,13 @@
                       class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5"
                     >
                       <span
-                        >Val: {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(
+                        >{$_("settings.technicals.valLabel")} {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(
                           div.indEnd,
                           1,
                         )}</span
                       >
                       <span
-                        >Price: {TechnicalsPresenter.formatVal(
+                        >{$_("settings.technicals.priceLabel")} {TechnicalsPresenter.formatVal(
                           div.priceStart,
                           indicatorSettings?.precision,
                         )} ➝ {TechnicalsPresenter.formatVal(

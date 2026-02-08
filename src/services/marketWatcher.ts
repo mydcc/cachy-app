@@ -27,6 +27,7 @@ import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
+import type { Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -357,7 +358,7 @@ class MarketWatcher {
                     const oldestTime = klines1[0].time;
                     const intervalMs = safeTfToMs(tf);
 
-                    const results: any[] = [];
+                    const results: Kline[][] = [];
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
                     // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
@@ -368,7 +369,7 @@ class MarketWatcher {
                              break;
                         }
 
-                        const chunkTasks: Promise<any>[] = [];
+                        const chunkTasks: Promise<Kline[]>[] = [];
                         for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
                              const batchIdx = i + j;
                              const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);

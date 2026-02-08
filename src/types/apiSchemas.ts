@@ -109,6 +109,23 @@ export const PositionRawSchema = z.object({
 
 export const PositionListSchema = z.array(PositionRawSchema);
 
+// TP/SL Order Schema
+export const TpSlOrderSchema = z.object({
+    id: z.union([z.string(), z.number()]).optional(),
+    orderId: z.union([z.string(), z.number()]).optional(),
+    planId: z.union([z.string(), z.number()]).optional(),
+    symbol: z.string(),
+    triggerPrice: z.union([z.string(), z.number()]),
+    price: z.union([z.string(), z.number()]).optional(),
+    side: z.string().optional(),
+    planType: z.string().optional(), // "profit_plan" or "loss_plan"
+    status: z.union([z.string(), z.number()]).optional(),
+    createTime: z.union([z.string(), z.number()]).optional(),
+    ctime: z.union([z.string(), z.number()]).optional()
+});
+
+export const TpSlOrderListSchema = z.array(TpSlOrderSchema);
+
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
 

@@ -66,6 +66,26 @@ const SentimentCacheSchema = z.object({
   newsHash: z.string(),
 });
 
+// External API Schemas (Institutional Grade Validation)
+const CryptoPanicResultSchema = z.object({
+  results: z.array(z.object({
+    title: z.string(),
+    url: z.string().optional(),
+    source: z.object({ title: z.string() }).optional(),
+    published_at: z.string(),
+    currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
+  }))
+});
+
+const NewsApiResponseSchema = z.object({
+  articles: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    source: z.object({ name: z.string().optional() }).optional(),
+    publishedAt: z.string(),
+  }))
+});
+
 const COIN_ALIASES: Record<string, string[]> = {
   BTC: ["Bitcoin", "BTC"],
   ETH: ["Ethereum", "Ether", "ETH"],
@@ -264,15 +284,22 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              newsItems = data.results.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source?.title || "Unknown",
-                published_at: item.published_at,
-                currencies: item.currencies,
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
-              }));
-              apiQuotaTracker.logCall("cryptopanic", true);
+
+              const validation = CryptoPanicResultSchema.safeParse(data);
+              if (validation.success) {
+                  newsItems = validation.data.results.map((item) => ({
+                    title: item.title,
+                    url: item.url || "",
+                    source: item.source?.title || "Unknown",
+                    published_at: item.published_at,
+                    currencies: item.currencies,
+                    id: generateNewsId({ title: item.title, url: item.url || "", source: "", published_at: "" }),
+                  }));
+                  apiQuotaTracker.logCall("cryptopanic", true);
+              } else {
+                  logger.warn("market", "[newsService] CryptoPanic schema mismatch", validation.error);
+                  apiQuotaTracker.logCall("cryptopanic", false, "Schema Mismatch");
+              }
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
@@ -317,16 +344,23 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              const mapped = data.articles.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source.name,
-                published_at: item.publishedAt,
-                currencies: [],
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
-              }));
-              newsItems = [...newsItems, ...mapped];
-              apiQuotaTracker.logCall("newsapi", true);
+
+              const validation = NewsApiResponseSchema.safeParse(data);
+              if (validation.success) {
+                  const mapped = validation.data.articles.map((item) => ({
+                    title: item.title,
+                    url: item.url,
+                    source: item.source?.name || "NewsAPI",
+                    published_at: item.publishedAt,
+                    currencies: [],
+                    id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+                  }));
+                  newsItems = [...newsItems, ...mapped];
+                  apiQuotaTracker.logCall("newsapi", true);
+              } else {
+                  logger.warn("market", "[newsService] NewsAPI schema mismatch", validation.error);
+                  apiQuotaTracker.logCall("newsapi", false, "Schema Mismatch");
+              }
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
