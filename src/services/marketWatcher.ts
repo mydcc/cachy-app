@@ -27,6 +27,8 @@ import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
+import { Decimal } from "decimal.js";
+import type { Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -391,8 +393,14 @@ class MarketWatcher {
                     }
 
                     // Flatten and process
-                    const allBackfilled = results.flat();
+                    let allBackfilled = results.flat();
+
+                    // Gap Filling
                     if (allBackfilled.length > 0) {
+                        allBackfilled.sort((a, b) => a.time - b.time);
+                        const intervalMs = safeTfToMs(tf);
+                        allBackfilled = this.fillGaps(allBackfilled, intervalMs);
+
                         marketState.updateSymbolKlines(symbol, tf, allBackfilled, "rest");
                         storageService.saveKlines(symbol, tf, allBackfilled);
                     }
@@ -404,6 +412,44 @@ class MarketWatcher {
     } finally {
         this.historyLocks.delete(lockKey);
     }
+  }
+
+  // Helper to fill gaps in candle data to preserve time-series integrity for indicators
+  private fillGaps(klines: any[], intervalMs: number): any[] {
+      if (klines.length < 2) return klines;
+      const filled = [klines[0]];
+
+      for (let i = 1; i < klines.length; i++) {
+          const prev = filled[filled.length - 1];
+          const curr = klines[i];
+
+          // Check for gap (> 1 interval + small buffer for jitter)
+          if (curr.time - prev.time > intervalMs * 1.1) {
+              let nextTime = prev.time + intervalMs;
+              let gapCount = 0;
+              // Limit gap fill to prevent freezing on massive gaps (e.g. months of missing data)
+              const MAX_GAP_FILL = 5000;
+
+              while (nextTime < curr.time) {
+                  if (gapCount >= MAX_GAP_FILL) {
+                      break;
+                  }
+                  // Fill with flat candle (Close of previous)
+                  filled.push({
+                      time: nextTime,
+                      open: prev.close,
+                      high: prev.close,
+                      low: prev.close,
+                      close: prev.close,
+                      volume: new Decimal(0)
+                  });
+                  nextTime += intervalMs;
+                  gapCount++;
+              }
+          }
+          filled.push(curr);
+      }
+      return filled;
   }
 
   public async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {
