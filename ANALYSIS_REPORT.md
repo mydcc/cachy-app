@@ -66,9 +66,12 @@ Based on the findings, the following implementation plan is proposed:
     *   Refactor `subscribeTrade` to return an `unsubscribe` function.
     *   Update `TradeFlowBackground.svelte` to use the returned unsubscriber.
 
-### Group 3: Security & UX/I18n
+### Group 3: Security, UX & Deployment
 5.  **Secure API Parameters**:
     *   Update `tpsl/+server.ts` to safely serialize objects (`JSON.stringify`).
 6.  **Externalize Strings & A11y**:
     *   Extract hardcoded strings to `locales/en.json` & `de.json`.
     *   Add ARIA attributes to `TradeFlowBackground`.
+7.  **Deployment Resilience**:
+    *   Ensure all scripts (`scripts/*.sh`, `deploy.sh`) have executable permissions (`chmod +x`).
+    *   Verify critical build tools are in `dependencies` to survive pruning.
