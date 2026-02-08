@@ -923,6 +923,24 @@
                             </div>
                         </div>
 
+                        <!-- Auto-Center Control -->
+                        <div
+                            class="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] mt-4 mb-2"
+                        >
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium"
+                                    >{$_("settings.visuals.autoCenter")}</span
+                                >
+                                <span
+                                    class="text-[10px] text-[var(--text-secondary)]"
+                                    >{$_(
+                                        "settings.visuals.autoCenterDesc",
+                                    )}</span
+                                >
+                            </div>
+                            <Toggle bind:checked={settingsState.galaxySettings.autoCenter} />
+                        </div>
+
                         <!-- Camera & Rotation -->
                         <div
                             class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2"
@@ -1197,10 +1215,6 @@
                                         </button>
                                     {/each}
                                 </div>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.enhancedEffects")}</span>
-                                    <Toggle bind:checked={settingsState.tradeFlowSettings.showEnhancedVisuals} />
-                                </label>
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.dynamicAtmosphere")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />

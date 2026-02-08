@@ -89,6 +89,7 @@ export interface GalaxySettings {
   concentrationPower: number;
   camPos: { x: number; y: number; z: number };
   galaxyRot: { x: number; y: number; z: number };
+  autoCenter: boolean;
   enableGyroscope: boolean;
   rotationSpeed: number;
 }
@@ -117,7 +118,6 @@ export interface TradeFlowSettings {
   cameraRotationX: number;
   cameraRotationY: number;
   cameraRotationZ: number;
-  showEnhancedVisuals: boolean;
 }
 
 export interface Settings {
@@ -438,7 +438,6 @@ const defaultSettings: Settings = {
     cameraRotationX: 0,
     cameraRotationY: 0,
     cameraRotationZ: 0,
-    showEnhancedVisuals: true,
   } as TradeFlowSettings,
     galaxySettings: {
     particleCount: 20000,
@@ -449,8 +448,9 @@ const defaultSettings: Settings = {
     randomness: 1.0,
     randomnessPower: 3.0,
     concentrationPower: 1.5,
-    camPos: { x: 4, y: 2, z: 5 },
+    camPos: { x: 0, y: 2, z: 5 },
     galaxyRot: { x: 0, y: 0, z: 0 },
+    autoCenter: true,
     enableGyroscope: false,
     rotationSpeed: 0.1,
   },

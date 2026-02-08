@@ -96,9 +96,13 @@ function resize(width: number, height: number) {
 }
 
 function updateSettings(newSettings: any) {
+    const prevMode = settings ? settings.flowMode : null;
     settings = newSettings;
     updateCamera();
-    if (activeEngine) {
+    
+    if (prevMode && newSettings.flowMode !== prevMode) {
+        switchMode(newSettings.flowMode);
+    } else if (activeEngine) {
         activeEngine.updateSettings(settings);
     }
 }

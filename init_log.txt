@@ -1,0 +1,12 @@
+Need to install the following packages:
+create-playwright@1.17.139
+Ok to proceed? (y) 
+> npx
+> "create-playwright" --yes --quiet --no-browsers --lang=TypeScript --force
+
+error: unknown option '--yes'
+npm error code 1
+npm error path /home/pat/Dokumente/GitHub/cachy-app
+npm error command failed
+npm error command sh -c "create-playwright" --yes --quiet --no-browsers --lang=TypeScript --force
+npm error A complete log of this run can be found in: /home/pat/.npm/_logs/2026-02-08T10_19_08_456Z-debug-0.log

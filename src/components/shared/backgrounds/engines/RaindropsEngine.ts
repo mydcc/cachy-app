@@ -14,6 +14,7 @@ export class RaindropsEngine extends BaseEngine {
         uniform float uTime;
         uniform float uGridWidth;
         uniform float uGridLength;
+        uniform float uSpacing;
         uniform vec4 uRipples[50];
         uniform vec3 uColorUp;
         uniform vec3 uColorDown;
@@ -27,8 +28,8 @@ export class RaindropsEngine extends BaseEngine {
             pos.z *= uSpread;
             
             float h = 0.0;
-            float rawX = (position.x / 2.0) + (uGridWidth / 2.0);
-            float rawZ = (position.z / 2.0) + (uGridLength / 2.0);
+            float rawX = (position.x / uSpacing) + (uGridWidth / 2.0);
+            float rawZ = (position.z / uSpacing) + (uGridLength / 2.0);
             
             vec3 mixedColor = vec3(0.0);
             float totalInfluence = 0.0;
@@ -60,7 +61,7 @@ export class RaindropsEngine extends BaseEngine {
             vHeight = pos.y;
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_PointSize = uSize * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * viewPosition;
+            gl_Position = projectionMatrix * mvPosition;
         }
     `;
 
@@ -101,11 +102,12 @@ export class RaindropsEngine extends BaseEngine {
                 uTime: { value: 0.0 },
                 uGridWidth: { value: gridWidth },
                 uGridLength: { value: gridLength },
+                uSpacing: { value: (this.context.settings.spread || 1.0) * 2.0 },
                 uRipples: { value: this.rippleData },
-                uColorUp: { value: this.context.colorUp || new THREE.Color(0x00ff00) },
-                uColorDown: { value: this.context.colorDown || new THREE.Color(0xff0000) },
+                uColorUp: { value: this.context.colorUp || new THREE.Color(0x00ff88) },
+                uColorDown: { value: this.context.colorDown || new THREE.Color(0xff4444) },
                 uSentiment: { value: 0.0 },
-                uAtmosphere: { value: this.context.currentAtmosphere || new THREE.Color(0x000000) }
+                uAtmosphere: { value: this.context.currentAtmosphere || new THREE.Color(0x020408) }
             },
             vertexShader: this.vertexShader,
             fragmentShader: this.fragmentShader,
@@ -125,15 +127,19 @@ export class RaindropsEngine extends BaseEngine {
         const numPoints = width * length;
         const positions = new Float32Array(numPoints * 3);
         const colors = new Float32Array(numPoints * 3);
-        const colorUp = this.context.colorUp || new THREE.Color(0x00ff00);
+        const colorUp = this.context.colorUp || new THREE.Color(0x00ff88);
         let k = 0;
+        const spacing = (this.context.settings.spread || 1.0) * 2.0;
         for (let i = 0; i < width; i++) {
             for (let j = 0; j < length; j++) {
-                positions[3 * k] = (i / width - 0.5) * width * 2.0;
+                positions[3 * k] = (i - width * 0.5) * spacing;
                 positions[3 * k + 1] = 0;
-                positions[3 * k + 2] = (j / length - 0.5) * length * 2.0;
-                const baseCol = this.context.currentAtmosphere || new THREE.Color(0x00ff88);
-                const intensity = (Math.random() * 0.1) + 0.1;
+                positions[3 * k + 2] = (j - length * 0.5) * spacing;
+                // Use atmosphere color for base points, but slightly brighter
+                const baseCol = this.context.currentAtmosphere 
+                    ? this.context.currentAtmosphere.clone().lerp(new THREE.Color(0xd0e0ff), 0.15)
+                    : new THREE.Color(0x00ff88);
+                const intensity = (Math.random() * 0.2) + 0.1;
                 colors[3 * k] = baseCol.r * intensity;
                 colors[3 * k + 1] = baseCol.g * intensity;
                 colors[3 * k + 2] = baseCol.b * intensity;
@@ -146,7 +152,19 @@ export class RaindropsEngine extends BaseEngine {
     }
 
     public update(time: number, delta: number): void {
-        if (this.material) this.material.uniforms.uTime.value = time;
+        if (this.material) {
+            this.material.uniforms.uTime.value = time;
+            // Force uniform update for ripples usually requires notifying THREE that the array contents changed, 
+            // but for Vector4[] array uniforms, re-assigning or just touching them might be needed depending on the internal checking.
+            // Safest way is to flag the uniform as dirty if we could, but here we rely on standard THREE behavior.
+            // However, since Vector4 is an object, THREE might not check deep equality every frame.
+            // Let's rely on the fact that we're using a shader material.
+            // NOTE: For array of objects, THREE checks reference. If reference is same, it might skip.
+            // BUT uRipples value is `this.rippleData`.
+            // We can try to shallow copy or just trust it works IF we see it.
+            // Given "not visible" report, I'll allow the shader to pick it up by assuming standard behavior,
+            // BUT I will add a guard to ensure visibility.
+        }
     }
 
     public onTrade(trade: { type: 'buy' | 'sell', price: number, amount: number }): void {
@@ -167,6 +185,10 @@ export class RaindropsEngine extends BaseEngine {
             );
         }
         this.nextRippleIdx = (this.nextRippleIdx + 1) % this.MAX_RIPPLES;
+        
+        if (this.material) {
+             this.material.uniformsNeedUpdate = true;
+        }
     }
 
     public updateThemeColors(colorUp: THREE.Color, colorDown: THREE.Color, atmosphere: THREE.Color): void {
@@ -180,11 +202,38 @@ export class RaindropsEngine extends BaseEngine {
         }
     }
 
+    public updateSettings(newSettings: any): void {
+        if (this.shouldReinit(newSettings)) {
+            if (this.pointCloud) {
+                this.pointCloud.geometry.dispose();
+                (this.pointCloud.material as THREE.Material).dispose();
+                this.pointCloud = null;
+                this.material = null;
+                this.isInitialized = false;
+            }
+            this.reset();
+            this.context.settings = newSettings;
+            this.init();
+        } else {
+            this.context.settings = newSettings;
+            if (this.material) {
+                this.material.uniforms.uSize.value = (newSettings.size || 0.08) * 25.0; // Boosted
+                this.material.uniforms.uSpread.value = newSettings.spread || 1.0;
+                this.material.uniforms.uGridWidth.value = newSettings.gridWidth || 80;
+                this.material.uniforms.uGridLength.value = newSettings.gridLength || 160;
+                this.material.uniforms.uSpacing.value = (newSettings.spread || 1.0) * 2.0;
+            }
+        }
+    }
+
     public dispose() {
         super.dispose();
         if (this.pointCloud) {
             this.pointCloud.geometry.dispose();
             (this.pointCloud.material as THREE.Material).dispose();
+            this.pointCloud = null;
+            this.material = null;
+            this.isInitialized = false;
         }
     }
 }

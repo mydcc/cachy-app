@@ -1,6 +1,8 @@
 {
   "type": "module",
-  "engines": { "node": ">=20.0.0" },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build:wasm": "./scripts/build_wasm.sh",
     "dev": "npm run build:wasm && vite dev",
@@ -13,6 +15,7 @@
     "benchmark:technicals": "vitest bench"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@vitest/ui": "^4.0.18",
     "happy-dom": "^20.3.9",
     "puppeteer": "^24.36.1",

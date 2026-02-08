@@ -50,7 +50,11 @@ function init(data: any) {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
     const { camPos } = settings;
-    camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
+    camera.position.set(camPos?.x ?? 0, camPos?.y ?? 2, camPos?.z ?? 5);
+    
+    if (settings.autoCenter !== false) {
+        camera.lookAt(0, 0, 0);
+    }
 
     renderer = new THREE.WebGLRenderer({
         canvas,
@@ -102,6 +106,9 @@ function updateSettings(data: any) {
     if (galaxyEngine) galaxyEngine.updateSettings(settings);
     if (camera && settings.camPos) {
         camera.position.set(settings.camPos.x, settings.camPos.y, settings.camPos.z);
+        if (settings.autoCenter !== false) {
+            camera.lookAt(0, 0, 0);
+        }
     }
 }
 

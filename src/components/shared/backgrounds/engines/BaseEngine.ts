@@ -39,10 +39,26 @@ export abstract class BaseEngine {
 
     public dispose() {
         this.context.scene.remove(this.container);
-        // Subclasses should handle geometry/material disposal
+        this.reset();
+    }
+
+    public reset() {
+        // Remove all children from container to clear geometry
+        while(this.container.children.length > 0){ 
+            this.container.remove(this.container.children[0]); 
+        }
     }
 
     public updateSettings(settings: any) {
         this.context.settings = settings;
+    }
+
+    protected shouldReinit(newSettings: any): boolean {
+        return (
+            newSettings.gridWidth !== this.context.settings.gridWidth ||
+            newSettings.gridLength !== this.context.settings.gridLength ||
+            newSettings.spread !== this.context.settings.spread ||
+            newSettings.size !== this.context.settings.size
+        );
     }
 }

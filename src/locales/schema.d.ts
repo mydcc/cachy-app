@@ -607,6 +607,8 @@ export type TranslationKey =
   | "settings.visuals.urlHelper"
   | "settings.visuals.playbackSpeed"
   | "settings.visuals.rotationSpeed"
+  | "settings.visuals.autoCenter"
+  | "settings.visuals.autoCenterDesc"
   | "settings.visuals.effect"
   | "settings.visuals.particles"
   | "settings.visuals.size"

@@ -30,70 +30,61 @@ export class CityEngine extends BaseEngine {
         varying vec3 vViewPosition;
         varying vec3 vInstanceColor;
         uniform float uTime;
-        uniform float uSentiment;
-        uniform vec3 uColorUp;
-        uniform vec3 uColorDown;
-        uniform vec3 uAtmosphere;
 
         void main() {
             vec3 normal = normalize(vNormal);
             vec3 viewDir = normalize(vViewPosition);
-            float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
             
-            vec2 gridUv = vUv * 4.0;
-            vec2 grid = abs(fract(gridUv - 0.5) - 0.5) / fwidth(gridUv);
-            float gridLine = 1.0 - smoothstep(0.0, 0.05, min(grid.x, grid.y));
+            // Simple lighting to give cubes some shape without being "overly fancy"
+            float diff = max(dot(normal, vec3(0.5, 1.0, 0.5)), 0.0);
+            float ambient = 0.4;
             
-            float scanline = sin(vUv.y * 50.0 + uTime * 3.0) * 0.1 + 0.9;
-            float scanner = smoothstep(0.45, 0.5, sin(vUv.y * 2.0 - uTime * 0.5)) * 
-                          (1.0 - smoothstep(0.5, 0.55, sin(vUv.y * 2.0 - uTime * 0.5)));
+            vec3 finalColor = vInstanceColor * (ambient + diff * 0.6);
             
-            // Sentiment Color Shift
-            vec3 atmosColor = uAtmosphere;
-            if (uSentiment > 0.1) {
-                atmosColor = mix(atmosColor, uColorUp, uSentiment * 0.5);
-            } else if (uSentiment < -0.1) {
-                atmosColor = mix(atmosColor, uColorDown, abs(uSentiment) * 0.5);
-            }
+            // Add a very subtle rim light to keep it crisp
+            float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 3.0);
+            finalColor += vInstanceColor * fresnel * 0.5;
 
-            vec3 finalColor = vInstanceColor * (0.6 + fresnel * 0.4);
-            finalColor += atmosColor * (gridLine * 0.5 + scanner * 2.0);
-            finalColor *= scanline;
-            
-            gl_FragColor = vec4(finalColor, 0.7 + scanner * 0.3);
+            gl_FragColor = vec4(finalColor, 1.0);
         }
     `;
 
     public init(): void {
         const { gridWidth, gridLength } = this.context.settings;
+        const width = gridWidth || 80;
+        const length = gridLength || 160;
+
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.ShaderMaterial({
             uniforms: {
-                uTime: { value: 0.0 },
-                uSentiment: { value: 0.0 },
-                uColorUp: { value: this.context.colorUp || new THREE.Color(0x00ff00) },
-                uColorDown: { value: this.context.colorDown || new THREE.Color(0xff0000) },
-                uAtmosphere: { value: this.context.currentAtmosphere || new THREE.Color(0x000000) }
+                uTime: { value: 0.0 }
             },
             vertexShader: this.vertexShader,
             fragmentShader: this.fragmentShader,
-            transparent: true,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending
+            transparent: false,
+            depthWrite: true,
+            blending: THREE.NormalBlending
         });
 
-        this.cityMesh = new THREE.InstancedMesh(geometry, material, gridWidth * gridLength);
+        this.cityMesh = new THREE.InstancedMesh(geometry, material, width * length);
         this.cityMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         
+        const baseColor = this.context.currentAtmosphere 
+            ? this.context.currentAtmosphere.clone().multiplyScalar(0.2) 
+            : new THREE.Color(0x050a0f);
+
         // Initialize instances
         let k = 0;
-        for (let i = 0; i < gridWidth; i++) {
-            for (let j = 0; j < gridLength; j++) {
-                this.dummyObj.position.set((i / gridWidth - 0.5) * gridWidth * 2.5, 0, (j / gridLength - 0.5) * gridLength * 2.5);
-                this.dummyObj.scale.set(1.5, 0.1, 1.5);
+        const spacing = (this.context.settings.spread || 1.0) * 2.5;
+        const baseSize = (this.context.settings.size || 0.08) * 18.0;
+        
+        for (let i = 0; i < width; i++) {
+            for (let j = 0; j < length; j++) {
+                this.dummyObj.position.set((i - width * 0.5) * spacing, 0, (j - length * 0.5) * spacing);
+                this.dummyObj.scale.set(baseSize, 0.1, baseSize); // Use size setting
                 this.dummyObj.updateMatrix();
                 this.cityMesh.setMatrixAt(k, this.dummyObj.matrix);
-                this.cityMesh.setColorAt(k, new THREE.Color(0x2d3436));
+                this.cityMesh.setColorAt(k, baseColor);
                 k++;
             }
         }
@@ -107,26 +98,42 @@ export class CityEngine extends BaseEngine {
         const s = this.context.settings;
         const width = s.gridWidth || 80;
         const length = s.gridLength || 160;
-        const colorUp = this.context.colorUp || new THREE.Color(0x00ff00);
-        const colorDown = this.context.colorDown || new THREE.Color(0xff0000);
+        const colorUp = this.context.colorUp || new THREE.Color(0x00ff88);
+        const colorDown = this.context.colorDown || new THREE.Color(0xff4444);
+        
+        const baseColor = this.context.currentAtmosphere 
+            ? this.context.currentAtmosphere.clone().multiplyScalar(0.2) 
+            : new THREE.Color(0x050a0f);
 
         for (const [idx, data] of this.buildings) {
-            data.height += (data.targetHeight - data.height) * 0.1;
+            const tradeType = (data as any).type === 'buy' ? 1 : -1;
+            data.height += (data.targetHeight - data.height) * 0.15; // Snappy growth
             data.targetHeight *= 0.98; // Decay
             
-            if (data.height < 0.15) {
-                this.buildings.delete(idx);
-                data.height = 0.1;
-            }
-
             const i = Math.floor(idx / length);
             const j = idx % length;
-            this.dummyObj.position.set((i / width - 0.5) * width * 2.5, data.height / 2, (j / length - 0.5) * length * 2.5);
-            this.dummyObj.scale.set(1.5, data.height, 1.5);
+            const spacing = (s.spread || 1.0) * 2.5;
+            const baseSize = (s.size || 0.08) * 18.0;
+
+            // Cleanup check
+            if (data.height < 0.1 && data.targetHeight < 0.1) {
+                this.dummyObj.position.set((i - width * 0.5) * spacing, 0, (j - length * 0.5) * spacing);
+                this.dummyObj.scale.set(baseSize, 0.1, baseSize);
+                this.dummyObj.updateMatrix();
+                this.cityMesh.setMatrixAt(idx, this.dummyObj.matrix);
+                this.cityMesh.setColorAt(idx, baseColor);
+                this.buildings.delete(idx);
+                continue;
+            }
+
+            this.dummyObj.position.set((i - width * 0.5) * spacing, data.height / 2, (j - length * 0.5) * spacing);
+            this.dummyObj.scale.set(baseSize, data.height, baseSize);
             this.dummyObj.updateMatrix();
             this.cityMesh.setMatrixAt(idx, this.dummyObj.matrix);
             
-            this._tempColor.set(0x2d3436).lerp(data.targetHeight > 5 ? colorUp : colorDown, Math.min(data.height / 20, 1));
+            // Use binary choice for color + small lerp for intensity to match neon look
+            const targetCol = data.targetHeight > 0 ? (tradeType > 0 ? colorUp : colorDown) : baseColor;
+            this._tempColor.copy(baseColor).lerp(targetCol, Math.min(data.height / 2, 1.0));
             this.cityMesh.setColorAt(idx, this._tempColor);
         }
         
@@ -146,9 +153,11 @@ export class CityEngine extends BaseEngine {
         const rz = Math.floor(Math.random() * length);
         const idx = rx * length + rz;
         
-        const data = this.buildings.get(idx) || { height: 0.1, targetHeight: 0.1 };
-        data.targetHeight += Math.log10(tradeValue + 1) * 2.0 * volScale;
+        // Ensure we handle existing buildings correctly
+        const data = this.buildings.get(idx) || { height: 0.1, targetHeight: 0.1, type: trade.type };
+        data.targetHeight += Math.log10(tradeValue + 1) * 3.0 * volScale;
         data.targetHeight = Math.min(data.targetHeight, 50.0);
+        (data as any).type = trade.type; // Store last trade type for color
         this.buildings.set(idx, data);
     }
 
@@ -164,11 +173,31 @@ export class CityEngine extends BaseEngine {
         }
     }
 
+    public updateSettings(newSettings: any): void {
+        if (this.shouldReinit(newSettings)) {
+            if (this.cityMesh) {
+                this.cityMesh.geometry.dispose();
+                (this.cityMesh.material as THREE.Material).dispose();
+                this.cityMesh = null;
+                this.buildings.clear();
+                this.isInitialized = false;
+            }
+            this.reset();
+            this.context.settings = newSettings;
+            this.init();
+        } else {
+            this.context.settings = newSettings;
+        }
+    }
+
     public dispose() {
         super.dispose();
         if (this.cityMesh) {
             this.cityMesh.geometry.dispose();
             (this.cityMesh.material as THREE.Material).dispose();
+            this.cityMesh = null;
+            this.buildings.clear();
+            this.isInitialized = false;
         }
     }
 }

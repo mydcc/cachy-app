@@ -78,7 +78,6 @@
   let worker: Worker | null = null;
   let themeObserver: MutationObserver | null = null;
   
-  let lastFlowMode = $state(settingsState.tradeFlowSettings.flowMode);
 
   function initWorker() {
     try {
@@ -166,15 +165,6 @@
   // SVELTE EFFECTS & LIFECYCLE
   // ========================================
 
-  $effect(() => {
-    if (worker && settingsState.tradeFlowSettings.flowMode !== lastFlowMode) {
-      lastFlowMode = settingsState.tradeFlowSettings.flowMode;
-      worker.postMessage({
-        type: 'switchMode',
-        data: { mode: lastFlowMode }
-      });
-    }
-  });
 
   $effect(() => {
     if (lifecycleState === LifecycleState.READY && worker) {
@@ -209,6 +199,27 @@
       attributes: true, 
       attributeFilter: ["class", "data-mode", "style"] 
     });
+
+    // Restore injection hook for debugging and testing
+    if (typeof window !== 'undefined') {
+      (window as any).__injectTrade = (trade: any) => {
+        console.log('__injectTrade called:', trade);
+        if (worker) {
+          worker.postMessage({
+            type: 'onTrade',
+            data: {
+              trade: {
+                type: trade.side?.toLowerCase() || trade.type?.toLowerCase() || 'buy',
+                price: trade.price || 90000,
+                amount: trade.size || trade.amount || 1.0
+              },
+              sentiment: 0
+            }
+          });
+        }
+      };
+      console.log('Sonar debug hook initialized: window.__injectTrade');
+    }
 
     return () => {
       cleanup();

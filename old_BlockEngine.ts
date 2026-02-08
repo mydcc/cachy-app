@@ -13,7 +13,6 @@ export class BlockEngine extends BaseEngine {
     private blockZ = new Float32Array(this.MAX_BLOCK_POINTS);
     private blockRot = new Float32Array(this.MAX_BLOCK_POINTS);
     private blockScales = new Float32Array(this.MAX_BLOCK_POINTS);
-    private blockTypes = new Uint8Array(this.MAX_BLOCK_POINTS); // 0=Sell, 1=Buy
     private nextBlockIdx = 0;
     
     private smoothMin = 0;
@@ -49,8 +48,8 @@ export class BlockEngine extends BaseEngine {
         varying vec3 vViewPosition;
         varying float vAge;
         uniform float uTime;
-        uniform vec3 uHighlight;
-        
+        uniform float uEnhanced;
+
         void main() {
             vec2 centeredUv = vUv * 2.0 - 1.0;
             float dist = max(abs(centeredUv.x), abs(centeredUv.y));
@@ -58,6 +57,14 @@ export class BlockEngine extends BaseEngine {
             vec3 normal = normalize(vNormal);
             vec3 viewDir = normalize(vViewPosition);
             float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 1.5);
+            
+            // Enhanced Emissive Glow
+            float glow = 0.0;
+            if (uEnhanced > 0.5) {
+                glow = pow(fresnel, 2.0) * 2.0;
+                float pulse = 0.8 + 0.2 * sin(uTime * 4.0);
+                glow *= pulse;
+            }
 
             vec2 gridUv = vUv * 5.0;
             vec2 grid = abs(fract(gridUv - 0.5) - 0.5) / fwidth(gridUv);
@@ -65,14 +72,14 @@ export class BlockEngine extends BaseEngine {
             float scanline = sin(vUv.y * 100.0 + uTime * 5.0) * 0.1 + 0.9;
             
             vec3 finalColor = vColor;
-            finalColor += vColor * (fresnel * 2.0);
+            finalColor += vColor * (fresnel * 2.0 + glow);
             finalColor *= (0.8 + gridLine * 0.4);
             finalColor *= scanline;
             
             // Additive Hologram Edges
-            finalColor += uHighlight * gridLine * fresnel;
+            finalColor += vec3(0.5, 0.5, 0.5) * gridLine * fresnel * (1.0 + glow);
             
-            float alpha = (0.4 + fresnel * 0.4);
+            float alpha = (0.4 + fresnel * 0.4 + glow * 0.2);
             if (vAge > 0.8) alpha *= (1.0 - (vAge - 0.8) / 0.2);
             
             gl_FragColor = vec4(finalColor, alpha);
@@ -84,7 +91,7 @@ export class BlockEngine extends BaseEngine {
         const slabMat = new THREE.ShaderMaterial({
             uniforms: { 
                 uTime: { value: 0.0 },
-                uHighlight: { value: new THREE.Color(0xffffff) }
+                uEnhanced: { value: this.context.settings.showEnhancedVisuals ? 1.0 : 0.0 }
             },
             vertexShader: this.vertexShader,
             fragmentShader: this.fragmentShader,
@@ -103,13 +110,11 @@ export class BlockEngine extends BaseEngine {
             this.dummyObj.position.set(0, -9999, 0);
             this.dummyObj.updateMatrix();
             this.blockMesh.setMatrixAt(i, this.dummyObj.matrix);
-            const baseCol = this.context.currentAtmosphere || new THREE.Color(0x020408);
-            this.blockMesh.setColorAt(i, baseCol);
+            this.blockMesh.setColorAt(i, new THREE.Color(0x000000));
         }
-        this.blockMesh.frustumCulled = false;
         this.container.add(this.blockMesh);
 
-        const accentColor = (this.context.colorUp || new THREE.Color(0x00ff88)).clone().lerp(new THREE.Color(0xd0e0ff), 0.5);
+        const accentColor = (this.context.colorUp || new THREE.Color(0x00ff88)).clone().lerp(new THREE.Color(0xffffff), 0.5);
 
         const spineGeo = new THREE.CylinderGeometry(0.2, 0.2, 100, 32);
         const spineMat = new THREE.MeshBasicMaterial({
@@ -126,7 +131,7 @@ export class BlockEngine extends BaseEngine {
         const planeMat = new THREE.MeshBasicMaterial({
             color: accentColor,
             transparent: true,
-            opacity: 0.15,
+            opacity: 0.1,
             side: THREE.DoubleSide,
             depthWrite: false,
             blending: THREE.AdditiveBlending
@@ -144,9 +149,7 @@ export class BlockEngine extends BaseEngine {
     }
 
     public update(time: number, delta: number): void {
-        if (!this.blockMesh || !this.fibonacciPlanes || !this.priceSpine) {
-            return;
-        }
+        if (!this.blockMesh || !this.fibonacciPlanes || !this.priceSpine) return;
 
         const now = performance.now() * 0.001;
         const s = this.context.settings;
@@ -157,10 +160,8 @@ export class BlockEngine extends BaseEngine {
         this.priceSpine.rotation.y = rot;
         this.fibonacciPlanes.rotation.y = rot;
 
-        // 1. Calculate Bounds
         let activeMin = Infinity;
         let activeMax = -Infinity;
-        let hasActiveBlocks = false;
         
         for (let i = 0; i < this.MAX_BLOCK_POINTS; i++) {
             const rawPrice = this.blockPrices[i];
@@ -168,100 +169,78 @@ export class BlockEngine extends BaseEngine {
             if (rawPrice > 0 && age < duration) {
                 if (rawPrice < activeMin) activeMin = rawPrice;
                 if (rawPrice > activeMax) activeMax = rawPrice;
-                hasActiveBlocks = true;
             }
         }
         
-        if (!hasActiveBlocks) {
-             activeMin = this.smoothMin * 0.99;
-             activeMax = this.smoothMax * 0.99 + 0.1;
+        if (activeMin === Infinity) {
+            activeMin = this.smoothMin || 0;
+            activeMax = this.smoothMax || 100;
         }
 
         let range = activeMax - activeMin;
         if (range < 0.1) range = 0.1;
-        
-        // Smooth camera/bound movement
+        activeMin -= range * 0.05;
+        activeMax += range * 0.05;
+
         this.smoothMin = this.smoothMin + (activeMin - this.smoothMin) * 0.05;
         this.smoothMax = this.smoothMax + (activeMax - this.smoothMax) * 0.05;
-        
+
         const worldHeight = 60.0;
         const heightScale = worldHeight / (this.smoothMax - this.smoothMin);
-        const sizeBase = (s.size || 0.08) * 28.0; // Boosted
+        const sizeBase = (s.size || 0.08) * 20.0;
         const slabH = sizeBase * 0.15;
         const ageAttr = this.blockMesh.geometry.getAttribute('aAge') as THREE.BufferAttribute;
-        let colorDirty = false;
 
         for (let i = 0; i < this.MAX_BLOCK_POINTS; i++) {
             const rawPrice = this.blockPrices[i];
             const age = now - this.blockTimestamps[i];
-            
-            if (rawPrice > 0) {
-                if (age < duration) {
-                    const targetY = (rawPrice - this.smoothMin) * heightScale - (worldHeight / 2.0);
-                    const lifePercent = age / duration;
-                    let currentScale = this.blockScales[i];
-                    if (lifePercent > 0.8) currentScale *= (1.0 - lifePercent) / 0.2;
-                    
-                    this.dummyObj.position.set(this.blockX[i], targetY, this.blockZ[i]);
-                    this.dummyObj.rotation.y = this.blockRot[i];
-                    const slabW = sizeBase * currentScale;
-                    this.dummyObj.scale.set(slabW, slabH, slabW);
-                    this.dummyObj.updateMatrix();
-                    this.blockMesh.setMatrixAt(i, this.dummyObj.matrix);
-                    if (ageAttr) ageAttr.setX(i, lifePercent);
-                } else {
-                    // RESET EXPIRED BLOCK
-                    this.dummyObj.position.set(0, -9999, 0);
-                    this.dummyObj.scale.set(0, 0, 0);
-                    this.dummyObj.updateMatrix();
-                    this.blockMesh.setMatrixAt(i, this.dummyObj.matrix);
-                    
-                    const deadCol = this.context.currentAtmosphere || new THREE.Color(0x020408);
-                    this.blockMesh.setColorAt(i, deadCol);
-                    colorDirty = true;
-                    
-                    this.blockPrices[i] = 0;
-                    if (ageAttr) ageAttr.setX(i, 0);
-                }
+            if (rawPrice > 0 && age < duration) {
+                const targetY = (rawPrice - this.smoothMin) * heightScale - (worldHeight / 2.0);
+                const lifePercent = age / duration;
+                let currentScale = this.blockScales[i];
+                if (lifePercent > 0.8) currentScale *= (1.0 - lifePercent) / 0.2;
+                
+                this.dummyObj.position.set(this.blockX[i], targetY, this.blockZ[i]);
+                this.dummyObj.rotation.y = this.blockRot[i];
+                const slabW = sizeBase * currentScale;
+                this.dummyObj.scale.set(slabW, slabH, slabW);
+                this.dummyObj.updateMatrix();
+                this.blockMesh.setMatrixAt(i, this.dummyObj.matrix);
+                if (ageAttr) ageAttr.setX(i, lifePercent);
+            } else if (rawPrice > 0) {
+                this.dummyObj.position.set(0, -9999, 0);
+                this.dummyObj.updateMatrix();
+                this.blockMesh.setMatrixAt(i, this.dummyObj.matrix);
+                this.blockPrices[i] = 0;
+                if (ageAttr) ageAttr.setX(i, 0);
             }
         }
         this.blockMesh.instanceMatrix.needsUpdate = true;
-        if (ageAttr) ageAttr.setUsage(THREE.DynamicDrawUsage); // Ensure it's dynamic
         if (ageAttr) ageAttr.needsUpdate = true;
-        if (colorDirty && this.blockMesh.instanceColor) {
-             this.blockMesh.instanceColor.needsUpdate = true;
-        }
 
-        const spacing = s.spread || 1.0;
-        const foundationW = (s.gridWidth || 80) * 0.6 * spacing;
-        const foundationD = (s.gridLength || 160) * 0.6 * spacing;
+        const foundationW = (s.gridWidth || 80) * 0.6;
+        const foundationD = (s.gridLength || 160) * 0.6;
         this.fibonacciPlanes.children.forEach(child => {
             const plane = child as THREE.Mesh;
             const ratio = plane.userData.ratio;
             const targetY = (ratio * worldHeight) - (worldHeight / 2.0);
             plane.position.y = targetY;
             plane.scale.set(foundationW, foundationD, 1.0);
-            const pulse = 0.1 + Math.sin(time * 2.0 + ratio * 10.0) * 0.05;
-            (plane.material as THREE.MeshBasicMaterial).opacity = pulse + 0.05;
+            (plane.material as THREE.MeshBasicMaterial).opacity = 0.05 + Math.sin(time * 2.5 + ratio * 5.0) * 0.02;
         });
 
         this.priceSpine.scale.y = worldHeight / 100.0;
         
         const mat = this.blockMesh.material as THREE.ShaderMaterial;
         mat.uniforms.uTime.value = time;
-        
-        // Update highlight uniform based on atmosphere
-        if (this.context.currentAtmosphere) {
-            mat.uniforms.uHighlight.value.copy(this.context.currentAtmosphere).lerp(new THREE.Color(0xffffff), 0.5);
-        }
+        mat.uniforms.uEnhanced.value = s.showEnhancedVisuals ? 1.0 : 0.0;
     }
 
     public onTrade(trade: { type: 'buy' | 'sell', price: number, amount: number }): void {
         const idx = this.nextBlockIdx;
         const s = this.context.settings;
-        const spacing = s.spread || 1.0;
-        const boundX = (s.gridWidth || 80) * 0.5 * spacing;
-        const boundZ = (s.gridLength || 160) * 0.5 * spacing;
+        const boundX = (s.gridWidth || 80) * 0.5;
+        const boundZ = (s.gridLength || 160) * 0.5;
         
         const x = (Math.random() - 0.5) * boundX * 1.5;
         const z = (Math.random() - 0.5) * boundZ * 1.5;
@@ -273,56 +252,15 @@ export class BlockEngine extends BaseEngine {
         this.blockRot[idx] = Math.atan2(z, x);
         this.blockScales[idx] = Math.max(Math.pow(trade.amount, 0.4) * (s.volumeScale || 1.0), 1.0);
         
-        // CRITICAL FIX: Snap camera to price on first trade
-        if (this.smoothMin < 1.0 && trade.price > 100.0) {
-            this.smoothMin = trade.price - 20.0;
-            this.smoothMax = trade.price + 20.0;
-        }
-        
         const color = trade.type === 'buy' 
-            ? (this.context.colorUp || new THREE.Color(0x00ff88)) 
-            : (this.context.colorDown || new THREE.Color(0xff4444));
+            ? (this.context.colorUp || new THREE.Color(0x00ff00)) 
+            : (this.context.colorDown || new THREE.Color(0xff0000));
             
         this.blockMesh!.setColorAt(idx, color);
         if (this.blockMesh!.instanceColor) this.blockMesh!.instanceColor.needsUpdate = true;
         
-        this.blockTypes[idx] = trade.type === 'buy' ? 1 : 0;
         this.nextBlockIdx = (this.nextBlockIdx + 1) % this.MAX_BLOCK_POINTS;
     }
-
-    public updateSettings(newSettings: any): void {
-        if (this.shouldReinit(newSettings)) {
-            this.cleanupResources();
-            this.reset();
-            this.context.settings = newSettings;
-            this.init();
-        } else {
-            this.context.settings = newSettings;
-        }
-    }
-
-    private cleanupResources() {
-         if (this.blockMesh) {
-            this.blockMesh.geometry.dispose();
-            (this.blockMesh.material as THREE.Material).dispose();
-            this.blockMesh = null;
-        }
-        if (this.priceSpine) {
-             this.priceSpine.geometry.dispose();
-             (this.priceSpine.material as THREE.Material).dispose();
-             this.priceSpine = null;
-        }
-        if (this.fibonacciPlanes) {
-             this.fibonacciPlanes.children.forEach(child => {
-                 const mesh = child as THREE.Mesh;
-                 mesh.geometry.dispose();
-                 (mesh.material as THREE.Material).dispose();
-             });
-             this.fibonacciPlanes = null;
-        }
-        this.isInitialized = false;
-    }
-
 
     public updateThemeColors(colorUp: THREE.Color, colorDown: THREE.Color, atmosphere: THREE.Color): void {
         this.context.colorUp = colorUp;
@@ -330,35 +268,33 @@ export class BlockEngine extends BaseEngine {
         this.context.currentAtmosphere = atmosphere;
         
         if (this.priceSpine) {
-            (this.priceSpine.material as THREE.MeshBasicMaterial).color.copy(colorUp).lerp(new THREE.Color(0xd0e0ff), 0.5);
+            (this.priceSpine.material as THREE.MeshBasicMaterial).color.copy(colorUp).lerp(new THREE.Color(0xffffff), 0.5);
         }
         
         if (this.fibonacciPlanes) {
             this.fibonacciPlanes.children.forEach(child => {
                 const mesh = child as THREE.Mesh;
-                (mesh.material as THREE.MeshBasicMaterial).color.copy(colorUp).lerp(new THREE.Color(0xd0e0ff), 0.5);
+                (mesh.material as THREE.MeshBasicMaterial).color.copy(colorUp).lerp(new THREE.Color(0xffffff), 0.5);
             });
-        }
-
-        // Retroactively update transparency/colors of existing blocks
-        if (this.blockMesh) {
-            let colorDirty = false;
-            for (let i = 0; i < this.MAX_BLOCK_POINTS; i++) {
-                if (this.blockPrices[i] > 0) { // Active block
-                    const type = this.blockTypes[i];
-                    const color = type === 1 ? colorUp : colorDown;
-                    this.blockMesh.setColorAt(i, color);
-                    colorDirty = true;
-                }
-            }
-            if (colorDirty && this.blockMesh.instanceColor) {
-                this.blockMesh.instanceColor.needsUpdate = true;
-            }
         }
     }
 
     public dispose() {
         super.dispose();
-        this.cleanupResources();
+        if (this.blockMesh) {
+            this.blockMesh.geometry.dispose();
+            (this.blockMesh.material as THREE.Material).dispose();
+        }
+        if (this.priceSpine) {
+            this.priceSpine.geometry.dispose();
+            (this.priceSpine.material as THREE.Material).dispose();
+        }
+        if (this.fibonacciPlanes) {
+            this.fibonacciPlanes.children.forEach(child => {
+                const mesh = child as THREE.Mesh;
+                mesh.geometry.dispose();
+                (mesh.material as THREE.Material).dispose();
+            });
+        }
     }
 }

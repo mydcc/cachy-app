@@ -68,8 +68,8 @@ export class EqualizerEngine extends BaseEngine {
                 uTime: { value: 0.0 },
                 uAtmosphere: { value: this.context.currentAtmosphere || new THREE.Color(0x000000) },
                 uSentiment: { value: 0.0 },
-                uColorUp: { value: this.context.colorUp || new THREE.Color(0x00ff00) },
-                uColorDown: { value: this.context.colorDown || new THREE.Color(0xff0000) }
+                uColorUp: { value: this.context.colorUp || new THREE.Color(0x00ff88) },
+                uColorDown: { value: this.context.colorDown || new THREE.Color(0xff4444) }
             },
             vertexShader: this.vertexShader,
             fragmentShader: this.fragmentShader,
@@ -98,10 +98,11 @@ export class EqualizerEngine extends BaseEngine {
                 positions[3 * k] = (i / width - 0.5) * width * 2.0;
                 positions[3 * k + 1] = 0;
                 positions[3 * k + 2] = (j / length - 0.5) * length * 2.0;
+                const baseCol = this.context.colorUp || new THREE.Color(0x00ff88);
                 const intensity = (Math.random() * 0.1) + 0.1;
-                colors[3 * k] = colorUp.r * intensity;
-                colors[3 * k + 1] = colorUp.g * intensity;
-                colors[3 * k + 2] = colorUp.b * intensity;
+                colors[3 * k] = baseCol.r * intensity;
+                colors[3 * k + 1] = baseCol.g * intensity;
+                colors[3 * k + 2] = baseCol.b * intensity;
                 amplitudes[k] = 0.0;
                 k++;
             }
@@ -165,8 +166,8 @@ export class EqualizerEngine extends BaseEngine {
 
                 if (this.pointCloud) {
                     const color = trade.type === 'buy' 
-                        ? (this.context.colorUp || new THREE.Color(0x00ff00)) 
-                        : (this.context.colorDown || new THREE.Color(0xff0000));
+                        ? (this.context.colorUp || new THREE.Color(0x00ff88)) 
+                        : (this.context.colorDown || new THREE.Color(0xff4444));
                     const attrColor = this.pointCloud.geometry.getAttribute('color') as THREE.BufferAttribute;
                     const attrAmp = this.pointCloud.geometry.getAttribute('amplitude') as THREE.BufferAttribute;
                     attrColor.setXYZ(idx, color.r, color.g, color.b);
@@ -191,11 +192,36 @@ export class EqualizerEngine extends BaseEngine {
         }
     }
 
+    public updateSettings(newSettings: any): void {
+        if (this.shouldReinit(newSettings)) {
+            // Clean up old geometry but keep container
+            if (this.pointCloud) {
+                this.pointCloud.geometry.dispose();
+                (this.pointCloud.material as THREE.Material).dispose();
+                this.pointCloud = null;
+                this.material = null;
+                this.isInitialized = false;
+            }
+            this.reset(); // Clear container children
+            this.context.settings = newSettings;
+            this.init();
+        } else {
+            this.context.settings = newSettings;
+            if (this.material) {
+                this.material.uniforms.uSize.value = (newSettings.size || 0.08) * 15.0;
+                this.material.uniforms.uSpread.value = newSettings.spread || 1.0;
+            }
+        }
+    }
+
     public dispose() {
         super.dispose();
         if (this.pointCloud) {
             this.pointCloud.geometry.dispose();
             (this.pointCloud.material as THREE.Material).dispose();
+            this.pointCloud = null;
+            this.material = null;
+            this.isInitialized = false;
         }
     }
 }
