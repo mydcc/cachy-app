@@ -19,8 +19,6 @@ set -e
 
 WASM_FILE="static/wasm/technicals_wasm.wasm"
 
-WASM_FILE="static/wasm/technicals_wasm.wasm"
-
 # We removed the "skip if exists" check to ensure Rust source changes are always 
 # compiled when cargo is available. Cargo handles incremental builds efficiently.
 

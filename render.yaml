@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cachy-app
+    env: node
+    buildCommand: npm run build
+    startCommand: node build/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BODY_SIZE_LIMIT
+        value: 10M
+    disk:
+      name: cachy-data
+      mountPath: /data
+      sizeGB: 1
