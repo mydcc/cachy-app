@@ -501,7 +501,9 @@ class TradeService {
              final.sort((a: any, b: any) => {
                  const tA = new Decimal(a.ctime || a.createTime || 0);
                  const tB = new Decimal(b.ctime || b.createTime || 0);
-                 return parseInt(tB.minus(tA).toString());
+                 // Use parseInt to convert the result to a primitive number for sorting
+                 // Decimal.sub returns a Decimal, we need a number for array.sort
+                 return parseInt(tB.minus(tA).toString(), 10);
              });
              return final;
         } else {
