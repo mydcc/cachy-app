@@ -738,7 +738,9 @@
         "distance": "Entfernung (Z)",
         "rotationX": "Rot X",
         "rotationY": "Rot Y",
-        "rotationZ": "Rot Z"
+        "rotationZ": "Rot Z",
+        "initializing": "Neuraler Kern wird gestartet...",
+        "error": "Visuelle Effekte deaktiviert"
       },
       "coordinates": {
         "x": "X",
@@ -965,6 +967,10 @@
       "atrStop": {
         "title": "ATR Stopp (L)"
       },
+      "obv": "OBV",
+      "ichimoku": "Ichimoku",
+      "price": "Preis",
+      "value": "Wert",
       "labels": {
         "length": "Länge",
         "source": "Quelle",
@@ -1058,7 +1064,13 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": "Optimierungstipps",
-      "lastUpdate": "Zuletzt aktualisiert: {time}"
+      "lastUpdate": "Zuletzt aktualisiert: {time}",
+      "analysisTime": "Analysezeit",
+      "memory": "Speicher",
+      "apiCalls": "API-Aufrufe/min",
+      "cacheHit": "Cache-Trefferquote",
+      "avgLatency": "Ø Latenz",
+      "networkStatus": "Netzwerkstatus"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1493,9 +1505,16 @@
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
-    "saveFailed": "Speichern fehlgeschlagen."
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "modifyFailed": "Änderung der Order fehlgeschlagen."
   },
   "modals": {
+    "editTP": {
+      "title": "Take Profit bearbeiten"
+    },
+    "editSL": {
+      "title": "Stop Loss bearbeiten"
+    },
     "savePreset": {
       "title": "Preset speichern",
       "prompt": "Name eingeben:"
