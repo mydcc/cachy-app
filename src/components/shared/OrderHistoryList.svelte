@@ -100,8 +100,8 @@
     if ([OrderType.STOP_MARKET, "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket");
     if ([OrderType.TRAILING_STOP_MARKET, "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing");
     if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq");
-    if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
-    return t.length > 6 ? t.substring(0, 6) + "." : t; // Truncate long types
+    if (!t || t === "UNDEFINED" || t === "NULL") return $_("dashboard.orderHistory.unknownRaw", { values: { type: "?" } });
+    return $_("dashboard.orderHistory.unknownRaw", { values: { type: t } });
   }
 </script>
 

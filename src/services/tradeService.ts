@@ -44,7 +44,8 @@ export class BitunixApiError extends Error {
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "trade.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    POSITION_MISMATCH: "trade.positionMismatch"
 };
 
 export class TradeError extends Error {
@@ -186,6 +187,12 @@ class TradeService {
         if (!position) {
             logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
             throw new Error("tradeErrors.positionNotFound");
+        }
+
+        // HARDENING: Safety Check - Ensure logic hasn't drifted
+        if (position.side !== positionSide) {
+             logger.error("market", `[FlashClose] CRITICAL: Position side mismatch. Requested: ${positionSide}, Found: ${position.side}`);
+             throw new TradeError("Position side mismatch", TRADE_ERRORS.POSITION_MISMATCH);
         }
 
         // 2. Execute Close
@@ -418,6 +425,12 @@ class TradeService {
     }
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<any[]> {
+        // Validation: Hardened input check
+        if (view !== "pending" && view !== "history") {
+             logger.warn("market", `[TradeService] Invalid view '${view}' for fetchTpSlOrders. Defaulting to 'pending'.`);
+             view = "pending";
+        }
+
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {

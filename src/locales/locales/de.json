@@ -96,6 +96,7 @@
         "stopMarket": "Stop Markt",
         "trailing": "Trailing"
       },
+      "unknownRaw": "Unbekannt ({type})",
       "details": {
         "leverage": "Hebel",
         "margin": "Margin",
@@ -1492,7 +1493,8 @@
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
-    "saveFailed": "Speichern fehlgeschlagen."
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "positionMismatch": "Positions-Seite stimmt beim Schließen nicht überein."
   },
   "modals": {
     "savePreset": {

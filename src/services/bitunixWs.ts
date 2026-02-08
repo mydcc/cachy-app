@@ -1365,8 +1365,8 @@ class BitunixWebSocketService {
 export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
-// Helper to check for safe primitives (string or number)
-const isSafe = (v: any) => typeof v === 'string' || typeof v === 'number';
+// Helper to check for safe primitives (string or number) and REJECT NaN
+const isSafe = (v: any) => (typeof v === 'string' || typeof v === 'number') && !Number.isNaN(v);
 
 export function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
@@ -1423,11 +1423,11 @@ export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   // Strict Safety Checks
   const p = d.p ?? d.lastPrice ?? d.price;
   const v = d.v ?? d.volume ?? d.amount;
-  // Side can be anything truthy usually, but safer to check existence
-  // const s = d.s ?? d.side; // Unused but good to know it exists
+  const s = d.s ?? d.side;
 
   if (p === undefined || !isSafe(p)) return false;
   if (v === undefined || !isSafe(v)) return false;
+  if (s === undefined || !isSafe(s)) return false;
 
   return true;
 }

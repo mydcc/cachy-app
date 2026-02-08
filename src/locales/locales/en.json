@@ -116,7 +116,8 @@
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Market",
         "trailing": "Trailing"
-      }
+      },
+      "unknownRaw": "Unknown ({type})"
     },
     "type": "Type",
     "price": "Price",
@@ -1470,7 +1471,8 @@
     "invalidTrade": "Invalid trade.",
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
-    "saveFailed": "Save failed."
+    "saveFailed": "Save failed.",
+    "positionMismatch": "Position side mismatch during close."
   },
   "modals": {
     "savePreset": {

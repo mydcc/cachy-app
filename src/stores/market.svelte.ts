@@ -20,6 +20,7 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
+import { logger } from "../services/logger";
 // [DIAGNOSTIC] Import diagnostic tool
 import { getDiagnosticInstance } from "../utils/diagnose_bitunix_flow";
 
@@ -210,9 +211,7 @@ export class MarketManager {
     // Dynamic limit based on cache size (5x cache size to allow for burst)
     const limit = (settingsState.marketCacheSize || 20) * 5;
     if (this.pendingUpdates.size > limit) {
-      if (import.meta.env.DEV) {
-        console.warn(`[Market] Flush buffer overflow (${this.pendingUpdates.size} > ${limit}), forcing flush.`);
-      }
+      logger.warn("market", `[Market] Flush buffer overflow (${this.pendingUpdates.size} > ${limit}), forcing flush.`);
       this.flushUpdates();
     }
 

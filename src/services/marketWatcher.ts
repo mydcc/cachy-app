@@ -338,7 +338,13 @@ class MarketWatcher {
         const latestLimit = 1000; // API Max
         const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit);
 
-        if (klines1 && klines1.length > 0) {
+        // HARDENING: Strict Array Check
+        if (!Array.isArray(klines1)) {
+             logger.warn("market", `[History] Invalid kline data received for ${symbol}:${tf}`, klines1);
+             return;
+        }
+
+        if (klines1.length > 0) {
             marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
             storageService.saveKlines(symbol, tf, klines1); // Async save
 
