@@ -1198,6 +1198,10 @@
                                     {/each}
                                 </div>
                                 <label class="flex items-center gap-2 cursor-pointer">
+                                    <span class="text-[10px] text-[var(--text-secondary)]">Enhanced Effects</span>
+                                    <Toggle bind:checked={settingsState.tradeFlowSettings.showEnhancedVisuals} />
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
                                     <span class="text-[10px] text-[var(--text-secondary)]">Dynamic Atmosphere</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
                                 </label>

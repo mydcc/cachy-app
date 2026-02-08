@@ -117,6 +117,7 @@ export interface TradeFlowSettings {
   cameraRotationX: number;
   cameraRotationY: number;
   cameraRotationZ: number;
+  showEnhancedVisuals: boolean;
 }
 
 export interface Settings {
@@ -437,6 +438,7 @@ const defaultSettings: Settings = {
     cameraRotationX: 0,
     cameraRotationY: 0,
     cameraRotationZ: 0,
+    showEnhancedVisuals: true,
   } as TradeFlowSettings,
     galaxySettings: {
     particleCount: 20000,
