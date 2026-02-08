@@ -109,10 +109,11 @@ export interface TradeFlowSettings {
   gridLength: number;
   enableAtmosphere: boolean;
   volumeScale: number; // Factor to scale volume mapping
-  flowMode: "equalizer" | "raindrops" | "city" | "sonar";
+  flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "golden_tower";
   persistenceDuration: number;
   cameraHeight: number;
   cameraDistance: number;
+  cameraPositionX: number;
   cameraRotationX: number;
   cameraRotationY: number;
   cameraRotationZ: number;
@@ -432,6 +433,7 @@ const defaultSettings: Settings = {
     persistenceDuration: 60,
     cameraHeight: 80,
     cameraDistance: 120,
+    cameraPositionX: 0,
     cameraRotationX: 0,
     cameraRotationY: 0,
     cameraRotationZ: 0,
@@ -1165,6 +1167,12 @@ export class SettingsManager {
       this.galaxySettings = {
         ...defaultSettings.galaxySettings,
         ...(merged.galaxySettings || {})
+      };
+
+      // Deep merge TradeFlow settings for persistence
+      this.tradeFlowSettings = {
+        ...defaultSettings.tradeFlowSettings,
+        ...(merged.tradeFlowSettings || {})
       };
 
       this.enableNetworkLogs =

@@ -151,8 +151,7 @@
      uniform float uRippleIntensities[50]; // Still used for base intensity scaling if needed
      
      // Sonar Data
-     uniform vec3 uSonarBlips[20]; // x, z, startTime
-     uniform float uSonarIntensities[20];
+     uniform vec4 uSonarBlips[50]; // x, z, time, intensity (signed for color)
      uniform float uSonarAngle;
      
      // Colors
@@ -161,6 +160,8 @@
      
      attribute float amplitude; // Used for Equalizer height
      varying vec3 vColor;
+     varying float vHeight; // NEW: Vertical position for gradient
+     varying float vExtra; // General purpose varying (used for Sonar intensity/time)
      
      void main() {
        vColor = color;
@@ -173,14 +174,17 @@
        
        float h = 0.0;
 
+       // Shared Grid Coordinates
+       float rawX = (position.x / 2.0) + (uGridWidth / 2.0);
+       float rawZ = (position.z / 2.0) + (uGridLength / 2.0);
+
        if (uMode == 1.0) { // Equalizer
            // Bar height based on CPU-calculated amplitude attribute
            h = amplitude * 5.0; 
        }
        else if (uMode == 2.0) { // Raindrops V2 (GPU Calculation)
            // Grid Indices logic
-           float rawX = (position.x / 2.0) + (uGridWidth / 2.0);
-           float rawZ = (position.z / 2.0) + (uGridLength / 2.0);
+           // rawX, rawZ already calculated
            
            vec3 mixedColor = vec3(0.0);
            float totalInfluence = 0.0;
@@ -242,11 +246,82 @@
                if (h > 6.0) vColor += vec3(0.2); 
            }
        }
-       else if (uMode == 4.0) { // Sonar (GPU)
-           h = 0.0;
+       else if (uMode == 4.0) { // Sonar (GPU) - "Digital Terrain"
+           // Iterate blips to find if this point is part of a trade
+           
+           float maxInt = 0.0;
+           float isActive = 0.0;
+           float totalInfluence = 0.0;
+           
+           for(int i=0; i<50; i++) {
+               // uSonarBlips: x, z, time, intensity
+               float intensity = uSonarBlips[i].w;
+               if (abs(intensity) > 0.001) {
+                   float dx = rawX - uSonarBlips[i].x;
+                   float dz = rawZ - uSonarBlips[i].y; 
+                   float dist = sqrt(dx*dx + dz*dz);
+                   
+                   // Digital Terrain: Gaussian Hill instead of Cone
+                   // Width increases slightly with intensity
+                   float widthFactor = 0.5 + abs(intensity) * 0.1;
+                   float amp = abs(intensity);
+                   
+                   // Gaussian: exp( -dist^2 / (2*sigma^2) )
+                   float hill = exp(-(dist*dist) / (2.0 * widthFactor * widthFactor)) * amp * 3.0; // *3.0 height boost
+                   
+                   // Only influence if perceptible
+                   if (hill > 0.1) {
+                        h += hill;
+                        
+                        // Check if revealed by sonar (Ghost Trail Logic)
+                        float cx = uGridWidth / 2.0;
+                        float cz = uGridLength / 2.0;
+                        float bx = uSonarBlips[i].x - cx;
+                        float bz = uSonarBlips[i].y - cz;
+                        float blipAngle = atan(bz, bx);
+                        if (blipAngle < 0.0) blipAngle += 6.28318; // 2*PI
+                        
+                        float scanAngle = uSonarAngle;
+                        
+                        // Calculate Angular Distance BACKWARDS (how long ago scan passed)
+                        float angleDiff = scanAngle - blipAngle;
+                        // Handle wrapping
+                        if (angleDiff < 0.0) angleDiff += 6.28318;
+                        if (angleDiff > 6.28318) angleDiff -= 6.28318;
+                        
+                        // angleDiff is now strictly 0..2PI representing "time since scan"
+                        // 0 = Just Scanned (HOT)
+                        // PI = Scanned long ago (COLD)
+                        
+                        // Fade over 1/4 rotation (90 degrees)
+                        float fade = exp(-angleDiff * 2.0); 
+                        
+                        // Base visibility: 0.2 (always visible dim)
+                        // Scan boost: up to 1.0 (bright flash)
+                        float visibility = 0.1 + fade * 0.9;
+                        
+                        // Accumulate max intensity for color
+                        // We take the "hottest" blip affecting this point
+                        float currentInt = intensity * visibility;
+                        if (abs(currentInt) > abs(maxInt)) {
+                             maxInt = intensity; // Keep sign for color
+                             isActive = visibility; // Vis factor
+                        }
+                   }
+               }
+           }
+           
+           if (abs(maxInt) > 0.001) {
+                // Set color based on signed intensity
+                vColor = maxInt > 0.0 ? uColorUp : uColorDown;
+                vExtra = isActive; // Pass visibility trail factor (0.1 to 1.0)
+           } else {
+                vExtra = 0.0; // Inactive background
+           }
        }
-
+ 
        pos.y += h; 
+       vHeight = pos.y; // Capture height after modification 
 
        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
        gl_PointSize = pSize * (300.0 / -mvPosition.z);
@@ -260,16 +335,19 @@
     uniform float uOpacity;
     uniform float uMode;
     uniform float uTime;
+    uniform float uSentiment; // NEW: -1.0 to 1.0
     
     // Sonar Params
-    uniform vec3 uSonarBlips[20];
-    uniform float uSonarIntensities[20];
-    uniform float uSonarAngle;
-    uniform float uGridWidth;
-    uniform float uGridLength;
+     uniform vec4 uSonarBlips[50];
+     uniform float uSonarAngle;
+     uniform float uGridWidth;
+     uniform float uGridLength;
     uniform vec3 uColorUp;
+    uniform vec3 uColorDown; // Make sure to expose uColorDown
     
     varying vec3 vColor;
+    varying float vHeight; // NEW
+    varying float vExtra; // General purpose varying (used for Sonar intensity/time)
     
     void main() {
       vec2 coord = gl_PointCoord - vec2(0.5);
@@ -281,11 +359,81 @@
       if (dist > 0.5) discard;
       alpha = 1.0 - smoothstep(0.4, 0.5, dist);
       
-      // Mix Atmosphere
-      finalColor = finalColor + uAtmosphere * 0.3; 
-      alpha *= uOpacity;
+       // --- SONAR LOGIC (PING & REVEAL) ---
+       if (uMode == 4.0) {
+           // We use vExtra from Vertex Shader to determine if this point is 
+           // part of an active blip. 
+           // vExtra = 1.0 means active blip, 0.0 means background.
+           
+           // Background points - faint radar grid (handled in Override section below)
+           // This block is just for any pre-processing if needed.
+       }
       
-      gl_FragColor = vec4(finalColor, alpha);
+      // --- NEW ATMOSPHERE LOGIC ---
+      // Directional Lighting + Pulsing
+      
+      float sentimentIntensity = abs(uSentiment);
+      // Heartbeat: 1.0 default, larger amplitude with higher sentiment
+      float pulse = 1.0 + sin(uTime * (2.0 + sentimentIntensity * 4.0)) * 0.3 * sentimentIntensity;
+      
+      vec3 atmos = vec3(0.0);
+      
+      if (uSentiment > 0.05) {
+         // Bullish: Top-Down Light (Green)
+         // Gradient from top (y=15) fading down
+         float hFactor = smoothstep(-2.0, 15.0, vHeight); 
+         atmos = uColorUp * sentimentIntensity * hFactor * 0.6;
+      } else if (uSentiment < -0.05) {
+         // Bearish: Bottom-Up Light (Red / Magma)
+         // Gradient from bottom (y=-2) fading up
+         float hFactor = 1.0 - smoothstep(-2.0, 8.0, vHeight);
+         atmos = uColorDown * sentimentIntensity * hFactor * 0.6;
+      }
+      
+      // Apply Pulse
+      atmos *= pulse;
+            // --- SONAR FRAGMENT OVERRIDE ---
+       if (uMode == 4.0) {
+           // Digital Terrain Logic (Ghost Trails)
+           // vExtra is visibility factor passed from Vertex shader
+           // 0.0 = Background
+           // 0.1 - 0.2 = Inactive/Base Visibility (Dim Ghost)
+           // 0.2 - 1.0 = Active Trail / Fresh Scan (Bright)
+           
+           if (vExtra > 0.05) {
+               // Active or Ghost Blip
+               
+               // Intensity Factor: how "hot" is the scan?
+               // Normalize 0.1..1.0 range
+               float intensity = smoothstep(0.1, 1.0, vExtra);
+               
+               // Base Color (vColor from vertex is correct Buy/Sell color)
+               vec3 baseColor = vColor;
+               
+               // Hot Color (White Flash)
+               vec3 hotColor = vec3(1.0, 1.0, 1.0);
+               
+               // Mix based on intensity + extra boost
+               finalColor = mix(baseColor, hotColor, intensity * 0.7);
+               
+               // Brightness boost for fresh scans
+               finalColor *= (1.0 + intensity * 2.0);
+               
+               // Alpha also fades slightly for old ghosts
+               alpha = 0.6 + intensity * 0.4;
+               
+           } else {
+               // Background points - faint radar grid
+               finalColor = vec3(0.1, 0.15, 0.2) * 0.3; // Very dim teal/grey
+               alpha = 0.2;
+           }
+       } else {
+           // Add to base color (additive) for other modes
+           finalColor += atmos; 
+           alpha *= uOpacity;
+       }
+       
+       gl_FragColor = vec4(finalColor, alpha);
     }
   `;
 
@@ -310,9 +458,12 @@
   const cityFragmentShader = `
       varying vec3 vColor;
       varying vec3 vPos;
-      
       uniform vec3 uAtmosphere;
       uniform float uTime;
+      uniform float uSentiment; // NEW
+      
+      uniform vec3 uColorUp;
+      uniform vec3 uColorDown;
       
       void main() {
           vec3 finalColor = vColor;
@@ -335,8 +486,24 @@
           float stripes = sin(vPos.y * 30.0) * 0.5 + 0.5;
           finalColor *= (0.7 + stripes * 0.3); // More contrast
           
-          // Atmosphere blend
-          finalColor = finalColor + uAtmosphere * 0.2;
+          // --- NEW CITY ATMOSPHERE ---
+          
+          float sentimentIntensity = abs(uSentiment);
+          float pulse = 1.0 + sin(uTime * (3.0 + sentimentIntensity * 2.0)) * 0.2 * sentimentIntensity;
+          
+          vec3 cityAtmos = vec3(0.0);
+          
+          if (uSentiment > 0.05) {
+              // Bullish: Sky Glow (Top of buildings)
+              float hFactor = smoothstep(0.0, 20.0, vPos.y);
+              cityAtmos = uColorUp * sentimentIntensity * hFactor * 0.5;
+          } else if (uSentiment < -0.05) {
+              // Bearish: Ground Magma (Bottom of buildings)
+              float hFactor = 1.0 - smoothstep(0.0, 10.0, vPos.y);
+              cityAtmos = uColorDown * sentimentIntensity * hFactor * 0.5;
+          }
+          
+          finalColor += cityAtmos * pulse;
           
           gl_FragColor = vec4(finalColor, 1.0);
       }
@@ -410,6 +577,7 @@
               uTime: { value: 0.0 },
               uMode: { value: getModeId(settingsState.tradeFlowSettings.flowMode) }, 
               uAtmosphere: { value: new THREE.Color(0x000000) },
+              uSentiment: { value: 0.0 }, // NEW
               uOpacity: { value: 1.0 },
               uSpread: { value: 1.0 },
               uGridWidth: { value: settingsState.tradeFlowSettings.gridWidth },
@@ -418,7 +586,6 @@
               uRipples: { value: rippleData }, // Array of vec4
               // Sonar
               uSonarBlips: { value: sonarData },
-              uSonarIntensities: { value: sonarIntensities },
               uSonarAngle: { value: 0.0 },
               uColorUp: { value: colorUp },
               uColorDown: { value: colorDown }
@@ -436,7 +603,10 @@
       return new THREE.ShaderMaterial({
           uniforms: {
               uTime: { value: 0.0 },
-              uAtmosphere: { value: new THREE.Color(0x000000) }
+              uAtmosphere: { value: new THREE.Color(0x000000) },
+              uSentiment: { value: 0.0 }, // NEW
+              uColorUp: { value: colorUp },
+              uColorDown: { value: colorDown }
           },
           vertexShader: cityVertexShader,
           fragmentShader: cityFragmentShader,
@@ -512,13 +682,27 @@
   let rippleData: THREE.Vector4[] = new Array(MAX_RIPPLES).fill(null).map(() => new THREE.Vector4()); 
   let rippleIntensities = new Float32Array(MAX_RIPPLES); // intensity (Optional now, mostly in w)
   let nextRippleIdx = 0;
+  
+  // Golden Tower Data (Circular Buffer)
+  const MAX_TOWER_POINTS = 5000;
+  let towerGeometry: THREE.BufferGeometry;
+  let towerPoints: THREE.Points;
+  // Circular Buffer State
+  let nextTowerIdx = 0;
+  let towerMinPrice = Infinity;
+  let towerMaxPrice = -Infinity;
+  // We need to track price range for auto-scaling
+  let towerPrices: number[] = new Array(MAX_TOWER_POINTS).fill(0);
+  
+  // Fibonacci Planes
+  let fibonacciPlanes: THREE.Group;
+  const fibLevels = [0.0, 0.236, 0.382, 0.5, 0.618, 1.0];
 
-  // GPU Uniform Data (Sonar)
-  const MAX_SONAR_BLIPS = 20;
-  let sonarData: THREE.Vector3[] = new Array(MAX_SONAR_BLIPS).fill(null).map(() => new THREE.Vector3()); 
-  let sonarIntensities = new Float32Array(MAX_SONAR_BLIPS); // Max intensity
-  let sonarAngle = 0;
+  // GPU Uniform Data  // Sonar Data
+  const MAX_SONAR_BLIPS = 50; // Increased
+  let sonarData = new Float32Array(MAX_SONAR_BLIPS * 4); // x, z, time, intensity
   let nextSonarIdx = 0;
+  let sonarAngle = 0;
   
   function initSceneObjects() {
       if (!scene) return;
@@ -537,8 +721,7 @@
       rippleIntensities.fill(0);
       nextRippleIdx = 0;
       
-      sonarData = new Array(MAX_SONAR_BLIPS).fill(null).map(() => new THREE.Vector3(0,0,0));
-      sonarIntensities.fill(0);
+      sonarData = new Float32Array(MAX_SONAR_BLIPS * 4);
       nextSonarIdx = 0;
 
       const width = settingsState.tradeFlowSettings.gridWidth || 80;
@@ -557,8 +740,12 @@
           materials.push(material);
       } 
       
-      // 2. City Mode (InstancedMesh)
-      // V2: Initialize with Neutral Base Color
+      // 3. Golden Tower Mode (New Particle System)
+      if (settingsState.tradeFlowSettings.flowMode === 'golden_tower') {
+          initTower();
+      }
+      
+      // 2. City Mode (InstancedMesh) - Only if selected
       if (settingsState.tradeFlowSettings.flowMode === 'city') {
           const count = width * length;
           const boxGeo = new THREE.BoxGeometry(1.5, 1, 1.5); // Slightly smaller than grid 2.0 to have gaps
@@ -594,6 +781,101 @@
           cityMesh.position.set(0, -2, 0);
           scene.add(cityMesh);
       }
+  }
+
+  function initTower() {
+      // 1. Particle System (Circular Buffer)
+      towerGeometry = new THREE.BufferGeometry();
+      
+      const positions = new Float32Array(MAX_TOWER_POINTS * 3);
+      const colors = new Float32Array(MAX_TOWER_POINTS * 3);
+      const sizes = new Float32Array(MAX_TOWER_POINTS);
+      
+      // Initialize off-screen or zero
+      for(let i=0; i<MAX_TOWER_POINTS; i++) {
+          positions[i*3] = 0;
+          positions[i*3+1] = -1000; // Hide initially
+          positions[i*3+2] = 0;
+          
+          sizes[i] = 0.0; 
+      }
+      
+      towerGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      towerGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      towerGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      
+      // Custom Shader for soft glowing particles
+      const material = new THREE.ShaderMaterial({
+          uniforms: {
+              uTime: { value: 0 },
+              uBaseSize: { value: settingsState.tradeFlowSettings.size * 20.0 }
+          },
+          vertexShader: `
+              attribute float size;
+              varying vec3 vColor;
+              uniform float uBaseSize;
+              void main() {
+                  vColor = color;
+                  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                  gl_Position = projectionMatrix * mvPosition;
+                  // Size attenuation
+                  gl_PointSize = size * uBaseSize * (300.0 / -mvPosition.z);
+              }
+          `,
+          fragmentShader: `
+              varying vec3 vColor;
+              void main() {
+                  // Soft circle
+                  vec2 coord = gl_PointCoord - vec2(0.5);
+                  float dist = length(coord);
+                  if (dist > 0.5) discard;
+                  
+                  // Glow gradient
+                  float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
+                  alpha = pow(alpha, 1.5); // Soften
+                  
+                  gl_FragColor = vec4(vColor, alpha);
+              }
+          `,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+      });
+      
+      towerPoints = new THREE.Points(towerGeometry, material);
+      scene.add(towerPoints);
+      
+      // 2. Fibonacci Planes (Architect)
+      fibonacciPlanes = new THREE.Group();
+      
+      // Create 6 planes for levels
+      const planeGeo = new THREE.PlaneGeometry(200, 200); 
+      // Use Theme Material (transparent, glowing edge)
+      const planeMat = new THREE.MeshBasicMaterial({
+          color: colorWarning, // Will be updated to Theme Accent
+          transparent: true,
+          opacity: 0.1,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+      });
+      
+      fibLevels.forEach(level => {
+          const plane = new THREE.Mesh(planeGeo, planeMat.clone());
+          plane.rotation.x = -Math.PI / 2;
+          plane.userData = { ratio: level }; // Store fib ratio
+          fibonacciPlanes.add(plane);
+          
+          // Add Text Label? (Maybe later)
+      });
+      
+      scene.add(fibonacciPlanes);
+      
+      // Reset State
+      nextTowerIdx = 0;
+      towerMinPrice = Infinity;
+      towerMaxPrice = -Infinity;
+      towerPrices.fill(0);
   }
 
   // ========================================
@@ -646,8 +928,9 @@
           
           const y = s.cameraHeight || (Math.max(width, length) * 0.4);
           const z = s.cameraDistance || (Math.max(width, length) * 0.5);
+          const x = s.cameraPositionX || 0;
           
-          camera.position.set( 0, y, z ); 
+          camera.position.set( x, y, z ); 
           
           const hasManualRot = (s.cameraRotationX || 0) !== 0 || (s.cameraRotationY || 0) !== 0 || (s.cameraRotationZ || 0) !== 0;
 
@@ -698,6 +981,7 @@
       materials.forEach(mat => {
           mat.uniforms.uTime.value = time;
           mat.uniforms.uAtmosphere.value.copy(currentAtmosphere);
+          mat.uniforms.uSentiment.value = currentSentiment; // NEW
           mat.uniforms.uSize.value = s.size * 15.0; 
           if (mat.uniforms.uSpread) mat.uniforms.uSpread.value = s.spread || 1.0;
           
@@ -707,18 +991,19 @@
               mat.uniforms.uRipples.value = rippleData;
               // mat.uniforms.uRippleIntensities.value = rippleIntensities; // No longer needed for V2
           }
-          if (s.flowMode === 'sonar') {
-              mat.uniforms.uSonarBlips.value = sonarData;
-              mat.uniforms.uSonarIntensities.value = sonarIntensities;
-               const sweepSpeed = (s.speed || 1.0) * 0.5;
-               mat.uniforms.uSonarAngle.value = (time * sweepSpeed) % (Math.PI * 2);
-          }
+           if (s.flowMode === 'sonar') {
+               mat.uniforms.uSonarBlips.value = sonarData; // Vec4 array
+               // mat.uniforms.uSonarIntensities.value = sonarIntensities; // Removed
+                const sweepSpeed = (s.speed || 1.0) * 0.5;
+                mat.uniforms.uSonarAngle.value = (time * sweepSpeed) % (Math.PI * 2);
+           }
       });
       
       // Update City Material Uniforms
       if (cityMesh && cityMesh.material) {
           (cityMesh.material as THREE.ShaderMaterial).uniforms.uTime.value = time;
           (cityMesh.material as THREE.ShaderMaterial).uniforms.uAtmosphere.value.copy(currentAtmosphere);
+          (cityMesh.material as THREE.ShaderMaterial).uniforms.uSentiment.value = currentSentiment; // NEW
       }
 
       // CPU-Side Animations
@@ -726,13 +1011,80 @@
           animatePersistence(time, s);
       } else if (s.flowMode === 'city') {
           animateCity(time, s); 
-      } else if (s.flowMode === 'sonar') {
-          // Sonar colors still on CPU for now (simple fading)
-          animateSonarCPU(time, s); 
+      } else if (s.flowMode === 'golden_tower') {
+          animateTower(time, s);
       }
+      // Sonar is now fully GPU
+
 
       renderer.render( scene, camera );
       if (performanceMonitor) performanceMonitor.update();
+  }
+  
+  function animateTower(time: number, s: any) {
+      if (!towerGeometry || !fibonacciPlanes) return;
+      
+      // 1. Auto-Scale Height
+      // We want the tower to fit within Y = -50 to +50 roughly?
+      // Or maybe 0 to 100
+      
+      let min = towerMinPrice;
+      let max = towerMaxPrice;
+      
+      if (min === Infinity || max === -Infinity) {
+          min = 0; max = 100; // Default
+      }
+      
+      let range = max - min;
+      if (range === 0) range = 1;
+      
+      const targetHeight = 100.0; // Desired height in world units
+      const heightScale = targetHeight / range;
+      
+      // Update Particles Y positions
+      // Efficiently? No, we have to iterate
+      const positions = towerGeometry.attributes.position.array as Float32Array;
+      // We only need to update Y if Price Range changes significantly?
+      // For now, let's update every frame to keep it smooth
+      
+      // Optimization: Only update active particles? 
+      // We don't track active start/end easily in circular buffer without extra state.
+      // Iterating 5000 floats is fast enough for JS.
+      
+      for(let i=0; i<MAX_TOWER_POINTS; i++) {
+          const rawPrice = positions[i*3+1];
+          if (rawPrice > -900) { // If active (not hidden)
+               // Map Price to Y
+               const y = (rawPrice - min) * heightScale;
+               // Centered?
+               positions[i*3+1] = y - (targetHeight / 2.0);
+          }
+      }
+      towerGeometry.attributes.position.needsUpdate = true;
+      
+      // 2. Update Camera Target?
+      // Camera Control is manual now, so we let user pan. 
+      // But we might want to center the camera on the "Current Price" which is probably near the top or middle.
+      
+      // 3. Update Fibonacci Planes
+      fibonacciPlanes.children.forEach(child => {
+          const plane = child as THREE.Mesh;
+          const ratio = plane.userData.ratio;
+          
+          // Price Level = Min + Range * Ratio
+          const priceLevel = min + range * ratio;
+          
+          // World Y
+          const y = (priceLevel - min) * heightScale - (targetHeight / 2.0);
+          
+          plane.position.y = y;
+          
+          // Update Color to match Theme Accent (Warning for now)
+          // We can leave color static but pulse opacity?
+          const mat = plane.material as THREE.MeshBasicMaterial;
+          mat.opacity = 0.05 + Math.sin(time * 2.0 + ratio * 5.0) * 0.02;
+          mat.color.copy(colorWarning); // Ensure theme color
+      });
   }
   
   function animatePersistence(time: number, s: any) {
@@ -770,49 +1122,8 @@
   
   
 
-  function animateSonarCPU(time: number, s: any) {
-      const sweepSpeed = (s.speed || 1.0) * 0.5;
-      sonarAngle = (time * sweepSpeed) % (Math.PI * 2);
-      
-      const width = s.gridWidth || 80;
-      const length = s.gridLength || 160;
-      const centerX = width / 2;
-      const centerZ = length / 2;
-      
-      pointclouds.forEach(pc => {
-          const attr = pc.geometry.getAttribute('color') as THREE.BufferAttribute;
-          
-          // Optimization: Skip loop if Sonar not active or throttle?
-          // Keeping standard loop for visual consistency with legacy
-          
-          for(let i=0; i<width; i+=2) { 
-              for(let j=0; j<length; j+=2) {
-                  const idx = i*length + j;
-                  
-                  const dx = i - centerX;
-                  const dz = j - centerZ;
-                  let angle = Math.atan2(dz, dx); 
-                  if (angle < 0) angle += Math.PI * 2;
-                  
-                  let angleDiff = Math.abs(angle - sonarAngle);
-                  if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-                  
-                  let intensity = 0.05; 
-                  
-                  if (angleDiff < 0.2) {
-                      intensity += (1.0 - angleDiff/0.2) * 0.5;
-                  }
-                  
-                  attr.setXYZ(idx, 
-                      colorUp.r * intensity, 
-                      colorUp.g * intensity, 
-                      colorUp.b * intensity
-                  );
-              }
-          }
-          attr.needsUpdate = true;
-      });
-  }
+  // animateSonarCPU removed - fully GPU
+
 
 
   // ========================================
@@ -973,19 +1284,89 @@
       
       const volScale = s.volumeScale || 1.0;
       const tradeValue = price * size; 
-      const intensity = Math.min(1.0 + Math.log10(tradeValue+1) * 0.2 * volScale, 2.0);
-
-      // Update Vector3 Array
-      const idx = nextSonarIdx;
-      const blip = sonarData[idx];
-      if (blip) {
-          blip.set(rx, rz, performance.now() * 0.001);
-      }
+      // Intensity: Log scale 1..5
+      const absIntensity = Math.min(1.0 + Math.log10(tradeValue+1) * 0.5 * volScale, 5.0);
       
-      sonarIntensities[idx] = intensity;
+      // Encode Side in Sign: Buy (+), Sell (-)
+      const signedIntensity = side === 'buy' ? absIntensity : -absIntensity;
+
+      // Update Vector4 Array
+      // x, z, time (not currently used for fading but could be), intensity
+      const idx = nextSonarIdx;
+      // Stride is 4 for vec4
+      const ptr = idx * 4;
+      
+      sonarData[ptr] = rx;
+      sonarData[ptr+1] = rz;
+      sonarData[ptr+2] = performance.now() * 0.001; // Timestamp
+      sonarData[ptr+3] = signedIntensity;
       
       nextSonarIdx = (nextSonarIdx + 1) % MAX_SONAR_BLIPS;
   }
+
+  function processTradeTower(side: string, price: number, size: number) {
+      if (!towerGeometry || !towerPoints) return;
+      
+      const idx = nextTowerIdx;
+      
+      // 1. Calculate Spiral Position (Phyllotaxis)
+      // Angle = index * 137.5 degrees
+      const angle = idx * 2.399963; // Golden Angle in Radians
+      const volumeScale = settingsState.tradeFlowSettings.volumeScale || 1.0;
+      const baseSpread = settingsState.tradeFlowSettings.spread || 1.0;
+      
+      // Radius breathes with volume (Visual Interest)
+      // Log scale for volume to prevent massive outliers
+      const volRadius = Math.log10(price * size + 1) * volumeScale;
+      const radius = 10.0 * baseSpread + (volRadius * 2.0);
+      
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      
+      // 2. Calculate Vertical Position (Price)
+      // Store raw price, normalize in animate loop or shader?
+      // Better to store raw and auto-scale in animate loop to keep history valid
+      // But we need to update the buffer.
+      // Let's store raw price in .y and handle scaling in Vertex Shader or World Position?
+      // Simple approach: Store Price in Y, but Camera must move to Price Y.
+      
+      // Update Price Range
+      if (price < towerMinPrice) towerMinPrice = price;
+      if (price > towerMaxPrice) towerMaxPrice = price;
+      
+      towerPrices[idx] = price; // Track for auto-scaling
+      
+      // 3. Update Attributes
+      const positions = towerGeometry.attributes.position.array as Float32Array;
+      const colors = towerGeometry.attributes.color.array as Float32Array;
+      const sizes = towerGeometry.attributes.size.array as Float32Array;
+      
+      positions[idx*3] = x;
+      positions[idx*3+1] = price; // Raw Price (Will be scaled in animate)
+      positions[idx*3+2] = z;
+      
+      // Color
+      const color = getTradeColors(side, price);
+      colors[idx*3] = color.r;
+      colors[idx*3+1] = color.g;
+      colors[idx*3+2] = color.b;
+      
+      // Size
+      // Base size + volume bonus
+      sizes[idx] = 1.0 + (volRadius * 0.5);
+      
+      // Mark as needing update
+      towerGeometry.attributes.position.needsUpdate = true;
+      towerGeometry.attributes.color.needsUpdate = true;
+      towerGeometry.attributes.size.needsUpdate = true;
+      
+      // Advance Buffer
+      nextTowerIdx = (nextTowerIdx + 1) % MAX_TOWER_POINTS;
+  }
+  
+  // Sentiment State
+  let currentSentiment = 0.0;
+  let targetSentiment = 0.0;
   
   function updateAtmosphere(side: string) {
       tradeHistory.push(side);
@@ -1004,15 +1385,18 @@
       const s = settingsState.tradeFlowSettings;
 
       if (s.enableAtmosphere) {
-          if (ratio > 0.1) {
-              targetAtmosphere.copy(colorUp).multiplyScalar(0.3 * ratio); 
-          } else if (ratio < -0.1) {
-              targetAtmosphere.copy(colorDown).multiplyScalar(0.3 * Math.abs(ratio));
-          } else {
-               targetAtmosphere.setHex(0x000000);
-          }
+          // New Logic: Sentiment is just the raw ratio (-1 to 1)
+          // We decouple it from color here, handled in shader
+          targetSentiment = ratio;
+          
+          // Smooth Lerp for JS variable
+          // We can just set target, animate loop could catch up if we wanted smooth transition there,
+          // but for now direct assignment to a "target" and simple lerp in update loop is cleaner.
+          // Let's just do direct for now as ratio changes slowly anyway.
+          currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.1;
+
       } else {
-          targetAtmosphere.setHex(0x000000);
+          currentSentiment = 0.0;
       }
   }
   
@@ -1144,7 +1528,14 @@
       // Update Uniforms if materials exist
       materials.forEach(mat => {
           if (mat.uniforms.uColorUp) mat.uniforms.uColorUp.value.copy(colorUp);
+          if (mat.uniforms.uColorDown) mat.uniforms.uColorDown.value.copy(colorDown);
       });
+      
+      if (cityMesh && cityMesh.material) {
+          const m = cityMesh.material as THREE.ShaderMaterial;
+          if (m.uniforms.uColorUp) m.uniforms.uColorUp.value.copy(colorUp);
+          if (m.uniforms.uColorDown) m.uniforms.uColorDown.value.copy(colorDown);
+      }
   }
 
   onDestroy(() => {
