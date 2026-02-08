@@ -19,10 +19,10 @@
   import { onMount } from "svelte";
   import { browser } from "$app/environment";
   import { settingsState } from "../../../stores/settings.svelte";
+  import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
   import { uiState } from "../../../stores/ui.svelte";
-  import { PerformanceMonitor } from "../../../utils/performanceMonitor";
-  import { _ } from "../../../locales/i18n";
+  import TradeFlowWorker from "./tradeFlow.worker?worker";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -117,6 +117,11 @@
   // DATA FORWARDING
   // ========================================
 
+  // Atmosphere state
+  let tradeHistory: string[] = [];
+  const tradeHistorySize = 100;
+  let targetSentiment = 0;
+
   function onTrade(trade: any) {
     if (lifecycleState !== LifecycleState.READY || !worker || !trade) return;
     
@@ -133,14 +138,10 @@
     if (isNaN(price) || isNaN(amount)) return;
     if (amount < settingsState.tradeFlowSettings.minVolume) return;
 
-      log(LogLevel.INFO, '✅ Three.js initialization complete');
-      return { success: true };
-    } catch (error) {
-      log(LogLevel.ERROR, '❌ Initialization failed:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : $_('errors.unknown')
-      };
+    // Update History
+    tradeHistory.push(side);
+    if (tradeHistory.length > tradeHistorySize) {
+      tradeHistory.shift();
     }
     
     const buys = tradeHistory.filter(s => s === 'buy' || s === 'BUY').length;
@@ -159,10 +160,7 @@
     });
   }
 
-  // Atmosphere state
-  let tradeHistory: string[] = [];
-  const tradeHistorySize = 100;
-  let targetSentiment = 0;
+
 
   // ========================================
   // SVELTE EFFECTS & LIFECYCLE
@@ -272,100 +270,6 @@
     height: 100%;
   }
 
-  onMount(() => {
-    if (!browser || !container) return;
-    
-    log(LogLevel.INFO, '🎬 Component mounted, starting initialization...');
-    lifecycleState = LifecycleState.INITIALIZING;
-    
-    const result = initThree();
-    performanceMonitor = new PerformanceMonitor("TradeFlowWave");
-    performanceMonitor.start(renderer || undefined);
-    
-    if (!result.success) {
-      lifecycleState = LifecycleState.ERROR;
-      lifecycleError = result.error || $_('errors.unknown');
-      log(LogLevel.ERROR, '❌ Initialization failed:', lifecycleError);
-    } else {
-      lifecycleState = LifecycleState.READY;
-      isVisible = !document.hidden;
-      
-      // Auto-start animation
-      startAnimationLoop();
-      
-      // Listen for visibility changes
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Resize Observer
-      const resizeObserver = new ResizeObserver(() => onResize());
-      resizeObserver.observe(container);
-      
-      // Market Data
-      if (tradeState.symbol) {
-         updateSubscription(tradeState.symbol);
-      }
-      
-       // React to settings changes safely
-       $effect(() => {
-           // Watch critical settings affecting geometry
-           const mode = settingsState.tradeFlowSettings.flowMode;
-           const width = settingsState.tradeFlowSettings.gridWidth;
-           const length = settingsState.tradeFlowSettings.gridLength;
-           const theme = uiState.currentTheme; // Trigger on theme change
-
-           // If Mode or Grid Dimensions or Theme Changed -> Re-Init
-           if (scene && lifecycleState === LifecycleState.READY) {
-               const modeChanged = lastFlowMode !== mode;
-               // Simple check if we need to rebuild
-               // We rebuid if mode or dimensions change, or if theme changes (to update colors)
-               
-               if (modeChanged) {
-                   log(LogLevel.INFO, '🔄 Flow Mode changed:', mode);
-                   lastFlowMode = mode;
-                   updateThemeColors(); // Update colors first
-                   initSceneObjects();
-               } else {
-                   // Check dimensions or theme
-                   // We just force update if anything else in dependency changed that requires rebuild
-                   updateThemeColors();
-                   initSceneObjects();
-               }
-               
-               updateCameraPosition();
-           } else if (lifecycleState === LifecycleState.READY) {
-               // Just Camera Updates for other settings
-               updateCameraPosition();
-           }
-       });
-       
-       $effect(() => {
-           if (tradeState.symbol) {
-               updateSubscription(tradeState.symbol);
-           }
-       });
-       
-       // Initial Theme Colors
-       updateThemeColors();
-    }
-  });
-  
-  function updateThemeColors() {
-      if (!browser) return;
-      const style = getComputedStyle(document.body);
-      
-      const up = style.getPropertyValue('--color-up').trim();
-      const down = style.getPropertyValue('--color-down').trim();
-      const warning = style.getPropertyValue('--color-warning').trim();
-      
-      if (up) colorUp.setStyle(up);
-      if (down) colorDown.setStyle(down);
-      if (warning) colorWarning.setStyle(warning);
-      
-      // Update Uniforms if materials exist
-      materials.forEach(mat => {
-          if (mat.uniforms.uColorUp) mat.uniforms.uColorUp.value.copy(colorUp);
-      });
-  }
 
   .initializing { color: var(--color-up, #00ff88); }
   .error { color: var(--color-down, #ff4444); }
