@@ -19,6 +19,7 @@ BETA_PORT=3002
 BETA_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/devcachyapp.sh"
 
 # Global Path & Policy Settings
+# Optional: If paths are not writable, script falls back to $PROJECT_ROOT/logs and /backups
 LOG_DIR="/var/log/cachy"
 BACKUP_DIR="/backups/cachy"
 # Health Check Policy

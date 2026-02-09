@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF_FILE="$SCRIPT_DIR/.deploy.conf"
 START_TIME=$(date +%s)
 
-# Colors (256-color palette for Cachy Cool UI)
+# Colors (256-color palette for Cachy UI)
 readonly RED='\033[38;5;196m'
 readonly GREEN='\033[38;5;46m'
 readonly YELLOW='\033[38;5;226m'
@@ -63,6 +63,16 @@ EOF
 fi
 
 source "$CONF_FILE"
+
+# --- 2.5 Smart Path Handling (Hybrid Fallback) ---
+# If paths are not set or not writable, fallback to project-local paths
+if [[ -z "$LOG_DIR" ]] || [[ ! -w "$(dirname "$LOG_DIR")" ]] && [[ ! -d "$LOG_DIR" ]]; then
+    LOG_DIR="$SCRIPT_DIR/logs"
+fi
+
+if [[ -z "$BACKUP_DIR" ]] || [[ ! -w "$(dirname "$BACKUP_DIR")" ]] && [[ ! -d "$BACKUP_DIR" ]]; then
+    BACKUP_DIR="$SCRIPT_DIR/backups"
+fi
 
 # --- 3. Source Discord Notifications ---
 if [[ -f "$SCRIPT_DIR/scripts/discord-notify.sh" ]]; then
@@ -232,16 +242,12 @@ cd "$SCRIPT_DIR" || error_exit "Could not enter script directory"
 clear
 echo -e "${GOLD}"
 cat << "EOF"
-+======================================================+
-|  $$$$$$\   $$$$$$\   $$$$$$\  $$\   $$\ $$\     $$\  |
-| $$  __$$\ $$  __$$\ $$  __$$\ $$ |  $$ |\$$\   $$  | |
-| $$ /  \__|$$ /  $$ |$$ /  \__|$$ |  $$ | \$$\ $$  /  |
-| $$ |      $$$$$$$$ |$$ |      $$$$$$$$ |  \$$$$  /   |
-| $$ |      $$  __$$ |$$ |      $$  __$$ |   \$$  /    |
-| $$ |  $$\ $$ |  $$ |$$ |  $$\ $$ |  $$ |    $$ |     |
-| \$$$$$$  |$$ |  $$ |\$$$$$$  |$$ |  $$ |    $$ |     |
-|  \______/ \__|  \__| \______/ \__|  \__|    \__|     |
-+======================================================+
+  ____           _            
+ / ___|__ _  ___| |__  _   _  
+| |   / _` |/ __| '_ \| | | | 
+| |__| (_| | (__| | | | |_| | 
+ \____\__,_|\___|_| |_|\__, | 
+                       |___/  
 EOF
 echo -e "${NC}"
 echo -e "${CYAN}┌──────────────────────────────────────────┐${NC}"
