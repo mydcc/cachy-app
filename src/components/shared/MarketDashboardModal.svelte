@@ -291,8 +291,8 @@
                     <div class="col-span-4 text-center">
                         Trend (15m - 1h - 4h - 1d)
                     </div>
-                    <div class="col-span-2 text-right">RSI (1h)</div>
-                    <div class="col-span-1 text-center">Score</div>
+                    <div class="col-span-2 text-right">{$_("marketDashboard.rsi1h")}</div>
+                    <div class="col-span-1 text-center">{$_("marketDashboard.score")}</div>
                 </div>
 
                 <!-- Table Body -->

@@ -18,6 +18,8 @@ const StrictPositiveDecimal = StrictDecimal.refine((val) => val.gt(0), {
     message: "Value must be positive"
 });
 
+const NumericString = z.string().regex(/^-?\d*\.?\d+([eE][-+]?\d+)?$/).or(z.number());
+
 // Bitunix Ticker Schema
 export const BitunixTickerSchema = z.object({
   symbol: z.string(),
@@ -55,11 +57,11 @@ export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);
 // Can be string or number
 export const BitgetKlineSchema = z.tuple([
   z.union([z.string(), z.number()]), // timestamp
-  z.union([z.string(), z.number()]), // open
-  z.union([z.string(), z.number()]), // high
-  z.union([z.string(), z.number()]), // low
-  z.union([z.string(), z.number()]), // close
-  z.union([z.string(), z.number()]), // volume
+  NumericString, // open
+  NumericString, // high
+  NumericString, // low
+  NumericString, // close
+  NumericString, // volume
 ]).rest(z.unknown()); // Allow extra fields
 
 export const BitgetKlineResponseSchema = z.array(BitgetKlineSchema);

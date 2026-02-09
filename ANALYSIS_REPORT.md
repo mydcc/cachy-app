@@ -1,48 +1,50 @@
-# Status & Risk Report: Cachy App Maintenance
+# Status & Risk Report
 
-## 1. Prioritized Findings
+## 🔴 CRITICAL: Risk of financial loss, crash, or security vulnerability
 
-### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+1.  **Precision Loss in Technical Indicators** (`src/utils/technicalsCalculator.ts`)
+    *   **Issue:** The calculator converts `Decimal` values to native JavaScript `number` (float) using `parseFloat()` for all technical indicator calculations (RSI, MACD, etc.).
+    *   **Risk:** Floating point inaccuracies can lead to incorrect signal generation (e.g., `RSI > 70.0000001` vs `69.9999999`), potentially causing financial loss if automated trading relies on these specific values.
+    *   **Requirement:** The prompt explicitly states: "Use strictly decimal types for all price and quantity calculations".
 
-1.  **WebSocket "Fast Path" Type Safety (`src/services/bitunixWs.ts`)**
-    *   **Finding:** The `handleMessage` method uses a "Fast Path" optimization for high-frequency data (Price/Ticker) that bypasses Zod schema validation. It manually casts fields like `typeof data.ip === 'number' ? String(data.ip) : data.ip`.
-    *   **Risk:** While defensive, the type guards (`isPriceData`, `isTickerData`) currently use loose checks (e.g., checking for property existence without strict type verification). If the API sends `null` or an unexpected object structure, it could lead to runtime errors or incorrect data propagating to the UI/Trading engine.
-    *   **Recommendation:** Harden `isPriceData` and similar guards to strictly check for `string | number` types and reject `null`/`undefined` explicitly.
+2.  **Blocking Main Thread in Aggregator** (`src/lib/calculators/aggregator.ts`)
+    *   **Issue:** The `getJournalAnalysis` function performs heavy synchronous calculations (performance, quality, direction, tag metrics) on the entire trade history.
+    *   **Risk:** For users with a large number of trades (e.g., >1000), this will freeze the UI thread, causing the application to become unresponsive ("Application Not Responding").
+    *   **Recommendation:** Offload to a Web Worker.
 
-2.  **Timeframe Parsing Vulnerability (`src/services/marketWatcher.ts`)**
-    *   **Finding:** The `tfToMs` helper function uses `parseInt` and `slice` without validating the input string format.
-    *   **Risk:** Malformed timeframes (e.g., empty string, "invalid") could return `NaN` or incorrect milliseconds, potentially causing infinite loops or incorrect data fetching intervals.
-    *   **Recommendation:** Implement a robust `safeTfToMs` utility with regex validation.
+## 🟡 WARNING: Performance issue, UX error, missing i18n
 
-### 🟡 WARNING (Performance issue, UX error, missing i18n)
+1.  **Widespread Hardcoded Strings (Missing I18n)**
+    *   **Issue:** Many components contain hardcoded English strings instead of using the `$_` translation helper.
+    *   **Locations:**
+        *   `src/components/shared/TechnicalsPanel.svelte` ("OBV", "Ichimoku", "Price:")
+        *   `src/components/shared/MarketDashboardModal.svelte` ("RSI (1h)", "Score")
+        *   `src/components/shared/TpSlEditModal.svelte` ("Trigger Price", "Amount", "Save", "Cancel")
+        *   `src/components/shared/PerformanceMonitor.svelte` ("Analysis Time", "Memory")
+        *   `src/components/shared/backgrounds/TradeFlowBackground.svelte` ("Warming Neural Core...")
+    *   **Risk:** Poor UX for non-English users and inconsistent terminology.
 
-1.  **Missing Internationalization (i18n) in Visuals Tab (`src/components/settings/tabs/VisualsTab.svelte`)**
-    *   **Finding:** Numerous hardcoded UI strings found (e.g., "Mode", "Enhanced Effects", "Flow Speed", "Volume Scale").
-    *   **Risk:** Poor UX for non-English users.
-    *   **Recommendation:** Extract these strings to `src/locales/locales/en.json` and use the `$_` store.
+2.  **Main Thread Fallback for Technicals** (`src/services/technicalsService.ts`)
+    *   **Issue:** If the `technicals.worker.ts` fails or times out, the service falls back to `calculateTechnicalsInline`, which runs on the main thread.
+    *   **Risk:** While a safety mechanism, if the worker fails due to data size, the main thread will likely freeze as well.
 
-2.  **Unhanded Worker Initialization Error (`src/components/shared/backgrounds/TradeFlowBackground.svelte`)**
-    *   **Finding:** The component throws a raw `Error("OffscreenCanvas not supported...")` without catching it.
-    *   **Risk:** On older browsers or environments where OffscreenCanvas is disabled, this causes the entire component (and potentially the parent view) to crash/unmount unexpectedly.
-    *   **Recommendation:** Wrap initialization in a `try-catch` block and display a fallback or graceful error state.
+3.  **Data Integrity in Kline Fetching** (`src/services/apiService.ts`)
+    *   **Issue:** `fetchBitunixKlines` filters out candles where volume is missing or zero, or open/close is zero.
+    *   **Risk:** While this filters "bad" data, it might create gaps in the chart if the exchange returns valid but low-activity candles (zero volume is possible in illiquid markets).
 
-3.  **Heavy Calculation in Market Store (`src/stores/market.svelte.ts`)**
-    *   **Finding:** `applySymbolKlines` performs complex merging and array manipulation. While it uses `Float64Array` for optimization (SoA), it runs on the main thread.
-    *   **Risk:** High-frequency WebSocket updates during high volatility could cause UI stutter.
-    *   **Recommendation:** Consider moving heavy merging logic to a Web Worker in the future (Blue/Refactor).
+4.  **Loose API Schema Validation** (`src/types/apiSchemas.ts`)
+    *   **Issue:** `BitgetKlineSchema` uses `z.unknown()` for the tail of the tuple.
+    *   **Risk:** Changes in the API response format might go undetected until runtime errors occur in consumption logic.
 
-### 🔵 REFACTOR (Code smell, technical debt)
+## 🔵 REFACTOR: Code smell, technical debt
 
-1.  **Duplicate Timeframe Logic**
-    *   **Finding:** `tfToMs` logic appears in `marketWatcher.ts` and likely other places (implicitly).
-    *   **Recommendation:** Centralize in `src/utils/timeUtils.ts`.
+1.  **Direct API Calls in Components** (`src/components/shared/TpSlEditModal.svelte`)
+    *   **Issue:** The component makes a direct `fetch('/api/tpsl')` call instead of using `TradeService`.
+    *   **Risk:** Inconsistent error handling, auth logic duplication, and harder testing. Logic should be centralized in `TradeService`.
 
-## 2. Implementation Plan
+2.  **Markdown HTML Sanitization** (`src/services/markdownLoader.ts`)
+    *   **Issue:** The loader uses `marked` but relies on the source being trusted (local files).
+    *   **Risk:** If the architecture changes to allow remote markdown or user input, this becomes an XSS vulnerability. `isomorphic-dompurify` should be applied explicitly.
 
-The following actions will be taken to address the critical and warning items:
-
-1.  **Harden Utilities:** Create `src/utils/timeUtils.ts` with `safeTfToMs` and tests.
-2.  **Refactor MarketWatcher:** Use `safeTfToMs`.
-3.  **Harden WebSocket:** Improve type guards in `bitunixWs.ts`.
-4.  **Fix i18n:** Update `en.json` and `VisualsTab.svelte`.
-5.  **Fix Error Handling:** Wrap `TradeFlowBackground` init in `try-catch`.
+3.  **Trade Form Accessibility**
+    *   **Issue:** Some components (like `TpSlEditModal`) manage focus but could be improved (e.g., trapping focus within the modal).

@@ -17,6 +17,7 @@
 
 import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
+import DOMPurify from "isomorphic-dompurify";
 import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
 
@@ -104,7 +105,8 @@ export async function loadInstruction(
     }
 
     const markdownContent = (await modules[relativePath]()) as string;
-    const htmlContent = await marked(markdownContent);
+    const rawHtml = await marked(markdownContent);
+    const htmlContent = DOMPurify.sanitize(rawHtml);
 
     // Extract title from the first line (assuming it's an H1)
     const firstLine = markdownContent.split("\n")[0];

@@ -11,7 +11,9 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeJournalEntry } from "../utils/utils";
 import type { JournalEntry } from "./types";
-import { calculator } from "../lib/calculator";
+import { calculator } from "../lib/calculator"; // Keep for types or context if needed
+import { aggregatorService } from "../services/aggregatorService";
+import { getJournalAnalysis } from "../lib/calculators/aggregator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
 import { untrack } from "svelte";
@@ -19,6 +21,9 @@ import { safeJsonParse } from "../utils/safeJson";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
+  // Initialize with empty analysis to prevent UI crashes on initial load
+  analysis = $state<any>(getJournalAnalysis([]));
+  isAnalyzing = $state(false);
 
   constructor() {
     if (browser) {
@@ -30,7 +35,31 @@ class JournalManager {
           this.save();
         });
       });
+
+      // Async Analysis Effect
+      $effect.root(() => {
+        $effect(() => {
+          // Track entries
+          const currentEntries = this.entries;
+          // Debounce slightly to avoid rapid updates during bulk import
+          untrack(() => {
+             this.runAnalysis(currentEntries);
+          });
+        });
+      });
     }
+  }
+
+  private async runAnalysis(entries: JournalEntry[]) {
+      this.isAnalyzing = true;
+      try {
+          const result = await aggregatorService.analyze(entries);
+          this.analysis = result;
+      } catch (e) {
+          console.error("[Journal] Analysis failed", e);
+      } finally {
+          this.isAnalyzing = false;
+      }
   }
 
   private load() {
@@ -134,34 +163,34 @@ class JournalManager {
     this.entries = fn(this.entries);
   }
 
-  // -- Derived Metrics ($derived) --
+  // -- Metrics Accessors (Getters to maintain API compatibility) --
+  // These now return data from the async `analysis` state.
+  // Note: They might be undefined initially until the worker finishes.
 
-  private analysisContext = $derived(calculator.getJournalContext(this.entries));
-
-  performanceMetrics = $derived(calculator.getPerformanceData(this.entries, this.analysisContext));
-  qualityMetrics = $derived(calculator.getQualityData(this.entries, this.analysisContext));
-  directionMetrics = $derived(calculator.getDirectionData(this.entries, this.analysisContext));
-  tagMetrics = $derived(calculator.getTagData(this.entries, this.analysisContext));
-  calendarMetrics = $derived(calculator.getCalendarData(this.entries, this.analysisContext));
-  disciplineMetrics = $derived(calculator.getDisciplineData(this.entries, this.analysisContext));
-  costMetrics = $derived(calculator.getCostData(this.entries, this.analysisContext));
+  get performanceMetrics() { return this.analysis.performanceMetrics; }
+  get qualityMetrics() { return this.analysis.qualityMetrics; }
+  get directionMetrics() { return this.analysis.directionMetrics; }
+  get tagMetrics() { return this.analysis.tagMetrics; }
+  get calendarMetrics() { return this.analysis.calendarMetrics; }
+  get disciplineMetrics() { return this.analysis.disciplineMetrics; }
+  get costMetrics() { return this.analysis.costMetrics; }
 
   // Deep Dive
-  timingMetrics = $derived(calculator.getTimingData(this.entries, this.analysisContext));
-  confluenceMetrics = $derived(calculator.getConfluenceData(this.entries, this.analysisContext));
-  durationStatsMetrics = $derived(calculator.getDurationStats(this.entries, this.analysisContext));
-  durationDataMetrics = $derived(calculator.getDurationData(this.entries, this.analysisContext));
-  tagEvolutionMetrics = $derived(calculator.getTagEvolution(this.entries, this.analysisContext));
-  assetMetrics = $derived(calculator.getAssetData(this.entries, this.analysisContext));
-  riskMetrics = $derived(calculator.getRiskData(this.entries, this.analysisContext));
-  marketMetrics = $derived(calculator.getMarketData(this.entries, this.analysisContext));
-  psychologyMetrics = $derived(calculator.getPsychologyData(this.entries, this.analysisContext));
+  get timingMetrics() { return this.analysis.timingMetrics; }
+  get confluenceMetrics() { return this.analysis.confluenceMetrics; }
+  get durationStatsMetrics() { return this.analysis.durationStatsMetrics; }
+  get durationDataMetrics() { return this.analysis.durationDataMetrics; }
+  get tagEvolutionMetrics() { return this.analysis.tagEvolutionMetrics; }
+  get assetMetrics() { return this.analysis.assetMetrics; }
+  get riskMetrics() { return this.analysis.riskMetrics; }
+  get marketMetrics() { return this.analysis.marketMetrics; }
+  get psychologyMetrics() { return this.analysis.psychologyMetrics; }
 
   // 6-Pillars
-  executionMetrics = $derived(calculator.getExecutionEfficiencyData(this.entries, this.analysisContext));
-  riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.entries, this.analysisContext));
-  marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
-  systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
+  get executionMetrics() { return this.analysis.executionMetrics; }
+  get riskRadarMetrics() { return this.analysis.riskRadarMetrics; }
+  get marketContextMetrics() { return this.analysis.marketContextMetrics; }
+  get systemQualityMetrics() { return this.analysis.systemQualityMetrics; }
 
   private notifyTimer: any = null;
 

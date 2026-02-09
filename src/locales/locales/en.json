@@ -39,6 +39,8 @@
       "point": "Market Overview",
       "title": "Global Market Analysis",
       "avgRsi": "Avg RSI",
+      "rsi1h": "RSI (1h)",
+      "score": "Score",
       "bullish": "Bullish",
       "bearish": "Bearish",
       "neutral": "Neutral",
@@ -47,6 +49,14 @@
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
     "refresh": "Refresh"
+  },
+  "tpslEdit": {
+    "triggerPrice": "Trigger Price",
+    "amountQty": "Amount (Qty)",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "error": "Failed to modify order"
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -738,7 +748,9 @@
         "distance": "Distance (Z)",
         "rotationX": "Rot X",
         "rotationY": "Rot Y",
-        "rotationZ": "Rot Z"
+        "rotationZ": "Rot Z",
+        "initializing": "Warming Neural Core...",
+        "error": "Visual Effects Disabled"
       },
       "coordinates": {
         "x": "X",
@@ -822,6 +834,7 @@
     "securityNote": "Keys are stored locally in your browser.",
     "imgbbHeader": "ImgBB Image Hosting",
     "imgbbApiKey": "API Key",
+    "imgbbExpiration": "Expiration Time",
     "rssPresetsDesc": "Select curated news sources for AI context",
     "customRssFeeds": "Custom RSS Feeds",
     "customRssFeedsDesc": "Add up to 5 custom RSS feeds (Advanced)",
@@ -900,6 +913,9 @@
       "vwap": "VWAP",
       "mfi": "MFI",
       "adx": "ADX",
+      "obv": "OBV",
+      "ichimoku": "Ichimoku",
+      "priceLabel": "Price:",
       "pivot": "Pivot",
       "precision": "Data Precision",
       "historyLimit": "History Scope (Candles)",
@@ -1258,7 +1274,13 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": "Optimization Tips",
-      "lastUpdate": "Last Updated: {time}"
+      "lastUpdate": "Last Updated: {time}",
+      "analysisTime": "Analysis Time",
+      "memory": "Memory",
+      "apiCalls": "API Calls/min",
+      "cacheHit": "Cache Hit Rate",
+      "latency": "Avg Latency",
+      "network": "Network Status"
     },
     "trading": {
       "chartTitle": "Chart & Data",
@@ -1293,8 +1315,7 @@
       "showTechnicalAnalysis": "Show technical analysis panel",
       "historyLength": "History Length (Candles)",
       "moreHistoryDesc": "More history = slower initial load. (Max: 2000)"
-    }
-  },
+    },
   "positionsList": {
     "noOpenPositions": "No open positions.",
     "size": "Size",
@@ -1985,4 +2006,4 @@
     "analyzing": "Analyzing system state...",
     "close": "Close Report"
   }
-}
+}}

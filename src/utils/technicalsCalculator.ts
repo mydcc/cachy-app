@@ -75,6 +75,11 @@ export function calculateAllIndicators(
       timesNum[i] = k.time;
     }
 
+    // High Precision Step: Calculate Pivots using Decimals (since we have the objects)
+    // This overrides the float-based calculation in calculateIndicatorsFromArrays
+    const pivotType = settings?.pivots?.type || "classic";
+    const precisePivots = calculatePivots(klines, pivotType);
+
     return calculateIndicatorsFromArrays(
       timesNum,
       opensNum,
@@ -84,7 +89,8 @@ export function calculateAllIndicators(
       volumesNum,
       settings,
       enabledIndicators,
-      bufferPool
+      bufferPool,
+      precisePivots
     );
   } finally {
     // Release buffers back to the pool
@@ -107,6 +113,7 @@ export function calculateIndicatorsFromArrays(
   settings?: IndicatorSettings,
   enabledIndicators?: Partial<Record<string, boolean>>,
   pool?: BufferPool,
+  preCalculatedPivots?: any // Optional override
 ): TechnicalsData {
   const len = closesNum.length;
   const currentPrice = closesNum[len - 1];
@@ -725,18 +732,22 @@ export function calculateIndicatorsFromArrays(
   const prevIdx = closesNum.length - 2;
   let pivotData;
 
-  // Note: getEmptyData returns dummy pivots.
-  if (prevIdx >= 0 && shouldCalculate('pivots')) {
-    pivotData = calculatePivotsFromValues(
-      highsNum[prevIdx],
-      lowsNum[prevIdx],
-      closesNum[prevIdx],
-      opensNum[prevIdx],
-      pivotType
-    );
+  if (preCalculatedPivots) {
+      pivotData = preCalculatedPivots;
   } else {
-    // Return empty/placeholder if disabled or not enough data
-    pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
+      // Note: getEmptyData returns dummy pivots.
+      if (prevIdx >= 0 && shouldCalculate('pivots')) {
+        pivotData = calculatePivotsFromValues(
+          highsNum[prevIdx],
+          lowsNum[prevIdx],
+          closesNum[prevIdx],
+          opensNum[prevIdx],
+          pivotType
+        );
+      } else {
+        // Return empty/placeholder if disabled or not enough data
+        pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
+      }
   }
 
   // --- Volatility ---

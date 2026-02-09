@@ -1401,27 +1401,101 @@ export function calculateCCISeries(
 export function calculatePivots(klines: Kline[], type: string) {
   if (klines.length < 2) return getEmptyPivots();
   const prev = klines[klines.length - 2];
+  // Pass Decimals directly
   return calculatePivotsFromValues(
-    prev.high.toNumber(),
-    prev.low.toNumber(),
-    prev.close.toNumber(),
-    prev.open.toNumber(),
+    prev.high,
+    prev.low,
+    prev.close,
+    prev.open,
     type
   );
 }
 
 export function calculatePivotsFromValues(
-  h: number,
-  l: number,
-  c: number,
-  o: number,
+  h: number | Decimal,
+  l: number | Decimal,
+  c: number | Decimal,
+  o: number | Decimal,
   type: string
 ) {
-  // Use numbers for performance in pivots as well
-  const high = h;
-  const low = l;
-  const close = c;
-  const open = o;
+  // Precision: Use Decimal if inputs are Decimal, otherwise number
+  const isDecimal = h instanceof Decimal;
+
+  if (isDecimal) {
+    const high = h as Decimal;
+    const low = l as Decimal;
+    const close = c as Decimal;
+    // const open = o as Decimal; // Unused in std pivots but kept for API
+
+    let p: Decimal, r1: Decimal, r2: Decimal, r3: Decimal, s1: Decimal, s2: Decimal, s3: Decimal;
+
+    if (type === "woodie") {
+      // (H + L + 2*C) / 4
+      p = high.plus(low).plus(close.times(2)).div(4);
+      r1 = p.times(2).minus(low);
+      r2 = p.plus(high).minus(low);
+      s1 = p.times(2).minus(high);
+      s2 = p.minus(high).plus(low);
+      r3 = high.plus(p.minus(low).times(2));
+      s3 = low.minus(high.minus(p).times(2));
+    } else if (type === "camarilla") {
+      const range = high.minus(low);
+      const m11 = range.times(1.1);
+      r3 = close.plus(m11.div(4));
+      r2 = close.plus(m11.div(6));
+      r1 = close.plus(m11.div(12));
+      p = close;
+      s1 = close.minus(m11.div(12));
+      s2 = close.minus(m11.div(6));
+      s3 = close.minus(m11.div(4));
+    } else if (type === "fibonacci") {
+      p = high.plus(low).plus(close).div(3);
+      const range = high.minus(low);
+      r1 = p.plus(range.times(0.382));
+      r2 = p.plus(range.times(0.618));
+      r3 = p.plus(range); // 1.0
+      s1 = p.minus(range.times(0.382));
+      s2 = p.minus(range.times(0.618));
+      s3 = p.minus(range); // 1.0
+    } else {
+      // Classic (Floor)
+      p = high.plus(low).plus(close).div(3);
+      r1 = p.times(2).minus(low);
+      s1 = p.times(2).minus(high);
+      r2 = p.plus(high.minus(low));
+      s2 = p.minus(high.minus(low));
+      r3 = high.plus((p.minus(low)).times(2));
+      s3 = low.minus((high.minus(p)).times(2));
+    }
+
+    // Return as numbers for UI compatibility (ChartJS etc usually need primitive numbers)
+    // BUT we used high precision for the calculation itself.
+    return {
+        pivots: {
+          classic: {
+            p: p.toNumber(),
+            r1: r1.toNumber(),
+            r2: r2.toNumber(),
+            r3: r3.toNumber(),
+            s1: s1.toNumber(),
+            s2: s2.toNumber(),
+            s3: s3.toNumber(),
+          },
+        },
+        basis: {
+          high: high.toNumber(),
+          low: low.toNumber(),
+          close: close.toNumber(),
+          open: (o as Decimal).toNumber(),
+        },
+    };
+  }
+
+  // Fallback to fast float math (Legacy/Performance path)
+  const high = h as number;
+  const low = l as number;
+  const close = c as number;
+  const open = o as number;
 
   let p = 0;
   let r1 = 0,

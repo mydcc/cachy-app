@@ -1,4 +1,5 @@
 {
+  "name": "cachy-app",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
@@ -42,6 +43,7 @@
     "dompurify": "^3.2.7",
     "interactjs": "^1.10.27",
     "intl-messageformat": "^11.1.1",
+    "isomorphic-dompurify": "^3.0.0-rc.2",
     "jsdom": "^27.4.0",
     "katex": "^0.16.28",
     "lightweight-charts": "^5.1.0",

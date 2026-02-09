@@ -22,6 +22,7 @@
   import { tradeState } from "../../../stores/trade.svelte";
   import { bitunixWs } from "../../../services/bitunixWs";
   import { uiState } from "../../../stores/ui.svelte";
+  import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
 
   // ========================================
@@ -255,9 +256,9 @@
   <canvas bind:this={canvas}></canvas>
   
   {#if lifecycleState === LifecycleState.INITIALIZING}
-    <div class="status-overlay initializing">Warming Neural Core...</div>
+    <div class="status-overlay initializing">{$_("settings.visuals.tradeFlow.initializing")}</div>
   {:else if lifecycleState === LifecycleState.ERROR}
-    <div class="status-overlay error">Visual Effects Disabled</div>
+    <div class="status-overlay error">{$_("settings.visuals.tradeFlow.error")}</div>
   {:else if lifecycleState === LifecycleState.READY}
     <!-- Optional Debug Info or Active State Indicator -->
   {/if}
