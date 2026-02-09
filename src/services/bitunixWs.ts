@@ -84,7 +84,8 @@ class BitunixWebSocketService {
   // [HYBRID CHANGE] 
   // We separate 'active' subscriptions (state) from 'pending' (intent).
   // The 'pendingSubscriptions' acts as a buffer that survives re-connects.
-  public pendingSubscriptions: Set<string> = new Set();
+  // Updated to Map for reference counting.
+  public pendingSubscriptions: Map<string, number> = new Map();
 
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
@@ -1216,18 +1217,22 @@ class BitunixWebSocketService {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
 
-    // Idempotency: Always add to pending (Desired State)
-    this.pendingSubscriptions.add(subKey);
+    // Reference Counting Logic
+    const currentCount = this.pendingSubscriptions.get(subKey) || 0;
+    this.pendingSubscriptions.set(subKey, currentCount + 1);
 
-    // If socket is open, execute immediately (Fast Path)
-    // If not, it stays in pending and flushes on onopen (Buffer Path)
-    if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-      if (settingsState.enableNetworkLogs) {
-        logger.log("network", `Subscribe: ${channel}:${normalizedSymbol}`);
+    // Only subscribe if this is the first requester
+    if (currentCount === 0) {
+      // If socket is open, execute immediately (Fast Path)
+      // If not, it stays in pending and flushes on onopen (Buffer Path)
+      if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+        if (settingsState.enableNetworkLogs) {
+          logger.log("network", `Subscribe: ${channel}:${normalizedSymbol}`);
+        }
+        this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
+      } else if (!this.wsPublic || this.wsPublic.readyState === WebSocket.CLOSED) {
+        this.connectPublic();
       }
-      this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
-    } else if (!this.wsPublic || this.wsPublic.readyState === WebSocket.CLOSED) {
-      this.connectPublic();
     }
   }
 
@@ -1235,14 +1240,33 @@ class BitunixWebSocketService {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
 
-    // Remove from Desired State
-    this.pendingSubscriptions.delete(subKey);
+    // Reference Counting Logic
+    const currentCount = this.pendingSubscriptions.get(subKey) || 0;
 
-    if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-      this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+    if (currentCount > 0) {
+      const newCount = currentCount - 1;
+      if (newCount === 0) {
+        this.pendingSubscriptions.delete(subKey);
+
+        if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+          this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+        }
+      } else {
+        this.pendingSubscriptions.set(subKey, newCount);
+      }
     }
   }
 
+  // Forcefully remove subscription regardless of ref count (Emergency/Cleanup)
+  forceUnsubscribe(symbol: string, channel: string) {
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+    const subKey = `${channel}:${normalizedSymbol}`;
+
+    this.pendingSubscriptions.delete(subKey);
+    if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+        this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+    }
+  }
 
   subscribeTrade(symbol: string, callback: (trade: any) => void) {
     if (!symbol) return;
@@ -1275,8 +1299,8 @@ class BitunixWebSocketService {
   private flushPendingSubscriptions() {
     if (!this.wsPublic || this.wsPublic.readyState !== WebSocket.OPEN) return;
 
-    // Convert Set to Array for iteration
-    const subs = Array.from(this.pendingSubscriptions);
+    // Iterate over Map keys
+    const subs = Array.from(this.pendingSubscriptions.keys());
     if (subs.length === 0) return;
 
     logger.log("network", `[BitunixWS] Flushing ${subs.length} buffered subscriptions`);
@@ -1318,7 +1342,7 @@ class BitunixWebSocketService {
   }
 
   private resubscribePublic() {
-    this.pendingSubscriptions.forEach((subKey) => {
+    this.pendingSubscriptions.forEach((count, subKey) => {
       const [channel, symbol] = subKey.split(":");
       if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
         this.sendSubscribe(this.wsPublic, symbol, channel);

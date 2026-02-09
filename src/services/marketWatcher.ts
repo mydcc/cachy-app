@@ -147,7 +147,7 @@ class MarketWatcher {
     if (settings.apiProvider !== "bitunix") {
       // If we switched away from Bitunix, clear all WS subscriptions
       // Use pendingSubscriptions instead of publicSubscriptions
-      Array.from(bitunixWs.pendingSubscriptions).forEach((key: string) => {
+      Array.from(bitunixWs.pendingSubscriptions.keys()).forEach((key: string) => {
         const [channel, symbol] = key.split(":");
         bitunixWs.unsubscribe(symbol, channel);
       });
@@ -171,7 +171,7 @@ class MarketWatcher {
     // Iterate over what is currently subscribed in WS service
     // We access the internal set via pendingSubscriptions to be safe
     const current = bitunixWs.pendingSubscriptions;
-    current.forEach((key: string) => {
+    current.forEach((_, key) => {
         if (!intended.has(key)) {
              const [channel, symbol] = key.split(":");
              bitunixWs.unsubscribe(symbol, channel);
