@@ -738,7 +738,9 @@
         "distance": "Distance (Z)",
         "rotationX": "Rot X",
         "rotationY": "Rot Y",
-        "rotationZ": "Rot Z"
+        "rotationZ": "Rot Z",
+        "initializing": "Warming Neural Core...",
+        "error": "Visual Effects Disabled"
       },
       "coordinates": {
         "x": "X",
@@ -912,6 +914,10 @@
         "percent": "Percent %",
         "bar": "Visual Bar"
       },
+      "obv": "OBV",
+      "ichimoku": "Ichimoku",
+      "price": "Price",
+      "value": "Val",
       "rsi": {
         "title": "RSI",
         "showSignal": "Show Signal Line"
@@ -1258,7 +1264,13 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": "Optimization Tips",
-      "lastUpdate": "Last Updated: {time}"
+      "lastUpdate": "Last Updated: {time}",
+      "analysisTime": "Analysis Time",
+      "memory": "Memory",
+      "apiCalls": "API Calls/min",
+      "cacheHit": "Cache Hit Rate",
+      "avgLatency": "Avg Latency",
+      "networkStatus": "Network Status"
     },
     "trading": {
       "chartTitle": "Chart & Data",
@@ -1471,9 +1483,16 @@
     "invalidTrade": "Invalid trade.",
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
-    "saveFailed": "Save failed."
+    "saveFailed": "Save failed.",
+    "modifyFailed": "Failed to modify order."
   },
   "modals": {
+    "editTP": {
+      "title": "Edit Take Profit"
+    },
+    "editSL": {
+      "title": "Edit Stop Loss"
+    },
     "savePreset": {
       "title": "Save Preset",
       "prompt": "Enter name:"

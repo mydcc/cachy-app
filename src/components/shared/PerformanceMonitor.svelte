@@ -94,7 +94,7 @@
                     <polyline points="12 6 12 12" />
                     <line x1="12" y1="12" x2="16" y2="10" />
                 </svg>
-                <span class="metric-label">Analysis Time</span>
+                <span class="metric-label">{$_("settings.performance.analysisTime")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -140,7 +140,7 @@
                     <path d="M9 15h.01" />
                     <path d="M15 15h.01" />
                 </svg>
-                <span class="metric-label">Memory</span>
+                <span class="metric-label">{$_("settings.performance.memory")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -181,7 +181,7 @@
                         d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
                     />
                 </svg>
-                <span class="metric-label">API Calls/min</span>
+                <span class="metric-label">{$_("settings.performance.apiCalls")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -221,7 +221,7 @@
                     <path d="M12 2v20M2 12h20" />
                     <circle cx="12" cy="12" r="8" />
                 </svg>
-                <span class="metric-label">Cache Hit Rate</span>
+                <span class="metric-label">{$_("settings.performance.cacheHit")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -261,7 +261,7 @@
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                 </svg>
-                <span class="metric-label">Avg Latency</span>
+                <span class="metric-label">{$_("settings.performance.avgLatency")}</span>
             </div>
             <div
                 class="metric-value {getColor(
@@ -303,7 +303,7 @@
                         d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                     />
                 </svg>
-                <span class="metric-label">Network Status</span>
+                <span class="metric-label">{$_("settings.performance.networkStatus")}</span>
             </div>
             <div class="metric-value text-blue-500">
                 {marketState.telemetry.activeConnections}
