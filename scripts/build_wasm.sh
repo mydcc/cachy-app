@@ -19,15 +19,20 @@ set -e
 
 WASM_FILE="static/wasm/technicals_wasm.wasm"
 
-WASM_FILE="static/wasm/technicals_wasm.wasm"
-
-# We removed the "skip if exists" check to ensure Rust source changes are always 
-# compiled when cargo is available. Cargo handles incremental builds efficiently.
-
 # Check if cargo is available
 if ! command -v cargo > /dev/null 2>&1; then
     echo "⚠ Cargo not found. Skipping WASM build."
     echo "  Using pre-compiled WASM binary if available."
+    exit 0
+fi
+
+# Check if rustup is available before trying to use it
+if ! command -v rustup > /dev/null 2>&1; then
+    echo "⚠ Rustup not found. Skipping WASM target check."
+    # If rustup is missing, we assume the environment might be a bare rustc setup
+    # We proceed with caution or skip?
+    # Skipping is safer to avoid build failures.
+    echo "  Skipping WASM build for now (rustup required for target check)."
     exit 0
 fi
 
@@ -50,7 +55,8 @@ echo "Generating bindings..."
 # wasm-pack build --target web --out-dir ../src/wasm
 
 # For this environment, we just copy the .wasm file to public so it can be fetched.
-mkdir -p ../static/wasm
-cp target/wasm32-unknown-unknown/release/technicals_wasm.wasm ../static/wasm/
+cd ..
+mkdir -p static/wasm
+cp technicals-wasm/target/wasm32-unknown-unknown/release/technicals_wasm.wasm static/wasm/
 
 echo "✓ WASM build complete. Artifacts in static/wasm/"
