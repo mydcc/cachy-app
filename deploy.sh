@@ -92,6 +92,14 @@ error_exit() {
     exit 1
 }
 
+prompt_user() {
+    local message="$1"
+    echo -e "${YELLOW}❓ $message (y/n)${NC}"
+    read -p "> " -n 1 -r
+    echo ""
+    [[ $REPLY =~ ^[Yy]$ ]]
+}
+
 create_backup() {
     local env_name="$1"
     local backup_path="$BACKUP_DIR/$env_name/$(date +%Y%m%d_%H%M%S)"
@@ -162,24 +170,46 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 # --- 6. Main Process ---
 
+# Change to project root to allow execution from anywhere
+cd "$SCRIPT_DIR" || error_exit "Could not enter script directory"
+
 clear
 echo -e "${GREEN}┌──────────────────────────────────────────┐${NC}"
 printf "${GREEN}│   🚀 DEPLOYMENT: %-23s │\n${NC}" "$(echo $ENV_TYPE | tr '[:lower:]' '[:upper:]')"
 echo -e "${GREEN}└──────────────────────────────────────────┘${NC}"
 echo ""
 
-# Pre-flight
+# Pre-flight Check: Branch & State
 [[ ! -d ".git" ]] && error_exit "Not a git repository"
 CURRENT_BRANCH=$(git branch --show-current)
 log "Target Environment: ${GREEN}$ENVIRONMENT${NC}"
 log "Current Branch: ${YELLOW}$CURRENT_BRANCH${NC}"
 
+# 1. Smart Branch Switching
 if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
-    error_exit "Mode $ENV_TYPE requires branch '$TARGET_BRANCH' (You are on $CURRENT_BRANCH)"
+    if prompt_user "Wrong branch! Should I switch to ${GREEN}$TARGET_BRANCH${NC} for you?"; then
+        # Check for dirty state before switching to be safe
+        if ! git diff-index --quiet HEAD --; then
+             if prompt_user "Your branch is dirty. Should I stash your changes before switching?"; then
+                 git stash || error_exit "Stashing failed"
+             else
+                 error_exit "Cannot switch branches with uncommitted changes."
+             fi
+        fi
+        git checkout "$TARGET_BRANCH" || error_exit "Could not switch to $TARGET_BRANCH"
+        CURRENT_BRANCH=$(git branch --show-current)
+    else
+        error_exit "Mode $ENV_TYPE requires branch '$TARGET_BRANCH'."
+    fi
 fi
 
+# 2. Smart Stashing (if still dirty)
 if ! git diff-index --quiet HEAD --; then
-    error_exit "Dirty Git state: Please commit or stash changes before deploying."
+    if prompt_user "Dirty Git state detected. Should I stash your changes for deployment?"; then
+        git stash || error_exit "Stashing failed"
+    else
+        error_exit "Please commit or stash changes before deploying."
+    fi
 fi
 
 if [[ "$ENV_TYPE" == "stable" ]]; then
