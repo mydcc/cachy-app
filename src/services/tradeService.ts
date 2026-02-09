@@ -378,8 +378,8 @@ class TradeService {
         }
     }
 
-    public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }) {
-        const { symbol, positionSide, amount } = params;
+    public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
+        const { symbol, positionSide, amount, forceFullClose } = params;
 
         // 1. Get fresh position
         const position = await this.ensurePositionFreshness(symbol, positionSide);
@@ -392,9 +392,11 @@ class TradeService {
 
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
-        if (!amount) {
-             logger.warn("market", `[ClosePosition] No amount specified. Defaulting to FULL CLOSE for ${symbol} ${positionSide}`);
+        if (!amount && !forceFullClose) {
+             logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
+             throw new Error("tradeErrors.invalidAmount");
         }
+
         const qty = amount ? amount.toString() : position.amount.toString();
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
@@ -410,7 +412,7 @@ class TradeService {
 
     public async closeAllPositions() {
         const positions = omsService.getPositions();
-        const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side }));
+        const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side, forceFullClose: true }));
         const results = await Promise.allSettled(promises);
 
         const failures = results.filter(r => r.status === "rejected");

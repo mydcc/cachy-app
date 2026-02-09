@@ -1396,7 +1396,11 @@ export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
 // Helper to check for safe primitives (string or number)
-const isSafe = (v: any) => typeof v === 'string' || typeof v === 'number';
+const isSafe = (v: any) => {
+  if (typeof v === 'string') return true;
+  if (typeof v === 'number') return !isNaN(v) && isFinite(v);
+  return false;
+};
 
 export function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;

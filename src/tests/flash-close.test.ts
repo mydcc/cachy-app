@@ -157,7 +157,8 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
     it('should use exact amount for closePosition with OMS data', async () => {
         await tradeService.closePosition({
             symbol: 'BTCUSDT',
-            positionSide: 'long'
+            positionSide: 'long',
+            forceFullClose: true
         });
 
         const callArgs = signedRequestSpy.mock.calls[0];

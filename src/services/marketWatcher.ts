@@ -359,7 +359,9 @@ class MarketWatcher {
                     const oldestTime = klines1[0].time;
                     const intervalMs = safeTfToMs(tf);
 
-                    const results: any[] = [];
+                    // [OPTIMIZATION] Avoid large array of arrays and .flat()
+                    let allBackfilled: any[] = [];
+
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
                     // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
@@ -385,15 +387,19 @@ class MarketWatcher {
                         }
 
                         const chunkResults = await Promise.all(chunkTasks);
-                        results.push(...chunkResults);
+                        // [OPTIMIZATION] Push directly to flat array
+                        for (const chunk of chunkResults) {
+                            if (Array.isArray(chunk)) {
+                                for (const item of chunk) {
+                                    allBackfilled.push(item);
+                                }
+                            }
+                        }
                     }
 
                     if (!this.isPolling) {
                          return;
                     }
-
-                    // Flatten and process
-                    let allBackfilled = results.flat();
 
                     // Gap Filling
                     if (allBackfilled.length > 0) {
@@ -419,6 +425,9 @@ class MarketWatcher {
       if (klines.length < 2) return klines;
       const filled = [klines[0]];
 
+      // Optimization: Re-use constant for zero volume to reduce allocation
+      const ZERO_VOL = new Decimal(0);
+
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
           const curr = klines[i];
@@ -435,13 +444,14 @@ class MarketWatcher {
                       break;
                   }
                   // Fill with flat candle (Close of previous)
+                  // [OPTIMIZATION] Use shared ZERO_VOL
                   filled.push({
                       time: nextTime,
                       open: prev.close,
                       high: prev.close,
                       low: prev.close,
                       close: prev.close,
-                      volume: new Decimal(0)
+                      volume: ZERO_VOL
                   });
                   nextTime += intervalMs;
                   gapCount++;

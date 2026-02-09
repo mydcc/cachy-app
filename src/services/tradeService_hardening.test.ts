@@ -90,7 +90,7 @@ describe('TradeService Hardening', () => {
     });
 
     // Call closePosition (full close)
-    await tradeService.closePosition({ symbol, positionSide: side });
+    await tradeService.closePosition({ symbol, positionSide: side, forceFullClose: true });
 
     // Expect fetch to have been called for sync first
     expect(global.fetch).toHaveBeenNthCalledWith(1, "/api/sync/positions-pending", expect.anything());
@@ -118,7 +118,7 @@ describe('TradeService Hardening', () => {
       text: () => Promise.resolve(JSON.stringify({ code: 0, msg: 'success' }))
     });
 
-    await tradeService.closePosition({ symbol, positionSide: side });
+    await tradeService.closePosition({ symbol, positionSide: side, forceFullClose: true });
 
     // Should skip sync
     expect(global.fetch).toHaveBeenCalledTimes(1);
