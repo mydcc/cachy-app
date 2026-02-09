@@ -433,6 +433,8 @@ export class MarketManager {
     const current = this.getOrCreateSymbol(symbol);
 
     // Optimization: Deduplicate raw updates first to avoid unnecessary Decimal allocation
+    // This is critical for high-frequency WS updates where we might receive 100+ updates for the same candle
+    // but only the last one matters. Creating 500+ Decimal objects (open/high/low/close/vol) just to GC them is expensive.
     if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
         // Sort raw data
         klines.sort((a, b) => a.time - b.time);
@@ -463,6 +465,7 @@ export class MarketManager {
     }));
 
     // Deduplicate incoming batch (keep latest per timestamp)
+    // Run this again just in case (cheap if already sorted/deduped)
     if (newKlines.length > 1) {
       newKlines.sort((a, b) => a.time - b.time);
       const deduped: Kline[] = [];
@@ -485,19 +488,6 @@ export class MarketManager {
     // Get existing buffers
     if (!current.klinesBuffers) current.klinesBuffers = {};
     let buffers = current.klinesBuffers[timeframe];
-
-    // Calculate Limit *BEFORE* merging to optimize allocations
-    const userLimit = settingsState.chartHistoryLimit || 2000;
-    const safetyLimit = 10000;
-    let effectiveLimit = userLimit;
-    if (!enforceLimit) {
-      effectiveLimit = safetyLimit;
-    } else {
-      // Logic: Allow growth up to safetyLimit, but generally aim for userLimit
-      // If we already have more data (backfill), keep it up to safety limit.
-      const previousLength = Math.max(0, history.length);
-      effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
-    }
 
     // Helper: Build full buffers from history (Slow Path)
     const rebuildBuffers = (sourceKlines: Kline[]) => {
@@ -560,6 +550,12 @@ export class MarketManager {
 
     // Helper: Update last N items in buffers (In-place)
     const updateBufferTail = (bufs: KlineBuffers, updateKlines: Kline[], startIndex: number) => {
+      // NOTE: Float64Array is fixed size. If we update last item, we can do it in place.
+      // But if we need reactivity for consumers of `current.klinesBuffers[timeframe]`,
+      // we might need to clone if they use simple strict equality check.
+      // However, typical usage (worker transfer) doesn't rely on Svelte reactivity of the array content itself
+      // but usually the property reference.
+      // For now, in-place update is fastest.
       for (let i = 0; i < updateKlines.length; i++) {
         const k = updateKlines[i];
         const idx = startIndex + i;
@@ -574,15 +570,14 @@ export class MarketManager {
       }
     };
 
-    // Merge strategy: Optimized for memory usage
+    // Merge strategy:
+    // Optimized for append-only / live update behavior
     if (newKlines.length === 0) {
       // No updates
     } else if (history.length === 0) {
       newKlines.sort((a, b) => a.time - b.time);
-      if (newKlines.length > effectiveLimit) {
-          newKlines = newKlines.slice(-effectiveLimit);
-      }
       history = newKlines;
+      // Assign new array
       current.klines[timeframe] = history;
       buffers = rebuildBuffers(history);
     } else {
@@ -594,26 +589,18 @@ export class MarketManager {
 
       if (firstNewTime > lastHistTime) {
         // Fast Path 1: Strict Append (New candle started)
+        // Optimization: Push in place instead of concat (allocates new array)
         history.push(...newKlines);
 
-        // Optimize: Check limit *immediately* to keep array small
-        if (history.length > effectiveLimit) {
-             const overflow = history.length - effectiveLimit;
-             // Use splice for in-place removal to avoid new array allocation
-             history.splice(0, overflow);
-             // Since we spliced, buffers are out of sync. Rebuild is safest.
-             buffers = rebuildBuffers(history);
+        if (buffers) {
+            buffers = appendBuffers(buffers, newKlines);
         } else {
-             // Only append buffers if valid
-             if (buffers) {
-                 buffers = appendBuffers(buffers, newKlines);
-             } else {
-                 buffers = rebuildBuffers(history);
-             }
+            buffers = rebuildBuffers(history);
         }
 
       } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
         // Fast Path 2: Live Update (Update current candle)
+        // In-place update is reactive in Svelte 5 state
         history[history.length - 1] = newKlines[0];
 
         if (buffers && buffers.times.length === history.length) {
@@ -623,12 +610,16 @@ export class MarketManager {
         }
 
       } else if (firstNewTime >= lastHistTime) {
-        // Fast Path 3: Overlap at the end
+        // Fast Path 3: Overlap at the end (e.g. update last + new candle)
+        // Optimization: In-place update + push
         const itemsToAppend: Kline[] = [];
         for (const k of newKlines) {
           if (k.time === lastHistTime) {
             history[history.length - 1] = k;
             if (buffers && buffers.times.length === history.length) {
+                // Optimistically update tail, though we might rebuild if append happens later
+                // Actually, if we append later, `appendBuffers` copies the (updated) old data.
+                // So updating here is correct.
                 updateBufferTail(buffers, [k], buffers.times.length - 1);
             }
           } else if (k.time > lastHistTime) {
@@ -637,12 +628,10 @@ export class MarketManager {
           }
         }
 
-        if (history.length > effectiveLimit) {
-             history.splice(0, history.length - effectiveLimit);
-             buffers = rebuildBuffers(history);
-        } else if (itemsToAppend.length > 0) {
-             if (buffers) buffers = appendBuffers(buffers, itemsToAppend);
-             else buffers = rebuildBuffers(history);
+        if (buffers && itemsToAppend.length > 0) {
+            buffers = appendBuffers(buffers, itemsToAppend);
+        } else if (!buffers) {
+            buffers = rebuildBuffers(history);
         }
 
       } else {
@@ -653,11 +642,6 @@ export class MarketManager {
         let j = 0;
         const hLen = history.length;
         const nLen = newKlines.length;
-
-        // Optimization: Pre-calculate max needed size
-        // If (hLen + nLen) > effectiveLimit, we might skip early items in history
-        // But since we merge by time, skipping is tricky.
-        // We stick to standard merge then slice, but immediately.
 
         const safePush = (k: Kline) => {
           const last = merged.length > 0 ? merged[merged.length - 1] : null;
@@ -688,17 +672,43 @@ export class MarketManager {
         while (i < hLen) safePush(history[i++]);
         while (j < nLen) safePush(newKlines[j++]);
 
-        // Immediate Slice to avoid storing huge array in state
-        if (merged.length > effectiveLimit) {
-             history = merged.slice(-effectiveLimit);
-        } else {
-             history = merged;
-        }
-
+        history = merged;
         // Assign new merged array
         current.klines[timeframe] = history;
-        // Full rebuild needed (now on optimized size)
+        // Full rebuild needed
         buffers = rebuildBuffers(history);
+      }
+    }
+
+    // Limit history size to prevent memory leaks
+    const userLimit = settingsState.chartHistoryLimit || 2000;
+    const safetyLimit = 10000; // Hard cap
+
+    let effectiveLimit = userLimit;
+    if (!enforceLimit) {
+      effectiveLimit = safetyLimit;
+    } else {
+      const previousLength = Math.max(0, history.length - newKlines.length);
+      effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
+    }
+
+    if (history.length > effectiveLimit) {
+      // Slicing creates a new array, but it's necessary for GC
+      const sliced = history.slice(-effectiveLimit);
+      current.klines[timeframe] = sliced;
+      history = sliced; // Update local reference for consistency check
+
+      // Slice buffers too
+      if (buffers && buffers.times.length > effectiveLimit) {
+        const offset = buffers.times.length - effectiveLimit;
+        buffers = {
+            times: buffers.times.slice(offset),
+            opens: buffers.opens.slice(offset),
+            highs: buffers.highs.slice(offset),
+            lows: buffers.lows.slice(offset),
+            closes: buffers.closes.slice(offset),
+            volumes: buffers.volumes.slice(offset),
+        };
       }
     }
 
@@ -712,7 +722,10 @@ export class MarketManager {
         }
     }
 
-    // FORCE REACTIVITY
+    // FORCE REACTIVITY: Svelte 5 needs to see a write to the root property or the specific nested path.
+    // By re-assigning the nested array above, we trigger listeners on `current.klines[timeframe]`.
+    // By re-assigning the symbol object below, we trigger listeners on `marketState.data[symbol]`.
+    // We do both to be absolutely sure.
     this.data[symbol] = current;
   }
 

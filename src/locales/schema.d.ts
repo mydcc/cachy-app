@@ -74,8 +74,6 @@ export type TranslationKey =
   | "dashboard.orderHistory.maker"
   | "dashboard.orderHistory.taker"
   | "dashboard.orderHistory.fee"
-  | "dashboard.orderHistory.noFee"
-  | "dashboard.orderHistory.noDate"
   | "dashboard.orderHistory.liq"
   | "dashboard.orderHistory.side.buy"
   | "dashboard.orderHistory.side.sell"

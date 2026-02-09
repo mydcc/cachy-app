@@ -287,8 +287,10 @@ import { afterNavigate } from "$app/navigation";
 
 <svelte:head>
   <title>{$_("seo.pageTitle")}</title>
-  <meta name="description" content={$_("seo.description")} />
-
+  <meta
+    name="description"
+    content={$_("seo.description")}
+  />
   {@html `<script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -301,7 +303,7 @@ import { afterNavigate } from "$app/navigation";
         "price": "0",
         "priceCurrency": "USD"
       },
-      "image": "https://cachy.app/og-image.jpg",
+      "image": "https://www.cachy.app/og-image.jpg",
       "description": ${JSON.stringify($_("seo.description"))}
     }
     </script>`}

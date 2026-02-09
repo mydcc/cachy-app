@@ -113,12 +113,7 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: any, depth = 0): any {
-        if (depth > 20) {
-            logger.warn("market", "[TradeService] Serialization depth limit exceeded");
-            return "[Serialization Limit]";
-        }
-
+    private serializePayload(payload: any): any {
         if (!payload) return payload;
         if (payload instanceof Decimal) return payload.toString();
 
@@ -128,14 +123,14 @@ class TradeService {
         }
 
         if (Array.isArray(payload)) {
-            return payload.map(item => this.serializePayload(item, depth + 1));
+            return payload.map(item => this.serializePayload(item));
         }
 
         if (typeof payload === 'object') {
             const newObj: any = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
-                    newObj[key] = this.serializePayload(payload[key], depth + 1);
+                    newObj[key] = this.serializePayload(payload[key]);
                 }
             }
             return newObj;
@@ -176,7 +171,7 @@ class TradeService {
                 position = positions.find(
                     (p) => p.symbol === symbol && p.side === positionSide
                 );
-             } catch (e) {
+            } catch (e) {
                 logger.error("market", `[Freshness] API Fallback failed`, e);
             }
         }
