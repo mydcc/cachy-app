@@ -34,18 +34,6 @@
     "backupWrongPassword": "Wrong password. Restore failed.",
     "passwordRequiredTitle": "Password Required",
     "enterBackupPassword": "Please enter the password for this backup:",
-    "marketDashboard": {
-      "buttonTitle": "Open Market Overview",
-      "point": "Market Overview",
-      "title": "Global Market Analysis",
-      "avgRsi": "Avg RSI",
-      "rsi1h": "RSI (1h)",
-      "score": "Score",
-      "bullish": "Bullish",
-      "bearish": "Bearish",
-      "neutral": "Neutral",
-      "longShortRatio": "Long/Short Ratio"
-    },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
     "refresh": "Refresh"
@@ -886,84 +874,6 @@
         "addChannel": "+ Add Channel"
       }
     },
-    "technicals": {
-      "strongBuy": "Strong Buy",
-      "strongSell": "Strong Sell",
-      "title": "Technicals Analysis",
-      "summaryAction": "Summary",
-      "marketConfluence": "Market Confluence",
-      "oscillatorsTitle": "Oscillators",
-      "movingAveragesTitle": "Moving Averages",
-      "pivotsTitle": "Pivot Points",
-      "advancedTitle": "Advanced Analysis",
-      "oscillators": "Oscillators",
-      "movingAverages": "Moving Averages",
-      "pivots": "Pivots",
-      "pivotsDesc": "Calculate standard pivot points (S/R)",
-      "buy": "Buy",
-      "sell": "Sell",
-      "neutral": "Neutral",
-      "overbought": "Overbought",
-      "oversold": "Oversold",
-      "trend": "Trend",
-      "range": "Range",
-      "noSignals": "No divergences detected",
-      "atr": "ATR",
-      "bbWidth": "BB Width",
-      "vwap": "VWAP",
-      "mfi": "MFI",
-      "adx": "ADX",
-      "obv": "OBV",
-      "ichimoku": "Ichimoku",
-      "priceLabel": "Price:",
-      "pivot": "Pivot",
-      "precision": "Data Precision",
-      "historyLimit": "History Scope (Candles)",
-      "syncRsi": "Synchronize RSI Timeframe",
-      "syncRsiDesc": "Use chart timeframe for RSI",
-      "pnlMode": "PnL Display Mode",
-      "favorites": "Favorite Timeframes",
-      "pnlModes": {
-        "absolute": "Absolute",
-        "percent": "Percent %",
-        "bar": "Visual Bar"
-      },
-      "rsi": {
-        "title": "RSI",
-        "showSignal": "Show Signal Line"
-      },
-      "stochRsi": {
-        "title": "Stoch RSI",
-        "len": "Len",
-        "rsiLen": "RSI Len"
-      },
-      "macd": {
-        "title": "MACD"
-      },
-      "superTrend": {
-        "title": "SuperTrend"
-      },
-      "bollingerBands": {
-        "title": "Bollinger Bands",
-        "stdDev": "StdDev"
-      },
-      "volumeMa": {
-        "title": "Volume MA"
-      },
-      "atrStop": {
-        "title": "ATR Stop (L)"
-      },
-      "labels": {
-        "length": "Length",
-        "source": "Source",
-        "type": "Type",
-        "fast": "Fast",
-        "slow": "Slow",
-        "signal": "Signal",
-        "factor": "Factor",
-        "period": "Period"
-      }
-    },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
     },
@@ -1215,7 +1125,6 @@
         "imgbb": "ImgBB API (Screenshots)"
       }
     },
-    "imgbbExpiration": "Expiration Time",
     "integrations": {
       "addFeed": "Add Feed",
       "analytics": "News & Market Data",
@@ -1271,17 +1180,6 @@
       "avoidTranslating": "Avoid translating technical words",
       "quickActions": "Quick Actions"
     },
-    "performance": {
-      "monitor": "Performance Monitor",
-      "tips": "Optimization Tips",
-      "lastUpdate": "Last Updated: {time}",
-      "analysisTime": "Analysis Time",
-      "memory": "Memory",
-      "apiCalls": "API Calls/min",
-      "cacheHit": "Cache Hit Rate",
-      "latency": "Avg Latency",
-      "network": "Network Status"
-    },
     "trading": {
       "chartTitle": "Chart & Data",
       "executionTitle": "Execution & Fees",
@@ -1315,7 +1213,8 @@
       "showTechnicalAnalysis": "Show technical analysis panel",
       "historyLength": "History Length (Candles)",
       "moreHistoryDesc": "More history = slower initial load. (Max: 2000)"
-    },
+    }
+  },
   "positionsList": {
     "noOpenPositions": "No open positions.",
     "size": "Size",
@@ -2005,5 +1904,106 @@
     "title": "Jules Inspector",
     "analyzing": "Analyzing system state...",
     "close": "Close Report"
+  },
+  "technicals": {
+    "strongBuy": "Strong Buy",
+    "strongSell": "Strong Sell",
+    "title": "Technicals Analysis",
+    "summaryAction": "Summary",
+    "marketConfluence": "Market Confluence",
+    "oscillatorsTitle": "Oscillators",
+    "movingAveragesTitle": "Moving Averages",
+    "pivotsTitle": "Pivot Points",
+    "advancedTitle": "Advanced Analysis",
+    "oscillators": "Oscillators",
+    "movingAverages": "Moving Averages",
+    "pivots": "Pivots",
+    "pivotsDesc": "Calculate standard pivot points (S/R)",
+    "buy": "Buy",
+    "sell": "Sell",
+    "neutral": "Neutral",
+    "overbought": "Overbought",
+    "oversold": "Oversold",
+    "trend": "Trend",
+    "range": "Range",
+    "noSignals": "No divergences detected",
+    "atr": "ATR",
+    "bbWidth": "BB Width",
+    "vwap": "VWAP",
+    "mfi": "MFI",
+    "adx": "ADX",
+    "obv": "OBV",
+    "ichimoku": "Ichimoku",
+    "priceLabel": "Price:",
+    "pivot": "Pivot",
+    "precision": "Data Precision",
+    "historyLimit": "History Scope (Candles)",
+    "syncRsi": "Synchronize RSI Timeframe",
+    "syncRsiDesc": "Use chart timeframe for RSI",
+    "pnlMode": "PnL Display Mode",
+    "favorites": "Favorite Timeframes",
+    "pnlModes": {
+      "absolute": "Absolute",
+      "percent": "Percent %",
+      "bar": "Visual Bar"
+    },
+    "rsi": {
+      "title": "RSI",
+      "showSignal": "Show Signal Line"
+    },
+    "stochRsi": {
+      "title": "Stoch RSI",
+      "len": "Len",
+      "rsiLen": "RSI Len"
+    },
+    "macd": {
+      "title": "MACD"
+    },
+    "superTrend": {
+      "title": "SuperTrend"
+    },
+    "bollingerBands": {
+      "title": "Bollinger Bands",
+      "stdDev": "StdDev"
+    },
+    "volumeMa": {
+      "title": "Volume MA"
+    },
+    "atrStop": {
+      "title": "ATR Stop (L)"
+    },
+    "labels": {
+      "length": "Length",
+      "source": "Source",
+      "type": "Type",
+      "fast": "Fast",
+      "slow": "Slow",
+      "signal": "Signal",
+      "factor": "Factor",
+      "period": "Period"
+    }
+  },
+  "performance": {
+    "monitor": "Performance Monitor",
+    "tips": "Optimization Tips",
+    "lastUpdate": "Last Updated: {time}",
+    "analysisTime": "Analysis Time",
+    "memory": "Memory",
+    "apiCalls": "API Calls/min",
+    "cacheHit": "Cache Hit Rate",
+    "latency": "Avg Latency",
+    "network": "Network Status"
+  },
+  "marketDashboard": {
+    "buttonTitle": "Open Market Overview",
+    "point": "Market Overview",
+    "title": "Global Market Analysis",
+    "avgRsi": "Avg RSI",
+    "rsi1h": "RSI (1h)",
+    "score": "Score",
+    "bullish": "Bullish",
+    "bearish": "Bearish",
+    "neutral": "Neutral",
+    "longShortRatio": "Long/Short Ratio"
   }
-}}
+}

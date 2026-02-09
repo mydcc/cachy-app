@@ -34,18 +34,6 @@
     "backupWrongPassword": "Falsches Passwort. Wiederherstellung fehlgeschlagen.",
     "passwordRequiredTitle": "Passwort erforderlich",
     "enterBackupPassword": "Bitte geben Sie das Passwort für dieses Backup ein:",
-    "marketDashboard": {
-      "buttonTitle": "Marktübersicht öffnen",
-      "point": "Marktübersicht",
-      "title": "Globale Marktanalyse",
-      "avgRsi": "Ø RSI",
-      "rsi1h": "RSI (1h)",
-      "score": "Score",
-      "bullish": "Bullisch",
-      "bearish": "Bärisch",
-      "neutral": "Neutral",
-      "longShortRatio": "Long/Short Verhältnis"
-    },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
     "refresh": "Aktualisieren"
@@ -913,84 +901,6 @@
         "addChannel": "+ Kanal hinzufügen"
       }
     },
-    "technicals": {
-      "strongBuy": "Stark Kaufen",
-      "strongSell": "Stark Verkaufen",
-      "title": "Technische Analyse",
-      "summaryAction": "Zusammenfassung",
-      "marketConfluence": "Markt Konfluenz",
-      "oscillatorsTitle": "Oszillatoren",
-      "movingAveragesTitle": "Gleitende Durchschnitte",
-      "pivotsTitle": "Pivot Punkte",
-      "advancedTitle": "Erweiterte Analyse",
-      "oscillators": "Oszillatoren",
-      "movingAverages": "Gleitende Durchschnitte",
-      "pivots": "Pivots",
-      "pivotsDesc": "Berechne Standard-Pivot-Punkte (S/R)",
-      "buy": "Kaufen",
-      "sell": "Verkaufen",
-      "neutral": "Neutral",
-      "overbought": "Überkauft",
-      "oversold": "Überverkauft",
-      "trend": "Trend",
-      "range": "Seitwärts",
-      "noSignals": "Keine Divergenzen erkannt",
-      "atr": "ATR",
-      "bbWidth": "BB Breite",
-      "vwap": "VWAP",
-      "mfi": "MFI",
-      "adx": "ADX",
-      "obv": "OBV",
-      "ichimoku": "Ichimoku",
-      "priceLabel": "Preis:",
-      "pivot": "Pivot",
-      "precision": "Datenpräzision",
-      "historyLimit": "Historien-Umfang (Kerzen)",
-      "syncRsi": "RSI-Timeframe synchronisieren",
-      "syncRsiDesc": "RSI nutzt Chart-Timeframe",
-      "pnlMode": "PnL Anzeigemodus",
-      "favorites": "Favorisierte Timeframes",
-      "pnlModes": {
-        "absolute": "Absolut",
-        "percent": "Prozent %",
-        "bar": "Visuelle Leiste"
-      },
-      "rsi": {
-        "title": "RSI",
-        "showSignal": "Signallinie anzeigen"
-      },
-      "stochRsi": {
-        "title": "Stoch RSI",
-        "len": "Len",
-        "rsiLen": "RSI Len"
-      },
-      "macd": {
-        "title": "MACD"
-      },
-      "superTrend": {
-        "title": "SuperTrend"
-      },
-      "bollingerBands": {
-        "title": "Bollinger Bänder",
-        "stdDev": "StdAbw"
-      },
-      "volumeMa": {
-        "title": "Volumen MA"
-      },
-      "atrStop": {
-        "title": "ATR Stopp (L)"
-      },
-      "labels": {
-        "length": "Länge",
-        "source": "Quelle",
-        "type": "Typ",
-        "fast": "Schnell",
-        "slow": "Langsam",
-        "signal": "Signal",
-        "factor": "Faktor",
-        "period": "Periode"
-      }
-    },
     "candlestickPatterns": {
       "title": "Candlestick Muster Akademie"
     },
@@ -1069,17 +979,6 @@
       "englishTechnicalTerms": "Englische Fachbegriffe",
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
       "quickActions": "Schnellaktionen"
-    },
-    "performance": {
-      "monitor": "Performance Monitor",
-      "tips": "Optimierungstipps",
-      "lastUpdate": "Zuletzt aktualisiert: {time}",
-      "analysisTime": "Analysezeit",
-      "memory": "Speicher",
-      "apiCalls": "API-Aufrufe/Min",
-      "cacheHit": "Cache-Treffer",
-      "latency": "Ø Latenz",
-      "network": "Netzwerkstatus"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1540,5 +1439,571 @@
     "roi": "ROI",
     "margin": "Margin",
     "unrealizedPnl": "uPnL"
+  },
+  "technicals": {
+    "strongBuy": "Stark Kaufen",
+    "strongSell": "Stark Verkaufen",
+    "title": "Technische Analyse",
+    "summaryAction": "Zusammenfassung",
+    "marketConfluence": "Markt Konfluenz",
+    "oscillatorsTitle": "Oszillatoren",
+    "movingAveragesTitle": "Gleitende Durchschnitte",
+    "pivotsTitle": "Pivot Punkte",
+    "advancedTitle": "Erweiterte Analyse",
+    "oscillators": "Oszillatoren",
+    "movingAverages": "Gleitende Durchschnitte",
+    "pivots": "Pivots",
+    "pivotsDesc": "Berechne Standard-Pivot-Punkte (S/R)",
+    "buy": "Kaufen",
+    "sell": "Verkaufen",
+    "neutral": "Neutral",
+    "overbought": "Überkauft",
+    "oversold": "Überverkauft",
+    "trend": "Trend",
+    "range": "Seitwärts",
+    "noSignals": "Keine Divergenzen erkannt",
+    "atr": "ATR",
+    "bbWidth": "BB Breite",
+    "vwap": "VWAP",
+    "mfi": "MFI",
+    "adx": "ADX",
+    "obv": "OBV",
+    "ichimoku": "Ichimoku",
+    "priceLabel": "Preis:",
+    "pivot": "Pivot",
+    "precision": "Datenpräzision",
+    "historyLimit": "Historien-Umfang (Kerzen)",
+    "syncRsi": "RSI-Timeframe synchronisieren",
+    "syncRsiDesc": "RSI nutzt Chart-Timeframe",
+    "pnlMode": "PnL Anzeigemodus",
+    "favorites": "Favorisierte Timeframes",
+    "pnlModes": {
+      "absolute": "Absolut",
+      "percent": "Prozent %",
+      "bar": "Visuelle Leiste"
+    },
+    "rsi": {
+      "title": "RSI",
+      "showSignal": "Signallinie anzeigen"
+    },
+    "stochRsi": {
+      "title": "Stoch RSI",
+      "len": "Len",
+      "rsiLen": "RSI Len"
+    },
+    "macd": {
+      "title": "MACD"
+    },
+    "superTrend": {
+      "title": "SuperTrend"
+    },
+    "bollingerBands": {
+      "title": "Bollinger Bänder",
+      "stdDev": "StdAbw"
+    },
+    "volumeMa": {
+      "title": "Volumen MA"
+    },
+    "atrStop": {
+      "title": "ATR Stopp (L)"
+    },
+    "labels": {
+      "length": "Länge",
+      "source": "Quelle",
+      "type": "Typ",
+      "fast": "Schnell",
+      "slow": "Langsam",
+      "signal": "Signal",
+      "factor": "Faktor",
+      "period": "Periode"
+    }
+  },
+  "performance": {
+    "monitor": "Performance Monitor",
+    "tips": "Optimierungstipps",
+    "lastUpdate": "Zuletzt aktualisiert: {time}",
+    "analysisTime": "Analysezeit",
+    "memory": "Speicher",
+    "apiCalls": "API-Aufrufe/Min",
+    "cacheHit": "Cache-Treffer",
+    "latency": "Ø Latenz",
+    "network": "Netzwerkstatus"
+  },
+  "marketDashboard": {
+    "buttonTitle": "Marktübersicht öffnen",
+    "point": "Marktübersicht",
+    "title": "Globale Marktanalyse",
+    "avgRsi": "Ø RSI",
+    "rsi1h": "RSI (1h)",
+    "score": "Score",
+    "bullish": "Bullisch",
+    "bearish": "Bärisch",
+    "neutral": "Neutral",
+    "longShortRatio": "Long/Short Verhältnis"
+  },
+  "connection": {
+    "connected": "✓ Connected",
+    "connecting": "⟳ Connecting...",
+    "connectingTo": "⟳ Connecting to {provider}...",
+    "reconnecting": "⟳ Reconnecting...",
+    "reconnectingTo": "⟳ Reconnecting to {provider}...",
+    "disconnected": "✗ Waiting for connection...",
+    "error": "✗ Connection error"
+  },
+  "errors": {
+    "unknown": "Unknown error",
+    "invalidTrade": "Invalid trade.",
+    "priceFetchFailed": "Price fetch failed.",
+    "atrFetchFailed": "ATR fetch failed.",
+    "saveFailed": "Save failed."
+  },
+  "modals": {
+    "savePreset": {
+      "title": "Save Preset",
+      "prompt": "Enter name:"
+    },
+    "clearJournal": {
+      "title": "Confirm Reset",
+      "message": "Delete journal?"
+    },
+    "deletePreset": {
+      "title": "Delete Preset",
+      "message": "Really delete?"
+    },
+    "import": {
+      "title": "Import",
+      "message": "Import {count} trades?"
+    }
+  },
+  "ui": {
+    "loading": "Loading..."
+  },
+  "offline": {
+    "title": "Connection Lost",
+    "message": "Unable to reach market data provider. Your calculations and journal remain safe.",
+    "reconnect": "Reconnect",
+    "switchProvider": "Switch Provider",
+    "checkSettings": "Check Settings",
+    "diagnostics": "View Diagnostics"
+  },
+  "calculator": {
+    "errors": {
+      "slBelowEntry": "Long: Stop-Loss must be below entry price.",
+      "slAboveEntry": "Short: Stop-Loss must be above entry price.",
+      "tpBelowSl": "Long: Take-Profit target {price} must be above Stop-Loss.",
+      "tpAboveEntry": "Long: Take-Profit target {price} must be above Entry.",
+      "tpAboveSl": "Short: Take-Profit target {price} must be below Stop-Loss.",
+      "tpBelowEntry": "Short: Take-Profit target {price} must be below Entry.",
+      "totalPercentExceeded": "Total sell percentage ({percent}%) must not exceed 100%.",
+      "slDistance": "Stop-Loss must have a valid distance from entry price.",
+      "generic": "An error occurred during calculation."
+    },
+    "logic": {
+      "tpGoal": "{type}: Take-Profit Target {price}",
+      "sumSold": "Sum of sell percentages ({percent}%)"
+    }
+  },
+  "candlestickPatterns": {
+    "doji": {
+      "name": "Doji",
+      "description": "A Doji forms when the opening and closing prices are virtually the same. It represents a state of equilibrium between buyers and sellers.\n\n### Mathematical Criteria\n\n  $$ |\\text{Open} - \\text{Close}| \\le 0.1 \\times (\\text{High} - \\text{Low}) $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Indecision. Warning of potential reversal if found at a trend extreme.\n*   **Crypto Context:** In low-liquidity crypto pairs, Dojis can form frequently due to lack of trading. Ensure volume is significant.\n*   **Stop Loss:** Below the low (for bullish setup) or above the high (bearish).",
+      "indicatorCombination": "Bollinger Bands squeeze often accompanies Dojis before a breakout. RSI divergence adds weight to a reversal thesis."
+    },
+    "spinning_top": {
+      "name": "Spinning Top",
+      "description": "Small body centered with long wicks on both sides.\n\n### Mathematical Criteria\n\n  $$ \\text{Body} < 0.3 \\times \\text{Range} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Neutral / Indecision.\n*   **Context:** If found in a trend, it signals tiring momentum.\n*   **Strategy:** Place bracket orders above High and below Low to catch the breakout.",
+      "indicatorCombination": "Bollinger Band width often decreases (squeeze) around Spinning Tops."
+    },
+    "abandoned_baby_bullish": {
+      "name": "Abandoned Baby (Bullish)",
+      "description": "A very rare bullish reversal. 1. Long Bearish. 2. Doji gapping down (isolated). 3. Bullish gapping up.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{2} < \\text{Low}_{1} \\text{ and } \\text{High}_{2} < \\text{Low}_{3} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Trend is completely exhausted.\n*   **Action:** Buy immediately on the gap up of the 3rd candle.\n*   **Target:** The open of the first bearish candle.",
+      "indicatorCombination": "Due to its rarity and strength, combining it with other indicators is less critical, but an oversold condition (RSI, Stochastics) before the pattern can reinforce the bullish implication."
+    },
+    "belt_hold_bullish": {
+      "name": "Belt Hold (Bullish)",
+      "description": "A long bullish candle opening at its low (no lower wick) and closing near its high.\n\n### Mathematical Criteria\n\n  $$ \\text{Open} = \\text{Low} $$\n\n  $$ \\text{Close} \\approx \\text{High} $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** Aggressive buy on the close.\n*   **Stop Loss:** Just below the low of the candle.\n*   **Crypto:** Watch for this on 4H timeframes at support levels.",
+      "indicatorCombination": "High buy volume is required to confirm it's not a 'bull trap'."
+    },
+    "breakaway_bullish": {
+      "name": "Breakaway (Bullish)",
+      "description": "A long bearish candle followed by a gap down and three small drifting candles, then a strong bullish candle closing the gap.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{5} > \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Oversold bounce turning into reversal.\n*   **Entry:** On the 5th candle breakout.\n*   **Target:** The top of the first bearish candle.",
+      "indicatorCombination": "RSI usually deeply oversold (<20) before the reversal candle."
+    },
+    "bullish_engulfing": {
+      "name": "Bullish Engulfing",
+      "description": "A strong reversal signal where a small bearish candle is followed by a larger bullish candle that completely eclipses the previous body.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{curr} > \\text{Body}_{prev} $$\n\n  $$ \\text{Close}_{curr} > \\text{Open}_{prev} $$\n\n  $$ \\text{Open}_{curr} < \\text{Close}_{prev} $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** On the close of the engulfing candle or a pullback to the midpoint of its body.\n*   **Stop Loss:** Below the low of the engulfing candle.\n*   **Target:** 1.5x to 2x risk distance.",
+      "indicatorCombination": "High volume on the engulfing candle is critical in crypto to avoid 'fakeouts'. Look for oversold RSI (<30) prior to the pattern."
+    },
+    "bullish_harami": {
+      "name": "Bullish Harami",
+      "description": "A large bearish candle followed by a small bullish candle contained within the first body. Also known as an 'Inside Bar'.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{2} < \\text{High}_{1} \\text{ and } \\text{Low}_{2} > \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Volatility contraction. Pending breakout.\n*   **Strategy:** Trade the breakout of the 'Mother Bar' (first candle) High.\n*   **Stop Loss:** Below the Mother Bar Low.",
+      "indicatorCombination": "Watch for declining volume on the Harami (consolidation) and a spike on the breakout."
+    },
+    "bullish_harami_cross": {
+      "name": "Bullish Harami Cross",
+      "description": "A Bullish Harami where the second candle is a Doji. Indicates higher uncertainty than a regular Harami.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{2} \\approx 0 \\text{ and Inside Candle } 1 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** High probability reversal pending.\n*   **Strategy:** Wait for the break of the mother bar high.",
+      "indicatorCombination": "Similar to the Bullish Harami, but the Doji component often makes the signal stronger, especially when accompanied by volume on the confirmation candle."
+    },
+    "bullish_kicker": {
+      "name": "Bullish Kicker",
+      "description": "A bearish candle followed immediately by a bullish candle that gaps up and runs. Very strong.\n\n### Mathematical Criteria\n\n  $$ \\text{Open}_{2} > \\text{High}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Violent sentiment shift, often news-driven.\n*   **Action:** Market Buy. Do not wait for pullbacks (they may not come).\n*   **Crypto Nuance:** Rare in continuous markets, but seen during major protocol announcements.",
+      "indicatorCombination": "Volume should be massive on the Kicker candle."
+    },
+    "concealing_baby_swallow": {
+      "name": "Concealing Baby Swallow",
+      "description": "Four bearish candles. Two Marubozus, one Hammer, one Engulfing.\n\n### Mathematical Criteria\n\n  $$ \\text{Complex Formation} $$",
+      "interpretation": "### Rules\n* Very Rare. Bottom reversal likely.",
+      "indicatorCombination": "Due to its rarity, specific indicator combinations are less documented. Confirmation through volume and subsequent bullish price action is crucial."
+    },
+    "dragonfly_doji": {
+      "name": "Dragonfly Doji",
+      "description": "A Doji where the Open and Close are at the High of the day. It has a long lower shadow and no upper shadow.\n\n### Mathematical Criteria\n\n  $$ \\text{Open} \\approx \\text{Close} \\approx \\text{High} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Strong rejection of lower prices (Bullish).\n*   **Entry:** Buy on break of the high.\n*   **Stop Loss:** Below the long lower tail.",
+      "indicatorCombination": "Often marks the exact bottom of a flash crash or liquidity sweep in crypto."
+    },
+    "hammer": {
+      "name": "Hammer",
+      "description": "A Hammer candle is a bullish reversal pattern in trading that appears at the end of a downtrend. Identification is based on specific geometric ratios between the body and the wick.\n\n### Mathematical Criteria (Formulas)\nTo objectively define a candle as a Hammer, the following formulas are often used:\n\n*   **Shadow-to-Body Ratio:** The lower shadow (wick) must be at least twice as long as the candle body.\n\n  $$ \\text{Lower Shadow} \\ge 2 \\times |\\text{Open} - \\text{Close}| $$\n*   **Body Position (Fibonacci Method):** The entire candle body must be in the upper third (above the 38.2% Fibonacci retracement) of the candle's total trading range.\n*   **Upper Shadow:** It should be very small or non-existent.\n\n  $$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Total Range} $$",
+      "interpretation": "### Trading Formulas for Entry and Exit\nWhen a Hammer candle is identified, traders often use standardized formulas for setting order levels:\n\n| Action | Formula / Rule |\n| :--- | :--- |\n| **Entry (Buy)** | High of the Hammer + small buffer (e.g., 1-2 pips/points). |\n| **Stop-Loss (SL)** | Low of the Hammer - small buffer. |\n| **Target** | Entry + (2 * (Entry - SL)) for a 2:1 Risk-Reward Ratio. |\n\n### Important Context\n*   **Trend:** A Hammer is only significant after a clear downtrend (at least 3-5 falling candles).\n*   **Confirmation:** Many traders wait for the next candle; if it closes above the high of the Hammer, the signal is confirmed.\n*   **Context:** The success rate increases significantly if the Hammer occurs at a known support zone or a moving average (e.g., 50 EMA).",
+      "indicatorCombination": "A Hammer at a key support line or a moving average is a stronger signal. An increase in volume on the Hammer candle or the confirmation candle supports the reversal."
+    },
+    "homing_pigeon": {
+      "name": "Homing Pigeon",
+      "description": "Bullish Reversal. Bearish candle followed by smaller bearish inside candle.\n\n### Mathematical Criteria\n\n  $$ \\text{Inside Bar (Bear/Bear)} $$",
+      "interpretation": "### Rules\n* Wait for bullish confirmation.",
+      "indicatorCombination": "A bullish divergence on an oscillator (e.g., RSI, MACD) can reinforce the Homing Pigeon signal. Look for a confirmation candle with higher volume."
+    },
+    "inverted_hammer": {
+      "name": "Inverted Hammer",
+      "description": "A bullish reversal pattern appearing after a downtrend. Small body at the bottom, long upper wick.\n\n### Mathematical Criteria\n\n  $$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Lower Shadow} < \\text{Body} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Buying pressure is testing higher levels.\n*   **Confirmation:** Essential. Wait for the next candle to close higher.\n*   **Stop Loss:** Below the low of the Inverted Hammer.",
+      "indicatorCombination": "Look for a volume spike on the Inverted Hammer compared to previous bearish candles."
+    },
+    "ladder_bottom": {
+      "name": "Ladder Bottom",
+      "description": "Three black crows, then inverted hammer, then strong bullish candle.\n\n### Mathematical Criteria\n\n  $$ 3 \\times \\text{Bear} \\to \\text{Inv. Hammer} \\to \\text{Bull} $$",
+      "interpretation": "### Rules\n* Buy the breakout of the last candle.",
+      "indicatorCombination": "An increase in volume on the fifth (breakout) candle is a strong confirmation sign. It can also be supported by the breaking of a short-term downtrend line."
+    },
+    "matching_low": {
+      "name": "Matching Low",
+      "description": "Two bearish candles closing at same low.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{1} = \\text{Close}_{2} $$",
+      "interpretation": "### Rules\n* Support confirmed. Buy with tight stop.",
+      "indicatorCombination": "Its appearance at a known support line or in an oversold zone (RSI) can increase the significance of the Matching Low. A confirmation candle with volume is important."
+    },
+    "morning_doji_star": {
+      "name": "Morning Doji Star",
+      "description": "Like Morning Star but the middle candle is a Doji. More bearish implications for the star itself, leading to a stronger reversal if confirmed.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{2} \\approx 0 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Strong Bullish Reversal.\n*   **Entry:** On the 3rd candle close.",
+      "indicatorCombination": "Volume should be low on the Doji. A significant increase in volume on the third (bullish) candle is a strong confirmation feature. An oversold condition (RSI) before the pattern increases its significance."
+    },
+    "morning_star": {
+      "name": "Morning Star",
+      "description": "A three-candle bullish reversal pattern: 1. Long bearish candle. 2. Small gap-down candle (Star). 3. Strong bullish candle closing into the first body.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} > \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** On the opening of the 4th candle.\n*   **Stop Loss:** Below the low of the 'Star' (middle candle).\n*   **Context:** Stronger if the third candle has high volume.",
+      "indicatorCombination": "The 'Star' often coincides with an RSI dip below 30. A subsequent move above 30 confirms the reversal."
+    },
+    "piercing_line": {
+      "name": "Piercing Line",
+      "description": "Two-candle bullish reversal. Bearish candle followed by a bullish candle that opens lower but closes above the midpoint of the first.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{2} > \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Buyers are rejecting the lows and regaining territory.\n*   **Crypto Context:** 'Gaps' are small in crypto; look for the strong close above the midpoint.",
+      "indicatorCombination": "RSI crossing back above 30 from oversold territory confirms the move."
+    },
+    "stick_sandwich": {
+      "name": "Stick Sandwich",
+      "description": "Two bearish candles with a bullish candle sandwiched in between. The two bearish candles close at the same price (Support).\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} = \\text{Close}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Bullish Reversal / Double Bottom.\n*   **Entry:** Buy the support test at Close 3.",
+      "indicatorCombination": "Its appearance at a key support line or a moving average increases its significance. Volume confirmation on the middle bullish candle or the subsequent confirmation candle is positive."
+    },
+    "three_inside_up": {
+      "name": "Three Inside Up",
+      "description": "Confirmed Bullish Harami. 1. Bearish. 2. Small Bullish (Inside). 3. Bullish closing above 2.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} > \\text{High}_{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Confirmed Reversal.\n*   **Entry:** On the close of the 3rd candle.",
+      "indicatorCombination": "Higher probability than a standalone Harami."
+    },
+    "three_outside_up": {
+      "name": "Three Outside Up",
+      "description": "Confirmed Bullish Engulfing. 1. Bearish. 2. Engulfing Bullish. 3. Bullish closing higher.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} > \\text{High}_{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Strong Reversal.\n*   **Entry:** Aggressive traders entered on candle 2; conservative enter on 3.",
+      "indicatorCombination": "Momentum indicators (MACD) should cross bullish."
+    },
+    "three_white_soldiers": {
+      "name": "Three White Soldiers",
+      "description": "Three consecutive long bullish candles with higher closes. Each opens within the previous body.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{i} > \\text{Close}_{i-1} \\quad \\text{for } i=2,3 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Very strong trend continuation or reversal.\n*   **Caution:** If candles are too large, market may be overextended (parabolic).\n*   **Strategy:** Wait for a small pullback after the 3rd soldier to enter.",
+      "indicatorCombination": "ADX (Average Directional Index) should be rising, indicating strengthening trend."
+    },
+    "tower_bottom": {
+      "name": "Tower Bottom",
+      "description": "Long bearish candle, consolidation, then long bullish breakout.\n\n### Mathematical Criteria\n\n  $$ \\text{Long Bear} \\to \\text{Base} \\to \\text{Long Bull} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Rounding Bottom.\n*   **Entry:** On the breakout of the 'Tower' walls.",
+      "indicatorCombination": "Volume is often low during the consolidation phase. A significant increase in volume on the breakout bullish candles is a strong confirmation feature. A bullish divergence in the RSI during consolidation can reinforce the signal."
+    },
+    "tri_star_bullish": {
+      "name": "Tri-Star (Bullish)",
+      "description": "Three Dojis in a row with the middle one gapping down.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{1,2,3} \\approx 0 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Rare major bottom.\n*   **Context:** Extreme indecision resolved by next bullish candle.",
+      "indicatorCombination": "Volume is typically low on all three Dojis. An increase on a bullish confirmation candle is crucial. An oversold condition before the pattern increases the probability of a reversal."
+    },
+    "tweezer_bottoms": {
+      "name": "Tweezer Bottoms",
+      "description": "Two or more candles with matching lows. The bodies can be different sizes/colors.\n\n### Mathematical Criteria\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Support level holds.\n*   **Entry:** Buy with Stop Loss just below the Tweezer Lows.\n*   **Crypto:** Very reliable on higher timeframes (Daily/Weekly).",
+      "indicatorCombination": "Look for bullish divergence on RSI or MACD."
+    },
+    "unique_three_river_bottom": {
+      "name": "Unique Three River Bottom",
+      "description": "1. Long Bear. 2. Hammer (Bearish). 3. Small Bullish below 2.\n\n### Mathematical Criteria\n\n  $$ \\text{Complex Sequence} $$",
+      "interpretation": "### Rules\n* Rare. Wait for close above candle 2 high.",
+      "indicatorCombination": "Due to its rarity, confirmation through increased volume on the third candle or a subsequent bullish candle is particularly important. Oversold oscillators can support the signal."
+    },
+    "mat_hold": {
+      "name": "Mat Hold",
+      "description": "A strong bullish candle, a small gap up, and three small corrective candles staying above the first candle's low, followed by a new breakout.\n\n### Mathematical Criteria\n\n  $$ \\text{Min}(\\text{Lows}_{2,3,4}) > \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Bullish trend continuation (Flag pattern).\n*   **Entry:** On the break of the highest high of the consolidation.\n*   **Stop Loss:** Below the first candle's low.",
+      "indicatorCombination": "Volume should drop during the small corrective candles."
+    },
+    "rising_three_methods": {
+      "name": "Rising Three Methods",
+      "description": "Similar to Mat Hold but the corrective candles stay strictly within the first candle's range.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{2,3,4} < \\text{High}_{1} \\text{ and } \\text{Low}_{2,3,4} > \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Trend Pause.\n*   **Action:** Add to positions on the breakout of the first candle's high.",
+      "indicatorCombination": "A classic 'Bull Flag' behavior."
+    },
+    "separating_lines_bullish": {
+      "name": "Separating Lines (Bullish)",
+      "description": "Bearish then Bullish. Open prices are equal.\n\n### Mathematical Criteria\n\n  $$ \\text{Open}_{1} = \\text{Open}_{2} $$",
+      "interpretation": "### Rules\n* Continuation. Trade with the trend.",
+      "indicatorCombination": "An increase in volume on the second (bullish) candle can underscore the strength of the trend continuation. The pattern is stronger when it occurs above a key moving average."
+    },
+    "side_by_side_white_lines_bullish": {
+      "name": "Side-by-Side White Lines (Bullish)",
+      "description": "Bullish trend, Gap Up, two similar white candles side-by-side.\n\n### Mathematical Criteria\n\n  $$ \\text{Gap Up} \\to \\text{Twin Bulls} $$",
+      "interpretation": "### Rules\n* Continuation. Buy.",
+      "indicatorCombination": "Volume should at least remain stable or increase on the gaps and bullish candles to confirm strength. A MACD remaining in the bullish zone supports the signal."
+    },
+    "upside_gap_three_methods": {
+      "name": "Upside Gap Three Methods",
+      "description": "Bullish trend, gap up, fill gap, resume.\n\n### Mathematical Criteria\n\n  $$ \\text{Gap Fill} $$",
+      "interpretation": "### Rules\n* Buy if gap holds as support.",
+      "indicatorCombination": "Volume should be high on the first two bullish candles (especially the gapping candle). Lower volume is desirable on the third (corrective bearish) candle. A renewed increase on the trend continuation is positive."
+    },
+    "upside_tasuki_gap": {
+      "name": "Upside Tasuki Gap",
+      "description": "Bullish Gap, then small bear candle stays in gap.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} > \\text{Close}_{1} $$",
+      "interpretation": "### Rules\n* Continuation. Hold longs.",
+      "indicatorCombination": "Volume should increase on the second candle (gap up). Lower volume on the third (bearish) candle is typical. A renewed volume increase on the trend continuation is positive."
+    },
+    "bullish_marubozu": {
+      "name": "Bullish Marubozu",
+      "description": "A long bullish candle with no shadows. Open is Low, Close is High.\n\n### Mathematical Criteria\n\n  $$ \\text{Open} = \\text{Low} \\text{ and } \\text{Close} = \\text{High} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Total buyer dominance.\n*   **Strategy:** Buy the close. Use the midpoint of the body as support on pullbacks.",
+      "indicatorCombination": "Often starts a fresh trend leg. Check ADX for trend strength."
+    },
+    "abandoned_baby_bearish": {
+      "name": "Abandoned Baby (Bearish)",
+      "description": "Rare bearish reversal. 1. Long Bullish. 2. Doji gapping up (isolated). 3. Bearish gapping down.\n\n### Mathematical Criteria\n\n  $$ \\text{Low}_{2} > \\text{High}_{1} \\text{ and } \\text{Low}_{2} > \\text{High}_{3} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Major Top.\n*   **Action:** Sell/Short immediately.\n*   **Stop Loss:** Above the Doji high.",
+      "indicatorCombination": "An overbought condition (RSI, Stochastics) before the pattern can reinforce the bearish implication. Volume should be low on the Doji and increase significantly on the third, strong bearish candle."
+    },
+    "advance_block": {
+      "name": "Advance Block",
+      "description": "Three bullish candles with successively smaller bodies and longer upper wicks. A sign of weakening momentum.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{3} < \\text{Body}_{2} < \\text{Body}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Rally is stalling.\n*   **Action:** Tighten stops on existing longs. Do not open new longs.\n*   **Context:** Often seen at the end of parabolic crypto pumps.",
+      "indicatorCombination": "Bearish divergence on RSI is almost always present."
+    },
+    "belt_hold_bearish": {
+      "name": "Belt Hold (Bearish)",
+      "description": "A long bearish candle opening at its high (no upper wick) and closing near its low.\n\n### Mathematical Criteria\n\n  $$ \\text{Open} = \\text{High} $$\n\n  $$ \\text{Close} \\approx \\text{Low} $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** Short on close.\n*   **Stop Loss:** Just above the high.\n*   **Signal:** Sellers controlled the entire session.",
+      "indicatorCombination": "Often occurs when a resistance level is tested and rejected immediately."
+    },
+    "breakaway_bearish": {
+      "name": "Breakaway (Bearish)",
+      "description": "Bullish, Gap Up, Stalling, Bearish Break.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{5} < \\text{High}_{1} $$",
+      "interpretation": "### Rules\n* Top Reversal. Short breakout.",
+      "indicatorCombination": "An increase in volume on the fifth (breakout) candle is a strong confirmation sign. It can also be supported by the breaking of a short-term uptrend line."
+    },
+    "bearish_engulfing": {
+      "name": "Bearish Engulfing",
+      "description": "A bearish reversal pattern where a small bullish candle is followed by a larger bearish candle that consumes the previous body.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{curr} > \\text{Body}_{prev} $$\n\n  $$ \\text{Close}_{curr} < \\text{Open}_{prev} $$\n\n  $$ \\text{Open}_{curr} > \\text{Close}_{prev} $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** Short on close of the second candle.\n*   **Stop Loss:** Above the high of the engulfing candle.\n*   **Crypto Context:** Effective at all-time highs or resistance retests.",
+      "indicatorCombination": "Bearish divergence on MACD or RSI significantly increases success rate."
+    },
+    "bearish_harami": {
+      "name": "Bearish Harami",
+      "description": "A large bullish candle followed by a small bearish candle contained within the first body.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{2} < \\text{High}_{1} \\text{ and } \\text{Low}_{2} > \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Momentum pause.\n*   **Strategy:** Short the breakout of the Mother Bar Low.\n*   **Target:** The start of the previous trend impulse.",
+      "indicatorCombination": "Often forms a 'Bear Flag' on lower timeframes."
+    },
+    "bearish_harami_cross": {
+      "name": "Bearish Harami Cross",
+      "description": "A Bearish Harami where the second candle is a Doji.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{2} \\approx 0 \\text{ and Inside Candle } 1 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Top formation.\n*   **Strategy:** Short on break of mother bar low.",
+      "indicatorCombination": "Similar to the Bearish Harami, but the Doji component often makes the signal stronger, especially when accompanied by volume on the confirmation candle."
+    },
+    "bearish_kicker": {
+      "name": "Bearish Kicker",
+      "description": "A bullish candle followed immediately by a bearish candle that gaps down and crashes.\n\n### Mathematical Criteria\n\n  $$ \\text{Open}_{2} < \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Panic selling.\n*   **Action:** Market Short or close Longs immediately.\n*   **Stop Loss:** Above the gap.",
+      "indicatorCombination": "Usually accompanied by extreme volume spikes."
+    },
+    "dark_cloud_cover": {
+      "name": "Dark Cloud Cover",
+      "description": "Two-candle bearish reversal. Bullish candle followed by a bearish candle that opens higher but closes below the midpoint of the first.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{2} < \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Sellers are stepping in aggressively.\n*   **Entry:** Short on the close or break of the low.\n*   **Stop Loss:** Above the high of the formation.",
+      "indicatorCombination": "Bearish divergence on the Stochastic oscillator often accompanies this pattern."
+    },
+    "deliberation_stalled": {
+      "name": "Deliberation / Stalled Pattern",
+      "description": "Three white soldiers, but last one is small/star.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{3} \\ll \\text{Body}_{1,2} $$",
+      "interpretation": "### Rules\n* Take Profit. Momentum dying.",
+      "indicatorCombination": "Decreasing volume over the three candles can signal waning buying power. A bearish divergence on oscillators (RSI, MACD) would reinforce the reversal signal."
+    },
+    "evening_doji_star": {
+      "name": "Evening Doji Star",
+      "description": "Like Evening Star but the middle candle is a Doji.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{2} \\approx 0 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Strong Bearish Reversal.\n*   **Entry:** Short on the 3rd candle close.",
+      "indicatorCombination": "Volume should be low on the Doji. A significant increase in volume on the third (bearish) candle is a strong confirmation feature. An overbought condition (RSI) before the pattern increases its significance."
+    },
+    "evening_star": {
+      "name": "Evening Star",
+      "description": "A three-candle bearish reversal pattern: 1. Long bullish candle. 2. Small gap-up candle (Star). 3. Strong bearish candle closing deeply into the first body.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} < \\frac{\\text{Open}_{1} + \\text{Close}_{1}}{2} $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** Short on the 4th candle open.\n*   **Stop Loss:** Above the high of the 'Star'.\n*   **Crypto Nuance:** Gaps are rare in continuous crypto markets; the shape is more important than the gap itself.",
+      "indicatorCombination": "Look for decreasing volume on the first candle and increasing volume on the third (bearish) candle."
+    },
+    "gravestone_doji": {
+      "name": "Gravestone Doji",
+      "description": "A Doji where the Open and Close are at the Low of the day. It has a long upper shadow and no lower shadow.\n\n### Mathematical Criteria\n\n  $$ \\text{Open} \\approx \\text{Close} \\approx \\text{Low} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Rejection of higher prices (Bearish).\n*   **Entry:** Short on break of the low.\n*   **Stop Loss:** Above the long upper wick.",
+      "indicatorCombination": "Volume spike on the wick formation indicates 'smart money' selling into strength."
+    },
+    "hanging_man": {
+      "name": "Hanging Man",
+      "description": "Bearish reversal pattern after an uptrend. Same shape as Hammer but at the top.\n\n### Mathematical Criteria\n\n  $$ \\text{Lower Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Range} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Weakness. Buyers pushed price up but sellers forced it down during the session.\n*   **Entry:** Short below the hanging man's low.\n*   **Stop Loss:** Above the high.",
+      "indicatorCombination": "Often appears at resistance levels identified by Fibonacci extensions."
+    },
+    "shooting_star": {
+      "name": "Shooting Star",
+      "description": "A bearish single-candle pattern with a small body at the bottom and a long upper wick. It signals rejection of higher prices.\n\n### Mathematical Criteria\n\n  $$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Lower Shadow} \\approx 0 $$",
+      "interpretation": "### Trading Rules\n*   **Entry:** Short below the low of the Shooting Star.\n*   **Stop Loss:** Above the high of the upper wick.\n*   **Risk:** High volatility can trigger stops easily; use ATR buffer.",
+      "indicatorCombination": "Ideally forms at the upper Bollinger Band. Overbought RSI (>70) is a standard confirmation."
+    },
+    "three_black_crows": {
+      "name": "Three Black Crows",
+      "description": "Three consecutive long bearish candles with lower closes. Each opens within the previous body.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{i} < \\text{Close}_{i-1} \\quad \\text{for } i=2,3 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Dominant selling pressure.\n*   **Strategy:** Short on the close of the 3rd crow, or better, on a retest of the 2nd crow's low.",
+      "indicatorCombination": "Check for increasing volume on each crow. If volume decreases, the dump might be losing steam."
+    },
+    "three_inside_down": {
+      "name": "Three Inside Down",
+      "description": "Confirmed Bearish Harami. 1. Bullish. 2. Inside Bearish. 3. Bearish closing lower.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} < \\text{Low}_{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Reversal confirmed.\n*   **Entry:** Close of 3rd candle.",
+      "indicatorCombination": "An increase in volume on the third candle strengthens the signal. The pattern is more reliable when it occurs in an overbought zone (RSI) or at a resistance level."
+    },
+    "three_outside_down": {
+      "name": "Three Outside Down",
+      "description": "Confirmed Bearish Engulfing. 1. Bullish. 2. Engulfing Bearish. 3. Bearish closing lower.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} < \\text{Low}_{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Strong Reversal.\n*   **Entry:** Close of 3rd candle.",
+      "indicatorCombination": "Increasing volume on the second and third candles increases reliability. Its appearance after an overbought phase (RSI) or at a resistance line reinforces the signal."
+    },
+    "tower_top": {
+      "name": "Tower Top",
+      "description": "Long bullish candle, consolidation, then long bearish drop.\n\n### Mathematical Criteria\n\n  $$ \\text{Long Bull} \\to \\text{Base} \\to \\text{Long Bear} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Rounding Top.\n*   **Entry:** Breakdown of support.",
+      "indicatorCombination": "Volume is often low during the consolidation phase. A significant increase in volume on the breakout bearish candles is a strong confirmation feature. A bearish divergence in the RSI during consolidation can reinforce the signal."
+    },
+    "tri_star_bearish": {
+      "name": "Tri-Star (Bearish)",
+      "description": "Three Dojis in a row with the middle one gapping up.\n\n### Mathematical Criteria\n\n  $$ \\text{Body}_{1,2,3} \\approx 0 $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Rare major top.\n*   **Context:** Extreme indecision at highs.",
+      "indicatorCombination": "Volume is typically low on all three Dojis. An increase on a bearish confirmation candle is crucial. An overbought condition before the pattern increases the probability of a reversal."
+    },
+    "tweezer_tops": {
+      "name": "Tweezer Tops",
+      "description": "Two or more candles with matching highs.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{1} \\approx \\text{High}_{2} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Resistance holds (Double Top).\n*   **Entry:** Short with Stop Loss just above the Tweezer Highs.",
+      "indicatorCombination": "Often coincides with key Fibonacci retracement levels."
+    },
+    "downside_gap_three_methods": {
+      "name": "Downside Gap Three Methods",
+      "description": "Bearish trend, gap down, fill gap, resume.\n\n### Mathematical Criteria\n\n  $$ \\text{Gap Fill} $$",
+      "interpretation": "### Rules\n* Short if gap holds as resistance.",
+      "indicatorCombination": "Volume should be high on the first two bearish candles (especially the gapping candle). Lower volume is desirable on the third (corrective bullish) candle."
+    },
+    "downside_tasuki_gap": {
+      "name": "Downside Tasuki Gap",
+      "description": "Bearish Gap, then small bull candle stays in gap.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{3} < \\text{Close}_{1} $$",
+      "interpretation": "### Rules\n* Continuation. Hold shorts.",
+      "indicatorCombination": "Volume should increase on the second candle (gap down). Lower volume on the third (bullish) candle is typical."
+    },
+    "falling_three_methods": {
+      "name": "Falling Three Methods",
+      "description": "A long bearish candle, followed by three small bullish candles within the first candle's range, then a new bearish drop.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{2,3,4} < \\text{High}_{1} \\text{ and } \\text{Low}_{2,3,4} > \\text{Low}_{1} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Bearish continuation (Bear Flag).\n*   **Entry:** Short on the break of the first candle's low.",
+      "indicatorCombination": "Volume often dries up on the small pullback candles."
+    },
+    "in_neck_line": {
+      "name": "In Neck Line",
+      "description": "Bearish, then Bullish closing slightly into body.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{2} \\approx \\text{Low}_{1} $$",
+      "interpretation": "### Rules\n* Weak pullback. Trend likely continues down.",
+      "indicatorCombination": "No strong volume indication, but an increase on the continuation of the downtrend would be confirming. The pattern is stronger when it occurs below a key moving average."
+    },
+    "on_neck_line": {
+      "name": "On Neck Line",
+      "description": "Bearish, then Bullish closing at low.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{2} = \\text{Low}_{1} $$",
+      "interpretation": "### Rules\n* Very weak. Sell.",
+      "indicatorCombination": "Similar to In Neck Line. A MACD remaining in the bearish zone or showing a bearish crossover can support the signal."
+    },
+    "separating_lines_bearish": {
+      "name": "Separating Lines (Bearish)",
+      "description": "Bullish then Bearish. Open prices are equal.\n\n### Mathematical Criteria\n\n  $$ \\text{Open}_{1} = \\text{Open}_{2} $$",
+      "interpretation": "### Rules\n* Continuation. Trade with the trend.",
+      "indicatorCombination": "An increase in volume on the second (bearish) candle can underscore the strength of the trend continuation. The pattern is stronger when it occurs below a key moving average."
+    },
+    "thrusting_line": {
+      "name": "Thrusting Line",
+      "description": "Bearish, then Bullish closing below midpoint.\n\n### Mathematical Criteria\n\n  $$ \\text{Close}_{2} < \\text{Midpoint}_{1} $$",
+      "interpretation": "### Rules\n* Failed reversal. Be careful.",
+      "indicatorCombination": "No strong specific volume indication. The pattern is weaker than a Piercing Line and should be treated with caution; confirmation by further bearish candles is important."
+    },
+    "two_black_gapping_candles": {
+      "name": "Two Black Gapping Candles",
+      "description": "Bearish trend, two candles gapping down sequentially.\n\n### Mathematical Criteria\n\n  $$ \\text{Gap}_{1} \\text{ and } \\text{Gap}_{2} $$",
+      "interpretation": "### Rules\n* Strong momentum. Hold shorts.",
+      "indicatorCombination": "Volume may increase on the gapping candles, confirming the bearish momentum. A break of key support levels after the pattern reinforces the signal."
+    },
+    "bearish_marubozu": {
+      "name": "Bearish Marubozu",
+      "description": "A long bearish candle with no shadows. Open is High, Close is Low.\n\n### Mathematical Criteria\n\n  $$ \\text{Open} = \\text{High} \\text{ and } \\text{Close} = \\text{Low} $$",
+      "interpretation": "### Trading Rules\n*   **Signal:** Total seller dominance.\n*   **Strategy:** Sell/Short. Do not try to catch the knife until a reversal pattern forms.",
+      "indicatorCombination": "If volume is low, it might be a liquidity trap. High volume confirms validity."
+    },
+    "retracing_wicks": {
+      "name": "Retracing Wicks",
+      "description": "Multiple candles with long upper wicks at resistance.\n\n### Mathematical Criteria\n\n  $$ \\text{High}_{1} \\approx \\text{High}_{2} \\text{ w/ Wicks} $$",
+      "interpretation": "### Rules\n* Resistance is solid. Short.",
+      "indicatorCombination": "The signal is stronger if the wick candles occur on high volume. A bearish divergence on oscillators (RSI, MACD) increases the significance."
+    },
+    "advancing_wicks": {
+      "name": "Advancing Wicks",
+      "description": "Multiple candles with long lower wicks at support.\n\n### Mathematical Criteria\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} \\text{ w/ Wicks} $$",
+      "interpretation": "### Rules\n* Support is solid. Buy.",
+      "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
+    },
+    "title": "Candlestick Academy"
+  },
+  "tradeErrors": {
+    "positionNotFound": "Position not found: {symbol} {side}",
+    "dataError": "Data Inconsistency Detected"
   }
 }

@@ -26,7 +26,7 @@
 <button
     id="market-dashboard-btn"
     class="font-bold p-3 rounded-lg btn-secondary-action"
-    title={$_("app.marketDashboard.buttonTitle") || "Market Overview"}
+    title={$_("marketDashboard.buttonTitle") || "Market Overview"}
     onclick={() => uiState.toggleMarketDashboardModal(true)}
     use:trackClick={{
         category: "Navigation",

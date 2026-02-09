@@ -156,7 +156,7 @@
 {#if uiState.showMarketDashboardModal}
     <ModalFrame
         isOpen={true}
-        title={$_("app.marketDashboard.title") || "Global Market Overview"}
+        title={$_("marketDashboard.title") || "Global Market Overview"}
         onclose={() => uiState.toggleMarketDashboardModal(false)}
     >
         <div class="space-y-6">
@@ -175,7 +175,7 @@
                             {marketAvgRsi.toFixed(0)}
                         </span>
                         <span class="text-xs text-[var(--text-secondary)] mb-1"
-                            >{$_("app.marketDashboard.avgRsi")}</span
+                            >{$_("marketDashboard.avgRsi")}</span
                         >
                     </div>
                     <!-- Simple Heat Bar -->
@@ -206,7 +206,7 @@
                             {marketBullishPercent.toFixed(0)}%
                         </span>
                         <span class="text-xs text-[var(--text-secondary)] mb-1"
-                            >{$_("app.marketDashboard.bullish")}</span
+                            >{$_("marketDashboard.bullish")}</span
                         >
                     </div>
                     <div

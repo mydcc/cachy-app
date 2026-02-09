@@ -84,7 +84,7 @@
     if (!action) return "-";
     // First try exact key
     const key = action.toLowerCase().replace(/\s+/g, "");
-    const translation = $_(`settings.technicals.${key}` as any);
+    const translation = $_(`technicals.${key}` as any);
 
     // If not found, try generic Buy/Sell
     if (!translation || translation.includes("settings.technicals")) {
@@ -99,13 +99,13 @@
 
   function translateContext(context: string): string {
     if (context === "Overbought")
-      return $_("settings.technicals.overbought" as any) || "Overbought";
+      return $_("technicals.overbought" as any) || "Overbought";
     if (context === "Oversold")
-      return $_("settings.technicals.oversold" as any) || "Oversold";
+      return $_("technicals.oversold" as any) || "Oversold";
     if (context === "Trend")
-      return $_("settings.technicals.trend" as any) || "Trend";
+      return $_("technicals.trend" as any) || "Trend";
     if (context === "Range")
-      return $_("settings.technicals.range" as any) || "Range";
+      return $_("technicals.range" as any) || "Range";
     return translateAction(context);
   }
 
@@ -163,7 +163,7 @@
           }}
         >
           {typeof $_ === "function"
-            ? $_("settings.technicals.title")
+            ? $_("technicals.title")
             : "Technicals"}
         </button>
 
@@ -261,7 +261,7 @@
                     class="text-[var(--text-secondary)] uppercase font-medium"
                   >
                     {typeof $_ === "function"
-                      ? $_("settings.technicals.summaryAction")
+                      ? $_("technicals.summaryAction")
                       : "Summary"}
                   </span>
                   <span
@@ -285,7 +285,7 @@
                     class="text-[var(--text-secondary)] uppercase font-medium"
                   >
                     {typeof $_ === "function"
-                      ? $_("settings.technicals.marketConfluence")
+                      ? $_("technicals.marketConfluence")
                       : "Confluence"}
                   </span>
                   <span
@@ -328,7 +328,7 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("settings.technicals.atr")}</span
+                  >{$_("technicals.atr")}</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
@@ -342,7 +342,7 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("settings.technicals.bbWidth")}</span
+                  >{$_("technicals.bbWidth")}</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
@@ -364,7 +364,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.oscillatorsTitle") || "Oscillators"}
+                {$_("technicals.oscillatorsTitle") || "Oscillators"}
               </div>
               {#each data.oscillators as osc}
                 <div
@@ -402,7 +402,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.movingAveragesTitle") ||
+                {$_("technicals.movingAveragesTitle") ||
                   "Moving Averages"}
               </div>
               {#each data.movingAverages as ma}
@@ -434,7 +434,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.pivotsTitle") || "Pivot Points"}
+                {$_("technicals.pivotsTitle") || "Pivot Points"}
               </div>
               <div class="grid grid-cols-1 gap-y-0.5">
                 {#each TechnicalsPresenter.getPivotsArray(data.pivots) as pivot}
@@ -460,7 +460,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.advancedTitle") || "Advanced"}
+                {$_("technicals.advancedTitle") || "Advanced"}
               </div>
 
               <!-- VWAP -->
@@ -468,7 +468,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("settings.technicals.vwap")}</span>
+                  <span>{$_("technicals.vwap")}</span>
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(
                       data.advanced.vwap,
@@ -483,7 +483,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("settings.technicals.mfi")}</span>
+                  <span>{$_("technicals.mfi")}</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -512,7 +512,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("settings.technicals.superTrend.title")}</span>
+                  <span>{$_("technicals.superTrend.title")}</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -540,7 +540,7 @@
                   class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <div class="flex justify-between">
-                    <span>{$_("settings.technicals.atrStop.title")}</span>
+                    <span>{$_("technicals.atrStop.title")}</span>
                     <span class="font-mono text-[var(--danger-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.sell,
@@ -549,7 +549,7 @@
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span>{$_("settings.technicals.atrStop.title").replace("(L)", "(S)")}</span>
+                    <span>{$_("technicals.atrStop.title").replace("(L)", "(S)")}</span>
                     <span class="font-mono text-[var(--success-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.buy,
@@ -640,7 +640,7 @@
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >
-                  {$_("settings.technicals.noSignals" as any)}
+                  {$_("technicals.noSignals" as any)}
                 </div>
               {/if}
             </div>

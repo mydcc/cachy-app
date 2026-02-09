@@ -93,14 +93,14 @@ const TECHNICAL_KEYS = [
   "journal.deepDive.charts.labels.equity",
 
   // Technicals Settings
-  "settings.technicals.oscillators",
-  "settings.technicals.movingAverages",
-  "settings.technicals.pivots",
-  "settings.technicals.buy",
-  "settings.technicals.sell",
-  "settings.technicals.neutral",
-  "settings.technicals.strongBuy",
-  "settings.technicals.strongSell",
+  "technicals.oscillators",
+  "technicals.movingAverages",
+  "technicals.pivots",
+  "technicals.buy",
+  "technicals.sell",
+  "technicals.neutral",
+  "technicals.strongBuy",
+  "technicals.strongSell",
 ];
 
 // Helper to get nested value from object using dot notation path

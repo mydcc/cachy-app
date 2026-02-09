@@ -455,7 +455,7 @@
                                     bind:checked={settingsState.showTechnicalsSummary}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.summaryAction") || "Summary"}
+                                    {$_("technicals.summaryAction") || "Summary"}
                                 </span>
                             </label>
 
@@ -466,7 +466,7 @@
                                     bind:checked={settingsState.showTechnicalsOscillators}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.oscillators") || "Oscillators"}
+                                    {$_("technicals.oscillators") || "Oscillators"}
                                 </span>
                             </label>
 
@@ -477,7 +477,7 @@
                                     bind:checked={settingsState.showTechnicalsMAs}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.movingAverages") || "Moving Avgs"}
+                                    {$_("technicals.movingAverages") || "Moving Avgs"}
                                 </span>
                             </label>
 
@@ -494,7 +494,7 @@
                                     }}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.pivots") || "Pivots"}
+                                    {$_("technicals.pivots") || "Pivots"}
                                 </span>
                             </label>
                         </div>
