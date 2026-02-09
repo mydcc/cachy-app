@@ -60,18 +60,30 @@ Der Prozess wird von einer linearen Kette zu einem iterativen Loop umgebaut:
 *   **Quellen:** Anzeige von Quellen am Ende der Nachricht in einem dezenten `<small>`-Tag oder einem ausklappbaren `details`-Element.
 *   **Farben:** Strikte Einhaltung der CSS-Variablen aus `themes.css` für Status-Badges.
 
-## 6. Safety & Fallbacks
+## 6. Safety & Robustness Layers
 
-*   **API-Fehler:** Wenn die Suche fehlschlägt (Key ungültig, Quota voll), wird die KI via `system`-Nachricht informiert und antwortet basierend auf internem Wissen mit einem entsprechenden Hinweis an den User.
-*   **Endlosschleifen:** Harte Begrenzung der Tool-Calls pro User-Anfrage.
-*   **Privacy:** Es werden keine Portfolio-Daten oder API-Keys an die Suchmaschine gesendet, nur die von der KI generierte Suchanfrage.
+Um die Stabilität der App zu gewährleisten, werden folgende Schutzschichten implementiert:
 
-## 7. Roadmap
+1.  **Feature Flagging (Kill-Switch):** Die neue Loop-Logik wird nur ausgeführt, wenn `enableWebSearch` aktiv ist. Bei Deaktivierung fällt das System sofort auf den bewährten reaktiven Modus zurück.
+2.  **Circuit Breaker (Loop Control):**
+    *   Harte Begrenzung auf maximal 3 Tool-Iterationen (`MAX_TURNS = 3`) pro Anfrage.
+    *   Striktes Timeout von 10 Sekunden für Websuchen, um ein Einfrieren des UI zu verhindern.
+3.  **Graceful Degradation:** Schlägt eine Suche fehl (Quota, Netzwerk), erhält die KI eine versteckte `system`-Nachricht: `[Search Error: Answer based on internal knowledge]`. Die KI antwortet dann ohne Suche, anstatt einen Fehler im UI anzuzeigen.
+4.  **Robustes JSON Parsing:** Einsatz eines dedizierten `safeParseToolCall` Helpers, der Markdown-Rauschen entfernt und die Struktur validiert, bevor Aktionen ausgeführt werden.
+5.  **Trading Sandbox:** Während der Recherchephase (`thinkingState === 'searching'`) werden alle Trading-Aktionen (Orders setzen etc.) blockiert. Aktionen sind erst in der finalen "Synthesis"-Phase zulässig.
 
-1.  **Meilenstein 1:** Backend Proxy & Search Service (Infrastruktur).
+## 7. Privacy & Security
+
+*   **Key Protection:** Der API-Key verbleibt im `localStorage` des Nutzers und wird nur per Header an den eigenen Backend-Proxy gesendet.
+*   **Data Minimization:** An die Suchmaschine wird ausschließlich der von der KI generierte `query` gesendet. Portfolio-Werte, Balances oder private Notizen werden strikt gefiltert.
+
+## 8. Roadmap
+
+1.  **Meilenstein 1:** Backend Proxy & Search Service (Infrastruktur inkl. Timeouts).
 2.  **Meilenstein 2:** Settings-Erweiterung & UI-Integration.
-3.  **Meilenstein 3:** Umbau des `AiManager` Loop-Systems.
-4.  **Meilenstein 4:** UI-Polishing (Status-Anzeige & Quellen-Links).
+3.  **Meilenstein 3:** Implementierung des `safeParseToolCall` und Loop-Systems in `ai.svelte.ts`.
+4.  **Meilenstein 4:** UI-Polishing & Integration der Quellen-Links.
+5.  **Validierung:** Systematischer Test von Fehlerzuständen (falscher Key, Offline-Modus).
 
 ---
-*Erstellt am 9. Februar 2026 für das Cachy Projekt.*
+*Aktualisiert am 9. Februar 2026 für das Cachy Projekt.*
