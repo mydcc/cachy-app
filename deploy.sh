@@ -100,6 +100,51 @@ prompt_user() {
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
+show_cachy_eater() {
+    local pid=$1
+    local estimate=$2
+    local delay=0.5
+    local width=40
+    local char="c"
+    local gold='\033[38;2;255;215;0m'
+    local dimmed='\033[2m'
+    
+    # Hide cursor
+    tput civis 2>/dev/null || echo -ne "\033[?25l"
+    
+    local start_time=$(date +%s)
+    while kill -0 $pid 2>/dev/null; do
+        local current_time=$(date +%s)
+        local elapsed=$((current_time - start_time))
+        
+        # Calculate progress position (0 to width-1)
+        # We cap it at width-1 to never let the eater leave the bar prematurely
+        local pos=$(( elapsed * width / estimate ))
+        [[ $pos -ge $width ]] && pos=$((width - 1))
+        
+        # Toggle mouth
+        [[ "$char" == "c" ]] && char="C" || char="c"
+        
+        # Build the bar components
+        local spaces=""
+        for ((i=0; i<pos; i++)); do spaces+=" "; done
+        
+        local dots=""
+        for ((i=pos+1; i<width; i++)); do dots+="•"; done
+        
+        # Print bar: Only c/C is gold
+        printf "\r  ${YELLOW}[${NC}${spaces}${gold}${char}${NC}${dots}${YELLOW}]${NC} Building... "
+        
+        sleep $delay
+    done
+    
+    # Show cursor again
+    tput cnorm 2>/dev/null || echo -ne "\033[?25h"
+    printf "\r"
+    # Clear line
+    printf "                                                                \r"
+}
+
 create_backup() {
     local env_name="$1"
     local backup_path="$BACKUP_DIR/$env_name/$(date +%Y%m%d_%H%M%S)"
@@ -241,13 +286,30 @@ log "Step 3: Building in shadow directory (Atomic)..."
 notify_build_start 2>/dev/null || true
 BUILD_START_TIME=$(date +%s)
 WORK_DIR_TMP="$SCRIPT_DIR/.deploy_work"
+BUILD_LOG="$LOG_DIR/build_$(date +%Y%m%d_%H%M%S).log"
+LAST_TIME_FILE="$SCRIPT_DIR/.last_build_time"
+
+# Read last build duration as estimate
+ESTIMATE=60
+[[ -f "$LAST_TIME_FILE" ]] && ESTIMATE=$(cat "$LAST_TIME_FILE")
+[[ $ESTIMATE -lt 10 ]] && ESTIMATE=60 # Sanity check
 
 rm -rf "$WORK_DIR_TMP"
 mkdir -p "$WORK_DIR_TMP"
 rsync -aq --exclude '.deploy_work' --exclude 'node_modules' --exclude 'build' --exclude '.git' ./ "$WORK_DIR_TMP/"
 
-if ! (cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > /dev/null 2>&1; then
+# Run build in background and show eater
+(cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > "$BUILD_LOG" 2>&1 &
+BUILD_PID=$!
+show_cachy_eater $BUILD_PID $ESTIMATE
+
+if ! wait $BUILD_PID; then
     notify_build_failure "Build process failed" 2>/dev/null || true
+    echo -e "${RED}❌ BUILD FAILED!${NC}"
+    echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
+    tail -n 15 "$BUILD_LOG"
+    echo -e "${YELLOW}----------------------------------${NC}"
+    log "Full build log available at: $BUILD_LOG"
     rm -rf "$WORK_DIR_TMP"
     error_exit "Build failed. Production was not affected."
 fi
@@ -257,6 +319,8 @@ if [[ ! -f "$WORK_DIR_TMP/build/index.js" ]]; then
 fi
 
 BUILD_DURATION=$(( $(date +%s) - BUILD_START_TIME ))
+echo "$BUILD_DURATION" > "$LAST_TIME_FILE"
+log "Build successful in ${BUILD_DURATION}s (Log: $BUILD_LOG)"
 notify_build_success "${BUILD_DURATION}s" 2>/dev/null || true
 
 # 4. Permissions & Swap
