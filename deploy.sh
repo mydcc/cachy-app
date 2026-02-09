@@ -100,6 +100,42 @@ prompt_user() {
     [[ $REPLY =~ ^[Yy]$ ]]
 }
 
+show_cachy_eater() {
+    local pid=$1
+    local delay=0.2
+    local width=40
+    local pos=0
+    local char="c"
+    
+    # Hide cursor
+    tput civis 2>/dev/null || echo -ne "\033[?25l"
+    
+    while kill -0 $pid 2>/dev/null; do
+        # Toggle mouth
+        [[ "$char" == "c" ]] && char="C" || char="c"
+        
+        # Calculate progress string
+        local spaces=""
+        for ((i=0; i<pos; i++)); do spaces+=" "; done
+        
+        local dots=""
+        for ((i=pos+1; i<width; i++)); do dots+="•"; done
+        
+        # Print bar
+        printf "\r  ${YELLOW}[${spaces}${char}${dots}${YELLOW}]${NC} Building... "
+        
+        # Move eater
+        pos=$(( (pos + 1) % width ))
+        sleep $delay
+    done
+    
+    # Show cursor again
+    tput cnorm 2>/dev/null || echo -ne "\033[?25h"
+    printf "\r"
+    # Clear line
+    printf "                                                                \r"
+}
+
 create_backup() {
     local env_name="$1"
     local backup_path="$BACKUP_DIR/$env_name/$(date +%Y%m%d_%H%M%S)"
@@ -241,13 +277,24 @@ log "Step 3: Building in shadow directory (Atomic)..."
 notify_build_start 2>/dev/null || true
 BUILD_START_TIME=$(date +%s)
 WORK_DIR_TMP="$SCRIPT_DIR/.deploy_work"
+BUILD_LOG="$LOG_DIR/build_$(date +%Y%m%d_%H%M%S).log"
 
 rm -rf "$WORK_DIR_TMP"
 mkdir -p "$WORK_DIR_TMP"
 rsync -aq --exclude '.deploy_work' --exclude 'node_modules' --exclude 'build' --exclude '.git' ./ "$WORK_DIR_TMP/"
 
-if ! (cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > /dev/null 2>&1; then
+# Run build in background and show eater
+(cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > "$BUILD_LOG" 2>&1 &
+BUILD_PID=$!
+show_cachy_eater $BUILD_PID
+
+if ! wait $BUILD_PID; then
     notify_build_failure "Build process failed" 2>/dev/null || true
+    echo -e "${RED}❌ BUILD FAILED!${NC}"
+    echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
+    tail -n 15 "$BUILD_LOG"
+    echo -e "${YELLOW}----------------------------------${NC}"
+    log "Full build log available at: $BUILD_LOG"
     rm -rf "$WORK_DIR_TMP"
     error_exit "Build failed. Production was not affected."
 fi
@@ -257,6 +304,7 @@ if [[ ! -f "$WORK_DIR_TMP/build/index.js" ]]; then
 fi
 
 BUILD_DURATION=$(( $(date +%s) - BUILD_START_TIME ))
+log "Build successful in ${BUILD_DURATION}s (Log: $BUILD_LOG)"
 notify_build_success "${BUILD_DURATION}s" 2>/dev/null || true
 
 # 4. Permissions & Swap
