@@ -512,48 +512,70 @@ export const JSIndicators = {
     outLower?: Float64Array,
   ) {
     const len = data.length;
+    // Use SMA for middle band
     const sma = this.sma(data, period, outMiddle);
     const upper = (outUpper && outUpper.length === len) ? outUpper : new Float64Array(len);
     upper.fill(NaN);
     const lower = (outLower && outLower.length === len) ? outLower : new Float64Array(len);
     lower.fill(NaN);
 
-    if (len < period) return { middle: sma, upper, lower };
+    let startIdx = 0;
+    while (startIdx < len && isNaN(data[startIdx])) startIdx++;
 
-    let sumSq = 0;
-    // Initial window
-    for (let i = 0; i < period; i++) {
-      sumSq += data[i] * data[i];
+    if (len - startIdx < period) return { middle: sma, upper, lower };
+
+    // Welford's Online Algorithm for Variance
+    let count = 0;
+    let mean = 0;
+    let M2 = 0;
+
+    // 1. Initial Window
+    for (let i = startIdx; i < startIdx + period; i++) {
+        const x = data[i];
+        count++;
+        const delta = x - mean;
+        mean += delta / count;
+        const delta2 = x - mean;
+        M2 += delta * delta2;
     }
 
-    // Calculation
-    for (let i = period - 1; i < len; i++) {
-      // Update sliding window SumSq
-      if (i >= period) {
-        const valOut = data[i - period];
-        const valIn = data[i];
-        sumSq = sumSq - valOut * valOut + valIn * valIn;
-      }
+    let variance = M2 / period;
+    let sd = Math.sqrt(variance);
 
-      // Avoid negative sumSq due to float precision
-      if (sumSq < 0) sumSq = 0;
+    const idx = startIdx + period - 1;
+    upper[idx] = sma[idx] + sd * stdDev;
+    lower[idx] = sma[idx] - sd * stdDev;
 
-      const avg = sma[i];
-      // Variance = E[X^2] - (E[X])^2
-      // But we need sumSqDiff = Sum((x-avg)^2) = Sum(x^2) - N*avg^2
-      let sumSqDiff = sumSq - period * avg * avg;
+    // 2. Sliding Window (Explicit Remove then Add)
+    for (let i = startIdx + period; i < len; i++) {
+        const newVal = data[i];
+        const oldVal = data[i - period];
 
-      // Precision safety
-      if (sumSqDiff < 0) sumSqDiff = 0;
+        // Remove oldVal
+        // delta = x - mean_new
+        // mean_new = mean_old - delta / (count_new) where count_new = count_old - 1
+        // M2_new = M2_old - delta * (x - mean_old)
+        let delta = oldVal - mean;
+        mean -= delta / (count - 1);
+        M2 -= delta * (oldVal - mean);
 
-      const standardDev = Math.sqrt(sumSqDiff / period);
-      upper[i] = avg + standardDev * stdDev;
-      lower[i] = avg - standardDev * stdDev;
+        // Add newVal
+        delta = newVal - mean;
+        mean += delta / count;
+        M2 += delta * (newVal - mean);
+
+        // Precision guard
+        if (M2 < 0) M2 = 0;
+
+        variance = M2 / period;
+        sd = Math.sqrt(variance);
+
+        upper[i] = sma[i] + sd * stdDev;
+        lower[i] = sma[i] - sd * stdDev;
     }
+
     return { middle: sma, upper, lower };
   },
-
-  // --- Advanced Indicators ---
 
   vwap(
     high: NumberArray,
