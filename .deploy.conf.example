@@ -1,0 +1,33 @@
+# Cachy Deployment Configuration Template
+# Copy this file to .deploy.conf and adjust to your environment
+
+# Project Identity
+PROJECT_NAME="cachy.app"
+
+# Branching Strategy
+BRANCH_STABLE="main"
+BRANCH_BETA="develop"
+
+# Environment Settings (Stable)
+STABLE_ENVIRONMENT="cachy.app"
+STABLE_PORT=3001
+STABLE_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/prodcachyapp.sh"
+
+# Environment Settings (Beta)
+BETA_ENVIRONMENT="dev.cachy.app"
+BETA_PORT=3002
+BETA_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/devcachyapp.sh"
+
+# Global Path & Policy Settings
+LOG_DIR="/var/log/cachy"
+BACKUP_DIR="/backups/cachy"
+MAX_BACKUPS=5
+
+# Health Check Policy
+# {{PORT}} will be replaced automatically by the script
+HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
+
+# Discord Integration
+# The script automatically sources scripts/discord-notify.sh if present.
+# Ensure DISCORD_WEBHOOK_URL is exported in your environment or added below:
+# export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
