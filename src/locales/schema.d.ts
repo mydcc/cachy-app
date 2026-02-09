@@ -102,6 +102,7 @@ export type TranslationKey =
   | "dashboard.orderHistory.type.stopLimit"
   | "dashboard.orderHistory.type.stopMarket"
   | "dashboard.orderHistory.type.trailing"
+  | "dashboard.orderHistory.type.unknown"
   | "dashboard.type"
   | "dashboard.price"
   | "dashboard.amount"
