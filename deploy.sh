@@ -25,10 +25,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF_FILE="$SCRIPT_DIR/.deploy.conf"
 START_TIME=$(date +%s)
 
-# Colors
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
+# Colors (256-color palette for Cachy Cool UI)
+readonly RED='\033[38;5;196m'
+readonly GREEN='\033[38;5;46m'
+readonly YELLOW='\033[38;5;226m'
+readonly GOLD='\033[38;5;220m'
+readonly CYAN='\033[38;5;51m'
+readonly LIME='\033[38;5;118m'
+readonly GREY='\033[38;5;244m'
 readonly NC='\033[0m'
 
 # --- 2. Load Configuration ---
@@ -80,9 +84,10 @@ fi
 log() {
     local message="$1"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    local clean_message=$(echo -e "$message" | sed 's/\x1b\[[0-9;]*m//g')
+    # Better ANSI strip for all color types
+    local clean_message=$(echo -e "$message" | sed 's/\x1b\[[0-9;]*[mGJKHF]//g')
     echo "[$timestamp] $clean_message" >> "$LOG_FILE" 2>/dev/null || true
-    echo -e "[$timestamp] $message"
+    echo -e "${GREY}[$timestamp]${NC} $message"
 }
 
 error_exit() {
@@ -225,16 +230,28 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 cd "$SCRIPT_DIR" || error_exit "Could not enter script directory"
 
 clear
-echo -e "${GREEN}┌──────────────────────────────────────────┐${NC}"
-printf "${GREEN}│   🚀 DEPLOYMENT: %-23s │\n${NC}" "$(echo $ENV_TYPE | tr '[:lower:]' '[:upper:]')"
-echo -e "${GREEN}└──────────────────────────────────────────┘${NC}"
+echo -e "${GOLD}"
+cat << "EOF"
+  ____           _            
+ / ___|__ _  ___| |__  _   _  
+| |   / _` |/ __| '_ \| | | | 
+| |__| (_| | (__| | | | |_| | 
+ \____\__,_|\___|_| |_|\__, | 
+                       |___/  
+EOF
+echo -e "${NC}"
+echo -e "${CYAN}┌──────────────────────────────────────────┐${NC}"
+printf "${CYAN}│   🚀 DEPLOYMENT: %-23s │\n${NC}" "$(echo $ENV_TYPE | tr '[:lower:]' '[:upper:]')"
+echo -e "${CYAN}└──────────────────────────────────────────┘${NC}"
 echo ""
 
 # Pre-flight Check: Branch & State
 [[ ! -d ".git" ]] && error_exit "Not a git repository"
 CURRENT_BRANCH=$(git branch --show-current)
-log "Target Environment: ${GREEN}$ENVIRONMENT${NC}"
+log "Target Environment: ${LIME}$ENVIRONMENT${NC}"
 log "Current Branch: ${YELLOW}$CURRENT_BRANCH${NC}"
+
+# ... (rest of pre-flight)
 
 # 1. Smart Branch Switching
 if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
@@ -273,16 +290,16 @@ fi
 notify_deployment_start "$ENVIRONMENT" "${USER:-root}" 2>/dev/null || true
 
 # 1. Update Source
-log "Step 1: Updating source via Git..."
+log "${CYAN}[SYNC]${NC} Updating source via Git..."
 git reset --hard HEAD || error_exit "Git reset failed"
 git pull || error_exit "Git pull failed"
 
 # 2. Backup
-log "Step 2: Securing current state..."
+log "${CYAN}[BACKUP]${NC} Securing current state..."
 create_backup "$ENV_TYPE"
 
 # 3. Atomic Build
-log "Step 3: Building in shadow directory (Atomic)..."
+log "${CYAN}[BUILD]${NC} Building in shadow directory (Atomic)..."
 notify_build_start 2>/dev/null || true
 BUILD_START_TIME=$(date +%s)
 WORK_DIR_TMP="$SCRIPT_DIR/.deploy_work"
@@ -324,7 +341,7 @@ log "Build successful in ${BUILD_DURATION}s (Log: $BUILD_LOG)"
 notify_build_success "${BUILD_DURATION}s" 2>/dev/null || true
 
 # 4. Permissions & Swap
-log "Step 4: Setting permissions and swapping build..."
+log "${CYAN}[SWAP]${NC} Setting permissions and swapping build..."
 chown -R www:www "$WORK_DIR_TMP/build" 2>/dev/null || true
 chmod -R 755 "$WORK_DIR_TMP/build" 2>/dev/null || true
 
@@ -333,7 +350,7 @@ mv "$WORK_DIR_TMP/build" ./
 rm -rf "$WORK_DIR_TMP"
 
 # 5. Restart & Health
-log "Step 5: Restarting service and health check..."
+log "${CYAN}[HEALTH]${NC} Restarting service and health check..."
 graceful_shutdown "$PORT"
 eval "$START_CMD > /dev/null 2>&1 &"
 sleep 2
@@ -352,18 +369,18 @@ DURATION_SEC=$((TOTAL_DURATION % 60))
 chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
 
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║                                                                  ║${NC}"
-printf "${GREEN}║   ✅  DEPLOYMENT %-44s ${GREEN}║\n${NC}" "$(echo "$ENV_TYPE" | tr '[:lower:]' '[:upper:]') ERFOLGREICH"
-echo -e "${GREEN}║                                                                  ║${NC}"
-echo -e "${GREEN}╠══════════════════════════════════════════════════════════════════╣${NC}"
-echo -e "${GREEN}║                                                                  ║${NC}"
-printf "${GREEN}║   Environment:  %-48s ║\n${NC}" "$ENVIRONMENT"
-printf "${GREEN}║   Dauer:        %-48s ║\n${NC}" "${DURATION_MIN}m ${DURATION_SEC}s"
-printf "${GREEN}║   Zeitpunkt:    %-48s ║\n${NC}" "$(date '+%Y-%m-%d %H:%M:%S')"
-echo -e "${GREEN}║                                                                  ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║                                                                  ║${NC}"
+printf "${CYAN}║   ${LIME}✅  DEPLOYMENT %-44s ${CYAN}║\n${NC}" "$(echo "$ENV_TYPE" | tr '[:lower:]' '[:upper:]') ERFOLGREICH"
+echo -e "${CYAN}║                                                                  ║${NC}"
+echo -e "${CYAN}╠══════════════════════════════════════════════════════════════════╣${NC}"
+echo -e "${CYAN}║                                                                  ║${NC}"
+printf "${CYAN}║   Environment:  ${LIME}%-48s ${CYAN}║\n${NC}" "$ENVIRONMENT"
+printf "${CYAN}║   Dauer:        ${LIME}%-48s ${CYAN}║\n${NC}" "${DURATION_MIN}m ${DURATION_SEC}s"
+printf "${CYAN}║   Zeitpunkt:    ${LIME}%-48s ${CYAN}║\n${NC}" "$(date '+%Y-%m-%d %H:%M:%S')"
+echo -e "${CYAN}║                                                                  ║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-log "Deployment completed successfully in ${DURATION_MIN}m ${DURATION_SEC}s"
+log "${LIME}Deployment completed successfully in ${DURATION_MIN}m ${DURATION_SEC}s${NC}"
 notify_deployment_success "$ENVIRONMENT" "${DURATION_MIN}m ${DURATION_SEC}s" 2>/dev/null || true
