@@ -19,6 +19,14 @@ set -e
 
 WASM_FILE="static/wasm/technicals_wasm.wasm"
 
+echo "Checking WASM build requirements..."
+
+# Check for technicals-wasm directory
+if [[ ! -d "technicals-wasm" ]]; then
+    echo "⚠ 'technicals-wasm' directory not found. Skipping WASM build."
+    exit 0
+fi
+
 # Check if cargo is available
 if ! command -v cargo > /dev/null 2>&1; then
     echo "⚠ Cargo not found. Skipping WASM build."
@@ -30,8 +38,7 @@ fi
 if ! command -v rustup > /dev/null 2>&1; then
     echo "⚠ Rustup not found. Skipping WASM target check."
     # If rustup is missing, we assume the environment might be a bare rustc setup
-    # We proceed with caution or skip?
-    # Skipping is safer to avoid build failures.
+    # We skip to be safe on restricted envs like Render unless explicitly configured
     echo "  Skipping WASM build for now (rustup required for target check)."
     exit 0
 fi
