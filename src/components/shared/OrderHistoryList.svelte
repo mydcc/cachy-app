@@ -30,6 +30,23 @@
 
   let { orders = [], loading = false, error = "" }: Props = $props();
 
+  // Pagination / Virtualization Lite
+  let pageSize = 50;
+  let page = $state(1);
+
+  // Reset page when orders reference changes (e.g. symbol switch)
+  $effect(() => {
+      orders;
+      page = 1;
+  });
+
+  let visibleOrders = $derived(orders.slice(0, page * pageSize));
+  let hasMore = $derived(visibleOrders.length < orders.length);
+
+  function loadMore() {
+      page++;
+  }
+
   // Removed local tooltip state in favor of uiStore
 
   function handleMouseEnter(event: MouseEvent, order: any) {
@@ -122,7 +139,7 @@
     </div>
   {:else}
     <div class="flex flex-col gap-2">
-      {#each orders as order}
+      {#each visibleOrders as order}
         <div
           class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors"
         >
@@ -206,6 +223,14 @@
           </div>
         </div>
       {/each}
+      {#if hasMore}
+        <button
+            class="w-full py-2 text-xs font-bold text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded mt-2 transition-colors"
+            onclick={loadMore}
+        >
+            {$_("journal.pagination.next") || "Load More"}
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
