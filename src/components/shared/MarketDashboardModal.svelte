@@ -168,7 +168,7 @@
                     <div
                         class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1"
                     >
-                        Market Heat
+                        {$_("app.marketDashboard.marketHeat")}
                     </div>
                     <div class="flex items-end gap-2">
                         <span class="text-2xl font-bold">
@@ -195,7 +195,7 @@
                     <div
                         class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1"
                     >
-                        Market Breadth (4h)
+                        {$_("app.marketDashboard.marketBreadth")}
                     </div>
                     <div class="flex items-end gap-2">
                         <span
@@ -229,7 +229,7 @@
                     <div
                         class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1"
                     >
-                        Top Opportunity
+                        {$_("app.marketDashboard.topOpportunity")}
                     </div>
                     <div
                         class="text-lg font-bold truncate text-[var(--accent-color)]"
@@ -248,7 +248,7 @@
                     <div
                         class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1"
                     >
-                        Status
+                        {$_("app.marketDashboard.status")}
                     </div>
                     <div
                         class="text-sm font-bold flex items-center gap-2 h-full pb-4"
@@ -289,10 +289,10 @@
                     <div class="col-span-3">{$_("journal.deepDive.charts.labels.topAsset")}</div>
                     <div class="col-span-2 text-right">{$_("dashboard.price")}</div>
                     <div class="col-span-4 text-center">
-                        Trend (15m - 1h - 4h - 1d)
+                        {$_("app.marketDashboard.trendMatrix.trend")}
                     </div>
-                    <div class="col-span-2 text-right">RSI (1h)</div>
-                    <div class="col-span-1 text-center">Score</div>
+                    <div class="col-span-2 text-right">{$_("app.marketDashboard.trendMatrix.rsi")}</div>
+                    <div class="col-span-1 text-center">{$_("app.marketDashboard.trendMatrix.score")}</div>
                 </div>
 
                 <!-- Table Body -->
