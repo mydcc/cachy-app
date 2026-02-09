@@ -83,6 +83,8 @@
       "maker": "M",
       "taker": "T",
       "fee": "Fee",
+      "noFee": "-",
+      "noDate": "-",
       "liq": "Liq.",
       "side": {
         "buy": "Buy",
