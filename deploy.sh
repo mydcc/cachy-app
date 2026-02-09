@@ -47,7 +47,11 @@ fi
 log() {
     local message="$1"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] $message" | tee -a "$LOG_DIR/deploy_$(date +%Y%m%d).log" 2>/dev/null || echo "[$timestamp] $message"
+    # Strip ANSI escape codes for the log file
+    local clean_message=$(echo -e "$message" | sed 's/\x1b\[[0-9;]*m//g')
+    echo "[$timestamp] $clean_message" >> "$LOG_DIR/deploy_$(date +%Y%m%d).log" 2>/dev/null || true
+    # Print with color to terminal
+    echo -e "[$timestamp] $message"
 }
 
 # Error handler
@@ -241,10 +245,9 @@ validate_build() {
 
 # Main deployment process
 main() {
-    clear
-    echo "╔════════════════════════════════════════════╗"
-    echo "║   Deployment: ${ENVIRONMENT}            ║"
-    echo "╚════════════════════════════════════════════╝"
+    echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║   🚀 Deployment: ${ENVIRONMENT}            ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════╝${NC}"
     echo ""
     
     # Check for deployment lock
@@ -336,10 +339,17 @@ main() {
     DURATION_SEC=$((TOTAL_DURATION % 60))
     
     echo ""
-    echo "${GREEN}╔════════════════════════════════════════════╗${NC}"
-    echo "${GREEN}║         ✅ Deployment erfolgreich         ║${NC}"
-    echo "${GREEN}╚════════════════════════════════════════════╝${NC}"
-    echo "Dauer: ${DURATION_MIN}m ${DURATION_SEC}s"
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                                                                  ║${NC}"
+    printf "${GREEN}║   ✅  DEPLOYMENT ERFOLGREICH ABGESCHLOSSEN                       ${GREEN}║\n${NC}"
+    echo -e "${GREEN}║                                                                  ║${NC}"
+    echo -e "${GREEN}╠══════════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${GREEN}║                                                                  ║${NC}"
+    printf "${GREEN}║   Environment:  %-48s ║\n${NC}" "$ENVIRONMENT"
+    printf "${GREEN}║   Dauer:        %-48s ║\n${NC}" "${DURATION_MIN}m ${DURATION_SEC}s"
+    printf "${GREEN}║   Zeitpunkt:    %-48s ║\n${NC}" "$(date '+%Y-%m-%d %H:%M:%S')"
+    echo -e "${GREEN}║                                                                  ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
     log "Deployment completed successfully in ${DURATION_MIN}m ${DURATION_SEC}s"
