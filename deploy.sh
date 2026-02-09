@@ -162,6 +162,9 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 # --- 6. Main Process ---
 
+# Change to project root to allow execution from anywhere
+cd "$SCRIPT_DIR" || error_exit "Could not enter script directory"
+
 clear
 echo -e "${GREEN}┌──────────────────────────────────────────┐${NC}"
 printf "${GREEN}│   🚀 DEPLOYMENT: %-23s │\n${NC}" "$(echo $ENV_TYPE | tr '[:lower:]' '[:upper:]')"
