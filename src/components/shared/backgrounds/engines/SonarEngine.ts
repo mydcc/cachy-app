@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BaseEngine, type EngineContext } from './BaseEngine';
 
+// SonarEngine: Visualization for market activity
 export class SonarEngine extends BaseEngine {
     private pointCloud: THREE.Points | null = null;
     private material: THREE.ShaderMaterial | null = null;
