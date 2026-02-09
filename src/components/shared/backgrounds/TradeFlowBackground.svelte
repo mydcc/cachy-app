@@ -181,10 +181,11 @@
     if (!browser || lifecycleState !== LifecycleState.READY) return;
     
     const currentSymbol = tradeState.symbol || "BTCUSDT";
-    bitunixWs.subscribeTrade(currentSymbol, onTrade);
+    // Use the returned cleanup function for guaranteed unsubscription
+    const cleanup = bitunixWs.subscribeTrade(currentSymbol, onTrade);
     
     return () => {
-      bitunixWs.unsubscribeTrade(currentSymbol, onTrade);
+      cleanup();
     };
   });
 

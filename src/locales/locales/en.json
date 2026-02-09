@@ -42,7 +42,16 @@
       "bullish": "Bullish",
       "bearish": "Bearish",
       "neutral": "Neutral",
-      "longShortRatio": "Long/Short Ratio"
+      "longShortRatio": "Long/Short Ratio",
+      "marketHeat": "Market Heat",
+      "marketBreadth": "Market Breadth (4h)",
+      "topOpportunity": "Top Opportunity",
+      "status": "Status",
+      "trendMatrix": {
+        "trend": "Trend (15m - 1h - 4h - 1d)",
+        "score": "Score",
+        "rsi": "RSI (1h)"
+      }
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",

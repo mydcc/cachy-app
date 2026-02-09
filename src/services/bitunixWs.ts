@@ -813,9 +813,10 @@ class BitunixWebSocketService {
                     }
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
+                        // Explicit Decimal conversion for data integrity
                         marketState.updateSymbol(symbol, {
-                          indexPrice: ip,
-                          fundingRate: fr,
+                          indexPrice: ip ? new Decimal(ip) : undefined,
+                          fundingRate: fr ? new Decimal(fr) : undefined,
                           nextFundingTime: nft
                         });
                     }
@@ -1244,8 +1245,8 @@ class BitunixWebSocketService {
   }
 
 
-  subscribeTrade(symbol: string, callback: (trade: any) => void) {
-    if (!symbol) return;
+  subscribeTrade(symbol: string, callback: (trade: any) => void): () => void {
+    if (!symbol) return () => {};
     const normalized = normalizeSymbol(symbol, "bitunix");
 
     if (!this.tradeListeners.has(normalized)) {
@@ -1255,6 +1256,11 @@ class BitunixWebSocketService {
     }
 
     this.tradeListeners.get(normalized)?.add(callback);
+
+    // Return cleanup function for safer lifecycle management
+    return () => {
+        this.unsubscribeTrade(normalized, callback);
+    };
   }
 
   unsubscribeTrade(symbol: string, callback: (trade: any) => void) {

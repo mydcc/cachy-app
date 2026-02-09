@@ -42,7 +42,16 @@
       "bullish": "Bullisch",
       "bearish": "Bärisch",
       "neutral": "Neutral",
-      "longShortRatio": "Long/Short Verhältnis"
+      "longShortRatio": "Long/Short Ratio",
+      "marketHeat": "Markthitze",
+      "marketBreadth": "Marktbreite (4h)",
+      "topOpportunity": "Top Chance",
+      "status": "Status",
+      "trendMatrix": {
+        "trend": "Trend (15m - 1h - 4h - 1d)",
+        "score": "Score",
+        "rsi": "RSI (1h)"
+      }
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",

@@ -109,8 +109,66 @@ export const PositionRawSchema = z.object({
 
 export const PositionListSchema = z.array(PositionRawSchema);
 
+// --- TP/SL Request Validation Schemas ---
+
+// Common Headers
+const BaseRequest = z.object({
+    exchange: z.literal("bitunix"),
+    apiKey: z.string().min(10),
+    apiSecret: z.string().min(10),
+});
+
+// Base params for lists
+const BaseTpSlParams = z.object({
+    symbol: z.string().optional(),
+}).passthrough();
+
+// Specific params for Cancel
+const CancelTpSlParams = z.object({
+    orderId: z.union([z.string(), z.number()]),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]).optional(),
+});
+
+// Specific params for Modify
+const ModifyTpSlParams = z.object({
+    orderId: z.union([z.string(), z.number()]),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]),
+    triggerPrice: z.union([z.string(), z.number()]),
+    qty: z.union([z.string(), z.number()]).optional(),
+});
+
+const PendingRequest = BaseRequest.extend({
+    action: z.literal("pending"),
+    params: BaseTpSlParams.optional()
+});
+
+const HistoryRequest = BaseRequest.extend({
+    action: z.literal("history"),
+    params: BaseTpSlParams.optional()
+});
+
+const CancelRequest = BaseRequest.extend({
+    action: z.literal("cancel"),
+    params: CancelTpSlParams
+});
+
+const ModifyRequest = BaseRequest.extend({
+    action: z.literal("modify"),
+    params: ModifyTpSlParams
+});
+
+export const TpSlRequestSchema = z.discriminatedUnion("action", [
+    PendingRequest,
+    HistoryRequest,
+    CancelRequest,
+    ModifyRequest
+]);
+
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
+export type TpSlRequest = z.infer<typeof TpSlRequestSchema>;
 
 /**
  * Validate response size to prevent memory issues
