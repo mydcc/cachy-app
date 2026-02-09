@@ -1,48 +1,57 @@
-# Status & Risk Report: Cachy App Maintenance
+# Status & Risk Report: Cachy App Deep Dive Analysis
 
 ## 1. Prioritized Findings
 
 ### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
 
-1.  **WebSocket "Fast Path" Type Safety (`src/services/bitunixWs.ts`)**
-    *   **Finding:** The `handleMessage` method uses a "Fast Path" optimization for high-frequency data (Price/Ticker) that bypasses Zod schema validation. It manually casts fields like `typeof data.ip === 'number' ? String(data.ip) : data.ip`.
-    *   **Risk:** While defensive, the type guards (`isPriceData`, `isTickerData`) currently use loose checks (e.g., checking for property existence without strict type verification). If the API sends `null` or an unexpected object structure, it could lead to runtime errors or incorrect data propagating to the UI/Trading engine.
-    *   **Recommendation:** Harden `isPriceData` and similar guards to strictly check for `string | number` types and reject `null`/`undefined` explicitly.
+1.  **WebSocket Subscription Leak (`src/services/bitunixWs.ts`)**
+    *   **Finding:** The `BitunixWebSocketService` uses a simple `Set<string>` for `pendingSubscriptions` and lacks reference counting. If multiple components (e.g., `MarketWatcher` and a UI component) subscribe to the same channel (e.g., `BTCUSDT:ticker`) and one unsubscribes, the underlying WebSocket subscription is sent a `unsubscribe` command immediately. This causes data loss for the remaining components.
+    *   **Risk:** Critical data loss (price updates, order updates) in the UI or trading logic if components mount/unmount dynamically.
+    *   **Recommendation:** Implement `Map<string, number>` for reference counting. Only send `subscribe` on 0->1 transition and `unsubscribe` on 1->0 transition.
 
-2.  **Timeframe Parsing Vulnerability (`src/services/marketWatcher.ts`)**
-    *   **Finding:** The `tfToMs` helper function uses `parseInt` and `slice` without validating the input string format.
-    *   **Risk:** Malformed timeframes (e.g., empty string, "invalid") could return `NaN` or incorrect milliseconds, potentially causing infinite loops or incorrect data fetching intervals.
-    *   **Recommendation:** Implement a robust `safeTfToMs` utility with regex validation.
+2.  **Memory Spike in Market Store (`src/stores/market.svelte.ts`)**
+    *   **Finding:** The `applySymbolKlines` method performs a "Slow Path" merge for historical data where it concatenates existing history with new data *before* slicing to the limit. For large datasets (e.g., 10k candles), this temporarily doubles memory usage for the array, causing GC pressure and potential UI jank on mobile devices.
+    *   **Risk:** Performance degradation or crash (OOM) during heavy volatility or when loading long histories.
+    *   **Recommendation:** Optimize the merge strategy to slice *during* the merge or use a pre-allocated buffer approach to avoid temporary large array allocation.
+
+3.  **JSON Precision Loss / BigInt Safety (`src/services/bitunixWs.ts`, `src/services/tradeService.ts`)**
+    *   **Finding:** The application uses `safeJsonParse` which relies on the native `JSON.parse`. JavaScript's `number` type loses precision for integers greater than `2^53 - 1`. If Bitunix sends Order IDs or other identifiers as large numbers (instead of strings), they will be corrupted *before* any Zod validation or string casting can happen.
+    *   **Risk:** Corrupted Order IDs could lead to inability to cancel orders or incorrect trade execution.
+    *   **Recommendation:** Verify API behavior. If large integers are possible, implement a custom JSON parser (like `json-bigint` or regex pre-processing) for critical ID fields, or strictly enforce string types at the API contract level (if possible). *Mitigation:* The code currently logs a warning if it detects a number, but this is post-facto.
 
 ### 🟡 WARNING (Performance issue, UX error, missing i18n)
 
-1.  **Missing Internationalization (i18n) in Visuals Tab (`src/components/settings/tabs/VisualsTab.svelte`)**
-    *   **Finding:** Numerous hardcoded UI strings found (e.g., "Mode", "Enhanced Effects", "Flow Speed", "Volume Scale").
-    *   **Risk:** Poor UX for non-English users.
-    *   **Recommendation:** Extract these strings to `src/locales/locales/en.json` and use the `$_` store.
+1.  **Partial Internationalization & Hardcoded Strings (`src/components/shared/OrderHistoryList.svelte`)**
+    *   **Finding:**
+        *   Order Types (e.g., "FOK", "IOC") fall back to raw strings if not explicitly mapped.
+        *   Date formatting is hardcoded (`DD.MM HH:mm`) and not locale-aware.
+        *   Fallback text "Load More" is hardcoded in the template logic.
+    *   **Risk:** Alienation of non-English users and potential confusion with raw API enum values.
+    *   **Recommendation:** Use `Intl.DateTimeFormat` for dates. Add all known Order Types to `en.json`. Use strict translation keys.
 
-2.  **Unhanded Worker Initialization Error (`src/components/shared/backgrounds/TradeFlowBackground.svelte`)**
-    *   **Finding:** The component throws a raw `Error("OffscreenCanvas not supported...")` without catching it.
-    *   **Risk:** On older browsers or environments where OffscreenCanvas is disabled, this causes the entire component (and potentially the parent view) to crash/unmount unexpectedly.
-    *   **Recommendation:** Wrap initialization in a `try-catch` block and display a fallback or graceful error state.
+2.  **Unbounded Recursion Risk (`src/services/tradeService.ts`)**
+    *   **Finding:** The `serializePayload` method recursively traverses objects to convert `Decimal` to string. It lacks a depth limit or circular reference detection.
+    *   **Risk:** Stack overflow if a circular object is accidentally passed (e.g., a Vue/Svelte reactive object with parent refs).
+    *   **Recommendation:** Add a `WeakSet` for visited objects or a simple depth limit (e.g., 10 levels).
 
-3.  **Heavy Calculation in Market Store (`src/stores/market.svelte.ts`)**
-    *   **Finding:** `applySymbolKlines` performs complex merging and array manipulation. While it uses `Float64Array` for optimization (SoA), it runs on the main thread.
-    *   **Risk:** High-frequency WebSocket updates during high volatility could cause UI stutter.
-    *   **Recommendation:** Consider moving heavy merging logic to a Web Worker in the future (Blue/Refactor).
+3.  **Hardcoded Rate Limits (`src/services/marketWatcher.ts`)**
+    *   **Finding:** `ensureHistory` limits backfilling to ~10k candles (10 batches).
+    *   **Risk:** Incomplete chart history for higher timeframes or long-term analysis.
+    *   **Recommendation:** Make the limit configurable or dynamic based on the requested range/timeframe.
 
 ### 🔵 REFACTOR (Code smell, technical debt)
 
-1.  **Duplicate Timeframe Logic**
-    *   **Finding:** `tfToMs` logic appears in `marketWatcher.ts` and likely other places (implicitly).
-    *   **Recommendation:** Centralize in `src/utils/timeUtils.ts`.
+1.  **Error Handling Consistency**
+    *   **Finding:** `TradeService` throws both `BitunixApiError` and generic `Error`.
+    *   **Recommendation:** Standardize on `TradeError` or `BitunixApiError` for all trade-related failures to simplify upstream error handling.
+
+2.  **Duplicated Type Guards**
+    *   **Finding:** `bitunixWs.ts` manually implements `isPriceData` etc., which duplicates logic found in Zod schemas (though done for performance).
+    *   **Recommendation:** Ensure these stay in sync with Zod schemas via shared type definitions or comments.
 
 ## 2. Implementation Plan
 
-The following actions will be taken to address the critical and warning items:
-
-1.  **Harden Utilities:** Create `src/utils/timeUtils.ts` with `safeTfToMs` and tests.
-2.  **Refactor MarketWatcher:** Use `safeTfToMs`.
-3.  **Harden WebSocket:** Improve type guards in `bitunixWs.ts`.
-4.  **Fix i18n:** Update `en.json` and `VisualsTab.svelte`.
-5.  **Fix Error Handling:** Wrap `TradeFlowBackground` init in `try-catch`.
+1.  **Harden WebSocket Service:** Implement ref-counting for subscriptions.
+2.  **Optimize Market Store:** Refactor `applySymbolKlines` for memory efficiency.
+3.  **Fix i18n:** Update `OrderHistoryList` and `en.json`.
+4.  **Harden TradeService:** Add recursion protection and standardization.
