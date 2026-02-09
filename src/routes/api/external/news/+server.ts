@@ -8,7 +8,6 @@
  */
 
 import { json } from "@sveltejs/kit";
-import { createHash } from "node:crypto";
 import type { RequestHandler } from "./$types";
 
 // In-Memory Cache for News Proxy
@@ -42,9 +41,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    // Security: Hash the API Key so it's not stored in plain text in memory
-    const hashedKey = createHash("sha256").update(apiKey).digest("hex");
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${hashedKey}`;
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
     const now = Date.now();
 
     // Check Cache

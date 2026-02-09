@@ -83,6 +83,8 @@
       "maker": "M",
       "taker": "T",
       "fee": "Gebühr",
+      "noFee": "-",
+      "noDate": "-",
       "liq": "Liq.",
       "side": {
         "buy": "Kauf",
@@ -94,8 +96,7 @@
         "market": "Markt",
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Markt",
-        "trailing": "Trailing",
-        "unknown": "Unbekannt"
+        "trailing": "Trailing"
       },
       "details": {
         "leverage": "Hebel",

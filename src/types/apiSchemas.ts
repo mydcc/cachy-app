@@ -112,22 +112,6 @@ export const PositionListSchema = z.array(PositionRawSchema);
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
 
-// TP/SL Request Schema for API Hardening
-export const TpSlRequestSchema = z.object({
-  exchange: z.literal("bitunix"),
-  apiKey: z.string().min(10),
-  apiSecret: z.string().min(10),
-  action: z.enum(["pending", "history", "cancel", "modify"]),
-  params: z.object({
-    symbol: z.string().optional(),
-    triggerPrice: z.union([z.string(), z.number()]).optional(),
-    qty: z.union([z.string(), z.number()]).optional(),
-    planType: z.enum(["PROFIT", "LOSS"]).optional(),
-    orderId: z.string().optional(),
-    planId: z.string().optional()
-  }).optional()
-});
-
 /**
  * Validate response size to prevent memory issues
  * @param data Response data as string
