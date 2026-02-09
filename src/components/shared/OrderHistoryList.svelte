@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { _ } from "../../locales/i18n";
+  import { _, locale } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
   import { OrderType } from "../../types/orderTypes";
@@ -90,12 +90,18 @@
     const date = new Date(Number(timestamp));
     if (isNaN(date.getTime())) return "-";
 
-    // Format: DD.MM HH:mm
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${day}.${month} ${hours}:${minutes}`;
+    try {
+        return new Intl.DateTimeFormat($locale || 'en', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(date);
+    } catch (e) {
+        // Fallback for invalid locale
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
   }
 
   // Helper to get Fee String
@@ -117,8 +123,16 @@
     if ([OrderType.STOP_MARKET, "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket");
     if ([OrderType.TRAILING_STOP_MARKET, "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing");
     if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq");
+
+    // Add support for new types if present
+    if (t === "IOC") return "IOC";
+    if (t === "FOK") return "FOK";
+    if (t === "POST_ONLY") return "Post Only";
+
     if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
-    return t.length > 6 ? t.substring(0, 6) + "." : t; // Truncate long types
+
+    // Fallback: Truncate long types
+    return t.length > 6 ? t.substring(0, 6) + "." : t;
   }
 </script>
 
@@ -228,7 +242,7 @@
             class="w-full py-2 text-xs font-bold text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded mt-2 transition-colors"
             onclick={loadMore}
         >
-            {$_("journal.pagination.next") || "Load More"}
+            {$_("journal.pagination.next")}
         </button>
       {/if}
     </div>
