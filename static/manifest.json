@@ -1,10 +1,11 @@
 {
+  "id": "app.cachy",
   "name": "Cachy - Position Size & Risk Management",
   "short_name": "Cachy",
   "description": "Comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations.",
   "lang": "en-US",
   "dir": "ltr",
-  "start_url": "/",
+  "start_url": "/?pwa=true",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -15,13 +16,38 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Cachy Trading Dashboard"
+    },
+    {
+      "src": "/screenshots/journal.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Trade Journal & Performance Analysis"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Journal",
+      "short_name": "Journal",
+      "description": "View your trading history and performance",
+      "url": "/?action=journal",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
