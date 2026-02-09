@@ -42,6 +42,7 @@ export interface MarketData {
   klinesBuffers?: Record<string, KlineBuffers>; // SoA Buffers for performance
   technicals?: Record<string, import("../services/technicalsTypes").TechnicalsData>;
   lastUpdated?: number; // Optimization: only snapshot fresh data
+  maxHistoryLength?: number; // Track max history length to prevent accidental truncation
 }
 
 // Permissive update type for WebSocket data (allows strings/numbers for Decimals)
@@ -684,12 +685,23 @@ export class MarketManager {
     const userLimit = settingsState.chartHistoryLimit || 2000;
     const safetyLimit = 10000; // Hard cap
 
+    // Initialize maxHistoryLength if missing
+    if (!current.maxHistoryLength) {
+        current.maxHistoryLength = Math.max(history.length, userLimit);
+    }
+
     let effectiveLimit = userLimit;
     if (!enforceLimit) {
+      // If we are loading more history (REST), allow growth up to safety limit
       effectiveLimit = safetyLimit;
+      // Update our high-water mark
+      current.maxHistoryLength = Math.max(current.maxHistoryLength, history.length);
     } else {
-      const previousLength = Math.max(0, history.length - newKlines.length);
-      effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
+      // WS Update: Respect the high-water mark established by user actions (Load More)
+      // but cap at safetyLimit.
+      // Also ensure we respect userLimit if it's larger than our high-water mark (e.g. setting increased)
+      const target = Math.max(current.maxHistoryLength, userLimit);
+      effectiveLimit = Math.min(target, safetyLimit);
     }
 
     if (history.length > effectiveLimit) {

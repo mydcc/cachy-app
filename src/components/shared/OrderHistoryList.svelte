@@ -85,22 +85,23 @@
     return { x: Math.max(padding, x), y: Math.max(padding, y) };
   }
 
-  function formatDate(timestamp: number) {
-    if (!timestamp) return "-";
-    const date = new Date(Number(timestamp));
-    if (isNaN(date.getTime())) return "-";
+  const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+  });
 
-    // Format: DD.MM HH:mm
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${day}.${month} ${hours}:${minutes}`;
+  function formatDate(timestamp: number) {
+    if (!timestamp) return $_("dashboard.orderHistory.noDate");
+    const date = new Date(Number(timestamp));
+    if (isNaN(date.getTime())) return $_("dashboard.orderHistory.noDate");
+    return dateFormatter.format(date);
   }
 
   // Helper to get Fee String
   function getFeeDisplay(order: any) {
-    if (order.fee === undefined || order.fee === null) return "-";
+    if (order.fee === undefined || order.fee === null) return $_("dashboard.orderHistory.noFee");
     const roleMap: Record<string, string> = {
         MAKER: ` (${$_("dashboard.orderHistory.maker")})`,
         TAKER: ` (${$_("dashboard.orderHistory.taker")})`
@@ -117,7 +118,7 @@
     if ([OrderType.STOP_MARKET, "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket");
     if ([OrderType.TRAILING_STOP_MARKET, "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing");
     if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq");
-    if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
+    if (!t || t === "UNDEFINED" || t === "NULL") return $_("dashboard.orderHistory.type.unknown");
     return t.length > 6 ? t.substring(0, 6) + "." : t; // Truncate long types
   }
 </script>

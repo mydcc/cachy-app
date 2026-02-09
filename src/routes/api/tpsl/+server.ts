@@ -22,6 +22,7 @@ import {
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
 import { checkAppAuth } from "../../../lib/server/auth";
+import { TpSlRequestSchema } from "../../../types/apiSchemas";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -31,27 +32,21 @@ export const POST: RequestHandler = async ({ request }) => {
   // Wrap the entire parsing logic in try-catch to handle malformed JSON
   try {
     const body = await request.json();
-    const { exchange, apiKey, apiSecret, action, params = {} } = body;
 
-    if (!exchange || !apiKey || !apiSecret) {
-      return json(
-        { error: "Missing credentials or exchange" },
-        { status: 400 },
-      );
+    // Hardening: Zod Validation
+    const validation = TpSlRequestSchema.safeParse(body);
+    if (!validation.success) {
+       const errors = validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+       // Security: Do NOT log the body as it contains secrets
+       console.warn(`[TP/SL] Validation Error: ${errors}`);
+       return json({ error: `Validation Error: ${errors}` }, { status: 400 });
     }
 
-    if (exchange !== "bitunix") {
-      return json(
-        { error: "Only Bitunix is supported for TP/SL currently" },
-        { status: 400 },
-      );
-    }
+    const { exchange, apiKey, apiSecret, action, params = {} } = validation.data;
 
-    // Security: Validate API Key length
-    const validationError = validateBitunixKeys(apiKey, apiSecret);
-    if (validationError) {
-      return json({ error: validationError }, { status: 400 });
-    }
+    // Additional manual check for Bitunix Key Pattern (if needed beyond length)
+    const keyError = validateBitunixKeys(apiKey, apiSecret);
+    if (keyError) return json({ error: keyError }, { status: 400 });
 
     let result = null;
     switch (action) {

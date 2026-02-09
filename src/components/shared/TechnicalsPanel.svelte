@@ -82,30 +82,35 @@
 
   function translateAction(action: string | undefined): string {
     if (!action) return "-";
-    // First try exact key
-    const key = action.toLowerCase().replace(/\s+/g, "");
-    const translation = $_(`settings.technicals.${key}` as any);
 
-    // If not found, try generic Buy/Sell
-    if (!translation || translation.includes("settings.technicals")) {
-      if (action.includes("Buy")) return $_("common.buy" as any) || action;
-      if (action.includes("Sell")) return $_("common.sell" as any) || action;
-      if (action.includes("Neutral"))
-        return $_("common.neutral" as any) || action;
-      return action;
-    }
-    return translation;
+    // Explicit map ensures keys are found and correct case is used
+    const map: Record<string, string> = {
+        "buy": "settings.technicals.buy",
+        "sell": "settings.technicals.sell",
+        "neutral": "settings.technicals.neutral",
+        "strong buy": "settings.technicals.strongBuy",
+        "strong sell": "settings.technicals.strongSell"
+    };
+
+    const lower = action.toLowerCase();
+    if (map[lower]) return $_(map[lower] as any);
+
+    // Fallbacks
+    if (action.includes("Buy")) return $_("common.buy" as any) || action;
+    if (action.includes("Sell")) return $_("common.sell" as any) || action;
+    if (action.includes("Neutral")) return $_("common.neutral" as any) || action;
+
+    return action;
   }
 
   function translateContext(context: string): string {
-    if (context === "Overbought")
-      return $_("settings.technicals.overbought" as any) || "Overbought";
-    if (context === "Oversold")
-      return $_("settings.technicals.oversold" as any) || "Oversold";
-    if (context === "Trend")
-      return $_("settings.technicals.trend" as any) || "Trend";
-    if (context === "Range")
-      return $_("settings.technicals.range" as any) || "Range";
+    const map: Record<string, string> = {
+        "Overbought": "settings.technicals.overbought",
+        "Oversold": "settings.technicals.oversold",
+        "Trend": "settings.technicals.trend",
+        "Range": "settings.technicals.range"
+    };
+    if (map[context]) return $_(map[context] as any) || context;
     return translateAction(context);
   }
 
