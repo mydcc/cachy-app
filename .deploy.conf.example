@@ -21,6 +21,9 @@ BETA_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/devcachyap
 # Global Path & Policy Settings
 LOG_DIR="/var/log/cachy"
 BACKUP_DIR="/backups/cachy"
+# Health Check Policy
+# {{PORT}} will be replaced automatically by the script
+HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
 MAX_BACKUPS=5
 
 # Health Check Policy

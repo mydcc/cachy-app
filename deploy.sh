@@ -134,9 +134,15 @@ graceful_shutdown() {
 
 health_check() {
     local url="${1//\{\{PORT\}\}/$PORT}"
-    log "Running health check on $url..."
+    
+    # Safety Check: Fallback if URL is empty
+    if [[ -z "$url" ]]; then
+        url="http://localhost:$PORT/api/health"
+    fi
+    
+    log "Running health check on $url (Waiting up to 30s)..."
     local count=0
-    while [[ $count -lt 10 ]]; do
+    while [[ $count -lt 30 ]]; do
         if curl -sf "$url" > /dev/null 2>&1; then
             log "${GREEN}Health check passed${NC}"
             return 0
