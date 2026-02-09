@@ -1,48 +1,71 @@
-# Status & Risk Report: Cachy App Maintenance
+# In-Depth Analysis & Status Report
 
-## 1. Prioritized Findings
+**Date:** 2026-03-03
+**Scope:** `cachy-app` (Trading Platform)
+**Author:** Jules (Senior Lead Developer)
 
-### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+## 1. Executive Summary
 
-1.  **WebSocket "Fast Path" Type Safety (`src/services/bitunixWs.ts`)**
-    *   **Finding:** The `handleMessage` method uses a "Fast Path" optimization for high-frequency data (Price/Ticker) that bypasses Zod schema validation. It manually casts fields like `typeof data.ip === 'number' ? String(data.ip) : data.ip`.
-    *   **Risk:** While defensive, the type guards (`isPriceData`, `isTickerData`) currently use loose checks (e.g., checking for property existence without strict type verification). If the API sends `null` or an unexpected object structure, it could lead to runtime errors or incorrect data propagating to the UI/Trading engine.
-    *   **Recommendation:** Harden `isPriceData` and similar guards to strictly check for `string | number` types and reject `null`/`undefined` explicitly.
+The codebase exhibits a generally high standard of engineering, particularly in resource management (LRU caches, buffer limits) and financial precision (consistent `Decimal.js` usage). However, several critical vulnerabilities exist in high-frequency data paths (WebSockets), potential race conditions in trade execution logic, and inconsistent internationalization (i18n) that compromise the "institutional grade" objective.
 
-2.  **Timeframe Parsing Vulnerability (`src/services/marketWatcher.ts`)**
-    *   **Finding:** The `tfToMs` helper function uses `parseInt` and `slice` without validating the input string format.
-    *   **Risk:** Malformed timeframes (e.g., empty string, "invalid") could return `NaN` or incorrect milliseconds, potentially causing infinite loops or incorrect data fetching intervals.
-    *   **Recommendation:** Implement a robust `safeTfToMs` utility with regex validation.
+## 2. Prioritized Findings
 
-### 🟡 WARNING (Performance issue, UX error, missing i18n)
+### 🔴 CRITICAL (Risk of financial loss, crash, or data corruption)
 
-1.  **Missing Internationalization (i18n) in Visuals Tab (`src/components/settings/tabs/VisualsTab.svelte`)**
-    *   **Finding:** Numerous hardcoded UI strings found (e.g., "Mode", "Enhanced Effects", "Flow Speed", "Volume Scale").
-    *   **Risk:** Poor UX for non-English users.
-    *   **Recommendation:** Extract these strings to `src/locales/locales/en.json` and use the `$_` store.
+1.  **Race Condition in `TradeService.flashClosePosition`**
+    *   **Location:** `src/services/tradeService.ts`
+    *   **Issue:** The function attempts to cancel open orders *before* closing a position. If the cancellation fails (e.g., network timeout), it logs a critical error but *proceeds* to place the market close order.
+    *   **Risk:** "Naked Stop Loss" scenario. If the position is closed but the SL remains active, a subsequent price move could trigger a new, unintended position, leading to significant financial loss.
+    *   **Recommendation:** Implement a strict "Safe Mode" that aborts the close if cancellation fails, or use a "Close All" order type if supported by the API (Bitunix supports `reduceOnly`, which is used, but existing SLs should be explicitly handled).
 
-2.  **Unhanded Worker Initialization Error (`src/components/shared/backgrounds/TradeFlowBackground.svelte`)**
-    *   **Finding:** The component throws a raw `Error("OffscreenCanvas not supported...")` without catching it.
-    *   **Risk:** On older browsers or environments where OffscreenCanvas is disabled, this causes the entire component (and potentially the parent view) to crash/unmount unexpectedly.
-    *   **Recommendation:** Wrap initialization in a `try-catch` block and display a fallback or graceful error state.
+2.  **WebSocket "Fast Path" Type Safety**
+    *   **Location:** `src/services/bitunixWs.ts`
+    *   **Issue:** The "Fast Path" optimization manually parses raw WebSocket messages to avoid Zod overhead. It casts numeric fields to strings (e.g., `String(data.ip)`).
+    *   **Risk:** JavaScript's `String(1e-10)` results in `"1e-10"`, which `Decimal.js` handles, but extremely small or large numbers might lose precision *before* the cast if the browser's JSON parser eagerly converts them to native numbers.
+    *   **Recommendation:** While `safeJsonParse` handles large integers (using a custom reviver if implemented, or `lossless-json`), the current implementation uses standard `JSON.parse`. We must verify that `safeJsonParse` is actually robust against precision loss for `orderId` (which it seems to be for >15 digits, but price/qty fields are critical).
 
-3.  **Heavy Calculation in Market Store (`src/stores/market.svelte.ts`)**
-    *   **Finding:** `applySymbolKlines` performs complex merging and array manipulation. While it uses `Float64Array` for optimization (SoA), it runs on the main thread.
-    *   **Risk:** High-frequency WebSocket updates during high volatility could cause UI stutter.
-    *   **Recommendation:** Consider moving heavy merging logic to a Web Worker in the future (Blue/Refactor).
+3.  **MarketWatcher Backfill Concurrency**
+    *   **Location:** `src/services/marketWatcher.ts` (`ensureHistory`)
+    *   **Issue:** The backfill logic uses `Promise.all` with a concurrency of 3. While `effectiveBatches` limits the total requests, a rapid sequence of `ensureHistory` calls (e.g., user quickly switching symbols) could flood the `RequestManager` and trigger API rate limits (429s), potentially banning the IP.
+    *   **Risk:** Denial of Service (DoS) due to rate limiting.
+    *   **Recommendation:** Implement a global "Backfill Queue" in `RequestManager` to serialize heavy historical fetches across *all* symbols, not just per-symbol.
 
-### 🔵 REFACTOR (Code smell, technical debt)
+### 🟡 WARNING (Performance, UX, i18n)
 
-1.  **Duplicate Timeframe Logic**
-    *   **Finding:** `tfToMs` logic appears in `marketWatcher.ts` and likely other places (implicitly).
-    *   **Recommendation:** Centralize in `src/utils/timeUtils.ts`.
+1.  **Incomplete Internationalization (i18n)**
+    *   **Location:** `src/components/shared/OrderHistoryList.svelte`, `src/services/tradeService.ts`, `src/services/marketWatcher.ts`
+    *   **Issue:** Hardcoded strings found:
+        *   UI: "Load More", "Unknown API Error", manual date formatting (`DD.MM HH:mm`).
+        *   Logs: "market", "trade.apiError" (used as error keys but not localized in UI).
+    *   **Impact:** Poor user experience for non-English users; date formats confusing for US/EU mix.
+    *   **Recommendation:** Replace all hardcoded strings with `$t(...)` keys. Use `Intl.DateTimeFormat` for dates.
 
-## 2. Implementation Plan
+2.  **Error Handling UX**
+    *   **Location:** Global (Toast notifications)
+    *   **Issue:** Errors often bubble up as raw codes (e.g., "apiErrors.symbolNotFound") or generic "Error" messages if the translation key is missing.
+    *   **Impact:** Users see "undefined" or technical jargon instead of actionable advice ("Check your internet connection").
+    *   **Recommendation:** Implement a global `ErrorMapper` that intercepts known error codes and returns user-friendly, localized messages.
 
-The following actions will be taken to address the critical and warning items:
+3.  **Potential Memory Pressure in `MarketManager`**
+    *   **Location:** `src/stores/market.svelte.ts` (`applySymbolKlines`)
+    *   **Issue:** The logic for merging historical klines with live updates creates multiple copies of `Float64Array` buffers (`slice`, `rebuildBuffers`).
+    *   **Impact:** High GC churn during high-volatility periods or when loading history for many symbols.
+    *   **Recommendation:** Optimize buffer management to use `set()` for in-place updates more aggressively and reduce allocations.
 
-1.  **Harden Utilities:** Create `src/utils/timeUtils.ts` with `safeTfToMs` and tests.
-2.  **Refactor MarketWatcher:** Use `safeTfToMs`.
-3.  **Harden WebSocket:** Improve type guards in `bitunixWs.ts`.
-4.  **Fix i18n:** Update `en.json` and `VisualsTab.svelte`.
-5.  **Fix Error Handling:** Wrap `TradeFlowBackground` init in `try-catch`.
+### 🔵 REFACTOR (Maintainability)
+
+1.  **Complexity of `MarketManager.applySymbolKlines`**
+    *   **Issue:** The function handles 4 different merge strategies (append, update-tail, overlap, full-merge) in one massive block.
+    *   **Recommendation:** Split into smaller, testable helper functions (`mergeAppend`, `mergeOverlap`, `mergeFull`).
+
+## 3. Implementation Plan (Preview)
+
+The next phase will focus on:
+1.  **Hardening Trade Execution:** Fix the `flashClose` race condition.
+2.  **Standardizing i18n:** Audit and fix all hardcoded strings and date formats.
+3.  **Optimizing WebSocket Parsing:** Verify `safeJsonParse` behavior and add strict type guards for numeric precision.
+4.  **Rate Limit Protection:** Refactor `ensureHistory` to use a centralized queue.
+
+Signed,
+Jules
+Senior Lead Developer

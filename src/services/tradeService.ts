@@ -179,7 +179,7 @@ class TradeService {
         return position;
     }
 
-    public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
+    public async flashClosePosition(symbol: string, positionSide: "long" | "short", force: boolean = false) {
         // 1. Get fresh position
         const position = await this.ensurePositionFreshness(symbol, positionSide);
 
@@ -230,8 +230,14 @@ class TradeService {
             try {
                 await this.cancelAllOrders(symbol, true);
             } catch (cancelError) {
-                // If cancellation fails, we log it CRITICALLY but proceed to close (Panic button logic).
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+                // If cancellation fails, checks if we should proceed (Panic button logic).
+                logger.error("market", `[FlashClose] Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+                if (!force) {
+                    // Remove optimistic order since we aborted
+                    omsService.removeOrder(clientOrderId);
+                    throw new Error("tradeErrors.closeAbortedDueToCancelFailure");
+                }
+                logger.warn("market", `[FlashClose] FORCE closing despite cancellation failure.`);
             }
 
             return await this.signedRequest("POST", "/api/orders", {
@@ -243,6 +249,11 @@ class TradeService {
                 clientOrderId
             });
         } catch (e) {
+            // Remove optimistic order if aborted explicitly above
+            if ((e as Error).message === "tradeErrors.closeAbortedDueToCancelFailure") {
+                throw e;
+            }
+
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
