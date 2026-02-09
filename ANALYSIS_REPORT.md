@@ -1,48 +1,43 @@
-# Status & Risk Report: Cachy App Maintenance
+# Analysis Report: Cachy-App Codebase Audit
 
-## 1. Prioritized Findings
+## 1. Executive Summary
+The codebase demonstrates a solid foundation with advanced features like "Fast Path" WebSocket handling, "Hybrid Architecture" for market data, and extensive use of `Decimal.js` for financial calculations. However, there are significant risks in Internationalization (I18n), potential memory leaks in event listeners, and loose validation in some API endpoints.
 
-### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+## 2. Findings
 
-1.  **WebSocket "Fast Path" Type Safety (`src/services/bitunixWs.ts`)**
-    *   **Finding:** The `handleMessage` method uses a "Fast Path" optimization for high-frequency data (Price/Ticker) that bypasses Zod schema validation. It manually casts fields like `typeof data.ip === 'number' ? String(data.ip) : data.ip`.
-    *   **Risk:** While defensive, the type guards (`isPriceData`, `isTickerData`) currently use loose checks (e.g., checking for property existence without strict type verification). If the API sends `null` or an unexpected object structure, it could lead to runtime errors or incorrect data propagating to the UI/Trading engine.
-    *   **Recommendation:** Harden `isPriceData` and similar guards to strictly check for `string | number` types and reject `null`/`undefined` explicitly.
+### 🔴 CRITICAL (Risk of Financial Loss, Crash, or Security)
 
-2.  **Timeframe Parsing Vulnerability (`src/services/marketWatcher.ts`)**
-    *   **Finding:** The `tfToMs` helper function uses `parseInt` and `slice` without validating the input string format.
-    *   **Risk:** Malformed timeframes (e.g., empty string, "invalid") could return `NaN` or incorrect milliseconds, potentially causing infinite loops or incorrect data fetching intervals.
-    *   **Recommendation:** Implement a robust `safeTfToMs` utility with regex validation.
+1.  **Loose API Payload Validation (`src/routes/api/tpsl/+server.ts`)**
+    *   **Risk:** The endpoint accepts a generic `params` object in the body without strict schema validation (Zod). While it cleans keys, it doesn't validate value types or structure depth, potentially allowing malformed data to be sent to the exchange API or causing unexpected behavior in the signing logic.
+    *   **Recommendation:** Implement a strict Zod schema for `params` based on the specific action (e.g., `TpSlParamsSchema`).
 
-### 🟡 WARNING (Performance issue, UX error, missing i18n)
+2.  **Implicit Type Conversion in Market Data (`src/services/marketWatcher.ts`)**
+    *   **Risk:** `MarketWatcher` passes raw `number` types (from WebSocket "Fast Path") directly to `marketState.updateSymbol`. While `marketState` currently handles the conversion to `Decimal`, this implicit dependency is fragile. If `marketState` logic changes or if a new consumer accesses the raw data expecting `Decimal`, it could lead to precision errors.
+    *   **Recommendation:** Enforce `Decimal` conversion strictly at the `BitunixWs` boundary or within `MarketWatcher` before it reaches the Store.
 
-1.  **Missing Internationalization (i18n) in Visuals Tab (`src/components/settings/tabs/VisualsTab.svelte`)**
-    *   **Finding:** Numerous hardcoded UI strings found (e.g., "Mode", "Enhanced Effects", "Flow Speed", "Volume Scale").
-    *   **Risk:** Poor UX for non-English users.
-    *   **Recommendation:** Extract these strings to `src/locales/locales/en.json` and use the `$_` store.
+### 🟡 WARNING (Performance, UX, Missing I18n)
 
-2.  **Unhanded Worker Initialization Error (`src/components/shared/backgrounds/TradeFlowBackground.svelte`)**
-    *   **Finding:** The component throws a raw `Error("OffscreenCanvas not supported...")` without catching it.
-    *   **Risk:** On older browsers or environments where OffscreenCanvas is disabled, this causes the entire component (and potentially the parent view) to crash/unmount unexpectedly.
-    *   **Recommendation:** Wrap initialization in a `try-catch` block and display a fallback or graceful error state.
+1.  **Missing I18n in Market Dashboard (`src/components/shared/MarketDashboardModal.svelte`)**
+    *   **Issue:** Several section headers ("Market Heat", "Market Breadth", "Top Opportunity", "Status") and table headers ("Trend", "RSI", "Score") are hardcoded strings. This breaks the multi-language support.
+    *   **Recommendation:** Move these strings to `src/locales/locales/en.json` and use `$_` keys.
 
-3.  **Heavy Calculation in Market Store (`src/stores/market.svelte.ts`)**
-    *   **Finding:** `applySymbolKlines` performs complex merging and array manipulation. While it uses `Float64Array` for optimization (SoA), it runs on the main thread.
-    *   **Risk:** High-frequency WebSocket updates during high volatility could cause UI stutter.
-    *   **Recommendation:** Consider moving heavy merging logic to a Web Worker in the future (Blue/Refactor).
+2.  **Potential Memory Leak in Trade Listeners (`src/services/bitunixWs.ts`)**
+    *   **Issue:** `tradeListeners` is a `Map<string, Set<Function>>`. If consuming components (e.g., UI widgets) subscribe but fail to call `unsubscribeTrade` on destroy, this map will grow indefinitely, holding references to closures and preventing GC.
+    *   **Recommendation:** Audit all usages of `subscribeTrade` and ensure `onDestroy` or `$effect.return` is used. Consider using a `WeakRef` or a strict subscription handle pattern.
 
-### 🔵 REFACTOR (Code smell, technical debt)
+3.  **Untyped API Returns (`src/services/tradeService.ts`)**
+    *   **Issue:** `fetchTpSlOrders` returns `Promise<any[]>`. This lacks type safety for consumers, leading to potential runtime errors if the API response shape changes.
+    *   **Recommendation:** Define a `TpSlOrder` interface and cast the result, or validation with Zod.
 
-1.  **Duplicate Timeframe Logic**
-    *   **Finding:** `tfToMs` logic appears in `marketWatcher.ts` and likely other places (implicitly).
-    *   **Recommendation:** Centralize in `src/utils/timeUtils.ts`.
+### 🔵 REFACTOR (Technical Debt)
 
-## 2. Implementation Plan
+1.  **Manual JSON Construction (`src/services/tradeService.ts`)**
+    *   **Issue:** The `signedRequest` method manually spreads `...serializedPayload` into the body object before `JSON.stringify`. This "magic" serialization is opaque and could be error-prone if nested objects need specific handling.
+    *   **Recommendation:** Use a dedicated `RequestBuilder` or `PayloadSerializer` class that handles `Decimal` conversion and signing preparation explicitly.
 
-The following actions will be taken to address the critical and warning items:
+2.  **Complex Polling Logic (`src/services/marketWatcher.ts`)**
+    *   **Issue:** `performPollingCycle` contains complex staggering and "Zombie Request" logic mixed with business logic.
+    *   **Recommendation:** Extract polling mechanics into a generic `PollingManager` class to separate concerns.
 
-1.  **Harden Utilities:** Create `src/utils/timeUtils.ts` with `safeTfToMs` and tests.
-2.  **Refactor MarketWatcher:** Use `safeTfToMs`.
-3.  **Harden WebSocket:** Improve type guards in `bitunixWs.ts`.
-4.  **Fix i18n:** Update `en.json` and `VisualsTab.svelte`.
-5.  **Fix Error Handling:** Wrap `TradeFlowBackground` init in `try-catch`.
+## 3. Conclusion
+The "Institutional Grade" goal requires closing the gaps in Type Safety (API boundaries) and ensuring 100% I18n coverage. The "Fast Path" optimization is excellent for performance but needs safer guardrails (Zod schemas for all ingress points). The identified memory leak risk in WebSocket listeners should be addressed immediately to ensure long-running stability.
