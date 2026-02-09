@@ -102,13 +102,13 @@
     // Performance Drawdown
     let perfMetrics = $derived(journalState.performanceMetrics || {});
     let drawdownData = $derived({
-        labels: (perfMetrics.drawdownSeries || []).map((d) =>
+        labels: (perfMetrics.drawdownSeries || []).map((d: any) =>
             new Date(d.x).toLocaleDateString(),
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.drawdown"),
-                data: (perfMetrics.drawdownSeries || []).map((d) => d.y),
+                data: (perfMetrics.drawdownSeries || []).map((d: any) => d.y),
                 borderColor: themeColors.danger,
                 backgroundColor: hexToRgba(themeColors.danger, 0.2),
                 fill: true,
@@ -162,7 +162,7 @@
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
                 data: riskScatterData.scatterData || [],
-                backgroundColor: (riskScatterData.scatterData || []).map((d) =>
+                backgroundColor: (riskScatterData.scatterData || []).map((d: any) =>
                     d.y >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
@@ -234,7 +234,7 @@
             {
                 label: $_("journal.deepDive.assets"),
                 data: assetData.bubbleData || [],
-                backgroundColor: (assetData.bubbleData || []).map((d) =>
+                backgroundColor: (assetData.bubbleData || []).map((d: any) =>
                     d.y >= 0
                         ? hexToRgba(themeColors.success, 0.6)
                         : hexToRgba(themeColors.danger, 0.6),
@@ -317,7 +317,7 @@
         (() => {
             const years = new Set<number>();
             years.add(new Date().getFullYear());
-            (calendarData || []).forEach((d) => {
+            (calendarData || []).forEach((d: any) => {
                 const y = new Date(d.date).getFullYear();
                 if (!isNaN(y)) years.add(y);
             });
@@ -336,7 +336,7 @@
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
                 data: tagData.pnlData || [],
-                backgroundColor: (tagData.pnlData || []).map((d) =>
+                backgroundColor: (tagData.pnlData || []).map((d: number) =>
                     d >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
@@ -346,7 +346,7 @@
         journalState.tagEvolutionMetrics || { datasets: [] },
     );
     let tagEvolutionChartData = $derived({
-        datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
+        datasets: (tagEvolutionData.datasets || []).map((ds: any, i: number) => ({
             label: ds.label,
             data: (ds.data || []).map((d: any) => ({
                 x: new Date(d.x).toLocaleDateString(),

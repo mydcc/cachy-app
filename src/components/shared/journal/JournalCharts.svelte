@@ -66,7 +66,7 @@
         ],
     });
     let drawdownData = $derived({
-        labels: (perfData.drawdownSeries || []).map((d) =>
+        labels: (perfData.drawdownSeries || []).map((d: any) =>
             new Date(d.x).toLocaleDateString(),
         ),
         datasets: [
@@ -102,7 +102,7 @@
             {
                 label: $_("journal.deepDive.charts.titles.monthlyPnl"),
                 data: perfData.monthlyData || [],
-                backgroundColor: (perfData.monthlyData || []).map((d) =>
+                backgroundColor: (perfData.monthlyData || []).map((d: number) =>
                     d >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
@@ -147,13 +147,13 @@
         ],
     });
     let cumRData = $derived({
-        labels: (qualData.cumulativeRCurve || []).map((d) =>
+        labels: (qualData.cumulativeRCurve || []).map((d: any) =>
             new Date(d.x).toLocaleDateString(),
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.cumulativeR"),
-                data: (qualData.cumulativeRCurve || []).map((d) => d.y),
+                data: (qualData.cumulativeRCurve || []).map((d: any) => d.y),
                 borderColor: themeColors.accent,
                 backgroundColor: hexToRgba(themeColors.accent, 0.1),
                 fill: true,
@@ -252,7 +252,7 @@
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
                 data: discData.hourlyPnl || [],
-                backgroundColor: (discData.hourlyPnl || []).map((d) =>
+                backgroundColor: (discData.hourlyPnl || []).map((d: number) =>
                     d >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
