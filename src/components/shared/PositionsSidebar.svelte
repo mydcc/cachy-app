@@ -24,6 +24,7 @@
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
   import type { OMSPosition } from "../../services/omsTypes";
+  import { Decimal } from "decimal.js";
 
   // Sub-components
   import PositionsList from "./PositionsList.svelte";
@@ -266,7 +267,7 @@
   // Filter History
   let filteredHistoryOrders = $derived(
     settingsState.hideUnfilledOrders
-      ? historyOrders.filter((o) => Number(o.filled || o.dealAmount || 0) > 0)
+      ? historyOrders.filter((o) => new Decimal(o.filled || o.dealAmount || 0).gt(0))
       : historyOrders,
   );
 

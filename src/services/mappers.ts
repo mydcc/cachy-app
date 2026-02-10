@@ -23,6 +23,16 @@
 import { Decimal } from "decimal.js";
 import type { OMSOrder, OMSPosition, OMSOrderSide, OMSOrderStatus } from "./omsTypes";
 
+// Helper for safe Decimal conversion
+function safeDecimal(val: any): Decimal {
+    if (!val) return new Decimal(0);
+    if (val instanceof Decimal) return val;
+    if (typeof val === 'number' || (typeof val === 'string' && val.trim() !== '')) {
+        try { return new Decimal(val); } catch { return new Decimal(0); }
+    }
+    return new Decimal(0);
+}
+
 /**
  * Maps raw API/WS data to a standardized OMSPosition.
  * Handles different field names (API vs WS) and ensures Decimal precision.
@@ -30,7 +40,7 @@ import type { OMSOrder, OMSPosition, OMSOrderSide, OMSOrderStatus } from "./omsT
 export function mapToOMSPosition(data: any): OMSPosition {
     const isClose = data.event === "CLOSE";
     // If event is CLOSE, the position is effectively closed (qty 0).
-    const amount = isClose ? new Decimal(0) : new Decimal(data.qty || data.size || data.amount || 0);
+    const amount = isClose ? new Decimal(0) : safeDecimal(data.qty || data.size || data.amount);
 
     // Side normalization
     let side: "long" | "short" = "long";
@@ -40,11 +50,12 @@ export function mapToOMSPosition(data: any): OMSPosition {
     }
 
     // Price priority: avgOpenPrice (API/WS) > entryPrice (API fallback)
-    const entryPrice = new Decimal(data.avgOpenPrice || data.averagePrice || data.entryPrice || 0);
-    const upnl = new Decimal(data.unrealizedPNL || data.unrealizedPnl || 0);
-    const lev = new Decimal(data.leverage || 0);
+    // Use safeDecimal to handle potentially malformed inputs (e.g. objects) from fallback schema
+    const entryPrice = safeDecimal(data.avgOpenPrice || data.averagePrice || data.entryPrice);
+    const upnl = safeDecimal(data.unrealizedPNL || data.unrealizedPnl);
+    const lev = safeDecimal(data.leverage);
     const liq = (data.liquidationPrice || data.liqPrice)
-        ? new Decimal(data.liquidationPrice || data.liqPrice)
+        ? safeDecimal(data.liquidationPrice || data.liqPrice)
         : undefined;
 
     return {

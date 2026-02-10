@@ -124,4 +124,48 @@ describe('TradeService Hardening', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith("/api/orders", expect.anything());
   });
+
+  // New Regression Test for Malformed Position Recovery
+  it('should handle malformed positions gracefully (partial failure)', async () => {
+      // Mock API response with one valid and one malformed position
+      const mockResponse = {
+          code: 0,
+          msg: "success",
+          data: [
+              {
+                  symbol: "BTCUSDT",
+                  positionSide: "LONG",
+                  amount: "0.1",
+                  entryPrice: "50000"
+              },
+              {
+                  // Malformed: Symbol present, but 'amount' is missing (Zod Refinement fails)
+                  // OR 'entryPrice' is an object (Zod Type check fails)
+                  symbol: "ETHUSDT",
+                  positionSide: "SHORT",
+                  amount: "1.0",
+                  entryPrice: { weird: "object" } // This should fail PositionRawSchema
+              }
+          ]
+      };
+
+      (global.fetch as any).mockResolvedValue({
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify(mockResponse))
+      });
+
+      // Trigger the sync (private method access via casting)
+      await (tradeService as any).fetchOpenPositionsFromApi();
+
+      // Check calls to omsService.updatePosition
+      const calls = (omsService.updatePosition as any).mock.calls;
+
+      // Find BTC
+      const btc = calls.find((c: any) => c[0].symbol === "BTCUSDT");
+      expect(btc).toBeDefined();
+
+      // Find ETH (The broken one - should be recovered via Fallback)
+      const eth = calls.find((c: any) => c[0].symbol === "ETHUSDT");
+      expect(eth).toBeDefined();
+  });
 });

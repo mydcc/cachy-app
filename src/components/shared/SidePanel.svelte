@@ -114,7 +114,7 @@
     if (mode === "chat") return $_("sidePanel.globalChat");
     if (mode === "notes") return $_("sidePanel.myNotes");
     if (mode === "ai") return $_("sidePanel.aiAssistant");
-    return "Side Panel";
+    return $_("sidePanel.title");
   }
 
   // Reactive layout variables
@@ -539,7 +539,7 @@
                   class="hover:text-[var(--text-primary)] transition-colors p-0.5"
                   onclick={() => changeFontSize(-1)}
                   ondblclick={(e) => e.stopPropagation()}
-                  title="Smaller Font"
+                  title={$_("sidePanel.smallerFont")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -558,7 +558,7 @@
                   class="hover:text-[var(--text-primary)] transition-colors p-0.5"
                   onclick={() => changeFontSize(+1)}
                   ondblclick={(e) => e.stopPropagation()}
-                  title="Larger Font"
+                  title={$_("sidePanel.largerFont")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -584,7 +584,7 @@
                 class:hover:text-green-300={isTerminal}
                 onclick={exportChat}
                 ondblclick={(e) => e.stopPropagation()}
-                title="Export Chat"
+                title={$_("sidePanel.exportChat")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -612,8 +612,8 @@
                 onclick={toggleExpand}
                 ondblclick={(e) => e.stopPropagation()}
                 title={settingsState.panelIsExpanded
-                  ? "Collapse Panel"
-                  : "Expand Panel"}
+                  ? $_("sidePanel.collapse")
+                  : $_("sidePanel.expand")}
               >
                 {#if settingsState.panelIsExpanded}
                   <svg
@@ -678,7 +678,7 @@
                   inputEl?.focus();
                 }}
                 ondblclick={(e) => e.stopPropagation()}
-                title="Clear History"
+                title={$_("sidePanel.clearHistory")}
               >
                 <!-- TRASH ICON -->
                 <svg
@@ -745,7 +745,7 @@
                     <div
                       class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
                     >
-                      {msg.role === "user" ? "You" : "AI"}
+                      {msg.role === "user" ? $_("sidePanel.you") : $_("sidePanel.ai")}
                     </div>
                   {/if}
 
@@ -918,7 +918,7 @@
                   {:else}
                     <span
                       class="text-[10px] uppercase font-bold text-[var(--accent-color)]"
-                      >Thinking...</span
+                      >{$_("sidePanel.thinking")}</span
                     >
                   {/if}
                 </div>
@@ -930,11 +930,11 @@
                 >
                   {#if isTerminal}
                     <p class="text-xs text-green-800">
-                      SYSTEM READY. AWAITING INPUT.
+                      {$_("sidePanel.systemReady")}
                     </p>
                   {:else}
                     <p class="text-xs font-medium text-[var(--text-secondary)]">
-                      Ready to assist.
+                      {$_("sidePanel.ready")}
                     </p>
                   {/if}
                 </div>
@@ -1037,7 +1037,7 @@
                   class:text-green-500={contextData?.cmc?.global ||
                     contextData?.technicals}
                 >
-                  <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+                  <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> {$_("sidePanel.marketStatus")}
                 </div>
                 <div
                   class="flex items-center gap-1"
@@ -1049,7 +1049,7 @@
                     >{contextData?.news && contextData.news.length > 0
                       ? "🟢"
                       : "⚪"}</span
-                  > News
+                  > {$_("sidePanel.newsStatus")}
                 </div>
                 <!-- Add more indicators as needed -->
               </div>
@@ -1066,7 +1066,7 @@
                       handleSend();
                     }}
                   >
-                    📊 Market Check
+                    📊 {$_("sidePanel.actionMarket")}
                   </button>
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
@@ -1077,7 +1077,7 @@
                       handleSend();
                     }}
                   >
-                    🧪 Tech Analysis
+                    🧪 {$_("sidePanel.actionTech")}
                   </button>
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
@@ -1086,7 +1086,7 @@
                       handleSend();
                     }}
                   >
-                    ⚠️ Risk Audit
+                    ⚠️ {$_("sidePanel.actionRisk")}
                   </button>
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
@@ -1095,7 +1095,7 @@
                       handleSend();
                     }}
                   >
-                    📰 News check
+                    📰 {$_("sidePanel.actionNews")}
                   </button>
                 </div>
               {/if}
@@ -1116,8 +1116,7 @@
                   <div class="flex items-center gap-1.5 opacity-90">
                     <span>⚠️</span>
                     <span
-                      >Generative AI Quota exceeded. Please try again later or
-                      check API settings.</span
+                      >{$_("sidePanel.quotaExceeded")}</span
                     >
                   </div>
                 {:else}
@@ -1145,7 +1144,7 @@
                   class:placeholder-[var(--text-tertiary)]={true}
                   placeholder={settingsState.sidePanelMode === "ai"
                     ? isTerminal
-                      ? "> ENTER COMMAND"
+                      ? "> " + $_("sidePanel.enterCommand")
                       : $_("cloud.placeholder") ||
                         "Message AI... (Shift+Enter for new line)"
                     : $_("journal.placeholder.notes")}

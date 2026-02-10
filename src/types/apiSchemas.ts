@@ -109,6 +109,17 @@ export const PositionRawSchema = z.object({
 
 export const PositionListSchema = z.array(PositionRawSchema);
 
+// Hardening: Fallback schema for malformed positions
+// Only enforces symbol and basic structure, treats others as unknown to prevent crash
+export const FallbackPositionSchema = z.object({
+    symbol: z.string(),
+    side: z.string().optional(),
+    positionSide: z.string().optional(),
+    qty: z.union([z.string(), z.number()]).optional(),
+    size: z.union([z.string(), z.number()]).optional(),
+    amount: z.union([z.string(), z.number()]).optional()
+}).passthrough(); // Capture all other fields as-is without validation
+
 // --- TP/SL Request Validation Schemas ---
 
 // Common Headers

@@ -31,8 +31,9 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, FallbackPositionSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import type { TpSlOrder } from "../types/orderTypes";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -348,9 +349,23 @@ class TradeService {
                          errorCount++;
                     }
                 } else {
-                    // Log but don't crash
-                    logger.warn("market", "[TradeService] Invalid position schema skipped", { item, error: validation.error });
-                    errorCount++;
+                    // Hardening: Try fallback schema
+                    const fallback = FallbackPositionSchema.safeParse(item);
+                    if (fallback.success) {
+                        try {
+                            logger.warn("market", `[TradeService] Recovering malformed position for ${fallback.data.symbol}`, { item });
+                            // Best effort mapping
+                            omsService.updatePosition(mapToOMSPosition(fallback.data));
+                            validCount++;
+                        } catch (e) {
+                            logger.error("market", "[TradeService] Failed to map fallback position", e);
+                            errorCount++;
+                        }
+                    } else {
+                        // Log but don't crash
+                        logger.warn("market", "[TradeService] Invalid position schema skipped (Fallback failed)", { item, error: validation.error });
+                        errorCount++;
+                    }
                 }
             }
 
@@ -424,7 +439,7 @@ class TradeService {
         return results;
     }
 
-    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<any[]> {
+    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {

@@ -21,6 +21,7 @@
   import Tooltip from "../shared/Tooltip.svelte";
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
+  import DOMPurify from "dompurify";
 
   const dispatch = createEventDispatcher();
 
@@ -77,9 +78,9 @@
         onclick={handleToggleLock}
       >
         {#if isPositionSizeLocked}
-          {@html icons.lockClosed}
+          {@html DOMPurify.sanitize(icons.lockClosed)}
         {:else}
-          {@html icons.lockOpen}
+          {@html DOMPurify.sanitize(icons.lockOpen)}
         {/if}
       </button>
       <button
@@ -88,7 +89,7 @@
         aria-label={$_("dashboard.summaryResults.copyPositionSizeAriaLabel")}
         onclick={handleCopy}
       >
-        {@html icons.copy}
+        {@html DOMPurify.sanitize(icons.copy)}
       </button>
       {#if showCopyFeedback}<span
           id="copy-feedback"

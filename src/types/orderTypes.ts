@@ -39,3 +39,20 @@ export const OrderRole = {
 } as const;
 
 export type OrderRole = typeof OrderRole[keyof typeof OrderRole];
+
+export interface TpSlOrder {
+    id: string;
+    orderId?: string;
+    planId?: string;
+    symbol: string;
+    planType: "PROFIT" | "LOSS";
+    triggerPrice: string;
+    executePrice?: string;
+    orderType?: string; // "MARKET" | "LIMIT"
+    status: string; // "NOT_TRIGGERED" | "TRIGGERED" | "EXECUTED" | "CANCELED"
+    createTime: number;
+    ctime?: number; // Legacy/Bitunix specific
+    qty?: string;
+    amount?: string;
+    side?: string;
+}
