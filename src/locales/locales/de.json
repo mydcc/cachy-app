@@ -106,6 +106,9 @@
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Markt",
         "trailing": "Trailing",
+        "ioc": "IOC",
+        "fok": "FOK",
+        "postOnly": "Post Only",
         "unknown": "Unbekannt"
       },
       "details": {

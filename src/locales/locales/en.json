@@ -127,6 +127,9 @@
         "stopLimit": "Stop Limit",
         "stopMarket": "Stop Market",
         "trailing": "Trailing",
+        "ioc": "IOC",
+        "fok": "FOK",
+        "postOnly": "Post Only",
         "unknown": "Unknown"
       }
     },

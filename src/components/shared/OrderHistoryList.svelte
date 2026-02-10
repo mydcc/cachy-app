@@ -86,9 +86,9 @@
   }
 
   function formatDate(timestamp: number) {
-    if (!timestamp) return "-";
+    if (!timestamp) return $_("dashboard.orderHistory.noDate");
     const date = new Date(Number(timestamp));
-    if (isNaN(date.getTime())) return "-";
+    if (isNaN(date.getTime())) return $_("dashboard.orderHistory.noDate");
 
     try {
         return new Intl.DateTimeFormat($locale || 'en', {
@@ -106,7 +106,7 @@
 
   // Helper to get Fee String
   function getFeeDisplay(order: any) {
-    if (order.fee === undefined || order.fee === null) return "-";
+    if (order.fee === undefined || order.fee === null) return $_("dashboard.orderHistory.noFee");
     const roleMap: Record<string, string> = {
         MAKER: ` (${$_("dashboard.orderHistory.maker")})`,
         TAKER: ` (${$_("dashboard.orderHistory.taker")})`
@@ -125,11 +125,11 @@
     if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq");
 
     // Add support for new types if present
-    if (t === "IOC") return "IOC";
-    if (t === "FOK") return "FOK";
-    if (t === "POST_ONLY") return "Post Only";
+    if (t === "IOC") return $_("dashboard.orderHistory.type.ioc");
+    if (t === "FOK") return $_("dashboard.orderHistory.type.fok");
+    if (t === "POST_ONLY") return $_("dashboard.orderHistory.type.postOnly");
 
-    if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
+    if (!t || t === "UNDEFINED" || t === "NULL") return $_("dashboard.orderHistory.type.unknown");
 
     // Fallback: Truncate long types
     return t.length > 6 ? t.substring(0, 6) + "." : t;
