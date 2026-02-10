@@ -1257,6 +1257,7 @@
       "clearCache": "Clear Cache",
       "dangerZone": "Danger Zone",
       "dashboard": "Dashboard",
+    "quickActions": "Quick Actions",
       "dangerZoneDesc": "Warning: Use these functions only if you know what you're doing",
       "deleteAllData": "Delete All Data",
       "deleteAllDataDesc": "Deletes all journal entries and resets the app",
