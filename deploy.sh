@@ -119,17 +119,26 @@ show_cachy_eater() {
     local pid=$1
     local estimate=$2
     local delay=0.3
-    local width=41 # Odd number works best for " o " pattern
+    local width=41 # Fixed visible width of the bar interior
     local char="c"
     local gold='\033[38;2;255;215;0m'
+    
+    # Pre-build static tracks to ensure perfect alignment
+    local track_dots=""
+    for ((i=0; i<width+2; i++)); do
+        (( i % 2 == 0 )) && track_dots+="o" || track_dots+=" "
+    done
+    local track_tail=""
+    for ((i=0; i<width+2; i++)); do
+        track_tail+="-"
+    done
     
     # Hide cursor
     tput civis 2>/dev/null || echo -ne "\033[?25l"
     
     local start_time=$(date +%s)
     while kill -0 $pid 2>/dev/null; do
-        local current_time=$(date +%s)
-        local elapsed=$((current_time - start_time))
+        local elapsed=$(( $(date +%s) - start_time ))
         
         # Calculate progress position (0 to width-1)
         local pos=$(( elapsed * width / estimate ))
@@ -138,25 +147,13 @@ show_cachy_eater() {
         # Toggle mouth (Cachy Style)
         [[ "$char" == "c" ]] && char="C" || char="c"
         
-        # Build the bar character by character to keep dots static
-        local bar=""
-        for ((i=0; i<width; i++)); do
-            if (( i < pos )); then
-                bar+="-"
-            elif (( i == pos )); then
-                bar+="${gold}${char}${NC}"
-            else
-                # Static dots on even positions (after eater)
-                if (( i % 2 == 0 )); then
-                    bar+="o"
-                else
-                    bar+=" "
-                fi
-            fi
-        done
+        # slice the parts: [tail][eater][dots]
+        # visible length is always: pos + 1 + (width - pos - 1) = width
+        local tail_part="${track_tail:0:pos}"
+        local dots_part="${track_dots:pos+1:width-pos-1}"
         
-        # Print bar: [----c o o o o ]
-        printf "\r  ${YELLOW}[${NC}${bar}${YELLOW}]${NC} Building... "
+        # Print bar with fixed formatting
+        printf "\r  ${YELLOW}[${NC}%s${gold}%s${NC}%s${YELLOW}]${NC} Building... " "$tail_part" "$char" "$dots_part"
         
         sleep $delay
     done
