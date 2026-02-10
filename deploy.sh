@@ -389,7 +389,7 @@ chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║                                                                  ║${NC}"
-printf "${CYAN}║   ${LIME}✅  DEPLOYMENT %-47s ${CYAN}║\n${NC}" "$(echo "$ENV_TYPE" | tr '[:lower:]' '[:upper:]') ERFOLGREICH"
+printf "${CYAN}║   ${LIME}✅  DEPLOYMENT %-48s ${CYAN}║\n${NC}" "$(echo "$ENV_TYPE" | tr '[:lower:]' '[:upper:]') ERFOLGREICH"
 echo -e "${CYAN}║                                                                  ║${NC}"
 echo -e "${CYAN}╠══════════════════════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║                                                                  ║${NC}"
