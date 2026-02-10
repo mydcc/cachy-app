@@ -301,11 +301,14 @@
       "okButton": "OK"
     },
     "visualBar": {
-      "header": "Visual Analysis",
+      "header": "Trade Targets",
       "entry": "Entry",
       "ariaLabel": "Trade Visualization Bar",
       "netProfitLabel": "Net Profit:",
-      "rrLabel": "R/R:"
+      "rrLabel": "R/R:",
+      "sl": "SL",
+      "tp": "TP",
+      "riskUnit": "R"
     },
     "riskRewardRatio": "Risk/Reward Ratio",
     "promptForData": "Please enter required trade data to start calculation.",

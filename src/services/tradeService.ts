@@ -452,20 +452,10 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const response = await fetch("/api/tpsl", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-                                  body: JSON.stringify(this.serializePayload({
-                                      exchange: provider,
-                                      apiKey: keys.key,
-                                      apiSecret: keys.secret,
-                                      action: view,
-                                      params
-                                  }))
-                              });
-
-                              const text = await response.text();
-                              const data = safeJsonParse(text);
+                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                                  action: view,
+                                  params
+                              }).catch(e => ({ error: e.message })); // Catch signedRequest throw to match previous behavior
 
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
@@ -495,52 +485,24 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const response = await fetch("/api/tpsl", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-                  body: JSON.stringify({
-                      exchange: provider,
-                      apiKey: keys.key,
-                      apiSecret: keys.secret,
-                      action: view,
-                  })
+             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                  action: view
              });
-
-             const text = await response.text();
-             const data = safeJsonParse(text);
-             if (data.error) throw new Error(data.error);
-
              const list = Array.isArray(data) ? data : data.rows || [];
              list.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
-        }
+    }
     }
 
     public async cancelTpSlOrder(order: any) {
-        const provider = settingsState.apiProvider || "bitunix";
-        const keys = settingsState.apiKeys[provider];
-        if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
-
-        const response = await fetch("/api/tpsl", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-            body: JSON.stringify(this.serializePayload({
-                exchange: provider,
-                apiKey: keys.key,
-                apiSecret: keys.secret,
-                action: "cancel",
-                params: {
-                    orderId: order.orderId || order.id,
-                    symbol: order.symbol,
-                    planType: order.planType,
-                },
-            })),
+        return this.signedRequest("POST", "/api/tpsl", {
+            action: "cancel",
+            params: {
+                orderId: order.orderId || order.id,
+                symbol: order.symbol,
+                planType: order.planType,
+            },
         });
-
-        const text = await response.text();
-        const res = safeJsonParse(text);
-        if (res.error) throw new Error(res.error);
-        return res;
     }
 
     public async modifyTpSlOrder(params: {
@@ -550,32 +512,16 @@ class TradeService {
         triggerPrice: string,
         qty?: string
     }) {
-        const provider = settingsState.apiProvider || "bitunix";
-        const keys = settingsState.apiKeys[provider];
-        if (!keys?.key || !keys?.secret) throw new Error("dashboard.alerts.noApiKeys");
-
-        const response = await fetch("/api/tpsl", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
-            body: JSON.stringify(this.serializePayload({
-                exchange: provider,
-                apiKey: keys.key,
-                apiSecret: keys.secret,
-                action: "modify",
-                params: {
-                    orderId: params.orderId,
-                    symbol: params.symbol,
-                    planType: params.planType,
-                    triggerPrice: params.triggerPrice,
-                    qty: params.qty
-                },
-            })),
+        return this.signedRequest("POST", "/api/tpsl", {
+            action: "modify",
+            params: {
+                orderId: params.orderId,
+                symbol: params.symbol,
+                planType: params.planType,
+                triggerPrice: params.triggerPrice,
+                qty: params.qty
+            },
         });
-
-        const text = await response.text();
-        const res = safeJsonParse(text);
-        if (res.error) throw new Error(res.error);
-        return res;
     }
 }
 

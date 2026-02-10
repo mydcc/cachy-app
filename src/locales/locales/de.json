@@ -301,11 +301,14 @@
       "okButton": "OK"
     },
     "visualBar": {
-      "header": "Visuelle Analyse",
+      "header": "Handelsziele",
       "entry": "Einstieg",
       "ariaLabel": "Trade-Visualisierungsleiste",
       "netProfitLabel": "Netto-Gewinn:",
-      "rrLabel": "R/R:"
+      "rrLabel": "R/R:",
+      "sl": "SL",
+      "tp": "TP",
+      "riskUnit": "R"
     },
     "riskRewardRatio": "Chance-Risiko-Verhältnis",
     "promptForData": "Bitte geben Sie die erforderlichen Handelsdaten ein, um die Berechnung zu starten.",

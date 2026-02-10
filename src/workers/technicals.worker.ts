@@ -207,12 +207,49 @@ async function handleCalculate(payload: any, id?: string) {
         pool
       );
     } else {
-      // Legacy Path (Object Array)
+      // Legacy Path (Object Array) - OPTIMIZED (Zero-Allocation Mode)
       const calculatePayload = payload as WorkerCalculatePayload;
       const { klines, settings, enabledIndicators } = calculatePayload;
 
-      const klinesDec = convertToDecimalKlines(klines);
-      result = calculateAllIndicators(klinesDec, settings, enabledIndicators);
+      // Direct parsing to pool (bypassing Decimal creation)
+      const len = klines.length;
+      const times = pool.acquire(len);
+      const opens = pool.acquire(len);
+      const highs = pool.acquire(len);
+      const lows = pool.acquire(len);
+      const closes = pool.acquire(len);
+      const volumes = pool.acquire(len);
+
+      try {
+          for (let i = 0; i < len; i++) {
+              const k = klines[i];
+              times[i] = k.time;
+              opens[i] = parseFloat(k.open);
+              highs[i] = parseFloat(k.high);
+              lows[i] = parseFloat(k.low);
+              closes[i] = parseFloat(k.close);
+              volumes[i] = parseFloat(k.volume);
+          }
+
+          result = calculateIndicatorsFromArrays(
+              times,
+              opens,
+              highs,
+              lows,
+              closes,
+              volumes,
+              settings,
+              enabledIndicators,
+              pool
+          );
+      } finally {
+          pool.release(times);
+          pool.release(opens);
+          pool.release(highs);
+          pool.release(lows);
+          pool.release(closes);
+          pool.release(volumes);
+      }
     }
 
     const response: WorkerMessage = {

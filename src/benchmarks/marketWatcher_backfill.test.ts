@@ -53,6 +53,7 @@ describe('MarketWatcher Backfill Performance', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (marketWatcher as any).historyLocks.clear();
+        (marketWatcher as any).isPolling = true;
         marketState.data = {};
     });
 
