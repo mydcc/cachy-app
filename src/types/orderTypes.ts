@@ -39,3 +39,19 @@ export const OrderRole = {
 } as const;
 
 export type OrderRole = typeof OrderRole[keyof typeof OrderRole];
+
+export interface TpSlOrder {
+    id?: string;
+    orderId?: string;
+    planId?: string;
+    symbol: string;
+    side?: string;
+    planType?: "PROFIT" | "LOSS";
+    triggerPrice?: string | number;
+    executePrice?: string | number;
+    qty?: string | number;
+    status?: string;
+    ctime?: number;
+    createTime?: number;
+    updateTime?: number;
+}

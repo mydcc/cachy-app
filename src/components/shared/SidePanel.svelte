@@ -1037,7 +1037,7 @@
                   class:text-green-500={contextData?.cmc?.global ||
                     contextData?.technicals}
                 >
-                  <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+                  <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> {$_("deepDive.market")}
                 </div>
                 <div
                   class="flex items-center gap-1"
@@ -1049,7 +1049,7 @@
                     >{contextData?.news && contextData.news.length > 0
                       ? "🟢"
                       : "⚪"}</span
-                  > News
+                  > {$_("integrations.analytics")}
                 </div>
                 <!-- Add more indicators as needed -->
               </div>
@@ -1145,7 +1145,7 @@
                   class:placeholder-[var(--text-tertiary)]={true}
                   placeholder={settingsState.sidePanelMode === "ai"
                     ? isTerminal
-                      ? "> ENTER COMMAND"
+                      ? "> " + ($_("system.quickActions") || "ENTER COMMAND")
                       : $_("cloud.placeholder") ||
                         "Message AI... (Shift+Enter for new line)"
                     : $_("journal.placeholder.notes")}

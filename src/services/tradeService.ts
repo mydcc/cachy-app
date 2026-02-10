@@ -348,9 +348,37 @@ class TradeService {
                          errorCount++;
                     }
                 } else {
-                    // Log but don't crash
-                    logger.warn("market", "[TradeService] Invalid position schema skipped", { item, error: validation.error });
-                    errorCount++;
+                    // Hardening: Safe Fallback
+                    // Even if strict validation fails, we attempt to capture critical fields to avoid silent data loss.
+                    // We only skip if we absolutely cannot determine the symbol or amount.
+                    if (item && item.symbol && (item.amount || item.size || item.qty || item.positionAmount)) {
+                         try {
+                             logger.warn("market", "[TradeService] Schema mismatch, using fallback mapping", { symbol: item.symbol });
+                             const fallbackPosition: any = {
+                                 symbol: item.symbol,
+                                 // Best effort mapping
+                                 side: item.side || (Number(item.amount || 0) > 0 ? "long" : "short"),
+                                 amount: item.amount || item.size || item.qty || item.positionAmount,
+                                 entryPrice: item.entryPrice || item.avgOpenPrice || item.openPrice,
+                                 unrealizedPNL: item.unrealizedPNL || item.unrealizedPnl || item.upl,
+                                 leverage: item.leverage || 1,
+                                 marginMode: item.marginMode || "cross",
+                                 _isPartial: true // Flag for UI
+                             };
+                             // Validate fallback with a looser check or just try to map
+                             const mapped = mapToOMSPosition(fallbackPosition);
+                             omsService.updatePosition(mapped);
+                             validCount++;
+                             logger.info("market", `[TradeService] Recovered position for ${item.symbol} via fallback.`);
+                         } catch (fallbackError) {
+                             logger.error("market", "[TradeService] Fallback mapping failed", fallbackError);
+                             errorCount++;
+                         }
+                    } else {
+                        // Log but don't crash
+                        logger.warn("market", "[TradeService] Invalid position schema skipped (unrecoverable)", { item, error: validation.error });
+                        errorCount++;
+                    }
                 }
             }
 
@@ -424,7 +452,7 @@ class TradeService {
         return results;
     }
 
-    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<any[]> {
+    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<import("../types/orderTypes").TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {
@@ -440,7 +468,7 @@ class TradeService {
              positions.forEach(p => symbolsToFetch.add(p.symbol));
 
              const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
-             const results: any[] = [];
+             const results: import("../types/orderTypes").TpSlOrder[] = [];
 
              // Rate limit handling: Batch requests (max 5 concurrent)
              const BATCH_SIZE = 5;
@@ -479,9 +507,9 @@ class TradeService {
                  const id = o.id || o.orderId || o.planId;
                  if (id) uniqueOrders.set(id, o);
              });
-             const final = Array.from(uniqueOrders.values());
+             const final = Array.from(uniqueOrders.values()) as import("../types/orderTypes").TpSlOrder[];
              // Sort by time (newest first)
-             final.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             final.sort((a, b) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return final;
         } else {
              // Generic provider
@@ -490,7 +518,7 @@ class TradeService {
              });
              const list = Array.isArray(data) ? data : data.rows || [];
              list.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
-             return list;
+             return list as import("../types/orderTypes").TpSlOrder[];
     }
     }
 

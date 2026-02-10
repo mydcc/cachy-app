@@ -807,6 +807,11 @@ class BitunixWebSocketService {
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
                         const now = Date.now();
+                        // HARDENING: Convert to string immediately to salvage precision if possible (though JS usually loses it on receive)
+                        // This serves as a band-aid until API is fixed.
+                        if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                        if (typeof data.lp === 'number') data.lp = String(data.lp);
+
                         if (now - this.lastNumericWarning > 60000) {
                             logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
                             this.lastNumericWarning = now;
@@ -818,7 +823,9 @@ class BitunixWebSocketService {
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
                           fundingRate: fr ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft
+                          nextFundingTime: nft,
+                          // Map lastPrice if present (Bitunix uses lp or lastPrice randomly)
+                          lastPrice: data.lp ? (typeof data.lp === 'number' ? String(data.lp) : data.lp) : undefined
                         });
                     }
                     return;
@@ -1176,14 +1183,20 @@ class BitunixWebSocketService {
         const data = validatedMessage.data;
         if (data) {
           const sanitize = (item: any) => {
+             // HARDENING: Ensure orderId is string. If it's a number, check for safety.
              if (typeof item.orderId === 'number') {
-                 // Precision loss only happens > 15 digits, but we enforce string for consistency
-                 // safeJsonParse handles >15 digits, so this catches smaller IDs or edge cases
-                 if (item.orderId > 9007199254740991) {
-                     logger.warn("network", `[BitunixWS] CRITICAL: numeric orderId detected > MAX_SAFE_INTEGER: ${item.orderId}`);
+                 // Precision loss only happens > 15 digits.
+                 // safeJsonParse handles >15 digits by keeping them as strings, so if we see a number here,
+                 // it means it was small enough to be parsed as number OR it has already lost precision.
+                 if (item.orderId > Number.MAX_SAFE_INTEGER) {
+                     logger.warn("network", `[BitunixWS] CRITICAL: numeric orderId detected > MAX_SAFE_INTEGER: ${item.orderId}. Precision loss likely occurred.`);
                  }
                  item.orderId = String(item.orderId);
              }
+             // Same for price/qty fields if they come as numbers
+             if (typeof item.price === 'number') item.price = String(item.price);
+             if (typeof item.qty === 'number') item.qty = String(item.qty);
+
              return item;
           };
 

@@ -263,10 +263,15 @@
     }
   });
 
+  import { Decimal } from "decimal.js";
+
   // Filter History
   let filteredHistoryOrders = $derived(
     settingsState.hideUnfilledOrders
-      ? historyOrders.filter((o) => Number(o.filled || o.dealAmount || 0) > 0)
+      ? historyOrders.filter((o) => {
+          const filled = new Decimal(o.filled || o.dealAmount || 0);
+          return filled.gt(0);
+      })
       : historyOrders,
   );
 
