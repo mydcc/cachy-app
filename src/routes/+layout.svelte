@@ -283,6 +283,26 @@ import { afterNavigate } from "$app/navigation";
       });
     };
   });
+
+  // --- PWA Action Handling ---
+  // Processes query parameters like ?action=journal to open modals automatically
+  $effect(() => {
+    if (!browser) return;
+    
+    const action = $page.url.searchParams.get("action");
+    if (action === "journal") {
+      uiState.toggleJournalModal(true);
+      // Clean up URL to avoid re-triggering on reload
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("action");
+      window.history.replaceState({}, "", newUrl.toString());
+    } else if (action === "settings") {
+      uiState.toggleSettingsModal(true);
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("action");
+      window.history.replaceState({}, "", newUrl.toString());
+    }
+  });
 </script>
 
 <svelte:head>

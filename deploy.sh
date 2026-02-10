@@ -118,11 +118,10 @@ prompt_user() {
 show_cachy_eater() {
     local pid=$1
     local estimate=$2
-    local delay=0.5
-    local width=40
+    local delay=0.3
+    local width=41 # Odd number works best for " o " pattern
     local char="c"
     local gold='\033[38;2;255;215;0m'
-    local dimmed='\033[2m'
     
     # Hide cursor
     tput civis 2>/dev/null || echo -ne "\033[?25l"
@@ -133,22 +132,31 @@ show_cachy_eater() {
         local elapsed=$((current_time - start_time))
         
         # Calculate progress position (0 to width-1)
-        # We cap it at width-1 to never let the eater leave the bar prematurely
         local pos=$(( elapsed * width / estimate ))
         [[ $pos -ge $width ]] && pos=$((width - 1))
         
-        # Toggle mouth
+        # Toggle mouth (Cachy Style)
         [[ "$char" == "c" ]] && char="C" || char="c"
         
-        # Build the bar components
-        local spaces=""
-        for ((i=0; i<pos; i++)); do spaces+=" "; done
+        # Build the bar character by character to keep dots static
+        local bar=""
+        for ((i=0; i<width; i++)); do
+            if (( i < pos )); then
+                bar+="-"
+            elif (( i == pos )); then
+                bar+="${gold}${char}${NC}"
+            else
+                # Static dots on even positions (after eater)
+                if (( i % 2 == 0 )); then
+                    bar+="o"
+                else
+                    bar+=" "
+                fi
+            fi
+        done
         
-        local dots=""
-        for ((i=pos+1; i<width; i++)); do dots+="•"; done
-        
-        # Print bar: Only c/C is gold
-        printf "\r  ${YELLOW}[${NC}${spaces}${gold}${char}${NC}${dots}${YELLOW}]${NC} Building... "
+        # Print bar: [----c o o o o ]
+        printf "\r  ${YELLOW}[${NC}${bar}${YELLOW}]${NC} Building... "
         
         sleep $delay
     done
@@ -157,7 +165,7 @@ show_cachy_eater() {
     tput cnorm 2>/dev/null || echo -ne "\033[?25h"
     printf "\r"
     # Clear line
-    printf "                                                                \r"
+    printf "                                                                        \r"
 }
 
 create_backup() {
@@ -251,7 +259,7 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 echo -e "${CYAN}┌──────────────────────────────────────────┐${NC}"
-printf "${CYAN}│   🚀 DEPLOYMENT: %-23s │\n${NC}" "$(echo $ENV_TYPE | tr '[:lower:]' '[:upper:]')"
+printf "${CYAN}│   🚀 DEPLOYMENT: %-24s │\n${NC}" "$(echo $ENV_TYPE | tr '[:lower:]' '[:upper:]')"
 echo -e "${CYAN}└──────────────────────────────────────────┘${NC}"
 echo ""
 
@@ -381,7 +389,7 @@ chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║                                                                  ║${NC}"
-printf "${CYAN}║   ${LIME}✅  DEPLOYMENT %-44s ${CYAN}║\n${NC}" "$(echo "$ENV_TYPE" | tr '[:lower:]' '[:upper:]') ERFOLGREICH"
+printf "${CYAN}║   ${LIME}✅  DEPLOYMENT %-48s ${CYAN}║\n${NC}" "$(echo "$ENV_TYPE" | tr '[:lower:]' '[:upper:]') ERFOLGREICH"
 echo -e "${CYAN}║                                                                  ║${NC}"
 echo -e "${CYAN}╠══════════════════════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║                                                                  ║${NC}"

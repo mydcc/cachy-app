@@ -39,6 +39,20 @@
       "type": "image/png",
       "form_factor": "wide",
       "label": "Trade Journal & Performance Analysis"
+    },
+    {
+      "src": "/screenshots/mobile-dashboard.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Cachy Mobile Dashboard"
+    },
+    {
+      "src": "/screenshots/mobile-journal.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Cachy Mobile Journal"
     }
   ],
   "shortcuts": [
@@ -47,6 +61,13 @@
       "short_name": "Journal",
       "description": "View your trading history and performance",
       "url": "/?action=journal",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Configure Cachy app settings",
+      "url": "/?action=settings",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
