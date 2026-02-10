@@ -661,57 +661,65 @@ export class MarketManager {
 
       } else {
         // Slow Path: Historical backfill or disordered data
-        // Use linear merge algorithm (O(N+M))
-        const merged: Kline[] = [];
-        let i = 0;
-        let j = 0;
+        // Optimization: Reverse Merge Strategy to avoid huge allocations
+        // We only need the latest 'effectiveLimit' items.
+        // By merging backwards, we can stop exactly when we have enough items.
+
         const hLen = history.length;
         const nLen = newKlines.length;
+        // Estimate unique items (worst case hLen + nLen, best case max(hLen, nLen))
+        // We cap at effectiveLimit immediately.
+        const targetSize = Math.min(effectiveLimit, hLen + nLen);
+        const merged = new Array(targetSize);
 
-        // Optimization: Pre-calculate max needed size
-        // If (hLen + nLen) > effectiveLimit, we might skip early items in history
-        // But since we merge by time, skipping is tricky.
-        // We stick to standard merge then slice, but immediately.
+        let i = hLen - 1;
+        let j = nLen - 1;
+        let k = targetSize - 1;
 
-        const safePush = (k: Kline) => {
-          const last = merged.length > 0 ? merged[merged.length - 1] : null;
-          if (last && last.time === k.time) {
-            merged[merged.length - 1] = k;
-          } else {
-            merged.push(k);
-          }
-        };
+        while (k >= 0) {
+            if (i < 0 && j < 0) break;
 
-        while (i < hLen && j < nLen) {
-          const hTime = history[i].time;
-          const nTime = newKlines[j].time;
+            // If one source is exhausted, take from the other
+            if (i < 0) {
+                merged[k--] = newKlines[j--];
+                continue;
+            }
+            if (j < 0) {
+                merged[k--] = history[i--];
+                continue;
+            }
 
-          if (hTime < nTime) {
-            safePush(history[i]);
-            i++;
-          } else if (hTime > nTime) {
-            safePush(newKlines[j]);
-            j++;
-          } else {
-            safePush(newKlines[j]);
-            i++;
-            j++;
-          }
+            const hTime = history[i].time;
+            const nTime = newKlines[j].time;
+
+            if (hTime > nTime) {
+                merged[k--] = history[i--];
+            } else if (nTime > hTime) {
+                merged[k--] = newKlines[j--];
+            } else {
+                // Exact match: prefer new update (newKlines)
+                merged[k--] = newKlines[j--];
+                i--; // Skip old version
+            }
         }
 
-        while (i < hLen) safePush(history[i++]);
-        while (j < nLen) safePush(newKlines[j++]);
+        // If we exhausted both arrays but k >= 0 (because of duplicates reducing size),
+        // we need to slice the front of 'merged' which might be empty/undefined.
+        // Wait, if duplicates occurred, k would not decrement as fast as we wanted?
+        // No, k decrements every write. If duplicate, we decrement i and j but write only once (decrement k once).
+        // My logic above: "merged[k--] = ...; i--;" writes once, consumes both. Correct.
+        // BUT: if duplicates exist, the actual count of unique items is LESS than targetSize (which assumed worst case).
+        // So k will stop at some value >= 0.
+        // Example: target 10. Actual unique 9. k stops at 0. merged[0] is empty.
+        // So we need to slice `merged.slice(k + 1)`.
 
-        // Immediate Slice to avoid storing huge array in state
-        if (merged.length > effectiveLimit) {
-             history = merged.slice(-effectiveLimit);
+        if (k >= 0) {
+             history = merged.slice(k + 1);
         } else {
              history = merged;
         }
 
-        // Assign new merged array
         current.klines[timeframe] = history;
-        // Full rebuild needed (now on optimized size)
         buffers = rebuildBuffers(history);
       }
     }

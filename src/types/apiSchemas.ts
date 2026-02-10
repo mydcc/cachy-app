@@ -170,6 +170,23 @@ export const TpSlRequestSchema = z.discriminatedUnion("action", [
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
 export type TpSlRequest = z.infer<typeof TpSlRequestSchema>;
 
+export interface TpSlOrder {
+    id?: string;
+    orderId?: string;
+    planId?: string;
+    symbol: string;
+    planType: string;
+    triggerPrice: string;
+    executePrice?: string;
+    qty?: string;
+    amount?: string;
+    status?: string;
+    ctime?: number;
+    createTime?: number;
+    side?: string;
+    [key: string]: any; // Allow extra fields for now
+}
+
 /**
  * Validate response size to prevent memory issues
  * @param data Response data as string

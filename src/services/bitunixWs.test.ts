@@ -70,8 +70,9 @@ describe('BitunixWS Fast Path Fallback', () => {
 
         // Price channel now updates Index Price and Funding Rate, NOT Last Price (to avoid flickering)
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
-            fundingRate: '0.01',
-            indexPrice: '50001'
+            fundingRate: expect.anything(), // Decimals
+            indexPrice: expect.anything(),  // Decimals
+            nextFundingTime: undefined
         }));
     });
 

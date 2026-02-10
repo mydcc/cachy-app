@@ -338,7 +338,7 @@ class MarketWatcher {
 
         // Execute Fetch Logic
         const latestLimit = 1000; // API Max
-        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit, undefined, Date.now());
+        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit, undefined, Date.now()) as Kline[];
 
         if (klines1 && klines1.length > 0) {
             marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
@@ -360,7 +360,7 @@ class MarketWatcher {
                     const intervalMs = safeTfToMs(tf);
 
                     // [OPTIMIZATION] Avoid large array of arrays and .flat()
-                    let allBackfilled: any[] = [];
+                    let allBackfilled: Kline[] = [];
 
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
                     // This ensures real-time polling (high priority) and other requests have breathing room.
@@ -372,16 +372,17 @@ class MarketWatcher {
                              break;
                         }
 
-                        const chunkTasks: Promise<any>[] = [];
+                        const chunkTasks: Promise<Kline[]>[] = [];
                         for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
                              const batchIdx = i + j;
                              const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
 
                              chunkTasks.push(
                                  apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
+                                     .then(res => (res || []) as Kline[])
                                      .catch(e => {
                                          logger.warn("market", `[History] Backfill batch ${batchIdx} failed`, e);
-                                         return [];
+                                         return [] as Kline[];
                                      })
                              );
                         }
@@ -405,7 +406,7 @@ class MarketWatcher {
                     if (allBackfilled.length > 0) {
                         allBackfilled.sort((a, b) => a.time - b.time);
                         const intervalMs = safeTfToMs(tf);
-                        allBackfilled = this.fillGaps(allBackfilled, intervalMs);
+                        allBackfilled = await this.fillGaps(allBackfilled, intervalMs);
 
                         marketState.updateSymbolKlines(symbol, tf, allBackfilled, "rest");
                         storageService.saveKlines(symbol, tf, allBackfilled);
@@ -421,14 +422,27 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: any[], intervalMs: number): any[] {
+  private async fillGaps(klines: Kline[], intervalMs: number): Promise<Kline[]> {
       if (klines.length < 2) return klines;
-      const filled = [klines[0]];
+      const filled: Kline[] = [klines[0]];
 
       // Optimization: Re-use constant for zero volume to reduce allocation
       const ZERO_VOL = new Decimal(0);
 
+      // Async Chunking to prevent Main Thread Blocking
+      const CHUNK_SIZE = 1000;
+      let lastYieldTime = Date.now();
+
       for (let i = 1; i < klines.length; i++) {
+          // Cooperative Multitasking: Yield every 1000 iterations or if 10ms passed
+          if (i % CHUNK_SIZE === 0) {
+              const now = Date.now();
+              if (now - lastYieldTime > 10) {
+                  await new Promise(resolve => setTimeout(resolve, 0));
+                  lastYieldTime = Date.now();
+              }
+          }
+
           const prev = filled[filled.length - 1];
           const curr = klines[i];
 
