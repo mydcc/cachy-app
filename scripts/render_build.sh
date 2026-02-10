@@ -47,5 +47,8 @@ else
     npm install
 fi
 
+echo "Generating i18n types..."
+node scripts/generate-i18n-types.js
+
 echo "Building..."
 npm run build

@@ -800,13 +800,9 @@ class BitunixWebSocketService {
                 if (symbol && isPriceData(data)) {
                   try {
                     // HARDENING: Direct property access + Force String cast for safety
-                    let ip = typeof data.ip === 'number' ? String(data.ip) : data.ip;
-                    let fr = typeof data.fr === 'number' ? String(data.fr) : data.fr;
+                    const ip = typeof data.ip === 'number' ? String(data.ip) : data.ip;
+                    const fr = typeof data.fr === 'number' ? String(data.fr) : data.fr;
                     const nft = data.nft ? String(data.nft) : undefined;
-
-                    // Extra Safety: Ensure strings are not objects or nulls (though isPriceData checks this, double check prevents runtime throws in new Decimal)
-                    if (typeof ip !== 'string') ip = undefined;
-                    if (typeof fr !== 'string') fr = undefined;
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
@@ -827,8 +823,6 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    // Release throttle to allow fallback to work immediately
-                    this.throttleMap.delete(`${symbol}:price`);
                     // console.debug(`[DIAGNOSTIC] Fast Path FAILED (price) for ${symbol}:`, fastPathError);
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
                   }
@@ -1049,22 +1043,14 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
 
-        // Hardening: Fallback Zod validation for data payload
-        const priceData = BitunixPriceDataSchema.safeParse(validatedMessage.data);
-        if (priceData.success) {
-            const d = priceData.data;
-            // if (import.meta.env.DEV) console.log(`[DEBUG] Slow Path Price for ${symbol}:`, d);
-            if (!this.shouldThrottle(`${symbol}:price`)) {
-              marketState.updateSymbol(symbol, {
-                // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-                indexPrice: d.ip,
-                // Funding data if present in validatedMessage.data
-                fundingRate: d.fr,
-                nextFundingTime: d.nft ? String(d.nft) : undefined
-              });
-            }
-        } else {
-            logger.warn("network", `[BitunixWS] Invalid price data schema for ${symbol}`, priceData.error);
+        if (!this.shouldThrottle(`${symbol}:price`)) {
+          marketState.updateSymbol(symbol, {
+            // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
+            indexPrice: (validatedMessage.data as any).ip,
+            // Funding data if present in validatedMessage.data
+            fundingRate: (validatedMessage.data as any).fr,
+            nextFundingTime: (validatedMessage.data as any).nft ? String((validatedMessage.data as any).nft) : undefined
+          });
         }
       } else if (validatedChannel === "ticker") {
         const rawSymbol = validatedMessage.symbol || "";

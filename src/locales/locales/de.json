@@ -61,20 +61,7 @@
     "globalChat": "Globaler Chat",
     "myNotes": "Meine Notizen",
     "aiAssistant": "KI Assistent",
-    "clearConfirm": "Verlauf löschen?",
-    "title": "Seitenleiste",
-    "you": "Du",
-    "ai": "KI",
-    "user": "Benutzer",
-    "systemReady": "SYSTEM BEREIT. WARTE AUF EINGABE.",
-    "ready": "Bereit zu helfen.",
-    "quotaExceeded": "Generative KI-Quote überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen.",
-    "prompts": {
-      "marketCheck": "Analysiere den Markt für {symbol}",
-      "techAnalysis": "Erstelle eine technische Analyse für {symbol}",
-      "riskAudit": "Prüfe mein Setup auf Fehler und Risiken.",
-      "newsCheck": "Gibt es wichtige News?"
-    }
+    "clearConfirm": "Verlauf löschen?"
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",

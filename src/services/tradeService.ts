@@ -25,7 +25,6 @@
 import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
-import { toastService } from "./toastService.svelte";
 import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
 import { settingsState } from "../stores/settings.svelte";
@@ -445,9 +444,6 @@ class TradeService {
 
              // Rate limit handling: Batch requests (max 5 concurrent)
              const BATCH_SIZE = 5;
-             let errorCount = 0;
-             let lastError = "";
-
              for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
                   const batch = fetchList.slice(i, i + BATCH_SIZE);
                   const batchResults = await Promise.all(
@@ -464,25 +460,17 @@ class TradeService {
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
                                       logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
-                                      errorCount++;
-                                      lastError = String(data.error);
                                   }
                                   return [];
                               }
                               return Array.isArray(data) ? data : data.rows || [];
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
-                              errorCount++;
-                              lastError = e instanceof Error ? e.message : String(e);
                               return [];
                           }
                       })
                   );
                   results.push(...batchResults.flat());
-             }
-
-             if (errorCount > 0) {
-                 toastService.warning(`Incomplete TP/SL data: Failed to fetch for ${errorCount} symbols. (${lastError})`);
              }
 
              // Deduplicate

@@ -114,7 +114,7 @@
     if (mode === "chat") return $_("sidePanel.globalChat");
     if (mode === "notes") return $_("sidePanel.myNotes");
     if (mode === "ai") return $_("sidePanel.aiAssistant");
-    return $_("sidePanel.title");
+    return "Side Panel";
   }
 
   // Reactive layout variables
@@ -745,9 +745,7 @@
                     <div
                       class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
                     >
-                      {msg.role === "user"
-                        ? $_("sidePanel.you")
-                        : $_("sidePanel.ai")}
+                      {msg.role === "user" ? "You" : "AI"}
                     </div>
                   {/if}
 
@@ -932,11 +930,11 @@
                 >
                   {#if isTerminal}
                     <p class="text-xs text-green-800">
-                      {$_("sidePanel.systemReady")}
+                      SYSTEM READY. AWAITING INPUT.
                     </p>
                   {:else}
                     <p class="text-xs font-medium text-[var(--text-secondary)]">
-                      {$_("sidePanel.ready")}
+                      Ready to assist.
                     </p>
                   {/if}
                 </div>
@@ -993,7 +991,7 @@
                         class:opacity-100={isMe}
                       >
                         <span>
-                          {isMe ? $_("sidePanel.you") : $_("sidePanel.user")}
+                          {isMe ? "You" : "User"}
                         </span>
                         {#if msg.profitFactor !== undefined}
                           <span
@@ -1062,9 +1060,9 @@
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
-                      messageText = $_("sidePanel.prompts.marketCheck", {
-                        values: { symbol: tradeState.symbol || "BTC" },
-                      });
+                      messageText =
+                        "Analysiere den Markt für " +
+                        (tradeState.symbol || "BTC");
                       handleSend();
                     }}
                   >
@@ -1073,9 +1071,9 @@
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
-                      messageText = $_("sidePanel.prompts.techAnalysis", {
-                        values: { symbol: tradeState.symbol || "BTC" },
-                      });
+                      messageText =
+                        "Erstelle eine technische Analyse für " +
+                        (tradeState.symbol || "BTC");
                       handleSend();
                     }}
                   >
@@ -1084,7 +1082,7 @@
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
-                      messageText = $_("sidePanel.prompts.riskAudit");
+                      messageText = "Prüfe mein Setup auf Fehler und Risiken.";
                       handleSend();
                     }}
                   >
@@ -1093,7 +1091,7 @@
                   <button
                     class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
-                      messageText = $_("sidePanel.prompts.newsCheck");
+                      messageText = "Gibt es wichtige News?";
                       handleSend();
                     }}
                   >
@@ -1117,7 +1115,10 @@
                 {#if isRateLimit}
                   <div class="flex items-center gap-1.5 opacity-90">
                     <span>⚠️</span>
-                    <span>{$_("sidePanel.quotaExceeded")}</span>
+                    <span
+                      >Generative AI Quota exceeded. Please try again later or
+                      check API settings.</span
+                    >
                   </div>
                 {:else}
                   {$_(errorMessage as any) || errorMessage || aiState.error}
