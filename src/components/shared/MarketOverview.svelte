@@ -50,7 +50,7 @@
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { burn } from "../../actions/burn";
-  import DOMPurify from "dompurify";
+  import DOMPurify from "isomorphic-dompurify";
 
   interface Props {
     customSymbol?: string | undefined;

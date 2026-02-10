@@ -28,7 +28,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
-  import DOMPurify from "dompurify";
+  import DOMPurify from "isomorphic-dompurify";
 
   interface Props {
     accountSize: string | null;

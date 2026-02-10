@@ -21,7 +21,7 @@
   import Tooltip from "../shared/Tooltip.svelte";
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
-  import DOMPurify from "dompurify";
+  import DOMPurify from "isomorphic-dompurify";
 
   const dispatch = createEventDispatcher();
 
