@@ -99,8 +99,14 @@
             hour12: false
         }).format(date);
     } catch (e) {
-        // Fallback for invalid locale
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Fallback for invalid locale: Force EN-GB for consistent DD/MM/YYYY HH:MM
+        return new Intl.DateTimeFormat('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(date);
     }
   }
 
@@ -189,7 +195,7 @@
                   class:text-green-300={order.side === "BUY"}
                   class:bg-red-900={order.side === "SELL"}
                   class:text-red-300={order.side === "SELL"}
-                  title={`Type: ${order.type || "-"}`}
+                  title={`${$_("dashboard.type")}: ${order.type || "-"}`}
                 >
                   {getTypeLabel(order.type)}
                   {order.side === "BUY" ? $_("dashboard.orderHistory.side.buy") : $_("dashboard.orderHistory.side.sell")}

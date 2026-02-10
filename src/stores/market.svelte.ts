@@ -287,7 +287,16 @@ export class MarketManager {
       // Re-use Decimal instances if string value hasn't changed.
       const toDecimal = (val: any, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
         try {
-          if (val === undefined || val === null) return undefined;
+          if (val === undefined) return undefined;
+
+          // HARDENING: Warn on explicit nulls for critical data, but allow if intended
+          if (val === null) return null;
+
+          // HARDENING: Reject NaN strictly
+          if (typeof val === 'number' && isNaN(val)) {
+              // if (import.meta.env.DEV) console.warn("[Market] Rejected NaN value in update");
+              return undefined;
+          }
 
           // Fast check: If it's the exact same object, return it.
           if (currentVal === val) return currentVal;
@@ -305,7 +314,12 @@ export class MarketManager {
 
       if (partial.lastPrice !== undefined) {
           const newVal = toDecimal(partial.lastPrice, current.lastPrice);
-          if (newVal !== undefined) current.lastPrice = newVal;
+          if (newVal !== undefined) {
+              if (newVal === null && import.meta.env.DEV) {
+                  console.warn(`[Market] Received null lastPrice for ${symbol}`);
+              }
+              current.lastPrice = newVal;
+          }
       }
       if (partial.indexPrice !== undefined) {
           const newVal = toDecimal(partial.indexPrice, current.indexPrice);
