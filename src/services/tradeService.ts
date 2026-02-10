@@ -357,7 +357,7 @@ class TradeService {
                              const fallbackPosition: any = {
                                  symbol: item.symbol,
                                  // Best effort mapping
-                                 side: item.side || (Number(item.amount || 0) > 0 ? "long" : "short"),
+                                 side: item.side || (new Decimal(item.amount || 0).gt(0) ? "long" : "short"),
                                  amount: item.amount || item.size || item.qty || item.positionAmount,
                                  entryPrice: item.entryPrice || item.avgOpenPrice || item.openPrice,
                                  unrealizedPNL: item.unrealizedPNL || item.unrealizedPnl || item.upl,
@@ -369,7 +369,7 @@ class TradeService {
                              const mapped = mapToOMSPosition(fallbackPosition);
                              omsService.updatePosition(mapped);
                              validCount++;
-                             logger.info("market", `[TradeService] Recovered position for ${item.symbol} via fallback.`);
+                             logger.log("market", `[TradeService] Recovered position for ${item.symbol} via fallback.`);
                          } catch (fallbackError) {
                              logger.error("market", "[TradeService] Fallback mapping failed", fallbackError);
                              errorCount++;
