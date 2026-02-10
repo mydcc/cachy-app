@@ -1979,6 +1979,7 @@
   },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",
+    "positionMismatch": "Position Seite stimmt nicht überein (erwartet {expected}, erhalten {actual})",
     "dataError": "Dateninkonsistenz erkannt"
   },
   "workerErrors": {
