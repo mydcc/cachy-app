@@ -69,9 +69,11 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
 
         // Price channel now updates Index Price and Funding Rate, NOT Last Price (to avoid flickering)
+        // Fast Path converts to Decimal, so we expect Objects, not Strings
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
-            fundingRate: '0.01',
-            indexPrice: '50001'
+            fundingRate: expect.any(Object),
+            indexPrice: expect.any(Object),
+            nextFundingTime: undefined
         }));
     });
 

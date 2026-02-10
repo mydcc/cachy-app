@@ -61,7 +61,20 @@
     "globalChat": "Global Chat",
     "myNotes": "My Notes",
     "aiAssistant": "AI Assistant",
-    "clearConfirm": "Clear history?"
+    "clearConfirm": "Clear history?",
+    "title": "Side Panel",
+    "you": "You",
+    "ai": "AI",
+    "user": "User",
+    "systemReady": "SYSTEM READY. AWAITING INPUT.",
+    "ready": "Ready to assist.",
+    "quotaExceeded": "Generative AI Quota exceeded. Please try again later or check API settings.",
+    "prompts": {
+      "marketCheck": "Analyze the market for {symbol}",
+      "techAnalysis": "Create a technical analysis for {symbol}",
+      "riskAudit": "Audit my setup for errors and risks.",
+      "newsCheck": "Are there important news?"
+    }
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
