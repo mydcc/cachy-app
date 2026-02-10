@@ -88,7 +88,7 @@ class TradeService {
             method,
             headers,
             body: JSON.stringify({
-                ...serializedPayload,
+                ...(serializedPayload as Record<string, unknown>),
                 // Ensure keys are sent to backend for signing/execution
                 apiKey: keys.key,
                 apiSecret: keys.secret,
