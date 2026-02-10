@@ -118,11 +118,10 @@ prompt_user() {
 show_cachy_eater() {
     local pid=$1
     local estimate=$2
-    local delay=0.5
-    local width=40
+    local delay=0.4
+    local width=20
     local char="c"
     local gold='\033[38;2;255;215;0m'
-    local dimmed='\033[2m'
     
     # Hide cursor
     tput civis 2>/dev/null || echo -ne "\033[?25l"
@@ -132,23 +131,28 @@ show_cachy_eater() {
         local current_time=$(date +%s)
         local elapsed=$((current_time - start_time))
         
-        # Calculate progress position (0 to width-1)
-        # We cap it at width-1 to never let the eater leave the bar prematurely
+        # Calculate progress position
         local pos=$(( elapsed * width / estimate ))
         [[ $pos -ge $width ]] && pos=$((width - 1))
         
-        # Toggle mouth
+        # Toggle mouth (Cachy Style)
         [[ "$char" == "c" ]] && char="C" || char="c"
         
-        # Build the bar components
-        local spaces=""
-        for ((i=0; i<pos; i++)); do spaces+=" "; done
+        # Build the tail (growing hyphens)
+        local tail=""
+        for ((i=0; i<pos; i++)); do tail+="-"; done
         
+        # Build the dots (spaced out)
         local dots=""
-        for ((i=pos+1; i<width; i++)); do dots+="•"; done
+        for ((i=pos+1; i<width; i++)); do dots+=" o"; done
         
-        # Print bar: Only c/C is gold
-        printf "\r  ${YELLOW}[${NC}${spaces}${gold}${char}${NC}${dots}${YELLOW}]${NC} Building... "
+        # Calculate padding to keep bracket fixed
+        # Each eaten " o" (2 chars) is replaced by "-" (1 char), saving 1 char.
+        local padding=""
+        for ((i=0; i<pos; i++)); do padding+=" "; done
+        
+        # Print bar: [---C o o o o    ]
+        printf "\r  ${YELLOW}[${NC}${tail}${gold}${char}${NC}${dots}${padding}${YELLOW}]${NC} Building... "
         
         sleep $delay
     done
