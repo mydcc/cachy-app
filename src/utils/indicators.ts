@@ -520,31 +520,22 @@ export const JSIndicators = {
 
     if (len < period) return { middle: sma, upper, lower };
 
-    let sumSq = 0;
-    // Initial window
-    for (let i = 0; i < period; i++) {
-      sumSq += data[i] * data[i];
-    }
+    // Standard Deviation Calculation
+    // We use a 2-pass approach (calculate SMA, then calculate variance loop)
+    // to avoid catastrophic cancellation errors with high-value assets (e.g. BTC > 100k).
+    // The naive method (E[x^2] - (E[x])^2) is O(N) but imprecise.
+    // This loop method is O(N*P) which is fine for small P (typically 20).
 
-    // Calculation
     for (let i = period - 1; i < len; i++) {
-      // Update sliding window SumSq
-      if (i >= period) {
-        const valOut = data[i - period];
-        const valIn = data[i];
-        sumSq = sumSq - valOut * valOut + valIn * valIn;
-      }
-
-      // Avoid negative sumSq due to float precision
-      if (sumSq < 0) sumSq = 0;
-
       const avg = sma[i];
-      // Variance = E[X^2] - (E[X])^2
-      // But we need sumSqDiff = Sum((x-avg)^2) = Sum(x^2) - N*avg^2
-      let sumSqDiff = sumSq - period * avg * avg;
+      let sumSqDiff = 0;
 
-      // Precision safety
-      if (sumSqDiff < 0) sumSqDiff = 0;
+      // Iterate over the window
+      for (let j = 0; j < period; j++) {
+        const val = data[i - j];
+        const diff = val - avg;
+        sumSqDiff += diff * diff;
+      }
 
       const standardDev = Math.sqrt(sumSqDiff / period);
       upper[i] = avg + standardDev * stdDev;

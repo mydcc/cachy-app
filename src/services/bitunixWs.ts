@@ -1141,12 +1141,12 @@ class BitunixWebSocketService {
 
              if (listeners) {
                  items.forEach(item => {
-                     listeners.forEach(cb => cb(item));
+                     listeners.forEach(cb => { try { cb(item); } catch (e) { if (import.meta.env.DEV) console.warn("[BitunixWS] Trade listener error:", e); } });
                  });
              }
              if (listeners) {
                  items.forEach(item => {
-                     listeners.forEach(cb => cb(item));
+                     listeners.forEach(cb => { try { cb(item); } catch (e) { if (import.meta.env.DEV) console.warn("[BitunixWS] Trade listener error:", e); } });
                  });
              }
         } else {

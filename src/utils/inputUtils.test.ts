@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /*
  * Copyright (C) 2026 MYDCT
  *

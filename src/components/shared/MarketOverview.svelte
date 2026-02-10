@@ -25,6 +25,7 @@
 
 <script lang="ts">
   import { fade } from "svelte/transition";
+  import { onMount } from "svelte";
   import { untrack } from "svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { tradeState } from "../../stores/trade.svelte";
@@ -68,10 +69,27 @@
   let animationKey = $state(0);
   let priceTrend: "up" | "down" | null = $state(null);
   let isInitialLoad = $state(true);
+  let rootElement: HTMLElement | undefined = $state();
+  let isVisible = $state(false);
 
 
 
-  // Price Flashing & Trend Logic
+
+  onMount(() => {
+    if (!rootElement) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        isVisible = true;
+        observer.disconnect(); // Trigger once
+      }
+    }, { rootMargin: "200px" }); // Pre-fetch slightly before view
+
+    observer.observe(rootElement);
+    return () => observer.disconnect();
+  });
+
+// Price Flashing & Trend Logic
   let flashingDigitIndexes: Set<number> = $state(new Set());
   let lastPriceStr: string = $state("");
   let flashTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -272,7 +290,8 @@
 
   // Cache Warming: Pre-load history for Favorites (2000 candles)
   $effect(() => {
-    if (isFavoriteTile && symbol) {
+    // Lazy load history only when visible to prevent fetch storm
+    if (isFavoriteTile && symbol && isVisible) {
       untrack(() => {
         marketWatcher.ensureHistory(symbol, "1h");
       });
@@ -437,7 +456,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
+<div bind:this={rootElement}
   class="market-overview-card glass-panel rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] transition-all relative {isFavoriteTile
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
