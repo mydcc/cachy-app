@@ -17,7 +17,7 @@
 
 import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 // Configure marked with KaTeX support
 marked.use(markedKatex({

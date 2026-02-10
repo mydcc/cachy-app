@@ -24,7 +24,7 @@ import {
   type Placement,
   autoUpdate,
 } from "@floating-ui/dom";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 export interface TooltipOptions {
   content: string;

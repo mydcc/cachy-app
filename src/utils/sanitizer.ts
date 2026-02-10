@@ -22,7 +22,7 @@
  * Wraps DOMPurify to prevent XSS in standard components.
  */
 
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 import { browser } from "$app/environment";
 
 export function sanitizeHtml(dirty: string): string {
