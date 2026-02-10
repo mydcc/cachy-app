@@ -62,6 +62,13 @@
       "description": "View your trading history and performance",
       "url": "/?action=journal",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Configure Cachy app settings",
+      "url": "/?action=settings",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
