@@ -192,7 +192,7 @@ class ServerLogger extends EventEmitter {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
-      message,
+      message: this.sanitizeString(message),
       data: this.sanitize(data),
     };
 
