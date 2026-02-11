@@ -193,8 +193,16 @@ export const newsService = {
 
     const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
-        // 1. Cache-Validierung (ASYNC with IDB)
-        const cached = await dbService.get<NewsCacheEntry>("news", cacheKey);
+        // 1. Cache-Validierung (ASYNC with IDB) - ONLY IN BROWSER
+        let cached: NewsCacheEntry | undefined;
+        if (isBrowser) {
+            try {
+                cached = await dbService.get<NewsCacheEntry>("news", cacheKey);
+            } catch (e) {
+                // Ignore DB errors in fetch
+                if (import.meta.env.DEV) console.warn("[newsService] DB read failed", e);
+            }
+        }
 
         // Zod validation optional here as IDB stores structured data,
         // but good for schema evolution protection.
@@ -208,7 +216,9 @@ export const newsService = {
             // but since NewsCacheEntry is an object with an items array,
             // it's cleaner to just clear and re-fetch to ensure consistency.
             validCached = undefined;
-            await dbService.delete("news", cacheKey);
+            if (isBrowser) {
+                try { await dbService.delete("news", cacheKey); } catch (e) {}
+            }
           }
         }
 
@@ -399,19 +409,24 @@ export const newsService = {
           newsItems = newsItems.slice(0, 100);
         }
 
-        // Cache-Update with IDB
-        const cacheEntry: NewsCacheEntry = {
-          id: cacheKey, // keyPath
-          symbol: symbolKey,
-          items: newsItems,
-          timestamp: Date.now(),
-          lastApiCall: Date.now(),
-        };
+        // Cache-Update with IDB - ONLY IN BROWSER
+        if (isBrowser) {
+            const cacheEntry: NewsCacheEntry = {
+              id: cacheKey, // keyPath
+              symbol: symbolKey,
+              items: newsItems,
+              timestamp: Date.now(),
+              lastApiCall: Date.now(),
+            };
 
-        await dbService.put("news", cacheEntry);
-
-        // Bereinige alte Caches (Async)
-        pruneOldCaches().catch(e => logger.warn("ai", "Prune failed", e));
+            try {
+                await dbService.put("news", cacheEntry);
+                // Bereinige alte Caches (Async)
+                pruneOldCaches().catch(e => logger.warn("ai", "Prune failed", e));
+            } catch (e) {
+                if (import.meta.env.DEV) console.warn("[newsService] DB write failed", e);
+            }
+        }
 
         return newsItems;
       } finally {
@@ -434,8 +449,15 @@ export const newsService = {
     // Immer serverseitig, kein allowClientSideAi mehr
     const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
       try {
-        // IDB Read
-        const cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
+        // IDB Read - ONLY IN BROWSER
+        let cached;
+        if (isBrowser) {
+            try {
+                cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
+            } catch (e) {
+                // Ignore
+            }
+        }
 
         if (
           cached &&
@@ -482,12 +504,18 @@ export const newsService = {
 
         const analysis: SentimentAnalysis = data.analysis;
 
-        // IDB Write - use newsHash as key
-        await dbService.put("sentiment", {
-          data: analysis,
-          timestamp: Date.now(),
-          newsHash,
-        });
+        // IDB Write - ONLY IN BROWSER
+        if (isBrowser) {
+            try {
+                await dbService.put("sentiment", {
+                  data: analysis,
+                  timestamp: Date.now(),
+                  newsHash,
+                });
+            } catch (e) {
+                // Ignore
+            }
+        }
 
         return analysis;
       } catch (e: any) {
