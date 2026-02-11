@@ -373,51 +373,6 @@ export class MarketManager {
     this.telemetry.apiCallsLastMinute++;
   }
 
-  // Optimized Buffer Allocation: Reduces GC pressure by reusing arrays
-  private ensureBufferCapacity(existing: KlineBuffers | undefined, requiredSize: number): KlineBuffers {
-    // Check if existing buffer is sufficient
-    const currentCap = existing ? (existing.capacity || existing.times.length) : 0;
-
-    if (existing && currentCap >= requiredSize) {
-      existing.usedSize = requiredSize;
-      return existing;
-    }
-
-    // Growth Strategy: Start at 1000, then double to amortize allocation cost
-    let newCap = Math.max(requiredSize, 1000);
-    if (currentCap > 0) {
-        newCap = Math.max(requiredSize, currentCap * 2);
-    }
-
-    // Allocate new SoA buffers
-    const newBufs: KlineBuffers = {
-      times: new Float64Array(newCap),
-      opens: new Float64Array(newCap),
-      highs: new Float64Array(newCap),
-      lows: new Float64Array(newCap),
-      closes: new Float64Array(newCap),
-      volumes: new Float64Array(newCap),
-      capacity: newCap,
-      usedSize: requiredSize
-    };
-
-    // Copy old data if exists
-    if (existing) {
-        // Only copy valid data (usedSize) or full length if legacy
-        const copyLen = existing.usedSize !== undefined ? existing.usedSize : existing.times.length;
-        if (copyLen > 0) {
-            newBufs.times.set(existing.times.subarray(0, copyLen));
-            newBufs.opens.set(existing.opens.subarray(0, copyLen));
-            newBufs.highs.set(existing.highs.subarray(0, copyLen));
-            newBufs.lows.set(existing.lows.subarray(0, copyLen));
-            newBufs.closes.set(existing.closes.subarray(0, copyLen));
-            newBufs.volumes.set(existing.volumes.subarray(0, copyLen));
-        }
-    }
-
-    return newBufs;
-  }
-
   updateSymbolKlines(
     symbol: string,
     timeframe: string,
@@ -536,6 +491,81 @@ export class MarketManager {
       effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
     }
 
+    // Helper: Build full buffers from history (Slow Path)
+    const rebuildBuffers = (sourceKlines: Kline[]) => {
+      const len = sourceKlines.length;
+      const b: KlineBuffers = {
+        times: new Float64Array(len),
+        opens: new Float64Array(len),
+        highs: new Float64Array(len),
+        lows: new Float64Array(len),
+        closes: new Float64Array(len),
+        volumes: new Float64Array(len),
+      };
+
+      for (let i = 0; i < len; i++) {
+        const k = sourceKlines[i];
+        b.times[i] = k.time;
+        b.opens[i] = k.open.toNumber();
+        b.highs[i] = k.high.toNumber();
+        b.lows[i] = k.low.toNumber();
+        b.closes[i] = k.close.toNumber();
+        b.volumes[i] = k.volume.toNumber();
+      }
+      return b;
+    };
+
+    // Helper: Append to buffers (Fast Path)
+    const appendBuffers = (oldBuffers: KlineBuffers, appendKlines: Kline[]): KlineBuffers => {
+      const oldLen = oldBuffers.times.length;
+      const newLen = oldLen + appendKlines.length;
+      const b: KlineBuffers = {
+        times: new Float64Array(newLen),
+        opens: new Float64Array(newLen),
+        highs: new Float64Array(newLen),
+        lows: new Float64Array(newLen),
+        closes: new Float64Array(newLen),
+        volumes: new Float64Array(newLen),
+      };
+
+      // Copy old data (fast native copy)
+      b.times.set(oldBuffers.times);
+      b.opens.set(oldBuffers.opens);
+      b.highs.set(oldBuffers.highs);
+      b.lows.set(oldBuffers.lows);
+      b.closes.set(oldBuffers.closes);
+      b.volumes.set(oldBuffers.volumes);
+
+      // Add new data
+      for (let i = 0; i < appendKlines.length; i++) {
+        const k = appendKlines[i];
+        const idx = oldLen + i;
+        b.times[idx] = k.time;
+        b.opens[idx] = k.open.toNumber();
+        b.highs[idx] = k.high.toNumber();
+        b.lows[idx] = k.low.toNumber();
+        b.closes[idx] = k.close.toNumber();
+        b.volumes[idx] = k.volume.toNumber();
+      }
+      return b;
+    };
+
+    // Helper: Update last N items in buffers (In-place)
+    const updateBufferTail = (bufs: KlineBuffers, updateKlines: Kline[], startIndex: number) => {
+      for (let i = 0; i < updateKlines.length; i++) {
+        const k = updateKlines[i];
+        const idx = startIndex + i;
+        if (idx < bufs.times.length) {
+          bufs.times[idx] = k.time;
+          bufs.opens[idx] = k.open.toNumber();
+          bufs.highs[idx] = k.high.toNumber();
+          bufs.lows[idx] = k.low.toNumber();
+          bufs.closes[idx] = k.close.toNumber();
+          bufs.volumes[idx] = k.volume.toNumber();
+        }
+      }
+    };
+
     // Merge strategy: Optimized for memory usage
     if (newKlines.length === 0) {
       // No updates
@@ -546,19 +576,7 @@ export class MarketManager {
       }
       history = newKlines;
       current.klines[timeframe] = history;
-
-      // Full build
-      buffers = this.ensureBufferCapacity(buffers, history.length);
-      for(let i=0; i<history.length; i++) {
-          const k = history[i];
-          buffers.times[i] = k.time;
-          buffers.opens[i] = k.open.toNumber();
-          buffers.highs[i] = k.high.toNumber();
-          buffers.lows[i] = k.low.toNumber();
-          buffers.closes[i] = k.close.toNumber();
-          buffers.volumes[i] = k.volume.toNumber();
-      }
-
+      buffers = rebuildBuffers(history);
     } else {
       // Ensure incoming klines are sorted (usually are, but safety first)
       newKlines.sort((a, b) => a.time - b.time);
@@ -575,30 +593,14 @@ export class MarketManager {
              const overflow = history.length - effectiveLimit;
              // Use splice for in-place removal to avoid new array allocation
              history.splice(0, overflow);
-             // Spliced history -> Buffer indices invalid -> Rebuild Full
-             buffers = this.ensureBufferCapacity(buffers, history.length);
-             for(let i=0; i<history.length; i++) {
-                const k = history[i];
-                buffers.times[i] = k.time;
-                buffers.opens[i] = k.open.toNumber();
-                buffers.highs[i] = k.high.toNumber();
-                buffers.lows[i] = k.low.toNumber();
-                buffers.closes[i] = k.close.toNumber();
-                buffers.volumes[i] = k.volume.toNumber();
-             }
+             // Since we spliced, buffers are out of sync. Rebuild is safest.
+             buffers = rebuildBuffers(history);
         } else {
              // Only append buffers if valid
-             const startIdx = history.length - newKlines.length;
-             buffers = this.ensureBufferCapacity(buffers, history.length);
-             for (let i = 0; i < newKlines.length; i++) {
-                const k = newKlines[i];
-                const idx = startIdx + i;
-                buffers.times[idx] = k.time;
-                buffers.opens[idx] = k.open.toNumber();
-                buffers.highs[idx] = k.high.toNumber();
-                buffers.lows[idx] = k.low.toNumber();
-                buffers.closes[idx] = k.close.toNumber();
-                buffers.volumes[idx] = k.volume.toNumber();
+             if (buffers) {
+                 buffers = appendBuffers(buffers, newKlines);
+             } else {
+                 buffers = rebuildBuffers(history);
              }
         }
 
@@ -606,16 +608,11 @@ export class MarketManager {
         // Fast Path 2: Live Update (Update current candle)
         history[history.length - 1] = newKlines[0];
 
-        // Ensure capacity (should be fine, but safe check)
-        buffers = this.ensureBufferCapacity(buffers, history.length);
-        const idx = history.length - 1;
-        const k = newKlines[0];
-        buffers.times[idx] = k.time;
-        buffers.opens[idx] = k.open.toNumber();
-        buffers.highs[idx] = k.high.toNumber();
-        buffers.lows[idx] = k.low.toNumber();
-        buffers.closes[idx] = k.close.toNumber();
-        buffers.volumes[idx] = k.volume.toNumber();
+        if (buffers && buffers.times.length === history.length) {
+            updateBufferTail(buffers, newKlines, buffers.times.length - 1);
+        } else {
+            buffers = rebuildBuffers(history);
+        }
 
       } else if (firstNewTime >= lastHistTime) {
         // Fast Path 3: Overlap at the end
@@ -623,15 +620,9 @@ export class MarketManager {
         for (const k of newKlines) {
           if (k.time === lastHistTime) {
             history[history.length - 1] = k;
-            buffers = this.ensureBufferCapacity(buffers, history.length);
-            const idx = history.length - 1;
-            // Update last item in buffer
-            buffers.times[idx] = k.time;
-            buffers.opens[idx] = k.open.toNumber();
-            buffers.highs[idx] = k.high.toNumber();
-            buffers.lows[idx] = k.low.toNumber();
-            buffers.closes[idx] = k.close.toNumber();
-            buffers.volumes[idx] = k.volume.toNumber();
+            if (buffers && buffers.times.length === history.length) {
+                updateBufferTail(buffers, [k], buffers.times.length - 1);
+            }
           } else if (k.time > lastHistTime) {
             history.push(k);
             itemsToAppend.push(k);
@@ -640,39 +631,25 @@ export class MarketManager {
 
         if (history.length > effectiveLimit) {
              history.splice(0, history.length - effectiveLimit);
-             // Rebuild Full
-             buffers = this.ensureBufferCapacity(buffers, history.length);
-             for(let i=0; i<history.length; i++) {
-                const k = history[i];
-                buffers.times[i] = k.time;
-                buffers.opens[i] = k.open.toNumber();
-                buffers.highs[i] = k.high.toNumber();
-                buffers.lows[i] = k.low.toNumber();
-                buffers.closes[i] = k.close.toNumber();
-                buffers.volumes[i] = k.volume.toNumber();
-             }
+             buffers = rebuildBuffers(history);
         } else if (itemsToAppend.length > 0) {
-             const startIdx = history.length - itemsToAppend.length;
-             buffers = this.ensureBufferCapacity(buffers, history.length);
-             for (let i = 0; i < itemsToAppend.length; i++) {
-                const k = itemsToAppend[i];
-                const idx = startIdx + i;
-                buffers.times[idx] = k.time;
-                buffers.opens[idx] = k.open.toNumber();
-                buffers.highs[idx] = k.high.toNumber();
-                buffers.lows[idx] = k.low.toNumber();
-                buffers.closes[idx] = k.close.toNumber();
-                buffers.volumes[idx] = k.volume.toNumber();
-             }
+             if (buffers) buffers = appendBuffers(buffers, itemsToAppend);
+             else buffers = rebuildBuffers(history);
         }
 
       } else {
-        // Slow Path: Merge & Rebuild
+        // Slow Path: Historical backfill or disordered data
+        // Use linear merge algorithm (O(N+M))
         const merged: Kline[] = [];
         let i = 0;
         let j = 0;
         const hLen = history.length;
         const nLen = newKlines.length;
+
+        // Optimization: Pre-calculate max needed size
+        // If (hLen + nLen) > effectiveLimit, we might skip early items in history
+        // But since we merge by time, skipping is tricky.
+        // We stick to standard merge then slice, but immediately.
 
         const safePush = (k: Kline) => {
           const last = merged.length > 0 ? merged[merged.length - 1] : null;
@@ -712,18 +689,8 @@ export class MarketManager {
 
         // Assign new merged array
         current.klines[timeframe] = history;
-
-        // Full rebuild
-        buffers = this.ensureBufferCapacity(buffers, history.length);
-        for(let i=0; i<history.length; i++) {
-            const k = history[i];
-            buffers.times[i] = k.time;
-            buffers.opens[i] = k.open.toNumber();
-            buffers.highs[i] = k.high.toNumber();
-            buffers.lows[i] = k.low.toNumber();
-            buffers.closes[i] = k.close.toNumber();
-            buffers.volumes[i] = k.volume.toNumber();
-        }
+        // Full rebuild needed (now on optimized size)
+        buffers = rebuildBuffers(history);
       }
     }
 
@@ -732,8 +699,8 @@ export class MarketManager {
 
     // Hardening: Runtime Consistency Check (DEV only)
     if (import.meta.env.DEV) {
-        if (buffers && history.length > buffers.times.length) {
-            console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer Capacity: ${buffers.times.length}`);
+        if (buffers && history.length !== buffers.times.length) {
+            console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer: ${buffers.times.length}`);
         }
     }
 
