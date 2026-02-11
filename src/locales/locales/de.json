@@ -66,12 +66,12 @@
     "collapse": "Panel einklappen",
     "cycleMode": "Modus wechseln",
     "expand": "Panel ausklappen",
-    "smallerFont": "Schrift verkleinern",
-    "largerFont": "Schrift vergrößern",
     "exportChat": "Chat exportieren",
+    "largerFont": "Schrift vergrößern",
+    "quotaExceeded": "Generatives KI-Kontingent überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen.",
+    "smallerFont": "Schrift verkleinern",
     "suggestedChanges": "Vorgeschlagene Änderungen",
-    "thinking": "Denkt nach...",
-    "quotaExceeded": "Generatives KI-Kontingent überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen."
+    "thinking": "Denkt nach..."
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -1106,7 +1106,8 @@
       "apiCalls": "API-Aufrufe/min",
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
-      "networkStatus": "Netzwerkstatus"
+      "networkStatus": "Netzwerkstatus",
+      "tipsTitle": "Optimierungstipps"
     },
     "connections": {
       "exchanges": "Börsen",

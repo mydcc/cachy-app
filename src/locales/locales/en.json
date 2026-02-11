@@ -66,12 +66,12 @@
     "collapse": "Collapse Panel",
     "cycleMode": "Cycle Mode",
     "expand": "Expand Panel",
-    "smallerFont": "Smaller Font",
-    "largerFont": "Larger Font",
     "exportChat": "Export Chat",
+    "largerFont": "Larger Font",
+    "quotaExceeded": "Generative AI Quota exceeded. Please try again later or check API settings.",
+    "smallerFont": "Smaller Font",
     "suggestedChanges": "Suggested Changes",
-    "thinking": "Thinking...",
-    "quotaExceeded": "Generative AI Quota exceeded. Please try again later or check API settings."
+    "thinking": "Thinking..."
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
@@ -1306,7 +1306,8 @@
       "apiCalls": "API Calls/min",
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
-      "networkStatus": "Network Status"
+      "networkStatus": "Network Status",
+      "tipsTitle": "Optimization Tips"
     },
     "trading": {
       "chartTitle": "Chart & Data",

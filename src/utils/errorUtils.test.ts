@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -16,32 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect } from 'vitest';
-import { mapApiErrorToLabel } from './errorUtils';
+import { describe, it, expect } from "vitest";
+import { getBitunixErrorKey } from "./errorUtils";
 
-describe('errorUtils', () => {
-  it('should map explicit bitunix codes to keys', () => {
-    expect(mapApiErrorToLabel({ code: '10001' })).toBe('bitunixErrors.10001');
-    expect(mapApiErrorToLabel({ code: 10002 })).toBe('bitunixErrors.10002');
+describe("errorUtils", () => {
+  it("should return the correct key for a known error code", () => {
+    expect(getBitunixErrorKey(10001)).toBe("bitunixErrors.10001");
+    expect(getBitunixErrorKey("10003")).toBe("bitunixErrors.10003");
+    expect(getBitunixErrorKey(30042)).toBe("bitunixErrors.30042");
   });
 
-  it('should fallback to regex for known patterns', () => {
-    expect(mapApiErrorToLabel({ message: 'Invalid API Key' })).toBe('settings.errors.invalidApiKey');
-    expect(mapApiErrorToLabel({ message: 'IP not allowed' })).toBe('settings.errors.ipNotAllowed');
-    expect(mapApiErrorToLabel({ message: 'Invalid Signature' })).toBe('settings.errors.invalidSignature');
+  it("should return generic error key for unknown error code", () => {
+    expect(getBitunixErrorKey(99999)).toBe("apiErrors.generic");
+    expect(getBitunixErrorKey("invalid_code")).toBe("apiErrors.generic");
   });
 
-  it('should prioritize code over regex if code is valid', () => {
-    expect(mapApiErrorToLabel({ code: '10003', message: 'Something about api key' })).toBe('bitunixErrors.10003');
-  });
-
-  it('should return null for unknown errors', () => {
-    expect(mapApiErrorToLabel({ message: 'Random error' })).toBeNull();
-    expect(mapApiErrorToLabel({ code: 999999 })).toBeNull();
-  });
-
-  it('should handle null/undefined input', () => {
-    expect(mapApiErrorToLabel(null)).toBeNull();
-    expect(mapApiErrorToLabel(undefined)).toBeNull();
+  it("should handle number and string inputs correctly", () => {
+    expect(getBitunixErrorKey(20001)).toBe("bitunixErrors.20001");
+    expect(getBitunixErrorKey("20001")).toBe("bitunixErrors.20001");
   });
 });

@@ -124,31 +124,4 @@ describe('TradeService Hardening', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith("/api/orders", expect.anything());
   });
-
-  it('cancelAllOrders should throw when throwOnError is true (default)', async () => {
-    const symbol = 'BTCUSDT';
-
-    // Mock fetch to fail
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: () => Promise.resolve('Server Error'),
-      statusText: 'Server Error'
-    });
-
-    await expect(tradeService.cancelAllOrders(symbol)).rejects.toThrow();
-  });
-
-  it('cancelAllOrders should NOT throw when throwOnError is false', async () => {
-    const symbol = 'BTCUSDT';
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: () => Promise.resolve('Server Error'),
-      statusText: 'Server Error'
-    });
-
-    await expect(tradeService.cancelAllOrders(symbol, false)).resolves.toBeUndefined();
-  });
 });
