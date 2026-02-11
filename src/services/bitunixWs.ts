@@ -45,6 +45,13 @@ import {
   validateSymbol,
 } from "../types/bitunixValidation";
 
+export interface TradeData {
+  p: string; // price
+  v: string; // volume
+  s: string; // side
+  t: number; // timestamp
+}
+
 const WS_PUBLIC_URL =
   CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";
 const WS_PRIVATE_URL =
@@ -62,7 +69,7 @@ interface Subscription {
 
 class BitunixWebSocketService {
   // Trade Listeners
-  private tradeListeners = new Map<string, Set<(trade: any) => void>>();
+  private tradeListeners = new Map<string, Set<(trade: TradeData) => void>>();
   public static activeInstance: BitunixWebSocketService | null = null;
   private static instanceCount = 0;
   private instanceId = 0;
@@ -1260,7 +1267,7 @@ class BitunixWebSocketService {
     }
   }
 
-  subscribeTrade(symbol: string, callback: (trade: any) => void): () => void {
+  subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
     if (!symbol) return () => {};
     const normalized = normalizeSymbol(symbol, "bitunix");
 
@@ -1278,7 +1285,7 @@ class BitunixWebSocketService {
     };
   }
 
-  unsubscribeTrade(symbol: string, callback: (trade: any) => void) {
+  unsubscribeTrade(symbol: string, callback: (trade: TradeData) => void) {
     if (!symbol) return;
     const normalized = normalizeSymbol(symbol, "bitunix");
 
