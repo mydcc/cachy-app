@@ -17,7 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHash, randomBytes } from "crypto";
+import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { apiKey, apiSecret, limit } = await request.json();
@@ -34,9 +34,16 @@ export const POST: RequestHandler = async ({ request }) => {
     );
     return json({ data: positions });
   } catch (e: any) {
-    console.error(`Error fetching history positions from Bitunix:`, e);
+    // SECURITY FIX: Sanitize logs and error response
+    const rawMsg = e instanceof Error ? e.message : String(e);
+    // Mask sensitive data
+    const safeMsg = rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
+
+    console.error(`Error fetching history positions from Bitunix:`, safeMsg);
+
+    // Return sanitized message
     return json(
-      { error: e.message || "Failed to fetch history positions" },
+      { error: safeMsg || "Failed to fetch history positions" },
       { status: 500 },
     );
   }
@@ -55,31 +62,17 @@ async function fetchBitunixHistoryPositions(
     limit: limit.toString(),
   };
 
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
+  // Use shared utility for signature generation (secure & consistent)
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    null // GET request has no body
+  );
 
-  // 2. Sort and Concatenate Query Params
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
+  const url = `${baseUrl}${path}?${queryString}`;
 
-  // 3. Construct Digest Input
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  // 6. Build Query String for URL
-  const queryString = new URLSearchParams(params).toString();
-
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -92,7 +85,9 @@ async function fetchBitunixHistoryPositions(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    // Truncate text to avoid massive logs or leaking too much info
+    const safeText = text.length > 200 ? text.substring(0, 200) + "..." : text;
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const data = await response.json();
