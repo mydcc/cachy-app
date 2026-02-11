@@ -1,22 +1,6 @@
-<!--
-  Copyright (C) 2026 MYDCT
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <https://www.gnu.org/licenses/>.
--->
-
 <script lang="ts">
   import { loadInstruction } from '../../services/markdownLoader';
+  import DOMPurify from 'dompurify';
 
   interface Props {
     slug?: "dashboard" | "journal" | "changelog" | "guide" | "privacy" | "whitepaper";
@@ -30,7 +14,8 @@
   let loading = $state(false);
   let error = $state('');
 
-  let displayContent = $derived(content || fetchedContent);
+  // Sanitize content before rendering
+  let displayContent = $derived(DOMPurify.sanitize(content || fetchedContent));
 
   $effect(() => {
     // Only fetch if content is not provided and we have a slug
