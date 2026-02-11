@@ -214,12 +214,9 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
             call[2].type === 'cancel-all'
         );
 
-        // This expectation confirms the vulnerability (missing cancel call)
-        // Since we want to reproduce the bug (i.e., demonstrate it's missing),
-        // we assert that it IS MISSING for now, then we will flip it to expect PRESENCE after fix.
-        // OR better: assert it IS PRESENT, and let the test fail.
-        // The prompt says "Create reproduction test...". A failing test is the reproduction.
-
+        // HARDENING VERIFICATION:
+        // We expect the "Cancel All Orders" call to be present.
+        // This ensures no naked stop-losses are left behind after a flash close.
         expect(cancelCall).toBeDefined();
 
         // Ensure Cancel happens BEFORE Close if both exist
