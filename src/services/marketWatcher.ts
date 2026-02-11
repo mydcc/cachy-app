@@ -218,6 +218,26 @@ class MarketWatcher {
     this.startPolling();
   }
 
+  private pruneOrphanedSubscriptions() {
+    for (const [symbol, channels] of this.requests) {
+      if (channels.size === 0) {
+        this.requests.delete(symbol);
+        this._subscriptionsDirty = true;
+        continue;
+      }
+      for (const [channel, count] of channels) {
+        if (count <= 0) {
+          channels.delete(channel);
+          this._subscriptionsDirty = true;
+        }
+      }
+      if (channels.size === 0) {
+        this.requests.delete(symbol);
+        this._subscriptionsDirty = true;
+      }
+    }
+  }
+
   private async runPollingLoop() {
     if (!this.isPolling) return;
 
@@ -226,6 +246,12 @@ class MarketWatcher {
       // We no longer pause globally if WS is connected.
       // We run the cycle and let 'performPollingCycle' decide per-symbol.
       await this.performPollingCycle();
+
+      // [MAINTENANCE] Prune orphaned subscriptions every 30s
+      if (Date.now() % 30000 < 1000) {
+        this.pruneOrphanedSubscriptions();
+      }
+
 
       // [PERFORMANCE] Only sync if dirty (Batched updates)
       if (this._subscriptionsDirty) {
