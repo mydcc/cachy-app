@@ -61,7 +61,17 @@
     "globalChat": "Globaler Chat",
     "myNotes": "Meine Notizen",
     "aiAssistant": "KI Assistent",
-    "clearConfirm": "Verlauf löschen?"
+    "clearConfirm": "Verlauf löschen?",
+    "clearHistory": "Verlauf löschen",
+    "collapse": "Panel einklappen",
+    "cycleMode": "Modus wechseln",
+    "expand": "Panel ausklappen",
+    "exportChat": "Chat exportieren",
+    "largerFont": "Größere Schrift",
+    "quotaExceeded": "Generative AI Quote überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen.",
+    "smallerFont": "Kleinere Schrift",
+    "suggestedChanges": "Vorgeschlagene Änderungen",
+    "thinking": "Denkt nach..."
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -1081,14 +1091,22 @@
     },
     "performance": {
       "monitor": "Performance Monitor",
-      "tips": "Optimierungstipps",
+      "tips": {
+        "highAnalysisTime": "Hohe Analysezeit erkannt. Erwägen Sie den Wechsel zum Light- oder Balanced-Profil.",
+        "highApiCalls": "API-Limit nähert sich. Erwägen Sie längere Intervalle oder deaktivieren Sie die Nachrichtenanalyse.",
+        "highLatency": "Hohe Netzwerklatenz erkannt. Überprüfen Sie Ihre Internetverbindung.",
+        "highMemory": "Hoher Speicherverbrauch. Versuchen Sie, die Cache-Größe zu reduzieren oder ungenutzte Tabs zu schließen.",
+        "lowCacheHit": "Niedrige Cache-Trefferquote. Erhöhen Sie die Markt-Cache-Größe für bessere Leistung.",
+        "optimal": "Die Leistung ist optimal. Sie können weitere Funktionen aktivieren oder zum Pro-Profil wechseln."
+      },
       "lastUpdate": "Zuletzt aktualisiert: {time}",
       "analysisTime": "Analysezeit",
       "memory": "Speicher",
       "apiCalls": "API-Aufrufe/min",
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
-      "networkStatus": "Netzwerkstatus"
+      "networkStatus": "Netzwerkstatus",
+      "tipsTitle": "Optimierungstipps"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1393,7 +1411,11 @@
     "resize": "Größe ändern",
     "tp": "TP",
     "sl": "SL",
-    "roe": "ROE"
+    "roe": "ROE",
+    "apply": "Anwenden",
+    "copy": "Inhalt kopieren",
+    "ignore": "Ignorieren",
+    "send": "Nachricht senden"
   },
   "analyst": {
     "trend": {
@@ -1516,7 +1538,8 @@
     "reconnecting": "⟳ Neu verbinden...",
     "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
     "disconnected": "✗ Warte auf Verbindung...",
-    "error": "✗ Verbindungsfehler"
+    "error": "✗ Verbindungsfehler",
+    "offline": "OFFLINE - VERBINDUNG PRÜFEN"
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
