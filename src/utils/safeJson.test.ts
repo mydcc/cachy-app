@@ -1,72 +1,68 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-
 import { describe, it, expect } from 'vitest';
-import { safeJsonParse } from '../../src/utils/safeJson';
+import { safeJsonParse } from './safeJson';
 
 describe('safeJsonParse', () => {
-    it('should parse normal JSON correctly', () => {
-        const json = '{"key": "value", "num": 123}';
-        const parsed = safeJsonParse(json);
-        expect(parsed).toEqual({ key: 'value', num: 123 });
+    it('parses standard JSON correctly', () => {
+        const input = '{"a": 1, "b": "text"}';
+        expect(safeJsonParse(input)).toEqual({ a: 1, b: "text" });
     });
 
-    it('should protect large integers in object values', () => {
-        // 19 digits - standard JS would lose precision
-        const json = '{"id": 1234567890123456789}';
-        const parsed = safeJsonParse(json);
-        expect(parsed.id).toBe('1234567890123456789');
+    it('protects large integers (>= 15 digits)', () => {
+        const input = '{"id": 1234567890123456789}';
+        const result = safeJsonParse(input);
+        expect(result.id).toBe("1234567890123456789");
     });
 
-    it('should protect large integers in arrays (e.g. Klines)', () => {
-        // Standard Bitunix kline format often has timestamps as numbers
-        // e.g. [1678901234567891234, "OPEN", ...]
-        const json = '[1234567890123456789, "test"]';
-        const parsed = safeJsonParse(json);
-        expect(parsed[0]).toBe('1234567890123456789');
+    it('protects large integers in arrays', () => {
+        const input = '{"ids": [1234567890123456789, 9876543210987654321]}';
+        const result = safeJsonParse(input);
+        expect(result.ids[0]).toBe("1234567890123456789");
+        expect(result.ids[1]).toBe("9876543210987654321");
     });
 
-    it('should protect CONSECUTIVE large integers in arrays', () => {
-        // This fails if the regex consumes the trailing comma
-        const json = '[1234567890123456789, 1234567890123456790]';
-        const parsed = safeJsonParse(json);
-        expect(parsed[0]).toBe('1234567890123456789');
-        expect(parsed[1]).toBe('1234567890123456790');
+    it('handles negative large integers', () => {
+         const input = '{"id": -1234567890123456789}';
+         const result = safeJsonParse(input);
+         expect(result.id).toBe("-1234567890123456789");
     });
 
-    it('should protect high-precision floats (Core Hardening)', () => {
-        // 18 digits total - JS would round this
-        // Input:  12345.123456789012
-        // JS:     12345.12345678901
-        const json = '{"val": 12345.123456789012}';
-        const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe("12345.123456789012");
+    it('leaves small integers as numbers', () => {
+        const input = '{"id": 12345678901234}'; // 14 digits
+        const result = safeJsonParse(input);
+        expect(typeof result.id).toBe("number");
+        expect(result.id).toBe(12345678901234);
     });
 
-    it('should NOT protect small numbers', () => {
-        const json = '{"val": 123.45}';
-        const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe(123.45);
+    it('handles floating point numbers (preserves as string if long)', () => {
+         // This behavior depends on the regex \d[\d.eE+-]{14,}
+         // 1.23456789012345 is > 14 chars, so it should be stringified
+         const input = '{"val": 1.234567890123456789}';
+         const result = safeJsonParse(input);
+         expect(result.val).toBe("1.234567890123456789");
     });
 
-    it('should protect very small floats with high precision', () => {
-        const json = '{"val": 0.0000000000123456789}'; // 21 chars
-        const parsed = safeJsonParse(json);
-        expect(parsed.val).toBe("0.0000000000123456789");
+    it('handles scientific notation (preserves as string if long)', () => {
+         const input = '{"val": 1.23e+20}'; // < 14 chars, should be number
+         const result = safeJsonParse(input);
+         // "1.23e+20".length is 8.
+         expect(typeof result.val).toBe("number");
+         expect(result.val).toBe(1.23e+20);
+    });
+
+    it('handles scientific notation long enough to trigger protection', () => {
+        const input = '{"val": 1.23456789012345e+20}'; // > 14 chars
+        const result = safeJsonParse(input);
+        expect(result.val).toBe("1.23456789012345e+20");
+    });
+
+    it('handles whitespace', () => {
+        const input = '{ "id" :  1234567890123456789 }';
+        const result = safeJsonParse(input);
+        expect(result.id).toBe("1234567890123456789");
+    });
+
+    it('handles null and empty string', () => {
+        expect(safeJsonParse(null as any)).toBe(null);
+        expect(safeJsonParse("")).toBe("");
     });
 });

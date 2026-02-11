@@ -34,6 +34,20 @@ import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
+export interface TpSlOrder {
+    orderId: string;
+    symbol: string;
+    planType: "PROFIT" | "LOSS";
+    triggerPrice: string;
+    qty?: string;
+    status: string;
+    ctime?: number;
+    createTime?: number;
+    id?: string;
+    planId?: string;
+    [key: string]: any;
+}
+
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
         super(message || `Bitunix API Error ${code}`);
@@ -424,7 +438,7 @@ class TradeService {
         return results;
     }
 
-    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<any[]> {
+    public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {
@@ -440,7 +454,7 @@ class TradeService {
              positions.forEach(p => symbolsToFetch.add(p.symbol));
 
              const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
-             const results: any[] = [];
+             const results: TpSlOrder[] = [];
 
              // Rate limit handling: Batch requests (max 5 concurrent)
              const BATCH_SIZE = 5;
@@ -463,7 +477,7 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return Array.isArray(data) ? data : data.rows || [];
+                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
@@ -474,22 +488,22 @@ class TradeService {
              }
 
              // Deduplicate
-             const uniqueOrders = new Map();
+             const uniqueOrders = new Map<string, TpSlOrder>();
              results.forEach((o) => {
                  const id = o.id || o.orderId || o.planId;
                  if (id) uniqueOrders.set(id, o);
              });
              const final = Array.from(uniqueOrders.values());
              // Sort by time (newest first)
-             final.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             final.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return final;
         } else {
              // Generic provider
              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = Array.isArray(data) ? data : data.rows || [];
-             list.sort((a: any, b: any) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }
     }
