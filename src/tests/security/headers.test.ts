@@ -41,6 +41,7 @@ describe('Security Headers', () => {
 
     // Existing header
     expect(headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin-allow-popups');
+    expect(headers.get('Cross-Origin-Embedder-Policy')).toBe('credentialless');
 
     // Missing headers (these should fail initially)
     expect(headers.get('X-Frame-Options')).toBe('SAMEORIGIN');

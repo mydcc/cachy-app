@@ -12,11 +12,13 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "vitest run",
+    "test:e2e": "playwright test tests/e2e",
     "benchmark:technicals": "vitest bench"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@vitest/ui": "^4.0.18",
+    "@webgpu/types": "^0.1.69",
     "happy-dom": "^20.3.9",
     "puppeteer": "^24.36.1",
     "vitest": "^4.0.18"

@@ -443,6 +443,16 @@ class ActiveTechnicalsManager {
 
         if (history.length === 0) return;
 
+        // ✅ Apply historyLimit enforcement
+        const limit = settings.historyLimit || 750;
+        if (history.length > limit) {
+            history = history.slice(-limit);
+            
+            if (import.meta.env.DEV) {
+                logger.debug('technicals', `[ActiveManager] Applied historyLimit: ${history.length}/${limit} for ${key}`);
+            }
+        }
+
         // REAL-TIME SYNC:
         // Inject latest price
         if (marketData.lastPrice) {
@@ -496,8 +506,15 @@ class ActiveTechnicalsManager {
                 this.handleResult(symbol, timeframe, marketData, result);
             }
 
-        } catch (e) {
-            logger.error("technicals", `Calculation failed for ${key}`, e);
+        } catch (e: any) {
+            if (e.message === "Worker unavailable for update") {
+                // Expected fallback behavior - just log debug and re-init next time
+                if (import.meta.env.DEV) {
+                    logger.debug("technicals", `[ActiveManager] Worker unavailable for update on ${key}, scheduling re-init.`);
+                }
+            } else {
+                logger.error("technicals", `Calculation failed for ${key}`, e);
+            }
             // On error, force re-init next time
             this.workerState.delete(key);
         }

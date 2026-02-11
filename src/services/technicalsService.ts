@@ -2,64 +2,42 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
 /*
  * Copyright (C) 2026 MYDCT
  *
- * Market Analyst Service
- * Background service that cycles through favorite symbols to calculate
- * key indicators without overloading the CPU or API.
+ * Technicals Service
+ * Manages the lifecycle of the technical indicators worker and 
+ * provides high-performance calculation routing.
  */
 
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
-import type { IndicatorSettings } from "../stores/indicator.svelte";
-import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData, KlineBuffers } from "./technicalsTypes";
-import { type Kline } from "../utils/indicators";
-import {
-  calculateAllIndicators,
-  calculateIndicatorsFromArrays,
-  getEmptyData,
-} from "../utils/technicalsCalculator";
+import type { IndicatorSettings } from "../types/indicators";
+import { indicatorState } from "../stores/indicator.svelte";
+import type { Kline, TechnicalsData, IndicatorResult, KlineBuffers } from "./technicalsTypes";
+import { getEmptyData } from "./technicalsTypes";
 import { toNumFast } from "../utils/fastConversion";
+import { calculationStrategy } from "./calculationStrategy";
+import { wasmCalculator } from "./wasmCalculator";
+import { webGpuCalculator, WebGpuCalculator } from "./webGpuCalculator";
+import { calculateAllIndicators } from "../utils/technicalsCalculator";
+import { getCapabilities } from "./capabilityDetection";
+import { toastService } from "./toastService.svelte";
 
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
 
-// Cache for indicator calculations - Dynamic configuration from settings
-// Initial defaults, will be overridden by settings on app init
 let MAX_CACHE_SIZE = 100;
-let CACHE_TTL_MS = 60 * 1000; // 1 minute default
+let CACHE_TTL_MS = 60 * 1000;
 
-// Update cache settings dynamically
 export function updateCacheSettings(cacheSize: number, cacheTTL: number) {
   MAX_CACHE_SIZE = cacheSize;
   CACHE_TTL_MS = cacheTTL * 1000;
-
-  if (import.meta.env.DEV) {
-    console.log(`[Technicals] Cache config updated: size=${MAX_CACHE_SIZE}, TTL=${CACHE_TTL_MS}ms`);
-  }
-}
-
-// Get current cache stats for monitoring
-export function getCacheStats() {
-  return {
-    size: calculationCache.size,
-    maxSize: MAX_CACHE_SIZE,
-    ttl: CACHE_TTL_MS,
-  };
 }
 
 const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
@@ -67,84 +45,64 @@ const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
 interface TechnicalsResultCacheEntry {
   data: TechnicalsData;
   timestamp: number;
-  lastAccessed: number; // Track LRU
+  lastAccessed: number;
 }
 
-// Track last cleanup time to avoid excessive cleanup calls
 let lastCleanupTime = 0;
-const CLEANUP_INTERVAL_MS = 30000; // 30 seconds between cleanups
+const CLEANUP_INTERVAL_MS = 30000;
 
-// Cleanup cache entries older than TTL
 function cleanupStaleCache() {
   const now = Date.now();
-
-  // Throttle cleanup - only run every 30 seconds
-  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
-    return;
-  }
-
+  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) return;
   lastCleanupTime = now;
   const staleKeys: string[] = [];
-
   calculationCache.forEach((entry, key) => {
-    if (now - entry.timestamp > CACHE_TTL_MS) {
-      staleKeys.push(key);
-    }
+    if (now - entry.timestamp > CACHE_TTL_MS) staleKeys.push(key);
   });
-
   staleKeys.forEach(key => calculationCache.delete(key));
-
-  if (import.meta.env.DEV && staleKeys.length > 0) {
-    console.log(`[Technicals] Cleaned ${staleKeys.length} stale cache entries`);
-  }
 }
 
 // --- Worker Manager (Singleton) ---
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
-  private pendingResolves: Map<string, (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void> =
-    new Map();
+  private pendingResolves: Map<string, (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void> = new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
-  private lastActive: number = Date.now();
-  private readonly IDLE_TIMEOUT = 30000; // 30s keep-alive
+  private consecutiveFailures = 0;
+  private isDisabled = false;
 
   getWorker(): Worker | null {
-    if (!browser) return null;
-
-    // Singleton Init
-    if (!this.worker) {
-      this.initWorker();
-    }
+    if (!browser || this.isDisabled) return null;
+    if (!this.worker) this.initWorker();
     return this.worker;
   }
 
   private initWorker() {
-    if (!browser || typeof Worker === "undefined") return;
-
+    if (!browser) return;
     try {
-      this.worker = new Worker(
-        new URL("../workers/technicals.worker.ts", import.meta.url),
-        { type: "module" }
-      );
+      // name property for easier debugging in browser tools
+      this.worker = new Worker(new URL("../workers/technicals.worker.ts", import.meta.url), { 
+        type: "module",
+        name: "TechnicalsWorker"
+      });
+      
       this.worker.onmessage = this.handleMessage.bind(this);
       this.worker.onerror = this.handleError.bind(this);
-
-      if (import.meta.env.DEV) {
-        console.log("[Technicals] Worker started (Singleton).");
-      }
+      
+      if (import.meta.env.DEV) console.log("[Technicals] Worker instance created.");
     } catch (e) {
-      console.error("[Technicals] Failed to start worker", e);
-      this.worker = null;
+      console.error("[Technicals] Worker Creation Failed:", e);
+      this.isDisabled = true;
     }
   }
 
   private handleMessage(e: MessageEvent) {
     const { id, payload, error, buffers } = e.data;
-    if (this.pendingResolves.has(id)) {
+    if (id && this.pendingResolves.has(id)) {
       if (error) {
-        this.pendingRejects.get(id)?.(error);
+          this.pendingRejects.get(id)?.(new Error(error));
       } else {
-        this.pendingResolves.get(id)?.({ data: payload, buffers });
+          this.consecutiveFailures = 0; // Reset on success
+          this.pendingResolves.get(id)?.({ data: payload, buffers });
       }
       this.pendingResolves.delete(id);
       this.pendingRejects.delete(id);
@@ -152,14 +110,24 @@ class TechnicalsWorkerManager {
   }
 
   private handleError(e: ErrorEvent) {
-    console.error("[Technicals] Worker Error:", e);
-    // Auto-restart logic: Terminate and clear instance so next call re-initializes
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
+    // Suppress console spam if already failing
+    if (this.isDisabled) return;
+
+    const errorMsg = e.message || "Evaluation Error or COEP/CORS Block";
+    console.error(`[Technicals] Worker Crash: ${errorMsg}`, e);
+    
+    if (this.worker) { 
+        this.worker.terminate(); 
+        this.worker = null; 
     }
-    // Reject all pending requests to trigger immediate fallback
-    this.pendingRejects.forEach((reject) => reject(new Error("workerErrors.eventError")));
+    
+    this.consecutiveFailures++;
+    if (this.consecutiveFailures > 2) {
+        console.warn("[Technicals] Disabling Web Worker due to persistent errors. Falling back to Main Thread ACE.");
+        this.isDisabled = true;
+    }
+
+    this.pendingRejects.forEach((reject) => reject(new Error(`workerErrors.eventError: ${errorMsg}`)));
     this.pendingResolves.clear();
     this.pendingRejects.clear();
   }
@@ -167,15 +135,13 @@ class TechnicalsWorkerManager {
   public async postMessage(message: any, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
     const w = this.getWorker();
     if (!w) throw new Error("workerErrors.notAvailable");
-
+    
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       this.pendingResolves.set(id, resolve);
       this.pendingRejects.set(id, reject);
-
       w.postMessage({ ...message, id }, transfer);
-
-      // Safety timeout
+      
       setTimeout(() => {
         if (this.pendingResolves.has(id)) {
           this.pendingRejects.get(id)?.(new Error("workerErrors.timeout"));
@@ -185,431 +151,91 @@ class TechnicalsWorkerManager {
       }, 5000);
     });
   }
-
-  // No termination logic - Keep alive as singleton
+  
+  isHealthy(): boolean {
+      return !this.isDisabled && (this.worker !== null || !browser);
+  }
 }
 
 const workerManager = new TechnicalsWorkerManager();
 
-const INDICATOR_SETTINGS_MAP: Record<string, string> = {
-  'rsi': 'rsi',
-  'stochastic': 'stochastic',
-  'cci': 'cci',
-  'adx': 'adx',
-  'ao': 'ao',
-  'macd': 'macd',
-  'stochrsi': 'stochRsi',
-  'williamsr': 'williamsR',
-  'supertrend': 'superTrend',
-  'atrtrailingstop': 'atrTrailingStop',
-  'obv': 'obv',
-  'volumeprofile': 'volumeProfile',
-  'vwap': 'vwap',
-  'parabolicsar': 'parabolicSar',
-  'mfi': 'mfi',
-  'choppiness': 'choppiness',
-  'ichimoku': 'ichimoku',
-  'ema': 'ema',
-  'pivots': 'pivots',
-  'atr': 'atr',
-  'bb': 'bb',
-  'momentum': 'momentum',
-  'volumema': 'volumeMa',
-  'bollingerbands': 'bollingerBands'
-};
+function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any, enabledIndicators?: any): string {
+  return `${lastTime}_${lastPriceStr}_${len}_${firstTime}_${JSON.stringify({ settings, enabledIndicators })}`;
+}
 
-function generateCacheKey(
-  lastTime: number,
-  lastPriceStr: string,
-  len: number,
-  firstTime: number,
-  settings: any,
-  enabledIndicators?: Partial<Record<string, boolean>>
-): string {
-  // Static parts
-  const prefix = `${lastTime}_${lastPriceStr}_${len}_${firstTime}`;
-
-  if (!enabledIndicators) {
-    return prefix + '_ALL_' + JSON.stringify(settings);
-  }
-
-  // Optimize: Normalize and determine active indicators
-  const lowerEnabled: Record<string, boolean> = {};
-  let hasTrue = false;
-  for (const k in enabledIndicators) {
-    const v = enabledIndicators[k];
-    if (v !== undefined) {
-      lowerEnabled[k.toLowerCase()] = v;
-      if (v === true) hasTrue = true;
+// Feature Check (Outcome of Step 7)
+let capabilityCheckDone = false;
+async function notifyCapabilityStatus() {
+    if (!browser || capabilityCheckDone) return;
+    capabilityCheckDone = true;
+    
+    // Ensure we have latest capabilities
+    const caps = await getCapabilities();
+    
+    const missing: string[] = [];
+    if (!caps.sharedMemory) missing.push("SharedMemory (COOP/COEP)");
+    if (!caps.gpu) missing.push("WebGPU");
+    
+    if (missing.length > 0) {
+        // Warning, not error - app still works via fallbacks
+        const msg = `Performance Warning: Missing ${missing.join(", ")}. Using fallback engine.`;
+        console.warn(`[Technicals] ${msg}`);
+        toastService.warning(msg, 8000);
+    } else {
+        console.log("[Technicals] All high-performance features available.");
     }
-  }
-
-  const activeKeys: string[] = [];
-  if (hasTrue) {
-    // Allowlist mode
-    for (const k in lowerEnabled) {
-      if (lowerEnabled[k] === true) activeKeys.push(k);
-    }
-  } else {
-    // Blocklist mode (include all except disabled)
-    const allInds = Object.keys(INDICATOR_SETTINGS_MAP);
-    for (const ind of allInds) {
-      if (lowerEnabled[ind] !== false) {
-        activeKeys.push(ind);
-      }
-    }
-  }
-
-  // Sort for determinism (important for JSON stringify order if relies on insertion order)
-  activeKeys.sort();
-
-  // Construct a minimal object to stringify
-  // This combines indicators hash and settings hash into one operation
-  const payload: any = {};
-
-  if (settings) {
-      payload._h = settings.historyLimit;
-      payload._p = settings.precision;
-
-      for (const indName of activeKeys) {
-          const settingKey = INDICATOR_SETTINGS_MAP[indName];
-          if (settingKey && settings[settingKey]) {
-             payload[settingKey] = settings[settingKey];
-          }
-      }
-  }
-
-  return prefix + '_' + JSON.stringify(payload);
 }
 
 export const technicalsService = {
-  async calculateTechnicals(
-    klinesInput: {
-      time: number;
-      open: number | string | Decimal;
-      high: number | string | Decimal;
-      low: number | string | Decimal;
-      close: number | string | Decimal;
-      volume?: number | string | Decimal;
-    }[],
-    settings?: IndicatorSettings,
-    enabledIndicators?: Partial<Record<string, boolean>>,
-  ): Promise<TechnicalsData> {
-    if (klinesInput.length === 0) return this.getEmptyData();
-
-    // Cleanup stale cache every call
+  async calculateTechnicals(klinesInput: any[], settings?: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+    const finalSettings = settings || indicatorState.toJSON();
+    let klines = klinesInput;
+    const limit = Math.max(finalSettings.historyLimit || 750, 1);
+    if (klines.length > limit) klines = klines.slice(-limit);
+    if (klines.length === 0) return getEmptyData();
+    
     cleanupStaleCache();
-
-    // 0. Cache Check - Include enabled indicators in cache key
-    const lastKline = klinesInput[klinesInput.length - 1];
-    const lastPrice = lastKline.close?.toString() || "0";
-
-    const cacheKey = generateCacheKey(
-        lastKline.time,
-        lastPrice,
-        klinesInput.length,
-        klinesInput[0].time,
-        settings,
-        enabledIndicators
-    );
+    const lastKline = klines[klines.length - 1];
+    const cacheKey = generateCacheKey(lastKline.time, lastKline.close?.toString() || "0", klines.length, klines[0].time, finalSettings, enabledIndicators);
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
       cached.lastAccessed = Date.now();
-      if (import.meta.env.DEV) {
-        console.log('[Technicals] Cache HIT');
-      }
       return cached.data;
     }
 
-    if (import.meta.env.DEV) {
-      console.log('[Technicals] Cache MISS, calculating...');
-    }
-
-    // 1. Try Worker (Singleton)
+    const engine = calculationStrategy.selectEngine(klines.length, finalSettings);
+    
     try {
-      // 2. Prepare SoA (Struct of Arrays) for Zero-Copy Transfer
-      // This is vastly reduced GC pressure compared to mapping thousands of objects
-      const len = klinesInput.length;
-      const times = new Float64Array(len);
-      const opens = new Float64Array(len);
-      const highs = new Float64Array(len);
-      const lows = new Float64Array(len);
-      const closes = new Float64Array(len);
-      const volumes = new Float64Array(len);
-
-      for (let i = 0; i < len; i++) {
-        const k = klinesInput[i];
-        times[i] = k.time;
-        opens[i] = toNumFast(k.open);
-        highs[i] = toNumFast(k.high);
-        lows[i] = toNumFast(k.low);
-        closes[i] = toNumFast(k.close);
-        volumes[i] = k.volume ? toNumFast(k.volume) : 0;
+      let finalResult: TechnicalsData;
+      
+      if (engine === 'wasm' && wasmCalculator.isAvailable()) {
+        finalResult = await wasmCalculator.calculate(klines, finalSettings, enabledIndicators || {});
+      } else if (engine === 'gpu' && await WebGpuCalculator.isSupported()) {
+        finalResult = await webGpuCalculator.calculate(klines, finalSettings, enabledIndicators || {});
+      } else if (workerManager.isHealthy()) {
+        finalResult = await this.calculateWithWorker(klines, finalSettings, enabledIndicators);
+      } else {
+        finalResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
       }
 
-      // 3. Post Message with Transferables
-      // The worker takes ownership of the buffers. We cannot use them after this.
-      const { data: result } = await workerManager.postMessage({
-        type: "CALCULATE",
-        payload: {
-          times, opens, highs, lows, closes, volumes, settings, enabledIndicators
-        }
-      }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
-
-      // Optimization: No deserialization needed, result is directly TechnicalsData with numbers
-      const finalResult = result;
-
-      // Cache result with aggressive eviction
+      // Cache storage
       if (calculationCache.size >= MAX_CACHE_SIZE) {
-        // Find oldest entry by lastAccessed time
-        let oldestKey: string | null = null;
-        let oldestTime = Infinity;
-
-        calculationCache.forEach((entry, key) => {
-          const accessTime = entry.lastAccessed || entry.timestamp;
-          if (accessTime < oldestTime) {
-            oldestTime = accessTime;
-            oldestKey = key;
-          }
-        });
-
-        if (oldestKey) {
-          calculationCache.delete(oldestKey);
-        }
+          let oldestKey = ''; let oldestTime = Infinity;
+          calculationCache.forEach((entry, key) => { if (entry.lastAccessed < oldestTime) { oldestTime = entry.lastAccessed; oldestKey = key; } });
+          if (oldestKey) calculationCache.delete(oldestKey);
       }
-      calculationCache.set(cacheKey, {
-        data: finalResult,
-        timestamp: Date.now(),
-        lastAccessed: Date.now()
-      });
-
+      
+      calculationCache.set(cacheKey, { data: finalResult, timestamp: Date.now(), lastAccessed: Date.now() });
       return finalResult;
     } catch (e) {
-      if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
-      return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
+      if (import.meta.env.DEV) console.warn("[Technicals] Engine fallback triggered:", e);
+      return this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
     }
   },
 
-  async initializeTechnicals(
-    symbol: string,
-    timeframe: string,
-    klines: {
-      time: number;
-      open: number | string | Decimal;
-      high: number | string | Decimal;
-      low: number | string | Decimal;
-      close: number | string | Decimal;
-      volume?: number | string | Decimal;
-    }[],
-    settings?: IndicatorSettings,
-    enabledIndicators?: Partial<Record<string, boolean>>
-  ): Promise<TechnicalsData> {
-    const { data: result } = await workerManager.postMessage({
-        type: "INITIALIZE",
-        payload: {
-            symbol,
-            timeframe,
-            klines: klines.map(k => ({
-                ...k,
-                open: k.open.toString(),
-                high: k.high.toString(),
-                low: k.low.toString(),
-                close: k.close.toString(),
-                volume: k.volume?.toString() || "0"
-            })),
-            settings,
-            enabledIndicators
-        }
-    });
-    return result;
-  },
-
-  async shiftTechnicals(
-    symbol: string,
-    timeframe: string,
-    kline: {
-      time: number;
-      open: number | string | Decimal;
-      high: number | string | Decimal;
-      low: number | string | Decimal;
-      close: number | string | Decimal;
-      volume?: number | string | Decimal;
-    }
-  ): Promise<TechnicalsData> {
-    const { data: result } = await workerManager.postMessage({
-        type: "SHIFT",
-        payload: {
-            symbol,
-            timeframe,
-            kline: {
-                ...kline,
-                open: kline.open.toString(),
-                high: kline.high.toString(),
-                low: kline.low.toString(),
-                close: kline.close.toString(),
-                volume: kline.volume?.toString() || "0"
-            }
-        }
-    });
-    return result;
-  },
-
-  async updateTechnicals(
-    symbol: string,
-    timeframe: string,
-    kline: {
-      time: number;
-      open: number | string | Decimal;
-      high: number | string | Decimal;
-      low: number | string | Decimal;
-      close: number | string | Decimal;
-      volume?: number | string | Decimal;
-    }
-  ): Promise<TechnicalsData> {
-    const { data: result } = await workerManager.postMessage({
-        type: "UPDATE",
-        payload: {
-            symbol,
-            timeframe,
-            kline: {
-                ...kline,
-                open: kline.open.toString(),
-                high: kline.high.toString(),
-                low: kline.low.toString(),
-                close: kline.close.toString(),
-                volume: kline.volume?.toString() || "0"
-            }
-        }
-    });
-    return result;
-  },
-
-  async calculateTechnicalsFromBuffers(
-    buffers: KlineBuffers,
-    settings?: IndicatorSettings,
-    enabledIndicators?: Partial<Record<string, boolean>>,
-  ): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
-    const len = buffers.times.length;
-    if (len === 0) return { data: this.getEmptyData() };
-
-    cleanupStaleCache();
-
-    // 0. Cache Check
-    const lastTime = buffers.times[len - 1];
-    const lastClose = buffers.closes[len - 1];
-    const lastPrice = lastClose.toString(); // float to string might vary slightly but usually deterministic for same float
-
-    const cacheKey = generateCacheKey(
-        lastTime,
-        lastPrice,
-        len,
-        buffers.times[0],
-        settings,
-        enabledIndicators
-    );
-
-    const cached = calculationCache.get(cacheKey);
-    if (cached) {
-      cached.lastAccessed = Date.now();
-      if (import.meta.env.DEV) console.log('[Technicals] Buffered Cache HIT');
-      return { data: cached.data, buffers }; // Return buffers immediately (unused)
-    }
-
-    // 1. Worker
-    try {
-      const { times, opens, highs, lows, closes, volumes } = buffers;
-
-      // IMPORTANT: We assume 'buffers' are owned by the caller and can be transferred.
-      // If the caller needs to reuse them, they should have cloned them.
-      // We pass the underlying ArrayBuffers to the worker.
-      const transferables = [
-        times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer
-      ];
-
-      const { data: result, buffers: returnedBuffers } = await workerManager.postMessage({
-        type: "CALCULATE",
-        payload: {
-          times, opens, highs, lows, closes, volumes, settings, enabledIndicators
-        }
-      }, transferables);
-
-      // Cache result
-      if (calculationCache.size >= MAX_CACHE_SIZE) {
-        let oldestKey: string | null = null;
-        let oldestTime = Infinity;
-        calculationCache.forEach((entry, key) => {
-          const accessTime = entry.lastAccessed || entry.timestamp;
-          if (accessTime < oldestTime) {
-            oldestTime = accessTime;
-            oldestKey = key;
-          }
-        });
-        if (oldestKey) calculationCache.delete(oldestKey);
-      }
-      calculationCache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now(),
-        lastAccessed: Date.now()
-      });
-
-      return { data: result, buffers: returnedBuffers };
-
-    } catch (e) {
-      if (import.meta.env.DEV) console.warn("[Technicals] Buffer Worker failed, falling back to inline", e);
-      // Fallback: Use inline calculator with buffers directly
-      // Note: buffers might be unusable if transfer failed?
-      // Actually if transfer failed, they are still here. If transfer succeeded but worker errored, they are gone.
-      // But typically worker error returns data.
-      // We'll try inline.
-      const result = calculateIndicatorsFromArrays(
-        buffers.times, buffers.opens, buffers.highs, buffers.lows, buffers.closes, buffers.volumes,
-        settings, enabledIndicators
-      );
-
-      // Return buffers as they are still valid in main thread
-      return { data: result, buffers };
-    }
-  },
-
-  calculateTechnicalsInline(
-    klinesInput: {
-      time: number;
-      open: number | string | Decimal;
-      high: number | string | Decimal;
-      low: number | string | Decimal;
-      close: number | string | Decimal;
-      volume?: number | string | Decimal;
-    }[],
-    settings?: IndicatorSettings,
-    enabledIndicators?: Partial<Record<string, boolean>>,
-  ): TechnicalsData {
-    // 1. Cache check first (same as async version)
-    const lastKline = klinesInput[klinesInput.length - 1];
-    const lastPrice = lastKline.close?.toString() || "0";
-
-    const cacheKey = generateCacheKey(
-        lastKline.time,
-        lastPrice,
-        klinesInput.length,
-        klinesInput[0].time,
-        settings,
-        enabledIndicators
-    );
-
-    const cached = calculationCache.get(cacheKey);
-    if (cached) {
-      cached.lastAccessed = Date.now();
-      if (import.meta.env.DEV) {
-        console.log('[Technicals] Inline Cache HIT');
-      }
-      return cached.data;
-    }
-
-    // 2. Prepare Arrays directly (Fast Path)
-    // Avoid creating thousands of Decimal objects and Kline objects
-    // Optimization: Use Float64Array for faster access and reduced GC
-    const len = klinesInput.length;
+  async calculateWithWorker(klines: any[], settings: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+    const len = klines.length;
     const times = new Float64Array(len);
     const opens = new Float64Array(len);
     const highs = new Float64Array(len);
@@ -617,91 +243,70 @@ export const technicalsService = {
     const closes = new Float64Array(len);
     const volumes = new Float64Array(len);
 
-    let prevClose = 0;
-    let writeIdx = 0;
-
     for (let i = 0; i < len; i++) {
-        const k = klinesInput[i];
-
-        // Inline toNum logic for 'close' with prevClose fallback
-        let close = toNumFast(k.close);
-        if (close === 0) close = prevClose; // Handle initial 0 or failure
-
-        // Data cleaning: If close is 0 and we have a previous close, use that.
-        const safeClose = (close === 0 && prevClose !== 0) ? prevClose : close;
-
-        if (safeClose !== 0) {
-            times[writeIdx] = k.time;
-            closes[writeIdx] = safeClose;
-
-            // Use toNumFast with fallback
-            const o = toNumFast(k.open);
-            opens[writeIdx] = o === 0 ? safeClose : o;
-
-            const h = toNumFast(k.high);
-            highs[writeIdx] = h === 0 ? safeClose : h;
-
-            const l = toNumFast(k.low);
-            lows[writeIdx] = l === 0 ? safeClose : l;
-
-            volumes[writeIdx] = toNumFast(k.volume);
-
-            writeIdx++;
-            prevClose = safeClose;
-        }
+      const k = klines[i];
+      times[i] = k.time;
+      opens[i] = toNumFast(k.open);
+      highs[i] = toNumFast(k.high);
+      lows[i] = toNumFast(k.low);
+      closes[i] = toNumFast(k.close);
+      volumes[i] = toNumFast(k.volume);
     }
 
-    // If we filtered out bad data, we need to slice the arrays
-    let finalTimes, finalOpens, finalHighs, finalLows, finalCloses, finalVolumes;
-    if (writeIdx < len) {
-        finalTimes = times.subarray(0, writeIdx);
-        finalOpens = opens.subarray(0, writeIdx);
-        finalHighs = highs.subarray(0, writeIdx);
-        finalLows = lows.subarray(0, writeIdx);
-        finalCloses = closes.subarray(0, writeIdx);
-        finalVolumes = volumes.subarray(0, writeIdx);
-    } else {
-        finalTimes = times;
-        finalOpens = opens;
-        finalHighs = highs;
-        finalLows = lows;
-        finalCloses = closes;
-        finalVolumes = volumes;
-    }
-
-    // Use Shared Calculator with enabled indicators filter directly on arrays
-    const result = calculateIndicatorsFromArrays(
-        finalTimes, finalOpens, finalHighs, finalLows, finalCloses, finalVolumes,
-        settings, enabledIndicators
-    );
-
-    // Store in cache with aggressive eviction
-    if (calculationCache.size >= MAX_CACHE_SIZE) {
-      let oldestKey: string | null = null;
-      let oldestTime = Infinity;
-
-      calculationCache.forEach((entry, key) => {
-        const accessTime = entry.lastAccessed || entry.timestamp;
-        if (accessTime < oldestTime) {
-          oldestTime = accessTime;
-          oldestKey = key;
-        }
-      });
-
-      if (oldestKey) {
-        calculationCache.delete(oldestKey);
-      }
-    }
-    calculationCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now(),
-      lastAccessed: Date.now()
-    });
+    const { data: result } = await workerManager.postMessage({
+      type: "CALCULATE",
+      payload: { times, opens, highs, lows, closes, volumes, settings, enabledIndicators }
+    }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
 
     return result;
   },
 
-  getEmptyData(): TechnicalsData {
-    return getEmptyData();
+  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+    notifyCapabilityStatus();
+    if (!workerManager.isHealthy()) {
+        return this.calculateTechnicalsInline(klines, settings, enabledIndicators);
+    }
+
+    try {
+        const { data: result } = await workerManager.postMessage({
+            type: "INITIALIZE",
+            payload: {
+                symbol, timeframe,
+                klines: klines.map(k => ({ ...k, open: k.open.toString(), high: k.high.toString(), low: k.low.toString(), close: k.close.toString(), volume: k.volume?.toString() || "0" })),
+                settings, enabledIndicators
+            }
+        });
+        return result;
+    } catch (e) {
+        return this.calculateTechnicalsInline(klines, settings, enabledIndicators);
+    }
+  },
+
+  async updateTechnicals(symbol: string, timeframe: string, kline: any): Promise<TechnicalsData> {
+    if (!workerManager.isHealthy()) {
+        // Cannot update incrementally without worker. Throw to force re-init/fallback in manager.
+        throw new Error("Worker unavailable for update"); 
+    }
+
+    try {
+        const { data: result } = await workerManager.postMessage({
+            type: "UPDATE",
+            payload: {
+                symbol, timeframe,
+                kline: { ...kline, open: kline.open.toString(), high: kline.high.toString(), low: kline.low.toString(), close: kline.close.toString(), volume: kline.volume?.toString() || "0" }
+            }
+        });
+        return result;
+    } catch (e) {
+        throw e; // Propagate error to manager to trigger re-init
+    }
+  },
+
+  calculateTechnicalsInline(klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): TechnicalsData {
+    const finalSettings = settings || indicatorState.toJSON();
+    const klinesDec = klines.map((k) => ({
+      time: k.time, open: new Decimal(k.open), high: new Decimal(k.high), low: new Decimal(k.low), close: new Decimal(k.close), volume: new Decimal(k.volume || 0),
+    }));
+    return calculateAllIndicators(klinesDec, finalSettings, enabledIndicators);
   },
 };
