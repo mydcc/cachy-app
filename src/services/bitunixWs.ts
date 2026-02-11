@@ -808,18 +808,26 @@ class BitunixWebSocketService {
               case "price":
                 if (symbol && isPriceData(data)) {
                   try {
-                    // HARDENING: Direct property access + Force String cast for safety
-                    const ip = typeof data.ip === 'number' ? String(data.ip) : data.ip;
-                    const fr = typeof data.fr === 'number' ? String(data.fr) : data.fr;
+                    // HARDENING: Direct property access + Warning on Numeric Types
+                    const safeString = (val: any, fieldName: string) => {
+                        if (typeof val === 'number') {
+                            const now = Date.now();
+                            if (now - this.lastNumericWarning > 60000) {
+                                logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Value: ${val}. Precision loss possible.`);
+                                this.lastNumericWarning = now;
+                            }
+                            return String(val);
+                        }
+                        return val;
+                    };
+
+                    const ip = safeString(data.ip, 'indexPrice');
+                    const fr = safeString(data.fr, 'fundingRate');
                     const nft = data.nft ? String(data.nft) : undefined;
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                        const now = Date.now();
-                        if (now - this.lastNumericWarning > 60000) {
-                            logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
-                            this.lastNumericWarning = now;
-                        }
+                         safeString(data.lastPrice || data.lp, 'lastPrice');
                     }
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
@@ -840,24 +848,27 @@ class BitunixWebSocketService {
               case "ticker":
                 if (symbol && isTickerData(data)) {
                   try {
-                    // TELEMETRY: Detect precision loss risk
-                    if (typeof data.lastPrice === 'number' || typeof data.volume === 'number') {
-                        const now = Date.now();
-                        if (now - this.lastNumericWarning > 60000) {
-                            logger.warn("network", `[BitunixWS] NUMERIC TICKER DATA: Received numeric ticker for ${symbol}. Casting to string.`);
-                            this.lastNumericWarning = now;
+                    const safeString = (val: any, fieldName: string) => {
+                        if (typeof val === 'number') {
+                            const now = Date.now();
+                            if (now - this.lastNumericWarning > 60000) {
+                                logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Casting to string.`);
+                                this.lastNumericWarning = now;
+                            }
+                            return String(val);
                         }
-                    }
+                        return val;
+                    };
 
                     // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
                     // Avoiding full object allocation/clone for high frequency ticker
-                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                    if (typeof data.high === 'number') data.high = String(data.high);
-                    if (typeof data.low === 'number') data.low = String(data.low);
-                    if (typeof data.volume === 'number') data.volume = String(data.volume);
-                    if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
-                    if (typeof data.v === 'number') data.v = String(data.v);
-                    if (typeof data.close === 'number') data.close = String(data.close);
+                    if (typeof data.lastPrice === 'number') data.lastPrice = safeString(data.lastPrice, 'lastPrice');
+                    if (typeof data.high === 'number') data.high = safeString(data.high, 'high');
+                    if (typeof data.low === 'number') data.low = safeString(data.low, 'low');
+                    if (typeof data.volume === 'number') data.volume = safeString(data.volume, 'volume');
+                    if (typeof data.quoteVolume === 'number') data.quoteVolume = safeString(data.quoteVolume, 'quoteVolume');
+                    if (typeof data.v === 'number') data.v = safeString(data.v, 'v');
+                    if (typeof data.close === 'number') data.close = safeString(data.close, 'close');
 
                     // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
                     const normalized = mdaService.normalizeTicker(message, "bitunix");
@@ -1039,13 +1050,16 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
 
-        if (!this.shouldThrottle(`${symbol}:price`)) {
+        // Strict Type Safety via Zod
+        const priceData = BitunixPriceDataSchema.safeParse(validatedMessage.data);
+
+        if (priceData.success && !this.shouldThrottle(`${symbol}:price`)) {
+          const d = priceData.data;
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: (validatedMessage.data as any).ip,
-            // Funding data if present in validatedMessage.data
-            fundingRate: (validatedMessage.data as any).fr,
-            nextFundingTime: (validatedMessage.data as any).nft ? String((validatedMessage.data as any).nft) : undefined
+            indexPrice: d.ip ? String(d.ip) : undefined,
+            fundingRate: d.fr ? String(d.fr) : undefined,
+            nextFundingTime: d.nft ? String(d.nft) : undefined
           });
         }
       } else if (validatedChannel === "ticker") {
