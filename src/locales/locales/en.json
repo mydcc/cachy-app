@@ -1292,7 +1292,6 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": {
-        "title": "Optimization Tips",
         "highAnalysisTime": "High analysis time detected. Consider switching to Light or Balanced profile.",
         "highApiCalls": "API rate limit approaching. Consider increasing intervals or disabling news analysis.",
         "highLatency": "High network latency detected. Check your internet connection.",
@@ -1306,7 +1305,8 @@
       "apiCalls": "API Calls/min",
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
-      "networkStatus": "Network Status"
+      "networkStatus": "Network Status",
+      "tipsTitle": "Optimization Tips"
     },
     "trading": {
       "chartTitle": "Chart & Data",
@@ -1391,9 +1391,9 @@
     "sl": "SL",
     "roe": "ROE",
     "apply": "Apply",
-    "copy": "Copy",
+    "copy": "Copy Content",
     "ignore": "Ignore",
-    "send": "Send"
+    "send": "Send message"
   },
   "analyst": {
     "trend": {

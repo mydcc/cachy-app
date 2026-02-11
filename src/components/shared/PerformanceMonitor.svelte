@@ -334,7 +334,7 @@
     <!-- Performance Tips -->
     <div class="performance-tips">
         <h4>
-            {$_("settings.performance.tips.title") || "Optimization Tips"}
+            {$_("settings.performance.tipsTitle") || "Optimization Tips"}
         </h4>
         <div class="tips-list">
             {#if marketState.telemetry.lastCalcDuration > 500}

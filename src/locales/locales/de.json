@@ -68,10 +68,10 @@
     "expand": "Panel ausklappen",
     "exportChat": "Chat exportieren",
     "largerFont": "Größere Schrift",
-    "quotaExceeded": "KI-Quota überschritten. Bitte später versuchen oder API-Einstellungen prüfen.",
+    "quotaExceeded": "Generative AI Quote überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen.",
     "smallerFont": "Kleinere Schrift",
     "suggestedChanges": "Vorgeschlagene Änderungen",
-    "thinking": "Denke nach..."
+    "thinking": "Denkt nach..."
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -1092,13 +1092,12 @@
     "performance": {
       "monitor": "Performance Monitor",
       "tips": {
-        "title": "Optimierungstipps",
-        "highAnalysisTime": "Hohe Analysezeit erkannt. Erwägen Sie ein leichteres Profil.",
-        "highApiCalls": "API-Limit nähert sich. Erwägen Sie, Intervalle zu erhöhen.",
-        "highLatency": "Hohe Latenz erkannt. Internetverbindung prüfen.",
-        "highMemory": "Hoher Speicherverbrauch. Cache-Größe reduzieren oder Tabs schließen.",
-        "lowCacheHit": "Niedrige Cache-Rate. Marktdaten-Cache erhöhen.",
-        "optimal": "Leistung ist optimal. Sie können mehr Funktionen aktivieren."
+        "highAnalysisTime": "Hohe Analysezeit erkannt. Erwägen Sie den Wechsel zum Light- oder Balanced-Profil.",
+        "highApiCalls": "API-Limit nähert sich. Erwägen Sie längere Intervalle oder deaktivieren Sie die Nachrichtenanalyse.",
+        "highLatency": "Hohe Netzwerklatenz erkannt. Überprüfen Sie Ihre Internetverbindung.",
+        "highMemory": "Hoher Speicherverbrauch. Versuchen Sie, die Cache-Größe zu reduzieren oder ungenutzte Tabs zu schließen.",
+        "lowCacheHit": "Niedrige Cache-Trefferquote. Erhöhen Sie die Markt-Cache-Größe für bessere Leistung.",
+        "optimal": "Die Leistung ist optimal. Sie können weitere Funktionen aktivieren oder zum Pro-Profil wechseln."
       },
       "lastUpdate": "Zuletzt aktualisiert: {time}",
       "analysisTime": "Analysezeit",
@@ -1106,7 +1105,8 @@
       "apiCalls": "API-Aufrufe/min",
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
-      "networkStatus": "Netzwerkstatus"
+      "networkStatus": "Netzwerkstatus",
+      "tipsTitle": "Optimierungstipps"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1413,9 +1413,9 @@
     "sl": "SL",
     "roe": "ROE",
     "apply": "Anwenden",
-    "copy": "Kopieren",
+    "copy": "Inhalt kopieren",
     "ignore": "Ignorieren",
-    "send": "Senden"
+    "send": "Nachricht senden"
   },
   "analyst": {
     "trend": {
