@@ -61,7 +61,17 @@
     "globalChat": "Global Chat",
     "myNotes": "My Notes",
     "aiAssistant": "AI Assistant",
-    "clearConfirm": "Clear history?"
+    "clearConfirm": "Clear history?",
+    "clearHistory": "Clear History",
+    "collapse": "Collapse Panel",
+    "cycleMode": "Cycle Mode",
+    "expand": "Expand Panel",
+    "exportChat": "Export Chat",
+    "largerFont": "Larger Font",
+    "quotaExceeded": "Generative AI Quota exceeded. Please try again later or check API settings.",
+    "smallerFont": "Smaller Font",
+    "suggestedChanges": "Suggested Changes",
+    "thinking": "Thinking..."
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
@@ -1281,14 +1291,22 @@
     },
     "performance": {
       "monitor": "Performance Monitor",
-      "tips": "Optimization Tips",
+      "tips": {
+        "highAnalysisTime": "High analysis time detected. Consider switching to Light or Balanced profile.",
+        "highApiCalls": "API rate limit approaching. Consider increasing intervals or disabling news analysis.",
+        "highLatency": "High network latency detected. Check your internet connection.",
+        "highMemory": "High memory usage. Try reducing cache size or closing unused tabs.",
+        "lowCacheHit": "Low cache hit rate. Increase market cache size for better performance.",
+        "optimal": "Performance is optimal. You can enable more features or switch to Pro profile."
+      },
       "lastUpdate": "Last Updated: {time}",
       "analysisTime": "Analysis Time",
       "memory": "Memory",
       "apiCalls": "API Calls/min",
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
-      "networkStatus": "Network Status"
+      "networkStatus": "Network Status",
+      "tipsTitle": "Optimization Tips"
     },
     "trading": {
       "chartTitle": "Chart & Data",
@@ -1371,7 +1389,11 @@
     "resize": "Resize",
     "tp": "TP",
     "sl": "SL",
-    "roe": "ROE"
+    "roe": "ROE",
+    "apply": "Apply",
+    "copy": "Copy Content",
+    "ignore": "Ignore",
+    "send": "Send message"
   },
   "analyst": {
     "trend": {
@@ -1494,7 +1516,8 @@
     "reconnecting": "⟳ Reconnecting...",
     "reconnectingTo": "⟳ Reconnecting to {provider}...",
     "disconnected": "✗ Waiting for connection...",
-    "error": "✗ Connection error"
+    "error": "✗ Connection error",
+    "offline": "OFFLINE - CHECK CONNECTION"
   },
   "errors": {
     "unknown": "Unknown error",
