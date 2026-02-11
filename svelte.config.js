@@ -32,14 +32,34 @@ const config = {
     csp: {
       mode: "auto",
       directives: {
+        "default-src": ["self"],
         "script-src": [
           "self",
           "unsafe-inline",
-          "unsafe-eval",
           "https://s.cachy.app",
           "https://js-agent.newrelic.com",
           "blob:",
         ],
+        "style-src": [
+          "self",
+          "unsafe-inline",
+        ],
+        "img-src": [
+          "self",
+          "data:",
+          "https://s.cachy.app",
+          "https://*.imgbb.com",
+          "https://avatars.githubusercontent.com",
+          "https://cdn.discordapp.com",
+          "https://*.githubusercontent.com",
+        ],
+        "font-src": [
+          "self",
+          "data:",
+        ],
+        "object-src": ["none"],
+        "base-uri": ["self"],
+        "frame-ancestors": ["self"],
         "connect-src": [
           "self",
           "https://s.cachy.app",
@@ -48,7 +68,9 @@ const config = {
           "https://bam.eu01.nr-data.net",
           "wss://fapi.bitunix.com",
           "wss://stream.bitunix.com",
+          "wss://ws.bitget.com",
           "https://api.imgbb.com",
+          "https://discord.com",
           "https://generativelanguage.googleapis.com",
           "https://api.openai.com",
         ],
