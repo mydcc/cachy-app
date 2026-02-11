@@ -166,9 +166,25 @@ export const TpSlRequestSchema = z.discriminatedUnion("action", [
     ModifyRequest
 ]);
 
+// TP/SL Order Response Schema (Added during Hardening)
+export const TpSlOrderSchema = z.object({
+  orderId: z.union([z.string(), z.number()]).transform(String),
+  symbol: z.string(),
+  planType: z.enum(["PROFIT", "LOSS"]),
+  triggerPrice: z.union([z.string(), z.number()]).transform(String),
+  qty: z.union([z.string(), z.number()]).transform(String).optional(),
+  status: z.union([z.string(), z.number()]).transform(String),
+  // Allow alternate ID fields for compatibility
+  id: z.union([z.string(), z.number()]).transform(String).optional(),
+  planId: z.union([z.string(), z.number()]).transform(String).optional(),
+  ctime: z.union([z.string(), z.number()]).transform(Number).optional(),
+  createTime: z.union([z.string(), z.number()]).transform(Number).optional(),
+}).passthrough(); // Allow extra fields but validate core ones
+
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
 export type TpSlRequest = z.infer<typeof TpSlRequestSchema>;
+export type TpSlOrder = z.infer<typeof TpSlOrderSchema>;
 
 /**
  * Validate response size to prevent memory issues

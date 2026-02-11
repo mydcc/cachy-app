@@ -94,3 +94,29 @@ export function getBitunixErrorKey(code: number | string): string {
   // Fallback if the code is not in our list
   return "apiErrors.generic";
 }
+
+/**
+ * Maps an API error (object or message) to a localized i18n key.
+ * Prioritizes error codes, falls back to regex matching for common English strings.
+ */
+export function mapApiErrorToLabel(error: any): string | null {
+  if (!error) return null;
+
+  // 1. Check for explicit error code (Bitunix style)
+  if (error.code) {
+    const key = getBitunixErrorKey(error.code);
+    // If getBitunixErrorKey returns generic, we try regex below, otherwise return specific key
+    if (key !== "apiErrors.generic") return key;
+  }
+
+  // 2. Regex matching on message
+  const msg = error.message || String(error);
+
+  if (/api key|apikey/i.test(msg)) return "settings.errors.invalidApiKey";
+  if (/ip not allowed/i.test(msg)) return "settings.errors.ipNotAllowed";
+  if (/signature/i.test(msg)) return "settings.errors.invalidSignature";
+  if (/timestamp/i.test(msg)) return "settings.errors.timestampError";
+  if (/balance insufficient|insufficient balance/i.test(msg)) return "tradeErrors.insufficientBalance";
+
+  return null;
+}

@@ -31,22 +31,10 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, type PositionRaw, TpSlOrderSchema, type TpSlOrder } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
-export interface TpSlOrder {
-    orderId: string;
-    symbol: string;
-    planType: "PROFIT" | "LOSS";
-    triggerPrice: string;
-    qty?: string;
-    status: string;
-    ctime?: number;
-    createTime?: number;
-    id?: string;
-    planId?: string;
-    [key: string]: any;
-}
+export { type TpSlOrder };
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -386,7 +374,7 @@ class TradeService {
         }
     }
 
-    public async cancelAllOrders(symbol: string, throwOnError = false) {
+    public async cancelAllOrders(symbol: string, throwOnError = true) {
         if (!symbol) return;
         logger.log("market", `[Trade] Cancelling all orders for ${symbol}`);
         try {
@@ -485,7 +473,14 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+
+                              const rawList = Array.isArray(data) ? data : (data.rows || []);
+                              // Validate Schema
+                              return rawList.map((item: any) => {
+                                  const val = TpSlOrderSchema.safeParse(item);
+                                  return val.success ? val.data : null;
+                              }).filter((item: any) => item !== null) as TpSlOrder[];
+
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
@@ -510,7 +505,12 @@ class TradeService {
              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const rawList = (Array.isArray(data) ? data : data.rows || []);
+             const list = rawList.map((item: any) => {
+                  const val = TpSlOrderSchema.safeParse(item);
+                  return val.success ? val.data : null;
+             }).filter((item: any) => item !== null) as TpSlOrder[];
+
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }

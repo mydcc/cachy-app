@@ -30,6 +30,9 @@ import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
 import type { Kline } from "./technicalsTypes";
 
+// Optimization: Shared Zero Volume to reduce allocation in hot path
+const ZERO_VOL = new Decimal(0);
+
 interface MarketWatchRequest {
   symbol: string;
   channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
@@ -450,7 +453,7 @@ class MarketWatcher {
       const filled = [klines[0]];
 
       // Optimization: Re-use constant for zero volume to reduce allocation
-      const ZERO_VOL = new Decimal(0);
+      // const ZERO_VOL = new Decimal(0); // Moved to module scope
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];

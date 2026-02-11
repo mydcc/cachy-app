@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
 import { marketState } from '../stores/market.svelte';
+import { Decimal } from 'decimal.js';
 
 // Mock dependencies
 vi.mock('./apiService', () => ({
@@ -109,5 +110,36 @@ describe('MarketWatcher Locking & Deduplication', () => {
         await watcher.pollSymbolChannel('BTCUSDT', 'price', 'bitunix');
 
         expect(apiService.fetchTicker24h).toHaveBeenCalledTimes(2); // 1 fail + 1 success
+    });
+
+    describe('MarketWatcher Performance (fillGaps)', () => {
+        it('should fill gaps efficiently', () => {
+            const watcher = marketWatcher as any;
+            const klines = [
+                { time: 1000, close: new Decimal(100) },
+                { time: 3000, close: new Decimal(110) } // Gap of 2000ms
+            ];
+
+            // Assume 1000ms interval
+            const filled = watcher.fillGaps(klines, 1000);
+
+            // Should have 1 gap filled at 2000
+            expect(filled.length).toBe(3);
+            expect(filled[1].time).toBe(2000);
+            expect(filled[1].open).toBe(klines[0].close); // Flat candle
+            expect(filled[1].volume.isZero()).toBe(true);
+        });
+
+        it('should reuse ZERO_VOL instance', () => {
+            const watcher = marketWatcher as any;
+            const klines = [
+                { time: 1000, close: new Decimal(100) },
+                { time: 4000, close: new Decimal(110) }
+            ];
+            const filled = watcher.fillGaps(klines, 1000);
+
+            // filled[1] and filled[2] are gap candles
+            expect(filled[1].volume).toBe(filled[2].volume); // Strict equality check
+        });
     });
 });
