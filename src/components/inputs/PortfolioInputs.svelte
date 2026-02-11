@@ -25,6 +25,7 @@
   import { createEventDispatcher, onMount } from "svelte";
   import { icons } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
+  import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
@@ -45,6 +46,7 @@
     isPositionSizeLocked = $bindable(),
   }: Props = $props();
 
+  let isConnected = $derived(marketState.connectionStatus === "connected");
   let isFetchingBalance = $state(false);
 
   const dispatch = createEventDispatcher();
@@ -85,33 +87,52 @@
     }
   });
 
+  function validateInput(value: string, allowEmpty = true, min = 0, max = Infinity): string | null {
+    if (value === "") return allowEmpty ? null : "";
+    const num = parseFloat(value);
+    if (isNaN(num)) return null; // Or revert to previous valid? For now, we update state to invalid but TradeService must handle
+    if (num < min) return String(min);
+    if (num > max) return String(max);
+    return value;
+  }
+
   function handleAccountSizeInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    localAccountSize = value;
+    // Hardening: Disallow negative inputs immediately
+    if (value && !/^\d*\.?\d*$/.test(value)) return; // Regex basic check for positive numbers
+
+    const validated = validateInput(value, true, 0);
+    localAccountSize = value; // Keep user input in UI
     tradeState.update((s) => ({
       ...s,
-      accountSize: value === "" ? null : value,
+      accountSize: validated,
     }));
   }
 
   function handleRiskPercentageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    if (value && !/^\d*\.?\d*$/.test(value)) return;
+
+    const validated = validateInput(value, true, 0, 100);
     localRiskPercentage = value;
     tradeState.update((s) => ({
       ...s,
-      riskPercentage: value === "" ? null : value,
+      riskPercentage: validated,
     }));
   }
 
   function handleRiskAmountInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    if (value && !/^\d*\.?\d*$/.test(value)) return;
+
+    const validated = validateInput(value, true, 0);
     localRiskAmount = value;
     tradeState.update((s) => ({
       ...s,
-      riskAmount: value === "" ? null : value,
+      riskAmount: validated,
     }));
   }
 
@@ -232,7 +253,7 @@
             : ''}"
           onclick={() => handleFetchBalance(false)}
           title={$_("dashboard.portfolioInputs.fetchBalanceTitle")}
-          disabled={isFetchingBalance}
+          disabled={isFetchingBalance || !isConnected}
         >
           {@html icons.refresh ||
             '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>'}
