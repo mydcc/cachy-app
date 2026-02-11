@@ -61,7 +61,17 @@
     "globalChat": "Globaler Chat",
     "myNotes": "Meine Notizen",
     "aiAssistant": "KI Assistent",
-    "clearConfirm": "Verlauf löschen?"
+    "clearConfirm": "Verlauf löschen?",
+    "clearHistory": "Verlauf löschen",
+    "collapse": "Panel einklappen",
+    "cycleMode": "Modus wechseln",
+    "expand": "Panel ausklappen",
+    "exportChat": "Chat exportieren",
+    "largerFont": "Größere Schrift",
+    "quotaExceeded": "KI-Quota überschritten. Bitte später versuchen oder API-Einstellungen prüfen.",
+    "smallerFont": "Kleinere Schrift",
+    "suggestedChanges": "Vorgeschlagene Änderungen",
+    "thinking": "Denke nach..."
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -1081,7 +1091,15 @@
     },
     "performance": {
       "monitor": "Performance Monitor",
-      "tips": "Optimierungstipps",
+      "tips": {
+        "title": "Optimierungstipps",
+        "highAnalysisTime": "Hohe Analysezeit erkannt. Erwägen Sie ein leichteres Profil.",
+        "highApiCalls": "API-Limit nähert sich. Erwägen Sie, Intervalle zu erhöhen.",
+        "highLatency": "Hohe Latenz erkannt. Internetverbindung prüfen.",
+        "highMemory": "Hoher Speicherverbrauch. Cache-Größe reduzieren oder Tabs schließen.",
+        "lowCacheHit": "Niedrige Cache-Rate. Marktdaten-Cache erhöhen.",
+        "optimal": "Leistung ist optimal. Sie können mehr Funktionen aktivieren."
+      },
       "lastUpdate": "Zuletzt aktualisiert: {time}",
       "analysisTime": "Analysezeit",
       "memory": "Speicher",
@@ -1393,7 +1411,11 @@
     "resize": "Größe ändern",
     "tp": "TP",
     "sl": "SL",
-    "roe": "ROE"
+    "roe": "ROE",
+    "apply": "Anwenden",
+    "copy": "Kopieren",
+    "ignore": "Ignorieren",
+    "send": "Senden"
   },
   "analyst": {
     "trend": {
@@ -1516,7 +1538,8 @@
     "reconnecting": "⟳ Neu verbinden...",
     "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
     "disconnected": "✗ Warte auf Verbindung...",
-    "error": "✗ Verbindungsfehler"
+    "error": "✗ Verbindungsfehler",
+    "offline": "OFFLINE - VERBINDUNG PRÜFEN"
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
