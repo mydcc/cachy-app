@@ -1,72 +1,65 @@
-# Status & Risk Report: Cachy App Hardening
+# Status & Risk Report
+
 **Date:** 2026-05-25
-**Author:** Senior Lead Developer (Jules)
-**Scope:** Core Services, State Management, UI Components
+**Scope:** `src/` (Core Services, Stores, UI Components)
+**Author:** System Architect (AI)
 
-## 1. Executive Summary
-The codebase demonstrates a high level of maturity with extensive use of `Decimal.js` for financial calculations, strict TypeScript typing in most areas, and a robust `marketWatcher` architecture. However, several critical risks were identified in the "Fast Path" WebSocket processing and error handling logic that could lead to data inconsistency or silent failures during trading operations.
+## Executive Summary
+The codebase is generally well-structured with a strong focus on performance (e.g., "Fast Path" in WebSocket handling, BufferPools). However, there are critical gaps in internationalization (i18n), potential type safety regressions due to excessive `any` usage in core services, and some resource management risks in high-frequency loops.
 
-## 2. Risk Assessment
+## 🔴 CRITICAL RISKS
+*Risk of financial loss, crash, or security vulnerability.*
 
-### 🔴 CRITICAL (Immediate Action Required)
+1.  **Missing Translation Keys (UI/UX / Crash Risk)**
+    *   **Location:** `src/components/inputs/PortfolioInputs.svelte`
+    *   **Issue:** The component references `settings.errors.invalidApiKey`, `settings.errors.ipNotAllowed`, `settings.errors.invalidSignature`, and `settings.errors.timestampError`.
+    *   **Evidence:** These keys do not exist in `src/locales/locales/en.json`.
+    *   **Impact:** Users will see raw key names (e.g., `settings.errors.invalidApiKey`) instead of helpful error messages, or `svelte-i18n` might throw depending on configuration.
+    *   **Remediation:** Add missing keys to `en.json` immediately.
 
-1.  **WebSocket "Fast Path" Data Integrity Risk**
-    *   **Location:** `src/services/bitunixWs.ts` (Lines ~500-600)
-    *   **Issue:** The "Fast Path" optimization manually casts incoming data (e.g., `ip`, `fr`) to strings or Decimals without strict `undefined` checks.
-    *   **Risk:** If the API response format changes slightly (e.g., `ip` becomes missing), `new Decimal(undefined)` or `String(undefined)` operations could crash the WebSocket worker or result in `NaN` propagating through the system.
-    *   **Recommendation:** Implement strict guards in the Fast Path or fallback to Zod validation if fields are missing.
+2.  **Unchecked Type Propagation in Trade Listeners (Data Integrity)**
+    *   **Location:** `src/services/bitunixWs.ts` -> `trade` channel
+    *   **Issue:** `tradeListeners` are typed as `Set<(trade: any) => void>`. The `any` type propagates to subscribers (e.g., `TradeService` or UI).
+    *   **Impact:** If the API response structure changes, consumers will crash at runtime without compile-time warning.
+    *   **Remediation:** Define a strict `TradeData` interface and use it in `tradeListeners`.
 
-2.  **Silent Failure in Order Cancellation**
-    *   **Location:** `src/services/tradeService.ts` (`cancelAllOrders` method)
-    *   **Issue:** The method defaults to `throwOnError = false`.
-    *   **Risk:** If a cancellation fails (e.g., during a "Flash Close" or panic operation), the error is logged but swallowed. The subsequent close operation might proceed, leaving "naked" Stop Loss orders active.
-    *   **Recommendation:** Change default to `throwOnError = true` for critical paths, or strictly enforce it in `flashClosePosition`.
+3.  **Allocation in High-Frequency Loop (Performance)**
+    *   **Location:** `src/services/marketWatcher.ts` -> `fillGaps`
+    *   **Issue:** `const ZERO_VOL = new Decimal(0);` is allocated *inside* the function, which is called in a loop for every chunk of history backfill.
+    *   **Impact:** Unnecessary garbage collection pressure during heavy data loads.
+    *   **Remediation:** Move `ZERO_VOL` to a module-level constant.
 
-3.  **Markdown Sanitization Configuration Review**
-    *   **Location:** `src/utils/markdownUtils.ts`
-    *   **Issue:** `DOMPurify` is used (Good), but the configuration is default.
-    *   **Risk:** Default sanitization is generally safe, but for institutional grade security, we should explicitly forbid sensitive tags (e.g., `<form>`, `<input>`) and ensure `target="_blank"` links have `rel="noopener noreferrer"`.
-    *   **Recommendation:** Harden `DOMPurify.sanitize` config in `markdownUtils.ts`.
+4.  **Generic Error Mapping (UX/Debugging)**
+    *   **Location:** `src/services/tradeService.ts`
+    *   **Issue:** `mapApiErrorToLabel` in `PortfolioInputs` relies on regex matching of error messages (e.g., `/api key/i`). If the API changes its error message format (which is common), these checks will fail silent.
+    *   **Impact:** Users receive generic "Fetch failed" errors instead of actionable "Invalid API Key" feedback.
+    *   **Remediation:** Rely on error *codes* where possible, or centralize the mapping logic in a robust utility.
 
-### 🟡 WARNING (High Priority)
+## 🟡 WARNINGS
+*Performance issue, UX error, or missing best practice.*
 
-4.  **Journal Memory Leak / Regression**
-    *   **Location:** `src/stores/journal.svelte.ts`
-    *   **Issue:** The `addEntry` method pushes new entries to `this.entries` without enforcing the documented 1000-item limit. The limit is only applied during `load()`.
-    *   **Risk:** Long-running sessions with high-frequency trading could cause `this.entries` to grow unbounded, leading to UI lag or crashes.
-    *   **Recommendation:** Implement `if (this.entries.length > limit) this.entries.shift()` in `addEntry`.
+1.  **"Fast Path" Validation Bypass (Stability)**
+    *   **Location:** `src/services/bitunixWs.ts`
+    *   **Issue:** The "Fast Path" manually casts fields (e.g., `typeof data.ip === 'number' ? String(data.ip) : data.ip`) to bypass Zod validation for performance.
+    *   **Risk:** While performant, this duplicates validation logic and is fragile to API schema changes. A numeric overflow in a price field (if sent as number > MAX_SAFE_INTEGER) could be corrupted before casting.
+    *   **Mitigation:** Ensure `safeJsonParse` handles large integers *before* this logic runs (currently implemented via regex, which is good but risky).
 
-5.  **MarketWatcher Polling Safety**
-    *   **Location:** `src/services/marketWatcher.ts`
-    *   **Issue:** `performPollingCycle` accesses `marketState.data[symbol]` directly.
-    *   **Risk:** While initialized in constructor, race conditions during symbol switching might lead to undefined access if `marketState.data` keys are removed.
-    *   **Recommendation:** Add optional chaining `marketState.data[symbol]?.lastUpdated`.
+2.  **Excessive `any` Usage in TradeService**
+    *   **Location:** `src/services/tradeService.ts`
+    *   **Issue:** `serializePayload`, `fetchTpSlOrders`, and `closePosition` rely heavily on `any` casting.
+    *   **Risk:** Refactoring becomes dangerous as TypeScript cannot catch type mismatches.
 
-6.  **Telemetry Reactivity Overhead**
+3.  **Complex Array Growth in MarketManager**
     *   **Location:** `src/stores/market.svelte.ts`
-    *   **Issue:** `telemetry` is a single `$state` object updated frequently (API calls, latency).
-    *   **Risk:** Components subscribing to `marketState` might re-render on every telemetry update if they don't use fine-grained selectors.
-    *   **Recommendation:** Verify usage or split telemetry into a separate store if performance degrades.
+    *   **Issue:** The `updateSymbolKlines` method has complex logic for merging history (`push`, `splice`, `slice`). While bounds are checked (`effectiveLimit`), the complexity invites "off-by-one" errors or memory leaks if a condition is missed.
+    *   **Recommendation:** Add unit tests specifically for the `Slow Path` merge logic to ensure it strictly respects limits.
 
-### 🔵 REFACTOR (Technical Debt)
+## 🔵 REFACTOR OPPORTUNITIES
+*Code smell, technical debt.*
 
-7.  **TradeService Type Safety**
-    *   **Location:** `src/services/tradeService.ts` (`fetchTpSlOrders`)
-    *   **Issue:** Uses `any[]` return type and `any` in internal mapping.
-    *   **Recommendation:** Define strict `TpSlOrder` interface and use it.
+1.  **Consolidate Safety Utilities:** `isSafe` (in `bitunixWs.ts`) and `safeJsonParse` (utils) should be aligned.
+2.  **Centralized Error Constants:** Move hardcoded error strings (`trade.positionNotFound`) to a constants file or strictly typed enum.
+3.  **Sanitize Markdown:** Verify `renderTrustedMarkdown` implementation to ensure it uses `DOMPurify` with strict config.
 
-8.  **Store Complexity**
-    *   **Location:** `src/stores/market.svelte.ts`
-    *   **Issue:** `subscribe` method uses manual `$effect.root` management for Svelte 4 compatibility.
-    *   **Recommendation:** Simplify if Svelte 5 is the exclusive target.
-
-## 3. Implementation Plan (Next Steps)
-
-1.  **Harden WebSocket Fast Path:** Add explicit checks for `undefined` before casting.
-2.  **Fix Trade Safety:** Ensure `cancelAllOrders` throws on failure during Flash Close.
-3.  **Sanitize Markdown:** Audit and fix `src/actions/markdown.ts`.
-4.  **Cap Journal Size:** Add limit logic to `journal.svelte.ts`.
-5.  **Refactor Types:** Apply `TpSlOrder` types.
-
----
-*End of Report*
+## Next Steps
+Proceed to Phase 2: Implementation of fixes for Critical and Warning items.
