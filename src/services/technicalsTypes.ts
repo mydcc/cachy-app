@@ -16,6 +16,9 @@
  */
 
 import { Decimal } from "decimal.js";
+import type { IndicatorSettings } from "../types/indicators";
+
+export type { IndicatorSettings };
 
 // Source Data (Financial Precision required)
 export interface Kline {
@@ -67,7 +70,6 @@ export function deserializeKline(k: SerializedKline): Kline {
   };
 }
 
-// Technical Analysis Data (Performance optimized: native numbers)
 export interface IndicatorResult {
   name: string;
   params?: string; // e.g. "14, 14"
@@ -157,6 +159,7 @@ export interface TechnicalsData {
       vaLow: number;
       rows: { priceStart: number; priceEnd: number; volume: number }[];
     };
+    volumeMa?: number;
   };
   lastUpdated?: number;
 }
@@ -166,6 +169,31 @@ export interface TechnicalsData {
 export type SerializedTechnicalsData = TechnicalsData;
 export type SerializedIndicatorResult = IndicatorResult;
 export type SerializedDivergenceItem = DivergenceItem;
+
+export function getEmptyData(): TechnicalsData {
+  return {
+    oscillators: [],
+    movingAverages: [],
+    pivots: {
+      classic: {
+        p: 0,
+        r1: 0,
+        r2: 0,
+        r3: 0,
+        s1: 0,
+        s2: 0,
+        s3: 0,
+      },
+    },
+    pivotBasis: {
+      high: 0,
+      low: 0,
+      close: 0,
+      open: 0,
+    },
+    summary: { buy: 0, sell: 0, neutral: 0, action: "Neutral" },
+  };
+}
 
 export interface WorkerCalculatePayload {
   klines: {

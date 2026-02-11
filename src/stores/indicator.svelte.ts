@@ -9,147 +9,14 @@
 
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
-
-export interface IndicatorSettings {
-  historyLimit: number; // Global setting for calculation depth
-  precision: number; // Global precision for indicator values
-  rsi: {
-    length: number;
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-    showSignal: boolean;
-    signalType: "sma" | "ema";
-    signalLength: number;
-    overbought: number;
-    oversold: number;
-    defaultTimeframe: string; // Used if sync is disabled
-  };
-  stochRsi: {
-    length: number;
-    rsiLength: number;
-    kPeriod: number;
-    dPeriod: number;
-    source: "close";
-  };
-  macd: {
-    fastLength: number;
-    slowLength: number;
-    signalLength: number;
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-    oscillatorMaType: "ema" | "sma";
-    signalMaType: "ema" | "sma";
-  };
-  stochastic: {
-    kPeriod: number;
-    kSmoothing: number;
-    dPeriod: number;
-  };
-  williamsR: {
-    length: number;
-  };
-  cci: {
-    length: number;
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-    threshold: number; // usually 100 (triggers on > 100 or < -100)
-    smoothingType: "sma" | "ema";
-    smoothingLength: number;
-  };
-  adx: {
-    adxSmoothing: number; // Was 'length'
-    diLength: number;
-    threshold: number; // usually 25
-  };
-  ao: {
-    fastLength: number;
-    slowLength: number;
-  };
-  momentum: {
-    length: number;
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-  };
-  ema: {
-    ema1: {
-      length: number;
-      offset: number;
-      smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma";
-      smoothingLength: number;
-    };
-    ema2: {
-      length: number;
-      offset: number;
-      smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma";
-      smoothingLength: number;
-    };
-    ema3: {
-      length: number;
-      offset: number;
-      smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma";
-      smoothingLength: number;
-    };
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-  };
-  ichimoku: {
-    conversionPeriod: number;
-    basePeriod: number;
-    spanBPeriod: number;
-    displacement: number;
-  };
-  pivots: {
-    type: "classic" | "woodie" | "camarilla" | "fibonacci";
-    viewMode: "integrated" | "separated" | "abstract";
-  };
-  atr: {
-    length: number;
-  };
-  bb: {
-    length: number;
-    stdDev: number;
-  };
-  choppiness: {
-    length: number;
-  };
-  // Pro Indicators
-  superTrend: {
-    factor: number;
-    period: number;
-  };
-  atrTrailingStop: {
-    period: number;
-    multiplier: number;
-  };
-  obv: {
-    smoothingLength: number;
-  };
-  mfi: {
-    length: number;
-  };
-  vwap: {
-    length: number; // 0 for session/full
-    anchor: "session" | "fixed";
-    anchorPoint?: number;
-  };
-  parabolicSar: {
-    start: number;
-    increment: number;
-    max: number;
-  };
-  volumeMa: {
-    length: number;
-    maType: "sma" | "ema" | "wma";
-  };
-  volumeProfile: {
-    rows: number;
-  };
-  // Alias for backward compatibility
-  bollingerBands: {
-    length: number;
-    stdDev: number;
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-  };
-}
+import type { IndicatorSettings } from "../types/indicators";
 
 const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
   precision: 4,
+  autoOptimize: true,
+  preferredEngine: 'auto',
+  performanceMode: 'balanced',
   rsi: {
     length: 14,
     source: "close",
@@ -209,6 +76,14 @@ const defaultSettings: IndicatorSettings = {
     ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     source: "close",
   },
+  sma: {
+    sma1: { length: 9 },
+    sma2: { length: 21 },
+    sma3: { length: 50 },
+  },
+  wma: { length: 14 },
+  vwma: { length: 20 },
+  hma: { length: 9 },
   ichimoku: {
     conversionPeriod: 9,
     basePeriod: 26,
@@ -271,6 +146,9 @@ const STORE_KEY = "cachy_indicator_settings";
 class IndicatorManager {
   historyLimit = $state(defaultSettings.historyLimit);
   precision = $state(defaultSettings.precision);
+  autoOptimize = $state(defaultSettings.autoOptimize);
+  preferredEngine = $state(defaultSettings.preferredEngine);
+  performanceMode = $state(defaultSettings.performanceMode);
 
   // Oscillators
   rsi = $state(defaultSettings.rsi);
@@ -286,6 +164,10 @@ class IndicatorManager {
   macd = $state(defaultSettings.macd);
   adx = $state(defaultSettings.adx);
   ema = $state(defaultSettings.ema);
+  sma = $state(defaultSettings.sma);
+  wma = $state(defaultSettings.wma);
+  vwma = $state(defaultSettings.vwma);
+  hma = $state(defaultSettings.hma);
   superTrend = $state(defaultSettings.superTrend);
   atrTrailingStop = $state(defaultSettings.atrTrailingStop);
   ichimoku = $state(defaultSettings.ichimoku);
@@ -312,6 +194,9 @@ class IndicatorManager {
   private _snapshot = $derived({
     historyLimit: this.historyLimit,
     precision: this.precision,
+    autoOptimize: this.autoOptimize,
+    preferredEngine: this.preferredEngine,
+    performanceMode: this.performanceMode,
     rsi: $state.snapshot(this.rsi),
     stochRsi: $state.snapshot(this.stochRsi),
     macd: $state.snapshot(this.macd),
@@ -336,6 +221,11 @@ class IndicatorManager {
     volumeProfile: $state.snapshot(this.volumeProfile),
     volumeMa: $state.snapshot(this.volumeMa),
     bollingerBands: $state.snapshot(this.bollingerBands),
+
+    sma: $state.snapshot(this.sma),
+    wma: $state.snapshot(this.wma),
+    vwma: $state.snapshot(this.vwma),
+    hma: $state.snapshot(this.hma),
   });
 
   constructor() {
@@ -381,6 +271,9 @@ class IndicatorManager {
 
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
       this.precision = parsed.precision ?? defaultSettings.precision;
+      this.autoOptimize = parsed.autoOptimize ?? defaultSettings.autoOptimize;
+      this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
+      this.performanceMode = parsed.performanceMode || defaultSettings.performanceMode;
 
       this.rsi = { ...defaultSettings.rsi, ...parsed.rsi };
       this.stochRsi = { ...defaultSettings.stochRsi, ...parsed.stochRsi };
@@ -428,6 +321,11 @@ class IndicatorManager {
           source: parsed.ema.source || defaultSettings.ema.source,
         }
         : defaultSettings.ema;
+
+      this.sma = parsed.sma ? { ...defaultSettings.sma, ...parsed.sma } : defaultSettings.sma;
+      this.wma = parsed.wma ? { ...defaultSettings.wma, ...parsed.wma } : defaultSettings.wma;
+      this.vwma = parsed.vwma ? { ...defaultSettings.vwma, ...parsed.vwma } : defaultSettings.vwma;
+      this.hma = parsed.hma ? { ...defaultSettings.hma, ...parsed.hma } : defaultSettings.hma;
     } catch (e) {
       console.error("IndicatorManager: Failed to load from localStorage", e);
     }
@@ -471,6 +369,9 @@ class IndicatorManager {
 
     this.historyLimit = next.historyLimit;
     this.precision = next.precision;
+    this.autoOptimize = next.autoOptimize;
+    this.preferredEngine = next.preferredEngine;
+    this.performanceMode = next.performanceMode;
     this.rsi = next.rsi;
     this.stochRsi = next.stochRsi;
     this.macd = next.macd;
@@ -499,6 +400,9 @@ class IndicatorManager {
     const d = defaultSettings;
     this.historyLimit = d.historyLimit;
     this.precision = d.precision;
+    this.autoOptimize = d.autoOptimize;
+    this.preferredEngine = d.preferredEngine;
+    this.performanceMode = d.performanceMode;
     this.rsi = d.rsi;
     this.stochRsi = d.stochRsi;
     this.macd = d.macd;

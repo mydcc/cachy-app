@@ -23,6 +23,7 @@
     import CalculationSettings from "../CalculationSettings.svelte";
     import CalculationDashboard from "../../shared/CalculationDashboard.svelte";
     import PerformanceMonitor from "../../shared/PerformanceMonitor.svelte";
+    import EngineDebugPanel from "../EngineDebugPanel.svelte";
     import DataMaintenance from "../DataMaintenance.svelte";
     import { toastService } from "../../../services/toastService.svelte";
 
@@ -89,6 +90,11 @@
 
                 <!-- Calculation Settings Component -->
                 <CalculationSettings />
+
+                <!-- Engine Debug Panel (debug mode only) -->
+                {#if settingsState.debugMode}
+                    <EngineDebugPanel />
+                {/if}
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     <!-- Network Logs -->

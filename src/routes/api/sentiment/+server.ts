@@ -5,20 +5,11 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 
-// Server-side: API keys are only here, never sent to client
 const ENV_OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const ENV_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -55,7 +46,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
             const { GoogleGenerativeAI } = await import('@google/generative-ai');
             const genAI = new GoogleGenerativeAI(key);
-            const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-1.5-flash' });
+            // FIX: Use 'gemini-1.5-flash-latest' to avoid 404 in v1beta
+            const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-1.5-flash-latest' });
             const result = await geminiModel.generateContent(prompt);
             resultText = result.response.text();
         }

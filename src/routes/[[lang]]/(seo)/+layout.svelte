@@ -18,6 +18,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import CachyIcon from '../../../components/shared/CachyIcon.svelte';
+  import { icons } from '../../../lib/constants';
 
   import de from '../../../locales/locales/de.json';
   import en from '../../../locales/locales/en.json';
@@ -64,6 +65,10 @@
         <div class="flex justify-center gap-6 mb-4">
            <a href={lang === 'de' ? '/de/changelog' : '/changelog'} class="hover:text-[var(--text-primary)] transition-colors">{dict.app.changelogTitle}</a>
            <a href={lang === 'de' ? '/de/privacy' : '/privacy'} class="hover:text-[var(--text-primary)] transition-colors">{dict.app.privacyLegal}</a>
+           <a href="https://deepwiki.com/mydcc/cachy-app" target="_blank" rel="noopener noreferrer" class="hover:text-[var(--text-primary)] transition-colors flex items-center gap-1">
+              {@html icons.deepwiki}
+              Deepwiki
+           </a>
         </div>
         <p>&copy; 2026 MYDCT. All rights reserved.</p>
      </div>

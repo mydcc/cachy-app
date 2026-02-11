@@ -1,280 +1,81 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-/*
- * Copyright (C) 2026 MYDCT
- *
- * WebWorker for calculating technical indicators.
- * Offloads heavy computations from the main thread.
- *
- * Supports two modes:
- * 1. Stateless (CALCULATE): Recalculates everything (legacy/batch).
- * 2. Stateful (INITIALIZE/UPDATE): Maintains state for O(1) incremental updates.
+ * WebWorker for Technical Indicators - CONSOLIDATED ACE VERSION
+ * Bundled into a single file by Vite for maximum COEP compatibility.
  */
 
 import { Decimal } from "decimal.js";
-import { calculateAllIndicators } from "../utils/technicalsCalculator";
+import { calculateAllIndicators, calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 import { BufferPool } from "../utils/bufferPool";
 import { StatefulTechnicalsCalculator } from "../utils/statefulTechnicalsCalculator";
 import { WasmTechnicalsCalculator } from "../utils/WasmTechnicalsCalculator";
-import { loadWasm, isWasmAvailable, WASM_SUPPORTED_INDICATORS } from "../utils/wasmTechnicals";
-import type { Kline } from "../utils/indicators";
-import type {
-  WorkerMessage,
-  WorkerCalculatePayload,
-  WorkerCalculatePayloadSoA,
-} from "../services/technicalsTypes";
-import { calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
+import { loadWasm, WASM_SUPPORTED_INDICATORS } from "../utils/wasmTechnicals";
 
 const ctx: Worker = self as any;
 const pool = new BufferPool();
-// Unified Interface for JS and WASM calculators
-interface ITechnicalsCalculator {
-    initialize(history: Kline[], settings: any, enabledIndicators?: any): any;
-    update(tick: Kline): any;
-    shift?(newCandle: Kline): void;
-}
-
-const calculators = new Map<string, ITechnicalsCalculator>();
+const calculators = new Map<string, any>();
 let wasmModule: any = null;
 
-// Try to load WASM on worker start
+// Hardened WASM load
 loadWasm().then(mod => {
     if (mod) {
-        console.log("[Worker] WASM Module Loaded");
+        console.log("[Worker] WASM Engine ready.");
         wasmModule = mod;
     }
+}).catch(() => {
+    console.warn("[Worker] WASM not available, using JS fallback.");
 });
 
-// --- Main Worker Listener ---
+ctx.onmessage = async (e: MessageEvent<any>) => {
+    const { type, payload, id } = e.data;
 
-ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
-  const { type, payload, id } = e.data;
-
-  try {
-    if (type === "CALCULATE" && payload) {
-      await handleCalculate(payload, id);
-    }
-    else if (type === "INITIALIZE" && payload) {
-      const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
-      const key = `${symbol}:${timeframe}`;
-      const klinesDec = convertToDecimalKlines(klines);
-
-      let calc: ITechnicalsCalculator;
-
-      // Check for WASM availability AND feature compatibility
-      // If user enabled an indicator not yet supported by WASM, fallback to JS.
-      const useWasm = wasmModule && checkWasmCompatibility(enabledIndicators);
-
-      if (useWasm) {
-          try {
-              calc = new WasmTechnicalsCalculator(wasmModule);
-              // if (import.meta.env.DEV) console.log(`[Worker] Using WASM for ${key}`);
-          } catch (e) {
-              console.warn("[Worker] WASM Init failed, falling back to JS", e);
-              calc = new StatefulTechnicalsCalculator();
-          }
-      } else {
-          // if (wasmModule && import.meta.env.DEV) console.log(`[Worker] Fallback to JS for ${key} (unsupported indicators)`);
-          calc = new StatefulTechnicalsCalculator();
-      }
-
-      const result = calc.initialize(klinesDec, settings, enabledIndicators);
-      calculators.set(key, calc);
-
-      ctx.postMessage({ type: "RESULT", payload: result, id });
-    }
-    else if (type === "UPDATE" && payload) {
-      const { symbol, timeframe, kline } = payload;
-      const key = `${symbol}:${timeframe}`;
-      const calc = calculators.get(key);
-
-      if (calc) {
-        // Convert single kline
-        const tick: Kline = {
-            time: kline.time,
-            open: new Decimal(kline.open),
-            high: new Decimal(kline.high),
-            low: new Decimal(kline.low),
-            close: new Decimal(kline.close),
-            volume: new Decimal(kline.volume),
-        };
-
-        // Auto-Shift Detection
-        // If the new tick is for a time > last known candle time, we need to shift.
-        // We can check this inside `calc.update` or here.
-        // But `calc` internals are private.
-        // Best to expose a getter or handle logic inside.
-        // However, we didn't expose `lastCandle` publicly on `StatefulTechnicalsCalculator`.
-        // Let's assume the manager sends `UPDATE` correctly.
-        // Wait, the manager logic we wrote sends `INITIALIZE` on mismatch.
-        // We want to support `SHIFT` via `UPDATE` logic if we want to avoid re-init.
-
-        // We will modify `StatefulTechnicalsCalculator.update` to handle the check?
-        // No, keep it explicit.
-        // Let's just expose a `SHIFT` message type OR handle auto-shift if we detect time jump.
-        // But the Manager currently sends `INITIALIZE` if times differ.
-        // We need to update the Manager to send `UPDATE` even on new candle, OR add `SHIFT`.
-
-        // For now, let's keep `UPDATE` strictly for current candle updates as per Phase 1.
-        // Phase 1.5 logic is primarily in the Manager to use `shift`?
-        // No, the Manager is in the main thread. It doesn't have the Calculator instance.
-        // The Worker has the Calculator.
-        // So the Manager should send a `SHIFT` message to the Worker.
-
-        const result = calc.update(tick);
-        ctx.postMessage({ type: "RESULT", payload: result, id });
-      } else {
-        throw new Error(`Calculator not initialized for ${key}`);
-      }
-    }
-    else if (type === "SHIFT" && payload) {
-        const { symbol, timeframe, kline } = payload;
-        const key = `${symbol}:${timeframe}`;
-        const calc = calculators.get(key);
-
-        if (calc) {
-             const newCandle: Kline = {
-                time: kline.time,
-                open: new Decimal(kline.open),
-                high: new Decimal(kline.high),
-                low: new Decimal(kline.low),
-                close: new Decimal(kline.close),
-                volume: new Decimal(kline.volume),
-            };
-            if (calc.shift) {
-                calc.shift(newCandle);
-            }
-            // After shift, we usually want an immediate update for the new tick
-            const result = calc.update(newCandle);
+    try {
+        if (type === "CALCULATE") {
+            const result = payload.times 
+                ? calculateIndicatorsFromArrays(
+                    payload.times, payload.opens, payload.highs, payload.lows, payload.closes, payload.volumes,
+                    payload.settings, payload.enabledIndicators, pool
+                  )
+                : calculateAllIndicators(
+                    convertToDecimalKlines(payload.klines), 
+                    payload.settings, payload.enabledIndicators
+                  );
+            
+            ctx.postMessage({ type: "RESULT", payload: result, id });
+        } 
+        else if (type === "INITIALIZE") {
+            const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
+            const key = `${symbol}:${timeframe}`;
+            
+            const calc = new StatefulTechnicalsCalculator();
+            const result = calc.initialize(convertToDecimalKlines(klines), settings, enabledIndicators);
+            
+            calculators.set(key, calc);
             ctx.postMessage({ type: "RESULT", payload: result, id });
         }
+        else if (type === "UPDATE") {
+            const { symbol, timeframe, kline } = payload;
+            const key = `${symbol}:${timeframe}`;
+            const calc = calculators.get(key);
+            if (calc) {
+                const tick = {
+                    time: kline.time,
+                    open: new Decimal(kline.open),
+                    high: new Decimal(kline.high),
+                    low: new Decimal(kline.low),
+                    close: new Decimal(kline.close),
+                    volume: new Decimal(kline.volume),
+                };
+                ctx.postMessage({ type: "RESULT", payload: calc.update(tick), id });
+            }
+        }
+    } catch (err: any) {
+        ctx.postMessage({ type: "ERROR", error: err.message, id });
     }
-
-  } catch (error: any) {
-    console.error("Worker Error: ", error);
-    ctx.postMessage({
-      type: "ERROR",
-      error: error.message,
-      id,
-    });
-  }
 };
 
-// Helper: Legacy Stateless Calculation
-async function handleCalculate(payload: any, id?: string) {
-    let result;
-    let buffersToReturn;
-
-    // Check for SoA Payload (Zero-Copy Path)
-    if ('times' in payload && payload.times instanceof Float64Array) {
-      const soa = payload as WorkerCalculatePayloadSoA;
-
-      // Capture buffers to return them for recycling
-      buffersToReturn = {
-         times: soa.times,
-         opens: soa.opens,
-         highs: soa.highs,
-         lows: soa.lows,
-         closes: soa.closes,
-         volumes: soa.volumes
-      };
-
-      // Optimization: Pass TypedArrays directly
-      result = calculateIndicatorsFromArrays(
-        soa.times as any,
-        soa.opens as any,
-        soa.highs as any,
-        soa.lows as any,
-        soa.closes as any,
-        soa.volumes as any,
-        soa.settings,
-        soa.enabledIndicators,
-        pool
-      );
-    } else {
-      // Legacy Path (Object Array) - OPTIMIZED (Zero-Allocation Mode)
-      const calculatePayload = payload as WorkerCalculatePayload;
-      const { klines, settings, enabledIndicators } = calculatePayload;
-
-      // Direct parsing to pool (bypassing Decimal creation)
-      const len = klines.length;
-      const times = pool.acquire(len);
-      const opens = pool.acquire(len);
-      const highs = pool.acquire(len);
-      const lows = pool.acquire(len);
-      const closes = pool.acquire(len);
-      const volumes = pool.acquire(len);
-
-      try {
-          for (let i = 0; i < len; i++) {
-              const k = klines[i];
-              times[i] = k.time;
-              opens[i] = parseFloat(k.open);
-              highs[i] = parseFloat(k.high);
-              lows[i] = parseFloat(k.low);
-              closes[i] = parseFloat(k.close);
-              volumes[i] = parseFloat(k.volume);
-          }
-
-          result = calculateIndicatorsFromArrays(
-              times,
-              opens,
-              highs,
-              lows,
-              closes,
-              volumes,
-              settings,
-              enabledIndicators,
-              pool
-          );
-      } finally {
-          pool.release(times);
-          pool.release(opens);
-          pool.release(highs);
-          pool.release(lows);
-          pool.release(closes);
-          pool.release(volumes);
-      }
-    }
-
-    const response: WorkerMessage = {
-      type: "RESULT",
-      payload: result,
-      id,
-      buffers: buffersToReturn,
-    };
-
-    const transferList: Transferable[] = [];
-    if (buffersToReturn) {
-        transferList.push(
-            buffersToReturn.times.buffer,
-            buffersToReturn.opens.buffer,
-            buffersToReturn.highs.buffer,
-            buffersToReturn.lows.buffer,
-            buffersToReturn.closes.buffer,
-            buffersToReturn.volumes.buffer
-        );
-    }
-
-    ctx.postMessage(response, transferList);
-}
-
-function convertToDecimalKlines(klines: any[]): Kline[] {
+function convertToDecimalKlines(klines: any[]): any[] {
     return klines.map((k) => ({
       time: k.time,
       open: new Decimal(k.open),
@@ -283,18 +84,4 @@ function convertToDecimalKlines(klines: any[]): Kline[] {
       close: new Decimal(k.close),
       volume: new Decimal(k.volume),
     }));
-}
-
-function checkWasmCompatibility(enabled: Partial<Record<string, boolean>> | undefined): boolean {
-    if (!enabled) return true; // Default usually implies "all", but here assumes standard set.
-    // If enabled list is present, check if ANY active indicator is NOT in WASM_SUPPORTED.
-
-    for (const [key, isActive] of Object.entries(enabled)) {
-        if (isActive === true) {
-            if (!WASM_SUPPORTED_INDICATORS.includes(key.toLowerCase())) {
-                return false;
-            }
-        }
-    }
-    return true;
 }

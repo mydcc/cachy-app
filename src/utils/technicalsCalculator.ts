@@ -35,7 +35,7 @@ import {
 } from "./indicators";
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
-import type { IndicatorSettings } from "../stores/indicator.svelte";
+import type { IndicatorSettings } from "../types/indicators";
 import { BufferPool } from "./bufferPool";
 import type {
   TechnicalsData,

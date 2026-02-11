@@ -792,6 +792,20 @@
     >
       {@html icons.github}
     </a>
+    <a
+      href="https://deepwiki.com/mydcc/cachy-app"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
+      title="Deepwiki"
+      use:trackClick={{
+        category: "Navigation",
+        action: "Click",
+        name: "Deepwiki",
+      }}
+    >
+      {@html icons.deepwiki}
+    </a>
     <button
       class="text-link"
       onclick={() => uiState.toggleGuideModal(true)}

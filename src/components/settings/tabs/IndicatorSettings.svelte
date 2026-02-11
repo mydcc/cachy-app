@@ -119,6 +119,56 @@
                             class="input-field"
                         />
                     </div>
+                    
+                    <!-- Performance Optimization -->
+                    <div class="mt-6 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                        <h4 class="text-xs font-bold uppercase mb-3 text-[var(--text-primary)]">
+                            Performance Optimization
+                        </h4>
+                        
+                        <label class="toggle-card mb-3">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">Auto-Optimize Engine</span>
+                                <span class="text-[10px] text-[var(--text-secondary)]">
+                                    Automatically select TypeScript or WebAssembly based on data size
+                                </span>
+                            </div>
+                            <Toggle bind:checked={indicatorState.autoOptimize} />
+                        </label>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="field-group">
+                                <label for="preferred-engine" class="text-xs font-semibold mb-1 block">
+                                    Preferred Engine
+                                </label>
+                                <select 
+                                    id="preferred-engine"
+                                    bind:value={indicatorState.preferredEngine}
+                                    class="input-field"
+                                >
+                                    <option value="auto">Auto (Recommended)</option>
+                                    <option value="ts">TypeScript</option>
+                                    <option value="wasm">WebAssembly</option>
+                                    <option value="gpu">GPU (Experimental)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="field-group">
+                                <label for="performance-mode" class="text-xs font-semibold mb-1 block">
+                                    Performance Mode
+                                </label>
+                                <select 
+                                    id="performance-mode"
+                                    bind:value={indicatorState.performanceMode}
+                                    class="input-field"
+                                >
+                                    <option value="speed">Speed</option>
+                                    <option value="balanced">Balanced</option>
+                                    <option value="quality">Quality</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <label class="toggle-card mt-4">
