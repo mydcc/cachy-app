@@ -17,33 +17,58 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHash, randomBytes } from "crypto";
+import { z } from "zod";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../utils/server/bitunix";
+
+// Define Validation Schema
+const SyncRequestSchema = z.object({
+  apiKey: z.string().min(5),
+  apiSecret: z.string().min(5),
+  startTime: z.number().int().optional(),
+  endTime: z.number().int().optional(),
+  limit: z.union([z.number(), z.string()])
+    .transform((val) => {
+      const num = Number(val);
+      return isNaN(num) ? 50 : Math.min(Math.max(num, 1), 100);
+    })
+    .optional()
+    .default(50),
+});
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { apiKey, apiSecret, startTime, endTime, limit } = await request.json();
-
-  if (!apiKey || !apiSecret) {
-    return json({ error: "Missing credentials" }, { status: 400 });
-  }
-
-  // Validate limit
-  let parsedLimit = 50;
-  if (limit) {
-    parsedLimit = Math.min(Math.max(parseInt(limit), 1), 100);
-    if (isNaN(parsedLimit)) parsedLimit = 50;
-  }
-
   try {
+    const body = await request.json();
+
+    // 1. Zod Validation
+    const validation = SyncRequestSchema.safeParse(body);
+    if (!validation.success) {
+      return json(
+        { error: "Validation Error", details: validation.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { apiKey, apiSecret, startTime, endTime, limit } = validation.data;
+
+    // 2. Additional Security Check (Redundant but explicit)
+    const keyError = validateBitunixKeys(apiKey, apiSecret);
+    if (keyError) {
+      return json({ error: keyError }, { status: 400 });
+    }
+
     const history = await fetchBitunixHistory(
       apiKey,
       apiSecret,
       startTime,
       endTime,
-      parsedLimit,
+      limit,
     );
     return json({ data: history });
   } catch (e: any) {
-    console.error(`Error fetching history from Bitunix:`, e);
+    console.error(`Error fetching history from Bitunix:`, e.message || e);
     return json(
       { error: e.message || "Failed to fetch history" },
       { status: 500 },
@@ -68,30 +93,13 @@ async function fetchBitunixHistory(
   if (startTime) params.startTime = startTime.toString();
   if (endTime) params.endTime = endTime.toString();
 
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
-  // 2. Sort and Concatenate Query Params (keyvaluekeyvalue...)
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-
-  // 3. Construct Digest Input
-  // digestInput = nonce + timestamp + apiKey + queryParams + body
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  // 6. Build Query String for URL
-  const queryString = new URLSearchParams(params).toString();
+  // Use centralized signature generation
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    "" // Empty body for GET
+  );
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
