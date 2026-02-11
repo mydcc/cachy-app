@@ -20,6 +20,9 @@ set -o errexit
 
 echo "Build script started."
 
+# Ensure scripts are executable (fix for permission issues on Render)
+chmod +x ./scripts/*.sh 2>/dev/null || true
+
 # Ensure Cargo is available
 if ! command -v cargo &> /dev/null; then
     if [ -f "$HOME/.cargo/env" ]; then
@@ -30,19 +33,25 @@ fi
 
 if ! command -v cargo &> /dev/null; then
     echo "Installing Rust..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    . "$HOME/.cargo/env"
+    # Attempt to install rust, but don't fail if it blocks
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || echo "Rust install warning (continuing)"
+    if [ -f "$HOME/.cargo/env" ]; then
+        . "$HOME/.cargo/env"
+    fi
 else
     echo "Rust/Cargo is already available."
 fi
 
-echo "Ensuring wasm32-unknown-unknown target..."
-rustup target add wasm32-unknown-unknown
+# Try to add target, but don't fail the build if it fails (WASM might be pre-built)
+if command -v rustup &> /dev/null; then
+    echo "Ensuring wasm32-unknown-unknown target..."
+    rustup target add wasm32-unknown-unknown || echo "Target add failed (continuing)"
+fi
 
 echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
+# Use npm ci for reliable builds if lockfile exists, fallback to install on failure
 if [ -f "package-lock.json" ]; then
-    npm ci
+    npm ci || (echo "npm ci failed, falling back to npm install" && npm install)
 else
     npm install
 fi
