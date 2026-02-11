@@ -23,8 +23,6 @@ import type { Kline, TechnicalsData, IndicatorResult, KlineBuffers } from "./tec
 import { getEmptyData } from "./technicalsTypes";
 import { toNumFast } from "../utils/fastConversion";
 import { calculationStrategy } from "./calculationStrategy";
-import { wasmCalculator } from "./wasmCalculator";
-import { webGpuCalculator, WebGpuCalculator } from "./webGpuCalculator";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { getCapabilities } from "./capabilityDetection";
 import { toastService } from "./toastService.svelte";
@@ -207,17 +205,29 @@ export const technicalsService = {
     const engine = calculationStrategy.selectEngine(klines.length, finalSettings);
     
     try {
-      let finalResult: TechnicalsData;
+      let finalResult: TechnicalsData | undefined;
       
-      if (engine === 'wasm' && wasmCalculator.isAvailable()) {
-        finalResult = await wasmCalculator.calculate(klines, finalSettings, enabledIndicators || {});
-      } else if (engine === 'gpu' && await WebGpuCalculator.isSupported()) {
-        finalResult = await webGpuCalculator.calculate(klines, finalSettings, enabledIndicators || {});
-      } else if (workerManager.isHealthy()) {
-        finalResult = await this.calculateWithWorker(klines, finalSettings, enabledIndicators);
-      } else {
-        finalResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
+      if (engine === 'wasm') {
+        const { wasmCalculator } = await import("./wasmCalculator");
+        if (wasmCalculator.isAvailable()) {
+            finalResult = await wasmCalculator.calculate(klines, finalSettings, enabledIndicators || {});
+        }
+      } else if (engine === 'gpu') {
+        const { webGpuCalculator, WebGpuCalculator } = await import("./webGpuCalculator");
+        if (await WebGpuCalculator.isSupported()) {
+            finalResult = await webGpuCalculator.calculate(klines, finalSettings, enabledIndicators || {});
+        }
       }
+
+      if (!finalResult) {
+          if (workerManager.isHealthy()) {
+            finalResult = await this.calculateWithWorker(klines, finalSettings, enabledIndicators);
+          } else {
+            finalResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
+          }
+      }
+
+      // Cache storage
 
       // Cache storage
       if (calculationCache.size >= MAX_CACHE_SIZE) {

@@ -8,8 +8,6 @@
 
 import { technicalsService } from './technicalsService';
 import { calculationStrategy } from './calculationStrategy';
-import { wasmCalculator } from './wasmCalculator';
-import { webGpuCalculator, WebGpuCalculator } from './webGpuCalculator';
 import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator';
 import { indicatorState } from '../stores/indicator.svelte';
 import type { IndicatorSettings } from '../types/indicators';
@@ -94,10 +92,20 @@ async function benchmarkEngine(
       if (engine === 'ts') {
         // Direct inline calculation (no worker)
         technicalsService.calculateTechnicalsInline(klines, settings);
-      } else if (engine === 'wasm' && wasmCalculator.isAvailable()) {
-        await wasmCalculator.calculate(klines, settings, {});
-      } else if (engine === 'gpu' && await WebGpuCalculator.isSupported()) {
-        await webGpuCalculator.calculate(klines, settings, {});
+      } else if (engine === 'wasm') {
+        const { wasmCalculator } = await import('./wasmCalculator');
+        if (wasmCalculator.isAvailable()) {
+             await wasmCalculator.calculate(klines, settings, {});
+        } else {
+             return [];
+        }
+      } else if (engine === 'gpu') {
+        const { webGpuCalculator, WebGpuCalculator } = await import('./webGpuCalculator');
+        if (await WebGpuCalculator.isSupported()) {
+             await webGpuCalculator.calculate(klines, settings, {});
+        } else {
+             return [];
+        }
       } else {
         return []; // Engine not available
       }
@@ -130,8 +138,15 @@ export async function runBenchmark(
   const engines: ('ts' | 'wasm' | 'gpu')[] = ['ts'];
 
   // Check available engines
-  if (wasmCalculator.isAvailable()) engines.push('wasm');
-  if (await WebGpuCalculator.isSupported()) engines.push('gpu');
+  try {
+      const { wasmCalculator } = await import('./wasmCalculator');
+      if (wasmCalculator.isAvailable()) engines.push('wasm');
+  } catch(e) {}
+  
+  try {
+      const { WebGpuCalculator } = await import('./webGpuCalculator');
+      if (await WebGpuCalculator.isSupported()) engines.push('gpu');
+  } catch(e) {}
 
   console.log(`\n🏁 Starting Benchmark: engines=[${engines.join(', ')}], sizes=[${sizes.join(', ')}], ${warmup} warmup + ${runs} measured runs\n`);
 
