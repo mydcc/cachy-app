@@ -930,6 +930,7 @@ class BitunixWebSocketService {
       // BitunixWSMessageSchema in types/bitunixValidation.ts uses z.object({...}) which allows extra fields.
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
+        const validationIssues = validationResult.error.issues;
         
         // Check if it's a critical structure failure vs minor field mismatch
         // If 'event', 'op' or 'ch' are missing/wrong type, it's critical.
@@ -938,7 +939,7 @@ class BitunixWebSocketService {
         // Critical if:
         // 1. Root level structure error (path is empty)
         // 2. Critical field error (path[0] is in criticalFields)
-        const isCritical = issues.some(i =>
+        const isCritical = validationIssues.some(i =>
           i.path.length === 0 ||
           (i.path.length > 0 && criticalFields.includes(String(i.path[0])))
         );
