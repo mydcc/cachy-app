@@ -334,15 +334,14 @@
     <!-- Performance Tips -->
     <div class="performance-tips">
         <h4>
-            {$_("settings.performance.tips") || "Optimization Tips"}
+            {$_("settings.performance.tips.title") || "Optimization Tips"}
         </h4>
         <div class="tips-list">
             {#if marketState.telemetry.lastCalcDuration > 500}
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High analysis time detected. Consider switching to
-                        Light or Balanced profile.</span
+                        >{$_("settings.performance.tips.highAnalysisTime") || "High analysis time detected. Consider switching to Light or Balanced profile."}</span
                     >
                 </div>
             {/if}
@@ -350,8 +349,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High memory usage. Try reducing cache size or closing
-                        unused tabs.</span
+                        >{$_("settings.performance.tips.highMemory") || "High memory usage. Try reducing cache size or closing unused tabs."}</span
                     >
                 </div>
             {/if}
@@ -359,8 +357,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >API rate limit approaching. Consider increasing
-                        intervals or disabling news analysis.</span
+                        >{$_("settings.performance.tips.highApiCalls") || "API rate limit approaching. Consider increasing intervals or disabling news analysis."}</span
                     >
                 </div>
             {/if}
@@ -368,8 +365,7 @@
                 <div class="tip info">
                     <span class="tip-icon">ℹ️</span>
                     <span class="tip-text"
-                        >Low cache hit rate. Increase market cache size for
-                        better performance.</span
+                        >{$_("settings.performance.tips.lowCacheHit") || "Low cache hit rate. Increase market cache size for better performance."}</span
                     >
                 </div>
             {/if}
@@ -377,8 +373,7 @@
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High network latency detected. Check your internet
-                        connection.</span
+                        >{$_("settings.performance.tips.highLatency") || "High network latency detected. Check your internet connection."}</span
                     >
                 </div>
             {/if}
@@ -386,8 +381,7 @@
                 <div class="tip success">
                     <span class="tip-icon">✓</span>
                     <span class="tip-text"
-                        >Performance is optimal. You can enable more features or
-                        switch to Pro profile.</span
+                        >{$_("settings.performance.tips.optimal") || "Performance is optimal. You can enable more features or switch to Pro profile."}</span
                     >
                 </div>
             {/if}
