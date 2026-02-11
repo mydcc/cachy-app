@@ -514,6 +514,7 @@
                 style="font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;"
                 onclick={cycleMode}
                 ondblclick={(e) => e.stopPropagation()}
+                aria-label={$_("sidePanel.cycleMode") || "Cycle Mode"}
               >
                 {getPanelTitle(settingsState.sidePanelMode)}
               </button>
@@ -522,11 +523,12 @@
             <!-- Drag Handle Spacer -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <!-- Drag Handle Spacer -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="drag-handle flex-1 mx-2 my-1 self-stretch rounded bg-transparent transition-colors"
               class:cursor-move={!isSidebar}
               ondblclick={() => toggleLayout()}
+              role="separator"
+              aria-label="Drag Handle"
             ></div>
 
             <div class="flex items-center gap-2">
@@ -539,7 +541,8 @@
                   class="hover:text-[var(--text-primary)] transition-colors p-0.5"
                   onclick={() => changeFontSize(-1)}
                   ondblclick={(e) => e.stopPropagation()}
-                  title="Smaller Font"
+                  title={$_("sidePanel.smallerFont") || "Smaller Font"}
+                  aria-label={$_("sidePanel.smallerFont") || "Smaller Font"}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -558,7 +561,8 @@
                   class="hover:text-[var(--text-primary)] transition-colors p-0.5"
                   onclick={() => changeFontSize(+1)}
                   ondblclick={(e) => e.stopPropagation()}
-                  title="Larger Font"
+                  title={$_("sidePanel.largerFont") || "Larger Font"}
+                  aria-label={$_("sidePanel.largerFont") || "Larger Font"}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -584,7 +588,8 @@
                 class:hover:text-green-300={isTerminal}
                 onclick={exportChat}
                 ondblclick={(e) => e.stopPropagation()}
-                title="Export Chat"
+                title={$_("sidePanel.exportChat") || "Export Chat"}
+                aria-label={$_("sidePanel.exportChat") || "Export Chat"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -612,8 +617,11 @@
                 onclick={toggleExpand}
                 ondblclick={(e) => e.stopPropagation()}
                 title={settingsState.panelIsExpanded
-                  ? "Collapse Panel"
-                  : "Expand Panel"}
+                  ? ($_("sidePanel.collapse") || "Collapse Panel")
+                  : ($_("sidePanel.expand") || "Expand Panel")}
+                aria-label={settingsState.panelIsExpanded
+                  ? ($_("sidePanel.collapse") || "Collapse Panel")
+                  : ($_("sidePanel.expand") || "Expand Panel")}
               >
                 {#if settingsState.panelIsExpanded}
                   <svg
@@ -678,7 +686,8 @@
                   inputEl?.focus();
                 }}
                 ondblclick={(e) => e.stopPropagation()}
-                title="Clear History"
+                title={$_("sidePanel.clearHistory") || "Clear History"}
+                aria-label={$_("sidePanel.clearHistory") || "Clear History"}
               >
                 <!-- TRASH ICON -->
                 <svg
@@ -699,7 +708,8 @@
                 class:text-[var(--text-secondary)]={!isTerminal}
                 class:hover:text-[var(--text-primary)]={!isTerminal}
                 class:hover:text-green-300={isTerminal}
-                aria-label="Close"
+                aria-label={$_("common.close") || "Close"}
+                title={$_("common.close") || "Close"}
                 onclick={toggle}
                 ondblclick={(e) => e.stopPropagation()}
               >
@@ -795,7 +805,8 @@
                         ? '-left-6'
                         : '-right-6'} p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-[var(--accent-color)]"
                       onclick={() => copyToClipboard(msg.content)}
-                      title="Copy Content"
+                      title={$_("common.copy") || "Copy Content"}
+                      aria-label={$_("common.copy") || "Copy Content"}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1186,8 +1197,8 @@
                   class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-2"
                   onclick={handleSend}
                   disabled={!messageText.trim()}
-                  aria-label="Send message"
-                  title="Send message"
+                  aria-label={$_("common.send") || "Send message"}
+                  title={$_("common.send") || "Send message"}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
