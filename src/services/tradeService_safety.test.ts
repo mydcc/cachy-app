@@ -128,4 +128,38 @@ describe("TradeService Safety - Flash Close", () => {
         // Should be removed because we KNOW it failed
         expect(optimisticOrder).toBeUndefined();
     });
+
+    it("should abort flash close if cancelAllOrders fails", async () => {
+        // 1. Setup Position
+        const symbol = "BTCUSDT";
+        const side = "long";
+        const position = {
+            symbol,
+            side: "long" as const,
+            amount: new Decimal("1.0"),
+            entryPrice: new Decimal("50000"),
+            unrealizedPnl: new Decimal("100"),
+            leverage: new Decimal("10"),
+            marginMode: "cross" as const,
+            lastUpdated: Date.now()
+        };
+        omsService.updatePosition(position);
+
+        // 2. Mock cancelAllOrders to fail
+        vi.spyOn(tradeService, "cancelAllOrders").mockRejectedValue(new Error("API Error"));
+
+        // 3. Spy on signedRequest to ensure it is NOT called
+        const requestSpy = vi.spyOn(tradeService as any, "signedRequest");
+
+        // 4. Execute and Expect Error
+        await expect(tradeService.flashClosePosition(symbol, side)).rejects.toThrow("trade.closeAbortedSafety");
+
+        // 5. Assert close request was NOT sent
+        // Note: spy might be called for cancelAllOrders itself depending on implementation,
+        // but here we mocked cancelAllOrders so signedRequest inside it won't be called.
+        // We want to ensure the CLOSE request (POST /api/orders with side=SELL) wasn't sent.
+        // However, signedRequest is generic.
+        // Let's check call count. cancelAllOrders is mocked so it won't call signedRequest.
+        expect(requestSpy).not.toHaveBeenCalled();
+    });
 });

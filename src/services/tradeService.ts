@@ -235,8 +235,10 @@ class TradeService {
             try {
                 await this.cancelAllOrders(symbol, true);
             } catch (cancelError) {
-                // If cancellation fails, we log it CRITICALLY but proceed to close (Panic button logic).
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Naked orders may remain!`, cancelError);
+                // If cancellation fails, we ABORT the close to prevent naked orders.
+                // The user must manually handle the open orders or retry.
+                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Aborting close to prevent naked orders.`, cancelError);
+                throw new Error("trade.closeAbortedSafety");
             }
 
             return await this.signedRequest("POST", "/api/orders", {

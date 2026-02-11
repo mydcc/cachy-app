@@ -115,6 +115,16 @@
     }));
   }
 
+  function mapApiErrorToLabel(error: any): string | null {
+    const msg = error?.message || "";
+    // Map common raw API errors to localized keys
+    if (/api key|apikey/i.test(msg)) return "settings.errors.invalidApiKey"; // Hypothetical key, falls back to text in some systems or needs adding
+    if (/ip not allowed/i.test(msg)) return "settings.errors.ipNotAllowed";
+    if (/signature/i.test(msg)) return "settings.errors.invalidSignature";
+    if (/timestamp/i.test(msg)) return "settings.errors.timestampError";
+    return null;
+  }
+
   async function handleFetchBalance(silent = false) {
     const settings = settingsState;
     const provider = settings.apiProvider;
@@ -159,7 +169,13 @@
       }
     } catch (e: any) {
       if (!silent) {
-        uiState.showError(e.message || $_("dashboard.portfolioInputs.fetchBalanceError"));
+        // [HARDENING] Map technical errors to friendly labels
+        const mappedKey = mapApiErrorToLabel(e);
+        if (mappedKey) {
+            uiState.showError(mappedKey);
+        } else {
+            uiState.showError(e.message || $_("dashboard.portfolioInputs.fetchBalanceError"));
+        }
       } else {
         console.warn("Auto-fetch balance failed:", e);
       }

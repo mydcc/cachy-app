@@ -231,6 +231,12 @@ class MarketWatcher {
       if (this._subscriptionsDirty) {
         this.syncSubscriptions();
         this._subscriptionsDirty = false;
+      } else {
+        // [HARDENING] Periodic forced sync/prune to prevent drift (every ~30s)
+        const now = Date.now();
+        if (now % 30000 < 1000) {
+            this.pruneOrphanedSubscriptions();
+        }
       }
     } catch (e) {
       logger.error("market", "Polling loop error", e);
@@ -359,9 +365,6 @@ class MarketWatcher {
                     const oldestTime = klines1[0].time;
                     const intervalMs = safeTfToMs(tf);
 
-                    // [OPTIMIZATION] Avoid large array of arrays and .flat()
-                    let allBackfilled: any[] = [];
-
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
                     // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
@@ -387,28 +390,23 @@ class MarketWatcher {
                         }
 
                         const chunkResults = await Promise.all(chunkTasks);
-                        // [OPTIMIZATION] Push directly to flat array
+
+                        // [HARDENING] Streaming Updates (Chunk processing) to prevent memory spikes
                         for (const chunk of chunkResults) {
-                            if (Array.isArray(chunk)) {
-                                for (const item of chunk) {
-                                    allBackfilled.push(item);
-                                }
+                            if (Array.isArray(chunk) && chunk.length > 0) {
+                                // 1. Sort chunk (local)
+                                chunk.sort((a, b) => a.time - b.time);
+
+                                // 2. Fill gaps locally within the chunk
+                                const filledChunk = this.fillGaps(chunk, intervalMs);
+
+                                // 3. Update Store immediately (Streaming UX)
+                                marketState.updateSymbolKlines(symbol, tf, filledChunk, "rest");
+
+                                // 4. Save to Storage (Async)
+                                storageService.saveKlines(symbol, tf, filledChunk);
                             }
                         }
-                    }
-
-                    if (!this.isPolling) {
-                         return;
-                    }
-
-                    // Gap Filling
-                    if (allBackfilled.length > 0) {
-                        allBackfilled.sort((a, b) => a.time - b.time);
-                        const intervalMs = safeTfToMs(tf);
-                        allBackfilled = this.fillGaps(allBackfilled, intervalMs);
-
-                        marketState.updateSymbolKlines(symbol, tf, allBackfilled, "rest");
-                        storageService.saveKlines(symbol, tf, allBackfilled);
                     }
                 }
             }

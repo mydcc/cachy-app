@@ -164,8 +164,6 @@ class QuizStore {
   markKnown() {
     if (this.activeQuestion) {
       this.knownQuestionIds.add(this.activeQuestion.id);
-      // Reactivity hack for Sets in Svelte 5 (reassign)
-      this.knownQuestionIds = new Set(this.knownQuestionIds);
       this.saveProgress();
     }
     this.closeQuiz();
