@@ -837,7 +837,7 @@
                                 <thead>
                                   <tr>
                                     <th colspan="2"
-                                      >Vorgeschlagene Änderungen</th
+                                      >{$_("sidePanel.suggestedChanges") || "Vorgeschlagene Änderungen"}</th
                                     >
                                   </tr>
                                 </thead>
@@ -864,13 +864,13 @@
                                 class="confirm-btn"
                                 onclick={() => aiState.confirmAction(pendingId)}
                               >
-                                Anwenden
+                                {$_("common.apply") || "Anwenden"}
                               </button>
                               <button
                                 class="reject-btn"
                                 onclick={() => aiState.rejectAction(pendingId)}
                               >
-                                Ignorieren
+                                {$_("common.ignore") || "Ignorieren"}
                               </button>
                             </div>
                           </div>
@@ -918,7 +918,7 @@
                   {:else}
                     <span
                       class="text-[10px] uppercase font-bold text-[var(--accent-color)]"
-                      >Thinking...</span
+                      >{$_("sidePanel.thinking") || "Thinking..."}</span
                     >
                   {/if}
                 </div>
@@ -1116,8 +1116,7 @@
                   <div class="flex items-center gap-1.5 opacity-90">
                     <span>⚠️</span>
                     <span
-                      >Generative AI Quota exceeded. Please try again later or
-                      check API settings.</span
+                      >{$_("sidePanel.quotaExceeded") || "Generative AI Quota exceeded. Please try again later or check API settings."}</span
                     >
                   </div>
                 {:else}

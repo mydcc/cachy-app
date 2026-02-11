@@ -85,33 +85,52 @@
     }
   });
 
+  function validateInput(value: string, allowEmpty = true, min = 0, max = Infinity): string | null {
+    if (value === "") return allowEmpty ? null : "";
+    const num = parseFloat(value);
+    if (isNaN(num)) return null; // Or revert to previous valid? For now, we update state to invalid but TradeService must handle
+    if (num < min) return String(min);
+    if (num > max) return String(max);
+    return value;
+  }
+
   function handleAccountSizeInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    localAccountSize = value;
+    // Hardening: Disallow negative inputs immediately
+    if (value && !/^\d*\.?\d*$/.test(value)) return; // Regex basic check for positive numbers
+
+    const validated = validateInput(value, true, 0);
+    localAccountSize = value; // Keep user input in UI
     tradeState.update((s) => ({
       ...s,
-      accountSize: value === "" ? null : value,
+      accountSize: validated,
     }));
   }
 
   function handleRiskPercentageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    if (value && !/^\d*\.?\d*$/.test(value)) return;
+
+    const validated = validateInput(value, true, 0, 100);
     localRiskPercentage = value;
     tradeState.update((s) => ({
       ...s,
-      riskPercentage: value === "" ? null : value,
+      riskPercentage: validated,
     }));
   }
 
   function handleRiskAmountInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    if (value && !/^\d*\.?\d*$/.test(value)) return;
+
+    const validated = validateInput(value, true, 0);
     localRiskAmount = value;
     tradeState.update((s) => ({
       ...s,
-      riskAmount: value === "" ? null : value,
+      riskAmount: validated,
     }));
   }
 

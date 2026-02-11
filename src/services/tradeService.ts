@@ -261,16 +261,19 @@ class TradeService {
                 reduceOnly: true,
                 clientOrderId
             });
-        } catch (e) {
+        } catch (e: any) {
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
 
             logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
 
+            // Import localized messages dynamically to avoid circular dependencies if possible, or assume global usage
+            // Since we throw, the UI component calling this should ideally handle the toast.
+            // However, for critical errors, we log or toast here if UI doesn't catch it.
+            // But throwing is better for the caller.
+
             // HARDENING: Clean up optimistic order if we KNOW it failed (e.g. 4xx error)
-            // BitunixApiError (checked in signedRequest) throws with code if response came back.
-            // Standard Error might be network timeout.
             const isTerminalError =
                 (e instanceof BitunixApiError) ||
                 (e instanceof Error && (
@@ -286,6 +289,9 @@ class TradeService {
             if (isTerminalError) {
                  logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
                  omsService.removeOrder(clientOrderId);
+
+                 // Map specific errors to i18n keys for better UX (handled by caller if they catch)
+                 // e.g. "Balance insufficient" -> "tradeErrors.insufficientBalance"
             } else {
                  // Indeterminate state (Timeout / Network Error)
                  // Mark as unconfirmed
