@@ -37,8 +37,6 @@ export interface KlineBuffers {
   lows: Float64Array;
   closes: Float64Array;
   volumes: Float64Array;
-  capacity?: number; // Total allocated size
-  usedSize?: number; // Actual data length
 }
 
 export interface SerializedKline {
