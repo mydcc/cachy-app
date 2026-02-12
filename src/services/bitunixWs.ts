@@ -1329,6 +1329,32 @@ class BitunixWebSocketService {
     }
   }
 
+  // Dedicated subscription method for Trade Flow visualization with local callback management
+  subscribeTrade(symbol: string, callback: (trade: TradeData) => void) {
+    if (!symbol) return () => {};
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+
+    if (!this.tradeListeners.has(normalizedSymbol)) {
+      this.tradeListeners.set(normalizedSymbol, new Set());
+    }
+    this.tradeListeners.get(normalizedSymbol)!.add(callback);
+
+    // Ensure we are subscribed to the trade channel via the main mechanism
+    this.subscribe(symbol, "trade");
+
+    // Return cleanup function
+    return () => {
+      const listeners = this.tradeListeners.get(normalizedSymbol);
+      if (listeners) {
+        listeners.delete(callback);
+        if (listeners.size === 0) {
+          this.tradeListeners.delete(normalizedSymbol);
+          this.unsubscribe(symbol, "trade");
+        }
+      }
+    };
+  }
+
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
