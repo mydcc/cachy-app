@@ -36,6 +36,9 @@ interface MarketWatchRequest {
 }
 
 class MarketWatcher {
+  // Optimization: Module-level constant to reduce allocation
+  private static readonly ZERO_VOL = new Decimal(0);
+
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private isPolling = false;
   private pollingTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -464,9 +467,6 @@ class MarketWatcher {
 
       const filled: KlineRaw[] = [klines[0]];
 
-      // Optimization: Re-use constant for zero volume to reduce allocation
-      const ZERO_VOL = 0; // Using number 0 for raw kline compatibility
-
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
           const curr = klines[i];
@@ -493,7 +493,7 @@ class MarketWatcher {
                       high: prev.close,
                       low: prev.close,
                       close: prev.close,
-                      volume: ZERO_VOL
+                      volume: MarketWatcher.ZERO_VOL
                   });
                   nextTime += intervalMs;
                   gapCount++;

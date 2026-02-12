@@ -30,6 +30,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
+  import { mapApiErrorToLabel } from "../../utils/errorUtils";
 
   interface Props {
     accountSize: string | null;
@@ -140,15 +141,6 @@
     }));
   }
 
-  function mapApiErrorToLabel(error: any): string | null {
-    const msg = error?.message || "";
-    // Map common raw API errors to localized keys
-    if (/api key|apikey/i.test(msg)) return "settings.errors.invalidApiKey"; // Hypothetical key, falls back to text in some systems or needs adding
-    if (/ip not allowed/i.test(msg)) return "settings.errors.ipNotAllowed";
-    if (/signature/i.test(msg)) return "settings.errors.invalidSignature";
-    if (/timestamp/i.test(msg)) return "settings.errors.timestampError";
-    return null;
-  }
 
   async function handleFetchBalance(silent = false) {
     const settings = settingsState;
