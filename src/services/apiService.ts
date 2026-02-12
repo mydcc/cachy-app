@@ -527,9 +527,30 @@ export const apiService = {
     priority: "high" | "normal" = "normal",
     timeout = 10000,
   ): Promise<Kline[]> {
+    // [SYNTHETIC] Dynamic Resolution
+    let resolution = { base: interval, intervalMs: 0, isSynthetic: false, multiplier: 1 };
+    
+    try {
+        const { getOptimalTimeframe, safeTfToMs } = await import("../utils/timeUtils");
+        const { BROKER_CAPABILITIES } = await import("../config/brokerCapabilities");
+        
+        const bitunixNatives = BROKER_CAPABILITIES["bitunix"]?.nativeTimeframes || ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"];
+        resolution = getOptimalTimeframe(interval, bitunixNatives);
+        
+        // Ensure intervalMs is set if fallback happened
+        if (resolution.intervalMs === 0) resolution.intervalMs = safeTfToMs(interval);
+        
+    } catch (e) {
+        // Fallback
+    }
+
+    const { base: fetchInterval, multiplier, isSynthetic, intervalMs } = resolution;
+    const fetchLimit = limit * multiplier;
+
     const safeStart = startTime ?? "0";
     const safeEnd = endTime ?? "0";
-    const key = `BITUNIX:${symbol}:${interval}:${limit}:${safeStart}:${safeEnd}`;
+    const key = `BITUNIX:${symbol}:${interval}:${limit}:${safeStart}:${safeEnd}`; // Keep original key
+    
     return requestManager.schedule(
       key,
       async (signal) => {
@@ -538,8 +559,8 @@ export const apiService = {
           const params = new URLSearchParams({
             provider: "bitunix",
             symbol: normalized,
-            interval: interval,
-            limit: limit.toString(),
+            interval: fetchInterval, // Use mapped base
+            limit: fetchLimit.toString(),
           });
           if (startTime) params.append("startTime", startTime.toString());
           if (endTime) params.append("endTime", endTime.toString());
@@ -591,7 +612,7 @@ export const apiService = {
           }
 
           // Map the response data to the required Kline interface
-          return res
+          const mapped = res
             .map((kline: any) => {
               const validation = BitunixKlineSchema.safeParse(kline);
               if (!validation.success) {
@@ -606,7 +627,6 @@ export const apiService = {
               }
 
               // HARDENING: Check for missing or zero prices
-              // d.open/close are Decimals (from BitunixKlineSchema)
               if (!d.open || !d.close || d.open.isZero() || d.close.isZero()) {
                   return null;
               }
@@ -621,6 +641,53 @@ export const apiService = {
               };
             })
             .filter((k): k is Kline => k !== null);
+            
+           // [SYNTHETIC] Generic Aggregation
+           if (isSynthetic && intervalMs > 0) {
+               // Use resolved intervalMs (target)
+               const groups = new Map<number, Kline[]>();
+
+               for (const k of mapped) {
+                   const bucketStart = Math.floor(k.time / intervalMs) * intervalMs;
+                   if (!groups.has(bucketStart)) groups.set(bucketStart, []);
+                   groups.get(bucketStart)!.push(k);
+               }
+
+               const aggregated: Kline[] = [];
+               const sortedStarts = Array.from(groups.keys()).sort((a, b) => a - b);
+
+               for (const start of sortedStarts) {
+                   const bucket = groups.get(start)!;
+                   bucket.sort((a, b) => a.time - b.time);
+                   
+                   const first = bucket[0];
+                   const last = bucket[bucket.length - 1];
+                   let high = new Decimal(first.high);
+                   let low = new Decimal(first.low);
+                   let vol = new Decimal(0);
+
+                   for (const c of bucket) {
+                       const h = new Decimal(c.high);
+                       const l = new Decimal(c.low);
+                       if (h.gt(high)) high = h;
+                       if (l.lt(low)) low = l;
+                       vol = vol.plus(c.volume);
+                   }
+
+                   aggregated.push({
+                       time: start,
+                       open: first.open,
+                       high: high.toString(), 
+                       low: low,
+                       close: last.close,
+                       volume: vol
+                   } as any);
+               }
+               return aggregated;
+           }
+           
+           return mapped;
+
         } catch (e: any) {
           if (e.message !== "apiErrors.symbolNotFound") {
             logger.error("network", `fetchBitunixKlines error for ${symbol}`, e);

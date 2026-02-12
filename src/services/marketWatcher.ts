@@ -376,14 +376,17 @@ class MarketWatcher {
         const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit, undefined, Date.now());
 
         if (klines1 && klines1.length > 0) {
-            // Hardening: Filter invalid klines
-            const validatedKlines = klines1.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
-
-            marketState.updateSymbolKlines(symbol, tf, validatedKlines, "rest");
-            storageService.saveKlines(symbol, tf, validatedKlines); // Async save
+            // Hardening: Validation is already done in apiService, which returns valid Kline objects (with Decimals).
+            // KlineRawSchema expects strings/numbers, so it fails on Decimals. We skip it here.
+            
+            marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
+            storageService.saveKlines(symbol, tf, klines1); // Async save
 
             // Check if we have enough history now
             const currentLen = klines1.length;
+            if (import.meta.env.DEV && (tf === '15m' || tf === '30m')) {
+                logger.log("market", `[History] ensureHistory ${symbol}:${tf} fetched ${currentLen} initial candles.`);
+            }
 
             // Optimization: Parallel Backfill
             if (currentLen < limit) {

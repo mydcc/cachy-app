@@ -501,12 +501,22 @@ class BitgetWebSocketService {
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitget");
+
+    // [FIX] Map internal channel to Bitget specific format
+    const bitgetChannel = this.getBitgetChannel(channel);
+    if (!bitgetChannel) {
+         if (channel.startsWith("kline_")) {
+             // logger.warn("network", `[BitgetWS] Unsupported timeframe/channel: ${channel}`);
+         }
+         return;
+    }
+
     const subKey = `${channel}:${normalizedSymbol}`;
     if (this.subscriptions.has(subKey)) return;
     this.subscriptions.add(subKey);
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.sendSubscribe(this.ws, normalizedSymbol, channel);
+      this.sendSubscribe(this.ws, normalizedSymbol, bitgetChannel);
     } else {
       this.connect();
     }
@@ -515,13 +525,42 @@ class BitgetWebSocketService {
   unsubscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitget");
+
+    const bitgetChannel = this.getBitgetChannel(channel);
+    if (!bitgetChannel) return;
+
     const subKey = `${channel}:${normalizedSymbol}`;
     if (this.subscriptions.has(subKey)) {
       this.subscriptions.delete(subKey);
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.sendUnsubscribe(this.ws, normalizedSymbol, channel);
+        this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
       }
     }
+  }
+
+  // [FIX] Helper to map internal channels to Bitget wire format
+  private getBitgetChannel(internalChannel: string): string | null {
+      // Pass through standard channels
+      if (["ticker", "orders", "positions", "account", "books", "books5", "books15"].includes(internalChannel)) {
+          return internalChannel;
+      }
+
+      // Map Klines
+      if (internalChannel.startsWith("kline_")) {
+          const tf = internalChannel.replace("kline_", "");
+          const map: Record<string, string> = {
+              "1m": "candle1m",
+              "5m": "candle5m",
+              "15m": "candle15m",
+              "30m": "candle30m",
+              "1h": "candle1H",
+              "4h": "candle4H",
+              "1d": "candle1D",
+              "1w": "candle1W"
+          };
+          return map[tf] || null;
+      }
+      return null;
   }
 
   private sendSubscribe(ws: WebSocket, symbol: string, channel: string) {
@@ -552,8 +591,9 @@ class BitgetWebSocketService {
   private resubscribe() {
     this.subscriptions.forEach(key => {
       const [channel, symbol] = key.split(":");
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.sendSubscribe(this.ws, symbol, channel);
+      const bitgetChannel = this.getBitgetChannel(channel);
+      if (bitgetChannel && this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.sendSubscribe(this.ws, symbol, bitgetChannel);
       }
     });
   }

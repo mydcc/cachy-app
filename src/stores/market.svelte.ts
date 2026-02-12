@@ -474,6 +474,22 @@ export class MarketManager {
 
     // Get existing history or init empty
     let history = current.klines[timeframe] || [];
+    const prevHistoryLen = history.length;
+    const isTargetTf = import.meta.env.DEV && (timeframe === '15m' || timeframe === '30m');
+
+    if (isTargetTf) {
+         if (source === 'rest') {
+             console.log(`[Market] REST Update ${symbol}:${timeframe}. New: ${newKlines.length}. PrevHistory: ${prevHistoryLen}`);
+             if (newKlines.length > 0) {
+                 console.log(`[Market] REST Data Range: ${newKlines[0].time} - ${newKlines[newKlines.length-1].time}`);
+             }
+         } else if (source === 'ws') {
+             const hTime = history.length > 0 ? history[history.length - 1].time : 'N/A';
+             const nTime = newKlines.length > 0 ? newKlines[0].time : 'N/A';
+             console.log(`[Market] WS Update ${symbol}:${timeframe}. Hist: ${prevHistoryLen} (Last: ${hTime}), New: ${newKlines.length} (Desc: ${nTime})`);
+         }
+    }
+
     if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
     // Get existing buffers
@@ -725,6 +741,9 @@ export class MarketManager {
     if (import.meta.env.DEV) {
         if (buffers && history.length !== buffers.times.length) {
             console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer: ${buffers.times.length}`);
+        }
+        if ((timeframe === '15m' || timeframe === '30m') && source === 'ws') {
+             console.log(`[Market] applySymbolKlines ${symbol}:${timeframe} AFTER merge. History: ${history.length}`);
         }
     }
 
