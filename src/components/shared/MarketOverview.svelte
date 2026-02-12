@@ -582,7 +582,7 @@
     </div>
   {:else if !currentPrice && !tickerData}
     <div class="text-center text-[var(--danger-color)] text-sm py-2">
-      {$_("apiErrors.noMarketData") || "No market data available"}
+      {$_("apiErrors.noMarketData")}
     </div>
   {:else if currentPrice === null}
     <div class="flex flex-col gap-4 py-2 animate-pulse">

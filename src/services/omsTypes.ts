@@ -40,6 +40,7 @@ export interface OMSOrder {
     timestamp: number;
     _isOptimistic?: boolean;
     _isUnconfirmed?: boolean; // Risk management: Order state unknown (Two Generals)
+    _isStale?: boolean; // Hardening: Order hasn't been confirmed by API/WS for a long time
 }
 
 export interface OMSPosition {

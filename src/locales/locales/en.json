@@ -2040,7 +2040,8 @@
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",
-    "dataError": "Data Inconsistency Detected"
+    "dataError": "Data Inconsistency Detected",
+    "closeAbortedSafety": "Close aborted for safety: Failed to cancel open orders. Please manage manually."
   },
   "workerErrors": {
     "eventError": "Worker Error Event",

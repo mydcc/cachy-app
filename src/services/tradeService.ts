@@ -257,7 +257,7 @@ class TradeService {
                 // If cancellation fails, we ABORT the close to prevent naked orders.
                 // The user must manually handle the open orders or retry.
                 logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Aborting close to prevent naked orders.`, cancelError);
-                throw new Error("trade.closeAbortedSafety");
+                throw new Error("tradeErrors.closeAbortedSafety");
             }
 
             return await this.signedRequest("POST", "/api/orders", {
@@ -317,6 +317,15 @@ class TradeService {
             })();
 
             throw e;
+        } finally {
+            // Hardening: Safety Net Sync.
+            // Regardless of success/failure, ensure we sync positions after a delay to reconcile state.
+            // This catches cases where the WS update is lost even on successful requests.
+            setTimeout(() => {
+                this.fetchOpenPositionsFromApi().catch(err => {
+                    if (import.meta.env.DEV) logger.warn("market", "[FlashClose] Safety sync failed", err);
+                });
+            }, 2000);
         }
     }
 

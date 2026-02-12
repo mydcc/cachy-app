@@ -80,8 +80,20 @@ class OrderManagementSystem {
         const now = Date.now();
         for (const [id, order] of this.orders) {
             if (order._isOptimistic && (now - order.timestamp) > thresholdMs) {
-                this.orders.delete(id);
-                logger.warn("market", `[OMS] Removed orphaned optimistic order: ${id}`);
+                if (!order._isStale) {
+                    // Hardening: Don't remove ghost orders immediately. Mark them stale to force user sync/check.
+                    order._isStale = true;
+                    // Trigger update (although class isn't deeply reactive, this ensures reference consistency if used elsewhere)
+                    this.orders.set(id, order);
+                    logger.warn("market", `[OMS] Marked optimistic order as stale: ${id}`);
+                }
+
+                // Hardening: Garbage collect only after extreme duration (e.g. 5 mins) to prevent memory leaks
+                const GC_THRESHOLD = 5 * 60 * 1000;
+                if ((now - order.timestamp) > GC_THRESHOLD) {
+                    this.orders.delete(id);
+                    logger.warn("market", `[OMS] Garbage collected stale order: ${id}`);
+                }
             }
         }
     }

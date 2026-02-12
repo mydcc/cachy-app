@@ -65,4 +65,36 @@ describe('safeJsonParse', () => {
         expect(safeJsonParse(null as any)).toBe(null);
         expect(safeJsonParse("")).toBe("");
     });
+
+    // Boundary Tests
+    it('handles boundary: 14 digits (safe integer) stays number', () => {
+        const num = 12345678901234;
+        const input = `{"id": ${num}}`;
+        const result = safeJsonParse(input);
+        expect(typeof result.id).toBe("number");
+        expect(result.id).toBe(num);
+    });
+
+    it('handles boundary: 15 digits (safe integer but treated as string for safety) becomes string', () => {
+        const numStr = "123456789012345";
+        const input = `{"id": ${numStr}}`;
+        const result = safeJsonParse(input);
+        expect(typeof result.id).toBe("string");
+        expect(result.id).toBe(numStr);
+    });
+
+    it('handles boundary: 16 digits (unsafe potential) becomes string', () => {
+        const numStr = "1234567890123456";
+        const input = `{"id": ${numStr}}`;
+        const result = safeJsonParse(input);
+        expect(typeof result.id).toBe("string");
+        expect(result.id).toBe(numStr);
+    });
+
+    it('handles scientific notation: 1e+30 (short representation) stays number', () => {
+        const input = '{"val": 1e+30}';
+        const result = safeJsonParse(input);
+        expect(typeof result.val).toBe("number");
+        expect(result.val).toBe(1e+30);
+    });
 });

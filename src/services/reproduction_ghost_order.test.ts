@@ -73,10 +73,22 @@ describe('Ghost Order Reproduction', () => {
         // 2. Trigger Cleanup Manually (Testing logic, not interval)
         omsService.removeOrphanedOptimistic(30000);
 
-        // 3. Verify Removal
+        // 3. Verify Handling (Should be STALE, not removed yet)
         const orderAfter = omsService.getOrder(stuckOrderId);
-        expect(orderAfter).toBeUndefined();
+        expect(orderAfter).toBeDefined();
+        expect(orderAfter?._isStale).toBe(true);
 
-        console.log("Ghost Order Successfully Removed");
+        // 4. Advance time to GC threshold (> 5 mins)
+        // We modify the timestamp manually to simulate time passage for the same order object
+        if (orderAfter) {
+            orderAfter.timestamp = Date.now() - (5 * 60 * 1000 + 1000);
+        }
+
+        omsService.removeOrphanedOptimistic(30000); // Run again
+
+        const orderFinal = omsService.getOrder(stuckOrderId);
+        expect(orderFinal).toBeUndefined();
+
+        console.log("Ghost Order Successfully Marked Stale then GC'd");
     });
 });

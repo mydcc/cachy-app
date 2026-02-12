@@ -26,6 +26,15 @@ marked.use(markedKatex({
     nonStandard: true   // Allow $ for inline math
 }));
 
+const SANITIZE_CONFIG = {
+    // Hardening: Explicitly forbid tags that could be used for phishing or layout attacks
+    FORBID_TAGS: ['style', 'form', 'input', 'textarea', 'select', 'button', 'script', 'iframe', 'object', 'embed', 'applet', 'meta', 'base'],
+    // Hardening: Forbid event handlers and potentially dangerous attributes
+    // Note: We allow 'style' attribute to support Markdown formatting (colors, alignment) and KaTeX,
+    // but a stricter CSP should be used in production headers.
+    FORBID_ATTR: ['action', 'formaction', 'onmouseover', 'onclick', 'onerror', 'onload', 'onsubmit']
+};
+
 /**
  * Renders Markdown to HTML with sanitization (DOMPurify).
  * Handles AI streaming artifacts (e.g. JSON blocks).
@@ -45,7 +54,7 @@ export function renderSafeMarkdown(text: string): string {
         const raw = marked.parse(cleaned) as string;
 
         if (typeof window !== "undefined") {
-            return DOMPurify.sanitize(raw);
+            return DOMPurify.sanitize(raw, SANITIZE_CONFIG);
         }
 
         // SSR Fallback: Return empty string to prevent XSS.
@@ -77,7 +86,7 @@ export function renderTrustedMarkdown(text: string): string {
             // On client, we can still sanitize for extra safety,
             // though for trusted content it's technically optional.
             // But consistency is good.
-            return DOMPurify.sanitize(raw);
+            return DOMPurify.sanitize(raw, SANITIZE_CONFIG);
         }
 
         // SSR: Return raw HTML because we trust the source.
