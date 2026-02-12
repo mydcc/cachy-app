@@ -430,7 +430,9 @@ class MarketWatcher {
                         for (const chunk of chunkResults) {
                             if (Array.isArray(chunk) && chunk.length > 0) {
                                 // 1. Filter Invalid
-                                const validChunk = chunk.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
+                                // [FIXED] apiService returns valid Kline[] (Decimals), but KlineRawSchema expects primitives.
+                                // We trust apiService to return valid structure as it already validated it.
+                                const validChunk = chunk as Kline[];
                                 if (validChunk.length === 0) continue;
 
                                 // 2. Sort chunk (local)
@@ -458,17 +460,11 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+  private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (klines.length < 2) return klines;
 
-      // Hardening: Validate first item structure before access
-      const firstVal = KlineRawSchema.safeParse(klines[0]);
-      if (!firstVal.success) {
-          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
-      }
-
-      const filled: KlineRaw[] = [klines[0]];
+      // [FIXED] Validation removed as we now use strictly typed Kline objects (Decimals) from apiService
+      const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];

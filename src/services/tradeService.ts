@@ -31,7 +31,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, type PositionRaw, TpSlOrderSchema } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
 export interface TpSlOrder {
@@ -437,7 +437,7 @@ class TradeService {
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
+            // [HARDENING] Return results instead of throwing, allowing UI to show partial success/failure details
         }
 
         return results;
@@ -482,7 +482,27 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              // [HARDENING] Validate API response
+                              const rawList = (Array.isArray(data) ? data : data.rows || []);
+                              const validList: TpSlOrder[] = [];
+
+                              for (const item of rawList) {
+                                  const val = TpSlOrderSchema.safeParse(item);
+                                  if (val.success) {
+                                      // Schema returns optional orderId, but interface requires it.
+                                      // We patch it here to satisfy Typescript and runtime requirements.
+                                      const order = val.data;
+                                      const id = order.id || order.orderId || order.planId;
+                                      if (id) {
+                                          validList.push({ ...order, orderId: id } as TpSlOrder);
+                                      } else {
+                                          logger.warn("market", `TP/SL item missing ID for ${sym}`, item);
+                                      }
+                                  } else {
+                                      logger.warn("market", `TP/SL schema mismatch for ${sym}`, { item, error: val.error });
+                                  }
+                              }
+                              return validList;
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
@@ -507,7 +527,20 @@ class TradeService {
              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const rawList = (Array.isArray(data) ? data : data.rows || []);
+             const list: TpSlOrder[] = [];
+
+             for (const item of rawList) {
+                  const val = TpSlOrderSchema.safeParse(item);
+                  if (val.success) {
+                      const order = val.data;
+                      const id = order.id || order.orderId || order.planId;
+                      if (id) {
+                           list.push({ ...order, orderId: id } as TpSlOrder);
+                      }
+                  }
+             }
+
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }

@@ -135,7 +135,14 @@ function shouldFetchNews(cached: NewsCacheEntry | undefined | null): boolean {
 
   const now = Date.now();
   const timeSinceLastCall = now - (cached.lastApiCall || 0);
-  if (timeSinceLastCall < MIN_FETCH_INTERVAL) return false;
+
+  // [OPTIMIZATION] Dynamic Interval: If few items found previously, back off to save quota
+  // If 0 items: wait 2 hours. If < 5 items: wait 1 hour. Else 30 mins.
+  let dynamicInterval = MIN_FETCH_INTERVAL;
+  if (cached.items.length === 0) dynamicInterval = MIN_FETCH_INTERVAL * 4;
+  else if (cached.items.length < 5) dynamicInterval = MIN_FETCH_INTERVAL * 2;
+
+  if (timeSinceLastCall < dynamicInterval) return false;
 
   if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) return false;
 
@@ -484,7 +491,19 @@ export const newsService = {
         const data = safeJsonParse(text);
         if (data.error) throw new Error(data.error);
 
-        const analysis: SentimentAnalysis = data.analysis;
+        // [HARDENING] Validate API response structure
+        const validation = SentimentAnalysisSchema.safeParse(data.analysis);
+        if (!validation.success) {
+            logger.error("ai", "[NewsService] Invalid sentiment analysis response", validation.error);
+            return {
+                score: 0,
+                regime: "UNCERTAIN",
+                summary: "Analysis failed validation.",
+                keyFactors: []
+            };
+        }
+
+        const analysis = validation.data;
 
         // IDB Write - use newsHash as key
         await dbService.put("sentiment", {
