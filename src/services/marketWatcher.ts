@@ -458,33 +458,33 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
-      if (klines.length < 2) return klines;
+  private fillGaps(klines: KlineRaw[], intervalMs: number): Kline[] {
+      if (klines.length < 2) return this.mapToKline(klines);
 
       // Hardening: Validate first item structure before access
       const firstVal = KlineRawSchema.safeParse(klines[0]);
       if (!firstVal.success) {
           logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
+          return this.mapToKline(klines); // Abort fill if structure is wrong
       }
 
-      const filled: KlineRaw[] = [klines[0]];
+      const filled: Kline[] = [this.toKline(klines[0])];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
-          const curr = klines[i];
+          const currRaw = klines[i];
 
           // Hardening: Basic structural check for current item
-          if (!curr || typeof curr.time !== 'number') continue;
+          if (!currRaw || typeof currRaw.time !== 'number') continue;
 
           // Check for gap (> 1 interval + small buffer for jitter)
-          if (curr.time - prev.time > intervalMs * 1.1) {
+          if (currRaw.time - prev.time > intervalMs * 1.1) {
               let nextTime = prev.time + intervalMs;
               let gapCount = 0;
               // Limit gap fill to prevent freezing on massive gaps (e.g. months of missing data)
               const MAX_GAP_FILL = 5000;
 
-              while (nextTime < curr.time) {
+              while (nextTime < currRaw.time) {
                   if (gapCount >= MAX_GAP_FILL) {
                       break;
                   }
@@ -502,9 +502,24 @@ class MarketWatcher {
                   gapCount++;
               }
           }
-          filled.push(curr);
+          filled.push(this.toKline(currRaw));
       }
       return filled;
+  }
+
+  private mapToKline(raw: KlineRaw[]): Kline[] {
+      return raw.map(r => this.toKline(r));
+  }
+
+  private toKline(raw: KlineRaw): Kline {
+      return {
+          time: raw.time,
+          open: new Decimal(raw.open),
+          high: new Decimal(raw.high),
+          low: new Decimal(raw.low),
+          close: new Decimal(raw.close),
+          volume: new Decimal(raw.volume)
+      };
   }
 
   public async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {

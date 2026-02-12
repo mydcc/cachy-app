@@ -1386,6 +1386,27 @@ class BitunixWebSocketService {
     }
   }
 
+  // Explicit method for subscribing to trade stream with callback
+  subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+    if (!this.tradeListeners.has(normalizedSymbol)) {
+      this.tradeListeners.set(normalizedSymbol, new Set());
+    }
+    const listeners = this.tradeListeners.get(normalizedSymbol)!;
+    listeners.add(callback);
+
+    // Ensure we are subscribed to the WS channel
+    this.subscribe(normalizedSymbol, "trade");
+
+    return () => {
+      listeners.delete(callback);
+      if (listeners.size === 0) {
+        this.tradeListeners.delete(normalizedSymbol);
+        this.unsubscribe(normalizedSymbol, "trade");
+      }
+    };
+  }
+
   unsubscribe(symbol: string, channel: string) {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
