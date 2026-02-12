@@ -1274,10 +1274,6 @@ class BitunixWebSocketService {
              // Dispatch to listeners
              const listeners = this.tradeListeners.get(symbol);
              
-             // DEBUG LOG
-             if (import.meta.env.DEV) {
-                 // console.log(`[BitunixWS] Received ${items.length} trades for ${symbol}. Listeners: ${listeners ? listeners.size : 0}`);
-             }
 
              if (listeners) {
                  for (const item of items) {
