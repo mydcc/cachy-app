@@ -24,6 +24,7 @@
     import { settingsState } from "../../stores/settings.svelte";
     import { analysisState } from "../../stores/analysis.svelte";
     import { _ } from "../../locales/i18n";
+    import DOMPurify from "dompurify";
 
     let currentTime = $state(Date.now());
     let nextCycleIn = $state(0);
@@ -251,39 +252,39 @@
         <div class="hints-list">
             {#if settingsState.marketAnalysisInterval < 20}
                 <div class="hint warning">
-                    {@html $_("calculationDashboard.hintHighFreq", {
+                    {@html DOMPurify.sanitize($_("calculationDashboard.hintHighFreq", {
                         values: {
                             seconds: settingsState.marketAnalysisInterval,
                         },
-                    })}
+                    }))}
                 </div>
             {/if}
 
             {#if settingsState.analyzeAllFavorites && settingsState.favoriteSymbols.length > 10}
                 <div class="hint warning">
-                    {@html $_("calculationDashboard.hintFavorites", {
+                    {@html DOMPurify.sanitize($_("calculationDashboard.hintFavorites", {
                         values: {
                             count: settingsState.favoriteSymbols.length,
                         },
-                    })}
+                    }))}
                 </div>
             {/if}
 
             {#if Object.keys(analysisState.results).length / settingsState.marketCacheSize > 0.85}
                 <div class="hint critical">
-                    {@html $_("calculationDashboard.hintCache")}
+                    {@html DOMPurify.sanitize($_("calculationDashboard.hintCache"))}
                 </div>
             {/if}
 
             {#if !settingsState.pauseAnalysisOnBlur}
                 <div class="hint info">
-                    {@html $_("calculationDashboard.hintSmartPause")}
+                    {@html DOMPurify.sanitize($_("calculationDashboard.hintSmartPause"))}
                 </div>
             {/if}
 
             {#if getHealthStatus() === "good"}
                 <div class="hint good">
-                    {@html $_("calculationDashboard.hintGood")}
+                    {@html DOMPurify.sanitize($_("calculationDashboard.hintGood"))}
                 </div>
             {/if}
         </div>

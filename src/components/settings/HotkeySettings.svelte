@@ -24,6 +24,7 @@
   } from "../../services/hotkeyService";
   import { _ } from "../../locales/i18n";
   import { onMount } from "svelte";
+  import DOMPurify from "dompurify";
 
   let customHotkeys = { ...settingsState.customHotkeys };
   let editingId: string | null = $state(null);
@@ -134,12 +135,12 @@
 <div class="flex flex-col gap-4 h-full">
   <div class="flex justify-between items-center mb-2">
     <p class="text-xs text-[var(--text-secondary)]">
-      {@html $_("settings.hotkeys.info", {
+      {@html DOMPurify.sanitize($_("settings.hotkeys.info", {
         values: {
           alt: $_("settings.hotkeys.modifierAlt"),
           ctrl: $_("settings.hotkeys.modifierCtrl"),
         },
-      })}
+      }))}
     </p>
     <button
       class="text-xs text-[var(--danger-color)] hover:underline"

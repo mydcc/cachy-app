@@ -117,9 +117,13 @@
       null) as Decimal | null;
   });
 
+  // Performance Optimization: Memoize string conversion to prevent downstream re-calcs
+  let currentPriceStr = $derived(currentPrice ? currentPrice.toString() : "0.0000");
+
   // Helper to get changed parts of price
+  // Now depends on the primitive string rather than the Decimal object
   const priceParts = $derived.by(() => {
-    const s = currentPrice ? currentPrice.toString() : "0.0000";
+    const s = currentPriceStr;
     const parts = [];
     for (let i = 0; i < s.length; i++) {
       parts.push({
@@ -131,24 +135,32 @@
   });
 
   $effect(() => {
-    const cp = currentPrice;
-    if (!cp) return;
-    const s = cp.toString();
+    // Only trigger when the string representation actually changes
+    const s = currentPriceStr;
+    if (!s || s === "0.0000") return;
 
     const prevPriceState = untrack(() => lastPriceStr);
 
     if (prevPriceState && s !== prevPriceState) {
-      const trend = new Decimal(s).gt(new Decimal(prevPriceState))
-        ? "up"
-        : "down";
+      // Use efficient number parsing for comparison instead of Decimal overhead for UI effects
+      const currNum = parseFloat(s);
+      const prevNum = parseFloat(prevPriceState);
+
+      const trend = currNum > prevNum ? "up" : "down";
       const newIndexes = new Set<number>();
 
+      // Optimization: Early exit loop
+      const len = Math.min(s.length, prevPriceState.length);
       let foundChange = false;
-      for (let i = 0; i < s.length; i++) {
+      for (let i = 0; i < len; i++) {
         if (foundChange || s[i] !== prevPriceState[i]) {
           newIndexes.add(i);
           foundChange = true;
         }
+      }
+      // If lengths differ, mark tail
+      if (s.length !== prevPriceState.length) {
+          for (let i = len; i < s.length; i++) newIndexes.add(i);
       }
 
       priceTrend = trend;

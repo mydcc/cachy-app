@@ -1,51 +1,58 @@
-# Implementation Plan (Step 2)
+# Implementation Plan
 
-**Objective:** Execute "Institutional Grade" hardening based on the findings in the Status & Risk Report.
+## Phase 1: Critical Hardening & Fixes
 
-## Phase 1: Data Integrity (CRITICAL)
+### 1. Fix Missing Translations (UX/Crash)
+- **Goal:** Prevent runtime errors and show actionable feedback.
+- **Action:**
+  - Update `src/locales/locales/en.json` to include:
+    - `settings.errors.invalidApiKey`
+    - `settings.errors.ipNotAllowed`
+    - `settings.errors.invalidSignature`
+    - `settings.errors.timestampError`
+- **Verification:** `read_file` checks on `en.json`.
 
-### 1. Hardening `safeJsonParse`
-*   **Rationale:** The entire system relies on `safeJsonParse` to protect large integers (Order IDs) from precision loss before they reach the "Fast Path" or Zod validation.
-*   **Action:**
-    1.  Create a targeted unit test `src/utils/safeJson_hardening.test.ts`.
-    2.  Test cases:
-        *   JSON with 19-digit integer (Bitunix Order ID).
-        *   JSON with 20-digit integer.
-        *   JSON with standard floats (prices).
-        *   JSON with large integers in nested objects and arrays.
-    3.  **If tests fail:** Update the regex in `safeJsonParse` to correctly capture these edge cases.
+### 2. Optimize MarketWatcher (Performance)
+- **Goal:** Reduce GC pressure in backfill loops.
+- **Action:**
+  - Move `const ZERO_VOL = new Decimal(0);` out of `fillGaps` in `src/services/marketWatcher.ts` to module scope.
+  - Type `klines` argument in `fillGaps` as `Kline[]` instead of `any[]`.
+- **Verification:** Run `src/services/marketWatcher.test.ts` (if exists) or create a simple benchmark test.
 
-### 2. Trade Service "Panic" Logic Safety
-*   **Rationale:** `flashClosePosition` proceeds to close even if `cancelAllOrders` fails, risking naked orders.
-*   **Action:**
-    1.  Modify `flashClosePosition` in `src/services/tradeService.ts`.
-    2.  If `cancelAllOrders` fails, throw a specific error `trade.closeAbortedSafety` to the UI instead of proceeding, OR prompt the user (if possible).
-    3.  Alternatively, use a "Force Close" flag that bypasses this check only if the user explicitly confirms "Close Anyway".
+### 3. Harden Bitunix WebSocket (Data Integrity)
+- **Goal:** Enforce type safety for trade data listeners.
+- **Action:**
+  - Define `interface TradeData` in `src/types/bitunix.ts` (or `bitunixWs.ts`).
+  - Update `tradeListeners` map in `src/services/bitunixWs.ts` to use `Set<(trade: TradeData) => void>`.
+  - Update `subscribeTrade` signature.
+- **Verification:** `tsc` check (via `npm run check` or manual file check).
 
-## Phase 2: Resource Management (WARNING)
+### 4. Centralize Error Mapping (Maintainability)
+- **Goal:** Robust error handling for API failures.
+- **Action:**
+  - Extract `mapApiErrorToLabel` from `src/components/inputs/PortfolioInputs.svelte` to `src/utils/errorUtils.ts`.
+  - Enhance it to check `error.code` in addition to regex on `message`.
+  - Import and use it in `PortfolioInputs.svelte`.
+- **Verification:** Unit test for `mapApiErrorToLabel`.
 
-### 3. MarketWatcher Subscription Pruning
-*   **Rationale:** To prevent `MarketState` cache evasion.
-*   **Action:**
-    1.  Implement `pruneOrphanedSubscriptions()` in `MarketWatcher`.
-    2.  This method should check `this.requests` against the actual active components (if possible) or ensure `unregister` is robust.
-    3.  Verify `TechnicalsPanel` unmount behavior with a log or test.
+## Phase 2: Stability & Testing
 
-### 4. Memory Spike Mitigation
-*   **Rationale:** `ensureHistory` accumulates large arrays.
-*   **Action:**
-    1.  Refactor `ensureHistory` in `src/services/marketWatcher.ts` to push chunks to `marketState` immediately instead of waiting for the full batch.
-    2.  This leverages the existing "Fast Path 3" (overlap/append) logic in `marketState.updateSymbolKlines` more effectively.
+### 1. MarketManager Array Limits Test
+- **Goal:** Ensure `history` arrays do not grow unbounded.
+- **Action:**
+  - Create `src/stores/market_limits.test.ts`.
+  - Simulate receiving 10,000 updates via `updateSymbolKlines`.
+  - Assert `marketState.data[symbol].klines[tf].length` <= `settingsState.chartHistoryLimit`.
 
-## Phase 3: UI/UX & i18n (WARNING)
-
-### 5. PortfolioInputs Error Handling
-*   **Rationale:** Raw error messages are user-hostile.
-*   **Action:**
-    1.  Update `src/components/inputs/PortfolioInputs.svelte`.
-    2.  Map common API errors (e.g. "Invalid API Key", "IP not allowed") to i18n keys using a helper `mapApiErrorToLabel(e)`.
+### 2. Safe JSON Large Integer Test
+- **Goal:** Verify `safeJsonParse` correctly handles large integers to prevent "Fast Path" corruption.
+- **Action:**
+  - Create `src/utils/safeJson_integers.test.ts`.
+  - Test input: `{"id": 9007199254740993}` -> Output string `"9007199254740993"`.
 
 ## Execution Order
-1.  **Phase 1 (Integrity)** - Highest risk.
-2.  **Phase 3 (UI)** - High visibility/impact.
-3.  **Phase 2 (Resource)** - Long-term stability.
+1. Fix i18n keys (Quick win).
+2. `MarketWatcher` optimization.
+3. `BitunixWs` type hardening.
+4. Error mapping refactor.
+5. Create tests.
