@@ -548,8 +548,8 @@ class ActiveTechnicalsManager {
     }
 
     private prepareBuffersWithRealtime(original: KlineBuffers, timeframe: string, price: Decimal | null): KlineBuffers {
-        const len = original.times.length;
-        if (len === 0) return original; // Should typically clone even here? But empty is empty.
+        const len = original.usedLength; // Use usedLength, not capacity
+        if (len === 0) return original;
 
         // Determine if we update last or append
         const lastTime = original.times[len - 1];
@@ -565,13 +565,14 @@ class ActiveTechnicalsManager {
             else if (currentPeriodStart > lastTime) updateType = 'append';
         }
 
-        // Allocate new buffers
+        // Allocate new buffers (capacity handling inside Pool)
         const newLen = updateType === 'append' ? len + 1 : len;
 
         // Helper to allocate and copy (using Pool)
+        // Note: we only copy valid data (len), not the full capacity of original
         const createAndCopy = (src: Float64Array) => {
             const dest = this.pool.acquire(newLen);
-            dest.set(src);
+            dest.set(src.subarray(0, len)); // Only copy valid data
             return dest;
         };
 
@@ -582,6 +583,7 @@ class ActiveTechnicalsManager {
             lows: createAndCopy(original.lows),
             closes: createAndCopy(original.closes),
             volumes: createAndCopy(original.volumes),
+            usedLength: newLen
         };
 
         // Apply Realtime Update

@@ -1055,6 +1055,32 @@ class BitunixWebSocketService {
     }
   }
 
+  /**
+   * Subscribe to trade updates for a symbol.
+   * Returns a cleanup function that unsubscribes.
+   */
+  subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+    if (!this.tradeListeners.has(normalizedSymbol)) {
+        this.tradeListeners.set(normalizedSymbol, new Set());
+    }
+    this.tradeListeners.get(normalizedSymbol)!.add(callback);
+
+    // Register active subscription
+    this.subscribe(normalizedSymbol, "trade");
+
+    return () => {
+        const listeners = this.tradeListeners.get(normalizedSymbol);
+        if (listeners) {
+            listeners.delete(callback);
+            if (listeners.size === 0) {
+                this.tradeListeners.delete(normalizedSymbol);
+                this.unsubscribe(normalizedSymbol, "trade");
+            }
+        }
+    };
+  }
+
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
