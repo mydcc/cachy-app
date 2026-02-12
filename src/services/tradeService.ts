@@ -127,7 +127,7 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: any, depth = 0): any {
+    private serializePayload(payload: any, depth = 0, seen = new WeakSet()): any {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -141,15 +141,20 @@ class TradeService {
             return payload.toString();
         }
 
+        if (typeof payload === 'object' && payload !== null) {
+            if (seen.has(payload)) return "[Circular]";
+            seen.add(payload);
+        }
+
         if (Array.isArray(payload)) {
-            return payload.map(item => this.serializePayload(item, depth + 1));
+            return payload.map(item => this.serializePayload(item, depth + 1, seen));
         }
 
         if (typeof payload === 'object') {
             const newObj: any = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
-                    newObj[key] = this.serializePayload(payload[key], depth + 1);
+                    newObj[key] = this.serializePayload(payload[key], depth + 1, seen);
                 }
             }
             return newObj;
@@ -270,11 +275,6 @@ class TradeService {
 
             logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
 
-            // Import localized messages dynamically to avoid circular dependencies if possible, or assume global usage
-            // Since we throw, the UI component calling this should ideally handle the toast.
-            // However, for critical errors, we log or toast here if UI doesn't catch it.
-            // But throwing is better for the caller.
-
             // HARDENING: Clean up optimistic order if we KNOW it failed (e.g. 4xx error)
             const isTerminalError =
                 (e instanceof BitunixApiError) ||
@@ -291,9 +291,6 @@ class TradeService {
             if (isTerminalError) {
                  logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
                  omsService.removeOrder(clientOrderId);
-
-                 // Map specific errors to i18n keys for better UX (handled by caller if they catch)
-                 // e.g. "Balance insufficient" -> "tradeErrors.insufficientBalance"
             } else {
                  // Indeterminate state (Timeout / Network Error)
                  // Mark as unconfirmed

@@ -22,6 +22,22 @@ export const BitunixPriceDataSchema = z.object({
 });
 
 /**
+ * Strict Schema for Bitunix Price Data (Hardening Phase)
+ * Enforces string conversion for all numeric fields
+ */
+const SafeString = z.union([z.string(), z.number()]).transform((val) => String(val));
+
+export const StrictPriceDataSchema = z.object({
+  mp: SafeString.optional(), // Mark Price
+  ip: SafeString.optional(), // Index Price
+  fr: SafeString.optional(), // Funding Rate
+  nft: SafeString.optional(), // Next Funding Time
+  lastPrice: SafeString.optional(),
+  lp: SafeString.optional(),
+  la: SafeString.optional(),
+}).passthrough();
+
+/**
  * Schema for Bitunix Ticker Data
  */
 export const BitunixTickerDataSchema = z.object({
@@ -33,6 +49,36 @@ export const BitunixTickerDataSchema = z.object({
   q: z.union([z.string(), z.number()]).optional(), // Quote Volume
   r: z.union([z.string(), z.number()]).optional(), // Change Rate
 });
+
+/**
+ * Strict Schema for Ticker Data
+ */
+export const StrictTickerDataSchema = z.object({
+  lastPrice: SafeString.optional(),
+  close: SafeString.optional(),
+  volume: SafeString.optional(),
+  quoteVolume: SafeString.optional(),
+  high: SafeString.optional(),
+  low: SafeString.optional(),
+  priceChangePercent: SafeString.optional(),
+  // Aliases
+  la: SafeString.optional(),
+  o: SafeString.optional(),
+  h: SafeString.optional(),
+  l: SafeString.optional(),
+  b: SafeString.optional(),
+  q: SafeString.optional(),
+  v: SafeString.optional(),
+  r: SafeString.optional(),
+}).passthrough();
+
+/**
+ * Strict Schema for Depth Data
+ */
+export const StrictDepthDataSchema = z.object({
+  b: z.array(z.array(SafeString)), // Bids [price, qty]
+  a: z.array(z.array(SafeString)), // Asks [price, qty]
+}).passthrough();
 
 /**
  * Schema for Bitunix Order Data

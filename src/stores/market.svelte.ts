@@ -19,6 +19,7 @@ import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
+import { BufferPool } from "../utils/bufferPool";
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
 
 export interface MarketData {
@@ -88,6 +89,7 @@ export class MarketManager {
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
   private pendingKlineUpdates = new Map<string, any[]>();
+  private bufferPool = new BufferPool();
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
   private telemetryIntervalId: any = null;
@@ -491,16 +493,27 @@ export class MarketManager {
       effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
     }
 
+    // Helper: Release buffers back to pool
+    const releaseBuffers = (b: KlineBuffers) => {
+        this.bufferPool.release(b.times);
+        this.bufferPool.release(b.opens);
+        this.bufferPool.release(b.highs);
+        this.bufferPool.release(b.lows);
+        this.bufferPool.release(b.closes);
+        this.bufferPool.release(b.volumes);
+    };
+
     // Helper: Build full buffers from history (Slow Path)
     const rebuildBuffers = (sourceKlines: Kline[]) => {
       const len = sourceKlines.length;
+      // Optimization: Use BufferPool
       const b: KlineBuffers = {
-        times: new Float64Array(len),
-        opens: new Float64Array(len),
-        highs: new Float64Array(len),
-        lows: new Float64Array(len),
-        closes: new Float64Array(len),
-        volumes: new Float64Array(len),
+        times: this.bufferPool.acquire(len),
+        opens: this.bufferPool.acquire(len),
+        highs: this.bufferPool.acquire(len),
+        lows: this.bufferPool.acquire(len),
+        closes: this.bufferPool.acquire(len),
+        volumes: this.bufferPool.acquire(len),
       };
 
       for (let i = 0; i < len; i++) {
@@ -519,13 +532,14 @@ export class MarketManager {
     const appendBuffers = (oldBuffers: KlineBuffers, appendKlines: Kline[]): KlineBuffers => {
       const oldLen = oldBuffers.times.length;
       const newLen = oldLen + appendKlines.length;
+
       const b: KlineBuffers = {
-        times: new Float64Array(newLen),
-        opens: new Float64Array(newLen),
-        highs: new Float64Array(newLen),
-        lows: new Float64Array(newLen),
-        closes: new Float64Array(newLen),
-        volumes: new Float64Array(newLen),
+        times: this.bufferPool.acquire(newLen),
+        opens: this.bufferPool.acquire(newLen),
+        highs: this.bufferPool.acquire(newLen),
+        lows: this.bufferPool.acquire(newLen),
+        closes: this.bufferPool.acquire(newLen),
+        volumes: this.bufferPool.acquire(newLen),
       };
 
       // Copy old data (fast native copy)
@@ -576,6 +590,7 @@ export class MarketManager {
       }
       history = newKlines;
       current.klines[timeframe] = history;
+      // No old buffers to release (it was empty)
       buffers = rebuildBuffers(history);
     } else {
       // Ensure incoming klines are sorted (usually are, but safety first)
@@ -594,11 +609,14 @@ export class MarketManager {
              // Use splice for in-place removal to avoid new array allocation
              history.splice(0, overflow);
              // Since we spliced, buffers are out of sync. Rebuild is safest.
+             if (buffers) releaseBuffers(buffers);
              buffers = rebuildBuffers(history);
         } else {
              // Only append buffers if valid
              if (buffers) {
-                 buffers = appendBuffers(buffers, newKlines);
+                 const newB = appendBuffers(buffers, newKlines);
+                 releaseBuffers(buffers); // Release old
+                 buffers = newB;
              } else {
                  buffers = rebuildBuffers(history);
              }
@@ -631,9 +649,14 @@ export class MarketManager {
 
         if (history.length > effectiveLimit) {
              history.splice(0, history.length - effectiveLimit);
+             if (buffers) releaseBuffers(buffers);
              buffers = rebuildBuffers(history);
         } else if (itemsToAppend.length > 0) {
-             if (buffers) buffers = appendBuffers(buffers, itemsToAppend);
+             if (buffers) {
+                 const newB = appendBuffers(buffers, itemsToAppend);
+                 releaseBuffers(buffers);
+                 buffers = newB;
+             }
              else buffers = rebuildBuffers(history);
         }
 
@@ -690,6 +713,7 @@ export class MarketManager {
         // Assign new merged array
         current.klines[timeframe] = history;
         // Full rebuild needed (now on optimized size)
+        if (buffers) releaseBuffers(buffers);
         buffers = rebuildBuffers(history);
       }
     }

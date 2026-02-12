@@ -22,6 +22,11 @@ import { omsService } from "./omsService";
 import { settingsState } from "../stores/settings.svelte";
 import { Decimal } from "decimal.js";
 
+vi.mock('$app/environment', () => ({
+  browser: true,
+  dev: true
+}));
+
 // Mock settingsState
 vi.mock("../stores/settings.svelte", () => ({
     settingsState: {

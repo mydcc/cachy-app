@@ -23,6 +23,7 @@
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
   import { createEventDispatcher, onMount } from "svelte";
+  import Icon from "../shared/Icon.svelte";
   import { icons } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -255,8 +256,7 @@
           title={$_("dashboard.portfolioInputs.fetchBalanceTitle")}
           disabled={isFetchingBalance || !isConnected}
         >
-          {@html icons.refresh ||
-            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>'}
+          <Icon data={icons.refresh} />
         </button>
       </div>
     </div>

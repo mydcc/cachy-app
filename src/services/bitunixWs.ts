@@ -39,6 +39,9 @@ import {
   BitunixWSMessageSchema,
   BitunixPriceDataSchema,
   BitunixTickerDataSchema,
+  StrictPriceDataSchema,
+  StrictTickerDataSchema,
+  StrictDepthDataSchema,
   BitunixOrderSchema,
   BitunixPositionSchema,
   isAllowedChannel,
@@ -806,28 +809,17 @@ class BitunixWebSocketService {
           if (isObjectData) {
             switch (channel) {
               case "price":
-                if (symbol && isPriceData(data)) {
+                // HARDENING: Use Strict Zod Validation instead of loose casting
+                const priceRes = StrictPriceDataSchema.safeParse(data);
+                if (symbol && priceRes.success) {
                   try {
-                    // HARDENING: Direct property access + Force String cast for safety
-                    const ip = typeof data.ip === 'number' ? String(data.ip) : data.ip;
-                    const fr = typeof data.fr === 'number' ? String(data.fr) : data.fr;
-                    const nft = data.nft ? String(data.nft) : undefined;
-
-                    // Check precision loss on lastPrice if present (though we don't use it currently)
-                    if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                        const now = Date.now();
-                        if (now - this.lastNumericWarning > 60000) {
-                            logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
-                            this.lastNumericWarning = now;
-                        }
-                    }
+                    const sData = priceRes.data;
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
-                        // Explicit Decimal conversion for data integrity
                         marketState.updateSymbol(symbol, {
-                          indexPrice: ip ? new Decimal(ip) : undefined,
-                          fundingRate: fr ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft
+                          indexPrice: sData.ip ? new Decimal(sData.ip) : undefined,
+                          fundingRate: sData.fr ? new Decimal(sData.fr) : undefined,
+                          nextFundingTime: sData.nft ? String(sData.nft) : undefined
                         });
                     }
                     return;
@@ -838,28 +830,14 @@ class BitunixWebSocketService {
                 break;
 
               case "ticker":
-                if (symbol && isTickerData(data)) {
+                const tickerRes = StrictTickerDataSchema.safeParse(data);
+                if (symbol && tickerRes.success) {
                   try {
-                    // TELEMETRY: Detect precision loss risk
-                    if (typeof data.lastPrice === 'number' || typeof data.volume === 'number') {
-                        const now = Date.now();
-                        if (now - this.lastNumericWarning > 60000) {
-                            logger.warn("network", `[BitunixWS] NUMERIC TICKER DATA: Received numeric ticker for ${symbol}. Casting to string.`);
-                            this.lastNumericWarning = now;
-                        }
-                    }
+                    const sData = tickerRes.data;
+                    // Replace raw data with strictly validated data
+                    // This ensures mdaService only sees strings, preventing downstream type errors
+                    message.data = sData;
 
-                    // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
-                    // Avoiding full object allocation/clone for high frequency ticker
-                    if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
-                    if (typeof data.high === 'number') data.high = String(data.high);
-                    if (typeof data.low === 'number') data.low = String(data.low);
-                    if (typeof data.volume === 'number') data.volume = String(data.volume);
-                    if (typeof data.quoteVolume === 'number') data.quoteVolume = String(data.quoteVolume);
-                    if (typeof data.v === 'number') data.v = String(data.v);
-                    if (typeof data.close === 'number') data.close = String(data.close);
-
-                    // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
                     const normalized = mdaService.normalizeTicker(message, "bitunix");
 
                     if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
@@ -880,12 +858,14 @@ class BitunixWebSocketService {
                 break;
 
               case "depth_book5":
-                if (symbol && isDepthData(data)) {
+                const depthRes = StrictDepthDataSchema.safeParse(data);
+                if (symbol && depthRes.success) {
                   try {
-                    const safeToString = (val: any) => typeof val === 'number' ? String(val) : val;
-                    // HARDENING: Use map to create new arrays
-                    const bids = data.b ? data.b.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
-                    const asks = data.a ? data.a.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
+                    const sData = depthRes.data;
+                    // Zod transform has already ensured all nested numbers are strings
+                    // However, we need to map to simple tuple arrays [string, string][] as expected by marketState
+                    const bids = sData.b as [string, string][];
+                    const asks = sData.a as [string, string][];
 
                     if (!this.shouldThrottle(`${symbol}:depth`)) {
                       marketState.updateDepth(symbol, { bids, asks });

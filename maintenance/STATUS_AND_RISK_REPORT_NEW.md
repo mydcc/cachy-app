@@ -1,79 +1,69 @@
-# Status & Risiko-Bericht (Status & Risk Report)
+# Status & Risk Report (Current Analysis)
 
-**Datum:** 20.02.2026
-**Autor:** Jules (Senior Lead Developer & Systems Architect)
-**Status:** DRAFT
+**Date:** 2026-05-21
+**Auditor:** Jules (Senior Lead Developer & Systems Architect)
+**Status:** DRAFT / ANALYSIS PHASE
 
-Dieser Bericht fasst die Ergebnisse der Tiefenanalyse des `cachy-app` Repositories zusammen. Der Fokus lag auf Datenintegrität, Sicherheit und Stabilität für den professionellen Handelseinsatz.
+## 1. Executive Summary
 
----
+The `cachy-app` codebase demonstrates a solid foundation with modern technologies (Svelte 5, Vite, Decimal.js). However, it currently operates at an "MVP/Beta" level rather than "Institutional Grade". Critical paths in data ingestion (WebSocket) and trade execution utilize optimization shortcuts ("Fast Paths") that compromise type safety and data integrity. Financial calculations are mostly safe due to `Decimal.js`, but data ingress points remain vulnerable to precision loss before safe conversion occurs.
 
-## 🔴 KRITISCH (CRITICAL)
-*Risiken für finanzielle Verluste, Abstürze oder Sicherheitslücken.*
+## 2. Prioritized Findings
 
-1.  **Potenzieller Präzisionsverlust in `BitunixWs` ("Fast Path")**:
-    *   **Fundort:** `src/services/bitunixWs.ts` (Fast Path für Ticker/Price).
-    *   **Beschreibung:** Im "Fast Path" wird `typeof data.lastPrice === 'number'` geprüft und dann zu String gecastet. Wenn die API einen `number`-Typ sendet, ist die Präzision bereits durch den nativen JSON-Parser (float64) verloren gegangen, bevor dieser Code erreicht wird.
-    *   **Mitigation:** `src/utils/safeJson.ts` (Regex-Replacement) wird verwendet, was das Risiko für *sehr große* Zahlen (>= 14 Stellen, z.B. Order IDs) mindert. Für Preise (Float) besteht weiterhin das Risiko von Rundungsfehlern (z.B. `0.00000001` -> `1e-8`), die downstream Probleme verursachen könnten, wenn UI oder Rechner Strings erwarten.
-    *   **Empfehlung:** Strict Mode für API-Parsing erzwingen oder `safeJsonParse` verifizieren, dass es auch Floats als Strings erhält.
+### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
 
-2.  **Unsichere Typ-Assertions (Data Integrity)**:
-    *   **Fundort:** `src/services/bitunixWs.ts`, `handleMessage`.
-    *   **Beschreibung:** Verwendung von `(validatedMessage.data as any).ip` umgeht die Typsicherheit. Wenn sich die API-Struktur ändert, schlägt dies zur Laufzeit fehl statt bei der Validierung.
-    *   **Empfehlung:** Zod-Schema für `data`-Payload strikt definieren und nutzen.
+1.  **Unsafe "Fast Path" in WebSocket Ingestion (`src/services/bitunixWs.ts`)**
+    *   **Issue:** The `handleMessage` method bypasses Zod validation for high-frequency events (`price`, `ticker`, `trade`) to improve performance. It manually casts properties: `const ip = typeof data.ip === 'number' ? String(data.ip) : data.ip;`.
+    *   **Risk:** If the raw JSON parser (even with `safeJsonParse`) produces a number that has already lost precision (e.g., a very large integer ID or price), casting it to a String *after* the fact is too late. The data is already corrupted.
+    *   **Remediation:** The "Fast Path" must use a parser that guarantees strings for all financial fields *before* any JavaScript number conversion, or strictly validate that incoming numbers are within safe integer limits (`Number.MAX_SAFE_INTEGER`).
 
-3.  **GC Thrashing ("Memory Churn") in `MarketManager`**:
-    *   **Fundort:** `src/stores/market.svelte.ts`, Methode `updateSymbolKlines`.
-    *   **Beschreibung:** Bei jedem Kline-Update (auch via WebSocket) werden neue `Float64Array`-Instanzen erstellt (`rebuildBuffers`, `appendBuffers`). Dies erzeugt bei hoher Frequenz (viele Symbole, schnelle Updates) massiven Druck auf den Garbage Collector, was zu "Stuttering" im UI führen kann.
-    *   **Empfehlung:** Ring-Buffer oder vorallokierte Arrays mit manueller Cursor-Verwaltung (Pool-Pattern) implementieren.
+2.  **Implicit `any` Casting in Market Logic (`src/services/marketWatcher.ts`)**
+    *   **Issue:** The `fillGaps` method and `ensureHistory` flow rely on implicit `any` types for `klines`.
+    *   **Risk:** If the API response structure changes (e.g., `volume` becomes `vol`), `fillGaps` might propagate `undefined` or `NaN` into the `Decimal` constructor, causing runtime crashes or silent data corruption in charts.
+    *   **Remediation:** Introduce strict `KlineRawSchema` validation before passing data to `fillGaps`.
 
-4.  **Test-Flakiness bei LRU-Eviction**:
-    *   **Fundort:** `src/services/incrementalCache.ts` / Tests.
-    *   **Beschreibung:** Die LRU-Logik nutzt `Date.now()` (Millisekunden). Bei sehr schneller Ausführung (Unit Tests) haben mehrere Einträge denselben Timestamp, was die Eviction unvorhersehbar macht (FIFO statt LRU).
-    *   **Empfehlung:** `performance.now()` oder monotonen Zähler für `lastAccessed` verwenden.
+3.  **Fragile Flash Close Logic (`src/services/tradeService.ts`)**
+    *   **Issue:** `flashClosePosition` throws errors up the stack. If the UI component calling it does not catch them perfectly, the user receives no feedback that their emergency close failed.
+    *   **Risk:** A user clicks "Close", an error occurs (e.g., network), no toast appears, and the user assumes the position is closed while it remains open ("Naked Position").
+    *   **Remediation:** Catch errors within `flashClosePosition`, return a standardized `Result<T, E>` object, and trigger a global "Critical Error" modal via `uiState` if the close fails.
 
----
+4.  **Serialization Recursion Risk (`src/services/tradeService.ts`)**
+    *   **Issue:** `serializePayload` uses recursion to convert Decimals to strings. While it has a depth limit (20), it iterates over all object keys.
+    *   **Risk:** Sending a complex circular object (accidental pass of a Store or DOM element) could still cause performance hiccups or stack errors before hitting the limit.
+    *   **Remediation:** Use a `JSON.stringify` replacer function or a non-recursive approach for flat payloads.
 
-## 🟡 WARNUNG (WARNING)
-*Performance-Probleme, UX-Mängel oder fehlende Internationalisierung.*
+### 🟡 WARNING (Performance issue, UX error, missing i18n)
 
-1.  **Eingabevalidierung Edge-Case**:
-    *   **Fundort:** `src/components/inputs/PortfolioInputs.svelte`.
-    *   **Beschreibung:** Wenn `validateInput` einen leeren String zurückgibt (z.B. bei Löschen des Inputs), wird dieser direkt in den `tradeState` geschrieben. Services, die `Decimal` erwarten, könnten bei `new Decimal("")` werfen.
-    *   **Empfehlung:** Leere Strings im State explizit behandeln oder zu `0` / `null` normalisieren.
+5.  **Hardcoded Strings (i18n Violation)**
+    *   **Issue:** `src/components/settings/EngineDebugPanel.svelte` and `src/components/layout/Header.svelte` contain hardcoded English strings ("Capabilities", "Engine Stats", "Cachy App").
+    *   **Risk:** Alienation of non-English users and inconsistency in UI.
+    *   **Status:** Automated audit (`scripts/audit_translations.py`) shows 0 missing keys for *existing* references, but manual inspection reveals extensive hardcoded strings that are not yet using the translation system.
+    *   **Remediation:** Extract all text to `src/locales/en.json` and use the `$_()` helper.
 
-2.  **Fehlende Abhängigkeiten in Testumgebung**:
-    *   **Beschreibung:** Viele Tests (`npm test` / `bun test`) schlagen fehl, weil Module wie `decimal.js` oder `@sveltejs/kit` in der Testumgebung nicht aufgelöst werden können. Dies erschwert CI/CD.
-    *   **Empfehlung:** `vitest` Konfiguration prüfen und sicherstellen, dass Aliases (`$lib`, `$app`) korrekt gemockt sind.
+6.  **Garbage Collection Pressure in Klines (`src/stores/market.svelte.ts`)**
+    *   **Issue:** `applySymbolKlines` frequently creates new arrays via spread syntax `[...history, ...newKlines]` or `slice()`, and re-allocates `Float64Array` buffers on every update.
+    *   **Risk:** High-frequency updates (e.g., 10 symbols @ 100ms) will cause frequent GC pauses, causing UI stutter (jank) during trading.
+    *   **Remediation:** Implement a ring buffer or pre-allocated array strategy for `klinesBuffers` to minimize allocations.
 
-3.  **Default DOMPurify Konfiguration**:
-    *   **Fundort:** `src/utils/markdownUtils.ts`.
-    *   **Beschreibung:** Es wird die Standard-Konfiguration von DOMPurify verwendet. Für eine Hochsicherheits-App sollten aggressive Tags (z.B. `iframe`, `object`) explizit verboten werden, falls sie nicht benötigt werden.
+7.  **Unsafe HTML Injection (`src/components/inputs/PortfolioInputs.svelte`)**
+    *   **Issue:** Uses `{@html icons.refresh}`.
+    *   **Risk:** While `icons` are currently constant, this pattern encourages developers to inject HTML strings. If an icon were ever loaded dynamically from an external source, it becomes an XSS vector.
+    *   **Remediation:** Replace `{@html ...}` with a dedicated `<Icon data={icons.refresh} />` component that sanitizes or treats content as SVG nodes safely.
 
-4.  **Unbounded Map Growth Risiko**:
-    *   **Fundort:** `src/services/bitunixWs.ts`, `throttleMap`.
-    *   **Beschreibung:** Es gibt eine Bereinigung (`size > 1000`), aber theoretisch könnten bei einem Angriff mit rotierenden Symbolen Speicherlecks entstehen. (Niedriges Risiko dank Limit).
+8.  **Optimistic UI Desync Risk (`src/services/tradeService.ts`)**
+    *   **Issue:** Optimistic orders are added via `omsService.addOptimisticOrder`. If the network request hangs indefinitely (timeout), the optimistic order might persist locally while the server never received it.
+    *   **Remediation:** Ensure a background "reconciliation" process runs every few seconds to verify optimistic orders against actual open orders.
 
----
+### 🔵 REFACTOR (Technical debt)
 
-## 🔵 REFACTOR (Technical Debt)
-*Wartbarkeit und Code-Qualität.*
+9.  **Standardization of `Decimal` Handling**
+    *   **Issue:** WebSocket service mixes `number`, `string`, and `Decimal` handling logic.
+    *   **Action:** Move all "Safe Math" logic to a central `MathUtils` or factory that ensures nothing enters the system as a native number if it represents money.
 
-1.  **Code-Duplikation in `mdaService` / `MarketWatcher`**:
-    *   Die Normalisierungslogik für Ticker/Klines ist teilweise verstreut. Eine Zentralisierung in `mappers.ts` wäre sauberer.
+10. **Complex Polling Logic (`src/services/marketWatcher.ts`)**
+    *   **Issue:** The hybrid polling/WS logic with `staggerTimeouts` and `performPollingCycle` is complex and hard to test.
+    *   **Action:** Simplify into a `DataScheduler` class that abstracts the "Pull vs Push" decision logic.
 
-2.  **Komplexe `shouldFetchNews` Logik**:
-    *   `src/services/newsService.ts`: Die Bedingung ist schwer lesbar und fehleranfällig. Extraktion in kleinere Helfer-Funktionen empfohlen.
+## 3. Conclusion
 
----
-
-## ✅ POSITIVE BEFUNDE (Status Quo)
-
-*   **Sicherheit:** `src/utils/safeJson.ts` schützt effektiv vor Integer-Überläufen bei IDs. `src/lib/server/logger.ts` maskiert sensible Daten.
-*   **Architektur:** "Hybrid Architecture" in `MarketWatcher` (WS + Polling Fallback) ist robust implementiert.
-*   **Standards:** Konsequente Nutzung von `Decimal.js` für Berechnungen im `TradeService`.
-*   **Frontend:** Nutzung von `Svelte 5 Runes` (`$state`, `$derived`) ist modern und performant.
-
----
-
-**Nächste Schritte:** Siehe "Step 2: Action Plan" im Chat.
+To reach "Institutional Grade", the application requires immediate remediation of the WebSocket "Fast Path" (Critical #1) and implicit type casting (Critical #2). Following that, a sweep for i18n strings (Warning #5) and GC optimization (Warning #6) is recommended.
