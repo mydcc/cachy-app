@@ -822,6 +822,12 @@
       "resetConfirm": "Reset API Quota for {provider}?",
       "noCalls": "No API calls made yet."
     },
+    "errors": {
+      "invalidApiKey": "Invalid API Key or Secret.",
+      "ipNotAllowed": "IP address not allowed.",
+      "invalidSignature": "Invalid signature.",
+      "timestampError": "Timestamp error. Check your system time."
+    },
     "apiProvider": "API Provider",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",

@@ -89,9 +89,12 @@
   });
 
   function validateInput(value: string, allowEmpty = true, min = 0, max = Infinity): string | null {
-    if (value === "") return allowEmpty ? null : "";
+    // Hardening: Treat empty input as "0" to prevent Decimal constructor crashes
+    if (value === "") return "0";
+
     const num = parseFloat(value);
-    if (isNaN(num)) return null; // Or revert to previous valid? For now, we update state to invalid but TradeService must handle
+    if (isNaN(num)) return "0"; // Safe fallback
+
     if (num < min) return String(min);
     if (num > max) return String(max);
     return value;

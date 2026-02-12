@@ -175,8 +175,12 @@ async function pruneOldCaches() {
  * Generiert eine eindeutige ID für News-Items (für Deduplizierung)
  */
 function generateNewsId(item: NewsItem): string {
+  // Hardening: Ensure inputs are strings to prevent crashes on malformed API data
+  const safeUrl = typeof item.url === 'string' ? item.url : '';
+  const safeTitle = typeof item.title === 'string' ? item.title : '';
+
   // Einfacher Hash aus URL + Titel
-  const raw = encodeURIComponent(item.url + item.title);
+  const raw = encodeURIComponent(safeUrl + safeTitle);
   // Using CryptoJS for consistent, safe encoding (replaces unsafe btoa)
   return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(raw)).substring(0, 128);
 }
