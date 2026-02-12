@@ -94,3 +94,16 @@ export function getBitunixErrorKey(code: number | string): string {
   // Fallback if the code is not in our list
   return "apiErrors.generic";
 }
+
+export function mapApiErrorToLabel(error: any): string | null {
+  const msg = error?.message || "";
+  const code = error?.code; // Check specific error codes if available
+
+  // Map common raw API errors to localized keys
+  if (/api key|apikey/i.test(msg) || code === 10003) return "settings.errors.invalidApiKey";
+  if (/ip not allowed/i.test(msg) || code === 10004) return "settings.errors.ipNotAllowed";
+  if (/signature/i.test(msg) || code === 10007) return "settings.errors.invalidSignature";
+  if (/timestamp/i.test(msg)) return "settings.errors.timestampError";
+
+  return null;
+}
