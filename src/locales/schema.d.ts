@@ -736,8 +736,7 @@ export type TranslationKey =
   | "settings.apiIntegration"
   | "settings.autoFetchBalance"
   | "settings.autoUpdatePriceInput"
-  | "settings.marketDataInterval"
-  | "settings.marketDataIntervalHelp"
+
   | "settings.intervalLabel"
   | "settings.autoUpdatePrice"
   | "settings.showSidebars"

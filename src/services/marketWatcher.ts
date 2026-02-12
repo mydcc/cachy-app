@@ -25,6 +25,7 @@ import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
+import { activeTechnicalsManager } from "./activeTechnicalsManager.svelte";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
@@ -39,7 +40,7 @@ class MarketWatcher {
   // Optimization: Module-level constant to reduce allocation
   private static readonly ZERO_VOL = new Decimal(0);
 
-  private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
+  private requests = new Map<string, Map<string, Map<string, number>>>(); // symbol -> { channel -> { requirement -> count } }
   private isPolling = false;
   private pollingTimeout: ReturnType<typeof setTimeout> | null = null;
   private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
@@ -48,6 +49,9 @@ class MarketWatcher {
   private pendingRequests = new Map<string, Promise<void>>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
+  
+  // Track symbol:timeframe pairs that have reached broker limits
+  private exhaustedHistory = new Set<string>();
   // Performance: Batch subscription updates
   private _subscriptionsDirty = false;
 
@@ -71,7 +75,7 @@ class MarketWatcher {
    * @param symbol Raw symbol
    * @param channel Channel name (e.g., "price", "kline_1h")
    */
-  register(symbol: string, channel: string) {
+  register(symbol: string, channel: string, requirement: "chart" | "stateless" = "stateless") {
     if (!symbol) return;
     const normSymbol = normalizeSymbol(symbol, "bitunix");
 
@@ -80,66 +84,79 @@ class MarketWatcher {
     }
 
     const channels = this.requests.get(normSymbol)!;
-    const count = channels.get(channel) || 0;
-    channels.set(channel, count + 1);
+    if (!channels.has(channel)) {
+      channels.set(channel, new Map());
+    }
 
-    // Only sync if this is the first requester for this channel
-    if (count === 0) {
+    const reqs = channels.get(channel)!;
+    const count = reqs.get(requirement) || 0;
+    reqs.set(requirement, count + 1);
+
+    const totalChannelCount = Array.from(reqs.values()).reduce((a, b) => a + b, 0);
+
+    // Only sync if this is the first requester for this channel globally
+    if (totalChannelCount === 1) {
       this._subscriptionsDirty = true;
+      // Start polling/WS immediately
+      this.syncChannelSubscription(normSymbol, channel);
+    }
 
-      // Trigger history sync for Klines
-      if (channel.startsWith("kline_")) {
+    // GATED HISTORY: Only trigger deep history if requirement is 'chart'
+    if (requirement === "chart" && channel.startsWith("kline_")) {
+      const tf = channel.replace("kline_", "");
+      this.ensureHistory(normSymbol, tf);
+    } else if (requirement === "stateless" && channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
-        this.ensureHistory(normSymbol, tf);
-      }
-
-      // Start polling for all channels (Price/Ticker/Kline)
-      untrack(() => {
-        const provider = settingsState.apiProvider;
-        if (provider === "bitunix") {
-             // Map channel to WebSocket subscriptions using data requirements
-             const wsChannels = getChannelsForRequirement(channel);
-             
-             // Subscribe to all required channels
-             wsChannels.forEach(ch => {
-               bitunixWs.subscribe(normSymbol, ch);
-             });
-             
-             // Legacy compatibility: handle old channel names
-             if (channel === "price") {
-                 bitunixWs.subscribe(normSymbol, "price");
-             } else if (channel === "ticker") {
-                 bitunixWs.subscribe(normSymbol, "ticker");
-             } else if (channel === "depth_book5") {
-                 bitunixWs.subscribe(normSymbol, "depth_book5");
-             } else if (channel.startsWith("kline_")) {
-                 bitunixWs.subscribe(normSymbol, channel);
-             }
-        }
-      });
+        // Request shallow history (e.g. 100 candles) for technicals calculation
+        this.ensureShallowHistory(normSymbol, tf);
     }
   }
 
   /**
    * Unregister interest in a channel.
    */
-  unregister(symbol: string, channel: string) {
+  unregister(symbol: string, channel: string, requirement: "chart" | "stateless" = "stateless") {
     if (!symbol) return;
     const normSymbol = normalizeSymbol(symbol, "bitunix");
     const channels = this.requests.get(normSymbol);
 
     if (channels && channels.has(channel)) {
-      const count = channels.get(channel)!;
-      if (count <= 1) {
+      const reqs = channels.get(channel)!;
+      const count = reqs.get(requirement);
+
+      if (count && count > 0) {
+        if (count === 1) {
+          reqs.delete(requirement);
+        } else {
+          reqs.set(requirement, count - 1);
+        }
+      }
+
+      if (reqs.size === 0) {
         channels.delete(channel);
         if (channels.size === 0) {
           this.requests.delete(normSymbol);
         }
         this._subscriptionsDirty = true;
-      } else {
-        channels.set(channel, count - 1);
       }
     }
+  }
+
+  private syncChannelSubscription(symbol: string, channel: string) {
+    untrack(() => {
+        const provider = settingsState.apiProvider;
+        if (provider === "bitunix") {
+             const wsChannels = getChannelsForRequirement(channel);
+             wsChannels.forEach(ch => {
+               bitunixWs.subscribe(symbol, ch);
+             });
+             
+             // Legacy
+             if (channel === "price") bitunixWs.subscribe(symbol, "price");
+             else if (channel === "ticker") bitunixWs.subscribe(symbol, "ticker");
+             else if (channel.startsWith("kline_")) bitunixWs.subscribe(symbol, channel);
+        }
+      });
   }
 
   private syncSubscriptions() {
@@ -161,10 +178,9 @@ class MarketWatcher {
     // map of key (channel:symbol) -> { symbol, channel }
     const intended = new Map<string, { symbol: string; channel: string }>();
     this.requests.forEach((channels, symbol) => {
-      channels.forEach((_, ch) => {
-        let bitunixChannel = ch;
-        // Map generic "price" to Bitunix "ticker"
-        if (ch === "price") bitunixChannel = "ticker";
+      channels.forEach((reqs, ch) => {
+        const bitunixChannel = ch;
+        // No longer map generic "price" to Bitunix "ticker" - let "price" be "price" (mark price + funding)
         const key = `${bitunixChannel}:${symbol}`;
         intended.set(key, { symbol, channel: bitunixChannel });
       });
@@ -223,15 +239,21 @@ class MarketWatcher {
 
   private pruneOrphanedSubscriptions() {
     for (const [symbol, channels] of this.requests) {
-      if (channels.size === 0) {
-        this.requests.delete(symbol);
-        this._subscriptionsDirty = true;
-        continue;
-      }
-      for (const [channel, count] of channels) {
-        if (count <= 0) {
+      for (const [channel, reqs] of channels) {
+        if (reqs.size === 0) {
           channels.delete(channel);
           this._subscriptionsDirty = true;
+        } else {
+          for (const [req, count] of reqs) {
+            if (count <= 0) {
+              reqs.delete(req);
+              this._subscriptionsDirty = true;
+            }
+          }
+          if (reqs.size === 0) {
+            channels.delete(channel);
+            this._subscriptionsDirty = true;
+          }
         }
       }
       if (channels.size === 0) {
@@ -351,13 +373,46 @@ class MarketWatcher {
     }
   }
 
-  public async ensureHistory(symbol: string, tf: string) {
+  public async ensureShallowHistory(symbol: string, tf: string): Promise<boolean> {
+      const provider = settingsState.apiProvider;
+      if (provider !== "bitunix") return false;
+
+      const lockKey = `${symbol}:${tf}:shallow`;
+      if (this.historyLocks.has(lockKey) || this.exhaustedHistory.has(`${symbol}:${tf}`)) {
+          return true;
+      }
+      this.historyLocks.add(lockKey);
+
+      try {
+          const currentData = marketState.data[symbol]?.klines[tf] || [];
+          if (currentData.length >= 50) return true; // Already have enough for basic technicals
+
+           // Fetch small batch
+          const limit = 100;
+          const klines = await apiService.fetchBitunixKlines(symbol, tf, limit, undefined, Date.now());
+
+          if (klines && klines.length > 0) {
+              marketState.updateSymbolKlines(symbol, tf, klines, "rest");
+              
+              // FORCE REFRESH TECHNICALS
+              activeTechnicalsManager.forceRefresh(symbol, tf);
+          }
+          return true;
+      } catch (e) {
+          logger.warn("market", `[History] Shallow fetch failed for ${symbol}:${tf}`, e);
+          return false;
+      } finally {
+          this.historyLocks.delete(lockKey);
+      }
+  }
+
+  public async ensureHistory(symbol: string, tf: string): Promise<boolean> {
     const provider = settingsState.apiProvider;
-    if (provider !== "bitunix") return;
+    if (provider !== "bitunix") return false;
 
     const lockKey = `${symbol}:${tf}`;
     if (this.historyLocks.has(lockKey)) {
-        return;
+        return true; // Already loading
     }
     this.historyLocks.add(lockKey);
 
@@ -368,17 +423,21 @@ class MarketWatcher {
             marketState.updateSymbolKlines(symbol, tf, stored, "rest");
         }
 
-        // 2. Determine if we need to fetch
+        // 2. Check current store state and exhaustion to avoid redundant backfills
+        const currentData = marketState.data[symbol]?.klines[tf] || [];
         const limit = settingsState.chartHistoryLimit || 1000;
+        const exhaustKey = `${symbol}:${tf}`;
 
-        // Execute Fetch Logic
-        const latestLimit = 1000; // API Max
-        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit, undefined, Date.now());
+        if (currentData.length >= limit || this.exhaustedHistory.has(exhaustKey)) {
+            return false; // No more to fetch
+        }
+
+        // 3. Execute Fetch Logic
+        // INITIAL FETCH: Use 200 to align with Bitunix actual behavior and prevent logic issues
+        const initialLimit = 200; 
+        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, initialLimit, undefined, Date.now());
 
         if (klines1 && klines1.length > 0) {
-            // Hardening: Validation is already done in apiService, which returns valid Kline objects (with Decimals).
-            // KlineRawSchema expects strings/numbers, so it fails on Decimals. We skip it here.
-            
             marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
             storageService.saveKlines(symbol, tf, klines1); // Async save
 
@@ -388,70 +447,93 @@ class MarketWatcher {
                 logger.log("market", `[History] ensureHistory ${symbol}:${tf} fetched ${currentLen} initial candles.`);
             }
 
-            // Optimization: Parallel Backfill
+            // Sequential Backfill (Hardened for Bitunix 200-candle limit)
             if (currentLen < limit) {
-                const remaining = limit - currentLen;
-                const batchSize = 1000;
-                const batchesNeeded = Math.ceil(remaining / batchSize);
-                // Cap batches to avoid crazy fetch storms (e.g. max 10 batches = 10k candles)
-                const effectiveBatches = Math.min(batchesNeeded, 10);
+                const batchSize = 200; 
+                // Source of truth: store count
+                let currentTotal = marketState.data[symbol]?.klines[tf]?.length || klines1.length;
+                let lastOldestTime = klines1[0].time;
+                
+                // BACKFILL OPTIMIZATION: Batch store updates to prevent technicals-restart-spam
+                let backfillBuffer: any[] = [];
+                const storeUpdateThreshold = 10; // Update store every 10 batches (2000 candles)
+                let batchesSubSinceUpdate = 0;
 
-                if (effectiveBatches > 0) {
-                    const oldestTime = klines1[0].time;
-                    const intervalMs = safeTfToMs(tf);
+                const storeCount = marketState.data[symbol]?.klines[tf]?.length || 0;
+                logger.log("market", `[History] Starting sequential backfill for ${symbol}:${tf}. Target: ${limit}. Store: ${storeCount}.`);
 
-                    // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
-                    // This ensures real-time polling (high priority) and other requests have breathing room.
-                    const concurrency = 3;
+                for (let i = 0; i < 250; i++) { // Max 250 batches
+                    if (currentTotal >= limit) {
+                        this.exhaustedHistory.add(exhaustKey);
+                        break;
+                    }
+                    // Sequential backfill is independent of price polling
 
-                    for (let i = 0; i < effectiveBatches; i += concurrency) {
-                        if (!this.isPolling) {
-                             logger.debug("market", `[History] Polling stopped, aborting backfill for ${symbol}`);
-                             break;
-                        }
+                    const batchEndTime = lastOldestTime - 1;
+                    let batch: Kline[] = [];
+                    let retryCount = 0;
+                    const maxRetries = 2;
 
-                        const chunkTasks: Promise<any>[] = [];
-                        for (let j = 0; j < concurrency && i + j < effectiveBatches; j++) {
-                             const batchIdx = i + j;
-                             const batchEndTime = oldestTime - (batchIdx * batchSize * intervalMs);
-
-                             chunkTasks.push(
-                                 apiService.fetchBitunixKlines(symbol, tf, batchSize, undefined, batchEndTime)
-                                     .catch(e => {
-                                         logger.warn("market", `[History] Backfill batch ${batchIdx} failed`, e);
-                                         return [];
-                                     })
-                             );
-                        }
-
-                        const chunkResults = await Promise.all(chunkTasks);
-
-                        // [HARDENING] Streaming Updates (Chunk processing) to prevent memory spikes
-                        for (const chunk of chunkResults) {
-                            if (Array.isArray(chunk) && chunk.length > 0) {
-                                // 1. Filter Invalid
-                                const validChunk = chunk.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
-                                if (validChunk.length === 0) continue;
-
-                                // 2. Sort chunk (local)
-                                validChunk.sort((a, b) => a.time - b.time);
-
-                                // 3. Fill gaps locally within the chunk
-                                const filledChunk = this.fillGaps(validChunk, intervalMs);
-
-                                // 4. Update Store immediately (Streaming UX)
-                                marketState.updateSymbolKlines(symbol, tf, filledChunk, "rest");
-
-                                // 5. Save to Storage (Async)
-                                storageService.saveKlines(symbol, tf, filledChunk);
+                    while (retryCount <= maxRetries) {
+                        try {
+                            // Backfill should use startTime=1 to ensure data is returned for the requested range
+                            batch = await apiService.fetchBitunixKlines(symbol, tf, batchSize, 1, batchEndTime);
+                            break; 
+                        } catch (e) {
+                            retryCount++;
+                            if (retryCount > maxRetries) {
+                                logger.warn("market", `[History] Backfill batch ${i} permanently failed for ${symbol}:${tf}`);
+                                break;
                             }
+                            const delay = 1000 * retryCount;
+                            await new Promise(r => setTimeout(r, delay));
                         }
                     }
+
+                    if (!batch || batch.length === 0) {
+                        logger.log("market", `[History] Backfill reached end of history for ${symbol}:${tf} at Iter ${i} (${currentTotal}/${limit} candles).`);
+                        this.exhaustedHistory.add(exhaustKey);
+                        break;
+                    }
+                    
+                    if (import.meta.env.DEV && (tf === '1h')) {
+                        logger.debug("market", `[History] Iter ${i} success. Got ${batch.length} candles. Newest: ${batch[batch.length-1].time}, Oldest: ${batch[0].time}`);
+                    }
+
+                    // Success: Buffer for batch update
+                    backfillBuffer.push(...batch);
+                    batchesSubSinceUpdate++;
+                    
+                    // Update counters for next iteration
+                    currentTotal += batch.length;
+                    lastOldestTime = batch[0].time;
+
+                    // Periodically flush buffer to store
+                    if (batchesSubSinceUpdate >= storeUpdateThreshold) {
+                        const countBefore = marketState.data[symbol]?.klines[tf]?.length || 0;
+                        marketState.updateSymbolKlines(symbol, tf, backfillBuffer, "rest");
+                        const countAfter = marketState.data[symbol]?.klines[tf]?.length || 0;
+                        
+                        logger.log("market", `[History] Backfill Flush: Added ${backfillBuffer.length} raw. Store: ${countBefore} -> ${countAfter}. Iter ${i}/${limit}.`);
+                        
+                        backfillBuffer = [];
+                        batchesSubSinceUpdate = 0;
+                    }
                 }
+
+                // Final flush
+                if (backfillBuffer.length > 0) {
+                    marketState.updateSymbolKlines(symbol, tf, backfillBuffer, "rest");
+                }
+                
+                // FORCE FINAL CALCULATION
+                activeTechnicalsManager.forceRefresh(symbol, tf);
             }
         }
+        return true;
     } catch (e) {
-        logger.warn("market", `[History] Error ensuring history for ${symbol}`, e);
+        logger.error("market", `[History] Unexpected error in ensureHistory for ${symbol}:${tf}`, e);
+        return false;
     } finally {
         this.historyLocks.delete(lockKey);
     }
@@ -492,11 +574,11 @@ class MarketWatcher {
                   // [OPTIMIZATION] Use shared ZERO_VOL
                   filled.push({
                       time: nextTime,
-                      open: prev.close,
-                      high: prev.close,
-                      low: prev.close,
-                      close: prev.close,
-                      volume: MarketWatcher.ZERO_VOL
+                      open: String(prev.close),
+                      high: String(prev.close),
+                      low: String(prev.close),
+                      close: String(prev.close),
+                      volume: "0"
                   });
                   nextTime += intervalMs;
                   gapCount++;
@@ -527,8 +609,11 @@ class MarketWatcher {
         // Ensure sorted
         const oldestTime = history[0].time;
 
+        logger.debug("market", `[History] loadMoreHistory for ${symbol}:${tf}. Oldest: ${oldestTime}`);
+
         // Fetch older batch (Bitunix specific)
-        const newKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+        // Use -1 to ensure we get data strictly BEFORE the current oldest
+        const newKlines = await apiService.fetchBitunixKlines(symbol, tf, 200, undefined, oldestTime - 1);
 
         if (newKlines && newKlines.length > 0) {
             marketState.updateSymbolKlines(symbol, tf, newKlines, "rest", false);
@@ -618,8 +703,26 @@ class MarketWatcher {
     return requestPromise;
   }
 
+  public refreshActiveHistory() {
+    this.requests.forEach((channels, symbol) => {
+      channels.forEach((reqs, channel) => {
+        if (channel.startsWith("kline_") && reqs.has("chart")) {
+          const tf = channel.replace("kline_", "");
+          this.ensureHistory(symbol, tf);
+        }
+      });
+    });
+  }
+
   public getActiveSymbols(): string[] {
     return Array.from(this.requests.keys());
+  }
+
+  /**
+   * Check if history is currently being loaded (backfilled) for a symbol/timeframe.
+   */
+  public isBackfilling(symbol: string, tf: string): boolean {
+    return this.historyLocks.has(`${symbol}:${tf}`);
   }
 
   // Safety valve: Force cleanup

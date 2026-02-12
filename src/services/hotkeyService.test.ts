@@ -79,7 +79,6 @@ describe("HotkeyService", () => {
     Object.assign(settingsState, {
       hotkeyMode: "mode1", // Default to Direct Mode for testing
       apiProvider: "bitunix",
-      marketDataInterval: 1, // Changed to number as expected
       autoUpdatePriceInput: true,
       autoFetchBalance: false,
       showSidebars: true,

@@ -119,41 +119,7 @@
                         </p>
                     </div>
 
-                    <!-- Market Interval -->
-                    <div class="field-group">
-                        <label for="market-interval">
-                            {$_("settings.marketDataInterval")}
-                            <span
-                                class="help-icon"
-                                title={$_("settings.marketDataIntervalHelp")}
-                                >ℹ️</span
-                            >
-                        </label>
-                        <select
-                            id="market-interval"
-                            bind:value={settingsState.marketDataInterval}
-                            class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
-                        >
-                            {#each intervals as interval}
-                                <option
-                                    value={interval.value}
-                                    title={interval.tooltip}
-                                    class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                                    >{interval.label}</option
-                                >
-                            {/each}
-                        </select>
-                        <p
-                            class="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-80"
-                        >
-                            {intervals.find(
-                                (i) =>
-                                    i.value ===
-                                    settingsState.marketDataInterval,
-                            )?.tooltip ||
-                                $_("settings.calculation.intervalDesc")}
-                        </p>
-                    </div>
+
 
                     <!-- Spin Buttons -->
                     <div class="field-group">
@@ -265,7 +231,7 @@
                             id="history-limit"
                             type="range"
                             min="200"
-                            max="2000"
+                            max="20000"
                             step="100"
                             bind:value={settingsState.chartHistoryLimit}
                             class="w-full accent-[var(--accent-color)] cursor-pointer"
@@ -589,20 +555,7 @@
         align-items: center;
         gap: 0.5rem;
     }
-    .help-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 16px;
-        height: 16px;
-        font-size: 12px;
-        cursor: help;
-        opacity: 0.7;
-        transition: opacity 0.2s;
-    }
-    .help-icon:hover {
-        opacity: 1;
-    }
+
     .input-field {
         background-color: var(--bg-secondary);
         border: 1px solid var(--border-color);

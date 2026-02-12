@@ -832,8 +832,7 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
-    "marketDataInterval": "Marktdaten-Aktualisierungsrate",
-    "marketDataIntervalHelp": "Wie oft Marktpreise aktualisiert werden",
+
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",

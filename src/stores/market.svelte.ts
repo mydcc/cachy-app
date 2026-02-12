@@ -498,7 +498,7 @@ export class MarketManager {
 
     // Calculate Limit *BEFORE* merging to optimize allocations
     const userLimit = settingsState.chartHistoryLimit || 2000;
-    const safetyLimit = 10000;
+    const safetyLimit = 50000;
     let effectiveLimit = userLimit;
     if (!enforceLimit) {
       effectiveLimit = safetyLimit;
@@ -726,8 +726,13 @@ export class MarketManager {
              history = merged;
         }
 
-        // Assign new merged array
+        // Assignment new merged array
         current.klines[timeframe] = history;
+        
+        if (import.meta.env.DEV && (timeframe === '1h' || timeframe === '5m')) {
+            console.log(`[Market Merge] ${symbol}:${timeframe} merged ${newKlines.length} into ${hLen}. Result: ${history.length}. Limit: ${effectiveLimit}`);
+        }
+
         // Full rebuild needed (now on optimized size)
         if (buffers) releaseBuffers(buffers);
         buffers = rebuildBuffers(history);
@@ -736,16 +741,6 @@ export class MarketManager {
 
     current.klinesBuffers[timeframe] = buffers;
     current.lastUpdated = Date.now();
-
-    // Hardening: Runtime Consistency Check (DEV only)
-    if (import.meta.env.DEV) {
-        if (buffers && history.length !== buffers.times.length) {
-            console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer: ${buffers.times.length}`);
-        }
-        if ((timeframe === '15m' || timeframe === '30m') && source === 'ws') {
-             console.log(`[Market] applySymbolKlines ${symbol}:${timeframe} AFTER merge. History: ${history.length}`);
-        }
-    }
 
     // FORCE REACTIVITY
     this.data[symbol] = current;

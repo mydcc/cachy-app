@@ -303,6 +303,16 @@ import { afterNavigate } from "$app/navigation";
       window.history.replaceState({}, "", newUrl.toString());
     }
   });
+  // Reactivity for Settings Changes
+  $effect(() => {
+    if (!browser) return;
+    // Watch chartHistoryLimit and refresh history if it changes
+    // This allows immediate response to setting changes without reload
+    const _limit = settingsState.chartHistoryLimit;
+    import("../services/marketWatcher").then(({ marketWatcher }) => {
+      marketWatcher.refreshActiveHistory();
+    });
+  });
 </script>
 
 <svelte:head>

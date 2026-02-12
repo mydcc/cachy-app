@@ -300,15 +300,6 @@
     }
   });
 
-  // Cache Warming: Pre-load history for Favorites (2000 candles)
-  $effect(() => {
-    // Lazy load history only when visible to prevent fetch storm
-    if (isFavoriteTile && symbol && isVisible) {
-      untrack(() => {
-        marketWatcher.ensureHistory(symbol, "1h");
-      });
-    }
-  });
 
   // Reset isInitialLoad once we have data
   $effect(() => {

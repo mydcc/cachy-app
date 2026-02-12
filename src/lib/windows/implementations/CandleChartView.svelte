@@ -64,6 +64,7 @@
     let isLoadingHistory = $state(false);
     let allHistoryLoaded = $state(false);
     let lastRenderedTime: Time | null = $state(null);
+    let lastRenderedCount = $state(0);
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -118,6 +119,7 @@
                     bottom: 0.2,
                 },
                 mode: 1, // Default Logarithmic
+                autoScale: true, // Always enable Y-axis auto-scaling for trading view consistency
             },
             timeScale: {
                 borderColor:
@@ -307,9 +309,9 @@
     $effect(() => {
         if (!symbol || !timeframe) return;
         const channel = `kline_${timeframe}`;
-        marketWatcher.register(symbol, channel);
+        marketWatcher.register(symbol, channel, "chart");
         return () => {
-            marketWatcher.unregister(symbol, channel);
+            marketWatcher.unregister(symbol, channel, "chart");
         };
     });
 
@@ -333,7 +335,7 @@
                 // Optimization: Check if this is just a live update to the last candle
                 const lastKline = klines[klines.length - 1];
                 const lastTime = (lastKline.time / 1000) as Time;
-                const isLiveUpdate = lastRenderedTime === lastTime;
+                const isLiveUpdate = lastRenderedTime === lastTime && klines.length === lastRenderedCount;
 
                 if (isLiveUpdate && !isInitialLoad) {
                     // Fast Path: Update single candle
@@ -394,10 +396,18 @@
 
                     try {
                         candleSeries.setData(unique);
+
                         lastRenderedTime =
                             unique.length > 0
                                 ? unique[unique.length - 1].time
                                 : null;
+                        lastRenderedCount = unique.length;
+
+                        if (import.meta.env.DEV) {
+                            const timeScale = chart.timeScale();
+                            const currentRange = timeScale.getVisibleLogicalRange();
+                            console.log(`[Chart Render] ${symbol}:${timeframe} Unique: ${unique.length}. First: ${new Date(Number(unique[0].time)*1000).toLocaleString()}. Range: ${JSON.stringify(currentRange)}`);
+                        }
 
                         // Update Indicators if enabled
                         if (
@@ -460,10 +470,7 @@
                             ema3Series.applyOptions({ visible: false });
                         }
 
-                        if (isInitialLoad || win.autoScaling) {
-                            chart.timeScale().fitContent();
-                            isInitialLoad = false;
-                        }
+                        isInitialLoad = false;
                     } catch (e) {
                         console.error("[CandleChartView] Render error:", e);
                     }

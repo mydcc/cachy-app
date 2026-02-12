@@ -832,8 +832,7 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
-    "marketDataInterval": "Market Data Update Rate",
-    "marketDataIntervalHelp": "How often market prices are updated",
+
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
     "showSidebars": "Show Sidebars",

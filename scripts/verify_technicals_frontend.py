@@ -41,7 +41,6 @@ def verify_technicals(page):
         "showTechnicalsOscillators": True,
         "showTechnicalsMAs": True,
         "showTechnicalsAdvanced": True,
-        "marketDataInterval": 10,
         "apiProvider": "bitunix",
         "favoriteSymbols": ["BTCUSDT"],
         "analysisTimeframes": ["1h"],
