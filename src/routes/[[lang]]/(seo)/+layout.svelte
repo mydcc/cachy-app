@@ -65,7 +65,7 @@
         <div class="flex justify-center gap-6 mb-4">
            <a href={lang === 'de' ? '/de/changelog' : '/changelog'} class="hover:text-[var(--text-primary)] transition-colors">{dict.app.changelogTitle}</a>
            <a href={lang === 'de' ? '/de/privacy' : '/privacy'} class="hover:text-[var(--text-primary)] transition-colors">{dict.app.privacyLegal}</a>
-           <a href="https://deepwiki.com/mydcc/cachy-app" target="_blank" rel="noopener noreferrer" class="hover:text-[var(--text-primary)] transition-colors flex items-center gap-1">
+           <a href="https://deepwiki.com/mydcc/cachy-app" target="_blank" rel="noopener noreferrer" class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors flex items-center gap-1">
               {@html icons.deepwiki}
               Deepwiki
            </a>
