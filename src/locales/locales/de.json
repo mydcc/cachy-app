@@ -61,7 +61,17 @@
     "globalChat": "Globaler Chat",
     "myNotes": "Meine Notizen",
     "aiAssistant": "KI Assistent",
-    "clearConfirm": "Verlauf löschen?"
+    "clearConfirm": "Verlauf löschen?",
+    "clearHistory": "Verlauf löschen",
+    "collapse": "Panel einklappen",
+    "cycleMode": "Modus wechseln",
+    "expand": "Panel ausklappen",
+    "exportChat": "Chat exportieren",
+    "largerFont": "Schrift vergrößern",
+    "quotaExceeded": "Generatives KI-Kontingent überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen.",
+    "smallerFont": "Schrift verkleinern",
+    "suggestedChanges": "Vorgeschlagene Änderungen",
+    "thinking": "Denkt nach..."
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -1081,14 +1091,23 @@
     },
     "performance": {
       "monitor": "Performance Monitor",
-      "tips": "Optimierungstipps",
+      "tips": {
+        "highAnalysisTime": "Hohe Analysezeit erkannt. Erwägen Sie den Wechsel zu Leicht oder Ausgewogen.",
+        "highApiCalls": "API-Ratenlimit nähert sich. Erwägen Sie, Intervalle zu erhöhen oder News-Analyse zu deaktivieren.",
+        "highLatency": "Hohe Netzwerklatenz erkannt. Überprüfen Sie Ihre Internetverbindung.",
+        "highMemory": "Hoher Speicherverbrauch. Versuchen Sie, die Cache-Größe zu reduzieren oder ungenutzte Tabs zu schließen.",
+        "lowCacheHit": "Niedrige Cache-Trefferquote. Erhöhen Sie die Marktdaten-Cache-Größe für bessere Leistung.",
+        "optimal": "Leistung ist optimal. Sie können mehr Funktionen aktivieren oder zum Pro-Profil wechseln.",
+        "title": "Optimierungstipps"
+      },
       "lastUpdate": "Zuletzt aktualisiert: {time}",
       "analysisTime": "Analysezeit",
       "memory": "Speicher",
       "apiCalls": "API-Aufrufe/min",
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
-      "networkStatus": "Netzwerkstatus"
+      "networkStatus": "Netzwerkstatus",
+      "tipsTitle": "Optimierungstipps"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1393,7 +1412,11 @@
     "resize": "Größe ändern",
     "tp": "TP",
     "sl": "SL",
-    "roe": "ROE"
+    "roe": "ROE",
+    "apply": "Anwenden",
+    "copy": "Kopieren",
+    "ignore": "Ignorieren",
+    "send": "Senden"
   },
   "analyst": {
     "trend": {
@@ -1516,7 +1539,8 @@
     "reconnecting": "⟳ Neu verbinden...",
     "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
     "disconnected": "✗ Warte auf Verbindung...",
-    "error": "✗ Verbindungsfehler"
+    "error": "✗ Verbindungsfehler",
+    "offline": "OFFLINE - VERBINDUNG PRÜFEN"
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
