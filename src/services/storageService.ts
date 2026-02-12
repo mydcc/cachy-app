@@ -30,7 +30,7 @@ import { serializeKline, deserializeKline } from "./technicalsTypes";
 const DB_NAME = "CachyDB";
 const DB_VERSION = 1;
 const STORE_KLINES = "klines";
-const MAX_STORED_KLINES = 5000;
+const MAX_STORED_KLINES = 50000;
 
 export interface StoredKlines {
     id: string; // symbol:tf

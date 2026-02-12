@@ -63,15 +63,15 @@ async function fetchBitunixKlines(
   const path = "/api/v1/futures/market/kline";
 
   const map: Record<string, string> = {
-    "1m": "1min",
-    "5m": "5min",
-    "15m": "15min",
-    "30m": "30min",
-    "1h": "60min",
+    "1m": "1m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1h": "1h",
     "4h": "4h",
-    "1d": "1day",
-    "1w": "1week",
-    "1M": "1month",
+    "1d": "1d",
+    "1w": "1w",
+    "1M": "1M",
   };
   const mappedInterval = map[interval] || interval;
 
@@ -84,8 +84,9 @@ async function fetchBitunixKlines(
   if (end) params.endTime = end.toString();
 
   const queryString = new URLSearchParams(params).toString();
+  const fullUrl = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetch(fullUrl, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       Accept: "application/json, text/plain, */*",
@@ -98,8 +99,7 @@ async function fetchBitunixKlines(
     let data;
     try {
       data = safeJsonParse(text);
-    } catch (e) {
-    }
+    } catch (e) {}
 
     if (
       data &&
@@ -126,34 +126,34 @@ async function fetchBitunixKlines(
 
   if (data.code !== 0 && data.code !== "0") {
     if (
-      data.code === 2 ||
-      data.code === "2" ||
-      (data.msg && data.msg.toLowerCase().includes("system error"))
-    ) {
-      const error = new Error("Symbol not found");
-      (error as any).status = 404;
-      throw error;
-    }
-    throw new Error(`Bitunix API error: ${data.msg}`);
+        data.code === 2 ||
+        data.code === "2" ||
+        (data.msg && data.msg.toLowerCase().includes("system error"))
+      ) {
+        const error = new Error("Symbol not found");
+        (error as any).status = 404;
+        throw error;
+      }
+      throw new Error(`Bitunix API error: ${data.msg}`);
   }
 
   const results = data.data || [];
+  
+  if (limit > 5) {
+      console.log(`[Bitunix API] ${symbol}:${interval} requested ${limit} with end ${end}. Got ${results.length}. FirstTS: ${results[0]?.time || results[0]?.id}, LastTS: ${results[results.length-1]?.time || results[results.length-1]?.id}`);
+  }
 
   const mapped = results.map((k: any) => ({
     open: new Decimal(k.open || k.o || 0).toString(),
     high: new Decimal(k.high || k.h || 0).toString(),
     low: new Decimal(k.low || k.l || 0).toString(),
     close: new Decimal(k.close || k.c || 0).toString(),
-    // Bitunix Kline API returns 'quoteVol' as the Quantity (BTC) and 'baseVol' as Turnover (USDT).
-    // This is swapped compared to standard conventions and their own Ticker API.
-    // We map k.quoteVol (Quantity) to our internal volume field.
     volume: new Decimal(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0).toString(),
-    timestamp: k.id || k.ts || k.time || 0,
+    timestamp: k.id || k.time || k.ts || 0, // Swapped id and time priority
   }));
 
   // Optimization: Bitunix usually returns data in descending order.
-  // Replace O(N log N) sort with O(N) reverse if needed.
-  if (mapped.length > 1 && mapped[0].timestamp > mapped[mapped.length - 1].timestamp) {
+  if (mapped.length > 1 && Number(mapped[0].timestamp) > Number(mapped[mapped.length - 1].timestamp)) {
     mapped.reverse();
   }
 

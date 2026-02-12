@@ -167,6 +167,14 @@ class ActiveTechnicalsManager {
     }
 
     /**
+     * Force an immediate calculation, bypassing any backfill throttles.
+     * Used after a backfill finishes to ensure store is up-to-date.
+     */
+    public forceRefresh(symbol: string, timeframe: string) {
+        this.performCalculation(symbol, timeframe);
+    }
+
+    /**
      * Unsubscribe.
      * Stops calculations if no more subscribers exist.
      */
@@ -429,11 +437,21 @@ class ActiveTechnicalsManager {
     }
 
     private async performCalculation(symbol: string, timeframe: string) {
+        const key = `${symbol}:${timeframe}`;
+
+        // === BACKFILL THROTTLE (Optimization) ===
+        // If MarketWatcher is currently backfilling this symbol, we skip calculations
+        // to prevent churn. The backfiller will trigger a final calculation when done.
+        if (marketWatcher.isBackfilling(symbol, timeframe)) {
+            if (import.meta.env.DEV && (timeframe === '15m' || timeframe === '30m')) {
+                logger.debug("technicals", `[ActiveManager] Skipping calculation for ${key} - Backfill in progress.`);
+            }
+            return;
+        }
+
         // 1. Gather Data (Single Source of Truth: marketState)
         const marketData = marketState.data[symbol];
         if (!marketData) return;
-
-        const key = `${symbol}:${timeframe}`;
 
         if (timeframe === '15m' || timeframe === '30m') {
              if (import.meta.env.DEV) {

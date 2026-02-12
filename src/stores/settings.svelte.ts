@@ -13,7 +13,7 @@ import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 
-export type MarketDataInterval = number; // Seconds
+// Removed MarketDataInterval as it is legacy (WebSockets preferred)
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
@@ -123,7 +123,6 @@ export interface TradeFlowSettings {
 export interface Settings {
   apiProvider: "bitunix" | "bitget";
   appAccessToken?: string;
-  marketDataInterval: MarketDataInterval;
   autoUpdatePriceInput: boolean;
   autoFetchBalance: boolean;
   showSidebars: boolean;
@@ -316,7 +315,6 @@ export interface Settings {
 const defaultSettings: Settings = {
   apiProvider: "bitunix",
   appAccessToken: "",
-  marketDataInterval: 10,
   marketAnalysisInterval: 60,
   pauseAnalysisOnBlur: true,
   analysisTimeframes: ["1h", "4h"],
@@ -498,7 +496,7 @@ const defaultSettings: Settings = {
   technicalsCacheTTL: 60, // 1 minute
   maxTechnicalsHistory: 750,
   enableIndicatorOptimization: true,
-  chartHistoryLimit: 20000,
+  chartHistoryLimit: 2000,
   repairTimeframe: "15m",
 
   // Core indicators enabled by default
@@ -552,7 +550,6 @@ export class SettingsManager {
     }
   }
   appAccessToken = $state<string>(defaultSettings.appAccessToken || "");
-  marketDataInterval = $state<number>(defaultSettings.marketDataInterval);
   autoUpdatePriceInput = $state<boolean>(defaultSettings.autoUpdatePriceInput);
   autoFetchBalance = $state<boolean>(defaultSettings.autoFetchBalance);
   showSidebars = $state<boolean>(defaultSettings.showSidebars);
@@ -1026,7 +1023,6 @@ export class SettingsManager {
         }
       }
       this.appAccessToken = merged.appAccessToken;
-      this.marketDataInterval = merged.marketDataInterval;
       this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
       this.autoFetchBalance = merged.autoFetchBalance;
       this.showSidebars = merged.showSidebars;
@@ -1218,11 +1214,8 @@ export class SettingsManager {
       this.dockingPosition = merged.dockingPosition ?? defaultSettings.dockingPosition;
 
 
-      if (parsed.marketDataInterval === "manual") {
-        this.autoUpdatePriceInput = false;
-        this.marketDataInterval = 60;
-      }
-
+      // Legacy manual sync migration removed. WebSockets handle this now.
+      
       // Migration for Gemini Model: Ensure we use a stable version
       // We do this at the very end to ensure it's not overwritten by 'merged.geminiModel'
       if (this.geminiModel === "gemma" || !this.geminiModel) {
@@ -1280,7 +1273,6 @@ export class SettingsManager {
     return {
       apiProvider: this.apiProvider,
       appAccessToken: this.appAccessToken,
-      marketDataInterval: this.marketDataInterval,
       marketAnalysisInterval: this.marketAnalysisInterval,
       pauseAnalysisOnBlur: this.pauseAnalysisOnBlur,
       analysisTimeframes: $state.snapshot(this.analysisTimeframes),

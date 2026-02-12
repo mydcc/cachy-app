@@ -32,8 +32,7 @@ vi.mock('./bitunixWs', () => ({
 vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
-        capabilities: { marketData: true },
-        marketDataInterval: 1000
+        capabilities: { marketData: true }
     }
 }));
 
@@ -72,7 +71,7 @@ describe('MarketWatcher Performance', () => {
         watcher.stopPolling();
         watcher.requests.clear();
         watcher.pendingRequests.clear();
-        (bitunixWs.pendingSubscriptions as Set<string>).clear();
+        (bitunixWs.pendingSubscriptions as Map<string, number>).clear();
 
         // Reset dirty flag
         if (watcher['_subscriptionsDirty'] !== undefined) watcher['_subscriptionsDirty'] = false;
