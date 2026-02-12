@@ -846,7 +846,7 @@ class BitunixWebSocketService {
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
                           fundingRate: fr ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft
+                          nextFundingTime: nft ? Number(nft) : undefined
                         });
                     }
                     return;
