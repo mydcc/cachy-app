@@ -28,7 +28,7 @@ import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
-import { KlineRawSchema, type KlineRaw, type Kline } from "./technicalsTypes";
+import { type Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -430,7 +430,9 @@ class MarketWatcher {
                         for (const chunk of chunkResults) {
                             if (Array.isArray(chunk) && chunk.length > 0) {
                                 // 1. Filter Invalid
-                                const validChunk = chunk.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
+                                // chunk is already Kline[] from apiService, so we trust the structure.
+                                // KlineRawSchema check was incorrect because it fails on Decimal objects.
+                                const validChunk = chunk as Kline[];
                                 if (validChunk.length === 0) continue;
 
                                 // 2. Sort chunk (local)
@@ -458,17 +460,10 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+  private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (klines.length < 2) return klines;
 
-      // Hardening: Validate first item structure before access
-      const firstVal = KlineRawSchema.safeParse(klines[0]);
-      if (!firstVal.success) {
-          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
-      }
-
-      const filled: KlineRaw[] = [klines[0]];
+      const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];

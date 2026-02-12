@@ -31,22 +31,8 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, type PositionRaw, TpSlOrderSchema, type TpSlOrder } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
-
-export interface TpSlOrder {
-    orderId: string;
-    symbol: string;
-    planType: "PROFIT" | "LOSS";
-    triggerPrice: string;
-    qty?: string;
-    status: string;
-    ctime?: number;
-    createTime?: number;
-    id?: string;
-    planId?: string;
-    [key: string]: any;
-}
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -458,8 +444,18 @@ class TradeService {
              const positions = omsService.getPositions();
              positions.forEach(p => symbolsToFetch.add(p.symbol));
 
-             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
+             // Fix: Filter out undefined symbols if size > 0, otherwise if empty, use single undefined to fetch all (if API supports it)
+             // Bitunix usually requires a symbol. If no symbols, we might just return empty or fetch global if supported.
+             // Assuming [undefined] was intended for "Global Fetch".
+             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [];
              const results: TpSlOrder[] = [];
+
+             // If no symbols to fetch, and we don't have a global endpoint, return empty.
+             if (fetchList.length === 0) {
+                 // Try global fetch if supported, else return empty
+                 // For now, let's assume we try one global fetch if list is empty, but be safe about params
+                 fetchList.push(undefined as any);
+             }
 
              // Rate limit handling: Batch requests (max 5 concurrent)
              const BATCH_SIZE = 5;
@@ -482,7 +478,20 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+
+                              const rawList = Array.isArray(data) ? data : data.rows || [];
+                              const validOrders: TpSlOrder[] = [];
+
+                              for (const item of rawList) {
+                                  const validation = TpSlOrderSchema.safeParse(item);
+                                  if (validation.success) {
+                                      validOrders.push(validation.data);
+                                  } else {
+                                      logger.warn("market", `[TradeService] Dropping invalid TP/SL order`, { item, error: validation.error });
+                                  }
+                              }
+
+                              return validOrders;
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];

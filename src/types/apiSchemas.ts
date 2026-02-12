@@ -166,9 +166,23 @@ export const TpSlRequestSchema = z.discriminatedUnion("action", [
     ModifyRequest
 ]);
 
+export const TpSlOrderSchema = z.object({
+    orderId: z.union([z.string(), z.number()]).transform(String),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]),
+    triggerPrice: z.union([z.string(), z.number()]).transform(String),
+    qty: z.union([z.string(), z.number()]).transform(String).optional(),
+    status: z.union([z.string(), z.number()]).transform(String),
+    ctime: z.number().optional(),
+    createTime: z.number().optional(),
+    id: z.string().optional(),
+    planId: z.string().optional(),
+}).passthrough(); // Allow extra fields
+
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
 export type TpSlRequest = z.infer<typeof TpSlRequestSchema>;
+export type TpSlOrder = z.infer<typeof TpSlOrderSchema>;
 
 /**
  * Validate response size to prevent memory issues
