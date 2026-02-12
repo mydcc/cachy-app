@@ -475,20 +475,6 @@ export class MarketManager {
     // Get existing history or init empty
     let history = current.klines[timeframe] || [];
     const prevHistoryLen = history.length;
-    const isTargetTf = import.meta.env.DEV && (timeframe === '15m' || timeframe === '30m');
-
-    if (isTargetTf) {
-         if (source === 'rest') {
-             console.log(`[Market] REST Update ${symbol}:${timeframe}. New: ${newKlines.length}. PrevHistory: ${prevHistoryLen}`);
-             if (newKlines.length > 0) {
-                 console.log(`[Market] REST Data Range: ${newKlines[0].time} - ${newKlines[newKlines.length-1].time}`);
-             }
-         } else if (source === 'ws') {
-             const hTime = history.length > 0 ? history[history.length - 1].time : 'N/A';
-             const nTime = newKlines.length > 0 ? newKlines[0].time : 'N/A';
-             console.log(`[Market] WS Update ${symbol}:${timeframe}. Hist: ${prevHistoryLen} (Last: ${hTime}), New: ${newKlines.length} (Desc: ${nTime})`);
-         }
-    }
 
     if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
@@ -522,7 +508,7 @@ export class MarketManager {
     // Helper: Build full buffers from history (Slow Path)
     const rebuildBuffers = (sourceKlines: Kline[]) => {
       const len = sourceKlines.length;
-      // Optimization: Use BufferPool
+      // Optimization: Use BufferPool with bucketing
       const b: KlineBuffers = {
         times: this.bufferPool.acquire(len),
         opens: this.bufferPool.acquire(len),
@@ -530,6 +516,7 @@ export class MarketManager {
         lows: this.bufferPool.acquire(len),
         closes: this.bufferPool.acquire(len),
         volumes: this.bufferPool.acquire(len),
+        usedLength: len
       };
 
       for (let i = 0; i < len; i++) {
@@ -546,9 +533,26 @@ export class MarketManager {
 
     // Helper: Append to buffers (Fast Path)
     const appendBuffers = (oldBuffers: KlineBuffers, appendKlines: Kline[]): KlineBuffers => {
-      const oldLen = oldBuffers.times.length;
+      const oldLen = oldBuffers.usedLength;
       const newLen = oldLen + appendKlines.length;
 
+      // Optimization: In-place append if capacity exists
+      if (oldBuffers.times.length >= newLen) {
+          for (let i = 0; i < appendKlines.length; i++) {
+              const k = appendKlines[i];
+              const idx = oldLen + i;
+              oldBuffers.times[idx] = k.time;
+              oldBuffers.opens[idx] = k.open.toNumber();
+              oldBuffers.highs[idx] = k.high.toNumber();
+              oldBuffers.lows[idx] = k.low.toNumber();
+              oldBuffers.closes[idx] = k.close.toNumber();
+              oldBuffers.volumes[idx] = k.volume.toNumber();
+          }
+          oldBuffers.usedLength = newLen;
+          return oldBuffers; // Return SAME object
+      }
+
+      // Grow with new bucket size
       const b: KlineBuffers = {
         times: this.bufferPool.acquire(newLen),
         opens: this.bufferPool.acquire(newLen),
@@ -556,17 +560,18 @@ export class MarketManager {
         lows: this.bufferPool.acquire(newLen),
         closes: this.bufferPool.acquire(newLen),
         volumes: this.bufferPool.acquire(newLen),
+        usedLength: newLen
       };
 
-      // Copy old data (fast native copy)
-      b.times.set(oldBuffers.times);
-      b.opens.set(oldBuffers.opens);
-      b.highs.set(oldBuffers.highs);
-      b.lows.set(oldBuffers.lows);
-      b.closes.set(oldBuffers.closes);
-      b.volumes.set(oldBuffers.volumes);
+      // Copy old data (only valid part, using subarray to avoid copying garbage)
+      b.times.set(oldBuffers.times.subarray(0, oldLen));
+      b.opens.set(oldBuffers.opens.subarray(0, oldLen));
+      b.highs.set(oldBuffers.highs.subarray(0, oldLen));
+      b.lows.set(oldBuffers.lows.subarray(0, oldLen));
+      b.closes.set(oldBuffers.closes.subarray(0, oldLen));
+      b.volumes.set(oldBuffers.volumes.subarray(0, oldLen));
 
-      // Add new data
+      // Append new
       for (let i = 0; i < appendKlines.length; i++) {
         const k = appendKlines[i];
         const idx = oldLen + i;
@@ -585,7 +590,7 @@ export class MarketManager {
       for (let i = 0; i < updateKlines.length; i++) {
         const k = updateKlines[i];
         const idx = startIndex + i;
-        if (idx < bufs.times.length) {
+        if (idx < bufs.usedLength) { // Check against usedLength for safety
           bufs.times[idx] = k.time;
           bufs.opens[idx] = k.open.toNumber();
           bufs.highs[idx] = k.high.toNumber();
@@ -631,8 +636,10 @@ export class MarketManager {
              // Only append buffers if valid
              if (buffers) {
                  const newB = appendBuffers(buffers, newKlines);
-                 releaseBuffers(buffers); // Release old
-                 buffers = newB;
+                 if (newB !== buffers) {
+                    releaseBuffers(buffers); // Only release if new object created
+                    buffers = newB;
+                 }
              } else {
                  buffers = rebuildBuffers(history);
              }
@@ -642,8 +649,8 @@ export class MarketManager {
         // Fast Path 2: Live Update (Update current candle)
         history[history.length - 1] = newKlines[0];
 
-        if (buffers && buffers.times.length === history.length) {
-            updateBufferTail(buffers, newKlines, buffers.times.length - 1);
+        if (buffers && buffers.usedLength === history.length) {
+            updateBufferTail(buffers, newKlines, buffers.usedLength - 1);
         } else {
             buffers = rebuildBuffers(history);
         }
@@ -654,8 +661,8 @@ export class MarketManager {
         for (const k of newKlines) {
           if (k.time === lastHistTime) {
             history[history.length - 1] = k;
-            if (buffers && buffers.times.length === history.length) {
-                updateBufferTail(buffers, [k], buffers.times.length - 1);
+            if (buffers && buffers.usedLength === history.length) {
+                updateBufferTail(buffers, [k], buffers.usedLength - 1);
             }
           } else if (k.time > lastHistTime) {
             history.push(k);
@@ -670,25 +677,21 @@ export class MarketManager {
         } else if (itemsToAppend.length > 0) {
              if (buffers) {
                  const newB = appendBuffers(buffers, itemsToAppend);
-                 releaseBuffers(buffers);
-                 buffers = newB;
+                 if (newB !== buffers) {
+                    releaseBuffers(buffers);
+                    buffers = newB;
+                 }
              }
              else buffers = rebuildBuffers(history);
         }
 
       } else {
         // Slow Path: Historical backfill or disordered data
-        // Use linear merge algorithm (O(N+M))
         const merged: Kline[] = [];
         let i = 0;
         let j = 0;
         const hLen = history.length;
         const nLen = newKlines.length;
-
-        // Optimization: Pre-calculate max needed size
-        // If (hLen + nLen) > effectiveLimit, we might skip early items in history
-        // But since we merge by time, skipping is tricky.
-        // We stick to standard merge then slice, but immediately.
 
         const safePush = (k: Kline) => {
           const last = merged.length > 0 ? merged[merged.length - 1] : null;
@@ -739,11 +742,8 @@ export class MarketManager {
 
     // Hardening: Runtime Consistency Check (DEV only)
     if (import.meta.env.DEV) {
-        if (buffers && history.length !== buffers.times.length) {
-            console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer: ${buffers.times.length}`);
-        }
-        if ((timeframe === '15m' || timeframe === '30m') && source === 'ws') {
-             console.log(`[Market] applySymbolKlines ${symbol}:${timeframe} AFTER merge. History: ${history.length}`);
+        if (buffers && history.length !== buffers.usedLength) {
+            console.error(`[Market] Consistency Check Failed for ${symbol}:${timeframe}. History: ${history.length}, Buffer Used: ${buffers.usedLength}`);
         }
     }
 

@@ -51,6 +51,7 @@ export interface KlineBuffers {
   lows: Float64Array;
   closes: Float64Array;
   volumes: Float64Array;
+  usedLength: number; // Active data length (<= capacity)
 }
 
 export interface SerializedKline {

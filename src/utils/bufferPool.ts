@@ -18,35 +18,51 @@
 /**
  * Buffer Pool for TypedArray reuse.
  * Reduces garbage collection overhead by recycling arrays.
+ * Implements a "Bucketing" strategy (Power of 2) to ensure buffers of similar sizes can be reused.
  */
 
 export class BufferPool {
   private pool: Map<number, Float64Array[]> = new Map();
 
   /**
-   * Acquire a Float64Array of the specified length.
-   * Returns a recycled array if available, or creates a new one.
+   * Calculates the bucket capacity (next power of 2) for a requested size.
+   * Enforces a minimum capacity of 256 to avoid micro-allocations.
+   */
+  private getCapacity(minCapacity: number): number {
+    if (minCapacity <= 0) return 0;
+    const minSize = 256;
+    if (minCapacity <= minSize) return minSize;
+    return Math.pow(2, Math.ceil(Math.log2(minCapacity)));
+  }
+
+  /**
+   * Acquire a Float64Array with at least the specified capacity.
+   * Returns a recycled array from the appropriate bucket if available, or creates a new one.
    * The returned array may contain dirty data.
    */
-  acquire(length: number): Float64Array {
-    const list = this.pool.get(length);
+  acquire(minCapacity: number): Float64Array {
+    const capacity = this.getCapacity(minCapacity);
+    const list = this.pool.get(capacity);
     if (list && list.length > 0) {
       return list.pop()!;
     }
-    return new Float64Array(length);
+    return new Float64Array(capacity);
   }
 
   /**
    * Release a Float64Array back to the pool for reuse.
    */
   release(buffer: Float64Array) {
-    const len = buffer.length;
-    let list = this.pool.get(len);
+    const capacity = buffer.length;
+    let list = this.pool.get(capacity);
     if (!list) {
       list = [];
-      this.pool.set(len, list);
+      this.pool.set(capacity, list);
     }
-    list.push(buffer);
+    // Limit pool size per bucket to prevent unbounded memory usage if access patterns change
+    if (list.length < 50) {
+        list.push(buffer);
+    }
   }
 
   /**

@@ -351,6 +351,18 @@ class MarketWatcher {
     }
   }
 
+  // Helper: Convert raw API data to strict Decimal Kline
+  private toDecimalKline(k: any): Kline {
+      return {
+          time: Number(k.time),
+          open: new Decimal(k.open),
+          high: new Decimal(k.high),
+          low: new Decimal(k.low),
+          close: new Decimal(k.close),
+          volume: new Decimal(k.volume)
+      };
+  }
+
   public async ensureHistory(symbol: string, tf: string) {
     const provider = settingsState.apiProvider;
     if (provider !== "bitunix") return;
@@ -379,11 +391,16 @@ class MarketWatcher {
             // Hardening: Validation is already done in apiService, which returns valid Kline objects (with Decimals).
             // KlineRawSchema expects strings/numbers, so it fails on Decimals. We skip it here.
             
-            marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
-            storageService.saveKlines(symbol, tf, klines1); // Async save
+            // Hardening: Convert RAW klines to STRICT Decimal Klines immediately
+            // Note: apiService might already return objects with strings/numbers depending on implementation.
+            // We enforce safety here.
+            const strictKlines = klines1.map(this.toDecimalKline);
+
+            marketState.updateSymbolKlines(symbol, tf, strictKlines, "rest");
+            storageService.saveKlines(symbol, tf, strictKlines); // Async save
 
             // Check if we have enough history now
-            const currentLen = klines1.length;
+            const currentLen = strictKlines.length;
             if (import.meta.env.DEV && (tf === '15m' || tf === '30m')) {
                 logger.log("market", `[History] ensureHistory ${symbol}:${tf} fetched ${currentLen} initial candles.`);
             }
@@ -397,11 +414,10 @@ class MarketWatcher {
                 const effectiveBatches = Math.min(batchesNeeded, 10);
 
                 if (effectiveBatches > 0) {
-                    const oldestTime = klines1[0].time;
+                    const oldestTime = strictKlines[0].time;
                     const intervalMs = safeTfToMs(tf);
 
                     // Throttling: Process in chunks of 3 to avoid saturating RequestManager (Max 8)
-                    // This ensures real-time polling (high priority) and other requests have breathing room.
                     const concurrency = 3;
 
                     for (let i = 0; i < effectiveBatches; i += concurrency) {
@@ -429,20 +445,23 @@ class MarketWatcher {
                         // [HARDENING] Streaming Updates (Chunk processing) to prevent memory spikes
                         for (const chunk of chunkResults) {
                             if (Array.isArray(chunk) && chunk.length > 0) {
-                                // 1. Filter Invalid
-                                const validChunk = chunk.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
+                                // 1. Filter Invalid (Basic structure check)
+                                const validChunk = chunk.filter((k: any) => KlineRawSchema.safeParse(k).success);
                                 if (validChunk.length === 0) continue;
 
-                                // 2. Sort chunk (local)
-                                validChunk.sort((a, b) => a.time - b.time);
+                                // 2. Convert to Decimal IMMEDIATELY
+                                const decimalChunk: Kline[] = validChunk.map(this.toDecimalKline);
 
-                                // 3. Fill gaps locally within the chunk
-                                const filledChunk = this.fillGaps(validChunk, intervalMs);
+                                // 3. Sort chunk (local)
+                                decimalChunk.sort((a, b) => a.time - b.time);
 
-                                // 4. Update Store immediately (Streaming UX)
+                                // 4. Fill gaps locally within the chunk (Using Decimal arithmetic)
+                                const filledChunk = this.fillGaps(decimalChunk, intervalMs);
+
+                                // 5. Update Store immediately (Streaming UX)
                                 marketState.updateSymbolKlines(symbol, tf, filledChunk, "rest");
 
-                                // 5. Save to Storage (Async)
+                                // 6. Save to Storage (Async)
                                 storageService.saveKlines(symbol, tf, filledChunk);
                             }
                         }
@@ -458,17 +477,11 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+  // Hardening: Uses strictly Decimal Klines
+  private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (klines.length < 2) return klines;
 
-      // Hardening: Validate first item structure before access
-      const firstVal = KlineRawSchema.safeParse(klines[0]);
-      if (!firstVal.success) {
-          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
-      }
-
-      const filled: KlineRaw[] = [klines[0]];
+      const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
@@ -489,10 +502,10 @@ class MarketWatcher {
                       break;
                   }
                   // Fill with flat candle (Close of previous)
-                  // [OPTIMIZATION] Use shared ZERO_VOL
+                  // [OPTIMIZATION] Use shared ZERO_VOL and Decimal refs
                   filled.push({
                       time: nextTime,
-                      open: prev.close,
+                      open: prev.close, // Reference copy of Decimal (immutable)
                       high: prev.close,
                       low: prev.close,
                       close: prev.close,
@@ -531,7 +544,9 @@ class MarketWatcher {
         const newKlines = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
 
         if (newKlines && newKlines.length > 0) {
-            marketState.updateSymbolKlines(symbol, tf, newKlines, "rest", false);
+            // Hardening: Convert to Decimal
+            const decimalKlines = newKlines.map(this.toDecimalKline);
+            marketState.updateSymbolKlines(symbol, tf, decimalKlines, "rest", false);
             return true;
         }
         return false;
@@ -595,8 +610,10 @@ class MarketWatcher {
                   : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
 
                 if (klines && klines.length > 0) {
-                  marketState.updateSymbolKlines(symbol, tf, klines, "rest");
-                  storageService.saveKlines(symbol, tf, klines);
+                  // Hardening: Convert to Decimal
+                  const decimalKlines = klines.map(this.toDecimalKline);
+                  marketState.updateSymbolKlines(symbol, tf, decimalKlines, "rest");
+                  storageService.saveKlines(symbol, tf, decimalKlines);
                 }
             }
         } catch (e) {
