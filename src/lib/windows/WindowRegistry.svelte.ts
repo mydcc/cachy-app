@@ -214,12 +214,13 @@ class WindowRegistry {
                 isResizable: false as boolean,
                 closeOnBlur: true,
                 isResponsive: true,
-                edgeToEdgeBreakpoint: 768
+                edgeToEdgeBreakpoint: 768,
+                persistent: false
             },
             layout: {
                 ...baseLayout,
-                width: 900,
-                height: 700
+                width: 1000,
+                height: 800
             }
         });
 
@@ -236,7 +237,7 @@ class WindowRegistry {
                     showMaximizeButton: false,
                     showMinimizeButton: false,
                     allowZoom: false,
-                    allowFontSize: false,
+                    allowFontSize: true,
                     centerByDefault: true,
                     showHeaderIndicators: t === 'journal',
                     allowFeedDuck: t !== 'journal'

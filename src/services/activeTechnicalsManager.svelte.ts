@@ -434,6 +434,13 @@ class ActiveTechnicalsManager {
         if (!marketData) return;
 
         const key = `${symbol}:${timeframe}`;
+
+        if (timeframe === '15m' || timeframe === '30m') {
+             if (import.meta.env.DEV) {
+                 logger.log("technicals", `[ActiveManager] performCalculation for ${key}. Has data? ${!!marketData.klines && !!marketData.klines[timeframe]} Len: ${marketData.klines?.[timeframe]?.length}`);
+             }
+        }
+
         const settings = indicatorState.toJSON();
         const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
 

@@ -20,7 +20,7 @@ import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
-import { getIntervalMs } from "../utils/utils";
+import { getIntervalMs, parseTimestamp } from "../utils/utils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
 import { omsService } from "./omsService";
@@ -844,9 +844,9 @@ class BitunixWebSocketService {
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
-                          indexPrice: sData.ip ? new Decimal(sData.ip) : undefined,
-                          fundingRate: sData.fr ? new Decimal(sData.fr) : undefined,
-                          nextFundingTime: sData.nft ? String(sData.nft) : undefined
+                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
+                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
+                          nextFundingTime: data.nft ? String(data.nft) : undefined
                         });
                     }
                     return;
@@ -942,8 +942,15 @@ class BitunixWebSocketService {
                             }
                           }
 
+                          if (timeframe === '15m' || timeframe === '30m') {
+                              if (import.meta.env.DEV) {
+                                  logger.log("network", `[BitunixWS] Received ${channel} -> mapped to ${timeframe}. Data:`, d);
+                              }
+                          }
+
                           let candleStart = 0;
-                          const ts = message.ts || Date.now();
+                          const rawTs = message.ts || Date.now();
+                          const ts = parseTimestamp(rawTs);
 
                           if (timeframe === "1M") {
                             const d = new Date(ts);
@@ -956,6 +963,95 @@ class BitunixWebSocketService {
                           const klineData = { ...d, ts: candleStart };
                           const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
                           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
+
+                          // [SYNTHETIC] Dynamic Support
+                          // Iterate active synthetic subscriptions to see if any depend on this update
+                          // @ts-ignore
+                          if (this.syntheticSubs) {
+                              // @ts-ignore
+                              for (const [key, count] of this.syntheticSubs.entries()) {
+                                  // key format: "SYMBOL:TF"
+                                  const parts = key.split(":");
+                                  if (parts.length !== 2) continue;
+                                  
+                                  const subSymbol = parts[0];
+                                  const subTf = parts[1];
+                                  
+                                  // Optimization: Only check if symbol matches first
+                                  if (subSymbol !== symbol) continue; // Note: symbol is already normalized in local context? 
+                                  // Wait, `symbol` arg in handleMessage comes from `normalizedSymbol` or raw?
+                                  // `const symbol = message.data.symbol` is raw.
+                                  // The key uses `normalizedSymbol`.
+                                  // We must normalize `symbol` here to compare?
+                                  // In handleMessage: `const symbol = message.data. symbol;` which is e.g. "BTCUSDT".
+                                  // `normalizeKlines` uses "bitunix". 
+                                  // My sub keys use `normalizeSymbol(symbol, "bitunix")`.
+                                  // So I should compare against normalized.
+                                  // `const normalizedMessageSymbol = normalizeSymbol(symbol, "bitunix");`
+                                  // But `marketState.updateSymbolKlines` uses `symbol` (raw?). 
+                                  // Let's check typical usage. `subscribe` normalizes.
+                                  // `handleMessage` (line ~900): `const symbol = message.data.symbol;`
+                                  // This is likely raw "BTCUSDT" or "BTC-USDT".
+                                  // bitunixWs uses `normalizeSymbol` in subscribe.
+                                  // If handleMessage receives "BTCUSDT", and subscribe put "BTCUSDT" in key...
+                                  // Actually `normalizeSymbol` removes hyphens mostly.
+                                  
+                                  // Let's assume strict match on symbol specific to WS message. 
+                                  // Wait, if `syntheticSubs` has normalized, and `message` has raw...
+                                  // I should normalize message symbol before compare.
+                                  const msgSymbolNorm = normalizeSymbol(symbol, "bitunix");
+                                  if (subSymbol !== msgSymbolNorm) continue;
+
+                                  // Check timeframe dependency
+                                  const resolved = this.resolveTimeframe(subTf);
+                                  if (resolved.isSynthetic && resolved.base === timeframe) {
+                                      // Trigger Aggregation
+                                      const symbolData = marketState.data[symbol];
+                                      const mk = symbolData?.klines ? symbolData.klines[timeframe] : undefined;
+                                      
+                                      if (mk && mk.length > 0) {
+                                          const msBucket = resolved.intervalMs;
+                                          const bucketStart = Math.floor(candleStart / msBucket) * msBucket;
+                                          
+                                          const bucketCandles: any[] = [];
+                                          for (let i = mk.length - 1; i >= 0; i--) {
+                                              if (mk[i].time < bucketStart) break;
+                                              if (mk[i].time >= bucketStart) {
+                                                  bucketCandles.unshift(mk[i]);
+                                              }
+                                          }
+
+                                          if (bucketCandles.length > 0) {
+                                              const first = bucketCandles[0];
+                                              const last = bucketCandles[bucketCandles.length - 1];
+                                              let high = new Decimal(first.high);
+                                              let low = new Decimal(first.low);
+                                              let vol = new Decimal(0);
+                                              
+                                              for (const c of bucketCandles) {
+                                                  const h = new Decimal(c.high);
+                                                  const l = new Decimal(c.low);
+                                                  if (h.gt(high)) high = h;
+                                                  if (l.lt(low)) low = l;
+                                                  vol = vol.plus(c.volume);
+                                              }
+                                              
+                                              const synthKline = {
+                                                  time: bucketStart,
+                                                  open: first.open,
+                                                  high: high,
+                                                  low: low,
+                                                  close: last.close,
+                                                  volume: vol
+                                              };
+                                              
+                                              marketState.updateSymbolKlines(symbol, subTf, [synthKline as any], "ws");
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+
                         }
                         return;
                     } catch (fastPathError) {
@@ -1235,7 +1331,42 @@ class BitunixWebSocketService {
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
-    const subKey = `${channel}:${normalizedSymbol}`;
+
+    // [SYNTHETIC] Dynamic Support
+    const resolved = this.resolveTimeframe(channel.replace("kline_", ""));
+    let targetChannel = channel;
+    
+    if (channel.startsWith("kline_") && resolved.isSynthetic) {
+        targetChannel = `kline_${resolved.base}`;
+        const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
+        
+        // @ts-ignore
+        if (!this.syntheticSubs) this.syntheticSubs = new Map<string, number>();
+        // @ts-ignore
+        const count = this.syntheticSubs.get(synthKey) || 0;
+        // @ts-ignore
+        this.syntheticSubs.set(synthKey, count + 1);
+        
+        if (import.meta.env.DEV) {
+            logger.log("network", `[BitunixWS] Synthetic Subscribe ${channel.replace("kline_", "")} -> ${resolved.base} for ${normalizedSymbol}. Ref: ${count + 1}`);
+        }
+    }
+
+    // [FIX] Map internal channel format to Bitunix specific format
+    const bitunixChannel = this.getBitunixChannel(targetChannel);
+    
+    if (import.meta.env.DEV && channel.includes("20m")) {
+         logger.log("network", `[BitunixWS] Subscribe Debug. Original: ${channel}, Target: ${targetChannel}, Mapped: ${bitunixChannel}`);
+    }
+
+    if (!bitunixChannel) {
+        if (channel.startsWith("kline_")) {
+             logger.warn("network", `[BitunixWS] Unsupported timeframe/channel: ${channel}. Target: ${targetChannel}. Subscription ignored.`);
+        }
+        return;
+    }
+
+    const subKey = `${targetChannel}:${normalizedSymbol}`; // Use TARGET channel (5m)
 
     // Reference Counting Logic
     const currentCount = this.pendingSubscriptions.get(subKey) || 0;
@@ -1243,13 +1374,12 @@ class BitunixWebSocketService {
 
     // Only subscribe if this is the first requester
     if (currentCount === 0) {
-      // If socket is open, execute immediately (Fast Path)
-      // If not, it stays in pending and flushes on onopen (Buffer Path)
       if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
         if (settingsState.enableNetworkLogs) {
-          logger.log("network", `Subscribe: ${channel}:${normalizedSymbol}`);
+          logger.log("network", `Subscribe: ${bitunixChannel}:${normalizedSymbol}`);
         }
-        this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
+        this.sendSubscribe(this.wsPublic, normalizedSymbol, bitunixChannel);
+        // Force flush of synthetic initial fetch if needed? No, marketWatcher handles fetch.
       } else if (!this.wsPublic || this.wsPublic.readyState === WebSocket.CLOSED) {
         this.connectPublic();
       }
@@ -1260,6 +1390,10 @@ class BitunixWebSocketService {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
 
+    // [FIX] Map internal channel format to Bitunix specific format
+    const bitunixChannel = this.getBitunixChannel(channel);
+    if (!bitunixChannel) return;
+
     // Reference Counting Logic
     const currentCount = this.pendingSubscriptions.get(subKey) || 0;
 
@@ -1269,7 +1403,7 @@ class BitunixWebSocketService {
         this.pendingSubscriptions.delete(subKey);
 
         if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-          this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+          this.sendUnsubscribe(this.wsPublic, normalizedSymbol, bitunixChannel);
         }
       } else {
         this.pendingSubscriptions.set(subKey, newCount);
@@ -1282,43 +1416,67 @@ class BitunixWebSocketService {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
 
+    const bitunixChannel = this.getBitunixChannel(channel);
+    if (!bitunixChannel) return;
+
     this.pendingSubscriptions.delete(subKey);
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-        this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+        this.sendUnsubscribe(this.wsPublic, normalizedSymbol, bitunixChannel);
     }
   }
 
-  subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
-    if (!symbol) return () => {};
-    const normalized = normalizeSymbol(symbol, "bitunix");
-
-    if (!this.tradeListeners.has(normalized)) {
-      this.tradeListeners.set(normalized, new Set());
-      // Actually subscribe to the WebSocket channel
-      this.subscribe(normalized, "trade");
-    }
-
-    this.tradeListeners.get(normalized)?.add(callback);
-
-    // Return cleanup function for safer lifecycle management
-    return () => {
-        this.unsubscribeTrade(normalized, callback);
-    };
-  }
-
-  unsubscribeTrade(symbol: string, callback: (trade: TradeData) => void) {
-    if (!symbol) return;
-    const normalized = normalizeSymbol(symbol, "bitunix");
-
-    const listeners = this.tradeListeners.get(normalized);
-    if (listeners) {
-      listeners.delete(callback);
-      if (listeners.size === 0) {
-        this.tradeListeners.delete(normalized);
-        this.unsubscribe(normalized, "trade");
+  // [SYNTHETIC] Helper to resolve best base timeframe
+  private resolveTimeframe(tf: string): { base: string, isSynthetic: boolean, intervalMs: number } {
+      const natives = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"];
+      if (natives.includes(tf)) {
+          return { base: tf, isSynthetic: false, intervalMs: getIntervalMs(tf) };
       }
-    }
+      
+      const targetMs = getIntervalMs(tf);
+      if (targetMs === 0) return { base: tf, isSynthetic: false, intervalMs: 0 }; // Unknown
+
+      // Find largest divisor
+      const sorted = natives
+          .map(n => ({ tf: n, ms: getIntervalMs(n) }))
+          .sort((a, b) => b.ms - a.ms);
+
+      for (const n of sorted) {
+          if (n.ms > 0 && targetMs >= n.ms && targetMs % n.ms === 0) {
+              return { base: n.tf, isSynthetic: true, intervalMs: targetMs };
+          }
+      }
+      
+      // Fallback
+      return { base: tf, isSynthetic: false, intervalMs: targetMs };
   }
+
+  // [FIX] Helper to map internal channels to Bitunix wire format
+  private getBitunixChannel(internalChannel: string): string | null {
+      // Pass through standard channels
+      if (["ticker", "trade", "depth_book5", "price"].includes(internalChannel)) {
+          return internalChannel;
+      }
+
+      // Map Klines
+      if (internalChannel.startsWith("kline_")) {
+          const tf = internalChannel.replace("kline_", "");
+          const map: Record<string, string> = {
+              "1m": "market_kline_1min",
+              "5m": "market_kline_5min",
+              "15m": "market_kline_15min",
+              "30m": "market_kline_30min",
+              "1h": "market_kline_60min",
+              "4h": "market_kline_4h",
+              "1d": "market_kline_1day",
+              "1w": "market_kline_1week",
+              "1M": "market_kline_1month"
+          };
+          return map[tf] || null;
+      }
+
+      return null;
+  }
+
 
   // [HYBRID] New Flush Method
   private flushPendingSubscriptions() {
@@ -1332,7 +1490,10 @@ class BitunixWebSocketService {
 
     subs.forEach(key => {
       const [channel, symbol] = key.split(":");
-      this.sendSubscribe(this.wsPublic!, symbol, channel);
+      const bitunixChannel = this.getBitunixChannel(channel);
+      if (bitunixChannel) {
+          this.sendSubscribe(this.wsPublic!, symbol, bitunixChannel);
+      }
     });
   }
 
@@ -1369,8 +1530,9 @@ class BitunixWebSocketService {
   private resubscribePublic() {
     this.pendingSubscriptions.forEach((count, subKey) => {
       const [channel, symbol] = subKey.split(":");
-      if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-        this.sendSubscribe(this.wsPublic, symbol, channel);
+      const bitunixChannel = this.getBitunixChannel(channel);
+      if (bitunixChannel && this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+        this.sendSubscribe(this.wsPublic, symbol, bitunixChannel);
       }
     });
   }

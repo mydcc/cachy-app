@@ -836,12 +836,6 @@
     "marketDataIntervalHelp": "How often market prices are updated",
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
-    "errors": {
-      "invalidApiKey": "Invalid API Key",
-      "ipNotAllowed": "IP Not Allowed",
-      "invalidSignature": "Invalid Signature",
-      "timestampError": "Timestamp Error"
-    },
     "showSidebars": "Show Sidebars",
     "enableSidePanel": "Enable Side Panel (Chat/Notes)",
     "sidePanelMode": "Side Panel Mode",
@@ -908,6 +902,11 @@
         "standard": "Standard",
         "deep": "Deep (Detailed)"
       },
+      "openaiApiKey": "OpenAI API Key",
+      "geminiApiKey": "Gemini API Key",
+      "anthropicApiKey": "Anthropic API Key",
+      "anthropicModel": "Anthropic Model",
+      "anthropicModelDesc": "Claude 3.5 Sonnet is recommended",
       "discord": {
         "title": "Discord Bot",
         "token": "Bot Token",

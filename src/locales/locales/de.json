@@ -822,6 +822,12 @@
       "resetConfirm": "API Quota für {provider} zurücksetzen?",
       "noCalls": "Keine API-Aufrufe bisher durchgeführt."
     },
+    "errors": {
+      "invalidApiKey": "Ungültiger API-Key oder Secret.",
+      "ipNotAllowed": "IP-Adresse nicht erlaubt.",
+      "invalidSignature": "Ungültige Signatur.",
+      "timestampError": "Zeitstempel-Fehler. Prüfen Sie Ihre Systemzeit."
+    },
     "apiProvider": "API Anbieter",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
@@ -924,6 +930,11 @@
         "standard": "Standard",
         "deep": "Tief (Detailliert)"
       },
+      "openaiApiKey": "OpenAI API Schlüssel",
+      "geminiApiKey": "Gemini API Schlüssel",
+      "anthropicApiKey": "Anthropic API Schlüssel",
+      "anthropicModel": "Anthropic Modell",
+      "anthropicModelDesc": "Claude 3.5 Sonnet wird empfohlen",
       "discord": {
         "title": "Discord Bot",
         "token": "Bot Token",

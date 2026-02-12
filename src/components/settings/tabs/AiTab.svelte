@@ -112,44 +112,84 @@
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="field-group">
-                        <label for="openai-model"
-                            >{$_("settings.ai.openaiModel")}</label
-                        >
-                        <input
-                            id="openai-model"
-                            bind:value={settingsState.openaiModel}
-                            placeholder="gpt-4o"
-                            class="input-field"
-                        />
-                    </div>
-                    <div class="field-group">
-                        <label for="gemini-model"
-                            >{$_("settings.ai.geminiModel")}</label
-                        >
-                        <select
-                            id="gemini-model"
-                            bind:value={settingsState.geminiModel}
-                            class="input-field"
-                        >
-                            <option value="gemini-2.5-flash"
-                                >{$_("settings.ai.geminiRecommended")}</option
-                            >
-                            <option value="gemini-2.0-flash"
-                                >{$_("settings.ai.geminiStable")}</option
-                            >
-                            <option value="gemini-3-flash-preview"
-                                >{$_("settings.ai.geminiPreview")}</option
-                            >
-                            <option value="gemini-3-pro-preview"
-                                >{$_("settings.ai.geminiPro")}</option
-                            >
-                            <option value="gemma-3-27b-it"
-                                >{$_("settings.ai.gemmaOpen")}</option
-                            >
-                        </select>
-                    </div>
+                <div class="mt-4 p-4 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)]">
+                    {#if settingsState.aiProvider === "openai"}
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="field-group">
+                                <label for="openai-key">{$_("settings.ai.openaiApiKey")}</label>
+                                <input
+                                    id="openai-key"
+                                    type="password"
+                                    bind:value={settingsState.openaiApiKey}
+                                    class="input-field"
+                                    placeholder="sk-..."
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="openai-model">{$_("settings.ai.openaiModel")}</label>
+                                <input
+                                    id="openai-model"
+                                    bind:value={settingsState.openaiModel}
+                                    placeholder="gpt-4o"
+                                    class="input-field"
+                                />
+                            </div>
+                        </div>
+                    {:else if settingsState.aiProvider === "gemini"}
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="field-group">
+                                <label for="gemini-key">{$_("settings.ai.geminiApiKey")}</label>
+                                <input
+                                    id="gemini-key"
+                                    type="password"
+                                    bind:value={settingsState.geminiApiKey}
+                                    class="input-field"
+                                    placeholder="AIza..."
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="gemini-model">{$_("settings.ai.geminiModel")}
+                                    <span class="text-[10px] font-normal text-[var(--text-secondary)] ml-2">({$_("settings.ai.geminiModelDesc")})</span>
+                                </label>
+                                <select
+                                    id="gemini-model"
+                                    bind:value={settingsState.geminiModel}
+                                    class="input-field"
+                                >
+                                    <option value="gemini-2.5-flash">{$_("settings.ai.geminiRecommended")}</option>
+                                    <option value="gemini-2.0-flash">{$_("settings.ai.geminiStable")}</option>
+                                    <option value="gemini-3-flash-preview">{$_("settings.ai.geminiPreview")}</option>
+                                    <option value="gemini-3-pro-preview">{$_("settings.ai.geminiPro")}</option>
+                                    <option value="gemma-3-27b-it">{$_("settings.ai.gemmaOpen")}</option>
+                                </select>
+                            </div>
+                        </div>
+                    {:else if settingsState.aiProvider === "anthropic"}
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="field-group">
+                                <label for="anthropic-key">{$_("settings.ai.anthropicApiKey")}</label>
+                                <input
+                                    id="anthropic-key"
+                                    type="password"
+                                    bind:value={settingsState.anthropicApiKey}
+                                    class="input-field"
+                                    placeholder="sk-ant-..."
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="anthropic-model">{$_("settings.ai.anthropicModel")}</label>
+                                <input
+                                    id="anthropic-model"
+                                    bind:value={settingsState.anthropicModel}
+                                    placeholder="claude-3-5-sonnet-20240620"
+                                    class="input-field"
+                                />
+                                <span class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                    {$_("settings.ai.anthropicModelDesc")}
+                                </span>
+                            </div>
+                        </div>
+                    {/if}
                 </div>
             </section>
         {/if}

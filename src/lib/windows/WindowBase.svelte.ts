@@ -240,7 +240,7 @@ export abstract class WindowBase {
 
     /** Serialize reactive state to persistent storage. */
     public saveState() {
-        if (typeof localStorage === 'undefined') return;
+        if (typeof localStorage === 'undefined' || !this.persistent) return;
         const state = {
             x: this.x,
             y: this.y,
@@ -261,7 +261,7 @@ export abstract class WindowBase {
 
     /** Rehydrate state from storage if available. */
     private restoreState() {
-        if (typeof localStorage === 'undefined') return;
+        if (typeof localStorage === 'undefined' || !this.persistent) return;
         try {
             const saved = localStorage.getItem(this.storageKey);
             if (saved) {
