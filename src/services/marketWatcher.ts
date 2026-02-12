@@ -443,7 +443,16 @@ class MarketWatcher {
                                 marketState.updateSymbolKlines(symbol, tf, filledChunk, "rest");
 
                                 // 5. Save to Storage (Async)
-                                storageService.saveKlines(symbol, tf, filledChunk);
+                                // Convert KlineRaw[] to Kline[] for storage
+                                const klinesToSave = filledChunk.map(k => ({
+                                    open: new Decimal(k.open),
+                                    high: new Decimal(k.high),
+                                    low: new Decimal(k.low),
+                                    close: new Decimal(k.close),
+                                    volume: new Decimal(k.volume),
+                                    time: k.time
+                                }));
+                                storageService.saveKlines(symbol, tf, klinesToSave);
                             }
                         }
                     }
@@ -498,7 +507,7 @@ class MarketWatcher {
                       high: prev.close,
                       low: prev.close,
                       close: prev.close,
-                      volume: MarketWatcher.ZERO_VOL
+                      volume: 0
                   });
                   nextTime += intervalMs;
                   gapCount++;
