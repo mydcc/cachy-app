@@ -844,14 +844,14 @@ class BitunixWebSocketService {
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
-                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
-                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
-                          nextFundingTime: data.nft ? String(data.nft) : undefined
+                          indexPrice: ip ? new Decimal(ip) : undefined,
+                          fundingRate: fr ? new Decimal(fr) : undefined,
+                          nextFundingTime: nft
                         });
                     }
                     return;
                   } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (price)", fastPathError);
                   }
                 }
                 break;
@@ -897,7 +897,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (ticker)", fastPathError);
                   }
                 }
                 break;
@@ -917,7 +917,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (depth)", fastPathError);
                   }
                 }
                 break;
