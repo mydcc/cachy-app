@@ -459,6 +459,8 @@ class MarketWatcher {
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
   private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+      // Hardening: Prevent infinite loops if interval is 0 or negative
+      if (intervalMs < 100) return klines;
       if (klines.length < 2) return klines;
 
       // Hardening: Validate first item structure before access

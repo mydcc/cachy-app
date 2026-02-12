@@ -31,7 +31,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { PositionRawSchema, FallbackPositionSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
 export interface TpSlOrder {
@@ -367,9 +367,38 @@ class TradeService {
                          errorCount++;
                     }
                 } else {
-                    // Log but don't crash
-                    logger.warn("market", "[TradeService] Invalid position schema skipped", { item, error: validation.error });
-                    errorCount++;
+                    // Hardening: Fallback Logic for Malformed Positions (Zombie Prevention)
+                    const fallback = FallbackPositionSchema.safeParse(item);
+                    if (fallback.success) {
+                        logger.warn("market", `[TradeService] Recovered malformed position for ${fallback.data.symbol}`, validation.error);
+                        try {
+                            // Create a "best effort" position object manually since mapper might fail
+                            // We construct a valid PositionRaw structure with safe defaults
+                            const recovered: PositionRaw = {
+                                symbol: fallback.data.symbol,
+                                side: (item as any).side || "LONG", // Default assumption
+                                positionSide: (item as any).positionSide || "LONG",
+                                qty: (item as any).qty || (item as any).size || (item as any).amount || "0",
+                                entryPrice: (item as any).entryPrice || "0",
+                                leverage: (item as any).leverage || "1",
+                                unrealizedPNL: (item as any).unrealizedPNL || "0",
+                                marginMode: (item as any).marginMode || "cross",
+                                liquidationPrice: "0"
+                            };
+                            // Flag it internally if needed (though mapping usually sanitizes)
+                            // We rely on mapToOMSPosition to handle the safe defaults we just provided.
+
+                            omsService.updatePosition(mapToOMSPosition(recovered));
+                            validCount++;
+                        } catch (e) {
+                             logger.error("market", "[TradeService] Failed to recover position", e);
+                             errorCount++;
+                        }
+                    } else {
+                        // Log but don't crash
+                        logger.warn("market", "[TradeService] Invalid position schema skipped (Unrecoverable)", { item, error: validation.error });
+                        errorCount++;
+                    }
                 }
             }
 

@@ -1,71 +1,72 @@
-# Status & Risiko-Bericht (Status & Risk Report)
+# Status & Risk Report
 
-**Datum:** 20.02.2026
-**Autor:** Jules (Senior Lead Developer & Systems Architect)
-**Status:** FINAL (Forensic Audit Completed)
+**Date:** 2026-10-24
+**Version:** 1.0.0
+**Author:** Senior Lead Developer (Jules)
 
-Dieser Bericht fasst die Ergebnisse der Tiefenanalyse des `cachy-app` Repositories zusammen. Der Fokus lag auf Datenintegrität, Sicherheit und Stabilität für den professionellen Handelseinsatz.
+## Executive Summary
 
----
-
-## 🔴 KRITISCH (CRITICAL)
-*Risiken für finanzielle Verluste, Abstürze oder Sicherheitslücken.*
-
-1.  **Präzisionsverlust in `BitunixWs` ("Fast Path")**:
-    *   **Fundort:** `src/services/bitunixWs.ts` (Methoden `handleMessage` -> Fast Path Block).
-    *   **Beschreibung:** Im "Fast Path" wird versucht, `number`-Werte manuell zu Strings zu casten (`String(data.ip)`). Da `JSON.parse` (via `safeJsonParse`) jedoch bereits *vor* diesem Block lief, wurden Fließkommazahlen (Floats) bereits in native JavaScript-Numbers konvertiert. Dies führt zu unwiderruflichem Präzisionsverlust bei Preisen (z.B. `0.00000001` -> `1e-8` oder Rundungsfehlern).
-    *   **Risiko:** Finanzielle Berechnungen könnten auf ungenauen Werten basieren.
-    *   **Lösung:** Der Fast Path muss entweder *vor* dem Parsing ansetzen (komplex) oder strikt `Decimal` verwenden und akzeptieren, dass die native `JSON.parse` bereits gerundet hat (Warnung loggen). Besser: `safeJsonParse` so konfigurieren, dass es *alle* Zahlen als Strings liefert, oder den Fast Path entfernen, wenn er Sicherheit gefährdet.
-
-2.  **GC Thrashing ("Memory Churn") in `MarketManager`**:
-    *   **Fundort:** `src/stores/market.svelte.ts` (`rebuildBuffers`, `appendBuffers`).
-    *   **Beschreibung:** Bei jedem Kline-Update, das die Array-Größe ändert (neue Kerze), werden komplett neue `Float64Array`-Instanzen allozierter. Dies geschieht mit $O(N)$ oder teils $O(N^2)$ Verhalten bei Batch-Updates.
-    *   **Risiko:** Hohe Garbage-Collection-Last führt zu UI-Rucklern ("Stuttering") und erhöhtem Speicherverbrauch im Browser, was bei High-Frequency-Trading inakzeptabel ist.
-    *   **Lösung:** Implementierung eines "Pooled Buffer"-Systems oder "Capacity"-basierten Ansatzes (Array verdoppeln statt exakt wachsen lassen).
+The codebase generally exhibits a high level of defensive programming (e.g., `safeJsonParse` for large integers, `Decimal` usage for financial math). However, critical vulnerabilities exist in the trade reconciliation logic ("Zombie Positions") and inconsistent usage of DOM sanitization.
 
 ---
 
-## 🟡 WARNUNG (WARNING)
-*Performance-Probleme, UX-Mängel oder fehlende Internationalisierung.*
+## 🔴 CRITICAL (High Risk)
 
-1.  **Validierungslücke bei leerem Input (Crash-Gefahr)**:
-    *   **Fundort:** `src/components/inputs/PortfolioInputs.svelte`.
-    *   **Beschreibung:** Die Funktion `validateInput` gibt bei leerem Input einen leeren String `""` zurück, der direkt in den `tradeState` geschrieben wird. Wenn `TradeService` versucht, `new Decimal("")` zu instanziieren, wirft `decimal.js` einen Fehler.
-    *   **Lösung:** Leere Inputs müssen im State entweder als `null` oder `0` (mit Warnung) behandelt werden, oder der Service muss `""` abfangen.
+### 1. Risk of "Zombie Positions" (Data Integrity)
+*   **Location:** `src/services/tradeService.ts` (`fetchOpenPositionsFromApi`)
+*   **Issue:** The method iterates through API results and uses `PositionRawSchema.safeParse`. If an item fails validation (e.g., API schema drift, missing optional field), it is **silently skipped** (logged as warning).
+*   **Impact:** A user might actually have an open position on the exchange, but the UI filters it out due to a schema mismatch. The user sees "No Positions" and may open conflicting trades, leading to liquidation.
+*   **Recommendation:** If a position fails schema validation, it must **NOT** be hidden. It should be displayed as a "Malformed Position" (Warning State) or the entire sync should fail-safe to prevent false confidence.
 
-2.  **Fehlende I18n-Keys**:
-    *   **Fundort:** `src/components/inputs/PortfolioInputs.svelte`.
-    *   **Fehlende Keys:**
-        *   `settings.errors.invalidApiKey`
-        *   `settings.errors.ipNotAllowed`
-        *   `settings.errors.invalidSignature`
-        *   `settings.errors.timestampError`
-    *   **Risiko:** Benutzer sehen leere Fehlerboxen oder Fallback-Strings ("settings.errors...") bei API-Problemen.
+### 2. "Two Generals" Logic in Flash Close
+*   **Location:** `src/services/tradeService.ts` (`flashClosePosition`)
+*   **Issue:** The "Optimistic Order" logic attempts to handle network failures by keeping the order visible. However, if the `cancelAllOrders` safety check fails, the close is aborted.
+*   **Impact:** Complex failure modes can leave the UI out of sync with the engine.
+*   **Recommendation:** Enhance the "Recovery Sync" to be more aggressive (e.g., polling every 1s for 10s) if a Flash Close enters an indeterminate state.
 
-3.  **Potenzieller Absturz in `NewsService`**:
-    *   **Fundort:** `src/services/newsService.ts` (`generateNewsId`).
-    *   **Beschreibung:** `encodeURIComponent(item.url + item.title)` verlässt sich darauf, dass `title` und `url` Strings sind. Bei API-Änderungen (null/undefined) könnte dies werfen oder "undefinedundefined" als ID erzeugen.
+---
+
+## 🟡 WARNING (Medium Risk / UX)
+
+### 1. Inconsistent DOM Sanitization (XSS Risk)
+*   **Location:** `src/components/shared/MarketOverview.svelte` (and others)
+*   **Issue:** The component uses `{@html icons.refresh}` directly. While `icons` constant is currently trusted, this bypasses the `DOMPurify` protection centralized in `src/components/shared/Icon.svelte`.
+*   **Impact:** Future refactors or dynamic icon loading could introduce XSS vectors.
+*   **Recommendation:** Strictly enforce `<Icon data={...} />` usage which handles `DOMPurify`.
+
+### 2. Potential Main Thread Freeze in History Backfill
+*   **Location:** `src/services/marketWatcher.ts` (`fillGaps`)
+*   **Issue:** The loop runs up to 5000 iterations based on `intervalMs`. If `intervalMs` is incorrectly calculated (e.g., 0 or negative) or data is corrupt, this could freeze the UI.
+*   **Recommendation:** Add a hard guard `if (intervalMs < 1000) intervalMs = 1000;` and a maximum execution time check (e.g., 5ms budget).
+
+### 3. Raw Error Messages Leaking to UI (I18n)
+*   **Location:** `src/components/inputs/PortfolioInputs.svelte`
+*   **Issue:** `uiState.showError(e.message || ...)` often displays raw English API errors to the user.
+*   **Recommendation:** Ensure all error catch blocks map known errors to translation keys (using `mapApiErrorToLabel`) before displaying.
+
+### 4. WebSocket "Fast Path" Complexity
+*   **Location:** `src/services/bitunixWs.ts`
+*   **Issue:** The "Fast Path" manually parses/casts data to optimize performance, duplicating some Zod logic. This increases the maintenance burden and risk of logic drift between the fast path and the standard validator.
+*   **Recommendation:** Standardize on one high-performance validation path or add rigorous regression tests ensuring Fast Path matches Zod behavior 1:1.
 
 ---
 
 ## 🔵 REFACTOR (Technical Debt)
-*Wartbarkeit und Code-Qualität.*
 
-1.  **Komplexe `shouldFetchNews` Logik**:
-    *   Die Bedingung ist schwer lesbar und fehleranfällig.
+### 1. Complex Merge Logic in Market Store
+*   **Location:** `src/stores/market.svelte.ts` (`applySymbolKlines`)
+*   **Issue:** The "Slow Path" merge algorithm is complex and handles multiple edge cases (overlap, disorder).
+*   **Recommendation:** Unit test this specific method with extensive fuzzing (randomized inputs) to ensure it never duplicates or drops candles.
 
-2.  **Harter Cast in `BitunixWs`**:
-    *   `src/services/bitunixWs.ts` nutzt `(validatedMessage.data as any).ip`. Dies umgeht Typescript und sollte durch Zod-Schema-Validierung ersetzt werden.
-
----
-
-## ✅ STATUS QUO (Positive Befunde)
-
-*   **TradeService:** Nutzt konsequent `Decimal.js` für Berechnungen.
-*   **Architektur:** Stores nutzen Svelte 5 Runes korrekt.
-*   **Sicherheit:** `safeJsonParse` wird global genutzt (schützt vor Integer-Overflows bei IDs).
+### 2. Manual Subscription Pattern in Stores
+*   **Location:** `src/stores/market.svelte.ts` (`subscribe`)
+*   **Issue:** The manual implementation of the Svelte store contract using `$effect.root` and `setTimeout` is brittle and non-standard for Svelte 5.
+*   **Recommendation:** If backward compatibility is needed, use `svelte/store`'s `readable` or `writable` wrappers around the rune state.
 
 ---
 
-**Empfohlene nächste Schritte:**
-Siehe "Implementation Plan" (Step 2).
+## Next Steps (Action Plan)
+
+1.  **Hardening Trade Service:** Implement "Fallback Schema" for positions to catch malformed data instead of hiding it.
+2.  **Sanitization Audit:** Replace all `{@html}` icon injections with `<Icon />`.
+3.  **I18n Audit:** Scan for `uiState.showError` and ensure mapping is applied.

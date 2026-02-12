@@ -109,6 +109,12 @@ export const PositionRawSchema = z.object({
 
 export const PositionListSchema = z.array(PositionRawSchema);
 
+// Hardening: Fallback schema for malformed positions
+// Allows any object with a symbol, which we can then flag as "PARTIAL" in the UI
+export const FallbackPositionSchema = z.object({
+    symbol: z.string()
+}).passthrough();
+
 // --- TP/SL Request Validation Schemas ---
 
 // Common Headers

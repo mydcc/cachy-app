@@ -124,4 +124,29 @@ describe('TradeService Hardening', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith("/api/orders", expect.anything());
   });
+
+  // --- NEW TESTS FOR ZOMBIE POSITIONS ---
+  it('fetchOpenPositionsFromApi should recover malformed positions (Fixed)', async () => {
+      // Mock invalid response (missing quantity field which is required by Strict Schema)
+      const malformedResponse = {
+          data: [{
+              symbol: "BTCUSDT",
+              side: "LONG",
+              // Missing qty/amount/size
+              leverage: "10"
+          }]
+      };
+
+      (global.fetch as any).mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify(malformedResponse))
+      });
+
+      // We need to access the private method or trigger it via ensurePositionFreshness fallback
+      // Since it's private, we can cast tradeService to any
+      await (tradeService as any).fetchOpenPositionsFromApi();
+
+      // Assert that omsService.updatePosition WAS called because fallback succeeded
+      expect(omsService.updatePosition).toHaveBeenCalled();
+  });
 });

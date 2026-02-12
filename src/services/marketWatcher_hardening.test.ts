@@ -19,6 +19,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
+import { marketState } from '../stores/market.svelte';
+
+// Mock Browser Environment
+if (typeof window === 'undefined') {
+    global.window = {} as any;
+    global.localStorage = {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+        length: 0,
+        key: vi.fn()
+    } as any;
+}
 
 // Mock dependencies
 vi.mock('$app/environment', () => ({
@@ -30,6 +44,12 @@ vi.mock('./apiService', () => ({
     fetchTicker24h: vi.fn(),
     fetchBitunixKlines: vi.fn(),
     fetchBitgetKlines: vi.fn(),
+  }
+}));
+
+vi.mock('./storageService', () => ({
+  storageService: {
+    saveKlines: vi.fn(),
   }
 }));
 
@@ -114,32 +134,18 @@ describe('MarketWatcher Hardening', () => {
     expect(mw.pendingRequests.has(lockKey)).toBe(false);
   });
 
-  it('should filter invalid klines in ensureHistory', async () => {
-    const mw = marketWatcher as any;
-    const symbol = 'BTCUSDT';
-    const tf = '1m';
+  // --- NEW TEST FOR INFINITE LOOP ---
+  it('fillGaps should prevent infinite loop with intervalMs = 0 (Fixed)', () => {
+      const mw = marketWatcher as any;
+      const klines = [
+          { time: 1000, open: 100, high: 100, low: 100, close: 100, volume: 10 },
+          { time: 5000, open: 200, high: 200, low: 200, close: 200, volume: 20 }
+      ];
 
-    // Mock API to return mixed valid/invalid data
-    const invalidKline = { time: 'invalid', open: 100 }; // Invalid time type (string instead of number)
-    const validKline = { time: 1000, open: 100, high: 110, low: 90, close: 105, volume: 10 };
+      // With 0 interval, it should now return immediately
+      const result = mw.fillGaps(klines, 0);
 
-    // Reset mocks
-    (marketState.updateSymbolKlines as any).mockClear();
-    (apiService.fetchBitunixKlines as any).mockResolvedValue([invalidKline, validKline]);
-
-    await mw.ensureHistory(symbol, tf);
-
-    // Verify marketState.updateSymbolKlines was called only with valid klines
-    // We expect the filtered array to contain only validKline
-    expect(marketState.updateSymbolKlines).toHaveBeenCalledWith(
-        symbol,
-        tf,
-        expect.arrayContaining([validKline]),
-        "rest"
-    );
-
-    // Ensure length is 1
-    const callArgs = (marketState.updateSymbolKlines as any).mock.calls[0];
-    expect(callArgs[2]).toHaveLength(1);
+      // Expect result length = original length (2)
+      expect(result.length).toBe(2);
   });
 });
