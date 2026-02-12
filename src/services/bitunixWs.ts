@@ -1328,6 +1328,29 @@ class BitunixWebSocketService {
     }
   }
 
+  public subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
+    const normSymbol = normalizeSymbol(symbol, "bitunix");
+
+    if (!this.tradeListeners.has(normSymbol)) {
+      this.tradeListeners.set(normSymbol, new Set());
+    }
+    this.tradeListeners.get(normSymbol)!.add(callback);
+
+    // Ensure we are subscribed to the channel
+    this.subscribe(symbol, "trade");
+
+    return () => {
+      const listeners = this.tradeListeners.get(normSymbol);
+      if (listeners) {
+        listeners.delete(callback);
+        if (listeners.size === 0) {
+          this.tradeListeners.delete(normSymbol);
+        }
+      }
+      this.unsubscribe(symbol, "trade");
+    };
+  }
+
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
