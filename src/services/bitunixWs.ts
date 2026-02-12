@@ -1572,6 +1572,10 @@ class BitunixWebSocketService {
     logger.warn("network", `[WebSocket] ${type} error handled`, error);
   }
 
+  /**
+   * Subscribes to the real-time trade stream for a specific symbol.
+   * Returns a cleanup function to unsubscribe.
+   */
   subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
 
