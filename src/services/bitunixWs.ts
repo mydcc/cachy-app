@@ -39,6 +39,9 @@ import {
   BitunixWSMessageSchema,
   BitunixPriceDataSchema,
   BitunixTickerDataSchema,
+  StrictPriceDataSchema,
+  StrictTickerDataSchema,
+  StrictDepthDataSchema,
   BitunixOrderSchema,
   BitunixPositionSchema,
   isAllowedChannel,
@@ -813,7 +816,9 @@ class BitunixWebSocketService {
           if (isObjectData) {
             switch (channel) {
               case "price":
-                if (symbol && isPriceData(data)) {
+                // HARDENING: Use Strict Zod Validation instead of loose casting
+                const priceRes = StrictPriceDataSchema.safeParse(data);
+                if (symbol && priceRes.success) {
                   try {
                     // HARDENING: Direct property access + Warning on Numeric Types
                     const safeString = (val: any, fieldName: string) => {
@@ -838,11 +843,10 @@ class BitunixWebSocketService {
                     }
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
-                        // Explicit Decimal conversion for data integrity
                         marketState.updateSymbol(symbol, {
-                          indexPrice: ip ? new Decimal(ip) : undefined,
-                          fundingRate: fr ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft
+                          indexPrice: sData.ip ? new Decimal(sData.ip) : undefined,
+                          fundingRate: sData.fr ? new Decimal(sData.fr) : undefined,
+                          nextFundingTime: sData.nft ? String(sData.nft) : undefined
                         });
                     }
                     return;
@@ -853,7 +857,8 @@ class BitunixWebSocketService {
                 break;
 
               case "ticker":
-                if (symbol && isTickerData(data)) {
+                const tickerRes = StrictTickerDataSchema.safeParse(data);
+                if (symbol && tickerRes.success) {
                   try {
                     const safeString = (val: any, fieldName: string) => {
                         if (typeof val === 'number') {
@@ -898,12 +903,14 @@ class BitunixWebSocketService {
                 break;
 
               case "depth_book5":
-                if (symbol && isDepthData(data)) {
+                const depthRes = StrictDepthDataSchema.safeParse(data);
+                if (symbol && depthRes.success) {
                   try {
-                    const safeToString = (val: any) => typeof val === 'number' ? String(val) : val;
-                    // HARDENING: Use map to create new arrays
-                    const bids = data.b ? data.b.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
-                    const asks = data.a ? data.a.map((item: any[]) => [safeToString(item[0]), safeToString(item[1])]) : [];
+                    const sData = depthRes.data;
+                    // Zod transform has already ensured all nested numbers are strings
+                    // However, we need to map to simple tuple arrays [string, string][] as expected by marketState
+                    const bids = sData.b as [string, string][];
+                    const asks = sData.a as [string, string][];
 
                     if (!this.shouldThrottle(`${symbol}:depth`)) {
                       marketState.updateDepth(symbol, { bids, asks });

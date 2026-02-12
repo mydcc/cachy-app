@@ -28,7 +28,7 @@ import { storageService } from "./storageService";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
-import type { Kline } from "./technicalsTypes";
+import { KlineRawSchema, type KlineRaw, type Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -376,8 +376,11 @@ class MarketWatcher {
         const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit, undefined, Date.now());
 
         if (klines1 && klines1.length > 0) {
-            marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
-            storageService.saveKlines(symbol, tf, klines1); // Async save
+            // Hardening: Filter invalid klines
+            const validatedKlines = klines1.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
+
+            marketState.updateSymbolKlines(symbol, tf, validatedKlines, "rest");
+            storageService.saveKlines(symbol, tf, validatedKlines); // Async save
 
             // Check if we have enough history now
             const currentLen = klines1.length;
@@ -423,16 +426,20 @@ class MarketWatcher {
                         // [HARDENING] Streaming Updates (Chunk processing) to prevent memory spikes
                         for (const chunk of chunkResults) {
                             if (Array.isArray(chunk) && chunk.length > 0) {
-                                // 1. Sort chunk (local)
-                                chunk.sort((a, b) => a.time - b.time);
+                                // 1. Filter Invalid
+                                const validChunk = chunk.filter((k: any) => KlineRawSchema.safeParse(k).success) as KlineRaw[];
+                                if (validChunk.length === 0) continue;
 
-                                // 2. Fill gaps locally within the chunk
-                                const filledChunk = this.fillGaps(chunk, intervalMs);
+                                // 2. Sort chunk (local)
+                                validChunk.sort((a, b) => a.time - b.time);
 
-                                // 3. Update Store immediately (Streaming UX)
+                                // 3. Fill gaps locally within the chunk
+                                const filledChunk = this.fillGaps(validChunk, intervalMs);
+
+                                // 4. Update Store immediately (Streaming UX)
                                 marketState.updateSymbolKlines(symbol, tf, filledChunk, "rest");
 
-                                // 4. Save to Storage (Async)
+                                // 5. Save to Storage (Async)
                                 storageService.saveKlines(symbol, tf, filledChunk);
                             }
                         }
@@ -448,13 +455,24 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: any[], intervalMs: number): any[] {
+  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
       if (klines.length < 2) return klines;
-      const filled = [klines[0]];
+
+      // Hardening: Validate first item structure before access
+      const firstVal = KlineRawSchema.safeParse(klines[0]);
+      if (!firstVal.success) {
+          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
+          return klines; // Abort fill if structure is wrong
+      }
+
+      const filled: KlineRaw[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
           const curr = klines[i];
+
+          // Hardening: Basic structural check for current item
+          if (!curr || typeof curr.time !== 'number') continue;
 
           // Check for gap (> 1 interval + small buffer for jitter)
           if (curr.time - prev.time > intervalMs * 1.1) {

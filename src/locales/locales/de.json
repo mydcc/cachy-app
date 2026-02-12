@@ -1087,7 +1087,23 @@
       "dashboard": "Dashboard",
       "englishTechnicalTerms": "Englische Fachbegriffe",
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
-      "quickActions": "Schnellaktionen"
+    "quickActions": "Schnellaktionen",
+    "debug": {
+      "capabilities": "Fähigkeiten",
+      "context": "Kontext",
+      "engineStats": "Engine Status",
+      "noData": "Keine Daten",
+      "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
+      "columns": {
+        "engine": "Engine",
+        "health": "Gesundheit",
+        "avg": "Ø",
+        "samples": "Proben",
+        "candles": "Kerzen",
+        "time": "Zeit",
+        "memory": "Speicher"
+      }
+    }
     },
     "performance": {
       "monitor": "Performance Monitor",

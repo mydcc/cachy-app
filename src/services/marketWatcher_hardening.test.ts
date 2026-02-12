@@ -21,6 +21,10 @@ import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
 
 // Mock dependencies
+vi.mock('$app/environment', () => ({
+  browser: true
+}));
+
 vi.mock('./apiService', () => ({
   apiService: {
     fetchTicker24h: vi.fn(),
@@ -108,5 +112,34 @@ describe('MarketWatcher Hardening', () => {
     // If we call forceCleanup, it should clear pending requests
     mw.forceCleanup();
     expect(mw.pendingRequests.has(lockKey)).toBe(false);
+  });
+
+  it('should filter invalid klines in ensureHistory', async () => {
+    const mw = marketWatcher as any;
+    const symbol = 'BTCUSDT';
+    const tf = '1m';
+
+    // Mock API to return mixed valid/invalid data
+    const invalidKline = { time: 'invalid', open: 100 }; // Invalid time type (string instead of number)
+    const validKline = { time: 1000, open: 100, high: 110, low: 90, close: 105, volume: 10 };
+
+    // Reset mocks
+    (marketState.updateSymbolKlines as any).mockClear();
+    (apiService.fetchBitunixKlines as any).mockResolvedValue([invalidKline, validKline]);
+
+    await mw.ensureHistory(symbol, tf);
+
+    // Verify marketState.updateSymbolKlines was called only with valid klines
+    // We expect the filtered array to contain only validKline
+    expect(marketState.updateSymbolKlines).toHaveBeenCalledWith(
+        symbol,
+        tf,
+        expect.arrayContaining([validKline]),
+        "rest"
+    );
+
+    // Ensure length is 1
+    const callArgs = (marketState.updateSymbolKlines as any).mock.calls[0];
+    expect(callArgs[2]).toHaveLength(1);
   });
 });

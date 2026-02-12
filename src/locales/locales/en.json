@@ -1299,7 +1299,23 @@
       "restoreDesc": "Import a backup from a file.",
       "englishTechnicalTerms": "English Technical Terms",
       "avoidTranslating": "Avoid translating technical words",
-      "quickActions": "Quick Actions"
+    "quickActions": "Quick Actions",
+    "debug": {
+      "capabilities": "Capabilities",
+      "context": "Context",
+      "engineStats": "Engine Stats",
+      "noData": "No Data",
+      "noCalculations": "No calculations recorded yet.",
+      "columns": {
+        "engine": "Engine",
+        "health": "Health",
+        "avg": "Avg",
+        "samples": "Samples",
+        "candles": "Candles",
+        "time": "Time",
+        "memory": "Memory"
+      }
+    }
     },
     "performance": {
       "monitor": "Performance Monitor",

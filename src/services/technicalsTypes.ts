@@ -16,9 +16,23 @@
  */
 
 import { Decimal } from "decimal.js";
+import { z } from "zod";
 import type { IndicatorSettings } from "../types/indicators";
 
 export type { IndicatorSettings };
+
+// Raw Kline Schema for validation before Decimal conversion
+// Allows string or number inputs, but verifies presence of required fields
+export const KlineRawSchema = z.object({
+  time: z.number(),
+  open: z.union([z.string(), z.number()]),
+  high: z.union([z.string(), z.number()]),
+  low: z.union([z.string(), z.number()]),
+  close: z.union([z.string(), z.number()]),
+  volume: z.union([z.string(), z.number()]),
+}).passthrough();
+
+export type KlineRaw = z.infer<typeof KlineRawSchema>;
 
 // Source Data (Financial Precision required)
 export interface Kline {

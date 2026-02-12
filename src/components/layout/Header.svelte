@@ -52,7 +52,7 @@
 
 <header class="flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]" class:mt-6={!isConnected}>
   <div class="flex items-center gap-4">
-    <h1 class="text-lg font-bold text-[var(--text-primary)]">Cachy App</h1>
+    <h1 class="text-lg font-bold text-[var(--text-primary)]">{$_("app.title")}</h1>
     <!-- Add Navigation/Tabs here later -->
   </div>
 

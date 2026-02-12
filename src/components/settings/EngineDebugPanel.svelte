@@ -7,6 +7,7 @@
 
 <script lang="ts">
     import { calculationStrategy } from "../../services/calculationStrategy";
+    import { _ } from "../../locales/i18n";
     
     let telemetry = $state(calculationStrategy.exportTelemetry());
     let showHistory = $state(false);
@@ -47,7 +48,7 @@
 
     <!-- Capabilities -->
     <div class="section">
-        <div class="section-label">Capabilities</div>
+        <div class="section-label">{$_("settings.system.debug.capabilities")}</div>
         <div class="caps-grid">
             <span class="cap" class:cap-on={telemetry.capabilities.ts}>TS</span>
             <span class="cap" class:cap-on={telemetry.capabilities.wasm}>WASM</span>
@@ -59,7 +60,7 @@
 
     <!-- Context -->
     <div class="section">
-        <div class="section-label">Context</div>
+        <div class="section-label">{$_("settings.system.debug.context")}</div>
         <div class="caps-grid">
             <span class="ctx" class:ctx-warn={telemetry.context.lowBattery}>
                 {telemetry.context.lowBattery ? '🪫 Low Battery' : '🔋 OK'}
@@ -75,14 +76,14 @@
 
     <!-- Engine Stats Table -->
     <div class="section">
-        <div class="section-label">Engine Stats</div>
+        <div class="section-label">{$_("settings.system.debug.engineStats")}</div>
         <table class="stats-table">
             <thead>
                 <tr>
-                    <th>Engine</th>
-                    <th>Health</th>
-                    <th>Avg</th>
-                    <th>Samples</th>
+                    <th>{$_("settings.system.debug.columns.engine")}</th>
+                    <th>{$_("settings.system.debug.columns.health")}</th>
+                    <th>{$_("settings.system.debug.columns.avg")}</th>
+                    <th>{$_("settings.system.debug.columns.samples")}</th>
                 </tr>
             </thead>
             <tbody>
@@ -121,7 +122,7 @@
           {:else}
             <tr>
               <td class="engine-name">{engine.toUpperCase()}</td>
-              <td class="status-cell"><span class="status-neutral">No Data</span></td>
+              <td class="status-cell"><span class="status-neutral">{$_("settings.system.debug.noData")}</span></td>
               <td>-</td>
               <td>0</td>
             </tr>
@@ -141,10 +142,10 @@
             <table class="stats-table history-table">
                 <thead>
                     <tr>
-                        <th>Engine</th>
-                        <th>Candles</th>
-                        <th>Time</th>
-                        <th>Memory</th>
+                        <th>{$_("settings.system.debug.columns.engine")}</th>
+                        <th>{$_("settings.system.debug.columns.candles")}</th>
+                        <th>{$_("settings.system.debug.columns.time")}</th>
+                        <th>{$_("settings.system.debug.columns.memory")}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -159,7 +160,7 @@
                 </tbody>
             </table>
         {:else if showHistory}
-            <div class="no-data">No calculations recorded yet.</div>
+            <div class="no-data">{$_("settings.system.debug.noCalculations")}</div>
         {/if}
     </div>
 </div>
