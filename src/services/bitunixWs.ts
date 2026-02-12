@@ -1571,6 +1571,28 @@ class BitunixWebSocketService {
 
     logger.warn("network", `[WebSocket] ${type} error handled`, error);
   }
+
+  subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+
+    if (!this.tradeListeners.has(normalizedSymbol)) {
+      this.tradeListeners.set(normalizedSymbol, new Set());
+    }
+    this.tradeListeners.get(normalizedSymbol)!.add(callback);
+
+    this.subscribe(symbol, "trade");
+
+    return () => {
+      const listeners = this.tradeListeners.get(normalizedSymbol);
+      if (listeners) {
+        listeners.delete(callback);
+        if (listeners.size === 0) {
+          this.tradeListeners.delete(normalizedSymbol);
+        }
+      }
+      this.unsubscribe(symbol, "trade");
+    };
+  }
 }
 
 export const bitunixWs = new BitunixWebSocketService();
