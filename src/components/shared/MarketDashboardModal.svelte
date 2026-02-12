@@ -95,6 +95,7 @@
             for (const sym of currentSymbols) {
                 if (!previousSymbols.has(sym)) {
                     marketWatcher.register(sym, "ticker");
+                    marketWatcher.register(sym, "price");
                 }
             }
 

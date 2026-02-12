@@ -40,7 +40,7 @@ class MarketWatcher {
   // Optimization: Module-level constant to reduce allocation
   private static readonly ZERO_VOL = new Decimal(0);
 
-  private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
+  private requests = new Map<string, Map<string, Map<string, number>>>(); // symbol -> { channel -> { requirement -> count } }
   private isPolling = false;
   private pollingTimeout: ReturnType<typeof setTimeout> | null = null;
   private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
@@ -75,7 +75,7 @@ class MarketWatcher {
    * @param symbol Raw symbol
    * @param channel Channel name (e.g., "price", "kline_1h")
    */
-  register(symbol: string, channel: string) {
+  register(symbol: string, channel: string, requirement: "chart" | "stateless" = "stateless") {
     if (!symbol) return;
     const normSymbol = normalizeSymbol(symbol, "bitunix");
 
@@ -84,66 +84,79 @@ class MarketWatcher {
     }
 
     const channels = this.requests.get(normSymbol)!;
-    const count = channels.get(channel) || 0;
-    channels.set(channel, count + 1);
+    if (!channels.has(channel)) {
+      channels.set(channel, new Map());
+    }
 
-    // Only sync if this is the first requester for this channel
-    if (count === 0) {
+    const reqs = channels.get(channel)!;
+    const count = reqs.get(requirement) || 0;
+    reqs.set(requirement, count + 1);
+
+    const totalChannelCount = Array.from(reqs.values()).reduce((a, b) => a + b, 0);
+
+    // Only sync if this is the first requester for this channel globally
+    if (totalChannelCount === 1) {
       this._subscriptionsDirty = true;
+      // Start polling/WS immediately
+      this.syncChannelSubscription(normSymbol, channel);
+    }
 
-      // Trigger history sync for Klines
-      if (channel.startsWith("kline_")) {
+    // GATED HISTORY: Only trigger deep history if requirement is 'chart'
+    if (requirement === "chart" && channel.startsWith("kline_")) {
+      const tf = channel.replace("kline_", "");
+      this.ensureHistory(normSymbol, tf);
+    } else if (requirement === "stateless" && channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
-        this.ensureHistory(normSymbol, tf);
-      }
-
-      // Start polling for all channels (Price/Ticker/Kline)
-      untrack(() => {
-        const provider = settingsState.apiProvider;
-        if (provider === "bitunix") {
-             // Map channel to WebSocket subscriptions using data requirements
-             const wsChannels = getChannelsForRequirement(channel);
-             
-             // Subscribe to all required channels
-             wsChannels.forEach(ch => {
-               bitunixWs.subscribe(normSymbol, ch);
-             });
-             
-             // Legacy compatibility: handle old channel names
-             if (channel === "price") {
-                 bitunixWs.subscribe(normSymbol, "price");
-             } else if (channel === "ticker") {
-                 bitunixWs.subscribe(normSymbol, "ticker");
-             } else if (channel === "depth_book5") {
-                 bitunixWs.subscribe(normSymbol, "depth_book5");
-             } else if (channel.startsWith("kline_")) {
-                 bitunixWs.subscribe(normSymbol, channel);
-             }
-        }
-      });
+        // Request shallow history (e.g. 100 candles) for technicals calculation
+        this.ensureShallowHistory(normSymbol, tf);
     }
   }
 
   /**
    * Unregister interest in a channel.
    */
-  unregister(symbol: string, channel: string) {
+  unregister(symbol: string, channel: string, requirement: "chart" | "stateless" = "stateless") {
     if (!symbol) return;
     const normSymbol = normalizeSymbol(symbol, "bitunix");
     const channels = this.requests.get(normSymbol);
 
     if (channels && channels.has(channel)) {
-      const count = channels.get(channel)!;
-      if (count <= 1) {
+      const reqs = channels.get(channel)!;
+      const count = reqs.get(requirement);
+
+      if (count && count > 0) {
+        if (count === 1) {
+          reqs.delete(requirement);
+        } else {
+          reqs.set(requirement, count - 1);
+        }
+      }
+
+      if (reqs.size === 0) {
         channels.delete(channel);
         if (channels.size === 0) {
           this.requests.delete(normSymbol);
         }
         this._subscriptionsDirty = true;
-      } else {
-        channels.set(channel, count - 1);
       }
     }
+  }
+
+  private syncChannelSubscription(symbol: string, channel: string) {
+    untrack(() => {
+        const provider = settingsState.apiProvider;
+        if (provider === "bitunix") {
+             const wsChannels = getChannelsForRequirement(channel);
+             wsChannels.forEach(ch => {
+               bitunixWs.subscribe(symbol, ch);
+             });
+             
+             // Legacy
+             if (channel === "price") bitunixWs.subscribe(symbol, "price");
+             else if (channel === "ticker") bitunixWs.subscribe(symbol, "ticker");
+             else if (channel.startsWith("kline_")) bitunixWs.subscribe(symbol, channel);
+        }
+      });
   }
 
   private syncSubscriptions() {
@@ -165,10 +178,9 @@ class MarketWatcher {
     // map of key (channel:symbol) -> { symbol, channel }
     const intended = new Map<string, { symbol: string; channel: string }>();
     this.requests.forEach((channels, symbol) => {
-      channels.forEach((_, ch) => {
-        let bitunixChannel = ch;
-        // Map generic "price" to Bitunix "ticker"
-        if (ch === "price") bitunixChannel = "ticker";
+      channels.forEach((reqs, ch) => {
+        const bitunixChannel = ch;
+        // No longer map generic "price" to Bitunix "ticker" - let "price" be "price" (mark price + funding)
         const key = `${bitunixChannel}:${symbol}`;
         intended.set(key, { symbol, channel: bitunixChannel });
       });
@@ -227,15 +239,21 @@ class MarketWatcher {
 
   private pruneOrphanedSubscriptions() {
     for (const [symbol, channels] of this.requests) {
-      if (channels.size === 0) {
-        this.requests.delete(symbol);
-        this._subscriptionsDirty = true;
-        continue;
-      }
-      for (const [channel, count] of channels) {
-        if (count <= 0) {
+      for (const [channel, reqs] of channels) {
+        if (reqs.size === 0) {
           channels.delete(channel);
           this._subscriptionsDirty = true;
+        } else {
+          for (const [req, count] of reqs) {
+            if (count <= 0) {
+              reqs.delete(req);
+              this._subscriptionsDirty = true;
+            }
+          }
+          if (reqs.size === 0) {
+            channels.delete(channel);
+            this._subscriptionsDirty = true;
+          }
         }
       }
       if (channels.size === 0) {
@@ -353,6 +371,39 @@ class MarketWatcher {
       }, currentStagger);
       this.staggerTimeouts.add(timeoutId);
     }
+  }
+
+  public async ensureShallowHistory(symbol: string, tf: string): Promise<boolean> {
+      const provider = settingsState.apiProvider;
+      if (provider !== "bitunix") return false;
+
+      const lockKey = `${symbol}:${tf}:shallow`;
+      if (this.historyLocks.has(lockKey) || this.exhaustedHistory.has(`${symbol}:${tf}`)) {
+          return true;
+      }
+      this.historyLocks.add(lockKey);
+
+      try {
+          const currentData = marketState.data[symbol]?.klines[tf] || [];
+          if (currentData.length >= 50) return true; // Already have enough for basic technicals
+
+           // Fetch small batch
+          const limit = 100;
+          const klines = await apiService.fetchBitunixKlines(symbol, tf, limit, undefined, Date.now());
+
+          if (klines && klines.length > 0) {
+              marketState.updateSymbolKlines(symbol, tf, klines, "rest");
+              
+              // FORCE REFRESH TECHNICALS
+              activeTechnicalsManager.forceRefresh(symbol, tf);
+          }
+          return true;
+      } catch (e) {
+          logger.warn("market", `[History] Shallow fetch failed for ${symbol}:${tf}`, e);
+          return false;
+      } finally {
+          this.historyLocks.delete(lockKey);
+      }
   }
 
   public async ensureHistory(symbol: string, tf: string): Promise<boolean> {
@@ -654,8 +705,8 @@ class MarketWatcher {
 
   public refreshActiveHistory() {
     this.requests.forEach((channels, symbol) => {
-      channels.forEach((_, channel) => {
-        if (channel.startsWith("kline_")) {
+      channels.forEach((reqs, channel) => {
+        if (channel.startsWith("kline_") && reqs.has("chart")) {
           const tf = channel.replace("kline_", "");
           this.ensureHistory(symbol, tf);
         }

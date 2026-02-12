@@ -197,9 +197,11 @@ class ActiveTechnicalsManager {
     private startMonitoring(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
 
-        // 1. Ensure Market Watcher provides the data
-        marketWatcher.register(symbol, `kline_${timeframe}`);
-        marketWatcher.register(symbol, "ticker"); // Ensure we have latest price for real-time candle updates
+        // 1. Ensure Market Watcher provides price/ticker/klines for updates
+        marketWatcher.register(symbol, "price", "stateless");
+        marketWatcher.register(symbol, "ticker", "stateless");
+        // Register for klines without triggering deep history (stateless)
+        marketWatcher.register(symbol, `kline_${timeframe}`, "stateless");
 
         // 2. Start Reactive Effect
         // We use $effect.root because we are outside component context
@@ -248,8 +250,9 @@ class ActiveTechnicalsManager {
         }
 
         // 3. Unregister from Market Watcher
-        marketWatcher.unregister(symbol, `kline_${timeframe}`);
-        marketWatcher.unregister(symbol, "ticker");
+        marketWatcher.unregister(symbol, "price", "stateless");
+        marketWatcher.unregister(symbol, "ticker", "stateless");
+        marketWatcher.unregister(symbol, `kline_${timeframe}`, "stateless");
 
         if (import.meta.env.DEV) {
             logger.debug("technicals", `[ActiveManager] Stopped monitoring ${key}`);
@@ -439,19 +442,22 @@ class ActiveTechnicalsManager {
     private async performCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
 
-        // === BACKFILL THROTTLE (Optimization) ===
-        // If MarketWatcher is currently backfilling this symbol, we skip calculations
-        // to prevent churn. The backfiller will trigger a final calculation when done.
-        if (marketWatcher.isBackfilling(symbol, timeframe)) {
-            if (import.meta.env.DEV && (timeframe === '15m' || timeframe === '30m')) {
-                logger.debug("technicals", `[ActiveManager] Skipping calculation for ${key} - Backfill in progress.`);
-            }
-            return;
-        }
-
         // 1. Gather Data (Single Source of Truth: marketState)
         const marketData = marketState.data[symbol];
         if (!marketData) return;
+
+        // === BACKFILL THROTTLE (Optimization) ===
+        // If MarketWatcher is currently backfilling this symbol, we skip calculations
+        // to prevent churn. EXCEPT if we have no technicals yet (Initial Load UI needs data)
+        if (marketWatcher.isBackfilling(symbol, timeframe)) {
+            const hasTechnicals = !!marketData.technicals?.[timeframe];
+            if (hasTechnicals) {
+                if (import.meta.env.DEV && (timeframe === '15m' || timeframe === '30m')) {
+                    logger.debug("technicals", `[ActiveManager] Skipping calculation for ${key} - Backfill in progress.`);
+                }
+                return;
+            }
+        }
 
         if (timeframe === '15m' || timeframe === '30m') {
              if (import.meta.env.DEV) {

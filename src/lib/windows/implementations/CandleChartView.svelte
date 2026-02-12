@@ -309,9 +309,9 @@
     $effect(() => {
         if (!symbol || !timeframe) return;
         const channel = `kline_${timeframe}`;
-        marketWatcher.register(symbol, channel);
+        marketWatcher.register(symbol, channel, "chart");
         return () => {
-            marketWatcher.unregister(symbol, channel);
+            marketWatcher.unregister(symbol, channel, "chart");
         };
     });
 
