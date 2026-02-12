@@ -1332,7 +1332,24 @@
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
       "networkStatus": "Network Status",
-      "tipsTitle": "Optimization Tips"
+      "tipsTitle": "Optimization Tips",
+      "status": {
+        "critical": "🔴 Critical",
+        "warning": "🟡 Warning",
+        "optimal": "🟢 Optimal",
+        "highUsage": "⚠️ High API usage",
+        "moderateUsage": "ℹ️ Moderate usage",
+        "normalUsage": "✓ Normal usage",
+        "excellentCaching": "✓ Excellent caching",
+        "goodCaching": "ℹ️ Good caching",
+        "increaseCache": "⚠️ Consider increasing cache size",
+        "excellentLatency": "⚡ Excellent",
+        "goodLatency": "✓ Good",
+        "acceptableLatency": "ℹ️ Acceptable",
+        "highLatency": "⚠️ High latency",
+        "online": "🟢 Online",
+        "offline": "🔴 Offline"
+      }
     },
     "trading": {
       "chartTitle": "Chart & Data",
