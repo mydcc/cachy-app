@@ -34,7 +34,7 @@ export const StrictDecimal = z
     .union([z.string(), z.number(), z.null(), z.undefined()])
     .transform((val, ctx) => {
         if (val === null || val === undefined) {
-            logger.debug("data", "Null/undefined Decimal encountered, returning fallback 0");
+            // logger.debug("data", "Null/undefined Decimal encountered, returning fallback 0");
             return new Decimal(0);
         }
 
