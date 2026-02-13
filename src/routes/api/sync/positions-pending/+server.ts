@@ -19,19 +19,37 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { checkAppAuth } from "../../../../lib/server/auth";
+import { z } from "zod";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
 // It receives API keys from the client to perform a signed request to Bitunix.
 // Ensure strictly HTTPS is used. Request bodies are NOT logged on error.
 
+const RequestSchema = z.object({
+  apiKey: z.string().min(1),
+  apiSecret: z.string().min(1),
+});
+
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
-  const { apiKey, apiSecret } = await request.json();
 
-  if (!apiKey || !apiSecret) {
-    return json({ error: "Missing credentials" }, { status: 400 });
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  const result = RequestSchema.safeParse(body);
+  if (!result.success) {
+    return json(
+      { error: "Invalid request data", details: result.error.format() },
+      { status: 400 },
+    );
+  }
+
+  const { apiKey, apiSecret } = result.data;
 
   try {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
