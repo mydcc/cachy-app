@@ -147,4 +147,21 @@ describe('BitunixWebSocketService FastPath Hardening', () => {
 
         expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT_TICKER', expect.anything());
     });
+
+    it('should stay robust when network state is inconsistent during FastPath', () => {
+        // Simulate a scenario where connection status is disconnected but message arrives (race condition)
+        // Access private prop via cast
+        (marketState as any).connectionStatus = 'disconnected';
+
+        const message = {
+            ch: 'ticker',
+            symbol: 'BTCUSDT_RACE',
+            data: { lastPrice: '60000' }
+        };
+
+        handleMessage(message, 'public');
+
+        // Should still process if message arrived
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT_RACE', expect.anything());
+    });
 });
