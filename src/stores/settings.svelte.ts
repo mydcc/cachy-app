@@ -1368,7 +1368,7 @@ export class SettingsManager {
       }
 
       // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
-      let encryptionPassword: string | undefined = undefined;
+      let encryptionPassword: any = undefined;
       let canEncrypt = true;
 
       if (!this.isEncrypted) {
