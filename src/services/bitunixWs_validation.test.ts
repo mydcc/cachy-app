@@ -59,7 +59,7 @@ describe('BitunixWebSocketService FastPath Hardening', () => {
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT_VALID', expect.objectContaining({
             indexPrice: expect.any(Decimal),
             fundingRate: expect.any(Decimal),
-            nextFundingTime: 1700000000000
+            nextFundingTime: "1700000000000"
         }));
 
         // Verify conversion correctness
