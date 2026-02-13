@@ -1132,7 +1132,24 @@
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
       "networkStatus": "Netzwerkstatus",
-      "tipsTitle": "Optimierungstipps"
+      "tipsTitle": "Optimierungstipps",
+      "status": {
+        "critical": "🔴 Kritisch",
+        "warning": "🟡 Warnung",
+        "optimal": "🟢 Optimal",
+        "highUsage": "⚠️ Hohe API-Auslastung",
+        "moderateUsage": "ℹ️ Moderate Auslastung",
+        "normalUsage": "✓ Normale Auslastung",
+        "excellentCaching": "✓ Exzellentes Caching",
+        "goodCaching": "ℹ️ Gutes Caching",
+        "increaseCache": "⚠️ Erwäge Cache zu erhöhen",
+        "excellentLatency": "⚡ Exzellent",
+        "goodLatency": "✓ Gut",
+        "acceptableLatency": "ℹ️ Akzeptabel",
+        "highLatency": "⚠️ Hohe Latenz",
+        "online": "🟢 Online",
+        "offline": "🔴 Offline"
+      }
     },
     "connections": {
       "exchanges": "Börsen",

@@ -190,9 +190,18 @@ class BitunixWebSocketService {
 
     this.instanceId = ++BitunixWebSocketService.instanceCount;
     logger.log("governance", `[BitunixWS] Instance #${this.instanceId} Created`);
+    this.initMonitors();
+  }
+
+  private initMonitors() {
     if (typeof window !== "undefined") {
+      // Ensure we don't duplicate listeners if called multiple times (e.g. revive from destroy)
+      window.removeEventListener("online", this.handleOnline);
+      window.removeEventListener("offline", this.handleOffline);
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
+
+      if (this.globalMonitorInterval) clearInterval(this.globalMonitorInterval);
 
       this.globalMonitorInterval = setInterval(() => {
         if (this.isDestroyed) return;
@@ -297,6 +306,10 @@ class BitunixWebSocketService {
 
   connect(force?: boolean) {
     logger.log("governance", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
+    // Revive monitors if reviving from destroyed state
+    if (this.isDestroyed || !this.globalMonitorInterval) {
+        this.initMonitors();
+    }
     this.isDestroyed = false;
     this.connectPublic(force);
     this.connectPrivate(force);
@@ -844,14 +857,14 @@ class BitunixWebSocketService {
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
-                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
-                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
-                          nextFundingTime: data.nft ? String(data.nft) : undefined
+                          indexPrice: ip ? new Decimal(ip) : undefined,
+                          fundingRate: fr ? new Decimal(fr) : undefined,
+                          nextFundingTime: nft ? Number(nft) : undefined
                         });
                     }
                     return;
                   } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (price)", fastPathError);
                   }
                 }
                 break;
@@ -897,7 +910,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (ticker)", fastPathError);
                   }
                 }
                 break;
@@ -917,7 +930,7 @@ class BitunixWebSocketService {
                     }
                     return;
                   } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
+                    logger.warn("network", "[BitunixWS] FastPath error (depth)", fastPathError);
                   }
                 }
                 break;

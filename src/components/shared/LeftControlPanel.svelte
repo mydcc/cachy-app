@@ -125,6 +125,14 @@
 
   <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
 
+  <!-- Connection Status Indicator -->
+  <div
+      class="flex justify-center my-1"
+      title={marketState.connectionStatus === 'connected' ? 'Online' : 'Offline / Reconnecting'}
+  >
+    <div class="w-3 h-3 rounded-full transition-colors duration-300 {marketState.connectionStatus === 'connected' ? 'bg-[var(--success-color)]' : 'bg-[var(--danger-color)] animate-pulse'}"></div>
+  </div>
+
   <!-- Technicals Toggle -->
   <button
     class="control-btn"
