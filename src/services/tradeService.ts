@@ -229,8 +229,16 @@ class TradeService {
                 ));
 
             if (isTerminalError) {
-                 logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
-                 omsService.removeOrder(clientOrderId);
+                 logger.warn("market", `[FlashClose] Definitive API Failure. Rolling back optimistic order.`);
+                 // UX: Mark as failed immediately so UI can react (e.g., shake effect or removal)
+                 const failedOrder = omsService.getOrder(clientOrderId);
+                 if (failedOrder) {
+                     failedOrder.status = "failed"; // Will be cleaned by OMS
+                     omsService.updateOrder(failedOrder);
+                     setTimeout(() => omsService.removeOrder(clientOrderId), 1000); // Give UI time to animate failure
+                 } else {
+                     omsService.removeOrder(clientOrderId);
+                 }
             } else {
                  // Indeterminate state (Timeout / Network Error)
                  // Mark as unconfirmed

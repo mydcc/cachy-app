@@ -24,6 +24,7 @@
   import { icons } from "../../lib/constants";
   import Tooltip from "./Tooltip.svelte";
   import { trackClick } from "../../lib/actions";
+  import Icon from "./Icon.svelte";
 
   // Additional Icons not in constants (or defined locally for specificity)
   const ICONS = {
@@ -51,7 +52,7 @@
       name: "OpenMarketDashboard",
     }}
   >
-    {@html ICONS.dashboard}
+    <Icon data={ICONS.dashboard} />
   </button>
 
   <!-- Settings Button -->
@@ -65,7 +66,7 @@
       name: "OpenSettings",
     }}
   >
-    {@html icons.settings}
+    <Icon data={icons.settings} />
   </button>
 
   <!-- Academy Button -->
@@ -80,7 +81,7 @@
         name: "OpenAcademy",
       }}
     >
-      {@html ICONS.academy}
+      <Icon data={ICONS.academy} />
     </button>
     <!-- Quiz Progress Bar -->
     {#if quizState.questions.length > 0}
@@ -121,7 +122,7 @@
       name: "OpenAssistant",
     }}
   >
-    {@html ICONS.assistant}
+    <Icon data={ICONS.assistant} />
   </button>
 
   <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
@@ -146,7 +147,7 @@
       (settingsState.showTechnicals = !settingsState.showTechnicals)}
     title={$_("settings.showTechnicals") || "Toggle Technicals"}
   >
-    {@html icons.chart}
+    <Icon data={icons.chart} />
   </button>
 
   <!-- Market Overview Toggle -->
@@ -157,7 +158,7 @@
       (settingsState.showMarketOverview = !settingsState.showMarketOverview)}
     title="Toggle Market Tiles"
   >
-    {@html ICONS.overview}
+    <Icon data={ICONS.overview} />
   </button>
 
   <!-- Sentiment Toggle -->
@@ -168,7 +169,7 @@
       (settingsState.showMarketSentiment = !settingsState.showMarketSentiment)}
     title="Toggle Market Sentiment"
   >
-    {@html ICONS.sentiment}
+    <Icon data={ICONS.sentiment} />
   </button>
 </aside>
 
