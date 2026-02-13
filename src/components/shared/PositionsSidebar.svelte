@@ -326,6 +326,20 @@
     }
   }
 
+  async function handleCancelOrder(orderId: string, symbol: string) {
+    try {
+        const res = (await tradeService.cancelOrder(symbol, orderId)) as any;
+        if (res && res.error) {
+            uiState.showError($_("dashboard.alerts.cancelOrderError", { values: { error: res.error } }) || `Cancel failed: ${res.error}`);
+        } else {
+             uiState.showToast($_("dashboard.alerts.cancelOrderSuccess") || "Order cancelled", "success");
+             fetchOrders("pending");
+        }
+    } catch (e: any) {
+        uiState.showError(e.message || $_("dashboard.alerts.cancelOrderError"));
+    }
+  }
+
   async function handleTpSl(pos: OMSPosition) {
     // Placeholder: Could open a modal or just pre-fill trade inputs
     // For now, let's load it into the Trade Inputs
@@ -460,7 +474,7 @@
           ontpSl={handleTpSl}
         />
       {:else if activeTab === "orders"}
-        <OpenOrdersList
+        <OpenOrdersList oncancel={handleCancelOrder}
           orders={openOrders}
           loading={loadingOrders}
           error={errorOrders}

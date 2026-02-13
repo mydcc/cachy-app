@@ -383,6 +383,16 @@ class TradeService {
         }
     }
 
+    public async cancelOrder(symbol: string, orderId: string) {
+        if (!symbol || !orderId) return;
+        logger.log("market", `[Trade] Cancelling order ${orderId} for ${symbol}`);
+        return await this.signedRequest("POST", "/api/orders", {
+            symbol,
+            orderId,
+            type: "cancel-order"
+        });
+    }
+
     public async cancelAllOrders(symbol: string, throwOnError = false) {
         if (!symbol) return;
         logger.log("market", `[Trade] Cancelling all orders for ${symbol}`);
