@@ -330,7 +330,9 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       ], neckY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawPeak(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Nackenlinie", w * 0.5, neckY + 20, colors.text);
       drawArrow(ctx, w * 0.8, neckY, w * 0.8, neckY + h * 0.2, colors.bearish, 2, "Ausbruchsrichtung", addInteractive);
-      drawText(ctx, "Ausbruch", w * 0.8, neckY + h * 0.2 + 20, colors.bearish);  },
+      drawText(ctx, "Ausbruch", w * 0.8, neckY + h * 0.2 + 20, colors.bearish);
+      }
+    },
   {
     id: "inverseHeadAndShoulders",
     name: "Inverse SKS (iSKS)",
@@ -355,7 +357,9 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       ], neckY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawTrough(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Nackenlinie", w * 0.5, neckY - 15, colors.text);
       drawArrow(ctx, w * 0.8, neckY, w * 0.8, neckY - h * 0.2, colors.bullish, 2, "Ausbruchsrichtung", addInteractive);
-      drawText(ctx, "Ausbruch", w * 0.8, neckY - h * 0.2 - 15, colors.bullish);  },
+      drawText(ctx, "Ausbruch", w * 0.8, neckY - h * 0.2 - 15, colors.bullish);
+      }
+    },
   {
     id: "headAndShouldersTopFailure",
     name: "SKS-Top Fehlausbruch",
@@ -454,7 +458,9 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       ], supportY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawPeak(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Unterstützung", w * 0.5, supportY + 20, colors.text);
       drawArrow(ctx, w * 0.6, supportY, w * 0.6, supportY + h * 0.2, colors.bearish, 2, "Ausbruchsrichtung", addInteractive);
-      drawText(ctx, "Ausbruch", w * 0.6, supportY + h * 0.2 + 20, colors.bearish);  },
+      drawText(ctx, "Ausbruch", w * 0.6, supportY + h * 0.2 + 20, colors.bearish);
+      }
+    },
   {
     id: "doubleBottom",
     name: "Doppelboden",
@@ -478,7 +484,9 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       ], resistanceY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawTrough(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Widerstand", w * 0.5, resistanceY - 10, colors.text);
       drawArrow(ctx, w * 0.6, resistanceY, w * 0.6, resistanceY - h * 0.2, colors.bullish, 2, "Ausbruchsrichtung", addInteractive);
-      drawText(ctx, "Ausbruch", w * 0.6, resistanceY - h * 0.2 - 15, colors.bullish);  },
+      drawText(ctx, "Ausbruch", w * 0.6, resistanceY - h * 0.2 - 15, colors.bullish);
+      }
+    },
   {
     id: "tripleTop",
     name: "Dreifachtop (Triple Top)",
@@ -503,7 +511,9 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       ], supportY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawPeak(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Unterstützung", w * 0.5, supportY + 20, colors.text);
       drawArrow(ctx, w * 0.7, supportY, w * 0.7, supportY + h * 0.2, colors.bearish, 2, "Ausbruchsrichtung", addInteractive);
-      drawText(ctx, "Ausbruch", w * 0.7, supportY + h * 0.2 + 20, colors.bearish);  },
+      drawText(ctx, "Ausbruch", w * 0.7, supportY + h * 0.2 + 20, colors.bearish);
+      }
+    },
   {
     id: "tripleBottom",
     name: "Dreifachboden (Triple Bottom)",
@@ -528,7 +538,9 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       ], resistanceY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawTrough(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Widerstand", w * 0.5, resistanceY - 10, colors.text);
       drawArrow(ctx, w * 0.7, resistanceY, w * 0.7, resistanceY - h * 0.2, colors.bullish, 2, "Ausbruchsrichtung", addInteractive);
-      drawText(ctx, "Ausbruch", w * 0.7, resistanceY - h * 0.2 - 15, colors.bullish);  },
+      drawText(ctx, "Ausbruch", w * 0.7, resistanceY - h * 0.2 - 15, colors.bullish);
+      }
+    },
   {
     id: "fallingWedge",
     name: "Fallender Keil (Falling Wedge)",
