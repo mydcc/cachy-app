@@ -466,6 +466,29 @@
                         </div>
                     {/if}
 
+                    <!-- Automation & Advanced -->
+                    <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4">
+                        <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                             {$_("settings.trading.automationTitle") || "Automation & Advanced"}
+                        </h4>
+
+                        <label class="toggle-card mb-4">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{$_("settings.trading.autoTrading")}</span>
+                                <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.autoTradingDesc")}</span>
+                            </div>
+                            <Toggle bind:checked={settingsState.autoTrading} />
+                        </label>
+
+                        <label class="toggle-card mb-4">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{$_("settings.trading.multiAccount")}</span>
+                                <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.multiAccountDesc")}</span>
+                            </div>
+                            <Toggle bind:checked={settingsState.multiAccount} />
+                        </label>
+                    </div>
+
                     <!-- Granular Settings (Always Visible) -->
                     <div
                         class="border-t border-[var(--border-color)] pt-4 mt-4"
