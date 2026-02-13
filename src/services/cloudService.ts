@@ -22,6 +22,7 @@ import {
 } from '../lib/spacetimedb';
 import GlobalMessageType from '../lib/spacetimedb/global_message_type';
 import type { Infer } from 'spacetimedb';
+import { logger } from './logger';
 
 type GlobalMessage = Infer<typeof GlobalMessageType>;
 
@@ -38,34 +39,33 @@ class CloudService {
   async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
     if (this.connected) return;
 
-    console.log('Connecting to SpacetimeDB...', host);
+    logger.log('network', 'Connecting to SpacetimeDB...', host);
 
-    // Initialize the connection
     try {
       this.conn = DbConnection.builder()
         .withUri(host)
         .withModuleName(dbName)
         .withToken(token || "") // Anonymous or token
         .onConnect((ctx) => {
-          console.log("Connected to SpacetimeDB!", ctx);
+          logger.log('network', 'Connected to SpacetimeDB!', ctx);
           this.connected = true;
 
           // Subscribe to queries
           const sub = this.conn?.subscriptionBuilder();
           if (sub) {
             sub.onApplied((ctx) => {
-              console.log("Subscription applied", ctx);
+              logger.debug('network', 'Subscription applied', ctx);
             })
               .subscribeToAllTables();
           }
         })
         .onDisconnect((ctx) => {
-          console.log("Disconnected from SpacetimeDB", ctx);
+          logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
         })
         .build();
     } catch (e) {
-      console.error("Failed to build/connect SpacetimeDB connection:", e);
+      logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
     }
 
     // Handle row updates with robustness
@@ -75,21 +75,21 @@ class CloudService {
 
       if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
         globalMessageTable.onInsert((ctx: any, row: any) => {
-          console.log("New Message Received:", row);
+          logger.debug('network', 'New Message Received:', row);
           this.messages = [...this.messages, row];
           if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
         });
       } else {
-        console.warn("SpacetimeDB: globalMessage table handle not found or not initialized yet.");
+        logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
       }
     } catch (e) {
-      console.error("Error setting up SpacetimeDB table listeners:", e);
+      logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
     }
   }
 
   sendMessage(text: string) {
     if (!this.connected) {
-      console.warn("Cannot send message: Not connected");
+      logger.warn('network', 'Cannot send message: Not connected');
       return;
     }
     // The reducers object is exported from the generated code and handles calling the server
