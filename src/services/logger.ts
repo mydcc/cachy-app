@@ -37,6 +37,12 @@ export type LogCategory =
     | "data"
     | "ui";
 
+export interface LogOptions {
+    force?: boolean;
+    toast?: boolean;
+    silent?: boolean;
+}
+
 class LoggerService {
 
     private isEnabled(category: LogCategory, force = false): boolean {
@@ -80,26 +86,28 @@ class LoggerService {
         console.warn(`${prefix} ${message}`, data || "");
     }
 
-    error(category: LogCategory, message: string, error?: any, force = true) {
-        if (!this.isEnabled(category, force)) return;
+    error(category: LogCategory, message: string, error?: any, options: LogOptions | boolean = true) {
+        // Normalize options
+        const opts: LogOptions = typeof options === 'boolean'
+            ? { force: options }
+            : options;
 
-        const prefix = `[${category.toUpperCase()}]`;
+        const force = opts.force ?? true; // Default force to true for errors if not specified, matching legacy default
+        const silent = opts.silent ?? false;
 
-        console.error(`${prefix} ${message}`, error || "");
+        // Console output logic
+        if (!silent && this.isEnabled(category, force)) {
+            const prefix = `[${category.toUpperCase()}]`;
+            console.error(`${prefix} ${message}`, error || "");
+        }
 
-        // Auto-toast for critical UI errors, or if specifically requested
-        // For now, we only automatically toast if 'force' is true and category is 'ui'
-        // or if we decide to add a specific parameter.
-        // Let's rely on explicit calls for now to avoid noise, 
-        // BUT the user asked for "silent" errors to be shown.
-        // We can add a 'toast' parameter to the error signature or overload it.
-        // For this refactor, let's keep it simple: existing 'error' calls typically don't expect toasts.
-        // We will add specific instrumentation in the next step.
-    }
+        // Toast logic
+        // Auto-toast if explicitly requested OR if it's a forced UI error (critical UI issue)
+        const shouldToast = opts.toast === true || (category === 'ui' && force === true);
 
-    errorWithToast(category: LogCategory, message: string, error?: any) {
-        this.error(category, message, error, true);
-        toastService.error(message);
+        if (shouldToast) {
+            toastService.error(message);
+        }
     }
 
     debug(category: LogCategory, message: string, data?: any) {
