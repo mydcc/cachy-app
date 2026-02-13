@@ -2043,6 +2043,9 @@
     },
     "title": "Candlestick Akademie"
   },
+  "trade": {
+    "closeAbortedSafety": "Sicherheits-Schließung abgebrochen: Order nicht sofort bestätigt. Prüfen Sie offene Orders."
+  },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",
     "positionMismatch": "Position Seite stimmt nicht überein (erwartet {expected}, erhalten {actual})",

@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { settingsState } from "../../stores/settings.svelte";
+  import { marketState } from "../../stores/market.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { quizState } from "../../stores/quiz.svelte";
   import { _ } from "../../locales/i18n";
@@ -129,8 +130,12 @@
   <div
       class="flex justify-center my-1"
       title={marketState.connectionStatus === 'connected' ? 'Online' : 'Offline / Reconnecting'}
+      data-testid="connection-status-wrapper"
   >
-    <div class="w-3 h-3 rounded-full transition-colors duration-300 {marketState.connectionStatus === 'connected' ? 'bg-[var(--success-color)]' : 'bg-[var(--danger-color)] animate-pulse'}"></div>
+    <div
+      data-testid="connection-status-dot"
+      class="w-3 h-3 rounded-full transition-colors duration-300 {marketState.connectionStatus === 'connected' ? 'bg-[var(--success-color)]' : 'bg-[var(--danger-color)] animate-pulse'}"
+    ></div>
   </div>
 
   <!-- Technicals Toggle -->

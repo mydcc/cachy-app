@@ -1689,6 +1689,7 @@ export type TranslationKey =
   | "candlestickPatterns.advancing_wicks.interpretation"
   | "candlestickPatterns.advancing_wicks.indicatorCombination"
   | "candlestickPatterns.title"
+  | "trade.closeAbortedSafety"
   | "tradeErrors.positionNotFound"
   | "tradeErrors.positionMismatch"
   | "tradeErrors.dataError"
