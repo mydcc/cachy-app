@@ -60,6 +60,7 @@
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import QuizButton from "../components/shared/QuizButton.svelte";
   import FlashCard from "../components/shared/FlashCard.svelte";
+  import Icon from "../components/shared/Icon.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
   import { effectsState } from "../stores/effects.svelte";
 
@@ -321,7 +322,7 @@
               category: "Presets",
               action: "Click",
               name: "SavePreset",
-            }}>{@html icons.save}</button
+            }}><Icon data={icons.save} /></button
           >
           <button
             id="delete-preset-btn"
@@ -333,7 +334,7 @@
               category: "Presets",
               action: "Click",
               name: "DeletePreset",
-            }}>{@html icons.delete}</button
+            }}><Icon data={icons.delete} /></button
           >
           <button
             id="reset-btn"
@@ -344,7 +345,7 @@
               category: "Actions",
               action: "Click",
               name: "ResetAll",
-            }}>{@html icons.broom}</button
+            }}><Icon data={icons.broom} /></button
           >
           <button
             id="theme-switcher"
@@ -357,7 +358,7 @@
               category: "Settings",
               action: "Click",
               name: "SwitchTheme",
-            }}>{@html currentThemeIcon}</button
+            }}><Icon data={currentThemeIcon} /></button
           >
         </div>
         <button
@@ -652,7 +653,7 @@
               category: "Navigation",
               action: "Click",
               name: "ShowInstructions",
-            }}>{@html icons.book}</button
+            }}><Icon data={icons.book} /></button
           >
           {#if uiState.showSaveFeedback}<span
               id="save-feedback"
@@ -790,7 +791,7 @@
         name: "GitHub",
       }}
     >
-      {@html icons.github}
+      <Icon data={icons.github} />
     </a>
     <a
       href="https://deepwiki.com/mydcc/cachy-app"
@@ -804,7 +805,7 @@
         name: "Deepwiki",
       }}
     >
-      {@html icons.deepwiki}
+      <Icon data={icons.deepwiki} />
     </a>
     <button
       class="text-link"

@@ -74,7 +74,7 @@
         onclick={toggleMain}
         oncontextmenu={handleContextMenu}
         aria-label="Toggle Video"
-        title="Left-Click: Toggle Genesis | Right-Click: More Channels"
+        title={$_("app.genesisTooltip")}
     >
         <svg
             viewBox="0 0 24 24"

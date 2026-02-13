@@ -108,7 +108,7 @@
 
                 <div class="api-card mb-6">
                     <div class="header">
-                        <span class="font-bold text-sm">Server Security</span>
+                        <span class="font-bold text-sm">{$_("settings.connections.serverSecurity")}</span>
                         <span class="status-dot {settingsState.appAccessToken ? "connected" : ""}"></span>
                     </div>
                     <div class="body">
@@ -120,7 +120,7 @@
                                     type={showKeys["app_token"] ? "text" : "password"}
                                     bind:value={settingsState.appAccessToken}
                                     class="api-input pr-8"
-                                    placeholder="Enter token configured on server..."
+                                    placeholder={$_("settings.connections.placeholders.token") || "Enter token..."}
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"

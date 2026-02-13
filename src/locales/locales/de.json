@@ -55,7 +55,9 @@
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "connectionStatus": "Verbindungsstatus",
+    "genesisTooltip": "Links-Klick: Toggle Genesis | Rechts-Klick: Mehr Kanäle"
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -1173,6 +1175,7 @@
         "apiKey": "API-Schlüssel",
         "apiSecret": "API-Secret",
         "passphrase": "Passphrase",
+        "token": "Server-Token eingeben...",
         "url": "https://..."
       },
       "providers": {
