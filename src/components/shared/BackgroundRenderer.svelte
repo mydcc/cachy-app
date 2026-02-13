@@ -80,7 +80,11 @@
 </script>
 
 {#if settingsState.backgroundType !== "none"}
-  <div class="background-container">
+  <div
+    class="background-container"
+    class:is-three={settingsState.backgroundType === "threejs" ||
+      settingsState.backgroundType === "tradeflow"}
+  >
     {#if settingsState.backgroundType === "image" && settingsState.backgroundUrl && !imageError}
       <img
         src={settingsState.backgroundUrl}
@@ -115,6 +119,8 @@
 
 <style>
   .three-container {
+    position: relative;
+    inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: auto; /* Enable interaction for ThreeJS */
@@ -126,6 +132,7 @@
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
+    background: var(--bg-primary);
     filter: blur(var(--bg-blur, 0px));
     opacity: var(--bg-opacity, 1);
     transition:
@@ -139,5 +146,9 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
+  }
+  .background-container.is-three {
+    opacity: 1 !important;
+    filter: none !important;
   }
 </style>
