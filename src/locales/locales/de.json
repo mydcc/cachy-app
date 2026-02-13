@@ -1202,7 +1202,12 @@
       "showSentimentAnalysis": "Stimmungsanalyse-Panel anzeigen",
       "showTechnicalAnalysis": "Technische Analyse-Panel anzeigen",
       "historyLength": "Historienlänge (Kerzen)",
-      "moreHistoryDesc": "Mehr Historie = langsameres Laden. (Max: 2000)"
+      "moreHistoryDesc": "Mehr Historie = langsameres Laden. (Max: 2000)",
+      "automationTitle": "Automatisierung & Erweitert",
+      "autoTrading": "Automatisierter Handel (Beta)",
+      "autoTradingDesc": "Aktivieren Sie automatisierte Handelsfunktionen (Demnächst).",
+      "multiAccount": "Multi-Account-Verwaltung",
+      "multiAccountDesc": "Verwalten Sie mehrere Börsenkonten gleichzeitig (Demnächst)."
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",
@@ -2071,5 +2076,10 @@
     "roi": "ROI",
     "margin": "Margin",
     "unrealizedPnl": "uPnL"
+  },
+  "trade": {
+    "apiError": "API-Fehler: {error}",
+    "closeAbortedSafety": "Schließen sicherheitshalber abgebrochen. Offene Orders konnten nicht storniert werden.",
+    "fetchFailed": "Abrufen fehlgeschlagen"
   }
 }
