@@ -832,7 +832,6 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
-
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
@@ -1097,23 +1096,23 @@
       "dashboard": "Dashboard",
       "englishTechnicalTerms": "Englische Fachbegriffe",
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
-    "quickActions": "Schnellaktionen",
-    "debug": {
-      "capabilities": "Fähigkeiten",
-      "context": "Kontext",
-      "engineStats": "Engine Status",
-      "noData": "Keine Daten",
-      "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
-      "columns": {
-        "engine": "Engine",
-        "health": "Gesundheit",
-        "avg": "Ø",
-        "samples": "Proben",
-        "candles": "Kerzen",
-        "time": "Zeit",
-        "memory": "Speicher"
+      "quickActions": "Schnellaktionen",
+      "debug": {
+        "capabilities": "Fähigkeiten",
+        "context": "Kontext",
+        "engineStats": "Engine Status",
+        "noData": "Keine Daten",
+        "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
+        "columns": {
+          "engine": "Engine",
+          "health": "Gesundheit",
+          "avg": "Ø",
+          "samples": "Proben",
+          "candles": "Kerzen",
+          "time": "Zeit",
+          "memory": "Speicher"
+        }
       }
-    }
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -1132,7 +1131,24 @@
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
       "networkStatus": "Netzwerkstatus",
-      "tipsTitle": "Optimierungstipps"
+      "tipsTitle": "Optimierungstipps",
+      "status": {
+        "critical": "🔴 Kritisch",
+        "warning": "🟡 Warnung",
+        "optimal": "🟢 Optimal",
+        "highUsage": "⚠️ Hohe API-Nutzung",
+        "moderateUsage": "ℹ️ Moderate Nutzung",
+        "normalUsage": "✓ Normale Nutzung",
+        "excellentCaching": "✓ Exzellentes Caching",
+        "goodCaching": "ℹ️ Gutes Caching",
+        "increaseCache": "⚠️ Cache-Größe erhöhen",
+        "excellentLatency": "⚡ Exzellent",
+        "goodLatency": "✓ Gut",
+        "acceptableLatency": "ℹ️ Akzeptabel",
+        "highLatency": "⚠️ Hohe Latenz",
+        "online": "🟢 Online",
+        "offline": "🔴 Offline"
+      }
     },
     "connections": {
       "exchanges": "Börsen",
