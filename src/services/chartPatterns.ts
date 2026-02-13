@@ -268,6 +268,40 @@ function addTooltipToPath(addInteractive: AddInteractiveElement, path: Path2D | 
   }
 }
 
+
+function drawPatternSeries(
+  ctx: CanvasRenderingContext2D,
+  elements: Array<{ x: number, y: number, width: number, label?: string, tooltip: string, color: string, labelY?: number }>,
+  baseY: number,
+  drawElement: (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, by: number, c: string, t: string, ai: AddInteractiveElement) => void,
+  addInteractive: AddInteractiveElement,
+  labelColor: string
+) {
+  elements.forEach(el => {
+    drawElement(ctx, el.x, el.y, el.width, baseY, el.color, el.tooltip, addInteractive);
+    if (el.label) {
+      drawText(ctx, el.label, el.x, el.labelY ?? (el.y - 10), labelColor);
+    }
+  });
+}
+
+function drawPricePath(
+  ctx: CanvasRenderingContext2D,
+  points: {x: number, y: number}[],
+  color: string,
+  width: number = 1.5
+) {
+  if (points.length === 0) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
 // --- Pattern Definitions ---
 
 export const CHART_PATTERNS: ChartPatternDefinition[] = [
@@ -289,17 +323,16 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     drawFunction: (ctx, w, h, addInteractive, colors) => {
       const neckY = h * 0.6;
       drawLine(ctx, w * 0.1, neckY, w * 0.9, neckY, colors.text, 2, "Nackenlinie", addInteractive);
-      drawPeak(ctx, w * 0.25, h * 0.4, w * 0.15, neckY, colors.bearishLight, "Linke Schulter", addInteractive);
-      drawPeak(ctx, w * 0.5, h * 0.2, w * 0.2, neckY, colors.bearish, "Kopf", addInteractive);
-      drawPeak(ctx, w * 0.75, h * 0.45, w * 0.15, neckY, colors.bearishLight, "Rechte Schulter", addInteractive);
-      drawText(ctx, "L Schulter", w * 0.25, h * 0.38, colors.highlight);
-      drawText(ctx, "Kopf", w * 0.5, h * 0.18, colors.highlight);
-      drawText(ctx, "R Schulter", w * 0.75, h * 0.43, colors.highlight);
+      drawPatternSeries(ctx, [
+        { x: w * 0.25, y: h * 0.4, width: w * 0.15, label: "L Schulter", tooltip: "Linke Schulter", color: colors.bearishLight, labelY: h * 0.38 },
+        { x: w * 0.5, y: h * 0.2, width: w * 0.2, label: "Kopf", tooltip: "Kopf", color: colors.bearish, labelY: h * 0.18 },
+        { x: w * 0.75, y: h * 0.45, width: w * 0.15, label: "R Schulter", tooltip: "Rechte Schulter", color: colors.bearishLight, labelY: h * 0.43 }
+      ], neckY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawPeak(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Nackenlinie", w * 0.5, neckY + 20, colors.text);
       drawArrow(ctx, w * 0.8, neckY, w * 0.8, neckY + h * 0.2, colors.bearish, 2, "Ausbruchsrichtung", addInteractive);
       drawText(ctx, "Ausbruch", w * 0.8, neckY + h * 0.2 + 20, colors.bearish);
-    }
-  },
+      }
+    },
   {
     id: "inverseHeadAndShoulders",
     name: "Inverse SKS (iSKS)",
@@ -317,17 +350,16 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     drawFunction: (ctx, w, h, addInteractive, colors) => {
       const neckY = h * 0.4;
       drawLine(ctx, w * 0.1, neckY, w * 0.9, neckY, colors.text, 2, "Nackenlinie", addInteractive);
-      drawTrough(ctx, w * 0.25, h * 0.6, w * 0.15, neckY, colors.bullishLight, "Linke Schulter", addInteractive);
-      drawTrough(ctx, w * 0.5, h * 0.8, w * 0.2, neckY, colors.bullish, "Kopf", addInteractive);
-      drawTrough(ctx, w * 0.75, h * 0.55, w * 0.15, neckY, colors.bullishLight, "Rechte Schulter", addInteractive);
-      drawText(ctx, "L Schulter", w * 0.25, h * 0.62, colors.highlight);
-      drawText(ctx, "Kopf", w * 0.5, h * 0.82, colors.highlight);
-      drawText(ctx, "R Schulter", w * 0.75, h * 0.57, colors.highlight);
+      drawPatternSeries(ctx, [
+        { x: w * 0.25, y: h * 0.6, width: w * 0.15, label: "L Schulter", tooltip: "Linke Schulter", color: colors.bullishLight, labelY: h * 0.62 },
+        { x: w * 0.5, y: h * 0.8, width: w * 0.2, label: "Kopf", tooltip: "Kopf", color: colors.bullish, labelY: h * 0.82 },
+        { x: w * 0.75, y: h * 0.55, width: w * 0.15, label: "R Schulter", tooltip: "Rechte Schulter", color: colors.bullishLight, labelY: h * 0.57 }
+      ], neckY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawTrough(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Nackenlinie", w * 0.5, neckY - 15, colors.text);
       drawArrow(ctx, w * 0.8, neckY, w * 0.8, neckY - h * 0.2, colors.bullish, 2, "Ausbruchsrichtung", addInteractive);
       drawText(ctx, "Ausbruch", w * 0.8, neckY - h * 0.2 - 15, colors.bullish);
-    }
-  },
+      }
+    },
   {
     id: "headAndShouldersTopFailure",
     name: "SKS-Top Fehlausbruch",
@@ -420,15 +452,15 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       const supportY = h * 0.7;
       const peakY = h * 0.3;
       drawLine(ctx, w * 0.1, supportY, w * 0.9, supportY, colors.text, 2, "Unterstützungslinie", addInteractive);
-      drawPeak(ctx, w * 0.3, peakY, w * 0.2, supportY, colors.bearishLight, "Erstes Hoch", addInteractive);
-      drawPeak(ctx, w * 0.7, peakY, w * 0.2, supportY, colors.bearishLight, "Zweites Hoch", addInteractive);
-      drawText(ctx, "Hoch 1", w * 0.3, peakY - 10, colors.highlight);
-      drawText(ctx, "Hoch 2", w * 0.7, peakY - 10, colors.highlight);
+      drawPatternSeries(ctx, [
+        { x: w * 0.3, y: peakY, width: w * 0.2, label: "Hoch 1", tooltip: "Erstes Hoch", color: colors.bearishLight, labelY: peakY - 10 },
+        { x: w * 0.7, y: peakY, width: w * 0.2, label: "Hoch 2", tooltip: "Zweites Hoch", color: colors.bearishLight, labelY: peakY - 10 }
+      ], supportY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawPeak(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Unterstützung", w * 0.5, supportY + 20, colors.text);
       drawArrow(ctx, w * 0.6, supportY, w * 0.6, supportY + h * 0.2, colors.bearish, 2, "Ausbruchsrichtung", addInteractive);
       drawText(ctx, "Ausbruch", w * 0.6, supportY + h * 0.2 + 20, colors.bearish);
-    }
-  },
+      }
+    },
   {
     id: "doubleBottom",
     name: "Doppelboden",
@@ -446,15 +478,15 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       const resistanceY = h * 0.3;
       const troughY = h * 0.7;
       drawLine(ctx, w * 0.1, resistanceY, w * 0.9, resistanceY, colors.text, 2, "Widerstandslinie", addInteractive);
-      drawTrough(ctx, w * 0.3, troughY, w * 0.2, resistanceY, colors.bullishLight, "Erstes Tief", addInteractive);
-      drawTrough(ctx, w * 0.7, troughY, w * 0.2, resistanceY, colors.bullishLight, "Zweites Tief", addInteractive);
-      drawText(ctx, "Tief 1", w * 0.3, troughY + 20, colors.highlight);
-      drawText(ctx, "Tief 2", w * 0.7, troughY + 20, colors.highlight);
+      drawPatternSeries(ctx, [
+        { x: w * 0.3, y: troughY, width: w * 0.2, label: "Tief 1", tooltip: "Erstes Tief", color: colors.bullishLight, labelY: troughY + 20 },
+        { x: w * 0.7, y: troughY, width: w * 0.2, label: "Tief 2", tooltip: "Zweites Tief", color: colors.bullishLight, labelY: troughY + 20 }
+      ], resistanceY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawTrough(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Widerstand", w * 0.5, resistanceY - 10, colors.text);
       drawArrow(ctx, w * 0.6, resistanceY, w * 0.6, resistanceY - h * 0.2, colors.bullish, 2, "Ausbruchsrichtung", addInteractive);
       drawText(ctx, "Ausbruch", w * 0.6, resistanceY - h * 0.2 - 15, colors.bullish);
-    }
-  },
+      }
+    },
   {
     id: "tripleTop",
     name: "Dreifachtop (Triple Top)",
@@ -472,17 +504,16 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       const supportY = h * 0.7;
       const peakY = h * 0.3;
       drawLine(ctx, w * 0.1, supportY, w * 0.9, supportY, colors.text, 2, "Unterstützungslinie", addInteractive);
-      drawPeak(ctx, w * 0.2, peakY, w * 0.15, supportY, colors.bearishLight, "Hoch 1", addInteractive);
-      drawPeak(ctx, w * 0.5, peakY, w * 0.15, supportY, colors.bearishLight, "Hoch 2", addInteractive);
-      drawPeak(ctx, w * 0.8, peakY, w * 0.15, supportY, colors.bearishLight, "Hoch 3", addInteractive);
-      drawText(ctx, "H1", w * 0.2, peakY - 10, colors.highlight);
-      drawText(ctx, "H2", w * 0.5, peakY - 10, colors.highlight);
-      drawText(ctx, "H3", w * 0.8, peakY - 10, colors.highlight);
+      drawPatternSeries(ctx, [
+        { x: w * 0.2, y: peakY, width: w * 0.15, label: "H1", tooltip: "Hoch 1", color: colors.bearishLight, labelY: peakY - 10 },
+        { x: w * 0.5, y: peakY, width: w * 0.15, label: "H2", tooltip: "Hoch 2", color: colors.bearishLight, labelY: peakY - 10 },
+        { x: w * 0.8, y: peakY, width: w * 0.15, label: "H3", tooltip: "Hoch 3", color: colors.bearishLight, labelY: peakY - 10 }
+      ], supportY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawPeak(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Unterstützung", w * 0.5, supportY + 20, colors.text);
       drawArrow(ctx, w * 0.7, supportY, w * 0.7, supportY + h * 0.2, colors.bearish, 2, "Ausbruchsrichtung", addInteractive);
       drawText(ctx, "Ausbruch", w * 0.7, supportY + h * 0.2 + 20, colors.bearish);
-    }
-  },
+      }
+    },
   {
     id: "tripleBottom",
     name: "Dreifachboden (Triple Bottom)",
@@ -500,17 +531,16 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       const resistanceY = h * 0.3;
       const troughY = h * 0.7;
       drawLine(ctx, w * 0.1, resistanceY, w * 0.9, resistanceY, colors.text, 2, "Widerstandslinie", addInteractive);
-      drawTrough(ctx, w * 0.2, troughY, w * 0.15, resistanceY, colors.bullishLight, "Tief 1", addInteractive);
-      drawTrough(ctx, w * 0.5, troughY, w * 0.15, resistanceY, colors.bullishLight, "Tief 2", addInteractive);
-      drawTrough(ctx, w * 0.8, troughY, w * 0.15, resistanceY, colors.bullishLight, "Tief 3", addInteractive);
-      drawText(ctx, "T1", w * 0.2, troughY + 20, colors.highlight);
-      drawText(ctx, "T2", w * 0.5, troughY + 20, colors.highlight);
-      drawText(ctx, "T3", w * 0.8, troughY + 20, colors.highlight);
+      drawPatternSeries(ctx, [
+        { x: w * 0.2, y: troughY, width: w * 0.15, label: "T1", tooltip: "Tief 1", color: colors.bullishLight, labelY: troughY + 20 },
+        { x: w * 0.5, y: troughY, width: w * 0.15, label: "T2", tooltip: "Tief 2", color: colors.bullishLight, labelY: troughY + 20 },
+        { x: w * 0.8, y: troughY, width: w * 0.15, label: "T3", tooltip: "Tief 3", color: colors.bullishLight, labelY: troughY + 20 }
+      ], resistanceY, (ctx, x, y, width, baseY, color, tooltip, addInteractive) => drawTrough(ctx, x, y, width, baseY, color, tooltip, addInteractive), addInteractive, colors.highlight);
       drawText(ctx, "Widerstand", w * 0.5, resistanceY - 10, colors.text);
       drawArrow(ctx, w * 0.7, resistanceY, w * 0.7, resistanceY - h * 0.2, colors.bullish, 2, "Ausbruchsrichtung", addInteractive);
       drawText(ctx, "Ausbruch", w * 0.7, resistanceY - h * 0.2 - 15, colors.bullish);
-    }
-  },
+      }
+    },
   {
     id: "fallingWedge",
     name: "Fallender Keil (Falling Wedge)",
@@ -535,15 +565,13 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       drawLineWithLabel(ctx, w, h, startX, startResistanceY, endX, endResistanceY, colors.text, 2, "Widerstand", addInteractive);
       drawLineWithLabel(ctx, w, h, startX, startSupportY, endX, endSupportY, colors.text, 2, "Unterstützung", addInteractive);
 
-      ctx.beginPath();
-      ctx.moveTo(startX + w * 0.05, startResistanceY + h * 0.02);
-      ctx.lineTo(startX + w * 0.2, startSupportY + h * 0.05);
-      ctx.lineTo(startX + w * 0.35, ((startResistanceY + endResistanceY) / 2) * 0.9);
-      ctx.lineTo(startX + w * 0.5, ((startSupportY + endSupportY) / 2) * 1.05);
-      ctx.lineTo(startX + w * 0.65, endResistanceY * 0.95);
-      ctx.strokeStyle = colors.neutral;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+            drawPricePath(ctx, [
+        { x: startX + w * 0.05, y: startResistanceY + h * 0.02 },
+        { x: startX + w * 0.2, y: startSupportY + h * 0.05 },
+        { x: startX + w * 0.35, y: ((startResistanceY + endResistanceY) / 2) * 0.9 },
+        { x: startX + w * 0.5, y: ((startSupportY + endSupportY) / 2) * 1.05 },
+        { x: startX + w * 0.65, y: endResistanceY * 0.95 }
+      ], colors.neutral, 1.5);
 
       drawArrow(ctx, endX * 0.9, endResistanceY, endX * 0.9, endResistanceY - h * 0.2, colors.bullish, 2, "Bullischer Ausbruch", addInteractive);
       drawText(ctx, "Ausbruch", endX * 0.9, endResistanceY - h * 0.2 - 15, colors.bullish);
@@ -573,15 +601,13 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       drawLineWithLabel(ctx, w, h, startX, startSupportY, endX, endSupportY, colors.text, 2, "Unterstützung", addInteractive);
       drawLineWithLabel(ctx, w, h, startX, startResistanceY, endX, endResistanceY, colors.text, 2, "Widerstand", addInteractive);
 
-      ctx.beginPath();
-      ctx.moveTo(startX + w * 0.05, startSupportY - h * 0.02);
-      ctx.lineTo(startX + w * 0.2, startResistanceY - h * 0.05);
-      ctx.lineTo(startX + w * 0.35, ((startSupportY + endSupportY) / 2) * 1.1);
-      ctx.lineTo(startX + w * 0.5, ((startResistanceY + endResistanceY) / 2) * 0.95);
-      ctx.lineTo(startX + w * 0.65, endSupportY * 1.05);
-      ctx.strokeStyle = colors.bearishLight;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+            drawPricePath(ctx, [
+        { x: startX + w * 0.05, y: startSupportY - h * 0.02 },
+        { x: startX + w * 0.2, y: startResistanceY - h * 0.05 },
+        { x: startX + w * 0.35, y: ((startSupportY + endSupportY) / 2) * 1.1 },
+        { x: startX + w * 0.5, y: ((startResistanceY + endResistanceY) / 2) * 0.95 },
+        { x: startX + w * 0.65, y: endSupportY * 1.05 }
+      ], colors.bearishLight, 1.5);
 
       drawArrow(ctx, endX * 0.9, endSupportY, endX * 0.9, endSupportY + h * 0.2, colors.bearish, 2, "Bärischer Ausbruch", addInteractive);
       drawText(ctx, "Ausbruch", endX * 0.9, endSupportY + h * 0.2 + 15, colors.bearish);
@@ -1496,16 +1522,14 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       drawLineWithLabel(ctx, w, h, startX, topStartY, endX, topEndY, colors.text, 2, "Widerstand", addInteractive);
       drawLineWithLabel(ctx, w, h, startX, botStartY, endX, botEndY, colors.text, 2, "Unterstützung", addInteractive);
 
-      ctx.beginPath();
-      ctx.moveTo(startX + w * 0.05, botStartY - h * 0.03);
-      ctx.lineTo(startX + w * 0.2, topStartY + h * 0.03);
-      ctx.lineTo(startX + w * 0.35, botStartY - h * 0.08);
-      ctx.lineTo(startX + w * 0.5, topStartY - h * 0.02);
-      ctx.lineTo(startX + w * 0.65, botEndY + h * 0.03);
-      ctx.lineTo(startX + w * 0.8, topEndY + h * 0.05);
-      ctx.strokeStyle = colors.bullish;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+            drawPricePath(ctx, [
+        { x: startX + w * 0.05, y: botStartY - h * 0.03 },
+        { x: startX + w * 0.2, y: topStartY + h * 0.03 },
+        { x: startX + w * 0.35, y: botStartY - h * 0.08 },
+        { x: startX + w * 0.5, y: topStartY - h * 0.02 },
+        { x: startX + w * 0.65, y: botEndY + h * 0.03 },
+        { x: startX + w * 0.8, y: topEndY + h * 0.05 }
+      ], colors.bullish, 1.5);
 
       drawArrow(ctx, endX * 0.9, topEndY, endX * 0.9, topEndY - h * 0.1, colors.bullish, 1.5, "Mögl. Fortsetzung", addInteractive);
     }
@@ -1525,16 +1549,14 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       drawLineWithLabel(ctx, w, h, startX, topStartY, endX, topEndY, colors.text, 2, "Widerstand", addInteractive);
       drawLineWithLabel(ctx, w, h, startX, botStartY, endX, botEndY, colors.text, 2, "Unterstützung", addInteractive);
 
-      ctx.beginPath();
-      ctx.moveTo(startX + w * 0.05, topStartY + h * 0.03);
-      ctx.lineTo(startX + w * 0.2, botStartY - h * 0.03);
-      ctx.lineTo(startX + w * 0.35, topStartY + h * 0.08);
-      ctx.lineTo(startX + w * 0.5, botStartY - h * 0.02);
-      ctx.lineTo(startX + w * 0.65, topEndY + h * 0.03);
-      ctx.lineTo(startX + w * 0.8, botEndY - h * 0.05);
-      ctx.strokeStyle = colors.bearish;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+            drawPricePath(ctx, [
+        { x: startX + w * 0.05, y: topStartY + h * 0.03 },
+        { x: startX + w * 0.2, y: botStartY - h * 0.03 },
+        { x: startX + w * 0.35, y: topStartY + h * 0.08 },
+        { x: startX + w * 0.5, y: botStartY - h * 0.02 },
+        { x: startX + w * 0.65, y: topEndY + h * 0.03 },
+        { x: startX + w * 0.8, y: botEndY - h * 0.05 }
+      ], colors.bearish, 1.5);
 
       drawArrow(ctx, endX * 0.9, botEndY, endX * 0.9, botEndY + h * 0.1, colors.bearish, 1.5, "Mögl. Fortsetzung", addInteractive);
     }
@@ -1555,14 +1577,12 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       drawLineWithLabel(ctx, w, h, rectStartX, resistanceY, rectEndX, resistanceY, colors.text, 2, "Widerstand", addInteractive);
       drawLineWithLabel(ctx, w, h, rectStartX, supportY, rectEndX, supportY, colors.text, 2, "Unterstützung", addInteractive);
 
-      ctx.beginPath();
-      ctx.moveTo(rectStartX + w * 0.02, supportY - h * 0.02);
-      ctx.lineTo(rectStartX + w * 0.1, resistanceY + h * 0.02);
-      ctx.lineTo(rectStartX + w * 0.2, supportY - h * 0.02);
-      ctx.lineTo(rectStartX + w * 0.3, resistanceY + h * 0.02);
-      ctx.strokeStyle = colors.neutral;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+            drawPricePath(ctx, [
+        { x: rectStartX + w * 0.02, y: supportY - h * 0.02 },
+        { x: rectStartX + w * 0.1, y: resistanceY + h * 0.02 },
+        { x: rectStartX + w * 0.2, y: supportY - h * 0.02 },
+        { x: rectStartX + w * 0.3, y: resistanceY + h * 0.02 }
+      ], colors.neutral, 1.5);
 
       drawArrow(ctx, rectEndX, resistanceY, rectEndX + w * 0.1, resistanceY - h * 0.15, colors.bullish, 2, "Ausbruch", addInteractive);
     }
@@ -1583,14 +1603,12 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
       drawLineWithLabel(ctx, w, h, rectStartX, resistanceY, rectEndX, resistanceY, colors.text, 2, "Widerstand", addInteractive);
       drawLineWithLabel(ctx, w, h, rectStartX, supportY, rectEndX, supportY, colors.text, 2, "Unterstützung", addInteractive);
 
-      ctx.beginPath();
-      ctx.moveTo(rectStartX + w * 0.02, resistanceY + h * 0.02);
-      ctx.lineTo(rectStartX + w * 0.1, supportY - h * 0.02);
-      ctx.lineTo(rectStartX + w * 0.2, resistanceY + h * 0.02);
-      ctx.lineTo(rectStartX + w * 0.3, supportY - h * 0.02);
-      ctx.strokeStyle = colors.bearishLight;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+            drawPricePath(ctx, [
+        { x: rectStartX + w * 0.02, y: resistanceY + h * 0.02 },
+        { x: rectStartX + w * 0.1, y: supportY - h * 0.02 },
+        { x: rectStartX + w * 0.2, y: resistanceY + h * 0.02 },
+        { x: rectStartX + w * 0.3, y: supportY - h * 0.02 }
+      ], colors.bearishLight, 1.5);
 
       drawArrow(ctx, rectEndX, supportY, rectEndX + w * 0.1, supportY + h * 0.15, colors.bearish, 2, "Ausbruch", addInteractive);
     }
