@@ -2048,10 +2048,7 @@
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",
     "positionMismatch": "Position Seite stimmt nicht überein (erwartet {expected}, erhalten {actual})",
-    "dataError": "Dateninkonsistenz erkannt",
-    "fetchFailed": "Abruf von Handelsdaten fehlgeschlagen.",
-    "closeAllFailed": "Fehler beim Schließen aller Positionen.",
-    "apiError": "API Fehler: {error}"
+    "dataError": "Dateninkonsistenz erkannt"
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",

@@ -80,14 +80,7 @@ class BitunixWebSocketService {
     if (!this.tradeListeners.has(s)) {
       this.tradeListeners.set(s, new Set());
     }
-    const listeners = this.tradeListeners.get(s)!;
-    listeners.add(callback);
-
-    // LEAK DETECTION: Warn if too many listeners attached
-    if (listeners.size > 20) {
-         logger.warn("network", `[BitunixWS] High listener count for ${s} (${listeners.size}). Potential memory leak?`);
-    }
-
+    this.tradeListeners.get(s)!.add(callback);
     return () => {
       const listeners = this.tradeListeners.get(s);
       if (listeners) {
@@ -169,9 +162,6 @@ class BitunixWebSocketService {
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
   private readonly THROTTLE_TTL = 5000;
-
-  // Synthetic Subscriptions (Aggregation)
-  private syntheticSubs = new Map<string, number>();
 
   private pruneThrottleMap() {
     const now = Date.now();
@@ -837,68 +827,93 @@ class BitunixWebSocketService {
       // [HYBRID FIX] Normalize channel (Bitunix sometimes sends 'topic' instead of 'ch')
       const channel = message.ch || message.topic;
 
-      // --- FAST PATH OPTIMIZATION (HARDENED) ---
-      // This block manually parses/casts data to avoid Zod overhead for high-frequency events.
-      // HARDENING: Wrapped in a robust try-catch to ensure any parsing error falls back to Zod.
-      // HARDENING: Added explicit string casting for all numeric financial fields.
+      // --- FAST PATH OPTIMIZATION ---
+      // [MAINTENANCE WARNING]
+      // This block manually parses/casts data to avoid Zod overhead for high-frequency events (Price/Ticker/Depth).
+      // If the API schema changes, this block MUST be updated manually.
+      // Any error here is caught silently (in Prod) and falls back to the standard Zod validation path below.
 
+      // Check high-frequency messages (price, ticker, depth) BEFORE expensive Zod validation
+      // Wrapped in try-catch to prevent crashing the entire socket handler
       try {
         if (message && channel) {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data;
 
-          // Common guard for object data
+          // Common guard for object data (price, ticker, kline) - Ensure strict object type
           const isObjectData = data && typeof data === "object" && !Array.isArray(data);
 
           if (isObjectData) {
-            // Helper for Safe String Casting (Prevents Precision Loss)
-            const safeString = (val: any, fieldName: string) => {
-              if (typeof val === 'number') {
-                // Check if it exceeds safe integer range (informational)
-                if (!Number.isSafeInteger(val) && val % 1 === 0) {
-                   logger.warn("network", `[BitunixWS] PRECISION LOSS: ${fieldName} for ${symbol} is unsafe integer: ${val}`);
-                }
-                return String(val);
-              }
-              if (val === undefined || val === null) return undefined;
-              return String(val);
-            };
-
             switch (channel) {
-              case "price": {
-                // Fast path for price updates
-                // Manually validate critical fields existence
-                if (data.ip || data.fr || data.lastPrice) {
+              case "price":
+                // HARDENING: Use Strict Zod Validation instead of loose casting
+                const priceRes = StrictPriceDataSchema.safeParse(data);
+                if (symbol && priceRes.success) {
+                  try {
+                    // HARDENING: Direct property access + Warning on Numeric Types
+                    const safeString = (val: any, fieldName: string) => {
+                        if (typeof val === 'number') {
+                            const now = Date.now();
+                            if (now - this.lastNumericWarning > 60000) {
+                                logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Value: ${val}. Precision loss possible.`);
+                                this.lastNumericWarning = now;
+                            }
+                            return String(val);
+                        }
+                        return val;
+                    };
+
                     const ip = safeString(data.ip, 'indexPrice');
                     const fr = safeString(data.fr, 'fundingRate');
-                    const nft = data.nft ? Number(data.nft) : undefined;
+                    const nft = data.nft ? String(data.nft) : undefined;
+
+                    // Check precision loss on lastPrice if present (though we don't use it currently)
+                    if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
+                         safeString(data.lastPrice || data.lp, 'lastPrice');
+                    }
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
                           fundingRate: fr ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft
+                          nextFundingTime: nft ? Number(nft) : undefined
                         });
                     }
-                    return; // Successfully handled
+                    return;
+                  } catch (fastPathError) {
+                    logger.warn("network", "[BitunixWS] FastPath error (price)", fastPathError);
+                  }
                 }
                 break;
-              }
 
-              case "ticker": {
-                 // Fast path for ticker
-                 // Manually validate critical fields existence
-                 if (data.lastPrice || data.close || data.volume) {
-                    // MUTATION OPTIMIZATION: Cast in place to avoid full object clone
-                    // Safe because 'message' is transient
+              case "ticker":
+                const tickerRes = StrictTickerDataSchema.safeParse(data);
+                if (symbol && tickerRes.success) {
+                  try {
+                    const safeString = (val: any, fieldName: string) => {
+                        if (typeof val === 'number') {
+                            const now = Date.now();
+                            if (now - this.lastNumericWarning > 60000) {
+                                logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Casting to string.`);
+                                this.lastNumericWarning = now;
+                            }
+                            return String(val);
+                        }
+                        return val;
+                    };
+
+                    // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
+                    // Avoiding full object allocation/clone for high frequency ticker
                     if (typeof data.lastPrice === 'number') data.lastPrice = safeString(data.lastPrice, 'lastPrice');
                     if (typeof data.high === 'number') data.high = safeString(data.high, 'high');
                     if (typeof data.low === 'number') data.low = safeString(data.low, 'low');
                     if (typeof data.volume === 'number') data.volume = safeString(data.volume, 'volume');
                     if (typeof data.quoteVolume === 'number') data.quoteVolume = safeString(data.quoteVolume, 'quoteVolume');
-                    if (typeof data.priceChangePercent === 'number') data.priceChangePercent = safeString(data.priceChangePercent, 'priceChangePercent');
+                    if (typeof data.v === 'number') data.v = safeString(data.v, 'v');
+                    if (typeof data.close === 'number') data.close = safeString(data.close, 'close');
 
+                    // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
                     const normalized = mdaService.normalizeTicker(message, "bitunix");
 
                     if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
@@ -911,29 +926,39 @@ class BitunixWebSocketService {
                         priceChangePercent: normalized.priceChangePercent
                       });
                     }
-                    return; // Successfully handled
-                 }
-                 break;
-              }
+                    return;
+                  } catch (fastPathError) {
+                    logger.warn("network", "[BitunixWS] FastPath error (ticker)", fastPathError);
+                  }
+                }
+                break;
 
-              case "depth_book5": {
-                 // Fast path for depth
-                 if (Array.isArray(data.b) && Array.isArray(data.a)) {
-                     // Ensure bid/ask tuples are string[][]
-                     // Zod usually handles this, but here we assume API is decent or downstream handles it
-                     if (!this.shouldThrottle(`${symbol}:depth`)) {
-                        marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
-                     }
-                     return;
-                 }
-                 break;
-              }
+              case "depth_book5":
+                const depthRes = StrictDepthDataSchema.safeParse(data);
+                if (symbol && depthRes.success) {
+                  try {
+                    const sData = depthRes.data;
+                    // Zod transform has already ensured all nested numbers are strings
+                    // However, we need to map to simple tuple arrays [string, string][] as expected by marketState
+                    const bids = sData.b as [string, string][];
+                    const asks = sData.a as [string, string][];
+
+                    if (!this.shouldThrottle(`${symbol}:depth`)) {
+                      marketState.updateDepth(symbol, { bids, asks });
+                    }
+                    return;
+                  } catch (fastPathError) {
+                    logger.warn("network", "[BitunixWS] FastPath error (depth)", fastPathError);
+                  }
+                }
+                break;
 
               default:
                 // Klines (dynamic channel names)
                 if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
-                    const d = data as any;
-                    if (d && (d.close || d.c || d.open || d.o)) {
+                    try {
+                        const d = data as any;
+                        if (d && (d.close || d.c || d.open || d.o)) {
                           let timeframe = "1h";
                           if (channel === "mark_kline_1day") timeframe = "1d";
                           else {
@@ -946,6 +971,12 @@ class BitunixWebSocketService {
                               };
                               timeframe = revMap[bitunixTf] || bitunixTf;
                             }
+                          }
+
+                          if (timeframe === '15m' || timeframe === '30m') {
+                              if (import.meta.env.DEV) {
+                                  logger.log("network", `[BitunixWS] Received ${channel} -> mapped to ${timeframe}. Data:`, d);
+                              }
                           }
 
                           let candleStart = 0;
@@ -965,7 +996,10 @@ class BitunixWebSocketService {
                           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
 
                           // [SYNTHETIC] Dynamic Support
-                          if (this.syntheticSubs.size > 0) {
+                          // Iterate active synthetic subscriptions to see if any depend on this update
+                          // @ts-ignore
+                          if (this.syntheticSubs) {
+                              // @ts-ignore
                               for (const [key, count] of this.syntheticSubs.entries()) {
                                   // key format: "SYMBOL:TF"
                                   const parts = key.split(":");
@@ -974,7 +1008,28 @@ class BitunixWebSocketService {
                                   const subSymbol = parts[0];
                                   const subTf = parts[1];
                                   
-                                  // Normalize symbol for comparison
+                                  // Optimization: Only check if symbol matches first
+                                  if (subSymbol !== symbol) continue; // Note: symbol is already normalized in local context?
+                                  // Wait, `symbol` arg in handleMessage comes from `normalizedSymbol` or raw?
+                                  // `const symbol = message.data.symbol` is raw.
+                                  // The key uses `normalizedSymbol`.
+                                  // We must normalize `symbol` here to compare?
+                                  // In handleMessage: `const symbol = message.data. symbol;` which is e.g. "BTCUSDT".
+                                  // `normalizeKlines` uses "bitunix".
+                                  // My sub keys use `normalizeSymbol(symbol, "bitunix")`.
+                                  // So I should compare against normalized.
+                                  // `const normalizedMessageSymbol = normalizeSymbol(symbol, "bitunix");`
+                                  // But `marketState.updateSymbolKlines` uses `symbol` (raw?).
+                                  // Let's check typical usage. `subscribe` normalizes.
+                                  // `handleMessage` (line ~900): `const symbol = message.data.symbol;`
+                                  // This is likely raw "BTCUSDT" or "BTC-USDT".
+                                  // bitunixWs uses `normalizeSymbol` in subscribe.
+                                  // If handleMessage receives "BTCUSDT", and subscribe put "BTCUSDT" in key...
+                                  // Actually `normalizeSymbol` removes hyphens mostly.
+
+                                  // Let's assume strict match on symbol specific to WS message.
+                                  // Wait, if `syntheticSubs` has normalized, and `message` has raw...
+                                  // I should normalize message symbol before compare.
                                   const msgSymbolNorm = normalizeSymbol(symbol, "bitunix");
                                   if (subSymbol !== msgSymbolNorm) continue;
 
@@ -1027,18 +1082,21 @@ class BitunixWebSocketService {
                                   }
                               }
                           }
-                          return; // Successfully handled
+
+                        }
+                        return;
+                    } catch (fastPathError) {
+                        if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
+                    }
                 }
                 break;
             }
           }
         }
-      }
       } catch (e) {
-          // Fallback to standard validation if FastPath fails
-          if (import.meta.env.DEV) {
-            logger.warn("network", "[BitunixWS] FastPath Exception (falling back to Zod)", e);
-          }
+        if (import.meta.env.DEV) {
+          logger.warn("network", "[BitunixWS] FastPath exception (falling back to std validation)", e);
+        }
       }
       // --- END FAST PATH ---
 
@@ -1317,7 +1375,11 @@ class BitunixWebSocketService {
         targetChannel = `kline_${resolved.base}`;
         const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
         
+        // @ts-ignore
+        if (!this.syntheticSubs) this.syntheticSubs = new Map<string, number>();
+        // @ts-ignore
         const count = this.syntheticSubs.get(synthKey) || 0;
+        // @ts-ignore
         this.syntheticSubs.set(synthKey, count + 1);
         
         if (import.meta.env.DEV) {

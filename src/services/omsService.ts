@@ -79,11 +79,6 @@ class OrderManagementSystem {
     public removeOrphanedOptimistic(thresholdMs: number) {
         const now = Date.now();
         for (const [id, order] of this.orders) {
-            // [UX HARDENING] If order is explicitly marked as failed, remove immediately
-            if (order.status === "failed") {
-                this.orders.delete(id);
-                continue;
-            }
             if (order._isOptimistic && (now - order.timestamp) > thresholdMs) {
                 this.orders.delete(id);
                 logger.warn("market", `[OMS] Removed orphaned optimistic order: ${id}`);

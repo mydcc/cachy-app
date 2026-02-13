@@ -33,7 +33,6 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw, TpSlOrderSchema } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
-import { ApiClient, ApiError } from "./apiClient";
 
 export interface TpSlOrder {
     orderId: string;
@@ -49,19 +48,17 @@ export interface TpSlOrder {
     [key: string]: any;
 }
 
-// Deprecated: Alias for compatibility with existing tests
-// New code should use ApiError from ./apiClient
-export class BitunixApiError extends ApiError {
-    constructor(code: number | string, message?: string) {
-        super(message || `Bitunix API Error ${code}`, code, 400); // Default status 400 for legacy compat
+export class BitunixApiError extends Error {
+    constructor(public code: number | string, message?: string) {
+        super(message || `Bitunix API Error ${code}`);
         this.name = "BitunixApiError";
     }
 }
 
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "trade.positionNotFound",
-    FETCH_FAILED: "tradeErrors.fetchFailed",
-    CLOSE_ALL_FAILED: "tradeErrors.closeAllFailed"
+    FETCH_FAILED: "trade.fetchFailed",
+    CLOSE_ALL_FAILED: "trade.closeAllFailed"
 };
 
 export class TradeError extends Error {
@@ -79,6 +76,8 @@ class TradeService {
         endpoint: string,
         payload: Record<string, any>
     ): Promise<T> {
+        // Implementation for real app (simplified)
+        // In test this is mocked
         const provider = settingsState.apiProvider;
         const keys = settingsState.apiKeys[provider];
 
@@ -87,19 +86,81 @@ class TradeService {
         }
 
         const headers: Record<string, string> = {
-            "X-Provider": provider,
-            ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {})
+            "Content-Type": "application/json",
+            "X-Provider": provider, ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {})
         };
 
-        // Inject keys into payload for backend signing
-        const finalPayload = {
-            ...payload,
-            apiKey: keys.key,
-            apiSecret: keys.secret,
-            passphrase: keys.passphrase
-        };
+        // Deep serialize Decimals to strings before JSON.stringify
+        const serializedPayload = this.serializePayload(payload);
 
-        return ApiClient.request<T>(method, endpoint, finalPayload, headers);
+        const response = await fetch(endpoint, {
+            method,
+            headers,
+            body: JSON.stringify({
+                ...serializedPayload,
+                // Ensure keys are sent to backend for signing/execution
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                passphrase: keys.passphrase
+            })
+        });
+
+        const text = await response.text();
+        let data: any = {};
+        try {
+            data = safeJsonParse(text);
+        } catch (e) {
+            // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
+            // use the status code as the error code
+            if (!response.ok) {
+                 throw new BitunixApiError(response.status, text || response.statusText);
+            }
+        }
+
+        // Loose check for "code" != 0 (Bitunix style)
+        // We cast to string to handle both number 0 and string "0"
+        if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
+            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "Unknown API Error");
+        }
+
+        return data;
+    }
+
+    // Helper to safely serialize Decimals to strings
+    private serializePayload(payload: any, depth = 0, seen = new WeakSet()): any {
+        if (depth > 20) {
+            logger.warn("market", "[TradeService] Serialization depth limit exceeded");
+            return "[Serialization Limit]";
+        }
+
+        if (!payload) return payload;
+        if (payload instanceof Decimal) return payload.toString();
+
+        // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
+        if (typeof payload === 'object' && payload !== null && typeof payload.isZero === 'function' && typeof payload.toFixed === 'function') {
+            return payload.toString();
+        }
+
+        if (typeof payload === 'object' && payload !== null) {
+            if (seen.has(payload)) return "[Circular]";
+            seen.add(payload);
+        }
+
+        if (Array.isArray(payload)) {
+            return payload.map(item => this.serializePayload(item, depth + 1, seen));
+        }
+
+        if (typeof payload === 'object') {
+            const newObj: any = {};
+            for (const key in payload) {
+                if (Object.prototype.hasOwnProperty.call(payload, key)) {
+                    newObj[key] = this.serializePayload(payload[key], depth + 1, seen);
+                }
+            }
+            return newObj;
+        }
+
+        return payload;
     }
 
     // Hardening: Centralized Freshness Check
@@ -216,8 +277,7 @@ class TradeService {
 
             // HARDENING: Clean up optimistic order if we KNOW it failed (e.g. 4xx error)
             const isTerminalError =
-                (e instanceof ApiError) || // Use new base class
-                (e instanceof BitunixApiError) || // Legacy check
+                (e instanceof BitunixApiError) ||
                 (e instanceof Error && (
                     e.message.includes("400") ||
                     e.message.includes("401") ||
@@ -229,16 +289,8 @@ class TradeService {
                 ));
 
             if (isTerminalError) {
-                 logger.warn("market", `[FlashClose] Definitive API Failure. Rolling back optimistic order.`);
-                 // UX: Mark as failed immediately so UI can react (e.g., shake effect or removal)
-                 const failedOrder = omsService.getOrder(clientOrderId);
-                 if (failedOrder) {
-                     failedOrder.status = "failed"; // Will be cleaned by OMS
-                     omsService.updateOrder(failedOrder);
-                     setTimeout(() => omsService.removeOrder(clientOrderId), 1000); // Give UI time to animate failure
-                 } else {
-                     omsService.removeOrder(clientOrderId);
-                 }
+                 logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
+                 omsService.removeOrder(clientOrderId);
             } else {
                  // Indeterminate state (Timeout / Network Error)
                  // Mark as unconfirmed
@@ -287,7 +339,7 @@ class TradeService {
 
             const pendingText = await pendingResponse.text();
             const pendingResult = safeJsonParse(pendingText);
-            if (pendingResult.error) throw new TradeError(pendingResult.error, "tradeErrors.apiError");
+            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             // Hardening: Best Effort Processing
             // Instead of failing the entire batch via PositionListSchema, we validate per item.
