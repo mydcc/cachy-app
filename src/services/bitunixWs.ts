@@ -1009,25 +1009,25 @@ class BitunixWebSocketService {
                                   const subTf = parts[1];
                                   
                                   // Optimization: Only check if symbol matches first
-                                  if (subSymbol !== symbol) continue; // Note: symbol is already normalized in local context? 
+                                  if (subSymbol !== symbol) continue; // Note: symbol is already normalized in local context?
                                   // Wait, `symbol` arg in handleMessage comes from `normalizedSymbol` or raw?
                                   // `const symbol = message.data.symbol` is raw.
                                   // The key uses `normalizedSymbol`.
                                   // We must normalize `symbol` here to compare?
                                   // In handleMessage: `const symbol = message.data. symbol;` which is e.g. "BTCUSDT".
-                                  // `normalizeKlines` uses "bitunix". 
+                                  // `normalizeKlines` uses "bitunix".
                                   // My sub keys use `normalizeSymbol(symbol, "bitunix")`.
                                   // So I should compare against normalized.
                                   // `const normalizedMessageSymbol = normalizeSymbol(symbol, "bitunix");`
-                                  // But `marketState.updateSymbolKlines` uses `symbol` (raw?). 
+                                  // But `marketState.updateSymbolKlines` uses `symbol` (raw?).
                                   // Let's check typical usage. `subscribe` normalizes.
                                   // `handleMessage` (line ~900): `const symbol = message.data.symbol;`
                                   // This is likely raw "BTCUSDT" or "BTC-USDT".
                                   // bitunixWs uses `normalizeSymbol` in subscribe.
                                   // If handleMessage receives "BTCUSDT", and subscribe put "BTCUSDT" in key...
                                   // Actually `normalizeSymbol` removes hyphens mostly.
-                                  
-                                  // Let's assume strict match on symbol specific to WS message. 
+
+                                  // Let's assume strict match on symbol specific to WS message.
                                   // Wait, if `syntheticSubs` has normalized, and `message` has raw...
                                   // I should normalize message symbol before compare.
                                   const msgSymbolNorm = normalizeSymbol(symbol, "bitunix");
