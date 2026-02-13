@@ -20,6 +20,7 @@
     import { _ } from "../../locales/i18n";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
+    import Icon from "./Icon.svelte";
     import { renderTrustedMarkdown } from "../../utils/markdownUtils";
     import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
@@ -183,7 +184,7 @@
                                 : 'text-[var(--text-secondary)]'}"
                             title={pattern.category}
                         >
-                            {@html getCategoryIcon(pattern.category)}
+                            <Icon data={getCategoryIcon(pattern.category)} />
                         </div>
                         {#if favorites.has(pattern.id)}
                             <svg
@@ -271,7 +272,7 @@
                     <span
                         class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center gap-2"
                     >
-                        {@html getCategoryIcon(currentPattern.category)}
+                        <Icon data={getCategoryIcon(currentPattern.category)} />
                         {currentPattern.category}
                     </span>
                 </div>

@@ -57,8 +57,8 @@ export class BitunixApiError extends Error {
 
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "trade.positionNotFound",
-    FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    FETCH_FAILED: "tradeErrors.fetchFailed",
+    CLOSE_ALL_FAILED: "tradeErrors.closeAllFailed"
 };
 
 export class TradeError extends Error {
@@ -120,7 +120,7 @@ class TradeService {
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "Unknown API Error");
+            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "apiErrors.unknown");
         }
 
         return data;
@@ -339,7 +339,7 @@ class TradeService {
 
             const pendingText = await pendingResponse.text();
             const pendingResult = safeJsonParse(pendingText);
-            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
+            if (pendingResult.error) throw new TradeError(pendingResult.error, "tradeErrors.apiError");
 
             // Hardening: Best Effort Processing
             // Instead of failing the entire batch via PositionListSchema, we validate per item.
