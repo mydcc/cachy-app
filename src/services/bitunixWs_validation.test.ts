@@ -60,8 +60,17 @@ describe('BitunixWebSocketService FastPath Hardening', () => {
 
         handleMessage(message, 'public');
 
-        // Should still process if message arrived
-        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT_RACE', expect.anything());
+        // Assert
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT_VALID', expect.objectContaining({
+            indexPrice: expect.any(Decimal),
+            fundingRate: expect.any(Decimal),
+            nextFundingTime: "1700000000000"
+        }));
+
+        // Verify conversion correctness
+        const callArgs = (marketState.updateSymbol as any).mock.calls[0][1];
+        expect(callArgs.indexPrice.toString()).toBe('95000.5');
+        expect(callArgs.fundingRate.toString()).toBe('0.0001');
     });
 
     it('should ignore malformed payloads missing critical data', () => {
