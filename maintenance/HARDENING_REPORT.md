@@ -1,65 +1,65 @@
-# Hardening & Maintenance Report
+# Status & Risk Report (Hardening Phase)
 
-**Date:** 2026-05-25
-**Author:** Jules (Lead Architect)
-**Status:** ✅ Completed
+**Date:** 20.02.2026
+**Author:** Jules (Senior Lead Developer & Systems Architect)
+**Status:** DRAFT (Analysis Complete)
 
-## Overview
-
-This report documents the systematic hardening measures applied to the `cachy-app` codebase to achieve an "institutional grade" standard. The focus areas were Data Integrity, Security, Resource Management, and UI/UX Resilience.
-
-## 1. Data Integrity & Type Safety
-
-### 🔍 Findings
-- **JSON Precision Loss:** Native `JSON.parse` was vulnerable to corrupting 19-digit integer IDs (e.g., from Bitunix API), rounding them effectively.
-- **Loose Typing:** `TradeService` used `any[]` for critical order data, increasing the risk of runtime errors.
-- **WebSocket Data:** The high-frequency "Fast Path" in `bitunixWs.ts` lacked runtime validation for potential data corruption.
-
-### 🛠️ Actions Taken
-- **`src/utils/safeJson.ts`:** Implemented and rigorously tested a regex-based parser that wraps large integers (>= 15 digits) in strings before parsing.
-  - *Verification:* `src/utils/safeJson.test.ts` passes with 100% coverage for edge cases.
-- **`src/services/tradeService.ts`:** Introduced strict `TpSlOrder` interface. Updated `fetchTpSlOrders` to return `Promise<TpSlOrder[]>`.
-- **`src/services/bitunixWs.ts`:** Added a Development-Mode-Only check that logs warnings if the "Fast Path" parser receives large integers that `safeJsonParse` would have protected.
-
-## 2. Resource Management & Performance
-
-### 🔍 Findings
-- **Memory Leak:** `JournalManager` (`journal.svelte.ts`) allowed the `entries` array to grow indefinitely, risking browser crashes in long sessions.
-- **Hot Path Inefficiency:** `MarketOverview.svelte` performed heavy `Decimal` object instantiations and string conversions on every price tick for visual effects.
-
-### 🛠️ Actions Taken
-- **Journal Cap:** Modified `addEntry` to enforce a hard limit of 1000 entries (FIFO eviction).
-- **Render Optimization:** Optimized `MarketOverview.svelte` by:
-  - Memoizing `currentPriceStr` to prevent cascading reactivity.
-  - Using native `parseFloat` for visual trend comparison (Up/Down color) instead of `Decimal.gt`.
-
-## 3. Security (XSS & Input Validation)
-
-### 🔍 Findings
-- **XSS Vulnerabilities:** Several components (`SidePanel`, `PerformanceMonitor`, `ContentRenderer`) injected raw HTML (`{@html ...}`) from potentially untrusted sources (translations or markdown).
-- **Input Validation:** `PortfolioInputs.svelte` relied on basic HTML input types, allowing negative numbers or invalid characters to reach the state store.
-
-### 🛠️ Actions Taken
-- **Sanitization:** Applied `DOMPurify.sanitize()` to all `{@html ...}` injections in the identified components.
-- **Strict Input Logic:** Implemented `validateInput` in `PortfolioInputs.svelte` with Regex (`/^\d*\.?\d*$/`) to strictly block invalid characters before state updates.
-
-## 4. UI/UX Resilience & Accessibility
-
-### 🔍 Findings
-- **Broken States:** No visual indication when the WebSocket connection was lost, allowing users to attempt "blind" trades.
-- **Accessibility:** Icon-only buttons in `SidePanel.svelte` lacked `aria-label` attributes.
-- **Hardcoded Strings:** Critical UI elements (e.g., "Performance Monitor") used hardcoded English strings.
-
-### 🛠️ Actions Taken
-- **Offline Banner:** Implemented a global connectivity banner in `Header.svelte` that reacts to `marketState.connectionStatus`.
-- **Action Blocking:** `PortfolioInputs` now disables balance fetching and critical actions when disconnected.
-- **I18n:** Replaced hardcoded strings with `$_` localization keys.
-- **A11y:** Added `aria-label` and `title` attributes to all navigation buttons.
-
-## Remaining Risks / Next Steps
-
-- **E2E Testing:** While unit tests cover the new logic, comprehensive E2E tests for "Offline Mode" behavior are recommended.
-- **Translation:** The new I18n keys need to be added to the actual translation files (`en.json`, `de.json`) by the content team.
+This report summarizes the findings of the in-depth analysis of the `cachy-app` repository. The focus was on data integrity, security, and stability for professional trading use.
 
 ---
-*Signed: Jules, Senior Lead Developer*
+
+## 🔴 CRITICAL (CRITICAL)
+*Risks of financial loss, crashes, or security vulnerabilities.*
+
+1.  **Precision Loss in `BitunixWs` ("Fast Path")**:
+    *   **Location:** `src/services/bitunixWs.ts` (`handleMessage` method -> Fast Path Block).
+    *   **Description:** The "Fast Path" optimization manually casts `number` values to strings (`safeString(data.ip, ...)`). However, since `JSON.parse` (via `safeJsonParse`) has *already* run before this block, floating-point numbers have already been converted to native JavaScript numbers. This leads to irreversible precision loss for large integers (e.g., Order IDs > `2^53`) or small decimals (e.g., `0.00000001` -> `1e-8`) before they reach `Decimal.js`.
+    *   **Risk:** Financial calculations could be based on inaccurate values. Order IDs could be corrupted.
+    *   **Recommendation:** Remove the "Fast Path" or restrict it strictly to fields known to be safe. Use Zod schemas that handle string transformation (which is already implemented in the "Slow Path").
+
+2.  **GC Thrashing ("Memory Churn") in `MarketManager`**:
+    *   **Location:** `src/stores/market.svelte.ts` (`rebuildBuffers`, `appendBuffers`).
+    *   **Description:** On every Kline update that changes the array size (new candle), completely new `Float64Array` instances are allocated from the `BufferPool`. While `BufferPool` recycles memory, `appendBuffers` creates a *new* buffer and copies data every time. This results in $O(N)$ allocation behavior for every single candle update.
+    *   **Risk:** High Garbage Collection load leads to UI stuttering and increased memory usage, unacceptable for high-frequency trading.
+    *   **Recommendation:** Implement a "Capacity"-based system where buffers are over-allocated (e.g., doubled) and `length` is tracked separately to avoid re-allocation on every update.
+
+---
+
+## 🟡 WARNING (WARNING)
+*Performance issues, UX errors, or missing i18n.*
+
+1.  **Main Thread Blocking in `MarketWatcher` (`fillGaps`)**:
+    *   **Location:** `src/services/marketWatcher.ts` (`fillGaps`).
+    *   **Description:** The gap-filling logic iterates up to `MAX_GAP_FILL = 5000` times. If called frequently with large data gaps (e.g., network outage recovery), this synchronous loop can freeze the main thread.
+    *   **Risk:** UI unresponsiveness during data recovery.
+    *   **Recommendation:** Move gap-filling logic to a Web Worker or optimize the loop (e.g., batch processing or yielding).
+
+2.  **Potential "Naked Position" Risk in `TradeService`**:
+    *   **Location:** `src/services/tradeService.ts` (`flashClosePosition`).
+    *   **Description:** The function attempts to cancel open orders *before* closing the position. If cancellation fails (e.g., API timeout), the close operation is aborted (`throw new Error("trade.closeAbortedSafety")`).
+    *   **Risk:** The user intends to close the position immediately (Panic Button behavior), but the system refuses because it couldn't cancel a TP/SL. This leaves the user exposed to the market against their will.
+    *   **Recommendation:** Change logic to "Best Effort": Try to cancel orders, log errors if it fails, but *proceed* with closing the position (perhaps with a user warning).
+
+---
+
+## 🔵 REFACTOR (Technical Debt)
+*Maintainability and Code Quality.*
+
+1.  **Duplicate/Complex Validation Logic**:
+    *   **Location:** `src/services/bitunixWs.ts` vs `src/types/bitunixValidation.ts`.
+    *   **Description:** The "Fast Path" duplicates validation logic that exists in Zod schemas. This violates DRY and increases the risk of inconsistencies.
+
+2.  **`PortfolioInputs` Empty String Handling**:
+    *   **Location:** `src/components/inputs/PortfolioInputs.svelte`.
+    *   **Description:** While currently hardened (`if (value === "") return "0"`), the logic relies on implicit behaviors between local state and store updates.
+    *   **Recommendation:** Explicitly handle `null` vs `""` vs `"0"` in the store schemas to avoid ambiguity.
+
+---
+
+## ✅ STATUS QUO (Positive Findings)
+
+*   **Decimal.js Usage:** `TradeService` and `MarketManager` (mostly) use `Decimal.js` correctly for price math.
+*   **I18n Coverage:** An automated audit (`scripts/check_translations.sh`) confirmed that translation keys are synchronized between EN and DE.
+*   **Safety:** `safeJsonParse` is used globally to prevent crashes on malformed API responses.
+*   **Zod Validation:** Strict schemas are in place for API responses (when not bypassed by Fast Path).
+
