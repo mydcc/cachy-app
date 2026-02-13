@@ -69,7 +69,7 @@ pub struct IndicatorSettings {
 
 struct EmaState { k: f64, value: f64, initialized: bool }
 struct SmaState { sum: f64, initialized: bool }
-struct WmaState { sum: f64, initialized: bool }
+struct WmaState { weighted_sum: f64, price_sum: f64, initialized: bool }
 struct VwmaState { sum_pv: f64, sum_vol: f64, initialized: bool }
 struct HmaState { wma_half: f64, wma_full: f64, _sqrt_wma: f64, initialized: bool }
 struct RsiState { avg_gain: f64, avg_loss: f64, prev_close: f64, initialized: bool }
@@ -207,16 +207,16 @@ impl TechnicalsCalculator {
         
         // WMA Init (Weighted Moving Average)
         for s in &self.settings.wma {
-            let mut sum = 0.0; let mut init = false;
+            let mut weighted_sum = 0.0; let mut price_sum = 0.0; let mut init = false;
             if len >= s.length {
-                let weights_sum = (s.length * (s.length + 1)) / 2;
                 for i in 0..s.length {
-                    sum += closes[len - s.length + i] * (i + 1) as f64;
+                    let p = closes[len - s.length + i];
+                    weighted_sum += p * (i + 1) as f64;
+                    price_sum += p;
                 }
-                sum /= weights_sum as f64;
                 init = true;
             }
-            self.wma_states.insert(s.length, WmaState { sum, initialized: init });
+            self.wma_states.insert(s.length, WmaState { weighted_sum, price_sum, initialized: init });
         }
         
         // VWMA Init (Volume-Weighted Moving Average)
@@ -497,14 +497,9 @@ impl TechnicalsCalculator {
         
         // WMA Update
         for (len, s) in &self.wma_states {
-            if s.initialized && self.price_history_closes.len() >= *len {
+            if s.initialized {
                 let weights_sum = (*len * (*len + 1)) / 2;
-                let mut wma = 0.0;
-                for i in 0..*len {
-                    let idx = self.price_history_closes.len() - *len + i;
-                    wma += self.price_history_closes[idx] * (i + 1) as f64;
-                }
-                wma = (wma + c * (*len + 1) as f64 - self.price_history_closes[self.price_history_closes.len() - *len] * (*len) as f64) / weights_sum as f64;
+                let wma = (s.weighted_sum - s.price_sum + (*len as f64 * c)) / weights_sum as f64;
                 out.moving_averages.insert(format!("WMA{}", len), wma);
             }
         }
@@ -709,12 +704,15 @@ impl TechnicalsCalculator {
     }
 
     pub fn shift(&mut self, _o: f64, h: f64, l: f64, c: f64, v: f64, _t: f64) {
+        let mut popped_c = None;
+        let mut popped_v = None;
+
         // Update global price history buffers
         if self.price_history_closes.len() >= self.max_history_size {
-            self.price_history_closes.pop_front();
+            popped_c = self.price_history_closes.pop_front();
             self.price_history_highs.pop_front();
             self.price_history_lows.pop_front();
-            self.price_history_volumes.pop_front();
+            popped_v = self.price_history_volumes.pop_front();
         }
         self.price_history_closes.push_back(c);
         self.price_history_highs.push_back(h);
@@ -727,30 +725,41 @@ impl TechnicalsCalculator {
         // SMA Shift
         for (len, s) in &mut self.sma_states {
             if s.initialized && self.price_history_closes.len() >= *len {
-                let old = self.price_history_closes[self.price_history_closes.len() - *len];
-                s.sum = s.sum - old + c;
+                let old_price = if self.price_history_closes.len() > *len {
+                    self.price_history_closes[self.price_history_closes.len() - *len - 1]
+                } else {
+                    popped_c.unwrap_or(0.0)
+                };
+                s.sum = s.sum - old_price + c;
             }
         }
         
-        // WMA Shift (recalculate from price history)
+        // WMA Shift
         for (len, s) in &mut self.wma_states {
             if s.initialized && self.price_history_closes.len() >= *len {
-                let weights_sum = (*len * (*len + 1)) / 2;
-                let mut wma = 0.0;
-                for i in 0..*len {
-                    let idx = self.price_history_closes.len() - *len + i;
-                    wma += self.price_history_closes[idx] * (i + 1) as f64;
-                }
-                wma += c * (*len + 1) as f64;
-                s.sum = wma / weights_sum as f64;
+                let old_price = if self.price_history_closes.len() > *len {
+                    self.price_history_closes[self.price_history_closes.len() - *len - 1]
+                } else {
+                    popped_c.unwrap_or(0.0)
+                };
+                s.weighted_sum = s.weighted_sum - s.price_sum + (*len as f64 * c);
+                s.price_sum = s.price_sum - old_price + c;
             }
         }
         
         // VWMA Shift
         for (len, s) in &mut self.vwma_states {
             if s.initialized && self.price_history_closes.len() >= *len && self.price_history_volumes.len() >= *len {
-                let old_close = self.price_history_closes[self.price_history_closes.len() - *len];
-                let old_vol = self.price_history_volumes[self.price_history_volumes.len() - *len];
+                let old_close = if self.price_history_closes.len() > *len {
+                    self.price_history_closes[self.price_history_closes.len() - *len - 1]
+                } else {
+                    popped_c.unwrap_or(0.0)
+                };
+                let old_vol = if self.price_history_volumes.len() > *len {
+                    self.price_history_volumes[self.price_history_volumes.len() - *len - 1]
+                } else {
+                    popped_v.unwrap_or(0.0)
+                };
                 s.sum_pv = s.sum_pv - (old_close * old_vol) + (c * v);
                 s.sum_vol = s.sum_vol - old_vol + v;
             }
@@ -768,7 +777,6 @@ impl TechnicalsCalculator {
                     let idx = self.price_history_closes.len() - half + i;
                     wma_half += self.price_history_closes[idx] * (i + 1) as f64;
                 }
-                wma_half += c * (half + 1) as f64;
                 s.wma_half = wma_half / weights_half as f64;
                 
                 // Recalculate WMA(n)
@@ -778,7 +786,6 @@ impl TechnicalsCalculator {
                     let idx = self.price_history_closes.len() - *len + i;
                     wma_full += self.price_history_closes[idx] * (i + 1) as f64;
                 }
-                wma_full += c * (*len + 1) as f64;
                 s.wma_full = wma_full / weights_full as f64;
             }
         }
@@ -791,8 +798,12 @@ impl TechnicalsCalculator {
             s.ema_fast = (c - s.ema_fast) * s.k_fast + s.ema_fast; s.ema_slow = (c - s.ema_slow) * s.k_slow + s.ema_slow; s.signal_val = ((s.ema_fast - s.ema_slow) - s.signal_val) * s.k_signal + s.signal_val;
         }}
         for (len, s) in &mut self.bb_states { if s.initialized && self.price_history_closes.len() >= *len { 
-            let old = self.price_history_closes[self.price_history_closes.len() - *len]; 
-            s.sum = s.sum - old + c; s.sum_sq = s.sum_sq - (old*old) + (c*c); 
+            let old_price = if self.price_history_closes.len() > *len {
+                self.price_history_closes[self.price_history_closes.len() - *len - 1]
+            } else {
+                popped_c.unwrap_or(0.0)
+            };
+            s.sum = s.sum - old_price + c; s.sum_sq = s.sum_sq - (old_price*old_price) + (c*c);
         }}
         for (len, s) in &mut self.atr_states { if s.initialized {
              let tr = (h - l).max((h - s.prev_close).abs()).max((l - s.prev_close).abs()); s.value = (s.value * (*len as f64 - 1.0) + tr) / *len as f64; s.prev_close = c;
@@ -827,8 +838,12 @@ impl TechnicalsCalculator {
             // Momentum no longer needs internal buffer, using global closes
         }}
         for (len, s) in &mut self.volma_states { if s.initialized && self.price_history_volumes.len() >= *len { 
-            let old = self.price_history_volumes[self.price_history_volumes.len() - *len];
-            s.sum = s.sum - old + v; 
+            let old_vol = if self.price_history_volumes.len() > *len {
+                self.price_history_volumes[self.price_history_volumes.len() - *len - 1]
+            } else {
+                popped_v.unwrap_or(0.0)
+            };
+            s.sum = s.sum - old_vol + v;
         }}
         for (_len, s) in &mut self.wr_states { if s.initialized {
             // WR no longer needs internal buffer, using global highs/lows
