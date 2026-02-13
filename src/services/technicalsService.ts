@@ -158,8 +158,23 @@ class TechnicalsWorkerManager {
 
 const workerManager = new TechnicalsWorkerManager();
 
+const settingsCache = new WeakMap<object, string>();
+const indicatorsCache = new WeakMap<object, string>();
+
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any, enabledIndicators?: any): string {
-  return `${lastTime}_${lastPriceStr}_${len}_${firstTime}_${JSON.stringify({ settings, enabledIndicators })}`;
+  let sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : null;
+  if (!sPart) {
+    sPart = JSON.stringify(settings);
+    if (settings && typeof settings === 'object') settingsCache.set(settings, sPart);
+  }
+
+  let iPart = (enabledIndicators && typeof enabledIndicators === 'object') ? indicatorsCache.get(enabledIndicators) : null;
+  if (!iPart) {
+    iPart = JSON.stringify(enabledIndicators);
+    if (enabledIndicators && typeof enabledIndicators === 'object') indicatorsCache.set(enabledIndicators, iPart);
+  }
+
+  return `${lastTime}_${lastPriceStr}_${len}_${firstTime}_${sPart}_${iPart}`;
 }
 
 // Feature Check (Outcome of Step 7)
