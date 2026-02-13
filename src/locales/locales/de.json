@@ -832,7 +832,6 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
-
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
@@ -1097,23 +1096,23 @@
       "dashboard": "Dashboard",
       "englishTechnicalTerms": "Englische Fachbegriffe",
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
-    "quickActions": "Schnellaktionen",
-    "debug": {
-      "capabilities": "Fähigkeiten",
-      "context": "Kontext",
-      "engineStats": "Engine Status",
-      "noData": "Keine Daten",
-      "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
-      "columns": {
-        "engine": "Engine",
-        "health": "Gesundheit",
-        "avg": "Ø",
-        "samples": "Proben",
-        "candles": "Kerzen",
-        "time": "Zeit",
-        "memory": "Speicher"
+      "quickActions": "Schnellaktionen",
+      "debug": {
+        "capabilities": "Fähigkeiten",
+        "context": "Kontext",
+        "engineStats": "Engine Status",
+        "noData": "Keine Daten",
+        "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
+        "columns": {
+          "engine": "Engine",
+          "health": "Gesundheit",
+          "avg": "Ø",
+          "samples": "Proben",
+          "candles": "Kerzen",
+          "time": "Zeit",
+          "memory": "Speicher"
+        }
       }
-    }
     },
     "performance": {
       "monitor": "Performance Monitor",

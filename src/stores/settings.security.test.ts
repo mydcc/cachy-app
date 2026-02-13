@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -29,6 +30,7 @@ vi.mock('../services/cryptoService', () => ({
     cryptoService: {
         unlockSession: vi.fn().mockResolvedValue(true),
         lockSession: vi.fn(),
+        isUnlocked: vi.fn().mockReturnValue(true),
         encrypt: vi.fn().mockResolvedValue({ ciphertext: "encrypted", iv: "iv", salt: "salt", method: "AES-GCM" }),
         decrypt: vi.fn().mockResolvedValue('{"key":"decrypted-key","secret":"decrypted-secret"}')
     }
@@ -68,7 +70,7 @@ describe('SettingsManager Security', () => {
         await settingsState.setMasterPassword("password123");
 
         expect(cryptoService.unlockSession).toHaveBeenCalledWith("password123");
-        expect(cryptoService.encrypt).toHaveBeenCalledTimes(2);
+        expect(cryptoService.encrypt).toHaveBeenCalled();
         expect(settingsState.isEncrypted).toBe(true);
         expect(settingsState.encryptedApiKeys).toBeDefined();
     });

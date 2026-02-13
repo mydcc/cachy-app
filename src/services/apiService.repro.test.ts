@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { apiService } from "./apiService";
+import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 
 // Mock logger
@@ -42,7 +43,7 @@ describe("ApiService - Kline Gap Reproduction", () => {
     vi.clearAllMocks();
   });
 
-  it("should silently drop invalid klines (Bug Reproduction)", async () => {
+  it("should drop invalid klines and log warning", async () => {
     // Mock response with 3 items: Valid, Invalid (NaN), Valid
     const mockResponse = [
       ["1700000000000", "50000", "50100", "49900", "50050", "1.5"], // Valid
@@ -61,14 +62,16 @@ describe("ApiService - Kline Gap Reproduction", () => {
     const klines = await apiService.fetchBitgetKlines("BTCUSDT", "1m");
 
     // Assert
-    // We expect 2 items, meaning 1 was dropped silently
+    // We expect 2 items, meaning 1 was dropped
     expect(klines.length).toBe(2);
     expect(klines[0].time).toBe(1700000000000);
     expect(klines[1].time).toBe(1700000120000); // The middle one is gone
 
-    // Verify NO warning was logged (Current behavior - Silent Failure)
-    // Actually, we want to confirm it IS silently dropped.
-    // If I fix it later to log, this test will need update.
-    // For reproduction, proving the gap exists is enough.
+    // Verify warning was logged for the dropped kline
+    expect(logger.warn).toHaveBeenCalledWith(
+        "network",
+        expect.stringContaining("[Bitget] Dropping invalid kline"),
+        expect.anything()
+    );
   });
 });
