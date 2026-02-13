@@ -39,6 +39,10 @@ export interface EncryptedBlob {
   method: "AES-GCM" | "AES-CBC";
 }
 
+const SECURE_DB_NAME = "CachySecurityDB";
+const SECURE_STORE_NAME = "keys";
+const DEVICE_KEY_ALIAS = "device_key";
+
 class CryptoServiceImpl {
   private sessionKey: CryptoKey | null = null;
   private sessionSalt: Uint8Array | null = null; // To verify if salt matches
@@ -104,7 +108,7 @@ class CryptoServiceImpl {
 
   // --- Encryption ---
 
-  public async encrypt(plaintext: string, password?: string): Promise<EncryptedBlob> {
+  public async encrypt(plaintext: string, password?: string | CryptoKey): Promise<EncryptedBlob> {
     if (!browser || !window.crypto || !window.crypto.subtle) {
       throw new Error("CryptoService requires generic Web Crypto API (Secure Context)");
     }
@@ -113,24 +117,28 @@ class CryptoServiceImpl {
       let key: CryptoKey;
       let salt: Uint8Array;
 
-      if (this.sessionKey && !password) {
-        // Use cached session key if no explicit password usage override (Note: Encrypt usually creates NEW salt, so cached key might not apply if it bound to salt?
-        // Wait, PBKDF2 binds Key to Salt. So we CANNOT reuse the same Key for different Salts.
-        // If we use Session Key, we must reuse the Session Salt.
-        // For "Data at Rest" (API Keys), we usually want unique salts per item or a Master Key?
-        // "Wallet" approach: Master Key encrypts the Vault.
-        // For now, let's assume we derive a fresh key for every encryption if password is provided.
-        // Implementation Plan: "User sets Session-Password -> Keys decrypted in RAM".
-        // This implies the Decrypted Data is in RAM, OR the Key to decrypt them is in RAM.
-        // To Encrypt NEW data with "Session", we should use the Session Key and Session Salt?
-        // Reusing Salt is OK if IV is unique for GCM.
+      if (password instanceof CryptoKey) {
+        if (password.algorithm.name === "PBKDF2") {
+          salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
+          key = await window.crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+            password,
+            { name: "AES-GCM", length: KEY_SIZE },
+            false,
+            ["encrypt"]
+          );
+        } else {
+          key = password;
+          salt = new Uint8Array(SALT_SIZE); // Dummy salt for blob consistency
+        }
+      } else if (this.sessionKey && !password) {
         key = this.sessionKey;
         salt = this.sessionSalt!;
-      } else if (password) {
+      } else if (typeof password === 'string' && password) {
         salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
         key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
       } else {
-        throw new Error("Session locked and no password provided");
+        throw new Error("Session locked and no password or key provided");
       }
 
       const iv = window.crypto.getRandomValues(new Uint8Array(IV_SIZE_GCM));
@@ -157,7 +165,7 @@ class CryptoServiceImpl {
 
   // --- Decryption ---
 
-  public async decrypt(blob: EncryptedBlob, password?: string): Promise<string> {
+  public async decrypt(blob: EncryptedBlob, password?: string | CryptoKey): Promise<string> {
     try {
       const salt = base64ToBuffer(blob.salt);
       const iv = base64ToBuffer(blob.iv);
@@ -165,21 +173,26 @@ class CryptoServiceImpl {
 
       let key: CryptoKey;
 
-      if (this.sessionKey && !password) {
-        // Verify salt matches session (if we allow session usage)
-        // Only works if data was encrypted with session key (same salt).
-        // If salt differs, we must re-derive.
-        // Optimization: If salt matches session salt, use session key.
+      if (password instanceof CryptoKey) {
+        if (password.algorithm.name === "PBKDF2") {
+          key = await window.crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+            password,
+            { name: "AES-GCM", length: KEY_SIZE },
+            false,
+            ["decrypt"]
+          );
+        } else {
+          key = password;
+        }
+      } else if (this.sessionKey && !password) {
+        // Verify salt matches session
         if (this.sessionSalt && this.arraysEqual(salt, this.sessionSalt)) {
           key = this.sessionKey;
         } else {
-          // If locked or salt mismatch, we can't use session key directly without password?
-          // If we have Password cached? No, we shouldn't cache password.
-          // So we only support Session Decrypt for data encrypted with Session Salt?
-          // OR we throw "Need Password" if salt doesn't match.
           throw new Error("Data salt does not match session salt. Verification required.");
         }
-      } else if (password) {
+      } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
         if (blob.method === "AES-GCM") {
           key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
@@ -216,6 +229,87 @@ class CryptoServiceImpl {
       console.error("Decryption failed", e);
       throw e;
     }
+  }
+
+  // --- Secure Persistent Key Management ---
+
+  /**
+   * Generates or retrieves a persistent, non-extractable device key from IndexedDB.
+   * This provides better security than localStorage as the key material cannot be easily exfiltrated via XSS.
+   * For backward compatibility, legacy hex keys are imported as PBKDF2 keys to maintain the same derivation path.
+   */
+  public async getOrGenerateDeviceKey(legacyHexKey?: string): Promise<CryptoKey> {
+    if (!browser) throw new Error("Browser environment required for Device Key");
+
+    // 1. Try to load from IndexedDB
+    let key = await this.loadKeyFromDB(DEVICE_KEY_ALIAS);
+    if (key) return key;
+
+    // 2. Migration or Generation
+    if (legacyHexKey) {
+      // Import legacy hex key as a non-extractable PBKDF2 CryptoKey to maintain derivation path
+      const keyData = new Uint8Array(legacyHexKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+      key = await window.crypto.subtle.importKey(
+        "raw",
+        keyData,
+        "PBKDF2",
+        false, // non-extractable
+        ["deriveKey"]
+      );
+    } else {
+      // Generate fresh non-extractable key.
+      // We use PBKDF2 even for new keys to keep the EncryptedBlob structure (with salt) consistent.
+      const randomData = window.crypto.getRandomValues(new Uint8Array(32));
+      key = await window.crypto.subtle.importKey(
+        "raw",
+        randomData,
+        "PBKDF2",
+        false, // non-extractable
+        ["deriveKey"]
+      );
+    }
+
+    // 3. Persist to DB
+    await this.saveKeyToDB(DEVICE_KEY_ALIAS, key);
+    return key;
+  }
+
+  private async loadKeyFromDB(alias: string): Promise<CryptoKey | null> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(SECURE_DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(SECURE_STORE_NAME);
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        try {
+          const tx = db.transaction(SECURE_STORE_NAME, "readonly");
+          const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
+          getReq.onsuccess = () => resolve(getReq.result || null);
+          getReq.onerror = () => reject(getReq.error);
+        } catch (e) {
+          resolve(null);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async saveKeyToDB(alias: string, key: CryptoKey): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(SECURE_DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(SECURE_STORE_NAME);
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(SECURE_STORE_NAME, "readwrite");
+        const putReq = tx.objectStore(SECURE_STORE_NAME).put(key, alias);
+        putReq.onsuccess = () => resolve();
+        putReq.onerror = () => reject(putReq.error);
+      };
+      request.onerror = () => reject(request.error);
+    });
   }
 
   // Helper

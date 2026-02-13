@@ -928,27 +928,32 @@ export class SettingsManager {
 
 
     // --- Device Security ---
-  private _deviceKey: string | null = null;
+  private _deviceKey: string | CryptoKey | null = null;
 
-  private getDeviceKey(): string {
+  /**
+   * Securely retrieves the device key.
+   * Migrates from localStorage to IndexedDB if necessary.
+   */
+  private async getDeviceKey(): Promise<string | CryptoKey> {
     if (!browser) return "server-side-key-placeholder";
     if (this._deviceKey) return this._deviceKey;
 
-    // Try to get from localStorage
-    const key = localStorage.getItem("cachy_device_id");
-    if (key) {
-      this._deviceKey = key;
-      return key;
+    // 1. Check for legacy key in localStorage for migration
+    const legacyKey = localStorage.getItem("cachy_device_id");
+
+    // 2. Get or Generate secure key (handles migration if legacyKey provided)
+    const key = await cryptoService.getOrGenerateDeviceKey(legacyKey || undefined);
+
+    // 3. Cleanup legacy key if migration happened
+    if (legacyKey) {
+      if (import.meta.env.DEV) {
+        console.warn("[Settings] Migrated device key from localStorage to secure storage.");
+      }
+      localStorage.removeItem("cachy_device_id");
     }
 
-    // Generate new key
-    const array = new Uint8Array(32);
-    window.crypto.getRandomValues(array);
-    const newKey = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
-
-    localStorage.setItem("cachy_device_id", newKey);
-    this._deviceKey = newKey;
-    return newKey;
+    this._deviceKey = key;
+    return key;
   }
 
   // --- Security Methods ---
@@ -1150,11 +1155,10 @@ export class SettingsManager {
 
         // If Obfuscation Mode (no master password), decrypt immediately
         if (!this.isEncrypted) {
-           const deviceKey = this.getDeviceKey();
            // We need to trigger this async but load is sync.
-           // We can't await here.
            // We'll launch a background decryption.
            (async () => {
+             const deviceKey = await this.getDeviceKey();
              for (const [key, blob] of Object.entries(this.encryptedSecrets || {})) {
                try {
                  const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
@@ -1364,12 +1368,12 @@ export class SettingsManager {
       }
 
       // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
-      let encryptionPassword: string | undefined = undefined;
+      let encryptionPassword: any = undefined;
       let canEncrypt = true;
 
       if (!this.isEncrypted) {
         // Obfuscation Mode: Use Device Key
-        encryptionPassword = this.getDeviceKey();
+        encryptionPassword = await this.getDeviceKey();
       } else {
         // Master Password Mode: Use Session Key (implicit)
         // If locked, we cannot encrypt new data.

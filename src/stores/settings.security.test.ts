@@ -32,7 +32,8 @@ vi.mock('../services/cryptoService', () => ({
         lockSession: vi.fn(),
         isUnlocked: vi.fn().mockReturnValue(true),
         encrypt: vi.fn().mockResolvedValue({ ciphertext: "encrypted", iv: "iv", salt: "salt", method: "AES-GCM" }),
-        decrypt: vi.fn().mockResolvedValue('{"key":"decrypted-key","secret":"decrypted-secret"}')
+        decrypt: vi.fn().mockResolvedValue('{"key":"decrypted-key","secret":"decrypted-secret"}'),
+        getOrGenerateDeviceKey: vi.fn().mockResolvedValue({ algorithm: { name: "PBKDF2" } } as any)
     }
 }));
 
