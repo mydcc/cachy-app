@@ -2041,6 +2041,11 @@
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",
     "dataError": "Data Inconsistency Detected"
   },
+  "trade": {
+    "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
+    "apiError": "API Error: {error}",
+    "fetchFailed": "Fetch failed"
+  },
   "workerErrors": {
     "eventError": "Worker Error Event",
     "notAvailable": "Worker not available",

@@ -568,6 +568,7 @@ class MarketWatcher {
 
               while (nextTime < curr.time) {
                   if (gapCount >= MAX_GAP_FILL) {
+                      logger.warn("market", `[fillGaps] Max gap fill limit reached (${MAX_GAP_FILL}) for candle interval ${intervalMs}. Data discontinuity possible.`);
                       break;
                   }
                   // Fill with flat candle (Close of previous)

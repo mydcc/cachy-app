@@ -816,11 +816,13 @@ class BitunixWebSocketService {
 
       // --- FAST PATH OPTIMIZATION ---
       // [MAINTENANCE WARNING]
-      // This block manually parses/casts data to avoid Zod overhead for high-frequency events (Price/Ticker/Depth).
+      // This block prioritizes high-frequency events (Price/Ticker/Depth) but still performs Zod validation
+      // using strict schemas (e.g. StrictPriceDataSchema) to ensure data integrity before accessing fields.
+      // While it avoids some overhead of full message validation first, it remains safe.
       // If the API schema changes, this block MUST be updated manually.
       // Any error here is caught silently (in Prod) and falls back to the standard Zod validation path below.
 
-      // Check high-frequency messages (price, ticker, depth) BEFORE expensive Zod validation
+      // Check high-frequency messages (price, ticker, depth) and validate with specific schemas
       // Wrapped in try-catch to prevent crashing the entire socket handler
       try {
         if (message && channel) {
