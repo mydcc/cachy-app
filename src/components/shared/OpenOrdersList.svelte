@@ -25,9 +25,10 @@
     orders?: any[];
     loading?: boolean;
     error?: string;
+    oncancel?: (orderId: string, symbol: string) => void;
   }
 
-  let { orders = [], loading = false, error = "" }: Props = $props();
+  let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
   // Removed local tooltip state
 
@@ -79,8 +80,10 @@
     return t.length > 6 ? t.substring(0, 6) + "." : t;
   }
 
-  function handleCancel(orderId: string) {
-    // Placeholder for future cancel logic
+  function handleCancel(order: any) {
+    if (confirm($_("dashboard.confirmCancelOrder") || "Cancel this order?")) {
+        oncancel?.(order.id || order.orderId, order.symbol);
+    }
   }
 </script>
 
@@ -154,17 +157,41 @@
               </div>
             </div>
 
-            <!-- Col 3: Price & Status -->
-            <div class="flex flex-col items-end justify-center pl-1">
+            <!-- Col 3: Price & Status & Action -->
+            <div class="flex flex-col items-end justify-center pl-1 relative">
               <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
                 {formatDynamicDecimal(order.price)}
               </span>
 
-              <span
-                class="text-[9px] text-[var(--text-tertiary)] uppercase opacity-70 whitespace-nowrap mt-0.5"
-              >
-                {order.status}
-              </span>
+              <div class="flex items-center gap-2">
+                 <span
+                    class="text-[9px] text-[var(--text-tertiary)] uppercase opacity-70 whitespace-nowrap mt-0.5"
+                  >
+                    {order.status}
+                  </span>
+
+                  <!-- Cancel Button (X) -->
+                  <button
+                    class="w-5 h-5 flex items-center justify-center bg-[var(--danger-color)] bg-opacity-10 text-[var(--danger-color)] rounded hover:bg-opacity-20 transition-colors"
+                    onclick={() => handleCancel(order)}
+                    title="Cancel Order"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+              </div>
             </div>
           </div>
         </div>

@@ -138,6 +138,9 @@ export const POST: RequestHandler = async ({ request }) => {
         await Promise.all(promises);
         result = { success: true, count: toCancel.length };
       }
+      else if (payload.type === "cancel-order") {
+        result = await cancelBitunixOrder(apiKey, apiSecret, payload.symbol, payload.orderId);
+      }
     }
     // --- BITGET ---
     else if (exchange === "bitget") {
@@ -179,6 +182,9 @@ export const POST: RequestHandler = async ({ request }) => {
              marginCoin: payload.marginCoin
          };
          result = await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
+      }
+      else if (payload.type === "cancel-order") {
+         result = await cancelBitgetOrder(apiKey, apiSecret, passphrase, payload.symbol, payload.orderId, payload.marginCoin);
       }
     }
 
@@ -628,4 +634,49 @@ async function fetchBitgetHistoryOrders(
         fee: formatApiNum(o.fee) || "0",
         realizedPNL: formatApiNum(o.totalProfits) || "0",
     }));
+}
+
+async function cancelBitgetOrder(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string,
+    symbol: string,
+    orderId: string,
+    marginCoin = "USDT"
+) {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/order/cancel-order";
+
+    const body = {
+        symbol,
+        marginCoin,
+        orderId
+    };
+
+    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        },
+        body: bodyStr
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Bitget Cancel Error: ${response.status} ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (res.code !== "00000") {
+        throw new Error(`Bitget Error: ${res.msg}`);
+    }
+
+    return res.data;
 }
