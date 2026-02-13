@@ -63,13 +63,17 @@
 
   $effect(() => {
     if (typeof document !== "undefined") {
+      const isThree =
+        settingsState.backgroundType === "threejs" ||
+        settingsState.backgroundType === "tradeflow";
+
       document.documentElement.style.setProperty(
         "--bg-blur",
-        `${settingsState.backgroundBlur}px`,
+        isThree ? "0px" : `${settingsState.backgroundBlur}px`,
       );
       document.documentElement.style.setProperty(
         "--bg-opacity",
-        settingsState.backgroundOpacity.toString(),
+        isThree ? "1" : settingsState.backgroundOpacity.toString(),
       );
     }
   });
