@@ -365,14 +365,23 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('ao')) {
       const aoFast = settings?.ao?.fastLength || 5;
       const aoSlow = settings?.ao?.slowLength || 34;
-      const aoVal = calculateAwesomeOscillator(
+
+      let aoSeries: Float64Array | undefined;
+      if (pool) {
+          aoSeries = pool.acquire(len);
+          cleanupBuffers.push(aoSeries);
+      }
+
+      aoSeries = calculateAwesomeOscillator(
         highsNum,
         lowsNum,
         aoFast,
         aoSlow,
+        aoSeries,
       );
-      // We'd need the full series for divergence, but AO helper returns single value.
-      // We'll skip AO divergence for now unless we refactor helper.
+
+      const aoVal = aoSeries[aoSeries.length - 1];
+      indSeries["AO"] = aoSeries;
 
       oscillators.push({
         name: "Awesome Osc.",
@@ -494,6 +503,7 @@ export function calculateIndicatorsFromArrays(
       { name: "MACD", data: indSeries["MACD"] },
       { name: "CCI", data: indSeries["CCI"] },
       { name: "Stoch", data: indSeries["StochK"] },
+      { name: "AO", data: indSeries["AO"] },
     ].filter(i => !!i.data);
 
     // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)

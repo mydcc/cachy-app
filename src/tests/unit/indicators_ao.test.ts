@@ -25,12 +25,46 @@ describe('Awesome Oscillator Correctness', () => {
     // HL2: [9, 11, 13, 15, 17, 19]
 
     // Fast period: 2, Slow period: 4
-    // Fast SMA (last 2): (17+19)/2 = 18
-    // Slow SMA (last 4): (13+15+17+19)/4 = 16
-    // AO = 18 - 16 = 2
+    //
+    // i=0: HL2=9.  FastSum=9. SlowSum=9.
+    // i=1: HL2=11. FastSum=20. SlowSum=20.
+    //      FastSMA = 20/2 = 10. (valid)
+    //      SlowSMA = invalid (needs 4).
+    //      Result[1] = 0.
+    //
+    // i=2: HL2=13. FastSum=20+13-9=24. SlowSum=20+13=33.
+    //      FastSMA = 24/2 = 12.
+    //      SlowSMA = invalid.
+    //      Result[2] = 0.
+    //
+    // i=3: HL2=15. FastSum=24+15-11=28. SlowSum=33+15=48.
+    //      FastSMA = 28/2 = 14.
+    //      SlowSMA = 48/4 = 12.
+    //      Result[3] = 14 - 12 = 2.
+    //
+    // i=4: HL2=17. FastSum=28+17-13=32. SlowSum=48+17-9=56.
+    //      FastSMA = 32/2 = 16.
+    //      SlowSMA = 56/4 = 14.
+    //      Result[4] = 16 - 14 = 2.
+    //
+    // i=5: HL2=19. FastSum=32+19-15=36. SlowSum=56+19-11=64.
+    //      FastSMA = 36/2 = 18.
+    //      SlowSMA = 64/4 = 16.
+    //      Result[5] = 18 - 16 = 2.
 
-    // Optimized version computes on the fly, no hl2 arg needed
     const result = calculateAwesomeOscillator(high, low, 2, 4);
-    expect(result).toBeCloseTo(2);
+
+    expect(result).toBeInstanceOf(Float64Array);
+    expect(result.length).toBe(high.length);
+
+    // Check values where SlowSMA is valid (>= slowPeriod - 1 = 3)
+    expect(result[3]).toBeCloseTo(2);
+    expect(result[4]).toBeCloseTo(2);
+    expect(result[5]).toBeCloseTo(2);
+
+    // Check initial values (should be 0)
+    expect(result[0]).toBe(0);
+    expect(result[1]).toBe(0);
+    expect(result[2]).toBe(0);
   });
 });
