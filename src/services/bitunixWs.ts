@@ -913,17 +913,15 @@ class BitunixWebSocketService {
                     if (typeof data.v === 'number') data.v = safeString(data.v, 'v');
                     if (typeof data.close === 'number') data.close = safeString(data.close, 'close');
 
-                    // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
-                    const normalized = mdaService.normalizeTicker(message, "bitunix");
-
-                    if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
+                    // OPTIMIZATION: Direct Mapping (Skip mdaService allocation)
+                    if (!this.shouldThrottle(`${symbol}:ticker`)) {
                       marketState.updateSymbol(symbol, {
-                        lastPrice: normalized.lastPrice,
-                        highPrice: normalized.high,
-                        lowPrice: normalized.low,
-                        volume: normalized.volume,
-                        quoteVolume: normalized.quoteVolume,
-                        priceChangePercent: normalized.priceChangePercent
+                        lastPrice: data.lastPrice || data.lp || data.la,
+                        highPrice: data.high || data.h,
+                        lowPrice: data.low || data.l,
+                        volume: data.volume || data.v || data.vol,
+                        quoteVolume: data.quoteVolume || data.q || data.quoteVol,
+                        priceChangePercent: data.priceChangePercent || data.r
                       });
                     }
                     return;
