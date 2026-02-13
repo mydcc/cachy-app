@@ -1033,6 +1033,7 @@ class BitunixWebSocketService {
             }
           }
         }
+      }
       } catch (e) {
           // Fallback to standard validation if FastPath fails
           if (import.meta.env.DEV) {
