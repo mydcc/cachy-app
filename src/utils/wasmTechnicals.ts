@@ -22,7 +22,8 @@ export async function loadWasm() {
             // RELIABLE PATHS: Files are now in /static/wasm/
             // SvelteKit serves /static content at the root path /
             const wasmJsPath = '/wasm/technicals_wasm.js';
-            const wasmBinaryPath = '/wasm/technicals_wasm_bg.wasm';
+            // Align with scripts/build_wasm.sh output
+            const wasmBinaryPath = '/wasm/technicals_wasm.wasm';
 
             console.log(`[WASM] Loading engine from ${wasmJsPath}...`);
             
