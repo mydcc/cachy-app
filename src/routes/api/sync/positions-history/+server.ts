@@ -18,13 +18,31 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { generateBitunixSignature } from "../../../../utils/server/bitunix";
+import { z } from "zod";
+
+const RequestSchema = z.object({
+  apiKey: z.string().min(1),
+  apiSecret: z.string().min(1),
+  limit: z.number().optional(),
+});
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { apiKey, apiSecret, limit } = await request.json();
-
-  if (!apiKey || !apiSecret) {
-    return json({ error: "Missing credentials" }, { status: 400 });
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  const result = RequestSchema.safeParse(body);
+  if (!result.success) {
+    return json(
+      { error: "Invalid request data", details: result.error.format() },
+      { status: 400 },
+    );
+  }
+
+  const { apiKey, apiSecret, limit } = result.data;
 
   try {
     const positions = await fetchBitunixHistoryPositions(
