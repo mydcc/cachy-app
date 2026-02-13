@@ -23,48 +23,39 @@ vi.mock('$app/environment', () => ({
   browser: true
 }));
 
+interface Connection {
+    effectiveType: string;
+    saveData: boolean;
+    rtt: number;
+    addEventListener: (type: string, listener: any) => void;
+}
+
 describe('NetworkMonitor', () => {
-  let originalNavigator: any;
+  let mockConnection: Connection;
 
   beforeEach(() => {
-    // Save original navigator
-    // In jsdom environment, navigator is on global/window
-    originalNavigator = global.navigator;
-
-    // Create a mock connection object
-    const mockConnection = {
+    mockConnection = {
       effectiveType: '4g',
       saveData: false,
       rtt: 50,
       addEventListener: vi.fn(),
     };
 
-    // Mock navigator with connection property
-    Object.defineProperty(global, 'navigator', {
-      value: {
-        connection: mockConnection,
-        userAgent: 'test-agent',
-      },
-      writable: true,
-      configurable: true,
+    // Use stubGlobal to mock navigator cleanly
+    vi.stubGlobal('navigator', {
+      connection: mockConnection,
+      userAgent: 'test-agent',
     });
   });
 
   afterEach(() => {
-    // Restore original navigator
-    if (originalNavigator !== undefined) {
-        Object.defineProperty(global, 'navigator', {
-            value: originalNavigator,
-            writable: true,
-            configurable: true
-        });
-    }
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
   it('should initialize and attach event listener', () => {
     const monitor = new NetworkMonitor();
-    expect((global.navigator as any).connection.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+    expect(mockConnection.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
 
   it('should detect low end connection correctly', () => {
@@ -73,17 +64,21 @@ describe('NetworkMonitor', () => {
     // Default 4g
     expect(monitor.isLowEndConnection).toBe(false);
 
+    // 3g is NOT considered low-end in implementation (only 2g/slow-2g)
+    mockConnection.effectiveType = '3g';
+    expect(monitor.isLowEndConnection).toBe(false);
+
     // 2g
-    (global.navigator as any).connection.effectiveType = '2g';
+    mockConnection.effectiveType = '2g';
     expect(monitor.isLowEndConnection).toBe(true);
 
     // slow-2g
-    (global.navigator as any).connection.effectiveType = 'slow-2g';
+    mockConnection.effectiveType = 'slow-2g';
     expect(monitor.isLowEndConnection).toBe(true);
 
     // saveData
-    (global.navigator as any).connection.effectiveType = '4g';
-    (global.navigator as any).connection.saveData = true;
+    mockConnection.effectiveType = '4g';
+    mockConnection.saveData = true;
     expect(monitor.isLowEndConnection).toBe(true);
   });
 
@@ -91,30 +86,30 @@ describe('NetworkMonitor', () => {
     const monitor = new NetworkMonitor();
 
     // Normal 4g -> 1.0
-    (global.navigator as any).connection.effectiveType = '4g';
-    (global.navigator as any).connection.saveData = false;
+    mockConnection.effectiveType = '4g';
+    mockConnection.saveData = false;
     expect(monitor.getThrottleMultiplier()).toBe(1.0);
 
     // 3g -> 1.5
-    (global.navigator as any).connection.effectiveType = '3g';
+    mockConnection.effectiveType = '3g';
     expect(monitor.getThrottleMultiplier()).toBe(1.5);
 
     // 2g -> 3.0
-    (global.navigator as any).connection.effectiveType = '2g';
+    mockConnection.effectiveType = '2g';
     expect(monitor.getThrottleMultiplier()).toBe(3.0);
 
     // slow-2g -> 4.0
-    (global.navigator as any).connection.effectiveType = 'slow-2g';
+    mockConnection.effectiveType = 'slow-2g';
     expect(monitor.getThrottleMultiplier()).toBe(4.0);
 
     // saveData -> 2.0 (overrides 4g)
-    (global.navigator as any).connection.effectiveType = '4g';
-    (global.navigator as any).connection.saveData = true;
+    mockConnection.effectiveType = '4g';
+    mockConnection.saveData = true;
     expect(monitor.getThrottleMultiplier()).toBe(2.0);
 
-    // 3g AND saveData -> 1.5 (connection type takes precedence based on implementation)
-    (global.navigator as any).connection.effectiveType = '3g';
-    (global.navigator as any).connection.saveData = true;
+    // 3g AND saveData -> 1.5 (connection type takes precedence based on implementation order)
+    mockConnection.effectiveType = '3g';
+    mockConnection.saveData = true;
     expect(monitor.getThrottleMultiplier()).toBe(1.5);
   });
 
@@ -122,16 +117,15 @@ describe('NetworkMonitor', () => {
     const monitor = new NetworkMonitor();
     expect(monitor.estimatedRtt).toBe(50);
 
-    (global.navigator as any).connection.rtt = 200;
+    mockConnection.rtt = 200;
     expect(monitor.estimatedRtt).toBe(200);
   });
 
   it('should handle missing navigator.connection gracefully', () => {
      // Setup navigator without connection
-     Object.defineProperty(global, 'navigator', {
-        value: { userAgent: 'test-agent' },
-        writable: true,
-        configurable: true
+     vi.stubGlobal('navigator', {
+        userAgent: 'test-agent'
+        // connection is missing
      });
 
      const monitor = new NetworkMonitor();
