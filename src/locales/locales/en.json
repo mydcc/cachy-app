@@ -2053,6 +2053,9 @@
     },
     "title": "Candlestick Academy"
   },
+  "trade": {
+    "closeAbortedSafety": "Safety Close Aborted: Order not confirmed immediately. Check Open Orders."
+  },
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",

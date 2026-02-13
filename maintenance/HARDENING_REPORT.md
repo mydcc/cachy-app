@@ -56,10 +56,21 @@ This report documents the systematic hardening measures applied to the `cachy-ap
 - **I18n:** Replaced hardcoded strings with `$_` localization keys.
 - **A11y:** Added `aria-label` and `title` attributes to all navigation buttons.
 
+## 5. Updates (2026-05-25 Evening)
+
+### 🔍 Verified Hardening
+- **End-to-End Testing:** Created `tests/e2e/connection_indicator.spec.ts` using Playwright.
+  - *Result:* Successfully verified the Connection Indicator turns Green on connect and Red/Pulses on disconnect.
+  - *Regression Found & Fixed:* `LeftControlPanel.svelte` was missing the `marketState` import, causing a runtime error in the compiled output. Fixed and verified.
+- **Translation Sync:**
+  - Ran `audit_translations.py`.
+  - Added missing keys to `en.json` (accidentally truncated during edits, restored and merged).
+  - Synced `de.json` with new keys (`trade.closeAbortedSafety`, `settings.performance.status.*`).
+  - Regenerated `src/locales/schema.d.ts`.
+
 ## Remaining Risks / Next Steps
 
-- **E2E Testing:** While unit tests cover the new logic, comprehensive E2E tests for "Offline Mode" behavior are recommended.
-- **Translation:** The new I18n keys need to be added to the actual translation files (`en.json`, `de.json`) by the content team.
+- **Performance Stress Test:** While `MarketWatcher` logic was hardened, a massive load simulation (50+ active charts) is the final frontier for stability.
 
 ---
 *Signed: Jules, Senior Lead Developer*
