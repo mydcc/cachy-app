@@ -1,65 +1,63 @@
 # Status & Risk Report (Hardening Phase)
 
-**Date:** 20.02.2026
-**Author:** Jules (Senior Lead Developer & Systems Architect)
-**Status:** DRAFT (Analysis Complete)
+**Date:** 2026-05-25 (Updated)
+**Author:** Jules (Lead Architect)
+**Status:** ⚠️ Hardened but Unverified
 
-This report summarizes the findings of the in-depth analysis of the `cachy-app` repository. The focus was on data integrity, security, and stability for professional trading use.
+## Overview
+
+This report documents the current state of the `cachy-app` codebase following a forensic analysis. While significant hardening measures have been implemented in the source code to address data integrity, resource management, and security, a critical gap exists in the verification layer (unit tests).
+
+## 1. Data Integrity & Type Safety
+
+### ✅ Implemented Measures
+
+- **`src/utils/safeJson.ts`:** A custom parser is in place to handle large integers (e.g., 19-digit Order IDs) by regex-wrapping them in strings before parsing, preventing JavaScript `number` precision loss.
+- **`src/services/tradeService.ts`:** Explicitly uses `Decimal` for financial calculations and includes a `TpSlOrder` interface to replace loose `any` types.
+- **`src/services/bitunixWs.ts`:** The "Fast Path" WebSocket handler includes runtime checks (`isSafe`, `StrictPriceDataSchema`) to detect and warn about numeric precision risks in high-frequency data.
+
+### 🔴 CRITICAL RISKS
+
+- **Missing Regression Tests:** There are **no unit tests** in `tests/unit/` for `safeJson.ts`. If this utility fails or is refactored incorrectly, the entire application could silently corrupt Order IDs, leading to financial loss.
+- **Unverified Schema Validation:** The strict schemas in `bitunixWs.ts` are not tested against edge-case payloads.
+
+## 2. Resource Management & Performance
+
+### ✅ Implemented Measures
+
+- **`src/services/marketWatcher.ts`:** Optimizations like `static readonly ZERO_VOL` are present to reduce object allocation churn.
+- **`src/stores/journal.svelte.ts`:** Implements a hard limit (1000 entries) in `addEntry` and `load` to prevent memory leaks.
+- **`src/services/bitunixWs.ts`:** Uses `Set` for listener management and reference counting for subscriptions to prevent memory leaks.
+
+### 🟡 WARNINGS
+
+- **Store Limits Unverified:** No tests exist to prove that `marketState` or `journalState` correctly prune old data under load.
+- **Array Allocations:** `MarketManager` uses a `BufferPool`, which is excellent, but its correct behavior under stress is not covered by tests.
+
+## 3. UI/UX & Internationalization
+
+### ✅ Implemented Measures
+
+- **Error Mapping:** `src/components/inputs/PortfolioInputs.svelte` uses `mapApiErrorToLabel` to provide user-friendly error messages.
+- **I18n Keys:** The required keys (`settings.errors.invalidApiKey`, etc.) are present in `src/locales/locales/en.json`.
+
+### 🟡 WARNINGS
+
+- **Hardcoded Strings:** Several settings components (`EngineDebugPanel.svelte`, `CalculationSettings.svelte`) contain hardcoded English strings ("Server Security", "CPU Impact"), bypassing the i18n system.
+
+## 4. Security
+
+### ✅ Implemented Measures
+
+- **Input Validation:** `PortfolioInputs.svelte` implements `validateInput` to sanitize numeric inputs.
+- **XSS Protection:** `MarketOverview.svelte` uses `{@html ...}` but injects trusted SVG constants from `src/lib/constants.ts`, which appears safe.
+
+## Action Plan (Summary)
+
+The codebase is "Code Complete" regarding hardening logic but "Verification Incomplete". The immediate priority is **Test Coverage**.
+
+1. **Create Unit Tests:** `safeJson`, `market_limits`, and `error_mapping`.
+2. **Verify Fixes:** Run these tests to confirm the implemented logic works as designed.
 
 ---
-
-## 🔴 CRITICAL (CRITICAL)
-*Risks of financial loss, crashes, or security vulnerabilities.*
-
-1.  **Precision Loss in `BitunixWs` ("Fast Path")**:
-    *   **Location:** `src/services/bitunixWs.ts` (`handleMessage` method -> Fast Path Block).
-    *   **Description:** The "Fast Path" optimization manually casts `number` values to strings (`safeString(data.ip, ...)`). However, since `JSON.parse` (via `safeJsonParse`) has *already* run before this block, floating-point numbers have already been converted to native JavaScript numbers. This leads to irreversible precision loss for large integers (e.g., Order IDs > `2^53`) or small decimals (e.g., `0.00000001` -> `1e-8`) before they reach `Decimal.js`.
-    *   **Risk:** Financial calculations could be based on inaccurate values. Order IDs could be corrupted.
-    *   **Recommendation:** Remove the "Fast Path" or restrict it strictly to fields known to be safe. Use Zod schemas that handle string transformation (which is already implemented in the "Slow Path").
-
-2.  **GC Thrashing ("Memory Churn") in `MarketManager`**:
-    *   **Location:** `src/stores/market.svelte.ts` (`rebuildBuffers`, `appendBuffers`).
-    *   **Description:** On every Kline update that changes the array size (new candle), completely new `Float64Array` instances are allocated from the `BufferPool`. While `BufferPool` recycles memory, `appendBuffers` creates a *new* buffer and copies data every time. This results in $O(N)$ allocation behavior for every single candle update.
-    *   **Risk:** High Garbage Collection load leads to UI stuttering and increased memory usage, unacceptable for high-frequency trading.
-    *   **Recommendation:** Implement a "Capacity"-based system where buffers are over-allocated (e.g., doubled) and `length` is tracked separately to avoid re-allocation on every update.
-
----
-
-## 🟡 WARNING (WARNING)
-*Performance issues, UX errors, or missing i18n.*
-
-1.  **Main Thread Blocking in `MarketWatcher` (`fillGaps`)**:
-    *   **Location:** `src/services/marketWatcher.ts` (`fillGaps`).
-    *   **Description:** The gap-filling logic iterates up to `MAX_GAP_FILL = 5000` times. If called frequently with large data gaps (e.g., network outage recovery), this synchronous loop can freeze the main thread.
-    *   **Risk:** UI unresponsiveness during data recovery.
-    *   **Recommendation:** Move gap-filling logic to a Web Worker or optimize the loop (e.g., batch processing or yielding).
-
-2.  **Potential "Naked Position" Risk in `TradeService`**:
-    *   **Location:** `src/services/tradeService.ts` (`flashClosePosition`).
-    *   **Description:** The function attempts to cancel open orders *before* closing the position. If cancellation fails (e.g., API timeout), the close operation is aborted (`throw new Error("trade.closeAbortedSafety")`).
-    *   **Risk:** The user intends to close the position immediately (Panic Button behavior), but the system refuses because it couldn't cancel a TP/SL. This leaves the user exposed to the market against their will.
-    *   **Recommendation:** Change logic to "Best Effort": Try to cancel orders, log errors if it fails, but *proceed* with closing the position (perhaps with a user warning).
-
----
-
-## 🔵 REFACTOR (Technical Debt)
-*Maintainability and Code Quality.*
-
-1.  **Duplicate/Complex Validation Logic**:
-    *   **Location:** `src/services/bitunixWs.ts` vs `src/types/bitunixValidation.ts`.
-    *   **Description:** The "Fast Path" duplicates validation logic that exists in Zod schemas. This violates DRY and increases the risk of inconsistencies.
-
-2.  **`PortfolioInputs` Empty String Handling**:
-    *   **Location:** `src/components/inputs/PortfolioInputs.svelte`.
-    *   **Description:** While currently hardened (`if (value === "") return "0"`), the logic relies on implicit behaviors between local state and store updates.
-    *   **Recommendation:** Explicitly handle `null` vs `""` vs `"0"` in the store schemas to avoid ambiguity.
-
----
-
-## ✅ STATUS QUO (Positive Findings)
-
-*   **Decimal.js Usage:** `TradeService` and `MarketManager` (mostly) use `Decimal.js` correctly for price math.
-*   **I18n Coverage:** An automated audit (`scripts/check_translations.sh`) confirmed that translation keys are synchronized between EN and DE.
-*   **Safety:** `safeJsonParse` is used globally to prevent crashes on malformed API responses.
-*   **Zod Validation:** Strict schemas are in place for API responses (when not bypassed by Fast Path).
-
+*Signed: Jules, Senior Lead Developer*
