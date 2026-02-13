@@ -203,16 +203,30 @@ export function sanitizeErrorMessage(
   message: string,
   maxLength: number = 100,
 ): string {
-  // Remove potential sensitive data patterns
-  let sanitized = message
-    .replace(/api[_-]?key[=:]\s*[\w-]+/gi, "api_key=***")
-    .replace(/secret[=:]\s*[\w-]+/gi, "secret=***")
-    .replace(/token[=:]\s*[\w-]+/gi, "token=***")
-    .replace(/password[=:]\s*[\w-]+/gi, "password=***")
-    .replace(/passphrase[=:]\s*[\w-]+/gi, "passphrase=***");
+  // Enhanced sanitization to handle JSON, mixed quotes, and various separators
+  // Matches: key="value", "key": "value", key: value, etc.
+
+  const keys = "api[_-]?key|secret|token|password|passphrase";
+  // Regex explanation:
+  // 1. (["']?) : Group 1 (q1) - Optional quote for key
+  // 2. (${keys}) : Group 2 (key) - Sensitive key name
+  // \1 : Backreference to q1
+  // \s*([=:])\s* : Group 3 (sep) - Separator
+  // 3. (["']?) : Group 4 (q2) - Optional quote for value
+  // 4. ([^"'\s,}&]+) : Group 5 (val) - Value content (no quotes, spaces, comma, }, &)
+  // \4 : Backreference to q2
+  const regex = new RegExp(
+    `(["']?)(${keys})\\1(\\s*[=:]\\s*)(["']?)([^"'\\s,}&]+)\\4`,
+    "gi"
+  );
+
+  let sanitized = message.replace(regex, (match, q1, key, sep, q2, val) => {
+    // Preserve the key, separator and quotes, but mask the value
+    return `${q1}${key}${q1}${sep}${q2}***${q2}`;
+  });
 
   // Limit length
-  if (sanitized.length > maxLength) {
+  if (maxLength > 0 && sanitized.length > maxLength) {
     sanitized = sanitized.slice(0, maxLength) + "...";
   }
 
