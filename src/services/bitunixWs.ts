@@ -208,9 +208,18 @@ class BitunixWebSocketService {
 
     this.instanceId = ++BitunixWebSocketService.instanceCount;
     logger.log("governance", `[BitunixWS] Instance #${this.instanceId} Created`);
+    this.initMonitors();
+  }
+
+  private initMonitors() {
     if (typeof window !== "undefined") {
+      // Ensure we don't duplicate listeners if called multiple times (e.g. revive from destroy)
+      window.removeEventListener("online", this.handleOnline);
+      window.removeEventListener("offline", this.handleOffline);
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
+
+      if (this.globalMonitorInterval) clearInterval(this.globalMonitorInterval);
 
       this.globalMonitorInterval = setInterval(() => {
         if (this.isDestroyed) return;
@@ -315,6 +324,10 @@ class BitunixWebSocketService {
 
   connect(force?: boolean) {
     logger.log("governance", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
+    // Revive monitors if reviving from destroyed state
+    if (this.isDestroyed || !this.globalMonitorInterval) {
+        this.initMonitors();
+    }
     this.isDestroyed = false;
     this.connectPublic(force);
     this.connectPrivate(force);
