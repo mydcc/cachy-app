@@ -55,7 +55,7 @@ describe("BufferPool", () => {
     expect(newBuffer1.length).toBe(len1);
   });
 
-  it("should handle multiple buffers of the same length", () => {
+  it("should handle multiple buffers of the same length (LIFO)", () => {
     const length = 10;
     const buffer1 = pool.acquire(length);
     const buffer2 = pool.acquire(length);
@@ -90,5 +90,41 @@ describe("BufferPool", () => {
     pool.release(buffer);
     const recycled = pool.acquire(0);
     expect(recycled).toBe(buffer);
+  });
+
+  it("should return dirty buffers (no zeroing overhead)", () => {
+    const length = 5;
+    const buffer = pool.acquire(length);
+
+    // Fill with data
+    buffer.fill(123.456);
+    expect(buffer[0]).toBe(123.456);
+
+    pool.release(buffer);
+
+    // Re-acquire
+    const recycled = pool.acquire(length);
+    expect(recycled).toBe(buffer);
+    // Verify data is still there (dirty), confirming no zeroing happened
+    expect(recycled[0]).toBe(123.456);
+  });
+
+  it("should clear buffers of multiple lengths when clear() is called", () => {
+    const len1 = 10;
+    const len2 = 20;
+
+    const buf1 = pool.acquire(len1);
+    const buf2 = pool.acquire(len2);
+
+    pool.release(buf1);
+    pool.release(buf2);
+
+    pool.clear();
+
+    const newBuf1 = pool.acquire(len1);
+    const newBuf2 = pool.acquire(len2);
+
+    expect(newBuf1).not.toBe(buf1);
+    expect(newBuf2).not.toBe(buf2);
   });
 });
