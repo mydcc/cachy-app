@@ -326,8 +326,6 @@
 </div>
 
 <style>
-  }
-
   /* Markdown Styles - Theme Aware */
   .markdown-content :global(p) {
     margin-bottom: 0.75rem;

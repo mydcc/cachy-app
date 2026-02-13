@@ -167,11 +167,3 @@
       </div>
     </div>
 </div>
-
-<style>
-  /* Terminal Overrides */
-  .terminal-md :global(*) {
-    color: #22c55e !important; /* Tailwind green-500 */
-    font-family: monospace !important;
-  }
-</style>
