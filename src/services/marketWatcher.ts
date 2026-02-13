@@ -238,14 +238,24 @@ class MarketWatcher {
   }
 
   private pruneOrphanedSubscriptions() {
-    for (const [symbol, channels] of this.requests) {
-      for (const [channel, reqs] of channels) {
-        if (reqs.size === 0) {
+    // Hardening: Iterate over a copy to avoid modification-during-iteration issues
+    const symbols = Array.from(this.requests.keys());
+
+    for (const symbol of symbols) {
+      const channels = this.requests.get(symbol);
+      if (!channels) continue;
+
+      const channelNames = Array.from(channels.keys());
+      for (const channel of channelNames) {
+        const reqs = channels.get(channel);
+        if (!reqs || reqs.size === 0) {
           channels.delete(channel);
           this._subscriptionsDirty = true;
         } else {
-          for (const [req, count] of reqs) {
-            if (count <= 0) {
+          const requirements = Array.from(reqs.keys());
+          for (const req of requirements) {
+            const count = reqs.get(req);
+            if (count === undefined || count <= 0) {
               reqs.delete(req);
               this._subscriptionsDirty = true;
             }
@@ -550,6 +560,12 @@ class MarketWatcher {
           return klines; // Abort fill if structure is wrong
       }
 
+      // Hardening: Ensure intervalMs is valid to avoid infinite loops
+      if (!intervalMs || intervalMs < 100) {
+          logger.warn("market", "[fillGaps] Invalid intervalMs, skipping gap fill", intervalMs);
+          return klines;
+      }
+
       const filled: KlineRaw[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
@@ -571,13 +587,16 @@ class MarketWatcher {
                       break;
                   }
                   // Fill with flat candle (Close of previous)
-                  // [OPTIMIZATION] Use shared ZERO_VOL
+                  // [OPTIMIZATION] Use simple object to avoid allocation overhead if handled downstream
+                  // For gap filling, we reuse the previous close as open/high/low/close
+                  // and explicitly use "0" for volume to avoid Decimal overhead here.
+                  const prevClose = String(prev.close);
                   filled.push({
                       time: nextTime,
-                      open: String(prev.close),
-                      high: String(prev.close),
-                      low: String(prev.close),
-                      close: String(prev.close),
+                      open: prevClose,
+                      high: prevClose,
+                      low: prevClose,
+                      close: prevClose,
                       volume: "0"
                   });
                   nextTime += intervalMs;
