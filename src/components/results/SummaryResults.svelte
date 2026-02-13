@@ -19,7 +19,6 @@
   import { createEventDispatcher } from "svelte";
   import { icons } from "../../lib/constants";
   import Tooltip from "../shared/Tooltip.svelte";
-  import Icon from "../shared/Icon.svelte";
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
 
@@ -78,9 +77,9 @@
         onclick={handleToggleLock}
       >
         {#if isPositionSizeLocked}
-          <Icon data={icons.lockClosed} />
+          {@html icons.lockClosed}
         {:else}
-          <Icon data={icons.lockOpen} />
+          {@html icons.lockOpen}
         {/if}
       </button>
       <button
@@ -89,7 +88,7 @@
         aria-label={$_("dashboard.summaryResults.copyPositionSizeAriaLabel")}
         onclick={handleCopy}
       >
-        <Icon data={icons.copy} />
+        {@html icons.copy}
       </button>
       {#if showCopyFeedback}<span
           id="copy-feedback"

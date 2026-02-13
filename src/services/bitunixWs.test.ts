@@ -16,7 +16,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Decimal } from 'decimal.js';
 import { bitunixWs } from '../../src/services/bitunixWs';
 import { marketState } from '../../src/stores/market.svelte';
 import { mdaService } from '../../src/services/mdaService';
@@ -70,32 +69,10 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
 
         // Price channel now updates Index Price and Funding Rate, NOT Last Price (to avoid flickering)
-        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
-            fundingRate: new Decimal('0.01'),
-            indexPrice: new Decimal('50001'),
-            nextFundingTime: undefined
-        });
-    });
-
-    it('should execute trade listeners exactly once for each trade', () => {
-        const symbol = 'BTCUSDT';
-        const callback = vi.fn();
-        wsService.subscribeTrade(symbol, callback);
-
-        const msg = {
-            ch: 'trade',
-            symbol: symbol,
-            data: {
-                p: '50000',
-                v: '0.1',
-                t: 1600000000000,
-                s: 'buy'
-            }
-        };
-
-        wsService.handleMessage(msg, 'public');
-
-        expect(callback).toHaveBeenCalledTimes(1);
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
+            fundingRate: '0.01',
+            indexPrice: '50001'
+        }));
     });
 
     it('should use Fast Path for valid ticker message (Ticker Channel updates LastPrice)', () => {

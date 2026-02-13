@@ -23,7 +23,7 @@
 
 import type { Decimal } from "decimal.js";
 
-export type OMSOrderStatus = "pending" | "filled" | "cancelled" | "rejected" | "expired" | "failed";
+export type OMSOrderStatus = "pending" | "filled" | "cancelled" | "rejected" | "expired";
 export type OMSOrderSide = "buy" | "sell";
 
 export interface OMSOrder {

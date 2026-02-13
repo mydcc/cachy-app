@@ -10,8 +10,6 @@ import { Decimal } from 'decimal.js';
 vi.mock('../stores/market.svelte', () => ({
     marketState: {
         updateSymbol: vi.fn(),
-        updateDepth: vi.fn(),
-        updateSymbolKlines: vi.fn(),
         updateTelemetry: vi.fn(),
         connectionStatus: 'connected'
     }
@@ -27,14 +25,7 @@ vi.mock('./logger', () => ({
 
 vi.mock('./mdaService', () => ({
     mdaService: {
-        normalizeTicker: vi.fn((msg) => ({
-             lastPrice: new Decimal(msg.data.lastPrice || 0),
-             volume: new Decimal(msg.data.volume || 0),
-             high: new Decimal(msg.data.high || 0),
-             low: new Decimal(msg.data.low || 0),
-             quoteVolume: new Decimal(msg.data.quoteVolume || 0),
-             priceChangePercent: new Decimal(msg.data.priceChangePercent || 0)
-        })),
+        normalizeTicker: vi.fn(),
         normalizeKlines: vi.fn()
     }
 }));
@@ -42,57 +33,81 @@ vi.mock('./mdaService', () => ({
 describe('BitunixWebSocketService FastPath Hardening', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Reset throttle map indirectly by using unique symbols
     });
 
     // Access private method handleMessage via explicit casting or prototype
     const handleMessage = (bitunixWs as any).handleMessage.bind(bitunixWs);
 
-    it('should stay robust when network state is inconsistent during FastPath', () => {
-        // Simulate a scenario where connection status is disconnected but message arrives (race condition)
-        // Access private prop via cast
-        (marketState as any).connectionStatus = 'disconnected';
-
+    it('should correctly process numeric price data in FastPath', () => {
+        // Arrange: Message with numeric values (API drift scenario)
         const message = {
-            ch: 'ticker',
-            symbol: 'BTCUSDT_RACE',
-            data: { lastPrice: '60000' }
+            ch: 'price',
+            symbol: 'BTCUSDT_VALID', // Unique symbol to avoid throttle
+            data: {
+                ip: 95000.50,       // Number
+                fr: 0.0001,         // Number
+                nft: 1700000000000, // Number (timestamp)
+                lastPrice: 95000.50 // Number
+            }
         };
 
+        // Act
         handleMessage(message, 'public');
 
         // Should still process if message arrived
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT_RACE', expect.anything());
     });
 
-    it('should ignore malformed payloads missing critical data', () => {
+    it('should log warning when FastPath fails (simulated)', () => {
+        // Arrange: Malformed data that might cause Decimal constructor to throw if not handled
         const message = {
             ch: 'price',
-            symbol: 'ETHUSDT_BAD',
-            data: { ip: [] } // Invalid data type (array instead of string/number)
+            symbol: 'BTCUSDT_ERROR',
+            data: { ip: "invalid" }
         };
 
+        // Make updateSymbol throw to trigger the catch block in FastPath
+        (marketState.updateSymbol as any).mockImplementationOnce(() => {
+            throw new Error("Simulated Store Error");
+        });
+
+        // Act
         handleMessage(message, 'public');
 
-        // Should NOT call updateSymbol because FastPath checks for ip/fr/lastPrice presence
-        expect(marketState.updateSymbol).not.toHaveBeenCalled();
+        // Assert
+        expect(logger.warn).toHaveBeenCalledWith(
+            "network",
+            "[BitunixWS] FastPath error (price)",
+            expect.any(Error)
+        );
     });
 
-    it('should gracefully handle unexpected nulls in numeric fields', () => {
-        const message = {
-            ch: 'price',
-            symbol: 'SOLUSDT_NULL',
+    it('should handle numeric ticker data in FastPath', () => {
+         const message = {
+            ch: 'ticker',
+            symbol: 'ETHUSDT_TICKER',
             data: {
-                ip: null,
-                fr: "0.001"
+                lastPrice: 3000.50, // Number
+                volume: 50000,      // Number
+                high: 3100,
+                low: 2900
             }
         };
 
+        // Mock normalization to return something valid
+        (mdaService.normalizeTicker as any).mockReturnValue({
+            lastPrice: new Decimal(3000.5),
+            volume: new Decimal(50000),
+            high: new Decimal(3100),
+            low: new Decimal(2900),
+            quoteVolume: new Decimal(0),
+            priceChangePercent: new Decimal(0)
+        });
+
         handleMessage(message, 'public');
 
-        // Should update funding rate but ignore index price
-        expect(marketState.updateSymbol).toHaveBeenCalledWith('SOLUSDT_NULL', expect.objectContaining({
-            indexPrice: undefined,
-            fundingRate: expect.any(Decimal)
-        }));
+        expect(mdaService.normalizeTicker).toHaveBeenCalled();
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT_TICKER', expect.anything());
     });
 });

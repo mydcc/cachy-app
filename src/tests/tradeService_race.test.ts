@@ -70,8 +70,17 @@ describe('TradeService Race Conditions', () => {
         };
         (omsService.getPositions as any).mockReturnValue([position]);
 
-        // Mock Fetch Failure (Network Error)
-        (global.fetch as any).mockRejectedValue(new Error('Network Error'));
+        // Mock Fetch: Cancel succeeds, Order fails
+        (global.fetch as any).mockImplementation(async (url: string, options: any) => {
+            const body = JSON.parse(options.body);
+            if (body.type === 'cancel-all') {
+                return {
+                    ok: true,
+                    text: () => Promise.resolve(JSON.stringify({ code: 0, msg: 'success' }))
+                };
+            }
+            throw new Error('Network Error');
+        });
 
         // Spy on optimistic add
         const addOptimisticSpy = vi.spyOn(omsService, 'addOptimisticOrder');

@@ -72,25 +72,7 @@ interface Subscription {
 
 class BitunixWebSocketService {
   // Trade Listeners
-
   private tradeListeners = new Map<string, Set<(trade: TradeData) => void>>();
-
-  public subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
-    const s = normalizeSymbol(symbol, "bitunix");
-    if (!this.tradeListeners.has(s)) {
-      this.tradeListeners.set(s, new Set());
-    }
-    this.tradeListeners.get(s)!.add(callback);
-    return () => {
-      const listeners = this.tradeListeners.get(s);
-      if (listeners) {
-        listeners.delete(callback);
-        if (listeners.size === 0) {
-          this.tradeListeners.delete(s);
-        }
-      }
-    };
-  }
   public static activeInstance: BitunixWebSocketService | null = null;
   private static instanceCount = 0;
   private instanceId = 0;
@@ -913,15 +895,17 @@ class BitunixWebSocketService {
                     if (typeof data.v === 'number') data.v = safeString(data.v, 'v');
                     if (typeof data.close === 'number') data.close = safeString(data.close, 'close');
 
-                    // OPTIMIZATION: Direct Mapping (Skip mdaService allocation)
-                    if (!this.shouldThrottle(`${symbol}:ticker`)) {
+                    // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
+                    const normalized = mdaService.normalizeTicker(message, "bitunix");
+
+                    if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
                       marketState.updateSymbol(symbol, {
-                        lastPrice: data.lastPrice || data.lp || data.la,
-                        highPrice: data.high || data.h,
-                        lowPrice: data.low || data.l,
-                        volume: data.volume || data.v || data.vol,
-                        quoteVolume: data.quoteVolume || data.q || data.quoteVol,
-                        priceChangePercent: data.priceChangePercent || data.r
+                        lastPrice: normalized.lastPrice,
+                        highPrice: normalized.high,
+                        lowPrice: normalized.low,
+                        volume: normalized.volume,
+                        quoteVolume: normalized.quoteVolume,
+                        priceChangePercent: normalized.priceChangePercent
                       });
                     }
                     return;
@@ -1285,19 +1269,15 @@ class BitunixWebSocketService {
              // Dispatch to listeners
              const listeners = this.tradeListeners.get(symbol);
              
+             // DEBUG LOG
+             if (import.meta.env.DEV) {
+                 // console.log(`[BitunixWS] Received ${items.length} trades for ${symbol}. Listeners: ${listeners ? listeners.size : 0}`);
+             }
 
              if (listeners) {
-                 for (const item of items) {
-                     for (const cb of listeners) {
-                         try {
-                             cb(item);
-                         } catch (e) {
-                             if (import.meta.env.DEV) {
-                                 console.warn("[BitunixWS] Trade listener error:", e);
-                             }
-                         }
-                     }
-                 }
+                 items.forEach(item => {
+                     listeners.forEach(cb => { try { cb(item); } catch (e) { if (import.meta.env.DEV) console.warn("[BitunixWS] Trade listener error:", e); } });
+                 });
              }
         } else {
              // FALLBACK: Log invalid trade data structure

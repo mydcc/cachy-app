@@ -97,7 +97,14 @@ export class MarketManager {
   private statusNotifyTimer: any = null;
 
   constructor() {
+    this.init();
+  }
+
+  // Public init for testing and restart capability
+  init() {
     if (browser) {
+      this.destroy(); // Clear existing to prevent duplicates
+
       this.cleanupIntervalId = setInterval(() => {
         this.cleanup();
       }, 30 * 1000); // Check every 30s

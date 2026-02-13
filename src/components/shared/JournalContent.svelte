@@ -25,7 +25,6 @@
     import { calculator } from "../../lib/calculator";
     import { _ } from "../../locales/i18n";
     import { icons } from "../../lib/constants";
-    import Icon from "./Icon.svelte";
     import { browser } from "$app/environment";
     import { getComputedColor } from "../../utils/colors";
     import { formatDynamicDecimal } from "../../utils/utils";
@@ -502,7 +501,8 @@
                                 class="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full"
                             ></div>
                         {:else}
-                            <span class="opacity-70"><Icon data={icons.refresh} /></span>
+                            <span class="opacity-70">{@html icons.refresh}</span
+                            >
                         {/if}
                         <span>
                             {uiState.isPriceFetching
@@ -590,14 +590,14 @@
             class="btn-success text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={app.exportToCSV}
         >
-            <Icon data={icons.export} />
+            {@html icons.export}
             {$_("journal.export")}
         </button>
         <button
             class="btn-accent text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={() => document.getElementById("import-csv-input")?.click()}
         >
-            <Icon data={icons.import} />
+            {@html icons.import}
             {$_("journal.import")}
         </button>
         <input
@@ -610,7 +610,7 @@
             class="btn-danger text-sm py-2 px-4 rounded-lg flex items-center gap-2"
             onclick={app.clearJournal}
         >
-            <Icon data={icons.delete} />
+            {@html icons.delete}
             {$_("journal.clearAll")}
         </button>
     </div>
