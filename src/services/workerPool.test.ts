@@ -6,7 +6,20 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { WorkerPool } from '../services/workerPool';
+
+// Mocks must be before imports
+vi.mock('$app/environment', () => ({ browser: true, dev: true }));
+vi.mock('./logger', () => ({
+  logger: {
+    log: vi.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
+  }
+}));
+
+import { WorkerPool } from './workerPool';
 
 describe('WorkerPool', () => {
   let pool: WorkerPool;
@@ -14,12 +27,12 @@ describe('WorkerPool', () => {
   
   beforeEach(() => {
     // Mock Worker constructor
-    global.Worker = vi.fn().mockImplementation(() => ({
+    global.Worker = vi.fn().mockImplementation(function() { return {
       postMessage: vi.fn(),
       terminate: vi.fn(),
       onmessage: null,
-      onerror: null
-    }));
+      onerror: null };
+    });
     
     pool = new WorkerPool(mockWorkerUrl, 4); // Max 4 workers for tests
   });
@@ -78,6 +91,7 @@ describe('WorkerPool', () => {
   describe('Worker Recycling', () => {
     it('should recycle worker after threshold tasks', async () => {
       const recycleSpy = vi.spyOn(pool as any, 'recycleWorker');
+      pool.execute({ type: 'SETUP' });
       
       // Simulate 100 tasks (RECYCLE_THRESHOLD)
       for (let i = 0; i < 100; i++) {
@@ -87,8 +101,9 @@ describe('WorkerPool', () => {
           
           if (i === 99) {
             // Trigger recycle
+            (pool as any).pendingTasks.set('test', { resolve: vi.fn(), reject: vi.fn() });
             (pool as any).handleMessage(
-              { data: { id: 'test', payload: {} } },
+              { data: { id: 'test', payload: {} } } as MessageEvent,
               worker
             );
           }
@@ -103,10 +118,10 @@ describe('WorkerPool', () => {
     it('should reject task on worker error', async () => {
       const task = pool.execute({ type: 'TEST' });
       
-      // Si mulate worker error
+      // Simulate worker error
       const worker = (pool as any).workers[0];
       if (worker && worker.worker.onerror) {
-        worker.worker.onerror(new ErrorEvent('error'));
+        worker.worker.onerror({ message: 'error' } as any);
       }
       
       await expect(task).rejects.toThrow();

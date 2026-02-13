@@ -17,6 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
+import { logger } from "./logger";
 import type { IndicatorSettings } from "../types/indicators";
 import { indicatorState } from "../stores/indicator.svelte";
 import type { Kline, TechnicalsData, IndicatorResult, KlineBuffers } from "./technicalsTypes";
@@ -86,9 +87,9 @@ class TechnicalsWorkerManager {
       this.worker.onmessage = this.handleMessage.bind(this);
       this.worker.onerror = this.handleError.bind(this);
       
-      if (import.meta.env.DEV) console.log("[Technicals] Worker instance created.");
+      logger.debug('technicals', "Worker instance created.");
     } catch (e) {
-      console.error("[Technicals] Worker Creation Failed:", e);
+      logger.error('technicals', "Worker Creation Failed", e);
       this.isDisabled = true;
     }
   }
@@ -112,7 +113,7 @@ class TechnicalsWorkerManager {
     if (this.isDisabled) return;
 
     const errorMsg = e.message || "Evaluation Error or COEP/CORS Block";
-    console.error(`[Technicals] Worker Crash: ${errorMsg}`, e);
+    logger.error('technicals', `Worker Crash: ${errorMsg}`, e);
     
     if (this.worker) { 
         this.worker.terminate(); 
@@ -121,7 +122,7 @@ class TechnicalsWorkerManager {
     
     this.consecutiveFailures++;
     if (this.consecutiveFailures > 2) {
-        console.warn("[Technicals] Disabling Web Worker due to persistent errors. Falling back to Main Thread ACE.");
+        logger.warn('technicals', "Disabling Web Worker due to persistent errors. Falling back to Main Thread ACE.");
         this.isDisabled = true;
     }
 
@@ -177,10 +178,10 @@ async function notifyCapabilityStatus() {
     if (missing.length > 0) {
         // Warning, not error - app still works via fallbacks
         const msg = `Performance Warning: Missing ${missing.join(", ")}. Using fallback engine.`;
-        console.warn(`[Technicals] ${msg}`);
+        logger.warn('technicals', msg);
         toastService.warning(msg, 8000);
     } else {
-        console.log("[Technicals] All high-performance features available.");
+        logger.log('technicals', "All high-performance features available.");
     }
 }
 
@@ -239,7 +240,7 @@ export const technicalsService = {
       calculationCache.set(cacheKey, { data: finalResult, timestamp: Date.now(), lastAccessed: Date.now() });
       return finalResult;
     } catch (e) {
-      if (import.meta.env.DEV) console.warn("[Technicals] Engine fallback triggered:", e);
+      logger.warn('technicals', "Engine fallback triggered", e);
       return this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
     }
   },
