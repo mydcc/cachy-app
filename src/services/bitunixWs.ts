@@ -79,6 +79,7 @@ class BitunixWebSocketService {
     const s = normalizeSymbol(symbol, "bitunix");
     if (!this.tradeListeners.has(s)) {
       this.tradeListeners.set(s, new Set());
+      this.subscribe(s, "trade");
     }
     this.tradeListeners.get(s)!.add(callback);
     return () => {
@@ -87,6 +88,7 @@ class BitunixWebSocketService {
         listeners.delete(callback);
         if (listeners.size === 0) {
           this.tradeListeners.delete(s);
+          this.unsubscribe(s, "trade");
         }
       }
     };
