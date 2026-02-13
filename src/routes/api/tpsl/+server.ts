@@ -22,7 +22,7 @@ import {
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
 import { checkAppAuth } from "../../../lib/server/auth";
-import { TpSlRequestSchema } from "../../../types/apiSchemas";
+import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -98,7 +98,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing TP/SL request:`, e.message || e);
+        let rawMsg = e instanceof Error ? e.message : String(e);
+    if (typeof e === "object" && e !== null && !e.message) {
+      try { rawMsg = JSON.stringify(e); } catch {}
+    }
+    console.error(`Error processing TP/SL request:`, sanitizeErrorMessage(rawMsg, 1000));
 
     // Determine appropriate status code
     let status = 500;
