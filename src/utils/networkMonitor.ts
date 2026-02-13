@@ -27,7 +27,7 @@ import { browser } from "$app/environment";
 
 export type ConnectionQuality = "4g" | "3g" | "2g" | "slow-2g";
 
-export class NetworkMonitor {
+class NetworkMonitor {
     private connection: any; // Navigator.connection (experimental)
 
     constructor() {

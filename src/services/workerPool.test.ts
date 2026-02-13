@@ -17,14 +17,19 @@ describe('WorkerPool', () => {
   let pool: WorkerPool;
   const mockWorkerUrl = new URL('../workers/technicals.worker.ts', import.meta.url).href;
   
+  // Ensure ErrorEvent is available globally
+  if (typeof ErrorEvent === 'undefined') {
+      vi.stubGlobal('ErrorEvent', class ErrorEvent {});
+  }
+
   beforeEach(() => {
     // Mock Worker constructor
-    const MockWorker = vi.fn(() => ({
-      postMessage: vi.fn(),
-      terminate: vi.fn(),
-      onmessage: null,
-      onerror: null
-    }));
+    const MockWorker = vi.fn(function(this: any) {
+      this.postMessage = vi.fn();
+      this.terminate = vi.fn();
+      this.onmessage = null;
+      this.onerror = null;
+    });
     vi.stubGlobal('Worker', MockWorker);
     
     pool = new WorkerPool(mockWorkerUrl, 4); // Max 4 workers for tests

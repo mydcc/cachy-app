@@ -25,8 +25,7 @@ export const BitunixPriceDataSchema = z.object({
  * Strict Schema for Bitunix Price Data (Hardening Phase)
  * Enforces string conversion for all numeric fields
  */
-const SafeString = z.union([z.string(), z.number(), z.null()])
-  .transform((val) => (val === null ? undefined : String(val)));
+const SafeString = z.union([z.string(), z.number()]).transform((val) => String(val));
 
 export const StrictPriceDataSchema = z.object({
   mp: SafeString.optional(), // Mark Price

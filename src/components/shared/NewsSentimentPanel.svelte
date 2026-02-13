@@ -15,7 +15,6 @@
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
   import { icons } from "../../lib/constants";
-  import Icon from "./Icon.svelte";
   import { _ } from "../../locales/i18n";
   import CachyIcon from "./CachyIcon.svelte";
   import { fade, slide } from "svelte/transition";
@@ -110,7 +109,7 @@
       <div class="flex items-center gap-2">
         {#if isLoading}
           <div class="animate-spin text-[var(--text-secondary)] w-3 h-3">
-            <Icon data={icons.refresh} />
+            {@html icons.refresh}
           </div>
         {:else}
           <button
@@ -118,7 +117,7 @@
             title="Refresh"
             onclick={handleRefresh}
           >
-            <Icon data={icons.refresh} />
+            {@html icons.refresh}
           </button>
         {/if}
 
@@ -134,7 +133,7 @@
           class="text-[var(--text-secondary)] transform transition-transform duration-200"
           class:rotate-180={isExpanded}
         >
-          <Icon data={icons.chevronDown} />
+          {@html icons.chevronDown}
         </div>
       </div>
     </div>
@@ -280,7 +279,7 @@
         <div
           class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
         >
-          <Icon data={isExpanded ? icons.chevronUp : icons.chevronDown} />
+          {@html isExpanded ? icons.chevronUp : icons.chevronDown}
         </div>
       </div>
     </button>

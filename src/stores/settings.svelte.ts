@@ -13,18 +13,6 @@ import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 
-const SENSITIVE_KEYS: (keyof Settings)[] = [
-  "openaiApiKey",
-  "geminiApiKey",
-  "anthropicApiKey",
-  "discordBotToken",
-  "newsApiKey",
-  "cryptoPanicApiKey",
-  "cmcApiKey",
-  "imgbbApiKey",
-  "appAccessToken",
-];
-
 // Removed MarketDataInterval as it is legacy (WebSockets preferred)
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
@@ -154,7 +142,6 @@ export interface Settings {
     bitunix?: EncryptedBlob;
     bitget?: EncryptedBlob;
   };
-  encryptedSecrets?: Record<string, EncryptedBlob>;
   isEncrypted?: boolean;
   customHotkeys: Record<string, string>;
   favoriteTimeframes: string[];
@@ -861,7 +848,6 @@ export class SettingsManager {
 
   // Security State
   encryptedApiKeys = $state<Settings["encryptedApiKeys"]>(undefined);
-  encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
   isEncrypted = $state(false);
   isLocked = $state(false);
 
@@ -920,71 +906,22 @@ export class SettingsManager {
     }
   }
 
-
-
-
-
-
-
-
-    // --- Device Security ---
-  private _deviceKey: string | null = null;
-
-  private getDeviceKey(): string {
-    if (!browser) return "server-side-key-placeholder";
-    if (this._deviceKey) return this._deviceKey;
-
-    // Try to get from localStorage
-    const key = localStorage.getItem("cachy_device_id");
-    if (key) {
-      this._deviceKey = key;
-      return key;
-    }
-
-    // Generate new key
-    const array = new Uint8Array(32);
-    window.crypto.getRandomValues(array);
-    const newKey = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
-
-    localStorage.setItem("cachy_device_id", newKey);
-    this._deviceKey = newKey;
-    return newKey;
-  }
-
   // --- Security Methods ---
 
   async unlock(password: string): Promise<boolean> {
+    if (!this.encryptedApiKeys) return true;
     const success = await cryptoService.unlockSession(password);
     if (!success) return false;
 
     try {
-      // 1. Decrypt Exchange Keys
-      if (this.encryptedApiKeys) {
-        if (this.encryptedApiKeys.bitunix) {
-          const json = await cryptoService.decrypt(this.encryptedApiKeys.bitunix);
-          this.apiKeys.bitunix = JSON.parse(json);
-        }
-        if (this.encryptedApiKeys.bitget) {
-          const json = await cryptoService.decrypt(this.encryptedApiKeys.bitget);
-          this.apiKeys.bitget = JSON.parse(json);
-        }
+      if (this.encryptedApiKeys.bitunix) {
+        const json = await cryptoService.decrypt(this.encryptedApiKeys.bitunix);
+        this.apiKeys.bitunix = JSON.parse(json);
       }
-
-      // 2. Decrypt Generic Secrets
-      if (this.encryptedSecrets) {
-        for (const [key, blob] of Object.entries(this.encryptedSecrets)) {
-           if (SENSITIVE_KEYS.includes(key as any)) {
-             try {
-               const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
-               // @ts-ignore
-               this[key] = decrypted;
-             } catch (e) {
-               console.error("[Settings] Failed to decrypt secret " + key, e);
-             }
-           }
-        }
+      if (this.encryptedApiKeys.bitget) {
+        const json = await cryptoService.decrypt(this.encryptedApiKeys.bitget);
+        this.apiKeys.bitget = JSON.parse(json);
       }
-
       this.isLocked = false;
       return true;
     } catch (e) {
@@ -1000,13 +937,6 @@ export class SettingsManager {
         bitunix: { key: "", secret: "" },
         bitget: { key: "", secret: "", passphrase: "" }
       };
-
-      // Clear generic secrets from memory
-      for (const key of SENSITIVE_KEYS) {
-        // @ts-ignore
-        this[key] = "";
-      }
-
       cryptoService.lockSession();
       this.isLocked = true;
     }
@@ -1016,7 +946,6 @@ export class SettingsManager {
     if (!browser) return;
     await cryptoService.unlockSession(password);
 
-    // 1. Encrypt Exchange Keys
     const bitunixBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
     const bitgetBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
 
@@ -1025,27 +954,9 @@ export class SettingsManager {
       bitget: bitgetBlob
     };
 
-    // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
-    // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
-    if (!this.encryptedSecrets) this.encryptedSecrets = {};
-
-    for (const key of SENSITIVE_KEYS) {
-      // @ts-ignore
-      const value = this[key];
-      if (typeof value === 'string' && value.length > 0) {
-         try {
-           // Encrypt with Session Key (implied)
-           const blob = await cryptoService.encrypt(value);
-           this.encryptedSecrets[key] = blob;
-         } catch (e) {
-           console.error("Failed to re-encrypt " + key, e);
-         }
-      }
-    }
-
     this.isEncrypted = true;
     this.isLocked = false;
-    await this.save();
+    this.save();
   }
 
   private load() {
@@ -1141,32 +1052,6 @@ export class SettingsManager {
         if (merged.apiKeys) {
           if (merged.apiKeys.bitunix) this.apiKeys.bitunix = merged.apiKeys.bitunix;
           if (merged.apiKeys.bitget) this.apiKeys.bitget = merged.apiKeys.bitget;
-        }
-      }
-
-      // Security: Load Encrypted Secrets (Generic)
-      if (merged.encryptedSecrets) {
-        this.encryptedSecrets = merged.encryptedSecrets;
-
-        // If Obfuscation Mode (no master password), decrypt immediately
-        if (!this.isEncrypted) {
-           const deviceKey = this.getDeviceKey();
-           // We need to trigger this async but load is sync.
-           // We can't await here.
-           // We'll launch a background decryption.
-           (async () => {
-             for (const [key, blob] of Object.entries(this.encryptedSecrets || {})) {
-               try {
-                 const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
-                 if (SENSITIVE_KEYS.includes(key as any)) {
-                   // @ts-ignore
-                   this[key] = decrypted;
-                 }
-               } catch (e) {
-                 console.error("[Settings] Failed to decrypt secret " + key, e);
-               }
-             }
-           })();
         }
       }
 
@@ -1350,67 +1235,13 @@ export class SettingsManager {
     }
   }
 
-  private async save() {
+  private save() {
     if (!browser || !this.effectActive || this.saveLock) return;
 
     this.saveLock = true;
 
     try {
       const data = this.toJSON();
-
-      // --- Security: Encrypt Sensitive Keys ---
-      if (!data.encryptedSecrets) {
-        data.encryptedSecrets = {};
-      }
-
-      // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
-      let encryptionPassword: string | undefined = undefined;
-      let canEncrypt = true;
-
-      if (!this.isEncrypted) {
-        // Obfuscation Mode: Use Device Key
-        encryptionPassword = this.getDeviceKey();
-      } else {
-        // Master Password Mode: Use Session Key (implicit)
-        // If locked, we cannot encrypt new data.
-        if (this.isLocked || !cryptoService.isUnlocked()) {
-          canEncrypt = false;
-        }
-      }
-
-      if (canEncrypt) {
-        for (const key of SENSITIVE_KEYS) {
-          // @ts-ignore
-          const value = data[key];
-
-          // Only encrypt if value is present and not empty
-          if (typeof value === 'string' && value.length > 0) {
-            try {
-              // Encrypt
-              const blob = await cryptoService.encrypt(value, encryptionPassword);
-              data.encryptedSecrets[key] = blob;
-
-              // Redact plain text from saved object
-              // @ts-ignore
-              data[key] = "";
-            } catch (err) {
-              if (import.meta.env.DEV) {
-                console.error(`[Settings] Failed to encrypt ${key}:`, err);
-              }
-              // Safety: Do not save plain text on error
-              // @ts-ignore
-              data[key] = "";
-            }
-          }
-        }
-      } else {
-        // Locked mode: Ensure plain text fields are empty
-        for (const key of SENSITIVE_KEYS) {
-          // @ts-ignore
-          data[key] = "";
-        }
-      }
-
       const current = localStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
       );
@@ -1460,7 +1291,6 @@ export class SettingsManager {
         { bitunix: { key: "", secret: "" }, bitget: { key: "", secret: "", passphrase: "" } } :
         $state.snapshot(this.apiKeys),
       encryptedApiKeys: this.encryptedApiKeys,
-      encryptedSecrets: this.encryptedSecrets,
       isEncrypted: this.isEncrypted,
       customHotkeys: $state.snapshot(this.customHotkeys),
       favoriteTimeframes: $state.snapshot(this.favoriteTimeframes),

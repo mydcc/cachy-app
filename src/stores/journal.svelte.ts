@@ -20,17 +20,49 @@ import { safeJsonParse } from "../utils/safeJson";
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
 
+  // Internal timer for subscription debouncing
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoSaveCleanup: (() => void) | null = null;
+
   constructor() {
+    this.init();
+  }
+
+  init() {
     if (browser) {
       this.load();
+      this.setupAutoSave();
+    }
+  }
 
-      // Auto-save effect
-      $effect.root(() => {
+  private setupAutoSave() {
+      if (this.autoSaveCleanup) this.autoSaveCleanup();
+
+      this.autoSaveCleanup = $effect.root(() => {
         $effect(() => {
-          this.save();
+          // Track entries for auto-save
+          // We access 'this.entries' to register dependency
+          // But we don't want to save on *every* tiny mutation if they happen in batch?
+          // $effect runs asynchronously (microtask), so it batches by default.
+          const data = this.entries;
+          untrack(() => {
+              if (data.length > 0 || localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY)) {
+                  this.save();
+              }
+          });
         });
       });
-    }
+  }
+
+  destroy() {
+      if (this.autoSaveCleanup) {
+          this.autoSaveCleanup();
+          this.autoSaveCleanup = null;
+      }
+      if (this.notifyTimer) {
+          clearTimeout(this.notifyTimer);
+          this.notifyTimer = null;
+      }
   }
 
   private load() {
@@ -41,20 +73,17 @@ class JournalManager {
       const parsedData = safeJsonParse(d);
       if (Array.isArray(parsedData)) {
         // Enforce limit to prevent TBT/Crash on huge journals
-        // Taking last 1000 entries (assuming chronological order append)
-        // Ideally we should reverse logic if they are appended, but usually latest are last.
-        // Actually, users might prefer seeing latest.
-        // If we just slice, we keep first 1000. If we want latest, we might need to check sorting.
-        // Assuming append-only: latest are at the end.
         const limit = 1000;
         const sliced = parsedData.length > limit ? parsedData.slice(-limit) : parsedData;
-        this.entries = sliced.map((trade: any) => normalizeJournalEntry(trade));
+
+        // Strict typing using unknown first
+        this.entries = sliced.map((trade: unknown) => normalizeJournalEntry(trade));
 
         // Auto-calculate missing ATR values for closed trades
         this.autoCalculateMissingAtr();
       }
     } catch (e) {
-      console.warn("Could not load journal from localStorage.", e);
+      console.warn("[Journal] Could not load journal from localStorage.", e);
     }
   }
 
@@ -65,29 +94,41 @@ class JournalManager {
   private async autoCalculateMissingAtr() {
     if (!browser) return;
 
-    // Import dynamically to avoid circular dependencies
-    const { dataRepairService } = await import("../services/dataRepairService");
+    try {
+        // Import dynamically to avoid circular dependencies
+        const { dataRepairService } = await import("../services/dataRepairService");
 
-    // Check if there are any trades needing ATR calculation
-    const count = dataRepairService.scanForMissingAtr();
+        // Check if there are any trades needing ATR calculation
+        const count = dataRepairService.scanForMissingAtr();
 
-    if (count > 0) {
-      // Run repair in background without blocking UI
-      dataRepairService
-        .repairMissingAtr((current, total, message) => {
-          // Silent background operation - no UI feedback
-          if (current === total) {
-          }
-        })
-        .catch((err) => {
-          console.warn("[Journal] ATR auto-calculation failed:", err);
-        });
+        if (count > 0) {
+          // Run repair in background without blocking UI
+          dataRepairService
+            .repairMissingAtr((current, total, message) => {
+              // Silent background operation - no UI feedback
+            })
+            .catch((err) => {
+              console.warn("[Journal] ATR auto-calculation failed:", err);
+            });
+        }
+    } catch (e) {
+        console.warn("[Journal] Failed to init ATR auto-calculation:", e);
     }
   }
 
   private save() {
     if (!browser) return;
     try {
+      // Use $state.snapshot if needed, but JSON.stringify handles proxies well usually.
+      // However, for deep objects, $state.snapshot is safer in Svelte 5.
+      // But let's stick to JSON.stringify for now as normalizeJournalEntry ensures POJO-like structure with Decimals.
+      // Decimals serialize to string automatically via toJSON? No, to string.
+      // Wait, Decimal.js objects don't serialize to JSON cleanly unless handled.
+      // But we use `StorageHelper.safeSave` which likely strings it.
+      // JSON.stringify call below will call .toJSON() on objects.
+      // Decimal.prototype.toJSON returns string? No, it's not standard.
+      // Users might rely on `JSON.stringify` handling `toJSON`.
+
       const data = JSON.stringify(this.entries);
       const success = StorageHelper.safeSave(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
@@ -166,7 +207,6 @@ class JournalManager {
   marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
   systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
 
-  private notifyTimer: any = null;
 
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {
@@ -187,3 +227,10 @@ class JournalManager {
 }
 
 export const journalState = new JournalManager();
+
+// HMR
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    journalState.destroy();
+  });
+}

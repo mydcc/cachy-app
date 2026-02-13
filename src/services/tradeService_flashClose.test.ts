@@ -108,21 +108,15 @@ describe('TradeService Flash Close Reproduction', () => {
         };
     });
 
-    // Expect flashClosePosition to resolve (Best Effort)
-    await expect(tradeService.flashClosePosition(symbol, side)).resolves.toEqual({ code: 0, msg: 'success' });
+    // Expect flashClosePosition to REJECT (Safety First)
+    // We abort if cancel fails to prevent duplicate orders or race conditions
+    await expect(tradeService.flashClosePosition(symbol, side)).rejects.toThrow('trade.closeAbortedSafety');
 
-    // Verify that the CLOSE order WAS sent despite cancel failure
-    // We expect 2 calls (cancel-all, then place-order)
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    // Verify that the CLOSE order WAS NOT sent
+    // We expect 1 call (cancel-all) which failed
+    expect(global.fetch).toHaveBeenCalledTimes(1);
 
     const firstCallArgs = (global.fetch as any).mock.calls[0];
     expect(JSON.parse(firstCallArgs[1].body).type).toBe('cancel-all');
-
-    const secondCallArgs = (global.fetch as any).mock.calls[1];
-    const secondBody = JSON.parse(secondCallArgs[1].body);
-    // It is a POST /api/orders
-    expect(secondCallArgs[0]).toBe('/api/orders');
-    // For closePosition, we check side or other params
-    expect(secondBody.reduceOnly).toBe(true);
   });
 });

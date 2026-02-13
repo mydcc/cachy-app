@@ -18,7 +18,6 @@
 <script lang="ts">
     import { onMount, untrack } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
-    import Icon from "../../../components/shared/Icon.svelte";
     const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";
     import { tradeState } from "../../../stores/trade.svelte";
@@ -339,9 +338,9 @@
                             class="absolute top-1 right-1 p-1 opacity-40 hover:opacity-100 transition-opacity"
                             onclick={(e) => toggleFavorite(e, s)}
                         >
-                            <Icon data={isFavorite(s)
+                            {@html isFavorite(s)
                                 ? icons.starFilled
-                                : icons.starEmpty} />
+                                : icons.starEmpty}
                         </button>
 
                         <span class="font-bold text-sm tracking-tight">{s}</span

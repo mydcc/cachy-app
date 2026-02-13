@@ -269,6 +269,14 @@ class TradeService {
                 clientOrderId
             });
         } catch (e: any) {
+            // HARDENING: Check for Safety Abort (e.g. Cancel Failed)
+            // If we aborted before placing the order, we MUST remove the optimistic order.
+            if (e.message === "trade.closeAbortedSafety") {
+                 logger.warn("market", `[FlashClose] Safety Abort. Removing optimistic order.`);
+                 omsService.removeOrder(clientOrderId);
+                 throw e;
+            }
+
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.

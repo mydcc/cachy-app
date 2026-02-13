@@ -50,7 +50,6 @@
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { burn } from "../../actions/burn";
-  import Icon from "./Icon.svelte";
 
   interface Props {
     customSymbol?: string | undefined;
@@ -501,8 +500,8 @@
           onToggleTechnicals?.();
         }}
       >
-        <Icon data={icons.chart ||
-          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'} />
+        {@html icons.chart ||
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'}
       </button>
     {/if}
 
@@ -545,8 +544,8 @@
         app.handleFetchPrice();
       }}
     >
-      <Icon data={icons.refresh ||
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'} />
+      {@html icons.refresh ||
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
     </button>
   </div>
 
@@ -792,7 +791,7 @@
                 onclick={(e) => {
                   e.stopPropagation();
                   openChannel(e);
-                }}><Icon data={icons.monitor} /></button
+                }}>{@html icons.monitor}</button
               >
             {/if}
 
@@ -811,9 +810,9 @@
                 : $_("marketOverview.tooltips.addFavorite")}
             >
               {#if isFavorite}
-                <Icon data={icons.starFilled} />
+                {@html icons.starFilled}
               {:else}
-                <Icon data={icons.starEmpty} />
+                {@html icons.starEmpty}
               {/if}
             </button>
           </div>
