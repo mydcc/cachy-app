@@ -174,7 +174,7 @@ class StorageService {
                 const estimate = await navigator.storage.estimate();
                 const usedMB = (estimate.usage || 0) / 1024 / 1024;
                 const quotaMB = (estimate.quota || 0) / 1024 / 1024;
-                console.log(`[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
+                logger.log('data', `[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
             } catch (e) {
                 // ignore
             }

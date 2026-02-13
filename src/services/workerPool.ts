@@ -7,6 +7,7 @@
 
 import { browser } from '$app/environment';
 import type { TechnicalsData, KlineBuffers } from './technicalsTypes';
+import { logger } from './logger';
 
 interface PoolTask {
   id: string;
@@ -52,9 +53,7 @@ export class WorkerPool {
     // Leave one core for main thread
     this.MAX_WORKERS = maxWorkers || Math.max(2, navigator.hardwareConcurrency - 1 || 2);
     
-    if (import.meta.env.DEV) {
-      console.log(`[WorkerPool] Initialized with max ${this.MAX_WORKERS} workers`);
-    }
+    logger.debug('technicals', `[WorkerPool] Initialized with max ${this.MAX_WORKERS} workers`);
   }
   
   /**
@@ -96,9 +95,7 @@ export class WorkerPool {
     
     this.workers.push(state);
     
-    if (import.meta.env.DEV) {
-      console.log(`[WorkerPool] Created worker ${this.workers.length}/${this.MAX_WORKERS}`);
-    }
+    logger.debug('technicals', `[WorkerPool] Created worker ${this.workers.length}/${this.MAX_WORKERS}`);
     
     return state;
   }
@@ -138,7 +135,7 @@ export class WorkerPool {
    * Handle worker error
    */
   private handleError(e: ErrorEvent, state: WorkerState) {
-    console.error('[WorkerPool] Worker error:', e);
+    logger.error('technicals', '[WorkerPool] Worker error:', e);
     
     // Find and reject all tasks for this worker
     this.pendingTasks.forEach((task, id) => {
@@ -164,9 +161,7 @@ export class WorkerPool {
     state.worker.terminate();
     this.workers.splice(index, 1);
     
-    if (import.meta.env.DEV) {
-      console.log(`[WorkerPool] Recycled worker (${this.workers.length}/${this.MAX_WORKERS} remaining)`);
-    }
+    logger.debug('technicals', `[WorkerPool] Recycled worker (${this.workers.length}/${this.MAX_WORKERS} remaining)`);
   }
   
   /**
@@ -240,9 +235,7 @@ export class WorkerPool {
         // Queue for later
         this.queue.push(task);
         
-        if (import.meta.env.DEV && this.queue.length > 10) {
-          console.warn(`[WorkerPool] Queue growing: ${this.queue.length} tasks`);
-        }
+        if (this.queue.length > 10) logger.warn('technicals', `[WorkerPool] Queue growing: ${this.queue.length} tasks`);
       }
     });
   }
@@ -269,8 +262,6 @@ export class WorkerPool {
     this.queue = [];
     this.pendingTasks.clear();
     
-    if (import.meta.env.DEV) {
-      console.log('[WorkerPool] Terminated');
-    }
+    logger.debug('technicals', '[WorkerPool] Terminated');
   }
 }
