@@ -1366,7 +1366,12 @@
       "showSentimentAnalysis": "Show sentiment analysis panel",
       "showTechnicalAnalysis": "Show technical analysis panel",
       "historyLength": "History Length (Candles)",
-      "moreHistoryDesc": "More history = slower initial load. (Max: 2000)"
+      "moreHistoryDesc": "More history = slower initial load. (Max: 2000)",
+      "automationTitle": "Automation & Advanced",
+      "autoTrading": "Auto Trading (Beta)",
+      "autoTradingDesc": "Enable automated trading features (Coming Soon).",
+      "multiAccount": "Multi-Account Management",
+      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
     }
   },
   "positionsList": {

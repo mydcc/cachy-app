@@ -323,6 +323,8 @@ export interface Settings {
   // Window Docking
   enableDockingCentered: boolean;
   dockingPosition: "top" | "bottom";
+  autoTrading: boolean;
+  multiAccount: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -538,6 +540,8 @@ const defaultSettings: Settings = {
     divergences: false,
     marketStructure: false,
   },
+  autoTrading: false,
+  multiAccount: false,
   enableDockingCentered: true,
   dockingPosition: "top",
 };
@@ -707,8 +711,8 @@ export class SettingsManager {
       feeSettings: this.isPro && hasApiKeys,
 
       // Future features (prepared for expansion)
-      autoTrading: false, // Coming soon
-      multiAccount: false, // Coming soon
+      autoTrading: this.autoTrading,
+      multiAccount: this.multiAccount,
     };
   }
   showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
@@ -816,6 +820,8 @@ export class SettingsManager {
   enableIndicatorOptimization = $state<boolean>(defaultSettings.enableIndicatorOptimization);
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
+  autoTrading = $state<boolean>(defaultSettings.autoTrading);
+  multiAccount = $state<boolean>(defaultSettings.multiAccount);
   enabledIndicators = $state(defaultSettings.enabledIndicators);
 
   enableDockingCentered = $state<boolean>(defaultSettings.enableDockingCentered);
@@ -1198,6 +1204,8 @@ export class SettingsManager {
       this.maxPrivateNotes = merged.maxPrivateNotes;
       this.customSystemPrompt = merged.customSystemPrompt;
       this.aiProvider = merged.aiProvider;
+      this.autoTrading = merged.autoTrading;
+      this.multiAccount = merged.multiAccount;
       this.openaiApiKey = merged.openaiApiKey;
       this.openaiModel = merged.openaiModel;
       this.geminiApiKey = merged.geminiApiKey;
@@ -1570,6 +1578,8 @@ export class SettingsManager {
       technicalsCacheSize: this.technicalsCacheSize,
       technicalsCacheTTL: this.technicalsCacheTTL,
       maxTechnicalsHistory: this.maxTechnicalsHistory,
+      autoTrading: this.autoTrading,
+      multiAccount: this.multiAccount,
       enableIndicatorOptimization: this.enableIndicatorOptimization,
       chartHistoryLimit: this.chartHistoryLimit,
       repairTimeframe: this.repairTimeframe,
