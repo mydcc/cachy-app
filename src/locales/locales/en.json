@@ -55,7 +55,9 @@
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "connectionStatus": "Connection Status",
+    "genesisTooltip": "Left-Click: Toggle Genesis | Right-Click: More Channels"
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -1217,6 +1219,7 @@
       "exchanges": "Exchanges",
       "passphrase": "Passphrase",
       "rss": "RSS Feeds",
+      "serverSecurity": "Server Security",
       "filter": "Filter",
       "plan": "Plan",
       "filterAll": "All",
@@ -1230,6 +1233,7 @@
         "apiKey": "API Key",
         "apiSecret": "API Secret",
         "passphrase": "Passphrase",
+        "token": "Enter server token...",
         "url": "https://..."
       },
       "providers": {

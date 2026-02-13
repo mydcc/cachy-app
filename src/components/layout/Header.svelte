@@ -58,7 +58,7 @@
 
   <div class="flex items-center gap-4">
     <!-- Status Indicator (Compact) -->
-    <div class="flex items-center gap-2 text-xs" title="Connection Status">
+    <div class="flex items-center gap-2 text-xs" title={$_("app.connectionStatus")}>
       <div class="w-2 h-2 rounded-full"
            class:bg-green-500={isConnected}
            class:bg-yellow-500={isReconnecting}

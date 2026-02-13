@@ -1180,9 +1180,9 @@ class BitunixWebSocketService {
           const d = priceData.data;
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: d.ip ? new Decimal(d.ip) : undefined,
-            fundingRate: d.fr ? new Decimal(d.fr) : undefined,
-            nextFundingTime: d.nft ? Number(d.nft) : undefined
+            indexPrice: d.ip ? String(d.ip) : undefined,
+            fundingRate: d.fr ? String(d.fr) : undefined,
+            nextFundingTime: d.nft ? String(d.nft) : undefined
           });
         }
       } else if (validatedChannel === "ticker") {

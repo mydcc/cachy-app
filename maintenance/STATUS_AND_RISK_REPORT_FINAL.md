@@ -1,49 +1,71 @@
-# Final Status & Risk Report
+# Status & Risiko-Bericht (Status & Risk Report)
 
-**Date:** 2026-05-25
-**Branch:** `hardening-ui-and-services`
-**Author:** Jules (Senior Lead Developer)
+**Datum:** 20.02.2026
+**Autor:** Jules (Senior Lead Developer & Systems Architect)
+**Status:** FINAL (Forensic Audit Completed)
 
-## Executive Summary
-
-The "Institutional Grade" hardening initiative has been successfully completed. The platform now features robust protection against data corruption, comprehensive error handling for network instability, and strict type safety for critical financial operations. Visual verification has confirmed the UI correctly reflects these hardened states.
-
-## Key Hardening Achievements
-
-### 🛡️ Data Integrity & Safety
-*   **Zero-Loss JSON Parsing:** Implemented `safeJsonParse` with regex interception to protect 19-digit integer IDs (Bitunix/Bitget) from JavaScript floating-point precision loss.
-*   **Strict Schema Validation:** Integrated `Zod` schemas (`TpSlOrderSchema`, `StrictPriceDataSchema`) into `TradeService` and `BitunixWebSocketService`. Malformed API responses are now rejected before reaching the UI or state.
-*   **Defensive Casting:** The WebSocket "Fast Path" now explicitly casts numeric fields to strings before processing to prevent `NaN` propagation.
-
-### 🌐 Network & Connection Resilience
-*   **Visual Status Indicator:** Added a real-time connection dot (Green/Red Pulse) in the `LeftControlPanel`.
-*   **Global Error Handling:** Implemented a central handler for unhandled rejections/exceptions, ensuring users receive actionable feedback (Toasts) instead of silent failures.
-*   **Lifecycle Hardening:** Refactored `BitunixWebSocketService` to auto-revive event listeners (`initMonitors`) upon reconnection, fixing a potential "zombie state" issue.
-
-### ⚡ Performance & Stability
-*   **MarketWatcher Optimization:** Refactored `fillGaps` and `pruneOrphanedSubscriptions` to reduce memory allocation churn.
-*   **Infinite Loop Protection:** Added guard clauses to `MarketWatcher` to prevent main-thread freezes during historical backfills.
-
-### 🎨 UI/UX Verification (E2E)
-*   **Automated Verification:** Created and passed `tests/e2e/connection_indicator.spec.ts`.
-    *   ✅ **Connected:** Indicator turns Green.
-    *   ✅ **Disconnected:** Indicator turns Red and animates (Pulse).
-*   **Regression Fixed:** Identified and fixed a missing dependency in `LeftControlPanel.svelte` during E2E creation.
-
-### 🌍 Localization
-*   **Sync Complete:** Audited `en.json` and `de.json`. Added missing keys for error states (`trade.closeAbortedSafety`) and performance status.
-*   **Type Safety:** Regenerated `src/locales/schema.d.ts` to ensure type-safe translation usage in components.
-
-## Remaining Risks & Mitigations
-
-| Risk Area | Severity | Mitigation Strategy |
-| :--- | :--- | :--- |
-| **Massive Load (50+ Charts)** | Low | `MarketWatcher` has been optimized, but a dedicated stress test with 50+ concurrent active symbols is recommended for the next QA cycle. |
-| **New API Versions** | Low | Strict Zod schemas will reject unexpected API changes. Monitoring logs for "Validation Error" is required. |
-
-## Conclusion
-
-The codebase has transitioned from "High Risk" (potential for silent data corruption) to "Hardened" (Explicit Validation & Fail-Safe). The system is ready for deployment.
+Dieser Bericht fasst die Ergebnisse der Tiefenanalyse des `cachy-app` Repositories zusammen. Der Fokus lag auf Datenintegrität, Sicherheit und Stabilität für den professionellen Handelseinsatz.
 
 ---
-*Signed: Jules*
+
+## 🔴 KRITISCH (CRITICAL)
+*Risiken für finanzielle Verluste, Abstürze oder Sicherheitslücken.*
+
+1.  **Präzisionsverlust in `BitunixWs` ("Fast Path")**:
+    *   **Fundort:** `src/services/bitunixWs.ts` (Methoden `handleMessage` -> Fast Path Block).
+    *   **Beschreibung:** Im "Fast Path" wird versucht, `number`-Werte manuell zu Strings zu casten (`String(data.ip)`). Da `JSON.parse` (via `safeJsonParse`) jedoch bereits *vor* diesem Block lief, wurden Fließkommazahlen (Floats) bereits in native JavaScript-Numbers konvertiert. Dies führt zu unwiderruflichem Präzisionsverlust bei Preisen (z.B. `0.00000001` -> `1e-8` oder Rundungsfehlern).
+    *   **Risiko:** Finanzielle Berechnungen könnten auf ungenauen Werten basieren.
+    *   **Lösung:** Der Fast Path muss entweder *vor* dem Parsing ansetzen (komplex) oder strikt `Decimal` verwenden und akzeptieren, dass die native `JSON.parse` bereits gerundet hat (Warnung loggen). Besser: `safeJsonParse` so konfigurieren, dass es *alle* Zahlen als Strings liefert, oder den Fast Path entfernen, wenn er Sicherheit gefährdet.
+
+2.  **GC Thrashing ("Memory Churn") in `MarketManager`**:
+    *   **Fundort:** `src/stores/market.svelte.ts` (`rebuildBuffers`, `appendBuffers`).
+    *   **Beschreibung:** Bei jedem Kline-Update, das die Array-Größe ändert (neue Kerze), werden komplett neue `Float64Array`-Instanzen allozierter. Dies geschieht mit $O(N)$ oder teils $O(N^2)$ Verhalten bei Batch-Updates.
+    *   **Risiko:** Hohe Garbage-Collection-Last führt zu UI-Rucklern ("Stuttering") und erhöhtem Speicherverbrauch im Browser, was bei High-Frequency-Trading inakzeptabel ist.
+    *   **Lösung:** Implementierung eines "Pooled Buffer"-Systems oder "Capacity"-basierten Ansatzes (Array verdoppeln statt exakt wachsen lassen).
+
+---
+
+## 🟡 WARNUNG (WARNING)
+*Performance-Probleme, UX-Mängel oder fehlende Internationalisierung.*
+
+1.  **Validierungslücke bei leerem Input (Crash-Gefahr)**:
+    *   **Fundort:** `src/components/inputs/PortfolioInputs.svelte`.
+    *   **Beschreibung:** Die Funktion `validateInput` gibt bei leerem Input einen leeren String `""` zurück, der direkt in den `tradeState` geschrieben wird. Wenn `TradeService` versucht, `new Decimal("")` zu instanziieren, wirft `decimal.js` einen Fehler.
+    *   **Lösung:** Leere Inputs müssen im State entweder als `null` oder `0` (mit Warnung) behandelt werden, oder der Service muss `""` abfangen.
+
+2.  **Fehlende I18n-Keys**:
+    *   **Fundort:** `src/components/inputs/PortfolioInputs.svelte`.
+    *   **Fehlende Keys:**
+        *   `settings.errors.invalidApiKey`
+        *   `settings.errors.ipNotAllowed`
+        *   `settings.errors.invalidSignature`
+        *   `settings.errors.timestampError`
+    *   **Risiko:** Benutzer sehen leere Fehlerboxen oder Fallback-Strings ("settings.errors...") bei API-Problemen.
+
+3.  **Potenzieller Absturz in `NewsService`**:
+    *   **Fundort:** `src/services/newsService.ts` (`generateNewsId`).
+    *   **Beschreibung:** `encodeURIComponent(item.url + item.title)` verlässt sich darauf, dass `title` und `url` Strings sind. Bei API-Änderungen (null/undefined) könnte dies werfen oder "undefinedundefined" als ID erzeugen.
+
+---
+
+## 🔵 REFACTOR (Technical Debt)
+*Wartbarkeit und Code-Qualität.*
+
+1.  **Komplexe `shouldFetchNews` Logik**:
+    *   Die Bedingung ist schwer lesbar und fehleranfällig.
+
+2.  **Harter Cast in `BitunixWs`**:
+    *   `src/services/bitunixWs.ts` nutzt `(validatedMessage.data as any).ip`. Dies umgeht Typescript und sollte durch Zod-Schema-Validierung ersetzt werden.
+
+---
+
+## ✅ STATUS QUO (Positive Befunde)
+
+*   **TradeService:** Nutzt konsequent `Decimal.js` für Berechnungen.
+*   **Architektur:** Stores nutzen Svelte 5 Runes korrekt.
+*   **Sicherheit:** `safeJsonParse` wird global genutzt (schützt vor Integer-Overflows bei IDs).
+
+---
+
+**Empfohlene nächste Schritte:**
+Siehe "Implementation Plan" (Step 2).
