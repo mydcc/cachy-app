@@ -18,7 +18,6 @@ import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
-import { initializeGlobalErrorHandling } from "./globalErrorHandler";
 import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs";
 import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
@@ -175,7 +174,6 @@ export const app = {
               // Ensure we start fresh
               (bitgetWs as any).isDestroyed = false;
               bitgetWs.connect(true);
-              marketWatcher.syncSubscriptions();
             }
           }
         } else {
@@ -188,7 +186,6 @@ export const app = {
             if (browser) {
               (bitunixWs as any).isDestroyed = false;
               bitunixWs.connect();
-              marketWatcher.syncSubscriptions();
             }
           }
         }

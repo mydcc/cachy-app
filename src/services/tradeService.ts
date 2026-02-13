@@ -31,7 +31,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw, TpSlOrderSchema } from "../types/apiSchemas";
+import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
 export interface TpSlOrder {
@@ -269,14 +269,6 @@ class TradeService {
                 clientOrderId
             });
         } catch (e: any) {
-            // HARDENING: Check for Safety Abort (e.g. Cancel Failed)
-            // If we aborted before placing the order, we MUST remove the optimistic order.
-            if (e.message === "trade.closeAbortedSafety") {
-                 logger.warn("market", `[FlashClose] Safety Abort. Removing optimistic order.`);
-                 omsService.removeOrder(clientOrderId);
-                 throw e;
-            }
-
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
@@ -490,20 +482,7 @@ class TradeService {
                                   }
                                   return [];
                               }
-
-                              const rawList = Array.isArray(data) ? data : (data.rows || []);
-                              if (!Array.isArray(rawList)) return [];
-
-                              const validOrders: TpSlOrder[] = [];
-                              for (const item of rawList) {
-                                  const result = TpSlOrderSchema.safeParse(item);
-                                  if (result.success) {
-                                      validOrders.push(result.data as unknown as TpSlOrder);
-                                  } else {
-                                      logger.warn("market", `[TradeService] Invalid TP/SL order dropped`, { item, error: result.error });
-                                  }
-                              }
-                              return validOrders;
+                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
                           } catch (e) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];

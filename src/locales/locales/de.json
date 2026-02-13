@@ -55,9 +55,7 @@
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
-    "refresh": "Aktualisieren",
-    "connectionStatus": "Verbindungsstatus",
-    "genesisTooltip": "Links-Klick: Toggle Genesis | Rechts-Klick: Mehr Kanäle"
+    "refresh": "Aktualisieren"
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -1134,24 +1132,7 @@
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
       "networkStatus": "Netzwerkstatus",
-      "tipsTitle": "Optimierungstipps",
-      "status": {
-        "critical": "🔴 Kritisch",
-        "warning": "🟡 Warnung",
-        "optimal": "🟢 Optimal",
-        "highUsage": "⚠️ Hohe API-Auslastung",
-        "moderateUsage": "ℹ️ Moderate Auslastung",
-        "normalUsage": "✓ Normale Auslastung",
-        "excellentCaching": "✓ Exzellentes Caching",
-        "goodCaching": "ℹ️ Gutes Caching",
-        "increaseCache": "⚠️ Erwäge Cache zu erhöhen",
-        "excellentLatency": "⚡ Exzellent",
-        "goodLatency": "✓ Gut",
-        "acceptableLatency": "ℹ️ Akzeptabel",
-        "highLatency": "⚠️ Hohe Latenz",
-        "online": "🟢 Online",
-        "offline": "🔴 Offline"
-      }
+      "tipsTitle": "Optimierungstipps"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1176,7 +1157,6 @@
         "apiKey": "API-Schlüssel",
         "apiSecret": "API-Secret",
         "passphrase": "Passphrase",
-        "token": "Server-Token eingeben...",
         "url": "https://..."
       },
       "providers": {
@@ -2045,9 +2025,6 @@
       "indicatorCombination": "Das Signal wird verstärkt durch hohes Volumen bei den Docht-Kerzen und der bullischen Bestätigungskerze. Eine bullische Divergenz im RSI oder MACD macht eine erfolgreiche Umkehr wahrscheinlicher."
     },
     "title": "Candlestick Akademie"
-  },
-  "trade": {
-    "closeAbortedSafety": "Sicherheits-Schließung abgebrochen: Order nicht sofort bestätigt. Prüfen Sie offene Orders."
   },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",

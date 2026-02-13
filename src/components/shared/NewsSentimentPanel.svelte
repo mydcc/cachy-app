@@ -114,7 +114,7 @@
         {:else}
           <button
             class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--bg-primary)] transition-colors"
-            title={$_("app.refresh")}
+            title="Refresh"
             onclick={handleRefresh}
           >
             {@html icons.refresh}

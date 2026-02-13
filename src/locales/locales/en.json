@@ -55,9 +55,7 @@
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
-    "refresh": "Refresh",
-    "connectionStatus": "Connection Status",
-    "genesisTooltip": "Left-Click: Toggle Genesis | Right-Click: More Channels"
+    "refresh": "Refresh"
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -1219,7 +1217,6 @@
       "exchanges": "Exchanges",
       "passphrase": "Passphrase",
       "rss": "RSS Feeds",
-      "serverSecurity": "Server Security",
       "filter": "Filter",
       "plan": "Plan",
       "filterAll": "All",
@@ -1233,7 +1230,6 @@
         "apiKey": "API Key",
         "apiSecret": "API Secret",
         "passphrase": "Passphrase",
-        "token": "Enter server token...",
         "url": "https://..."
       },
       "providers": {
@@ -1336,24 +1332,7 @@
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
       "networkStatus": "Network Status",
-      "tipsTitle": "Optimization Tips",
-      "status": {
-        "critical": "🔴 Critical",
-        "warning": "🟡 Warning",
-        "optimal": "🟢 Optimal",
-        "highUsage": "⚠️ High API usage",
-        "moderateUsage": "ℹ️ Moderate usage",
-        "normalUsage": "✓ Normal usage",
-        "excellentCaching": "✓ Excellent caching",
-        "goodCaching": "ℹ️ Good caching",
-        "increaseCache": "⚠️ Consider increasing cache size",
-        "excellentLatency": "⚡ Excellent",
-        "goodLatency": "✓ Good",
-        "acceptableLatency": "ℹ️ Acceptable",
-        "highLatency": "⚠️ High latency",
-        "online": "🟢 Online",
-        "offline": "🔴 Offline"
-      }
+      "tipsTitle": "Optimization Tips"
     },
     "trading": {
       "chartTitle": "Chart & Data",
@@ -2056,9 +2035,6 @@
       "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
     },
     "title": "Candlestick Academy"
-  },
-  "trade": {
-    "closeAbortedSafety": "Safety Close Aborted: Order not confirmed immediately. Check Open Orders."
   },
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",

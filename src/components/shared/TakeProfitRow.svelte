@@ -63,48 +63,28 @@
   const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
-  function validateInput(value: string, min: number, max: number, allowDecimals: boolean): string | null {
-    if (!value) return null;
-    const normalized = value.replace(",", ".");
-
-    // Regex Check
-    const regex = allowDecimals ? /^\d*\.?\d*$/ : /^\d*$/;
-    if (!regex.test(normalized)) return null;
-
-    const num = parseFloat(normalized);
-    if (isNaN(num)) return null;
-
-    if (num > max) return String(max);
-    return normalized;
-  }
-
   function handlePriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    const newPrice = value === "" ? null : value;
 
-    const validated = validateInput(value, 0, Infinity, true);
-    // Allow empty string to clear
-    if (validated !== null || value === "") {
-        const currentTargets = tradeState.targets;
-        if (currentTargets[index]) {
-            currentTargets[index].price = validated || null;
-            tradeState.update((s) => ({ ...s, targets: currentTargets }));
-        }
+    const currentTargets = tradeState.targets;
+    if (currentTargets[index]) {
+      currentTargets[index].price = newPrice;
+      tradeState.update((s) => ({ ...s, targets: currentTargets }));
     }
   }
 
   function handlePercentInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    const newPercent = value === "" ? null : value;
 
-    const validated = validateInput(value, 0, 100, false); // Percent is integer 0-100
-    if (validated !== null || value === "") {
-        const currentTargets = tradeState.targets;
-        if (currentTargets[index]) {
-            currentTargets[index].percent = validated || null;
-            tradeState.update((s) => ({ ...s, targets: currentTargets }));
-            app.adjustTpPercentages(index);
-        }
+    const currentTargets = tradeState.targets;
+    if (currentTargets[index]) {
+      currentTargets[index].percent = newPercent;
+      tradeState.update((s) => ({ ...s, targets: currentTargets }));
+      app.adjustTpPercentages(index);
     }
   }
 

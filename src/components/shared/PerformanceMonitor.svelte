@@ -57,9 +57,9 @@
         thresholds: [number, number],
     ): string {
         const [warning, critical] = thresholds;
-        if (value >= critical) return $_("settings.performance.status.critical");
-        if (value >= warning) return $_("settings.performance.status.warning");
-        return $_("settings.performance.status.optimal");
+        if (value >= critical) return "🔴 Critical";
+        if (value >= warning) return "🟡 Warning";
+        return "🟢 Optimal";
     }
 
     onMount(() => {
@@ -199,11 +199,11 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.apiCallsLastMinute > 120}
-                    {$_("settings.performance.status.highUsage")}
+                    ⚠️ High API usage
                 {:else if marketState.telemetry.apiCallsLastMinute > 60}
-                    {$_("settings.performance.status.moderateUsage")}
+                    ℹ️ Moderate usage
                 {:else}
-                    {$_("settings.performance.status.normalUsage")}
+                    ✓ Normal usage
                 {/if}
             </div>
         </div>
@@ -239,11 +239,11 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.cacheHitRate > 80}
-                    {$_("settings.performance.status.excellentCaching")}
+                    ✓ Excellent caching
                 {:else if marketState.telemetry.cacheHitRate > 50}
-                    {$_("settings.performance.status.goodCaching")}
+                    ℹ️ Good caching
                 {:else}
-                    {$_("settings.performance.status.increaseCache")}
+                    ⚠️ Consider increasing cache size
                 {/if}
             </div>
         </div>
@@ -276,13 +276,13 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.apiLatency < 100}
-                    {$_("settings.performance.status.excellentLatency")}
+                    ⚡ Excellent
                 {:else if marketState.telemetry.apiLatency < 200}
-                    {$_("settings.performance.status.goodLatency")}
+                    ✓ Good
                 {:else if marketState.telemetry.apiLatency < 500}
-                    {$_("settings.performance.status.acceptableLatency")}
+                    ℹ️ Acceptable
                 {:else}
-                    {$_("settings.performance.status.highLatency")}
+                    ⚠️ High latency
                 {/if}
             </div>
         </div>
@@ -315,9 +315,9 @@
             <div class="metric-info flex justify-between items-center">
                 <span>
                     {#if marketState.telemetry.activeConnections > 0}
-                        {$_("settings.performance.status.online")}
+                        🟢 Online
                     {:else}
-                        {$_("settings.performance.status.offline")}
+                        🔴 Offline
                     {/if}
                 </span>
                 {#if marketState.telemetry.wsLatency > 0}

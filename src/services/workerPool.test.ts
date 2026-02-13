@@ -8,29 +8,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { WorkerPool } from '../services/workerPool';
 
-vi.mock('$app/environment', () => ({
-  browser: true,
-  dev: true
-}));
-
 describe('WorkerPool', () => {
   let pool: WorkerPool;
   const mockWorkerUrl = new URL('../workers/technicals.worker.ts', import.meta.url).href;
   
-  // Ensure ErrorEvent is available globally
-  if (typeof ErrorEvent === 'undefined') {
-      vi.stubGlobal('ErrorEvent', class ErrorEvent {});
-  }
-
   beforeEach(() => {
     // Mock Worker constructor
-    const MockWorker = vi.fn(function(this: any) {
-      this.postMessage = vi.fn();
-      this.terminate = vi.fn();
-      this.onmessage = null;
-      this.onerror = null;
-    });
-    vi.stubGlobal('Worker', MockWorker);
+    global.Worker = vi.fn().mockImplementation(() => ({
+      postMessage: vi.fn(),
+      terminate: vi.fn(),
+      onmessage: null,
+      onerror: null
+    }));
     
     pool = new WorkerPool(mockWorkerUrl, 4); // Max 4 workers for tests
   });

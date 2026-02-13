@@ -47,51 +47,18 @@
   const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
-  function validateInput(value: string, min: number, max: number, allowDecimals: boolean): string | null {
-    if (!value) return null;
-    const normalized = value.replace(",", ".");
-
-    // Regex Check
-    const regex = allowDecimals ? /^\d*\.?\d*$/ : /^\d*$/;
-    if (!regex.test(normalized)) return null; // Reject invalid chars immediately
-
-    const num = parseFloat(normalized);
-    if (isNaN(num)) return null;
-
-    if (num > max) return String(max);
-    // We don't enforce min strictness on typing to allow backspacing (e.g. deleting '1' from '10')
-    // But we prevent negatives via regex
-    return normalized;
-  }
-
   function handleLeverageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-
-    // Leverage: Integer only, 1-125
-    const validated = validateInput(value, 1, 125, false);
-    if (validated !== null || value === "") {
-        tradeState.leverage = validated;
-        if (validated && value !== validated) {
-            target.value = validated; // Force update UI if clamped
-        }
-    }
+    // Direct assignment
+    tradeState.leverage = value === "" ? null : value;
   }
 
   function handleFeesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-
-    // Fees: Decimals allowed, 0-100 (assuming percentage) or higher if flat fee?
-    // Usually fees are small percentages (0.1, 0.05) or moderate percentages.
-    // Let's cap at 100 to prevent absurd values.
-    const validated = validateInput(value, 0, 100, true);
-    if (validated !== null || value === "") {
-        tradeState.fees = validated;
-        if (validated && value !== validated) {
-            target.value = validated;
-        }
-    }
+    // Direct assignment
+    tradeState.fees = value === "" ? null : value;
   }
 
   // Leverage Sync Status

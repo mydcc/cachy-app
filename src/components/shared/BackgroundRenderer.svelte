@@ -63,28 +63,20 @@
 
   $effect(() => {
     if (typeof document !== "undefined") {
-      const isThree =
-        settingsState.backgroundType === "threejs" ||
-        settingsState.backgroundType === "tradeflow";
-
       document.documentElement.style.setProperty(
         "--bg-blur",
-        isThree ? "0px" : `${settingsState.backgroundBlur}px`,
+        `${settingsState.backgroundBlur}px`,
       );
       document.documentElement.style.setProperty(
         "--bg-opacity",
-        isThree ? "1" : settingsState.backgroundOpacity.toString(),
+        settingsState.backgroundOpacity.toString(),
       );
     }
   });
 </script>
 
 {#if settingsState.backgroundType !== "none"}
-  <div
-    class="background-container"
-    class:is-three={settingsState.backgroundType === "threejs" ||
-      settingsState.backgroundType === "tradeflow"}
-  >
+  <div class="background-container">
     {#if settingsState.backgroundType === "image" && settingsState.backgroundUrl && !imageError}
       <img
         src={settingsState.backgroundUrl}
@@ -119,8 +111,6 @@
 
 <style>
   .three-container {
-    position: relative;
-    inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: auto; /* Enable interaction for ThreeJS */
@@ -132,7 +122,6 @@
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
-    background: var(--bg-primary);
     filter: blur(var(--bg-blur, 0px));
     opacity: var(--bg-opacity, 1);
     transition:
@@ -146,9 +135,5 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
-  }
-  .background-container.is-three {
-    opacity: 1 !important;
-    filter: none !important;
   }
 </style>

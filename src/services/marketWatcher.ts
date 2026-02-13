@@ -17,7 +17,6 @@
 
 import { untrack } from "svelte";
 import { bitunixWs } from "./bitunixWs";
-import { bitgetWs } from "./bitgetWs";
 import { apiService } from "./apiService";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
@@ -156,63 +155,52 @@ class MarketWatcher {
              if (channel === "price") bitunixWs.subscribe(symbol, "price");
              else if (channel === "ticker") bitunixWs.subscribe(symbol, "ticker");
              else if (channel.startsWith("kline_")) bitunixWs.subscribe(symbol, channel);
-        } else if (provider === "bitget") {
-             // Bitget support
-              if (channel === "price") {
-                  bitgetWs.subscribe(symbol, "ticker");
-                  bitgetWs.subscribe(symbol, "funding-rate");
-              } else if (channel === "ticker") {
-                  bitgetWs.subscribe(symbol, "ticker");
-              } else if (channel.startsWith("kline_")) {
-                  bitgetWs.subscribe(symbol, channel);
-              }
         }
       });
   }
 
-  public syncSubscriptions() {
+  private syncSubscriptions() {
     if (!browser) return;
     const settings = settingsState;
-    const provider = settings.apiProvider;
-    const wsService = provider === "bitget" ? bitgetWs : bitunixWs;
-    const otherService = provider === "bitget" ? bitunixWs : bitgetWs;
-
-    // 1. Clean up other provider's subscriptions
-    // Bitunix uses pendingSubscriptions (Map), Bitget uses subscriptions (Set)
-    // Both work with forEach((_, key) => ...)
-    const otherEntries = (otherService as any).pendingSubscriptions || (otherService as any).subscriptions;
-    if (otherEntries) {
-        otherEntries.forEach((_: any, key: any) => {
-            const [channel, symbol] = (key as string).split(":");
-            otherService.unsubscribe(symbol, channel);
-        });
+    // Only Bitunix has a WebSocket implementation currently.
+    // If future providers get WS support, add them here.
+    if (settings.apiProvider !== "bitunix") {
+      // If we switched away from Bitunix, clear all WS subscriptions
+      // Use pendingSubscriptions instead of publicSubscriptions
+      Array.from(bitunixWs.pendingSubscriptions.keys()).forEach((key: string) => {
+        const [channel, symbol] = key.split(":");
+        bitunixWs.unsubscribe(symbol, channel);
+      });
+      return;
     }
 
-    // 2. Collect all intended subscriptions from requests
+    // 1. Collect all intended subscriptions from requests
     // map of key (channel:symbol) -> { symbol, channel }
     const intended = new Map<string, { symbol: string; channel: string }>();
     this.requests.forEach((channels, symbol) => {
       channels.forEach((reqs, ch) => {
-        const key = `${ch}:${symbol}`;
-        intended.set(key, { symbol, channel: ch });
+        const bitunixChannel = ch;
+        // No longer map generic "price" to Bitunix "ticker" - let "price" be "price" (mark price + funding)
+        const key = `${bitunixChannel}:${symbol}`;
+        intended.set(key, { symbol, channel: bitunixChannel });
       });
     });
 
-    // 3. Unsubscribe from extras in active service
-    const current = (wsService as any).pendingSubscriptions || (wsService as any).subscriptions;
-    if (current) {
-        current.forEach((_: any, key: any) => {
-            if (!intended.has(key)) {
-                 const [channel, symbol] = (key as string).split(":");
-                 wsService.unsubscribe(symbol, channel);
-            }
-        });
-    }
+    // 2. Unsubscribe from extras
+    // Iterate over what is currently subscribed in WS service
+    // We access the internal set via pendingSubscriptions to be safe
+    const current = bitunixWs.pendingSubscriptions;
+    current.forEach((_, key) => {
+        if (!intended.has(key)) {
+             const [channel, symbol] = key.split(":");
+             bitunixWs.unsubscribe(symbol, channel);
+        }
+    });
 
-    // 4. Subscribe to missing in active service
+    // 3. Subscribe to missing
     intended.forEach(({ symbol, channel }, key) => {
-        if (!current || !current.has(key)) {
-             wsService.subscribe(symbol, channel);
+        if (!current.has(key)) {
+             bitunixWs.subscribe(symbol, channel);
         }
     });
   }
@@ -250,24 +238,14 @@ class MarketWatcher {
   }
 
   private pruneOrphanedSubscriptions() {
-    // Hardening: Iterate over a copy to avoid modification-during-iteration issues
-    const symbols = Array.from(this.requests.keys());
-
-    for (const symbol of symbols) {
-      const channels = this.requests.get(symbol);
-      if (!channels) continue;
-
-      const channelNames = Array.from(channels.keys());
-      for (const channel of channelNames) {
-        const reqs = channels.get(channel);
-        if (!reqs || reqs.size === 0) {
+    for (const [symbol, channels] of this.requests) {
+      for (const [channel, reqs] of channels) {
+        if (reqs.size === 0) {
           channels.delete(channel);
           this._subscriptionsDirty = true;
         } else {
-          const requirements = Array.from(reqs.keys());
-          for (const req of requirements) {
-            const count = reqs.get(req);
-            if (count === undefined || count <= 0) {
+          for (const [req, count] of reqs) {
+            if (count <= 0) {
               reqs.delete(req);
               this._subscriptionsDirty = true;
             }
@@ -572,12 +550,6 @@ class MarketWatcher {
           return klines; // Abort fill if structure is wrong
       }
 
-      // Hardening: Ensure intervalMs is valid to avoid infinite loops
-      if (!intervalMs || intervalMs < 100) {
-          logger.warn("market", "[fillGaps] Invalid intervalMs, skipping gap fill", intervalMs);
-          return klines;
-      }
-
       const filled: KlineRaw[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
@@ -599,16 +571,13 @@ class MarketWatcher {
                       break;
                   }
                   // Fill with flat candle (Close of previous)
-                  // [OPTIMIZATION] Use simple object to avoid allocation overhead if handled downstream
-                  // For gap filling, we reuse the previous close as open/high/low/close
-                  // and explicitly use "0" for volume to avoid Decimal overhead here.
-                  const prevClose = String(prev.close);
+                  // [OPTIMIZATION] Use shared ZERO_VOL
                   filled.push({
                       time: nextTime,
-                      open: prevClose,
-                      high: prevClose,
-                      low: prevClose,
-                      close: prevClose,
+                      open: String(prev.close),
+                      high: String(prev.close),
+                      low: String(prev.close),
+                      close: String(prev.close),
                       volume: "0"
                   });
                   nextTime += intervalMs;

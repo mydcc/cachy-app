@@ -30,9 +30,7 @@ export const mdaService = {
      * Normalizes ticker data into a standard flat object.
      */
     normalizeTicker(raw: any, provider: string): NormalizedTicker | null {
-        // Robust symbol extraction: check root fields, then data object fields
-        const rawSymbol = raw.symbol || raw.s || (raw.data && (raw.data.symbol || raw.data.s)) || "";
-        const symbol = normalizeSymbol(rawSymbol, provider);
+        const symbol = normalizeSymbol(raw.symbol || raw.s || "", provider);
 
         // Default mappings for Bitunix (Current Primary)
         if (provider === "bitunix") {

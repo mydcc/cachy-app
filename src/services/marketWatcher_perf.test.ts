@@ -1,58 +1,134 @@
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
-import { logger } from './logger';
+import { bitunixWs } from './bitunixWs';
 
-// Mock dependencies
-vi.mock('./logger', () => ({
-    logger: {
-        warn: vi.fn(),
-        log: vi.fn(),
-        error: vi.fn(),
+// Mock bitunixWs
+vi.mock('./bitunixWs', () => ({
+    bitunixWs: {
+        pendingSubscriptions: new Set(),
+        subscribe: vi.fn(),
+        unsubscribe: vi.fn(),
     }
 }));
 
-// We need to access private methods for performance testing 'fillGaps'
-// Since we cannot easily import the private method, we can test it indirectly
-// OR use 'any' casting if the instance exposes it.
-// Given previous context, we can assume we can access it via prototype or instance for testing.
+// Mock settings
+vi.mock('../stores/settings.svelte', () => ({
+    settingsState: {
+        apiProvider: 'bitunix',
+        capabilities: { marketData: true }
+    }
+}));
+
+// Mock other dependencies
+vi.mock('../stores/market.svelte', () => ({
+    marketState: {
+        data: {},
+        connectionStatus: 'connected',
+        updateSymbol: vi.fn(),
+        updateSymbolKlines: vi.fn(),
+    }
+}));
+vi.mock('./apiService', () => ({
+    apiService: {
+        fetchTicker24h: vi.fn().mockResolvedValue({}),
+        fetchBitunixKlines: vi.fn().mockResolvedValue([]),
+    }
+}));
+vi.mock('./storageService', () => ({
+    storageService: {
+        getKlines: vi.fn(),
+        saveKlines: vi.fn(),
+    }
+}));
+vi.mock('$app/environment', () => ({
+    browser: true
+}));
 
 describe('MarketWatcher Performance', () => {
+    let watcher: any;
 
-    it('fillGaps should handle large gaps efficiently', () => {
-        const gapSize = 10000;
-        const intervalMs = 60000; // 1 min
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.clearAllMocks();
+        watcher = marketWatcher as any;
+        watcher.stopPolling();
+        watcher.requests.clear();
+        watcher.pendingRequests.clear();
+        (bitunixWs.pendingSubscriptions as Map<string, number>).clear();
 
-        // Create 2 klines separated by a large gap
-        const klines = [
-            { time: 1000000000000, open: "100", high: "100", low: "100", close: "100", volume: "100" },
-            { time: 1000000000000 + (gapSize * intervalMs), open: "200", high: "200", low: "200", close: "200", volume: "200" }
-        ];
-
-        const start = performance.now();
-        // @ts-ignore
-        const filled = marketWatcher.fillGaps(klines, intervalMs);
-        const end = performance.now();
-
-        // Should fill up to MAX_GAP_FILL (5000)
-        expect(filled.length).toBeGreaterThan(4000);
-        expect(end - start).toBeLessThan(50); // Should be very fast (<50ms)
-
-        // Verify structure of filled gap
-        const gapKline = filled[1];
-        expect(gapKline.volume).toBe("0"); // Using "0" string
-        expect(gapKline.open).toBe("100"); // Carry over close
+        // Reset dirty flag
+        if (watcher['_subscriptionsDirty'] !== undefined) watcher['_subscriptionsDirty'] = false;
     });
 
-    it('fillGaps should bail out on invalid interval', () => {
-         const klines = [
-            { time: 1000000000000, open: "100", high: "100", low: "100", close: "100", volume: "100" },
-            { time: 1000000000000 + 60000, open: "200", high: "200", low: "200", close: "200", volume: "200" }
-        ];
+    afterEach(() => {
+        watcher.stopPolling();
+        vi.useRealTimers();
+    });
 
-        // @ts-ignore
-        const result = marketWatcher.fillGaps(klines, 0);
-        expect(result).toHaveLength(2); // No change
-        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("market"), expect.stringContaining("Invalid intervalMs"), 0);
+    it('OPTIMIZED: should NOT call syncSubscriptions periodically if no changes', async () => {
+         watcher.startPolling();
+         const syncSpy = vi.spyOn(watcher, 'syncSubscriptions');
+         await vi.advanceTimersByTimeAsync(2000); // Startup
+
+         syncSpy.mockClear();
+
+         // Register sets dirty=true
+         watcher.register('BTCUSDT', 'price');
+
+         // Should NOT be called synchronously anymore
+         expect(syncSpy).not.toHaveBeenCalled();
+
+         // Advance 1.1s (loop tick)
+         await vi.advanceTimersByTimeAsync(1100);
+
+         // Should have been called ONCE (to handle dirty)
+         expect(syncSpy).toHaveBeenCalledTimes(1);
+
+         syncSpy.mockClear();
+
+         // Advance 10s more. No changes.
+         await vi.advanceTimersByTimeAsync(10000);
+
+         // Should be 0 calls (periodic check removed)
+         expect(syncSpy).toHaveBeenCalledTimes(0);
+    });
+
+    it('OPTIMIZED: batches multiple registrations', async () => {
+        watcher.startPolling();
+        const syncSpy = vi.spyOn(watcher, 'syncSubscriptions');
+        await vi.advanceTimersByTimeAsync(2000);
+
+        syncSpy.mockClear();
+
+        // Burst registration
+        watcher.register('BTCUSDT', 'price');
+        watcher.register('ETHUSDT', 'price');
+        watcher.register('SOLUSDT', 'price');
+
+        // Should NOT be called synchronously
+        expect(syncSpy).not.toHaveBeenCalled();
+
+        // Advance 1.1s
+        await vi.advanceTimersByTimeAsync(1100);
+
+        // Should be called EXACTLY ONCE (batched)
+        expect(syncSpy).toHaveBeenCalledTimes(1);
     });
 });

@@ -337,10 +337,9 @@ import { afterNavigate } from "$app/navigation";
     </script>`}
 </svelte:head>
 
-<BackgroundRenderer />
-
 <div class="app-container">
   <OfflineBanner />
+  <BackgroundRenderer />
   <!-- Rendering Layers for Visual Effects -->
   <FireOverlay layer="tiles" zIndex={10} />
   <FireOverlay layer="windows" zIndex={200} />
