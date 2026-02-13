@@ -60,13 +60,11 @@ class FloatingWindowsStore {
         };
 
         this.windows.push(newWindow);
-        console.log('FloatingWindow opened:', { id: newWindow.id, url, title });
     }
 
     closeWindow(id: string): void {
         const index = this.windows.findIndex((w) => w.id === id);
         if (index !== -1) {
-            console.log('FloatingWindow closed:', { id });
             this.windows.splice(index, 1);
         }
     }
@@ -75,7 +73,6 @@ class FloatingWindowsStore {
         const window = this.windows.find((w) => w.id === id);
         if (window) {
             window.zIndex = this.nextZIndex++;
-            console.log('FloatingWindow focused:', { id, zIndex: window.zIndex });
         }
     }
 
