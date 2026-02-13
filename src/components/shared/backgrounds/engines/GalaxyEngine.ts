@@ -50,6 +50,7 @@ export class GalaxyEngine extends BaseEngine {
         const randoms = new Float32Array(particleCount * 3);
         const scales = new Float32Array(particleCount);
         const colorMixs = new Float32Array(particleCount);
+        const indices = new Float32Array(particleCount);
 
         for (let i = 0; i < particleCount; i++) {
             const i3 = i * 3;
@@ -59,6 +60,7 @@ export class GalaxyEngine extends BaseEngine {
             scales[i] = Math.random();
             positions[i3] = positions[i3 + 1] = positions[i3 + 2] = 0;
             colorMixs[i] = Math.random();
+            indices[i] = i;
         }
 
         this.galaxyGeometry = new THREE.BufferGeometry();
@@ -66,6 +68,7 @@ export class GalaxyEngine extends BaseEngine {
         this.galaxyGeometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 3));
         this.galaxyGeometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
         this.galaxyGeometry.setAttribute("aColorMix", new THREE.BufferAttribute(colorMixs, 1));
+        this.galaxyGeometry.setAttribute("aIndex", new THREE.BufferAttribute(indices, 1));
 
         this.galaxyMaterial = new THREE.ShaderMaterial({
             depthWrite: false,
@@ -107,6 +110,7 @@ export class GalaxyEngine extends BaseEngine {
                 attribute vec3 aRandom;
                 attribute float aScale;
                 attribute float aColorMix;
+                attribute float aIndex;
 
                 varying float vRadiusRatio;
                 varying vec3 vOutsideColor;
@@ -114,7 +118,7 @@ export class GalaxyEngine extends BaseEngine {
                 #define PI 3.14159265359
 
                 void main() {
-                    float particleId = float(gl_VertexID);
+                    float particleId = aIndex;
                     float radiusRatio = fract(particleId / uParticleCount);
                     float radius = pow(radiusRatio, uConcentrationPower) * uRadius;
 
