@@ -107,6 +107,7 @@ export interface BitunixWSMessage {
   ch?: string; // Channel
   topic?: string; // Channel alias (Bitunix v2)
   symbol?: string;
+  s?: string; // Symbol alias
   data?: any; // Generic data payload depending on channel
   pong?: number;
   event?: string; // e.g. "login"

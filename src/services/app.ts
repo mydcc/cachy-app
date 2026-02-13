@@ -175,6 +175,7 @@ export const app = {
               // Ensure we start fresh
               (bitgetWs as any).isDestroyed = false;
               bitgetWs.connect(true);
+              marketWatcher.syncSubscriptions();
             }
           }
         } else {
@@ -187,6 +188,7 @@ export const app = {
             if (browser) {
               (bitunixWs as any).isDestroyed = false;
               bitunixWs.connect();
+              marketWatcher.syncSubscriptions();
             }
           }
         }

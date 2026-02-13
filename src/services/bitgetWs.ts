@@ -426,6 +426,16 @@ class BitgetWebSocketService {
         }
       }
     }
+    // Funding Rate (Bitget)
+    else if (channel === "funding-rate") {
+      const data = msg.data[0];
+      if (data) {
+        marketState.updateSymbol(instId, {
+          fundingRate: (data.fundingRate !== undefined && data.fundingRate !== null) ? new Decimal(data.fundingRate) : undefined,
+          nextFundingTime: (data.nextFundingTime !== undefined && data.nextFundingTime !== null) ? Number(data.nextFundingTime) : undefined
+        });
+      }
+    }
     // Kline
     else if (channel.startsWith("candle")) {
       // data is [[ts, o, h, l, c, v, q], ...]
@@ -541,7 +551,7 @@ class BitgetWebSocketService {
   // [FIX] Helper to map internal channels to Bitget wire format
   private getBitgetChannel(internalChannel: string): string | null {
       // Pass through standard channels
-      if (["ticker", "orders", "positions", "account", "books", "books5", "books15"].includes(internalChannel)) {
+      if (["ticker", "funding-rate", "orders", "positions", "account", "books", "books5", "books15"].includes(internalChannel)) {
           return internalChannel;
       }
 

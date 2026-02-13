@@ -17,6 +17,7 @@
 
 import { untrack } from "svelte";
 import { bitunixWs } from "./bitunixWs";
+import { bitgetWs } from "./bitgetWs";
 import { apiService } from "./apiService";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
@@ -155,52 +156,63 @@ class MarketWatcher {
              if (channel === "price") bitunixWs.subscribe(symbol, "price");
              else if (channel === "ticker") bitunixWs.subscribe(symbol, "ticker");
              else if (channel.startsWith("kline_")) bitunixWs.subscribe(symbol, channel);
+        } else if (provider === "bitget") {
+             // Bitget support
+              if (channel === "price") {
+                  bitgetWs.subscribe(symbol, "ticker");
+                  bitgetWs.subscribe(symbol, "funding-rate");
+              } else if (channel === "ticker") {
+                  bitgetWs.subscribe(symbol, "ticker");
+              } else if (channel.startsWith("kline_")) {
+                  bitgetWs.subscribe(symbol, channel);
+              }
         }
       });
   }
 
-  private syncSubscriptions() {
+  public syncSubscriptions() {
     if (!browser) return;
     const settings = settingsState;
-    // Only Bitunix has a WebSocket implementation currently.
-    // If future providers get WS support, add them here.
-    if (settings.apiProvider !== "bitunix") {
-      // If we switched away from Bitunix, clear all WS subscriptions
-      // Use pendingSubscriptions instead of publicSubscriptions
-      Array.from(bitunixWs.pendingSubscriptions.keys()).forEach((key: string) => {
-        const [channel, symbol] = key.split(":");
-        bitunixWs.unsubscribe(symbol, channel);
-      });
-      return;
+    const provider = settings.apiProvider;
+    const wsService = provider === "bitget" ? bitgetWs : bitunixWs;
+    const otherService = provider === "bitget" ? bitunixWs : bitgetWs;
+
+    // 1. Clean up other provider's subscriptions
+    // Bitunix uses pendingSubscriptions (Map), Bitget uses subscriptions (Set)
+    // Both work with forEach((_, key) => ...)
+    const otherEntries = (otherService as any).pendingSubscriptions || (otherService as any).subscriptions;
+    if (otherEntries) {
+        otherEntries.forEach((_: any, key: any) => {
+            const [channel, symbol] = (key as string).split(":");
+            otherService.unsubscribe(symbol, channel);
+        });
     }
 
-    // 1. Collect all intended subscriptions from requests
+    // 2. Collect all intended subscriptions from requests
     // map of key (channel:symbol) -> { symbol, channel }
     const intended = new Map<string, { symbol: string; channel: string }>();
     this.requests.forEach((channels, symbol) => {
       channels.forEach((reqs, ch) => {
-        const bitunixChannel = ch;
-        // No longer map generic "price" to Bitunix "ticker" - let "price" be "price" (mark price + funding)
-        const key = `${bitunixChannel}:${symbol}`;
-        intended.set(key, { symbol, channel: bitunixChannel });
+        const key = `${ch}:${symbol}`;
+        intended.set(key, { symbol, channel: ch });
       });
     });
 
-    // 2. Unsubscribe from extras
-    // Iterate over what is currently subscribed in WS service
-    // We access the internal set via pendingSubscriptions to be safe
-    const current = bitunixWs.pendingSubscriptions;
-    current.forEach((_, key) => {
-        if (!intended.has(key)) {
-             const [channel, symbol] = key.split(":");
-             bitunixWs.unsubscribe(symbol, channel);
-        }
-    });
+    // 3. Unsubscribe from extras in active service
+    const current = (wsService as any).pendingSubscriptions || (wsService as any).subscriptions;
+    if (current) {
+        current.forEach((_: any, key: any) => {
+            if (!intended.has(key)) {
+                 const [channel, symbol] = (key as string).split(":");
+                 wsService.unsubscribe(symbol, channel);
+            }
+        });
+    }
 
-    // 3. Subscribe to missing
+    // 4. Subscribe to missing in active service
     intended.forEach(({ symbol, channel }, key) => {
-        if (!current.has(key)) {
-             bitunixWs.subscribe(symbol, channel);
+        if (!current || !current.has(key)) {
+             wsService.subscribe(symbol, channel);
         }
     });
   }

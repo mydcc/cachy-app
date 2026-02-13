@@ -56,9 +56,9 @@ export interface TradeData {
 }
 
 const WS_PUBLIC_URL =
-  CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";
+  CONSTANTS.BITUNIX_WS_PUBLIC_URL?.replace(/\/$/, "") || "wss://fapi.bitunix.com/public";
 const WS_PRIVATE_URL =
-  CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
+  CONSTANTS.BITUNIX_WS_PRIVATE_URL?.replace(/\/$/, "") || "wss://fapi.bitunix.com/private";
 
 const PING_INTERVAL = 5000;
 const WATCHDOG_TIMEOUT = 20000;
@@ -70,9 +70,25 @@ interface Subscription {
   channel: string;
 }
 
-class BitunixWebSocketService {
+export class BitunixWebSocketService {
   // Trade Listeners
   private tradeListeners = new Map<string, Set<(trade: TradeData) => void>>();
+  public subscribeTrade(symbol: string, callback: (trade: TradeData) => void): () => void {
+    const s = normalizeSymbol(symbol, "bitunix");
+    if (!this.tradeListeners.has(s)) {
+      this.tradeListeners.set(s, new Set());
+    }
+    this.tradeListeners.get(s)!.add(callback);
+    return () => {
+      const listeners = this.tradeListeners.get(s);
+      if (listeners) {
+        listeners.delete(callback);
+        if (listeners.size === 0) {
+          this.tradeListeners.delete(s);
+        }
+      }
+    };
+  }
   public static activeInstance: BitunixWebSocketService | null = null;
   private static instanceCount = 0;
   private instanceId = 0;
@@ -807,7 +823,10 @@ class BitunixWebSocketService {
       }
 
       // [HYBRID FIX] Normalize channel (Bitunix sometimes sends 'topic' instead of 'ch')
-      const channel = message.ch || message.topic;
+      const channelWithSymbol = message.ch || message.topic || "";
+      
+      // Extract base channel and symbol from colon-separated format (e.g., "ticker:BTCUSDT")
+      const [channel, channelSymbol] = channelWithSymbol.split(":");
 
       // --- FAST PATH OPTIMIZATION ---
       // [MAINTENANCE WARNING]
@@ -819,12 +838,16 @@ class BitunixWebSocketService {
       // Wrapped in try-catch to prevent crashing the entire socket handler
       try {
         if (message && channel) {
-          const rawSymbol = message.symbol || "";
+          // Extraction Logic: Check all possible locations for the symbol
+          const isArrayData = Array.isArray(message.data);
+          const isObjectData = message.data && typeof message.data === 'object' && !isArrayData;
+          
+          const rawSymbol = channelSymbol || message.symbol || message.s || 
+            (isObjectData ? (message.data.symbol || message.data.s) : 
+            (isArrayData && message.data[0] ? (message.data[0].symbol || message.data[0].s) : ""));
+          
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data;
-
-          // Common guard for object data (price, ticker, kline) - Ensure strict object type
-          const isObjectData = data && typeof data === "object" && !Array.isArray(data);
 
           if (isObjectData) {
             switch (channel) {
@@ -846,9 +869,9 @@ class BitunixWebSocketService {
                         return val;
                     };
 
-                    const ip = safeString(data.ip, 'indexPrice');
-                    const fr = safeString(data.fr, 'fundingRate');
-                    const nft = data.nft ? String(data.nft) : undefined;
+                    const ip = (data.ip !== undefined && data.ip !== null) ? safeString(data.ip, 'indexPrice') : undefined;
+                    const fr = (data.fr !== undefined && data.fr !== null) ? safeString(data.fr, 'fundingRate') : undefined;
+                    const nft = (data.nft !== undefined && data.nft !== null) ? String(data.nft) : undefined;
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
@@ -1179,10 +1202,9 @@ class BitunixWebSocketService {
         if (priceData.success && !this.shouldThrottle(`${symbol}:price`)) {
           const d = priceData.data;
           marketState.updateSymbol(symbol, {
-            // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: d.ip ? String(d.ip) : undefined,
-            fundingRate: d.fr ? String(d.fr) : undefined,
-            nextFundingTime: d.nft ? String(d.nft) : undefined
+            indexPrice: (d.ip !== undefined && d.ip !== null) ? String(d.ip) : undefined,
+            fundingRate: (d.fr !== undefined && d.fr !== null) ? String(d.fr) : undefined,
+            nextFundingTime: (d.nft !== undefined && d.nft !== null) ? String(d.nft) : undefined
           });
         }
       } else if (validatedChannel === "ticker") {
@@ -1523,20 +1545,23 @@ class BitunixWebSocketService {
   }
 
   private sendSubscribe(ws: WebSocket, symbol: string, channel: string) {
-    const payload = { op: "subscribe", args: [{ symbol, ch: channel }] };
+    // Bitunix v2 typically uses "channel:symbol" format in the args array
+    const subString = `${channel}:${symbol}`;
+    const payload = { op: "subscribe", args: [subString] };
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      logger.warn("network", `[WebSocket] Failed to send subscribe for ${symbol}:${channel}`, e);
+      logger.warn("network", `[WebSocket] Failed to send subscribe for ${subString}`, e);
     }
   }
 
   private sendUnsubscribe(ws: WebSocket, symbol: string, channel: string) {
-    const payload = { op: "unsubscribe", args: [{ symbol, ch: channel }] };
+    const subString = `${channel}:${symbol}`;
+    const payload = { op: "unsubscribe", args: [subString] };
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      logger.warn("network", `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}`, e);
+      logger.warn("network", `[WebSocket] Failed to send unsubscribe for ${subString}`, e);
     }
   }
 

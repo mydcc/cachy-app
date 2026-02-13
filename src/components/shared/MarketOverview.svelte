@@ -701,33 +701,33 @@
             </div>
           </div>
         </div>
+      {/if}
 
-        {#if fundingRate}
-          <div
-            class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
-          >
-            <div class="flex flex-col">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.fundingRate")}</span
-              >
-              <span
-                class="font-medium"
-                class:text-[var(--success-color)]={fundingRate.gt(0)}
-                class:text-[var(--danger-color)]={fundingRate.lt(0)}
-              >
-                {formatValue(fundingRate.times(100), 4)}%
-              </span>
-            </div>
-            <div class="flex flex-col text-right">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.countdown")}</span
-              >
-              <span class="font-mono text-[var(--text-primary)]"
-                >{countdownText}</span
-              >
-            </div>
+      {#if fundingRate || nextFundingTime}
+        <div
+          class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
+        >
+          <div class="flex flex-col">
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.fundingRate")}</span
+            >
+            <span
+              class="font-medium"
+              class:text-[var(--success-color)]={fundingRate && fundingRate.gt(0)}
+              class:text-[var(--danger-color)]={fundingRate && fundingRate.lt(0)}
+            >
+              {fundingRate ? `${formatValue(fundingRate.times(100), 4)}%` : "--"}
+            </span>
           </div>
-        {/if}
+          <div class="flex flex-col text-right">
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.countdown")}</span
+            >
+            <span class="font-mono text-[var(--text-primary)]"
+              >{countdownText}</span
+            >
+          </div>
+        </div>
       {/if}
 
       {#if settingsState.showMarketOverviewLinks && symbol}
@@ -774,8 +774,6 @@
 
           <div class="flex items-center gap-0.5">
             {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
-              {@const config = CHANNEL_CONFIG[baseAsset]}
-              {@const plotId = typeof config === "string" ? config : baseAsset}
               {@const windowId = `channel-${baseAsset}`}
               {@const isOpen = windowManager.windows.some(
                 (w) => w.id === windowId,
