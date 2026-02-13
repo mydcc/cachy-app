@@ -1,5 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
 import { CHART_PATTERNS, DEFAULT_PATTERN_COLORS } from './chartPatterns';
+import { PATTERNS_DATA } from './chartPatterns.data';
+import { DRAW_FUNCTIONS } from './chartPatterns.draw';
+
+// Mock global constructors if not available
+if (typeof Path2D === 'undefined') {
+  global.Path2D = class Path2D {
+    rect() {}
+    moveTo() {}
+    lineTo() {}
+    closePath() {}
+    arc() {}
+    quadraticCurveTo() {}
+    bezierCurveTo() {}
+  } as any;
+}
+if (typeof CanvasRenderingContext2D === 'undefined') {
+  global.CanvasRenderingContext2D = class CanvasRenderingContext2D {} as any;
+}
 
 // Mock CanvasRenderingContext2D
 const createMockContext = () => ({
@@ -65,5 +83,14 @@ describe('Chart Patterns Drawing', () => {
       expect(ctx.stroke).toHaveBeenCalled();
       expect(ctx.fillText).toHaveBeenCalled();
     }
+  });
+});
+
+describe('Chart Patterns Data Integrity', () => {
+  it('should have a draw function for every pattern in data', () => {
+    PATTERNS_DATA.forEach(pattern => {
+      expect(DRAW_FUNCTIONS[pattern.id], `Missing draw function for ${pattern.id}`).toBeDefined();
+      expect(typeof DRAW_FUNCTIONS[pattern.id]).toBe('function');
+    });
   });
 });
