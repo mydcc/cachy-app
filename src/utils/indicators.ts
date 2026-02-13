@@ -1226,23 +1226,51 @@ export function calculateAwesomeOscillator(
   low: NumberArray,
   fastPeriod: number,
   slowPeriod: number,
-): number {
+  out?: Float64Array,
+): Float64Array {
   const len = high.length;
+  const result = out && out.length === len ? out : new Float64Array(len);
 
-  const getSMAOfHL2 = (period: number): number => {
-    if (len < period) return 0;
-    let sum = 0;
-    const start = len - period;
-    for (let i = start; i < len; i++) {
-      sum += (high[i] + low[i]) / 2;
+  // We need running sums for SMAs
+  let fastSum = 0;
+  let slowSum = 0;
+
+  for (let i = 0; i < len; i++) {
+    const hl2 = (high[i] + low[i]) / 2;
+
+    fastSum += hl2;
+    slowSum += hl2;
+
+    if (i >= fastPeriod) {
+      const oldFast = (high[i - fastPeriod] + low[i - fastPeriod]) / 2;
+      fastSum -= oldFast;
     }
-    return sum / period;
-  };
 
-  const fastSMA = getSMAOfHL2(fastPeriod);
-  const slowSMA = getSMAOfHL2(slowPeriod);
+    if (i >= slowPeriod) {
+      const oldSlow = (high[i - slowPeriod] + low[i - slowPeriod]) / 2;
+      slowSum -= oldSlow;
+    }
 
-  return fastSMA - slowSMA;
+    let fastSMA = 0;
+    let slowSMA = 0;
+
+    if (i >= fastPeriod - 1) {
+      fastSMA = fastSum / fastPeriod;
+    }
+
+    if (i >= slowPeriod - 1) {
+      slowSMA = slowSum / slowPeriod;
+    }
+
+    // Usually we only care if the slow SMA is valid
+    if (i >= slowPeriod - 1) {
+      result[i] = fastSMA - slowSMA;
+    } else {
+      result[i] = 0;
+    }
+  }
+
+  return result;
 }
 
 export function calculateMFI(
