@@ -2059,10 +2059,7 @@
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",
-    "dataError": "Data Inconsistency Detected",
-    "fetchFailed": "Failed to fetch trade data.",
-    "closeAllFailed": "Failed to close all positions.",
-    "apiError": "API Error: {error}"
+    "dataError": "Data Inconsistency Detected"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",
