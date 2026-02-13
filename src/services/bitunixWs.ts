@@ -1605,53 +1605,6 @@ const isSafe = (v: any) => {
   return false;
 };
 
-export function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; ip?: any; } {
-  if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
-
-  // Validate fields if they exist (Negative Checks)
-  if (d.lastPrice !== undefined && !isSafe(d.lastPrice)) return false;
-  if (d.lp !== undefined && !isSafe(d.lp)) return false;
-  if (d.la !== undefined && !isSafe(d.la)) return false;
-  if (d.ip !== undefined && !isSafe(d.ip)) return false;
-  if (d.fr !== undefined && !isSafe(d.fr)) return false;
-
-  // Ensure at least one known field exists AND is safe
-  const hasSafePrice = (d.lastPrice !== undefined && isSafe(d.lastPrice)) ||
-                       (d.lp !== undefined && isSafe(d.lp)) ||
-                       (d.la !== undefined && isSafe(d.la)) ||
-                       (d.ip !== undefined && isSafe(d.ip));
-
-  const hasSafeFunding = (d.fr !== undefined && isSafe(d.fr));
-
-  return hasSafePrice || hasSafeFunding;
-}
-
-export function isTickerData(d: any): d is {
-  volume?: any; v?: any; lastPrice?: any; close?: any;
-  high?: any; low?: any; quoteVolume?: any;
-  h?: any; l?: any; q?: any;
-} {
-  if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
-
-  // Validate critical fields if they exist
-  if (d.lastPrice !== undefined && !isSafe(d.lastPrice)) return false;
-  if (d.close !== undefined && !isSafe(d.close)) return false;
-  if (d.volume !== undefined && !isSafe(d.volume)) return false;
-
-  if (d.v !== undefined && !isSafe(d.v)) return false;
-  if (d.q !== undefined && !isSafe(d.q)) return false;
-  if (d.h !== undefined && !isSafe(d.h)) return false;
-  if (d.l !== undefined && !isSafe(d.l)) return false;
-
-  // Must have at least one valid indicator
-  return (d.volume !== undefined || d.v !== undefined || d.lastPrice !== undefined || d.close !== undefined);
-}
-
-export function isDepthData(d: any): d is { b: any[]; a: any[] } {
-  return d && Array.isArray(d.b) && Array.isArray(d.a);
-}
-
-
 export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
