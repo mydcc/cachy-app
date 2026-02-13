@@ -1,58 +1,47 @@
-# Implementation Plan
+# Implementation Plan: Regression Testing & Verification
 
-## Phase 1: Critical Hardening & Fixes
+**Date:** 2026-05-25
+**Priority:** High (Verification of Critical Financial Logic)
 
-### 1. Fix Missing Translations (UX/Crash)
-- **Goal:** Prevent runtime errors and show actionable feedback.
-- **Action:**
-  - Update `src/locales/locales/en.json` to include:
-    - `settings.errors.invalidApiKey`
-    - `settings.errors.ipNotAllowed`
-    - `settings.errors.invalidSignature`
-    - `settings.errors.timestampError`
-- **Verification:** `read_file` checks on `en.json`.
+## Phase 1: Critical Verification (Data Integrity)
 
-### 2. Optimize MarketWatcher (Performance)
-- **Goal:** Reduce GC pressure in backfill loops.
-- **Action:**
-  - Move `const ZERO_VOL = new Decimal(0);` out of `fillGaps` in `src/services/marketWatcher.ts` to module scope.
-  - Type `klines` argument in `fillGaps` as `Kline[]` instead of `any[]`.
-- **Verification:** Run `src/services/marketWatcher.test.ts` (if exists) or create a simple benchmark test.
+### 1.1 `safeJson` Regression Test
+- **Goal:** Verify that 19-digit Order IDs (Bitunix API) are not corrupted by `JSON.parse`.
+- **Action:** Create `tests/unit/safeJson.test.ts`.
+- **Test Cases:**
+  - Input: `{"id": 1234567890123456789}` -> Output: `{"id": "1234567890123456789"}`.
+  - Input: `{"val": 123.456}` -> Output: `{"val": 123.456}` (Floats preserved).
+  - Input: `[1234567890123456789]` -> Output: `["1234567890123456789"]` (Arrays handled).
+- **Justification:** Prevents silent corruption of Order IDs which would cause `Order Not Found` errors during trade management.
 
-### 3. Harden Bitunix WebSocket (Data Integrity)
-- **Goal:** Enforce type safety for trade data listeners.
-- **Action:**
-  - Define `interface TradeData` in `src/types/bitunix.ts` (or `bitunixWs.ts`).
-  - Update `tradeListeners` map in `src/services/bitunixWs.ts` to use `Set<(trade: TradeData) => void>`.
-  - Update `subscribeTrade` signature.
-- **Verification:** `tsc` check (via `npm run check` or manual file check).
+### 1.2 `error_mapping` Unit Test
+- **Goal:** Ensure raw API errors are translated to user-friendly i18n keys.
+- **Action:** Create `tests/unit/error_mapping.test.ts`.
+- **Test Cases:**
+  - Input: `{ code: 10003 }` -> Output: `"settings.errors.invalidApiKey"`.
+  - Input: `{ message: "Invalid signature" }` -> Output: `"settings.errors.invalidSignature"`.
+  - Input: `{ message: "Unknown" }` -> Output: `null` (or fallback).
+- **Justification:** Ensures actionable feedback for users during onboarding/connection issues.
 
-### 4. Centralize Error Mapping (Maintainability)
-- **Goal:** Robust error handling for API failures.
-- **Action:**
-  - Extract `mapApiErrorToLabel` from `src/components/inputs/PortfolioInputs.svelte` to `src/utils/errorUtils.ts`.
-  - Enhance it to check `error.code` in addition to regex on `message`.
-  - Import and use it in `PortfolioInputs.svelte`.
-- **Verification:** Unit test for `mapApiErrorToLabel`.
+## Phase 2: Stability Verification (Resource Limits)
 
-## Phase 2: Stability & Testing
+### 2.1 `MarketManager` Limit Test
+- **Goal:** specific test to ensure `marketState` does not grow unbounded.
+- **Action:** Create `tests/unit/market_limits.test.ts`.
+- **Test Cases:**
+  - Push 2500 klines to a symbol.
+  - Verify `marketState.data[symbol].klines[tf].length` <= 2000 (or configured limit).
+  - Verify `BufferPool` reuses buffers (optional advanced check).
+- **Justification:** Prevents browser crashes (OOM) during long-running sessions with high-frequency data updates.
 
-### 1. MarketManager Array Limits Test
-- **Goal:** Ensure `history` arrays do not grow unbounded.
-- **Action:**
-  - Create `src/stores/market_limits.test.ts`.
-  - Simulate receiving 10,000 updates via `updateSymbolKlines`.
-  - Assert `marketState.data[symbol].klines[tf].length` <= `settingsState.chartHistoryLimit`.
+## Execution Strategy
 
-### 2. Safe JSON Large Integer Test
-- **Goal:** Verify `safeJsonParse` correctly handles large integers to prevent "Fast Path" corruption.
-- **Action:**
-  - Create `src/utils/safeJson_integers.test.ts`.
-  - Test input: `{"id": 9007199254740993}` -> Output string `"9007199254740993"`.
+1.  Create `tests/unit/safeJson.test.ts`.
+2.  Create `tests/unit/error_mapping.test.ts`.
+3.  Create `tests/unit/market_limits.test.ts`.
+4.  Run all tests via `npm test` (or `vitest run tests/unit`).
 
-## Execution Order
-1. Fix i18n keys (Quick win).
-2. `MarketWatcher` optimization.
-3. `BitunixWs` type hardening.
-4. Error mapping refactor.
-5. Create tests.
+## Success Criteria
+
+- All new tests pass.
+- No regressions in existing tests.
