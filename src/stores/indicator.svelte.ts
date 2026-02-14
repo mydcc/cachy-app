@@ -228,6 +228,8 @@ class IndicatorManager {
     hma: $state.snapshot(this.hma),
   });
 
+  _cachedJson = $derived(JSON.stringify(this._snapshot));
+
   constructor() {
     if (browser) {
       this.load();
@@ -352,7 +354,7 @@ class IndicatorManager {
 
   toJSON(): IndicatorSettings {
     // Return a fresh clone of the cached snapshot
-    return structuredClone(this._snapshot);
+    return { ...structuredClone(this._snapshot), _cachedJson: this._cachedJson };
   }
 
   subscribe(fn: (value: IndicatorSettings) => void): () => void {

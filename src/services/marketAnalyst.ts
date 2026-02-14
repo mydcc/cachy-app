@@ -38,6 +38,7 @@ import { safeSub, safeDiv } from "../utils/utils";
 
 // DELAY_BETWEEN_SYMBOLS is now dynamic from settingsState
 const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes cache
+const REQUIRED_INDICATORS = { "EMA": true, "RSI": true };
 
 class MarketAnalystService {
     private isRunning = false;
@@ -148,6 +149,7 @@ class MarketAnalystService {
 
             // Prepare settings ONCE (Optimization)
             const settings = indicatorState.toJSON() as any;
+            delete settings._cachedJson; // Invalidate cached hash because we mutate settings below
 
             // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
             // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting
@@ -161,7 +163,7 @@ class MarketAnalystService {
 
             // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
             // The calculator checks "shouldCalculate('ema')".
-            const requiredIndicators = { "EMA": true, "RSI": true };
+            const requiredIndicators = REQUIRED_INDICATORS;
 
             const techPromises = timeframes.map(tf => {
                 const klines = klinesMap[tf];
