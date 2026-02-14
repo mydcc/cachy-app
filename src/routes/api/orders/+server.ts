@@ -32,6 +32,7 @@ import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/ord
 import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkAppAuth } from "../../../lib/server/auth";
+import { logger } from "$lib/server/logger";
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
@@ -195,26 +196,12 @@ export const POST: RequestHandler = async ({ request }) => {
     const errorCode = (e as any).code;
     const details = (e as any).details;
 
-    // Enhanced Logging with Redaction
-    try {
-      let sanitizedBody: any = {};
-      if (typeof body === 'object' && body !== null) {
-          sanitizedBody = { ...body };
-          if ('apiKey' in sanitizedBody) sanitizedBody.apiKey = "***";
-          if ('apiSecret' in sanitizedBody) sanitizedBody.apiSecret = "***";
-          if ('passphrase' in sanitizedBody) sanitizedBody.passphrase = "***";
-      } else {
-          sanitizedBody = { raw: String(body) };
-      }
-
-      console.error(`[API] Order failed: ${(body as any)?.type}`, {
-        error: errorMsg,
-        code: errorCode,
-        body: sanitizedBody,
-      });
-    } catch (logErr) {
-      console.error(`[API] Order failed`, errorMsg);
-    }
+    // Enhanced Logging (automatically redacted by logger)
+    logger.error(`[API] Order failed: ${(body as any)?.type}`, {
+      error: errorMsg,
+      code: errorCode,
+      body,
+    });
 
     // Redact response message and details
     let sanitizedMsg = errorMsg;
