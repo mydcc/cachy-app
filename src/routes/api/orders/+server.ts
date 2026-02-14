@@ -33,6 +33,7 @@ import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkAppAuth } from "../../../lib/server/auth";
 import { logger } from "$lib/server/logger";
+import { BITUNIX_API_URL, BITGET_API_URL } from "../../../config/exchanges";
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
@@ -230,7 +231,7 @@ export const POST: RequestHandler = async ({ request }) => {
 // --- Bitunix Helpers ---
 
 async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: string, orderId: string) {
-    const baseUrl = "https://fapi.bitunix.com";
+    const baseUrl = BITUNIX_API_URL;
     const path = "/api/v1/futures/trade/cancel_order";
 
     const payload = { symbol, orderId };
@@ -266,7 +267,7 @@ async function placeBitunixOrder(
   apiSecret: string,
   orderData: BitunixOrderPayload,
 ): Promise<BitunixOrder> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/place_order";
 
   const safeQty = formatApiNum(orderData.qty);
@@ -341,7 +342,7 @@ async function placeBitunixOrder(
 }
 
 async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Promise<NormalizedOrder[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/get_pending_orders";
   const { nonce, timestamp, signature } = generateBitunixSignature(apiKey, apiSecret, {}, "");
 
@@ -408,7 +409,7 @@ function safeDecimal(value: any): Decimal {
 }
 
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/get_history_orders";
   const params = { limit: String(limit) };
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
@@ -462,7 +463,7 @@ async function placeBitgetOrder(
     passphrase: string,
     payload: BitgetOrderPayload & { marginCoin?: string }
 ): Promise<any> {
-    const baseUrl = "https://api.bitget.com";
+    const baseUrl = BITGET_API_URL;
     const path = "/api/mix/v1/order/placeOrder";
 
     // 1. Map Side
@@ -533,7 +534,7 @@ async function fetchBitgetPendingOrders(
     apiSecret: string,
     passphrase: string
 ): Promise<NormalizedOrder[]> {
-    const baseUrl = "https://api.bitget.com";
+    const baseUrl = BITGET_API_URL;
     const path = "/api/mix/v1/order/current";
     // productType: umcbl (USDT-M)
     const params = { productType: "umcbl" };
@@ -579,7 +580,7 @@ async function fetchBitgetHistoryOrders(
     passphrase: string,
     limit = 20
 ): Promise<NormalizedOrder[]> {
-    const baseUrl = "https://api.bitget.com";
+    const baseUrl = BITGET_API_URL;
     const path = "/api/mix/v1/order/history";
 
     const params: Record<string, string> = {
@@ -631,7 +632,7 @@ async function cancelBitgetOrder(
     orderId: string,
     marginCoin = "USDT"
 ) {
-    const baseUrl = "https://api.bitget.com";
+    const baseUrl = BITGET_API_URL;
     const path = "/api/mix/v1/order/cancel-order";
 
     const body = {

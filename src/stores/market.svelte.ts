@@ -21,7 +21,7 @@ import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import { BufferPool } from "../utils/bufferPool";
 import { logger } from "../services/logger";
-import type { Kline, KlineBuffers } from "../services/technicalsTypes";
+import type { Kline, KlineBuffers, KlineRaw } from "../services/technicalsTypes";
 
 export interface MarketData {
   symbol: string;
@@ -61,7 +61,7 @@ export type WSStatus =
 // Increased cache improves performance for power users tracking many symbols
 const DEFAULT_CACHE_SIZE = 20;
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
-const KLINE_BUFFER_HARD_LIMIT = 2000; // Hard cap for pending kline updates
+const KLINE_BUFFER_HARD_LIMIT = 5000; // Hard cap for pending kline updates
 
 function getMaxCacheSize(): number {
   return settingsState.marketCacheSize || DEFAULT_CACHE_SIZE;
@@ -89,7 +89,7 @@ export class MarketManager {
   private cacheMetadata = new Map<string, CacheMetadata>();
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
-  private pendingKlineUpdates = new Map<string, any[]>();
+  private pendingKlineUpdates = new Map<string, KlineRaw[]>();
   private bufferPool = new BufferPool();
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
@@ -379,7 +379,7 @@ export class MarketManager {
   updateSymbolKlines(
     symbol: string,
     timeframe: string,
-    klines: any[],
+    klines: any[], // Accepts Kline[] or KlineRaw[]
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
@@ -402,6 +402,7 @@ export class MarketManager {
 
       // Optimization: Just append. Logic to merge is handled in flush.
       // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
+      // WS updates are assumed to be KlineRaw-compatible
       for (const k of klines) pending.push(k);
 
       // Safety check: force flush if too many SYMBOLS are pending updates
@@ -855,6 +856,11 @@ export class MarketManager {
     this.enforceCacheLimit();
   }
 
+  /**
+   * Svelte 5 Compatible Subscription
+   * Uses $effect.root to manage reactive subscriptions outside component context.
+   * cleanup() handles unsubscription when the caller (e.g. component) is destroyed.
+   */
   subscribe(fn: (value: Record<string, MarketData>) => void) {
     fn(this.data);
     const cleanup = $effect.root(() => {

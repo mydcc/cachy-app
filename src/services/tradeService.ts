@@ -45,7 +45,9 @@ export interface TpSlOrder {
     createTime?: number;
     id?: string;
     planId?: string;
-    [key: string]: any;
+    clientOrderId?: string;
+    side?: string;
+    type?: string;
 }
 
 export class BitunixApiError extends Error {
@@ -97,7 +99,7 @@ class TradeService {
             method,
             headers,
             body: JSON.stringify({
-                ...serializedPayload,
+                ...(serializedPayload as any),
                 // Ensure keys are sent to backend for signing/execution
                 apiKey: keys.key,
                 apiSecret: keys.secret,
@@ -127,18 +129,18 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: any, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
         }
 
-        if (!payload) return payload;
+        if (payload === null || payload === undefined) return payload;
         if (payload instanceof Decimal) return payload.toString();
 
         // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
-        if (typeof payload === 'object' && payload !== null && typeof payload.isZero === 'function' && typeof payload.toFixed === 'function') {
-            return payload.toString();
+        if (typeof payload === 'object' && payload !== null && 'isZero' in payload && 'toFixed' in payload && typeof (payload as any).isZero === 'function' && typeof (payload as any).toFixed === 'function') {
+            return (payload as any).toString();
         }
 
         if (typeof payload === 'object' && payload !== null) {
@@ -151,10 +153,10 @@ class TradeService {
         }
 
         if (typeof payload === 'object') {
-            const newObj: any = {};
+            const newObj: Record<string, unknown> = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
-                    newObj[key] = this.serializePayload(payload[key], depth + 1, seen);
+                    newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
                 }
             }
             return newObj;
