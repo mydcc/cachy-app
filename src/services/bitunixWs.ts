@@ -1515,10 +1515,22 @@ class BitunixWebSocketService {
     logger.log("network", `[BitunixWS] Flushing ${subs.length} buffered subscriptions`);
 
     subs.forEach(key => {
-      const [channel, symbol] = key.split(":");
+      // Fix: Handle keys with colons in symbol (e.g. BTC:USDT) correctly
+      // Key format is always CHANNEL:SYMBOL
+      const firstColonIndex = key.indexOf(":");
+      if (firstColonIndex === -1) {
+          logger.warn("network", `[BitunixWS] Invalid subscription key format: ${key}`);
+          return;
+      }
+
+      const channel = key.substring(0, firstColonIndex);
+      const symbol = key.substring(firstColonIndex + 1);
+
       const bitunixChannel = this.getBitunixChannel(channel);
       if (bitunixChannel) {
           this.sendSubscribe(this.wsPublic!, symbol, bitunixChannel);
+      } else {
+          logger.warn("network", `[BitunixWS] Could not map channel '${channel}' for key '${key}' during flush.`);
       }
     });
   }
@@ -1555,7 +1567,12 @@ class BitunixWebSocketService {
 
   private resubscribePublic() {
     this.pendingSubscriptions.forEach((count, subKey) => {
-      const [channel, symbol] = subKey.split(":");
+      const firstColonIndex = subKey.indexOf(":");
+      if (firstColonIndex === -1) return;
+
+      const channel = subKey.substring(0, firstColonIndex);
+      const symbol = subKey.substring(firstColonIndex + 1);
+
       const bitunixChannel = this.getBitunixChannel(channel);
       if (bitunixChannel && this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
         this.sendSubscribe(this.wsPublic, symbol, bitunixChannel);

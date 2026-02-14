@@ -459,7 +459,7 @@ class MarketWatcher {
                 let lastOldestTime = klines1[0].time;
                 
                 // BACKFILL OPTIMIZATION: Batch store updates to prevent technicals-restart-spam
-                let backfillBuffer: any[] = [];
+                let backfillBuffer: Kline[] = [];
                 const storeUpdateThreshold = 10; // Update store every 10 batches (2000 candles)
                 let batchesSubSinceUpdate = 0;
 
@@ -546,6 +546,12 @@ class MarketWatcher {
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
   private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
       if (klines.length < 2) return klines;
+
+      // CRITICAL HARDENING: Prevent infinite loops
+      if (intervalMs <= 0 || isNaN(intervalMs)) {
+          logger.error("market", `[fillGaps] Invalid intervalMs: ${intervalMs}. Aborting gap fill.`);
+          return klines;
+      }
 
       // Hardening: Validate first item structure before access
       const firstVal = KlineRawSchema.safeParse(klines[0]);
