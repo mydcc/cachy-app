@@ -49,7 +49,9 @@ export const toNumFast = (val: any): number => {
         // Fallback for serialized Decimal (state only, no methods)
         // e.g. from JSON.parse()
         if ((val as any).s !== undefined && (val as any).e !== undefined) {
-             return new Decimal(val).toNumber();
+             const d = new Decimal(0);
+             Object.assign(d, val);
+             return d.toNumber();
         }
     }
 
