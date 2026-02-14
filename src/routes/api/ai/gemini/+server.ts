@@ -18,6 +18,24 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
+interface GeminiPart {
+  text: string;
+}
+
+interface GeminiContent {
+  role: "user" | "model";
+  parts: GeminiPart[];
+}
+
+interface GeminiSystemInstruction {
+  parts: GeminiPart[];
+}
+
+interface GeminiPayload {
+  contents: GeminiContent[];
+  systemInstruction?: GeminiSystemInstruction;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const { messages, model } = await request.json();
@@ -27,8 +45,8 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
-    let systemInstruction = undefined;
-    const contents = [];
+    let systemInstruction: GeminiSystemInstruction | undefined = undefined;
+    const contents: GeminiContent[] = [];
 
     for (const msg of messages) {
       if (msg.role === "system") {
@@ -64,7 +82,7 @@ export const POST: RequestHandler = async ({ request }) => {
       systemInstruction = undefined;
     }
 
-    const payload: any = { contents };
+    const payload: GeminiPayload = { contents };
     if (systemInstruction) {
       payload.systemInstruction = systemInstruction;
     }
