@@ -54,7 +54,16 @@ export const POST: RequestHandler = async ({ request }) => {
         if (!resultText) return json({ error: 'NO_RESULT' }, { status: 500 });
         const analysis = JSON.parse(resultText.replace(/```json/g, '').replace(/```/g, '').trim());
         return json({ analysis });
-    } catch (e: any) {
-        return json({ error: e.message || 'INTERNAL_ERROR' }, { status: 500 });
+    } catch (e: unknown) {
+        console.error('Sentiment API Error:', e);
+        let message = 'INTERNAL_ERROR';
+        if (e instanceof Error) {
+            message = e.message;
+        } else if (typeof e === 'string') {
+            message = e;
+        } else if (typeof e === 'object' && e !== null && 'message' in e) {
+            message = String((e as any).message);
+        }
+        return json({ error: message }, { status: 500 });
     }
 };
