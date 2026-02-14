@@ -139,7 +139,7 @@ export interface TechnicalsData {
   };
   volatility?: {
     atr: number;
-    bb: {
+    bb?: {
       upper: number;
       middle: number;
       lower: number;

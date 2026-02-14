@@ -383,19 +383,19 @@ class MarketWatcher {
       }
       this.historyLocks.add(lockKey);
 
+      let shouldRefresh = false;
+
       try {
           const currentData = marketState.data[symbol]?.klines[tf] || [];
-          if (currentData.length >= 50) return true; // Already have enough for basic technicals
+          if (currentData.length >= 250) return true; // Already have enough for basic technicals
 
            // Fetch small batch
-          const limit = 100;
+          const limit = 300;
           const klines = await apiService.fetchBitunixKlines(symbol, tf, limit, undefined, Date.now());
 
           if (klines && klines.length > 0) {
               marketState.updateSymbolKlines(symbol, tf, klines, "rest");
-              
-              // FORCE REFRESH TECHNICALS
-              activeTechnicalsManager.forceRefresh(symbol, tf);
+              shouldRefresh = true;
           }
           return true;
       } catch (e) {
@@ -403,6 +403,10 @@ class MarketWatcher {
           return false;
       } finally {
           this.historyLocks.delete(lockKey);
+          if (shouldRefresh) {
+               // FORCE REFRESH TECHNICALS (Now that lock is released)
+              activeTechnicalsManager.forceRefresh(symbol, tf);
+          }
       }
   }
 

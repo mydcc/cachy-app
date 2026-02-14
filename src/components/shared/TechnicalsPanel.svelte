@@ -337,6 +337,7 @@
                   )}</span
                 >
               </div>
+              {#if data.volatility.bb}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
@@ -355,6 +356,7 @@
                   )}%</span
                 >
               </div>
+              {/if}
             {/if}
           </div>
 

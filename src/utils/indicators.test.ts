@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { indicators } from "./indicators";
+import { indicators, JSIndicators } from "./indicators";
 import { Decimal } from "decimal.js";
 
 describe("indicators", () => {
@@ -95,7 +95,6 @@ describe("indicators", () => {
 });
 
 
-import { JSIndicators } from "./indicators";
 
 describe("JSIndicators", () => {
   describe("psar", () => {
@@ -192,7 +191,7 @@ describe("JSIndicators", () => {
       expect(res2[3]).toBeCloseTo(33.333, 2);
     });
   });
-});
+
 
   describe("ichimoku", () => {
     it("should calculate ichimoku correctly", () => {
@@ -244,3 +243,38 @@ describe("JSIndicators", () => {
       expect(res.lower[2]).toBeCloseTo(3.67, 1);
     });
   });
+
+  describe("vwma", () => {
+    it("should calculate VWMA correctly", () => {
+      // Price: 10, 20, 30. Vol: 1, 2, 3.
+      // SumP*V = 10*1 + 20*2 + 30*3 = 10 + 40 + 90 = 140.
+      // SumV = 1 + 2 + 3 = 6.
+      // VWMA = 140/6 = 23.333
+      const price = [10, 20, 30];
+      const vol = [1, 2, 3];
+      const res = JSIndicators.vwma(price, vol, 3);
+      expect(res[2]).toBeCloseTo(23.333, 2);
+    });
+  });
+
+  describe("hma", () => {
+    it("should calculate HMA correctly", () => {
+      const data = Array.from({length: 20}, (_, i) => (i + 1) * 10);
+      const res = JSIndicators.hma(data, 9);
+      expect(res[19]).not.toBeNaN();
+      expect(res[19]).toBeGreaterThan(190);
+    });
+  });
+});
+
+describe("indicators wrappers", () => {
+  describe("calculateMACD", () => {
+    it("should calculate MACD correctly", () => {
+       const data = Array(50).fill(10);
+       const res = indicators.calculateMACD(data);
+       expect(res).not.toBeNull();
+       expect(res?.macd.toNumber()).toBe(0);
+    });
+  });
+});
+

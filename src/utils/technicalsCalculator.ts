@@ -610,7 +610,7 @@ export function calculateIndicatorsFromArrays(
     }
 
     // Parabolic SAR
-    if (shouldCalculate('parabolicsar')) {
+    if (shouldCalculate('parabolicSar')) {
         const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
         const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
         const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
@@ -714,14 +714,15 @@ export function calculateIndicatorsFromArrays(
         for (const period of emaPeriods) {
         const emaResults = JSIndicators.ema(emaSource, period);
         const rawVal = emaResults[emaResults.length - 1];
-        // Handle insufficient data (NaN) by keeping it NaN
-        const emaVal = (typeof rawVal === "number") ? rawVal : NaN;
-        movingAverages.push({
-            name: "EMA",
-            params: `${period}`,
-            value: emaVal,
-            action: currentPrice > emaVal ? "Buy" : "Sell",
-        });
+        // Handle insufficient data (NaN) by skipping
+        if (typeof rawVal === 'number' && !isNaN(rawVal)) {
+            movingAverages.push({
+                name: "EMA",
+                params: `${period}`,
+                value: rawVal,
+                action: currentPrice > rawVal ? "Buy" : "Sell",
+            });
+        }
         }
     }
   } catch (error) {
@@ -752,10 +753,10 @@ export function calculateIndicatorsFromArrays(
   // --- Volatility ---
   let volatility = undefined;
   try {
-    if (shouldCalculate('atr') || shouldCalculate('bb')) {
+    if (shouldCalculate('atr') || shouldCalculate('bollingerBands')) {
         const atrLen = settings?.atr?.length || 14;
-        const bbLen = settings?.bb?.length || 20;
-        const bbStdDev = settings?.bb?.stdDev || 2;
+        const bbLen = settings?.bollingerBands?.length || 20;
+        const bbStdDev = settings?.bollingerBands?.stdDev || 2;
 
         let currentAtr = 0;
         if (shouldCalculate('atr')) {
@@ -765,7 +766,7 @@ export function calculateIndicatorsFromArrays(
 
         let bbUpper = 0, bbLower = 0, bbMiddle = 0, percentP = 0;
 
-        if (shouldCalculate('bb')) {
+        if (shouldCalculate('bollingerBands')) {
             let outMiddle: Float64Array | undefined;
             let outUpper: Float64Array | undefined;
             let outLower: Float64Array | undefined;
@@ -805,6 +806,8 @@ export function calculateIndicatorsFromArrays(
       console.error("Volatility calculation error:", e);
     }
   }
+
+
 
   // --- Summary & Confluence ---
   let buy = 0;

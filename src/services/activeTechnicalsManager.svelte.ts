@@ -171,6 +171,8 @@ class ActiveTechnicalsManager {
      * Used after a backfill finishes to ensure store is up-to-date.
      */
     public forceRefresh(symbol: string, timeframe: string) {
+        // Clear state to force full re-initialization with new history
+        this.workerState.delete(`${symbol}:${timeframe}`);
         this.performCalculation(symbol, timeframe);
     }
 
