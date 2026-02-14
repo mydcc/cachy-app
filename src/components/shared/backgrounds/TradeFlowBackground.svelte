@@ -205,7 +205,6 @@
     // Restore injection hook for debugging and testing
     if (typeof window !== 'undefined') {
       (window as any).__injectTrade = (trade: any) => {
-        console.log('__injectTrade called:', trade);
         if (worker) {
           worker.postMessage({
             type: 'onTrade',
@@ -220,7 +219,6 @@
           });
         }
       };
-      console.log('Sonar debug hook initialized: window.__injectTrade');
     }
 
     return () => {
