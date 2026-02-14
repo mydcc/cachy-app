@@ -25,7 +25,6 @@ export async function loadWasm() {
             // Align with scripts/build_wasm.sh output
             const wasmBinaryPath = '/wasm/technicals_wasm.wasm';
 
-            console.log(`[WASM] Loading engine from ${wasmJsPath}...`);
             
             // Use standard dynamic import for the glue code
             const mod = await import(/* @vite-ignore */ wasmJsPath);
@@ -34,7 +33,6 @@ export async function loadWasm() {
             await mod.default(wasmBinaryPath);
             
             wasmModule = mod;
-            console.log(`[WASM] ACE Engine initialized successfully.`);
             return wasmModule;
         } catch (e: any) {
             console.error(`[WASM] ACE Engine Load Failed:`, e.message);
