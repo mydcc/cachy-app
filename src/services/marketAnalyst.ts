@@ -41,6 +41,31 @@ const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes cache
 const REQUIRED_INDICATORS = { "EMA": true, "RSI": true };
 
 class MarketAnalystService {
+    private cachedAnalystSettings: any = null;
+    private lastSettingsJson: string = "";
+    private getAnalystSettings() {
+        const currentJson = indicatorState._cachedJson;
+        if (this.cachedAnalystSettings && this.lastSettingsJson === currentJson) {
+            return this.cachedAnalystSettings;
+        }
+
+        const settings = indicatorState.toJSON() as any;
+        delete settings._cachedJson;
+
+        if (!settings.ema) settings.ema = {} as any;
+        if (!settings.ema.ema3) settings.ema.ema3 = {} as any;
+        settings.ema.ema3.length = 200;
+
+        if (!settings.rsi) settings.rsi = {} as any;
+        if (!settings.rsi.length) settings.rsi.length = 14;
+
+        settings._cachedJson = JSON.stringify(settings);
+
+        this.cachedAnalystSettings = settings;
+        this.lastSettingsJson = currentJson;
+
+        return settings;
+    }
     private isRunning = false;
     private currentSymbolIndex = 0;
     private timeoutId: any = null;
@@ -148,18 +173,7 @@ class MarketAnalystService {
             const startCalc = performance.now();
 
             // Prepare settings ONCE (Optimization)
-            const settings = indicatorState.toJSON() as any;
-            delete settings._cachedJson; // Invalidate cached hash because we mutate settings below
-
-            // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
-            // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting
-            if (!settings.ema) settings.ema = {} as any;
-            if (!settings.ema.ema3) settings.ema.ema3 = {} as any;
-            settings.ema.ema3.length = 200;
-
-            // FORCE: RSI 14 for Heatmap
-            if (!settings.rsi) settings.rsi = {} as any;
-            if (!settings.rsi.length) settings.rsi.length = 14;
+            const settings = this.getAnalystSettings();
 
             // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
             // The calculator checks "shouldCalculate('ema')".
