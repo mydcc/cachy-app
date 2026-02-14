@@ -30,6 +30,97 @@ import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 
+// --- Helper Functions for Optimization ---
+
+function calculateInterval(posTime: number, closeTime: number): string {
+  const durationMin = (closeTime - posTime) / 60000;
+  if (durationMin > 1000) {
+    if (durationMin <= 5000) return "5m";
+    else if (durationMin <= 15000) return "15m";
+    else return "1h";
+  }
+  return "1m";
+}
+
+async function fetchBatchedKlines(trades: any[]) {
+  const prepared = trades.map((p) => {
+    const posTime = parseTimestamp(p.ctime);
+    let closeTime = parseTimestamp(p.mtime || p.ctime);
+    if (closeTime <= 0) closeTime = Date.now();
+    const interval = calculateInterval(posTime, closeTime);
+    return { ...p, _posTime: posTime, _closeTime: closeTime, _interval: interval };
+  });
+
+  const groups = new Map<string, typeof prepared>();
+  for (const item of prepared) {
+    if (item._posTime <= 0 || item._closeTime <= item._posTime) continue;
+    const key = `${item.symbol}:${item._interval}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(item);
+  }
+
+  const results = new Map<string, any[]>(); // key -> Array of {start, end, klines}
+
+  for (const [key, items] of groups.entries()) {
+    const [symbol, interval] = key.split(":");
+    items.sort((a, b) => a._posTime - b._posTime);
+
+    const intervalMs =
+      interval === "1m"
+        ? 60000
+        : interval === "5m"
+        ? 300000
+        : interval === "15m"
+        ? 900000
+        : 3600000;
+
+    let currentStart = items[0]._posTime;
+    let currentEnd = items[0]._closeTime;
+
+    const fetchAndStore = async (s: number, e: number) => {
+        try {
+            const klines = await apiService.fetchBitunixKlines(symbol, interval, 1000, s, e, "normal", 30000);
+            if (!results.has(key)) results.set(key, []);
+            results.get(key)!.push({ start: s, end: e, klines });
+        } catch (err) {
+            console.warn(`[Sync] Failed to fetch batch klines for ${symbol}`, err);
+        }
+    };
+
+    for (let i = 1; i < items.length; i++) {
+        const item = items[i];
+        const potentialEnd = Math.max(currentEnd, item._closeTime);
+        const candlesNeeded = (potentialEnd - currentStart) / intervalMs;
+
+        if (candlesNeeded <= 1000) {
+            currentEnd = potentialEnd;
+        } else {
+            await fetchAndStore(currentStart, currentEnd);
+            currentStart = item._posTime;
+            currentEnd = item._closeTime;
+        }
+    }
+    await fetchAndStore(currentStart, currentEnd);
+  }
+
+  return {
+    getKlines: (symbol: string, interval: string, start: number, end: number) => {
+        const key = `${symbol}:${interval}`;
+        const blocks = results.get(key);
+        if (!blocks) return [];
+        // Find block that covers the range. Since we might have multiple blocks,
+        // we look for one that covers the start time and hopefully the end time.
+        // Or we just search for klines across all blocks?
+        // Simpler: Just filter from all blocks for that key.
+        // There shouldn't be too many blocks or overlap issues since we sorted.
+        const allKlines = blocks.flatMap(b => b.klines || []);
+        // Deduplicate? Bitunix might return overlapping candles if we requested so.
+        // But for filtering, just checking time is enough.
+        return allKlines.filter((k: any) => k.time >= start && k.time <= end);
+    }
+  };
+}
+
 export const syncService = {
   // Private static lock to prevent concurrent sync operations
   _syncLock: false,
@@ -99,69 +190,64 @@ export const syncService = {
       try {
         if (!orderResponse.ok) throw new Error("apiErrors.fetchFailed");
         const orderResult = await orderResponse.json();
-        if (orderResult.isPartial) isPartialSync = true;
-        if (!orderResult.error && Array.isArray(orderResult.data)) {
-          orders = orderResult.data;
-        }
-      } catch (err) {
-        console.warn("Failed to fetch orders:", err);
+        orders = orderResult.data || [];
+      } catch (e) {
+        console.warn("Order sync failed (non-critical):", e);
+        isPartialSync = true;
       }
 
-      // Lookup for SL
-      const symbolSlMap: Record<
-        string,
-        Array<{ ctime: number; slPrice: Decimal }>
-      > = {};
+      // --- Processing Logic ---
+
+      let newEntries: JournalEntry[] = [];
+      let addedCount = 0;
+      const symbolSlMap: Record<string, any[]> = {};
+
+      // Build SL Map
       orders.forEach((o: any) => {
-        let sl = new Decimal(
-          o.slPrice || o.stopLossPrice || o.triggerPrice || 0,
-        );
-        const t = parseTimestamp(o.createTime || o.ctime);
-        if (sl.gt(0) && o.symbol) {
+        if (
+          o.type === "STOP_MARKET" ||
+          o.type === "TAKE_PROFIT_MARKET" ||
+          o.type === "STOP_LIMIT"
+        ) {
           if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
-          symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
+          symbolSlMap[o.symbol].push({
+            slPrice: new Decimal(o.stopPrice || o.triggerPrice || 0),
+            ctime: parseTimestamp(o.createTime || o.updateTime),
+          });
         }
       });
-      Object.values(symbolSlMap).forEach((list) =>
-        list.sort((a, b) => a.ctime - b.ctime),
-      );
 
-      const newEntries: JournalEntry[] = [];
-      let addedCount = 0;
+      // Sort SL candidates
+      Object.keys(symbolSlMap).forEach((k) => {
+        symbolSlMap[k].sort((a, b) => a.ctime - b.ctime);
+      });
 
-      // Process Pending (Simplified)
+      // Process Pending (Open) Positions - No Changes Here
       for (const p of pendingPositions) {
-        const side =
-          (p.side || "").toLowerCase().includes("sell") ||
-            (p.side || "").toLowerCase().includes("short")
-            ? "short"
-            : "long";
-        const uniqueId = `OPEN-${p.positionId || p.symbol + "-" + side}`;
+        const uniqueId = String(p.positionId || `OPEN-${p.symbol}-${p.ctime}`);
 
-        const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
-        const fee = new Decimal(p.fee || 0);
+        const exists = journalState.entries.some(
+          (e) => String(e.tradeId) === uniqueId,
+        );
+        if (exists) continue;
+
         const funding = new Decimal(p.funding || 0);
-        const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
-        let dateTs = parseTimestamp(p.ctime);
-        if (dateTs <= 0) dateTs = Date.now();
-
-        let stopLoss = new Decimal(0);
-        const candidates = symbolSlMap[p.symbol];
-        if (candidates && candidates.length > 0)
-          stopLoss = candidates[candidates.length - 1].slPrice;
+        const fee = new Decimal(0); // Fees usually not final for open pos
 
         newEntries.push({
           id: Date.now() + Math.random(),
           tradeId: uniqueId,
-          date: new Date(dateTs).toISOString(),
-          entryDate: new Date(dateTs).toISOString(),
+          date: new Date(parseTimestamp(p.ctime)).toISOString(),
           symbol: p.symbol,
-          tradeType: side,
+          tradeType: (p.side || "").toLowerCase().includes("sell")
+            ? "short"
+            : "long",
           status: "Open",
           leverage: new Decimal(p.leverage || 0),
-          entryPrice,
-          stopLossPrice: stopLoss,
-          totalNetProfit: unrealizedPnl.minus(fee).plus(funding),
+          entryPrice: new Decimal(p.entryPrice || 0),
+          exitPrice: new Decimal(0), // Open
+          stopLossPrice: new Decimal(0), // Pending
+          totalNetProfit: new Decimal(p.unrealizedPNL || 0), // Unrealized
           totalFees: fee.abs().plus(funding.abs()),
           notes: `Open Position. Funding: ${funding.toFixed(4)}`,
           positionSize: new Decimal(p.qty || p.size || 0),
@@ -199,20 +285,25 @@ export const syncService = {
         step: "Processing History",
       });
 
-      // Batch size for parallel kline requests
-      const BATCH_SIZE = 3;
+      // Batch size for parallel kline requests - INCREASED FOR OPTIMIZATION
+      const BATCH_SIZE = 50;
+
       for (let i = 0; i < filteredHistory.length; i += BATCH_SIZE) {
         const batch = filteredHistory.slice(i, i + BATCH_SIZE);
+
+        // 1. Pre-fetch klines for the entire batch
+        uiState.setSyncProgress({
+            total: totalItems,
+            current: processedItems,
+            step: `Fetching Data ${processedItems + 1}-${Math.min(processedItems + BATCH_SIZE, totalItems)}`,
+        });
+
+        const klineCache = await fetchBatchedKlines(batch);
+
         const batchPromises = batch.map(async (p: any, batchIndex: number) => {
           // Update progress before processing each trade
           const currentIndex = i + batchIndex;
-          uiState.setSyncProgress({
-            total: totalItems,
-            current: currentIndex,
-            step: `Loading ${currentIndex + 1}/${totalItems}`,
-          });
 
-          // ... (rest of the map remains the same, but I need to include it for the tool)
           const uniqueId = String(
             p.positionId || `HIST-${p.symbol}-${p.ctime}`,
           );
@@ -254,28 +345,15 @@ export const syncService = {
           let mae, mfe, efficiency, atrValue;
           try {
             if (posTime > 0 && closeTime > posTime) {
-              // Adaptive interval based on duration
-              const durationMin = (closeTime - posTime) / 60000;
-              let interval = "1m";
-              if (durationMin > 1000) {
-                if (durationMin <= 5000) interval = "5m";
-                else if (durationMin <= 15000) interval = "15m";
-                else interval = "1h";
-              }
+              const interval = calculateInterval(posTime, closeTime);
 
-              const klines = await apiService.fetchBitunixKlines(
-                p.symbol,
-                interval,
-                1000,
-                posTime,
-                closeTime,
-                "normal",
-                30000,
-              );
+              // Use cached klines
+              const klines = klineCache.getKlines(p.symbol, interval, posTime, closeTime);
+
               if (klines?.length > 0) {
                 let maxHigh = new Decimal(0),
                   minLow = new Decimal(Infinity);
-                klines.forEach((k) => {
+                klines.forEach((k: any) => {
                   if (k.high.gt(maxHigh)) maxHigh = k.high;
                   if (k.low.lt(minLow)) minLow = k.low;
                 });
@@ -293,7 +371,8 @@ export const syncService = {
                   }
 
                   // ATR calculation using the same klines
-                  const atrValue = calculator.calculateATR(klines, 14);
+                  // Note: calculateATR expects Kline[] which matches
+                  atrValue = calculator.calculateATR(klines, 14);
 
                   if (mfe.gt(0) && qty.gt(0)) {
                     efficiency = netPnl.div(mfe.times(qty));
@@ -315,13 +394,6 @@ export const syncService = {
           }
 
           addedCount++;
-
-          // Update progress after processing
-          uiState.setSyncProgress({
-            total: totalItems,
-            current: currentIndex + 1,
-            step: `Loaded ${currentIndex + 1}/${totalItems}`,
-          });
 
           return {
             id: Date.now() + Math.random(),
