@@ -18,9 +18,9 @@
 import { EventEmitter } from "events";
 
 // Definiere die Log-Level
-type LogLevel = "info" | "warn" | "error" | "debug";
+export type LogLevel = "info" | "warn" | "error" | "debug";
 
-interface LogEntry {
+export interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
