@@ -18,9 +18,51 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 interface ApiError extends Error {
   status?: number;
+}
+
+interface BitunixKlinesParams extends Record<string, string> {
+  symbol: string;
+  interval: string;
+  limit: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+interface BitgetKlinesParams extends Record<string, string> {
+  symbol: string;
+  granularity: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+interface BitunixKlineItem {
+  open?: string;
+  o?: string;
+  high?: string;
+  h?: string;
+  low?: string;
+  l?: string;
+  close?: string;
+  c?: string;
+  quoteVol?: string;
+  q?: string;
+  volume?: string;
+  vol?: string;
+  v?: string;
+  amount?: string;
+  id?: number;
+  time?: number;
+  ts?: number;
+}
+
+interface BitunixResponse {
+  code: number | string;
+  msg?: string;
+  data?: BitunixKlineItem[];
 }
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -52,17 +94,13 @@ export const GET: RequestHandler = async ({ url }) => {
     console.error(`Error fetching klines from ${provider}:`, e);
 
     let status = 500;
-    let message = "Failed to fetch klines";
+    const message = getErrorMessage(e);
 
     if (e instanceof Error) {
-      message = e.message;
       const apiError = e as ApiError;
       if (typeof apiError.status === 'number') {
         status = apiError.status;
       }
-    } else if (typeof e === 'object' && e !== null && 'message' in e) {
-      // Fallback for non-Error objects that might have a message
-      message = String((e as any).message);
     }
 
     return json({ error: message }, { status });
@@ -92,7 +130,7 @@ async function fetchBitunixKlines(
   };
   const mappedInterval = map[interval] || interval;
 
-  const params: any = {
+  const params: BitunixKlinesParams = {
     symbol: symbol.toUpperCase(),
     interval: mappedInterval,
     limit: limit.toString(),
@@ -139,7 +177,7 @@ async function fetchBitunixKlines(
   }
 
   const responseText = await response.text();
-  const data = safeJsonParse(responseText);
+  const data = safeJsonParse(responseText) as BitunixResponse;
 
   if (data.code !== 0 && data.code !== "0") {
     if (
@@ -160,7 +198,7 @@ async function fetchBitunixKlines(
       console.log(`[Bitunix API] ${symbol}:${interval} requested ${limit} with end ${end}. Got ${results.length}. FirstTS: ${results[0]?.time || results[0]?.id}, LastTS: ${results[results.length-1]?.time || results[results.length-1]?.id}`);
   }
 
-  const mapped = results.map((k: any) => ({
+  const mapped = results.map((k: BitunixKlineItem) => ({
     open: String(k.open || k.o || 0),
     high: String(k.high || k.h || 0),
     low: String(k.low || k.l || 0),
@@ -206,7 +244,7 @@ async function fetchBitgetKlines(
       bitgetSymbol += "_UMCBL";
   }
 
-  const params: any = {
+  const params: BitgetKlinesParams = {
     symbol: bitgetSymbol,
     granularity: mappedInterval,
     // limit? Bitget doesn't explicitly support 'limit' param in some docs, but we can try.
@@ -243,14 +281,14 @@ async function fetchBitgetKlines(
   }
 
   // Optimize: Return plain strings
-  return data
-    .map((k: any[]) => ({
-      timestamp: parseInt(k[0]),
-      open: k[1],
-      high: k[2],
-      low: k[3],
-      close: k[4],
-      volume: k[5], // base volume
+  return (data as (string | number)[][])
+    .map((k) => ({
+      timestamp: typeof k[0] === 'string' ? parseInt(k[0]) : (k[0] as number),
+      open: String(k[1]),
+      high: String(k[2]),
+      low: String(k[3]),
+      close: String(k[4]),
+      volume: String(k[5]), // base volume
     }))
-    .sort((a: any, b: any) => a.timestamp - b.timestamp);
+    .sort((a, b) => a.timestamp - b.timestamp);
 }
