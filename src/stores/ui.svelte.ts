@@ -436,7 +436,6 @@ class UiManager {
       if (type === "success") toastService.success(message);
       else toastService.info(message);
 
-      console.log(`[Toast ${type}] ${message}`);
       this.toastMessage = message;
       this.showSaveFeedback = true;
       setTimeout(() => {
