@@ -17,7 +17,6 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 
 interface ApiError extends Error {
@@ -162,11 +161,11 @@ async function fetchBitunixKlines(
   }
 
   const mapped = results.map((k: any) => ({
-    open: new Decimal(k.open || k.o || 0).toString(),
-    high: new Decimal(k.high || k.h || 0).toString(),
-    low: new Decimal(k.low || k.l || 0).toString(),
-    close: new Decimal(k.close || k.c || 0).toString(),
-    volume: new Decimal(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0).toString(),
+    open: String(k.open || k.o || 0),
+    high: String(k.high || k.h || 0),
+    low: String(k.low || k.l || 0),
+    close: String(k.close || k.c || 0),
+    volume: String(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0),
     timestamp: k.id || k.time || k.ts || 0, // Swapped id and time priority
   }));
 
