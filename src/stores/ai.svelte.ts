@@ -678,9 +678,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               volatility: data.volatility
                 ? {
                   atr: Number(Number(data.volatility.atr).toFixed(4)),
-                  bbPercentP: Number(
-                    Number(data.volatility.bb?.percentP || 0).toFixed(2),
-                  ),
+                  bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
+                    ? Number(Number(data.volatility.bb.percentP).toFixed(2))
+                    : 0,
                 }
                 : "N/A",
             };
