@@ -17,6 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { getErrorMessage } from "../../../../utils/errorUtils";
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
@@ -57,8 +58,8 @@ export const POST: RequestHandler = async ({ request }) => {
         Connection: "keep-alive",
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("OpenAI Proxy Error:", e);
-    return json({ error: e.message }, { status: 500 });
+    return json({ error: getErrorMessage(e) }, { status: 500 });
   }
 };

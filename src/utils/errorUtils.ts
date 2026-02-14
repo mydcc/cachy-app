@@ -107,3 +107,20 @@ export function mapApiErrorToLabel(error: any): string | null {
 
   return null;
 }
+
+/**
+ * Safely extracts an error message from an unknown error object.
+ * This is useful in try-catch blocks where the error type is unknown.
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as any).message);
+  }
+  return String(error);
+}
