@@ -1,116 +1,78 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-/*
- * Copyright (C) 2026 MYDCT
- *
  * Market Analyst Service
- * Background service that cycles through favorite symbols to calculate 
- * key indicators without overloading the CPU or API.
+ * Analyzes market data across multiple timeframes for favorite symbols.
  */
 
-import { settingsState } from "../stores/settings.svelte";
-import { favoritesState } from "../stores/favorites.svelte";
-import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
-import { marketState } from "../stores/market.svelte";
 import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
-import { indicatorState } from "../stores/indicator.svelte";
 import { logger } from "./logger";
+import { marketState } from "../stores/market.svelte";
+import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
+import { favoritesState } from "../stores/favorites.svelte";
+import { settingsState } from "../stores/settings.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
 import { toastService } from "./toastService.svelte";
-import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
-import { safeSub, safeDiv } from "../utils/utils";
 
-// DELAY_BETWEEN_SYMBOLS is now dynamic from settingsState
-const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes cache
-const REQUIRED_INDICATORS = { "EMA": true, "RSI": true };
+const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
+const REQUIRED_INDICATORS = {
+    ema: true, rsi: true, macd: true, atr: true, bb: true, pivots: true,
+    stochRsi: true, mfi: true, ichimoku: true, vwap: true, adx: true
+};
+
+// Local Helpers for Safety
+const safeDiv = (a: Decimal, b: Decimal) => b.isZero() ? new Decimal(0) : a.div(b);
+const safeSub = (a: Decimal, b: Decimal) => a.minus(b);
 
 class MarketAnalystService {
-    private cachedAnalystSettings: any = null;
-    private lastSettingsJson: string = "";
-    private getAnalystSettings() {
-        const currentJson = indicatorState._cachedJson;
-        if (this.cachedAnalystSettings && this.lastSettingsJson === currentJson) {
-            return this.cachedAnalystSettings;
-        }
-
-        const settings = indicatorState.toJSON() as any;
-        delete settings._cachedJson;
-
-        if (!settings.ema) settings.ema = {} as any;
-        if (!settings.ema.ema3) settings.ema.ema3 = {} as any;
-        settings.ema.ema3.length = 200;
-
-        if (!settings.rsi) settings.rsi = {} as any;
-        if (!settings.rsi.length) settings.rsi.length = 14;
-
-        settings._cachedJson = JSON.stringify(settings);
-
-        this.cachedAnalystSettings = settings;
-        this.lastSettingsJson = currentJson;
-
-        return settings;
-    }
+    private timeoutId: any = null;
     private isRunning = false;
     private currentSymbolIndex = 0;
-    private timeoutId: any = null;
 
     start() {
-        if (!browser || this.isRunning) return;
+        if (this.isRunning) return;
         this.isRunning = true;
-        logger.log("general", "Market Analyst started (Optimized Cycle).");
         this.processNext();
+        logger.log("technicals", "Market Analyst Service Started");
     }
 
     stop() {
         this.isRunning = false;
         if (this.timeoutId) clearTimeout(this.timeoutId);
-        analysisState.isAnalyzing = false;
-        logger.log("general", "Market Analyst stopped.");
+        logger.log("technicals", "Market Analyst Service Stopped");
+    }
+
+    private getAnalystSettings() {
+        // Use user settings but enforce certain defaults for analysis
+        const base = indicatorState.toJSON();
+        return {
+            ...base,
+            // Ensure EMA 200 is included
+            ema: {
+                ...base.ema,
+                ema3: {
+                    ...base.ema.ema3, // Preserve other properties (offset, smoothing, etc.)
+                    length: 200
+                }
+            }
+        };
     }
 
     private async processNext() {
         if (!this.isRunning) return;
 
-        const { capabilities, marketAnalysisInterval, pauseAnalysisOnBlur } = settingsState;
+        // Check visibility/focus (pause if tab hidden to save resources, unless forced)
+        const isHidden = typeof document !== "undefined" && document.hidden;
 
-        if (!capabilities.marketData || marketAnalysisInterval <= 0) {
-            this.timeoutId = setTimeout(() => this.processNext(), 10000);
-            return;
-        }
-
-        // Pause / Slow down if hidden
-        const isHidden = browser && document.hidden;
-        if (pauseAnalysisOnBlur && isHidden) {
-            this.timeoutId = setTimeout(() => this.processNext(), 15000);
-            return;
-        }
-
-        // FIX: Use the full watchlist (up to 12) from settings, not the limited top 4 tiles
-        const favorites = settingsState.favoriteSymbols;
+        const favorites = favoritesState.items;
         if (favorites.length === 0) {
-            this.timeoutId = setTimeout(() => this.processNext(), 5000);
+            this.scheduleNext(5000);
             return;
         }
 
-        // FIX: Always analyze ALL favorites in the list (max 12), ignoring the artificial '6' limit
-        const limit = favorites.length;
-        this.currentSymbolIndex = (this.currentSymbolIndex + 1) % limit;
+        this.currentSymbolIndex = (this.currentSymbolIndex + 1) % favorites.length;
         const symbol = favorites[this.currentSymbolIndex];
 
         try {
@@ -134,12 +96,13 @@ class MarketAnalystService {
             const timeframes = Array.from(new Set([...settingsState.analysisTimeframes, ...requiredTimeframes]));
 
             // Determine kline counts per timeframe
+            // Increased to 500 to safely cover EMA 200 + warm-up period
             const klineCountMap: Record<string, number> = {
-                "5m": 200,
-                "15m": 200,
-                "1h": 200,
-                "4h": 300, // EMA 200 needs 200+ candles
-                "1d": 300
+                "5m": 500,
+                "15m": 500,
+                "1h": 500,
+                "4h": 500,
+                "1d": 500
             };
 
             // PARALLEL: Fetch all timeframes at once
@@ -147,7 +110,7 @@ class MarketAnalystService {
             const startFetch = performance.now();
 
             const klinesPromises = timeframes.map(tf => {
-                const count = klineCountMap[tf] || 100;
+                const count = klineCountMap[tf] || 500;
                 return provider === "bitget"
                     ? apiService.fetchBitgetKlines(symbol, tf, count, undefined, undefined, "normal")
                     : apiService.fetchBitunixKlines(symbol, tf, count, undefined, undefined, "normal");
