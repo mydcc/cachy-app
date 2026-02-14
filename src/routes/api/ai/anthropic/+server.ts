@@ -17,10 +17,22 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import Anthropic from "@anthropic-ai/sdk";
+import { AiRequestSchema } from "../../../../types/ai";
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
-    const { messages, model } = await request.json();
+    const rawBody = await request.json();
+    const parseResult = AiRequestSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      return json(
+        { error: "Invalid request body", details: parseResult.error.format() },
+        { status: 400 }
+      );
+    }
+
+    const { messages, model } = parseResult.data;
     const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
@@ -28,13 +40,18 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     let systemPrompt = "";
-    const anthropicMessages = messages.filter((m: any) => {
+    const anthropicMessages: Anthropic.MessageParam[] = [];
+
+    for (const m of messages) {
       if (m.role === "system") {
         systemPrompt += m.content + "\n";
-        return false;
+      } else {
+        anthropicMessages.push({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        });
       }
-      return true;
-    });
+    }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -69,6 +86,6 @@ export const POST: RequestHandler = async ({ request }) => {
     });
   } catch (e: any) {
     console.error("Anthropic Proxy Error:", e);
-    return json({ error: e.message }, { status: 500 });
+    return json({ error: e.message || "Internal Server Error" }, { status: 500 });
   }
 };
