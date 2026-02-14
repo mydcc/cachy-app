@@ -22,7 +22,7 @@
 
 /**
  * Parses a JSON string while protecting large numbers from precision loss.
- * It uses a regex to wrap numeric values (>= 15 chars) in quotes before parsing.
+ * It uses a smart scanner to wrap numeric values (>= 15 chars) in quotes before parsing.
  *
  * Target: Any key followed by a large integer or high-precision float.
  *
@@ -35,19 +35,73 @@ export function safeJsonParse<T = any>(jsonString: string): T {
     if (typeof jsonString !== 'string') return jsonString;
 
     // Fast Path: Check if protection is even needed.
-    // This simple check gives a ~50% speedup for small/safe messages.
+    // This simple check gives a significant speedup for small/safe messages.
+    // We look for a digit followed by at least 14 other number-like characters.
     if (!/\d[\d.eE+-]{14,}/.test(jsonString)) {
         return JSON.parse(jsonString);
     }
 
-    // Combined Regex: Handles both "key": number and [number] / , number contexts in one pass.
-    // Group 1: Prefix (Key-Value style OR Array/List style)
-    // Group 2: Number
-    // Refined regex to handle escaped quotes in keys: "(?:[^"\\]|\\.)*"
-    const protectedJson = jsonString.replace(
-        /((?:"(?:[^"\\]|\\.)*"\s*:\s*)|(?:[\[,]\s*))(-?\d[\d.eE+-]{14,})(?=\s*[,}\]])/g,
-        '$1"$2"'
-    );
+    let result = '';
+    let lastIndex = 0;
+    const len = jsonString.length;
+    let i = 0;
 
-    return JSON.parse(protectedJson);
+    while (i < len) {
+        const char = jsonString.charCodeAt(i);
+
+        // String detected: skip it
+        if (char === 34) { // "
+            i++;
+            while (i < len) {
+                const c = jsonString.charCodeAt(i);
+                if (c === 34) { // "
+                    i++;
+                    break;
+                } else if (c === 92) { // \ (escape)
+                    i += 2; // Skip the escaped character
+                } else {
+                    i++;
+                }
+            }
+            continue;
+        }
+
+        // Number detected: - (45) or 0-9 (48-57)
+        if (char === 45 || (char >= 48 && char <= 57)) {
+            const start = i;
+            i++;
+            // Scan correctly formatted JSON number characters: 0-9, ., e, E, +, -
+            // 0-9 (48-57), . (46), e (101), E (69), + (43), - (45)
+            while (i < len) {
+                const c = jsonString.charCodeAt(i);
+                if ((c >= 48 && c <= 57) || c === 46 || c === 101 || c === 69 || c === 43 || c === 45) {
+                    i++;
+                } else {
+                    break;
+                }
+            }
+
+            // Check length of the number sequence
+            if (i - start >= 15) {
+                // Determine if it's truly a number context (simplistic check, but valid JSON implies it)
+                // We append the string up to the number, then the quoted number
+                result += jsonString.slice(lastIndex, start) + '"' + jsonString.slice(start, i) + '"';
+                lastIndex = i;
+            }
+            continue;
+        }
+
+        // Advance for other characters
+        i++;
+    }
+
+    // Append remaining part
+    if (lastIndex === 0) {
+        // No replacements made, fallback to original string (should be caught by Fast Path, but just in case)
+        return JSON.parse(jsonString);
+    }
+
+    result += jsonString.slice(lastIndex);
+
+    return JSON.parse(result);
 }
