@@ -9,21 +9,22 @@ import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { logger } from "./logger";
 import { marketState } from "../stores/market.svelte";
-import { indicatorState } from "../stores/indicator.svelte";
 import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
-const safeDiv = (a: Decimal, b: Decimal) => b.isZero() ? new Decimal(0) : a.div(b);
-const safeSub = (a: Decimal, b: Decimal) => a.minus(b);
 import { favoritesState } from "../stores/favorites.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
 import { toastService } from "./toastService.svelte";
 import { Decimal } from "decimal.js";
-
 
 const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
 const REQUIRED_INDICATORS = {
     ema: true, rsi: true, macd: true, atr: true, bb: true, pivots: true,
     stochRsi: true, mfi: true, ichimoku: true, vwap: true, adx: true
 };
+
+// Local Helpers for Safety
+const safeDiv = (a: Decimal, b: Decimal) => b.isZero() ? new Decimal(0) : a.div(b);
+const safeSub = (a: Decimal, b: Decimal) => a.minus(b);
 
 class MarketAnalystService {
     private timeoutId: any = null;
@@ -51,7 +52,10 @@ class MarketAnalystService {
             // Ensure EMA 200 is included
             ema: {
                 ...base.ema,
-                ema3: { length: 200 }
+                ema3: {
+                    ...base.ema.ema3, // Preserve other properties (offset, smoothing, etc.)
+                    length: 200
+                }
             }
         };
     }
