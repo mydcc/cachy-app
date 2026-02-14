@@ -1,42 +1,59 @@
-# Systematic Maintenance & Hardening Analysis Report
+# Status & Risk Report (Forensic Audit)
 
-## Summary
-This report analyzes the current state of the `cachy-app` codebase, focusing on data integrity, resource management, UI/UX, and security.
+## 🔴 CRITICAL (Risk of Crash / Leak / Data Loss)
 
-### Prioritized Findings
+1.  **Memory Leak in `technicalsWorker.ts` (Worker State):**
+    -   The `stateMap` grows indefinitely with every new symbol/timeframe initialized (`INITIALIZE` message). There is no mechanism to remove entries (`DELETE` or cleanup message). Over days of runtime, this will crash the worker (OOM).
+    -   **Fix:** Implement a `CLEANUP` message type and handle LRU eviction in the worker.
 
-#### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+2.  **Performance/GC Thrashing in `technicalsWorker.ts` (Calculation Loop):**
+    -   The `klineBuffer` reallocation logic is flawed: `if (klineBuffer.length !== len)`. In live trading, `len` grows by 1 every candle update, causing a complete reallocation of the buffer on *every single update*.
+    -   Inside the loop, `k.open = new Decimal(...)` allocates 5 new `Decimal` objects per candle per calculation. This defeats the purpose of the reusable `klineBuffer` (which only reuses the container object, not the values).
+    -   **Fix:** Use `klineBuffer.length < len` to only grow when needed. Use `Decimal.clone()` or update internal values if possible (hard with immutable Decimal), or accept object churn but fix the array allocation.
 
-1.  **Missing i18n Keys in Error Handling (`src/services/tradeService.ts`)**:
-    *   **Finding:** The keys `trade.closeAbortedSafety` and `trade.apiError` are thrown as errors but do not exist in `src/locales/locales/en.json`.
-    *   **Impact:** Users will see raw key strings instead of localized error messages during critical failures (e.g., closing a position fails). This can lead to confusion and panic during high-stress trading scenarios.
-    *   **Recommendation:** Add these keys to `en.json` immediately.
+3.  **Resource Leak in `technicalsCalculator.ts` (BufferPool):**
+    -   In `calculateIndicatorsFromArrays`, buffers are acquired from `BufferPool` but only released at the very end. If any indicator calculation throws an exception (e.g., `JSIndicators.stoch`), the `cleanupBuffers` are never released, permanently leaking memory from the pool.
+    -   **Fix:** Wrap the entire calculation block in a `try...finally` to ensure `pool.release` is called.
 
-2.  **Potential Data Gap in `MarketWatcher` (`src/services/marketWatcher.ts`)**:
-    *   **Finding:** The `fillGaps` method has a hard limit of `MAX_GAP_FILL = 5000`. If a gap exceeds this (e.g., prolonged downtime), the loop terminates, and the next candle is appended without filling the remaining gap. This creates a discontinuous data series.
-    *   **Impact:** Technical indicators relying on continuous time series may produce incorrect signals.
-    *   **Recommendation:** Add a warning log when this limit is hit to alert developers/operators. Consider implementing a backfill trigger or smarter gap handling for large gaps.
+4.  **Inefficient Aggregation in `apiService.ts` (Bitunix Klines):**
+    -   In `fetchBitunixKlines`, the synthetic aggregation loop converts `high` (Decimal) to `string` via `high.toString()`. The consumer (`marketWatcher`) then converts it back to `Decimal`. This double conversion is unnecessary overhead on a hot path.
+    -   **Fix:** Pass `Decimal` directly or use `toString()` only if strict JSON serialization is required (but internal passing should be efficient).
 
-#### 🟡 WARNING (Performance issue, UX error, missing i18n)
+## 🟡 WARNING (Logic / Validation / UX)
 
-1.  **Confusing Logic in WebSocket "Fast Path" (`src/services/bitunixWs.ts`)**:
-    *   **Finding:** Comments in the "Fast Path" section explicitly state it bypasses Zod validation for performance. However, the implementation *uses* `StrictPriceDataSchema.safeParse` (Zod) inside the block. This contradicts the comment and potentially misleads maintainers about the performance characteristics.
-    *   **Impact:** Maintenance confusion. If the intent was truly to bypass Zod for speed, the implementation fails. If safety is paramount (which it is), the comment is wrong.
-    *   **Recommendation:** Update comments to reflect reality: "Fast Path prioritizes specific channels but still validates structure using strict schemas."
+1.  **Unsafe Type Casting in `tradeService.ts`:**
+    -   `TpSlOrder` interface uses `[key: string]: any`.
+    -   `fetchTpSlOrders` casts API response `as TpSlOrder[]` without validation. If the API schema changes, the app will crash at runtime when accessing missing properties.
+    -   **Fix:** Use `zod` schemas for `TpSlOrder` validation.
 
-2.  **Numeric Precision warnings in Logs**:
-    *   **Finding:** `bitunixWs.ts` has logic to warn about numeric precision loss if values are numbers instead of strings. While good, if the API starts sending numbers (e.g. for `lastPrice`), this could flood logs if not throttled correctly (it throttles every 60s per symbol, which is reasonable).
-    *   **Recommendation:** Ensure this logging is monitored in production.
+2.  **Object Spread in Hot Path (`market.svelte.ts`):**
+    -   `updateSymbol` uses `this.pendingUpdates.set(symbol, { ...existing, ...partial });`. This creates a new object for every single price update. In high-frequency markets, this generates significant garbage.
+    -   **Fix:** Mutate the existing object if it exists.
 
-#### 🔵 REFACTOR (Code smell, technical debt)
+3.  **Swallowed Errors in `api/orders/+server.ts` (Bitget):**
+    -   `fetchBitgetHistoryOrders` returns `[]` on failure. Users will see an empty history instead of an error message ("Failed to load history").
+    -   **Fix:** Throw/propagate errors so the UI can show a retry button or error state.
 
-1.  **Redundant Error Handling Keys**:
-    *   **Finding:** `tradeService.ts` defines `TRADE_ERRORS` constants but also uses string literals in some `throw new Error(...)` calls.
-    *   **Recommendation:** Unify error throwing to use the constants consistently.
+4.  **Manual Validation in `api/account/+server.ts`:**
+    -   The endpoint manually checks `if (!body || ...)` instead of using Zod. This is inconsistent with `orders/+server.ts` and error-prone.
+    -   **Fix:** Implement `AccountRequestSchema` with Zod.
 
-2.  **Market Manager Object Growth**:
-    *   **Finding:** `MarketManager` stores data in a plain object `data`. While `enforceCacheLimit` exists, rapid symbol switching could theoretically bloat memory before cleanup runs.
-    *   **Recommendation:** Continue monitoring memory usage. The current LRU implementation is adequate for now.
+5.  **Hardcoded Strings (I18n):**
+    -   `src/routes/+page.svelte`: "Trigger Quantum Pulse", "GitHub", "Deepwiki", "Favorites" (fallback).
+    -   **Fix:** Extract to `en.json` / `de.json`.
 
-## Conclusion
-The codebase is generally robust with good use of `Decimal.js` for financial calculations and defensive programming patterns. The critical issues identified are primarily related to missing localization keys for error states, which is a low-effort, high-impact fix.
+6.  **Leftover Debug Code in `bitunixWs.ts`:**
+    -   `subscribe` method contains `if (import.meta.env.DEV && channel.includes("20m"))`. This looks like temporary debug code that should be removed.
+
+## 🔵 REFACTOR (Technical Debt)
+
+1.  **Mixed Logic in API Routes:**
+    -   `src/routes/api/orders/+server.ts` contains massive switch-case logic for Bitunix vs Bitget.
+    -   **Fix:** Extract `BitunixService` and `BitgetService` (server-side) to handle exchange-specific logic, leaving the controller clean.
+
+2.  **Inefficient Parsing in `technicalsCalculator.ts`:**
+    -   `parseFloat(k.high.toString())` is used inside loops. If `k.high` is Decimal, `.toNumber()` is much faster.
+    -   **Fix:** Use `.toNumber()` for Decimals.
+
+3.  **`klineBuffer` usage in `technicalsWorker.ts`:**
+    -   The worker tries to be stateless (`CALCULATE`) but also supports stateful (`UPDATE`). The mixing of these patterns with a global `klineBuffer` (which is only used for `CALCULATE`) is confusing and prone to race conditions if the worker handles concurrent messages (though JS is single-threaded, the logic is brittle).
