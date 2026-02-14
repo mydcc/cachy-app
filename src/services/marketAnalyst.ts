@@ -96,13 +96,13 @@ class MarketAnalystService {
             const timeframes = Array.from(new Set([...settingsState.analysisTimeframes, ...requiredTimeframes]));
 
             // Determine kline counts per timeframe
-            // Increased to 500 to safely cover EMA 200 + warm-up period
+            // Maximized to 1000 to ensure sufficient EMA warm-up (industry standard)
             const klineCountMap: Record<string, number> = {
-                "5m": 500,
-                "15m": 500,
-                "1h": 500,
-                "4h": 500,
-                "1d": 500
+                "5m": 1000,
+                "15m": 1000,
+                "1h": 1000,
+                "4h": 1000,
+                "1d": 1000
             };
 
             // PARALLEL: Fetch all timeframes at once
@@ -110,7 +110,7 @@ class MarketAnalystService {
             const startFetch = performance.now();
 
             const klinesPromises = timeframes.map(tf => {
-                const count = klineCountMap[tf] || 500;
+                const count = klineCountMap[tf] || 1000;
                 return provider === "bitget"
                     ? apiService.fetchBitgetKlines(symbol, tf, count, undefined, undefined, "normal")
                     : apiService.fetchBitunixKlines(symbol, tf, count, undefined, undefined, "normal");
@@ -123,7 +123,13 @@ class MarketAnalystService {
             // Build a map of timeframe -> klines
             const klinesMap: Record<string, typeof klinesResults[0]> = {};
             timeframes.forEach((tf, i) => {
-                klinesMap[tf] = klinesResults[i];
+                const klines = klinesResults[i];
+                klinesMap[tf] = klines;
+
+                // Debug Logging for Data Depth
+                if (import.meta.env.DEV) {
+                    logger.debug("technicals", `Analyst: ${symbol}:${tf} received ${klines?.length || 0} candles.`);
+                }
             });
 
             // Validate minimum data
@@ -156,7 +162,15 @@ class MarketAnalystService {
             // Build a map of timeframe -> technicals
             const techMap: Record<string, typeof techResults[0]> = {};
             timeframes.forEach((tf, i) => {
-                techMap[tf] = techResults[i];
+                const tech = techResults[i];
+                techMap[tf] = tech;
+
+                // Debug Logging for EMA 200
+                if (import.meta.env.DEV && tech) {
+                    const ema200 = tech.movingAverages.find((m: any) => m.name === "EMA" && m.params === "200");
+                    const val = ema200?.value;
+                    logger.debug("technicals", `Analyst: ${symbol}:${tf} EMA 200 = ${val}`);
+                }
             });
 
             // Extract metrics from available data
@@ -171,7 +185,9 @@ class MarketAnalystService {
                 const klines = primaryKlines;
                 const lastKline = klines[klines.length - 1];
                 const openKline = klines.length >= 24 ? klines[klines.length - 24] : klines[0];
-                const ema200_4h = tech4h?.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
+
+                const ema200_4h = tech4h?.movingAverages.find(m => m.name === "EMA" && m.params === "200")?.value || 0;
+
                 const rsiObj = techPrimary.oscillators.find((o) => o.name === "RSI");
 
                 const metrics = calculateAnalysisMetrics(
