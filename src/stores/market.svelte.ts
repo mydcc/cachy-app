@@ -20,7 +20,6 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import { BufferPool } from "../utils/bufferPool";
-import { logger } from "../services/logger";
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
 
 export interface MarketData {
@@ -475,22 +474,6 @@ export class MarketManager {
 
     // Get existing history or init empty
     let history = current.klines[timeframe] || [];
-    if (source === 'rest') {
-      logger.debug("market", `REST Update ${symbol}:${timeframe}`, {
-        new: newKlines.length,
-        prevHistory: history.length,
-        range: newKlines.length > 0 ? `${newKlines[0].time} - ${newKlines[newKlines.length - 1].time}` : "empty"
-      });
-    } else if (source === 'ws') {
-      const hTime = history.length > 0 ? history[history.length - 1].time : "N/A";
-      const nTime = newKlines.length > 0 ? newKlines[0].time : "N/A";
-      logger.debug("market", `WS Update ${symbol}:${timeframe}`, {
-        hist: history.length,
-        last: hTime,
-        new: newKlines.length,
-        desc: nTime
-      });
-    }
     if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
     // Get existing buffers
@@ -730,13 +713,6 @@ export class MarketManager {
         // Assignment new merged array
         current.klines[timeframe] = history;
         
-        logger.debug("market", `Merge ${symbol}:${timeframe}`, {
-          merged: newKlines.length,
-          into: hLen,
-          result: history.length,
-          limit: effectiveLimit
-        });
-
         // Full rebuild needed (now on optimized size)
         if (buffers) releaseBuffers(buffers);
         buffers = rebuildBuffers(history);
