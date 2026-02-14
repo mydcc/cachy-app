@@ -20,6 +20,10 @@ import type { RequestHandler } from "./$types";
 import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 
+interface ApiError extends Error {
+  status?: number;
+}
+
 export const GET: RequestHandler = async ({ url }) => {
   const symbol = url.searchParams.get("symbol");
   const interval = url.searchParams.get("interval") || "1d";
@@ -45,10 +49,24 @@ export const GET: RequestHandler = async ({ url }) => {
       klines = await fetchBitunixKlines(symbol, interval, limit, start, end);
     }
     return json(klines);
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(`Error fetching klines from ${provider}:`, e);
-    const status = e.status || 500;
-    return json({ error: e.message || "Failed to fetch klines" }, { status });
+
+    let status = 500;
+    let message = "Failed to fetch klines";
+
+    if (e instanceof Error) {
+      message = e.message;
+      const apiError = e as ApiError;
+      if (typeof apiError.status === 'number') {
+        status = apiError.status;
+      }
+    } else if (typeof e === 'object' && e !== null && 'message' in e) {
+      // Fallback for non-Error objects that might have a message
+      message = String((e as any).message);
+    }
+
+    return json({ error: message }, { status });
   }
 };
 
@@ -109,15 +127,15 @@ async function fetchBitunixKlines(
           typeof data.msg === "string" &&
           data.msg.toLowerCase().includes("system error")))
     ) {
-      const error = new Error("Symbol not found");
-      (error as any).status = 404;
+      const error = new Error("Symbol not found") as ApiError;
+      error.status = 404;
       throw error;
     }
 
     const safeText = text.slice(0, 100);
     console.error(`Bitunix API error ${response.status}: ${safeText}...`);
-    const error = new Error(`Bitunix API error: ${response.status}`);
-    (error as any).status = response.status;
+    const error = new Error(`Bitunix API error: ${response.status}`) as ApiError;
+    error.status = response.status;
     throw error;
   }
 
@@ -130,8 +148,8 @@ async function fetchBitunixKlines(
         data.code === "2" ||
         (data.msg && data.msg.toLowerCase().includes("system error"))
       ) {
-        const error = new Error("Symbol not found");
-        (error as any).status = 404;
+        const error = new Error("Symbol not found") as ApiError;
+        error.status = 404;
         throw error;
       }
       throw new Error(`Bitunix API error: ${data.msg}`);
