@@ -394,7 +394,9 @@ class MarketWatcher {
           const klines = await apiService.fetchBitunixKlines(symbol, tf, limit, undefined, Date.now());
 
           if (klines && klines.length > 0) {
-              marketState.updateSymbolKlines(symbol, tf, klines, "rest");
+              const intervalMs = safeTfToMs(tf);
+              const filledKlines = this.fillGaps(klines, intervalMs);
+              marketState.updateSymbolKlines(symbol, tf, filledKlines, "rest");
               shouldRefresh = true;
           }
           return true;
@@ -439,9 +441,11 @@ class MarketWatcher {
         // 3. Execute Fetch Logic
         // INITIAL FETCH: Use 200 to align with Bitunix actual behavior and prevent logic issues
         const initialLimit = 200; 
-        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, initialLimit, undefined, Date.now());
+        const intervalMs = safeTfToMs(tf);
+        let klines1 = await apiService.fetchBitunixKlines(symbol, tf, initialLimit, undefined, Date.now());
 
         if (klines1 && klines1.length > 0) {
+            klines1 = this.fillGaps(klines1, intervalMs);
             marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
             storageService.saveKlines(symbol, tf, klines1); // Async save
 
@@ -482,6 +486,9 @@ class MarketWatcher {
                         try {
                             // Backfill should use startTime=1 to ensure data is returned for the requested range
                             batch = await apiService.fetchBitunixKlines(symbol, tf, batchSize, 1, batchEndTime);
+                            if (batch && batch.length > 0) {
+                                batch = this.fillGaps(batch, intervalMs);
+                            }
                             break; 
                         } catch (e) {
                             retryCount++;
@@ -621,7 +628,9 @@ class MarketWatcher {
         const newKlines = await apiService.fetchBitunixKlines(symbol, tf, 200, undefined, oldestTime - 1);
 
         if (newKlines && newKlines.length > 0) {
-            marketState.updateSymbolKlines(symbol, tf, newKlines, "rest", false);
+            const intervalMs = safeTfToMs(tf);
+            const filledKlines = this.fillGaps(newKlines, intervalMs);
+            marketState.updateSymbolKlines(symbol, tf, filledKlines, "rest", false);
             return true;
         }
         return false;
@@ -680,11 +689,13 @@ class MarketWatcher {
                 });
             } else if (channel.startsWith("kline_")) {
                 const tf = channel.replace("kline_", "");
-                const klines = await (provider === "bitget"
+                const intervalMs = safeTfToMs(tf);
+                let klines = await (provider === "bitget"
                   ? apiService.fetchBitgetKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs)
                   : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
 
                 if (klines && klines.length > 0) {
+                  klines = this.fillGaps(klines, intervalMs);
                   marketState.updateSymbolKlines(symbol, tf, klines, "rest");
                   storageService.saveKlines(symbol, tf, klines);
                 }

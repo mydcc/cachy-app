@@ -896,6 +896,8 @@ class BitunixWebSocketService {
 
                     // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
                     // Avoiding full object allocation/clone for high frequency ticker
+                    // [HARDENING NOTE]: This mutation is intentional for performance. 'data' is a fresh object from JSON.parse (via safeJsonParse),
+                    // so we are not mutating shared state.
                     if (typeof data.lastPrice === 'number') data.lastPrice = safeString(data.lastPrice, 'lastPrice');
                     if (typeof data.high === 'number') data.high = safeString(data.high, 'high');
                     if (typeof data.low === 'number') data.low = safeString(data.low, 'low');

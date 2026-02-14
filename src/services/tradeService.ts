@@ -45,7 +45,6 @@ export interface TpSlOrder {
     createTime?: number;
     id?: string;
     planId?: string;
-    [key: string]: any;
 }
 
 export class BitunixApiError extends Error {
@@ -523,7 +522,7 @@ class TradeService {
     }
     }
 
-    public async cancelTpSlOrder(order: any) {
+    public async cancelTpSlOrder(order: TpSlOrder) {
         return this.signedRequest("POST", "/api/tpsl", {
             action: "cancel",
             params: {

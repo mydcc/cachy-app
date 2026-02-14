@@ -33,6 +33,7 @@
   import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
   import { Decimal } from "decimal.js";
+  import { calculatePriceStep } from "../../config/uiConstants";
 
   const dispatch = createEventDispatcher();
 
@@ -335,15 +336,7 @@
   let priceStep = $derived.by(() => {
     if (!entryPrice) return 0.01;
     const price = parseFloat(entryPrice);
-    if (isNaN(price) || price === 0) return 0.01;
-
-    // Dynamic precision for low-sat assets vs high-value assets
-    if (price > 1000) return 0.5;
-    if (price > 100) return 0.1;
-    if (price > 1) return 0.01;
-    if (price > 0.01) return 0.0001;
-    if (price > 0.0001) return 0.000001;
-    return 0.00000001;
+    return calculatePriceStep(price);
   });
 
   // Copy to clipboard with smiley feedback
@@ -807,10 +800,10 @@
     use:portal
     role="status"
     aria-live="polite"
-    class="smiley-feedback"
+    class="smiley-feedback text-[var(--success-color)]"
     style="left: {smileyX + 10}px; top: {smileyY - 10}px;"
   >
-    🙂
+    {@html icons.check}
   </div>
 {/if}
 

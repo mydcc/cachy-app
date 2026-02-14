@@ -1,42 +1,51 @@
-# Systematic Maintenance & Hardening Analysis Report
+# Status & Risiko-Bericht: cachy-app Hardening
 
-## Summary
-This report analyzes the current state of the `cachy-app` codebase, focusing on data integrity, resource management, UI/UX, and security.
+## Zusammenfassung
+Die Codebasis zeigt eine solide Architektur ("Institutional Grade" Ambitionen) mit fortschrittlichen Mustern wie Buffer-Pooling, SOA (Structure of Arrays) für Performance und strikter Typisierung via Zod. Dennoch wurde eine **kritische Lücke** in der Datenintegrität gefunden, die die Zuverlässigkeit von Trading-Signalen gefährdet.
 
-### Prioritized Findings
+## 🔴 CRITICAL (Sofortiger Handlungsbedarf)
 
-#### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+### 1. Fehlende "Gap Filling" Logik in Marktdaten
+*   **Ort:** `src/services/marketWatcher.ts`
+*   **Problem:** Die Methode `fillGaps` ist implementiert, wird aber **nirgendwo aufgerufen**.
+*   **Risiko:** Bei Verbindungsabbrüchen (WebSocket Reconnect) oder lückenhaften REST-Daten entstehen "Löcher" in der `Kline`-Historie.
+*   **Auswirkung:** Technische Indikatoren (EMA, RSI, MACD) berechnen falsche Werte. Ein einziger fehlender Candle kann den EMA für hunderte Folge-Perioden verfälschen. Dies führt zu **falschen Trading-Signalen** und potenziellem Geldverlust.
+*   **Beweis:** `grep` zeigt keine Aufrufe der Methode außerhalb ihrer Definition.
 
-1.  **Missing i18n Keys in Error Handling (`src/services/tradeService.ts`)**:
-    *   **Finding:** The keys `trade.closeAbortedSafety` and `trade.apiError` are thrown as errors but do not exist in `src/locales/locales/en.json`.
-    *   **Impact:** Users will see raw key strings instead of localized error messages during critical failures (e.g., closing a position fails). This can lead to confusion and panic during high-stress trading scenarios.
-    *   **Recommendation:** Add these keys to `en.json` immediately.
+### 2. Typ-Unsicherheit in TradeService
+*   **Ort:** `src/services/tradeService.ts`
+*   **Problem:** Das Interface `TpSlOrder` nutzt `[key: string]: any`.
+*   **Risiko:** Refactorings oder API-Änderungen werden vom TypeScript-Compiler nicht abgefangen. Laufzeitfehler beim Zugriff auf nicht vorhandene Properties möglich.
 
-2.  **Potential Data Gap in `MarketWatcher` (`src/services/marketWatcher.ts`)**:
-    *   **Finding:** The `fillGaps` method has a hard limit of `MAX_GAP_FILL = 5000`. If a gap exceeds this (e.g., prolonged downtime), the loop terminates, and the next candle is appended without filling the remaining gap. This creates a discontinuous data series.
-    *   **Impact:** Technical indicators relying on continuous time series may produce incorrect signals.
-    *   **Recommendation:** Add a warning log when this limit is hit to alert developers/operators. Consider implementing a backfill trigger or smarter gap handling for large gaps.
+## 🟡 WARNING (Hohe Priorität)
 
-#### 🟡 WARNING (Performance issue, UX error, missing i18n)
+### 1. Implizite "Empty String" Handhabung in JSON-Parsing
+*   **Ort:** `src/utils/safeJson.ts`
+*   **Problem:** Gibt bei leerem Input einen leeren String zurück, statt `null` oder Fehler.
+*   **Risiko:** Verlässt sich darauf, dass nachgelagerte Validierer (Zod) dies abfangen. Explizites `null` wäre robuster.
 
-1.  **Confusing Logic in WebSocket "Fast Path" (`src/services/bitunixWs.ts`)**:
-    *   **Finding:** Comments in the "Fast Path" section explicitly state it bypasses Zod validation for performance. However, the implementation *uses* `StrictPriceDataSchema.safeParse` (Zod) inside the block. This contradicts the comment and potentially misleads maintainers about the performance characteristics.
-    *   **Impact:** Maintenance confusion. If the intent was truly to bypass Zod for speed, the implementation fails. If safety is paramount (which it is), the comment is wrong.
-    *   **Recommendation:** Update comments to reflect reality: "Fast Path prioritizes specific channels but still validates structure using strict schemas."
+### 2. Mutation von Objekten im "Fast Path"
+*   **Ort:** `src/services/bitunixWs.ts`
+*   **Problem:** Der WebSocket-Handler mutiert `data.lastPrice` etc. in-place (`if (typeof val === 'number') ...`).
+*   **Risiko:** Wenn dieses Datenobjekt an anderer Stelle referenziert wird (z.B. in einem Cache, der immutable sein sollte), führt dies zu Seiteneffekten. (Aktuell scheint es sicher, da `JSON.parse` neue Objekte erzeugt, aber es ist ein "Code Smell" für Reactive State).
 
-2.  **Numeric Precision warnings in Logs**:
-    *   **Finding:** `bitunixWs.ts` has logic to warn about numeric precision loss if values are numbers instead of strings. While good, if the API starts sending numbers (e.g. for `lastPrice`), this could flood logs if not throttled correctly (it throttles every 60s per symbol, which is reasonable).
-    *   **Recommendation:** Ensure this logging is monitored in production.
+## 🔵 REFACTOR (Technische Schuld)
 
-#### 🔵 REFACTOR (Code smell, technical debt)
+### 1. Hardcoded Strings & Magic Numbers in UI
+*   **Ort:** `src/components/inputs/TradeSetupInputs.svelte`
+*   **Findings:**
+    *   Hardcodiertes "🙂" Smiley.
+    *   "Magic Numbers" für die Berechnung der Input-Steps (`if (price > 1000) return 0.5`). Dies sollte in eine zentrale Config oder Utility ausgelagert werden.
 
-1.  **Redundant Error Handling Keys**:
-    *   **Finding:** `tradeService.ts` defines `TRADE_ERRORS` constants but also uses string literals in some `throw new Error(...)` calls.
-    *   **Recommendation:** Unify error throwing to use the constants consistently.
+### 2. Dead Code
+*   **Ort:** `src/services/marketWatcher.ts`
+*   **Findings:** Neben dem kritischen `fillGaps` gibt es ungenutzte Importe oder Methoden-Fragmente, die bereinigt werden sollten.
 
-2.  **Market Manager Object Growth**:
-    *   **Finding:** `MarketManager` stores data in a plain object `data`. While `enforceCacheLimit` exists, rapid symbol switching could theoretically bloat memory before cleanup runs.
-    *   **Recommendation:** Continue monitoring memory usage. The current LRU implementation is adequate for now.
+---
 
-## Conclusion
-The codebase is generally robust with good use of `Decimal.js` for financial calculations and defensive programming patterns. The critical issues identified are primarily related to missing localization keys for error states, which is a low-effort, high-impact fix.
+## Empfohlener Aktionsplan (Vorschau)
+
+1.  **Reproduktion:** Testfall erstellen, der eine Lücke in den Klines simuliert und beweist, dass diese aktuell nicht gefüllt wird.
+2.  **Fix:** Integration von `fillGaps` in den `ensureHistory` und `pollSymbolChannel` Flow.
+3.  **Hardening:** `TradeService` Typen strikter gestalten.
+4.  **Cleanup:** I18n Keys ergänzen und Dead Code entfernen.
