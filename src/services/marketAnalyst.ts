@@ -49,6 +49,10 @@ class MarketAnalystService {
         const base = indicatorState.toJSON();
         return {
             ...base,
+            // FORCE sufficient history limit for EMA 200 convergence
+            // even if user settings has a lower limit (default 750).
+            historyLimit: 1000,
+
             // Ensure EMA 200 is included
             ema: {
                 ...base.ema,
