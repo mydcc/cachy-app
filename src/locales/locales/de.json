@@ -1439,6 +1439,7 @@
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
     "ok": "OK",
     "close": "Schließen",
     "remove": "×",
