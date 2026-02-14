@@ -163,7 +163,8 @@ export function calculatePerformanceStats(
       // Win Stats
       if (isWin) {
           wonCount++;
-          const profit = new Decimal(trade.totalNetProfit || 0);
+          // Optimized: Reuse pnl instead of creating new Decimal
+          const profit = pnl;
           totalProfit = totalProfit.plus(profit);
           if (profit.gt(maxProfit)) maxProfit = profit;
       }
@@ -171,7 +172,10 @@ export function calculatePerformanceStats(
       // Loss Stats
       if (isLoss) {
           lostCount++;
-          const loss = new Decimal(trade.riskAmount || 0);
+          // Optimized: Check if riskAmount is Decimal
+          const loss = (trade.riskAmount instanceof Decimal)
+              ? trade.riskAmount
+              : new Decimal(trade.riskAmount || 0);
           totalLoss = totalLoss.plus(loss);
           if (loss.gt(maxLoss)) maxLoss = loss;
       }
@@ -189,13 +193,20 @@ export function calculatePerformanceStats(
 
       // Avg RR
       if (trade.totalRR) {
-          totalRRSum = totalRRSum.plus(new Decimal(trade.totalRR));
+          const rr = (trade.totalRR instanceof Decimal)
+              ? trade.totalRR
+              : new Decimal(trade.totalRR);
+          totalRRSum = totalRRSum.plus(rr);
       }
 
       // R Multiple
-      if (trade.riskAmount && new Decimal(trade.riskAmount).gt(0)) {
+      const riskVal = (trade.riskAmount instanceof Decimal)
+          ? trade.riskAmount
+          : (trade.riskAmount ? new Decimal(trade.riskAmount) : null);
+
+      if (riskVal && riskVal.gt(0)) {
           const rMultiple = isWin
-            ? new Decimal(trade.totalNetProfit || 0).dividedBy(new Decimal(trade.riskAmount))
+            ? pnl.div(riskVal)
             : new Decimal(-1);
 
           totalRMultiples = totalRMultiples.plus(rMultiple);
