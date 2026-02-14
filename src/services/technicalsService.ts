@@ -162,10 +162,13 @@ const settingsCache = new WeakMap<object, string>();
 const indicatorsCache = new WeakMap<object, string>();
 
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any, enabledIndicators?: any): string {
-  let sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : null;
+  let sPart = settings?._cachedJson;
   if (!sPart) {
-    sPart = JSON.stringify(settings);
-    if (settings && typeof settings === 'object') settingsCache.set(settings, sPart);
+    sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : null;
+    if (!sPart) {
+      sPart = JSON.stringify(settings);
+      if (settings && typeof settings === 'object') settingsCache.set(settings, sPart);
+    }
   }
 
   let iPart = (enabledIndicators && typeof enabledIndicators === 'object') ? indicatorsCache.get(enabledIndicators) : null;

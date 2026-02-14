@@ -137,4 +137,5 @@ export interface IndicatorSettings {
     stdDev: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
   };
+  _cachedJson?: string;
 }
