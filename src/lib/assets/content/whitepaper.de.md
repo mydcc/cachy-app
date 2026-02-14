@@ -1,8 +1,8 @@
 # Cachy Technisches Whitepaper
 
-**Version:** 0.94.2
-**Datum:** Januar 2026
-**Letzte Aktualisierung:** 14. Januar 2026
+**Version:** 0.94.3
+**Datum:** Februar 2026
+**Letzte Aktualisierung:** 14. Februar 2026
 
 ---
 
@@ -75,27 +75,27 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Framework** | **SvelteKit**           | Bietet SSR/CSR-Hybrid, dateibasiertes Routing und überlegene Leistung im Vergleich zu React/Next.js aufgrund des fehlenden Virtual DOM.                      |
 | **Sprache**   | **TypeScript**          | Strenge Typisierung ist für Finanzanwendungen nicht verhandelbar, um Gleitkommafehler und \`undefined\`-Zustände zu vermeiden.                               |
 | **Styling**   | **TailwindCSS**         | Utility-First CSS ermöglicht schnelle UI-Iteration und konsistentes Theming (Dunkel/Hell/VIP-Modi).                                                          |
-| **Zustand**   | **Svelte Stores**       | Natives, leichtgewichtiges Zustandsmanagement, das gut für Echtzeit-Frequenzdaten skaliert.                                                                  |
+| **Zustand**   | **Svelte 5 Runes**      | Universelle Reaktivität (`$state`, `$derived`) ermöglicht feingranulare Updates ohne Boilerplate.                                                            |
 | **Mathe**     | **Decimal.js**          | IEEE 754 Gleitkomma-Arithmetik (Standard-JS-Zahlen) ist für Finanzen unsicher (z. B. \`0.1 + 0.2 !== 0.3\`). Decimal.js gewährleistet beliebige Genauigkeit. |
 | **Charts**    | **Chart.js**            | Canvas-basiertes Rendering für hochperformante Visualisierungen (Equity-Kurven, Streudiagramme), die Tausende von Datenpunkten verarbeiten können.           |
 | **UI/UX**     | **VisualBar Component** | Proprietäre Svelte-Komponente für grafische Risk/Reward-Visualisierung im Calculator. Verwendet CSS-basierte Position Calculations für Echtzeit-Updates.     |
 | **Analyse**   | **TechnicalIndicators** | Modulare Bibliothek zur clientseitigen Berechnung komplexer Indikatoren (RSI, MACD, ADX).                                                                    |
 | **Testing**   | **Vitest**              | Blitzschnelles Unit-Testing-Framework, das die Konfiguration mit Vite teilt.                                                                                 |
 
-### Client-seitiges Zustandsmanagement (Das Store-Muster)
+### Client-seitiges Zustandsmanagement (Universelle Reaktivität)
 
-Cachy verzichtet auf komplexen Redux/Context-Boilerplate zugunsten von Sveltes reaktiven Stores (\`writable\`, \`derived\`). Der Zustand ist in domänenspezifische Module in \`src/stores/\` unterteilt:
+Cachy nutzt **Svelte 5 Runes** für das Zustandsmanagement und ersetzt Legacy-Stores durch `.svelte.js`-Module, die universelle Reaktivität bieten. Dies stellt sicher, dass die Zustandslogik portabel und typsicher ist.
 
-1. **\`accountStore.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
+1. **\`AccountState.svelte.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
    - _Verfolgt_: Offene Positionen, Aktive Orders, Wallet-Guthaben.
-   - _Update-Mechanismus_: Empfängt atomare Updates von WebSockets (\`updatePositionFromWs\`).
-2. **\`marketStore.ts\`**: Hochfrequenz-Marktdaten.
+   - _Implementierung_: Nutzt `$state` für veränderliche Daten und `$derived` für Echtzeit-Margin-Berechnungen.
+2. **\`MarketState.svelte.ts\`**: Hochfrequenz-Marktdaten.
    - _Verfolgt_: Preise, Finanzierungsraten, Orderbuch-Tiefe.
    - _Optimierung_: Verwendet eine Dictionary-Map \`Record<string, MarketData>\` für O(1) Zugriffskomplexität bei Preisaktualisierungen.
-3. **\`tradeStore.ts\`**: Das "Reißbrett".
+3. **\`TradeState.svelte.ts\`**: Das "Reißbrett".
    - _Verfolgt_: Benutzereingaben für einen _potenziellen_ Trade (Einstieg, SL, TP) vor der Ausführung.
    - _Persistenz_: Synchronisiert automatisch mit \`localStorage\`, sodass Benutzer ihre Arbeit beim Neuladen nicht verlieren.
-4. **\`journalStore.ts\`**: Die Historische Aufzeichnung.
+4. **\`JournalState.svelte.ts\`**: Die Historische Aufzeichnung.
    - _Verfolgt_: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
    - _Analytik_: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
 
@@ -190,9 +190,9 @@ _Ziel: Ein Trading-Assistent, der den Markt kennt, nicht nur den Chart._
 
 Cachy integriert einen **Kontext-Sensitiven Chatbot** (angetrieben von OpenAI oder Google Gemini 2.5), der über einfache Texterstellung hinausgeht. Er hat Lesezugriff auf Echtzeit-Marktdatenebenen:
 
-1.  **News-Kontext**: Über einen datenschutzfreundlichen Proxy ruft die KI Top-Schlagzeilen von CryptoPanic und NewsAPI ab, um das aktuelle Sentiment (Bullish/Bearish) zu verstehen.
-2.  **Fundamentaler Kontext**: Zugriff auf CoinMarketCap (CMC) Daten, um Marktkapitalisierungs-Dominanz, Volumentrends und Projektrankings zu verstehen.
-3.  **Trade-Historien-Kontext**: Die KI kann die letzten 20 Trades des Benutzers analysieren, um Verhaltensmuster zu erkennen (z.B. "Du handelst zu viel nach Verlusten").
+1. **News-Kontext**: Über einen datenschutzfreundlichen Proxy ruft die KI Top-Schlagzeilen von CryptoPanic und NewsAPI ab, um das aktuelle Sentiment (Bullish/Bearish) zu verstehen.
+2. **Fundamentaler Kontext**: Zugriff auf CoinMarketCap (CMC) Daten, um Marktkapitalisierungs-Dominanz, Volumentrends und Projektrankings zu verstehen.
+3. **Trade-Historien-Kontext**: Die KI kann die letzten 20 Trades des Benutzers analysieren, um Verhaltensmuster zu erkennen (z.B. "Du handelst zu viel nach Verlusten").
 
 **Datenschutz-Hinweis**: Alle externen Datenabrufe werden geproxyed. Der KI-Anbieter sieht beim Abrufen von Nachrichten niemals die IP-Adresse des Benutzers, und API-Schlüssel für Nachrichtendienste werden lokal gespeichert.
 
@@ -527,13 +527,6 @@ const decrypted = await decrypt(ciphertext, userPassword);
 ## 7. Skalierbarkeit & Zukunfts-Roadmap
 
 Während das aktuelle Local-First-Modell für einzelne Trader robust ist, umfasst die Roadmap die Skalierung zur Unterstützung von Teams und institutionellen Anforderungen.
-
-### Phase 1: Von Local-First zu Sync-Enabled (Optional Cloud)
-
-_Ziel: Benutzern ermöglichen, Daten zwischen Desktop und Mobilgerät zu synchronisieren._
-
-- **Plan**: Implementierung eines _optionalen_ End-to-End-verschlüsselten (E2EE) Cloud-Relays.
-- **Tech**: Verwendung einer CRDT (Conflict-free Replicated Data Type) Bibliothek wie Yjs oder Automerge. Der Server würde verschlüsselte Blobs speichern, ohne die Schlüssel zur Entschlüsselung zu haben.
 
 ### Phase 2: Mobile Native Adaption
 

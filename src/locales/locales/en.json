@@ -58,7 +58,6 @@
     "refresh": "Refresh"
   },
   "sidePanel": {
-    "globalChat": "Global Chat",
     "myNotes": "My Notes",
     "aiAssistant": "AI Assistant",
     "clearConfirm": "Clear history?",
@@ -295,7 +294,7 @@
     },
     "account": {
       "balance": "Available",
-    "confirmCancelOrder": "Cancel this order?",
+      "confirmCancelOrder": "Cancel this order?",
       "margin": "Margin",
       "pnl": "Total PnL",
       "totalEquity": "Total Equity",
@@ -836,14 +835,12 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
-
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
     "showSidebars": "Show Sidebars",
-    "enableSidePanel": "Enable Side Panel (Chat/Notes)",
+    "enableSidePanel": "Enable Side Panel (AI/Notes)",
     "sidePanelMode": "Side Panel Mode",
     "modeNotes": "My Notes",
-    "modeChat": "Global Chat",
     "sidePanelLayout": "Layout",
     "layoutStandard": "Standard (Colored)",
     "layoutStandardDesc": "Fixed left, solid background",
@@ -1301,23 +1298,23 @@
       "restoreDesc": "Import a backup from a file.",
       "englishTechnicalTerms": "English Technical Terms",
       "avoidTranslating": "Avoid translating technical words",
-    "quickActions": "Quick Actions",
-    "debug": {
-      "capabilities": "Capabilities",
-      "context": "Context",
-      "engineStats": "Engine Stats",
-      "noData": "No Data",
-      "noCalculations": "No calculations recorded yet.",
-      "columns": {
-        "engine": "Engine",
-        "health": "Health",
-        "avg": "Avg",
-        "samples": "Samples",
-        "candles": "Candles",
-        "time": "Time",
-        "memory": "Memory"
+      "quickActions": "Quick Actions",
+      "debug": {
+        "capabilities": "Capabilities",
+        "context": "Context",
+        "engineStats": "Engine Stats",
+        "noData": "No Data",
+        "noCalculations": "No calculations recorded yet.",
+        "columns": {
+          "engine": "Engine",
+          "health": "Health",
+          "avg": "Avg",
+          "samples": "Samples",
+          "candles": "Candles",
+          "time": "Time",
+          "memory": "Memory"
+        }
       }
-    }
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -2072,18 +2069,5 @@
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
     "known": "I knew it"
-  },
-  "cloud": {
-    "title": "Community Cloud (Beta)",
-    "description": "Connect to SpacetimeDB to chat with other traders.",
-    "connectButton": "Connect",
-    "noMessages": "No messages yet.",
-    "sendButton": "Send",
-    "placeholder": "Say hello..."
-  },
-  "jules": {
-    "title": "Jules Inspector",
-    "analyzing": "Analyzing system state...",
-    "close": "Close Report"
   }
 }

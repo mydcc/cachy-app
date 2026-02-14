@@ -295,7 +295,7 @@
     },
     "account": {
       "balance": "Verfügbar",
-    "confirmCancelOrder": "Diesen Auftrag stornieren?",
+      "confirmCancelOrder": "Diesen Auftrag stornieren?",
       "margin": "Margin",
       "pnl": "Gesamt PnL",
       "totalEquity": "Gesamt Equity",
@@ -836,12 +836,12 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
-
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
     "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
     "enableSidePanel": "Side Panel (Chat/Notizen) aktivieren",
+    "enableSidePanel": "Side Panel (KI/Notizen) aktivieren",
     "sidePanelMode": "Side Panel Modus",
     "modeNotes": "Meine Notizen",
     "modeChat": "Globaler Chat",
@@ -1101,23 +1101,23 @@
       "dashboard": "Dashboard",
       "englishTechnicalTerms": "Englische Fachbegriffe",
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
-    "quickActions": "Schnellaktionen",
-    "debug": {
-      "capabilities": "Fähigkeiten",
-      "context": "Kontext",
-      "engineStats": "Engine Status",
-      "noData": "Keine Daten",
-      "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
-      "columns": {
-        "engine": "Engine",
-        "health": "Gesundheit",
-        "avg": "Ø",
-        "samples": "Proben",
-        "candles": "Kerzen",
-        "time": "Zeit",
-        "memory": "Speicher"
+      "quickActions": "Schnellaktionen",
+      "debug": {
+        "capabilities": "Fähigkeiten",
+        "context": "Kontext",
+        "engineStats": "Engine Status",
+        "noData": "Keine Daten",
+        "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
+        "columns": {
+          "engine": "Engine",
+          "health": "Gesundheit",
+          "avg": "Ø",
+          "samples": "Proben",
+          "candles": "Kerzen",
+          "time": "Zeit",
+          "memory": "Speicher"
+        }
       }
-    }
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -2032,8 +2032,7 @@
       "description": "Mehrere Kerzen mit langen unteren Dochten am Support.\n\n### Mathematische Kriterien\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} \\text{ m/ Dochten} $$",
       "interpretation": "### Regeln\n* Support ist massiv. Kaufen.",
       "indicatorCombination": "Das Signal wird verstärkt durch hohes Volumen bei den Docht-Kerzen und der bullischen Bestätigungskerze. Eine bullische Divergenz im RSI oder MACD macht eine erfolgreiche Umkehr wahrscheinlicher."
-    },
-    "title": "Candlestick Akademie"
+    }
   },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",

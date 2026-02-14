@@ -19,8 +19,11 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.94.3"></a>Version 0.94.3 (January 2026)
+## <a name="v0.94.3"></a>Version 0.94.3 (February 2026)
 
+- **Architecture:** **Local-First Only**: Removed "Global Chat" and "Community Cloud" to strictly enforce the local-first privacy model.
+- **New:** **Trading Academy**: Interactive learning modules for candlestick patterns and trading strategies.
+- **Tech:** **Svelte 5 Migration**: Complete refactor to Runes (`$state`, `$derived`) for universal reactivity.
 - **RSS Feed Integration**: Users can now add up to 5 custom RSS feed URLs and select from curated crypto news sources (CoinDesk, Cointelegraph, etc.) to enhance AI context.
 - **Strict Symbol Filtering**: Added a new setting to filter RSS news by the currently active chart symbol (e.g., only show XRP/Ripple news when XRP is selected).
 - **Auto-Cache Invalidation**: Changing RSS settings now automatically clears the news cache for immediate updates.

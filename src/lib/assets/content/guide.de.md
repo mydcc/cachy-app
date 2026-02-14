@@ -209,7 +209,7 @@ Unter **Einstellungen → Behavior → Market Data Interval** kannst du einstell
 Wähle unter **Einstellungen -> Sidebar** zwischen:
 
 - **Private Notizen:** Speichere Notizen nur lokal in deinem Browser.
-- **Globaler Chat:** Interagiere mit anderen Nutzern (erfordert API-Anbindung).
+- **AI Assistant:** Interagiere mit der kontextsensitiven KI für Marktanalysen.
 
 ---
 

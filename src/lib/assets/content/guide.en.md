@@ -177,7 +177,7 @@ Since Cachy is local-only, your data is your responsibility.
 Choose under **Settings -> Sidebar** between:
 
 - **Private Notes:** Store notes locally in your browser only.
-- **Global Chat:** Interact with other users (requires API connection).
+- **AI Assistant:** Interact with the context-aware AI for market analysis.
 
 ---
 

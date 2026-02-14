@@ -1,12 +1,14 @@
 # Cachy - Position Size & Risk Management
 
-![Version](https://img.shields.io/badge/version-0.94.2-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.94.3-blue?style=for-the-badge)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
+[![Svelte 5](https://img.shields.io/badge/Svelte_5-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
 Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Binance.
+Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and supports real-time market data from Bitunix and Binance.
 
 ![Cachy Dashboard](docs/dashboard-preview.png)
 
@@ -38,6 +40,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 - **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
 - **Chat / Side Panel:** A collapsible side panel for "Private Notes" (local) or "Global Chat" (ephemeral server cache).
+- **Side Panel:** A collapsible side panel for "Private Notes" (local) and AI Assistant.
 - **CSV Import/Export:** Full control over your data – export your journal for Excel or import backups.
 - **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 
@@ -60,6 +63,14 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Symbol Normalization:** Verbesserte Handhabung von Symbol-Suffixen für stabile API-Zuordnung.
 - **Mobile Optimierung:** Verbesserte mobile Ansicht, Sidebar/Market Overview umschaltbar.
 - **Sicherheit:** Alle Daten bleiben lokal im Browser (localStorage), keine Cloud/Server-Persistenz.
+- **Trading Academy:** Interactive learning modules for candlestick patterns and trading strategies.
+- **Technicals Panel:** Standalone panel for technical indicators (RSI, MACD, Stoch) for the active symbol.
+- **Global Subscription Management:** Centralized WebSocket management for stable and efficient data streams.
+- **Reference Counting:** Smart tracking of data requests to prevent connection drops.
+- **Debug Mode:** Optional system logs for better diagnostics.
+- **Symbol Normalization:** Improved handling of symbol suffixes for stable API mapping.
+- **Mobile Optimization:** Enhanced mobile layout with toggleable Sidebar/Market Overview.
+- **Security:** All data remains local (localStorage), no cloud/server persistence.
 
 ---
 
@@ -168,6 +179,15 @@ Copyright (C) 2026 MYDCT
 5. [Version 0.92b2](#v0.92b2)
 6. [Version 0.92b1](#v0.92b1)
 7. [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94.3"></a>Version 0.94.3 (February 2026)
+
+- **Architecture:** **Local-First Only**: Removed "Global Chat" and "Community Cloud".
+- **New:** **Trading Academy**: Interactive learning modules.
+- **Tech:** **Svelte 5 Migration**: Complete refactor to Runes.
+- **RSS Feed Integration**: Custom RSS feeds for AI context.
 
 ---
 

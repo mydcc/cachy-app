@@ -1,8 +1,8 @@
 # Cachy Technical Whitepaper
 
-**Version:** 0.94.2
-**Date:** January 2026
-**Last Updated:** January 14, 2026
+**Version:** 0.94.3
+**Date:** February 2026
+**Last Updated:** February 14, 2026
 
 ---
 
@@ -75,26 +75,26 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 | **Framework** | **SvelteKit**           | Provides SSR/CSR hybrid, file-based routing, and superior performance compared to React/Next.js due to lack of Virtual DOM.                         |
 | **Language**  | **TypeScript**          | Strict typing is non-negotiable for financial applications to prevent floating-point errors and `undefined` states.                                 |
 | **Styling**   | **TailwindCSS**         | Utility-first CSS allows for rapid UI iteration and consistent theming (Dark/Light/VIP modes).                                                      |
-| **State**     | **Svelte Stores**       | Native, lightweight state management that scales well for real-time frequency data.                                                                 |
+| **State**     | **Svelte 5 Runes**      | Universal reactivity (`$state`, `$derived`) enables fine-grained updates without boilerplate.                                                       |
 | **Math**      | **Decimal.js**          | IEEE 754 floating-point arithmetic (standard JS numbers) is unsafe for finance (e.g., `0.1 + 0.2 !== 0.3`). Decimal.js ensures arbitrary precision. |
 | **Charts**    | **Chart.js**            | Canvas-based rendering for high-performance visualizations (Equity Curves, Scatter Plots) capable of handling thousands of data points.             |
 | **Analysis**  | **TechnicalIndicators** | Modular library for calculating complex indicators (RSI, MACD, ADX) on the client side.                                                             |
 | **Testing**   | **Vitest**              | Blazing fast unit testing framework that shares configuration with Vite.                                                                            |
 
-### Client-Side State Management (The Store Pattern)
+### Client-Side State Management (Universal Reactivity)
 
-Cachy abandons the complex Redux/Context boilerplate in favor of Svelte's reactive Stores (`writable`, `derived`). The state is divided into domain-specific modules in `src/stores/`:
+Cachy leverages **Svelte 5 Runes** for state management, abandoning legacy stores for `.svelte.js` modules that provide universal reactivity. This ensures that state logic is portable and type-safe.
 
-1. **`accountStore.ts`**: The "Single Source of Truth" for the user's wallet.
+1. **`AccountState.svelte.ts`**: The "Single Source of Truth" for the user's wallet.
    - _Tracks_: Open Positions, Active Orders, Wallet Balances.
-   - _Update Mechanism_: Receives atomic updates from WebSockets (`updatePositionFromWs`).
-2. **`marketStore.ts`**: High-frequency market data.
+   - _Implementation_: Uses `$state` for mutable data and `$derived` for real-time margin calculations.
+2. **`MarketState.svelte.ts`**: High-frequency market data.
    - _Tracks_: Prices, Funding Rates, Order Book Depth.
    - _Optimization_: Uses a dictionary map `Record<string, MarketData>` for O(1) access complexity when updating prices.
-3. **`tradeStore.ts`**: The "Drafting Board".
+3. **`TradeState.svelte.ts`**: The "Drafting Board".
    - _Tracks_: User inputs for a _potential_ trade (Entry, SL, TP) before execution.
    - _Persistence_: Automatically syncs to `localStorage` so users don't lose work on refresh.
-4. **`journalStore.ts`**: The Historical Record.
+4. **`JournalState.svelte.ts`**: The Historical Record.
    - _Tracks_: Array of `JournalEntry` objects (closed trades).
    - _Analytics_: Serves as the raw dataset for the `calculator.ts` analytics engine.
 
@@ -502,13 +502,6 @@ By removing the database:
 ## 7. Scalability & Future Roadmap
 
 While the current Local-First model is robust for individual traders, the roadmap includes scaling to support teams and institutional requirements.
-
-### Phase 1: From Local-First to Sync-Enabled (Optional Cloud)
-
-_Objective: Allow users to sync data between Desktop and Mobile._
-
-- **Plan**: Implement an _optional_ End-to-End Encrypted (E2EE) cloud relay.
-- **Tech**: Use a CRDT (Conflict-free Replicated Data Type) library like Yjs or Automerge. The server would store encrypted blobs without having the keys to decrypt them.
 
 ### Phase 2: Mobile Native Adaptation
 
