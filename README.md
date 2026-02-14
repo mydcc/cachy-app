@@ -51,6 +51,16 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 - **Multilingual:** German and English support.
 
+### 🧩 Advanced Features
+
+- **Technicals Panel:** Eigenständiges Panel zur Anzeige technischer Indikatoren (z.B. RSI, MACD, Stoch) für das aktuell gewählte Symbol.
+- **Global Subscription Management:** Zentrale Verwaltung aller WebSocket-Verbindungen für stabile und effiziente Datenströme.
+- **Reference Counting:** Intelligentes Nachverfolgen von Datenanfragen, um Verbindungsabbrüche zu vermeiden.
+- **Debug Mode:** Optional aktivierbare System-Logs für bessere Diagnose.
+- **Symbol Normalization:** Verbesserte Handhabung von Symbol-Suffixen für stabile API-Zuordnung.
+- **Mobile Optimierung:** Verbesserte mobile Ansicht, Sidebar/Market Overview umschaltbar.
+- **Sicherheit:** Alle Daten bleiben lokal im Browser (localStorage), keine Cloud/Server-Persistenz.
+
 ---
 
 ## 🛠️ Installation & Development
@@ -166,7 +176,7 @@ Copyright (C) 2026 MYDCT
 - **Architecture:** **Global Subscription Management**: Centralized WebSocket management with the `MarketWatcher` service.
 - **System:** **Reference Counting**: Smart data request tracking to prevent connection drops.
 - **Robustness:** **Symbol Normalization**: Improved handling of symbol suffixes for stable API mapping.
-- **Feature:** **Jules API**: AI-powered error analysis and reporting system.
+
 - **Feature:** **Technicals Panel**: Advanced chart overlay with indicators (RSI, MACD, Stoch) using `talib-web`.
 - **New:** **Debug Mode**: Opt-in system logs for better diagnostics.
 

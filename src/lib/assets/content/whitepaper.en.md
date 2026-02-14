@@ -98,17 +98,6 @@ Cachy abandons the complex Redux/Context boilerplate in favor of Svelte's reacti
    - _Tracks_: Array of `JournalEntry` objects (closed trades).
    - _Analytics_: Serves as the raw dataset for the `calculator.ts` analytics engine.
 
-### AI-Assisted Telemetry (Jules Service)
-
-Cachy implements an intelligent diagnostic layer known as **Jules API**.
-
-- **Purpose**: To provide real-time, context-aware error analysis without compromising user privacy.
-- **Workflow**:
-  1. When a critical error occurs (or upon manual report), `julesService.ts` captures a **System Snapshot**.
-  2. **Sanitization**: All API Secrets and sensitive keys are redacted on the client side before transmission.
-  3. **Analysis**: The snapshot is sent to the backend (`/api/jules`), which forwards the context to a Large Language Model (Gemini).
-  4. **Result**: The AI analyzes the state (e.g., "WebSocket disconnected while Order was Pending") and returns a natural-language diagnosis to the user.
-
 ### Backend-for-Frontend (BFF) & Proxy Layer
 
 Located in `src/routes/api/`, this layer acts as a security gateway.
@@ -203,9 +192,9 @@ _Goal: A trading assistant that knows the market, not just the chart._
 
 Cachy integrates a **Context-Aware Chatbot** (powered by OpenAI or Google Gemini 2.5) that goes beyond simple text generation. It has read-access to real-time market data layers:
 
-1.  **News Context**: Via a privacy-preserving proxy, the AI fetches top headlines from CryptoPanic and NewsAPI to understand current sentiment (Bullish/Bearish).
-2.  **Fundamental Context**: It accesses CoinMarketCap (CMC) data to understand market cap dominance, volume trends, and project rankings.
-3.  **Trade History Context**: The AI can analyze the user's last 20 trades to identify behavioral patterns (e.g., "You are over-trading after losses").
+1. **News Context**: Via a privacy-preserving proxy, the AI fetches top headlines from CryptoPanic and NewsAPI to understand current sentiment (Bullish/Bearish).
+2. **Fundamental Context**: It accesses CoinMarketCap (CMC) data to understand market cap dominance, volume trends, and project rankings.
+3. **Trade History Context**: The AI can analyze the user's last 20 trades to identify behavioral patterns (e.g., "You are over-trading after losses").
 
 **Privacy Note**: All external data fetching is proxied. The AI provider never sees the user's IP address when fetching news, and API keys for news services are stored locally.
 
