@@ -9,12 +9,15 @@ import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { logger } from "./logger";
 import { marketState } from "../stores/market.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
 import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
+const safeDiv = (a: Decimal, b: Decimal) => b.isZero() ? new Decimal(0) : a.div(b);
+const safeSub = (a: Decimal, b: Decimal) => a.minus(b);
 import { favoritesState } from "../stores/favorites.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { toastService } from "./toastService.svelte";
 import { Decimal } from "decimal.js";
-import { safeDiv, safeSub } from "../lib/calculators/core";
+
 
 const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
 const REQUIRED_INDICATORS = {
@@ -42,7 +45,7 @@ class MarketAnalystService {
 
     private getAnalystSettings() {
         // Use user settings but enforce certain defaults for analysis
-        const base = settingsState.indicators;
+        const base = indicatorState.toJSON();
         return {
             ...base,
             // Ensure EMA 200 is included
