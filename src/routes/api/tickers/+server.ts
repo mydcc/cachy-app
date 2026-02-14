@@ -20,6 +20,22 @@ import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
 
+interface StatusError {
+  status: number;
+  message: string;
+}
+
+function isStatusError(error: unknown): error is StatusError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    "message" in error &&
+    typeof (error as any).status === "number" &&
+    typeof (error as any).message === "string"
+  );
+}
+
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const symbols = url.searchParams.get("symbols");
   const provider = url.searchParams.get("provider") || "bitunix";
@@ -64,8 +80,8 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
               // eslint-disable-next-line no-throw-literal
               throw { status: 404, message: "Symbol not found" };
             }
-          } catch (e: any) {
-            if (e.status === 404) throw e;
+          } catch (e: unknown) {
+            if (isStatusError(e) && e.status === 404) throw e;
           }
           // eslint-disable-next-line no-throw-literal
           throw { status: response.status, message: errorText };
@@ -90,8 +106,8 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     ); // 1 second TTL
 
     return json(data);
-  } catch (error: any) {
-    if (error && error.status && error.message) {
+  } catch (error: unknown) {
+    if (isStatusError(error)) {
       return new Response(error.message, {
         status: error.status,
       });
