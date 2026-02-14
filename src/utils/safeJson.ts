@@ -34,13 +34,6 @@ export function safeJsonParse<T = any>(jsonString: string): T {
     if (!jsonString) return jsonString as any;
     if (typeof jsonString !== 'string') return jsonString;
 
-    // Fast Path: Check if protection is even needed.
-    // This simple check gives a significant speedup for small/safe messages.
-    // We look for a digit followed by at least 14 other number-like characters.
-    if (!/\d[\d.eE+-]{14,}/.test(jsonString)) {
-        return JSON.parse(jsonString);
-    }
-
     let result = '';
     let lastIndex = 0;
     const len = jsonString.length;
@@ -49,18 +42,41 @@ export function safeJsonParse<T = any>(jsonString: string): T {
     while (i < len) {
         const char = jsonString.charCodeAt(i);
 
-        // String detected: skip it
+        // String detected: skip it efficiently using indexOf
         if (char === 34) { // "
             i++;
             while (i < len) {
-                const c = jsonString.charCodeAt(i);
-                if (c === 34) { // "
-                    i++;
+                const closeQuote = jsonString.indexOf('"', i);
+                if (closeQuote === -1) {
+                    // Malformed JSON (unclosed string), but let JSON.parse handle the error later
+                    i = len;
                     break;
-                } else if (c === 92) { // \ (escape)
-                    i += 2; // Skip the escaped character
+                }
+
+                // Check for escape sequence
+                // Fast check: Is the character before the quote a backslash?
+                if (jsonString.charCodeAt(closeQuote - 1) !== 92) {
+                    // specific case: not escaped -> we found the end
+                    i = closeQuote + 1;
+                    break;
+                }
+
+                // Slow check: Count consecutive backslashes to handle cases like \\" (escaped backslash, then quote)
+                let backslashCount = 0;
+                let j = closeQuote - 1;
+                while (j >= i && jsonString.charCodeAt(j) === 92) {
+                    backslashCount++;
+                    j--;
+                }
+
+                // If odd number of backslashes, the quote is escaped (e.g. \")
+                // If even number, the backslash is escaped (e.g. \\"), so the quote is real
+                if (backslashCount % 2 === 0) {
+                     i = closeQuote + 1;
+                     break;
                 } else {
-                    i++;
+                    // Quote is escaped, continue searching
+                    i = closeQuote + 1;
                 }
             }
             continue;
@@ -71,7 +87,6 @@ export function safeJsonParse<T = any>(jsonString: string): T {
             const start = i;
             i++;
             // Scan correctly formatted JSON number characters: 0-9, ., e, E, +, -
-            // 0-9 (48-57), . (46), e (101), E (69), + (43), - (45)
             while (i < len) {
                 const c = jsonString.charCodeAt(i);
                 if ((c >= 48 && c <= 57) || c === 46 || c === 101 || c === 69 || c === 43 || c === 45) {
@@ -97,7 +112,6 @@ export function safeJsonParse<T = any>(jsonString: string): T {
 
     // Append remaining part
     if (lastIndex === 0) {
-        // No replacements made, fallback to original string (should be caught by Fast Path, but just in case)
         return JSON.parse(jsonString);
     }
 
