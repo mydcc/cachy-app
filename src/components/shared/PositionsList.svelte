@@ -22,7 +22,6 @@
   import { uiState } from "../../stores/ui.svelte";
   // import PositionTooltip from "./PositionTooltip.svelte"; // Global handled
   import Button from "./Button.svelte";
-  import ConfirmationModal from "./ConfirmationModal.svelte";
   import { _ } from "../../locales/i18n";
   import type { OMSPosition } from "../../services/omsTypes";
 
@@ -90,21 +89,10 @@
     settingsState.pnlViewMode = nextMode;
   }
 
-  // --- Confirmation Modal Logic ---
-  let showConfirm = $state(false);
-  let confirmPos = $state<OMSPosition | null>(null);
-
   function handleClose(pos: OMSPosition) {
-    confirmPos = pos;
-    showConfirm = true;
-  }
-
-  function confirmClose() {
-    if (confirmPos) {
-      onclose?.(confirmPos);
-      confirmPos = null;
+    if (confirm($_("positionsList.confirmClose", { symbol: pos.symbol }))) {
+      onclose?.(pos);
     }
-    showConfirm = false;
   }
 
   function getRoi(pos: OMSPosition) {
@@ -322,17 +310,6 @@
       {/each}
     </div>
   {/if}
-
-  <!-- Confirmation Modal -->
-  <ConfirmationModal
-    isOpen={showConfirm}
-    title={$_("positionsList.close")}
-    message={$_("positionsList.confirmClose", { symbol: confirmPos?.symbol || "" })}
-    confirmText={$_("common.confirm")}
-    cancelText={$_("common.cancel")}
-    onClose={() => (showConfirm = false)}
-    onConfirm={confirmClose}
-  />
 </div>
 
 <!-- Global Tooltip handled in +layout.svelte -->

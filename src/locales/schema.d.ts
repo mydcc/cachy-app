@@ -1232,7 +1232,6 @@ export type TranslationKey =
   | "symbolPicker.maxFavorites"
   | "common.save"
   | "common.cancel"
-  | "common.confirm"
   | "common.ok"
   | "common.close"
   | "common.remove"

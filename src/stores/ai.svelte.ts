@@ -679,7 +679,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 ? {
                   atr: Number(Number(data.volatility.atr).toFixed(4)),
                   bbPercentP: Number(
-                    Number(data.volatility.bb?.percentP ?? 0).toFixed(2),
+                    Number(data.volatility.bb.percentP).toFixed(2),
                   ),
                 }
                 : "N/A",
