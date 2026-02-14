@@ -32,7 +32,16 @@ import { checkAppAuth } from "../../../lib/server/auth";
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
-  const { exchange, apiKey, apiSecret, passphrase } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { exchange, apiKey, apiSecret, passphrase } = body;
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
