@@ -24,7 +24,7 @@ interface ApiError extends Error {
   status?: number;
 }
 
-interface BitunixKlinesParams extends Record<string, string> {
+interface BitunixKlinesParams {
   symbol: string;
   interval: string;
   limit: string;
@@ -32,7 +32,7 @@ interface BitunixKlinesParams extends Record<string, string> {
   endTime?: string;
 }
 
-interface BitgetKlinesParams extends Record<string, string> {
+interface BitgetKlinesParams {
   symbol: string;
   granularity: string;
   startTime?: string;
@@ -138,7 +138,7 @@ async function fetchBitunixKlines(
   if (start) params.startTime = start.toString();
   if (end) params.endTime = end.toString();
 
-  const queryString = new URLSearchParams(params).toString();
+  const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
   const fullUrl = `${baseUrl}${path}?${queryString}`;
 
   const response = await fetch(fullUrl, {
@@ -255,7 +255,7 @@ async function fetchBitgetKlines(
 
   // If no start/end, Bitget returns latest.
 
-  const queryString = new URLSearchParams(params).toString();
+  const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`);
 
