@@ -48,6 +48,7 @@ class ServerLogger extends EventEmitter {
   // Regex patterns for identifying sensitive keys
   private sensitivePatterns: RegExp[] = [
     /passw(or)?d/i,
+    /passphrase/i,
     /secret/i,
     /token/i,
     /api[-_]?key/i,

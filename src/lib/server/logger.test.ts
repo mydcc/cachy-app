@@ -118,7 +118,8 @@ describe('ServerLogger', () => {
     const privKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEA...
 ...
------END RSA PRIVATE KEY-----`;
+-----END RSA PRIVATE KEY-----
+`;
 
     const logPromise = captureLog();
     logger.info('Key', privKey);
@@ -153,5 +154,19 @@ MIIEpQIBAAKCAQEA...
     logger.info('Safe String', str);
     const entry = await logPromise;
     expect(entry.data).toBe(str);
+  });
+
+  it('should sanitize passphrase', async () => {
+    const sensitiveData = {
+      username: 'trader',
+      passphrase: 'supersecretpassphrase'
+    };
+
+    const logPromise = captureLog();
+    logger.info('API Login', sensitiveData);
+    const entry = await logPromise;
+
+    expect(entry.data.username).toBe('trader');
+    expect(entry.data.passphrase).toBe('***REDACTED***');
   });
 });
