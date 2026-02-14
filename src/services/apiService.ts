@@ -50,6 +50,8 @@ export class RateLimiter {
   private lastRefill: number;
   private readonly capacity: number;
   private readonly refillRateMs: number;
+  private queue: (() => void)[] = [];
+  private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(tokensPerSecond: number, capacity?: number) {
     this.capacity = capacity ?? tokensPerSecond;
@@ -59,22 +61,44 @@ export class RateLimiter {
   }
 
   async waitForToken(): Promise<void> {
-    while (true) {
-      this.refill();
+    this.refill();
 
-      if (this.tokens >= 1) {
-        this.tokens -= 1;
-        return;
-      }
+    if (this.tokens >= 1) {
+      this.tokens -= 1;
+      return Promise.resolve();
+    }
 
-      // Calculate wait time for 1 token
-      const needed = 1 - this.tokens;
-      let waitTime = needed / this.refillRateMs;
+    return new Promise<void>((resolve) => {
+      this.queue.push(resolve);
+      this.scheduleRefill();
+    });
+  }
 
-      // Safety floor for wait time
-      if (waitTime < 5) waitTime = 5;
+  private scheduleRefill() {
+    if (this.timer) return;
+    if (this.queue.length === 0) return;
 
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    const needed = 1 - this.tokens;
+    let waitTime = needed / this.refillRateMs;
+    if (waitTime < 0) waitTime = 0;
+
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      this.processQueue();
+    }, waitTime);
+  }
+
+  private processQueue() {
+    this.refill();
+
+    while (this.tokens >= 1 && this.queue.length > 0) {
+      this.tokens -= 1;
+      const resolve = this.queue.shift();
+      if (resolve) resolve();
+    }
+
+    if (this.queue.length > 0) {
+      this.scheduleRefill();
     }
   }
 
