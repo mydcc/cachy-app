@@ -714,8 +714,8 @@ export function calculateIndicatorsFromArrays(
         for (const period of emaPeriods) {
         const emaResults = JSIndicators.ema(emaSource, period);
         const rawVal = emaResults[emaResults.length - 1];
-        // Handle insufficient data (NaN) by defaulting to 0
-        const emaVal = (typeof rawVal === 'number' && !isNaN(rawVal)) ? rawVal : 0;
+        // Handle insufficient data (NaN) by keeping it NaN
+        const emaVal = (typeof rawVal === "number") ? rawVal : NaN;
         movingAverages.push({
             name: "EMA",
             params: `${period}`,

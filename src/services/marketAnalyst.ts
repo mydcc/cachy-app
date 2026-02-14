@@ -319,7 +319,7 @@ export function calculateAnalysisMetrics(
         // Use confluence score if available for broad trend, or EMA check
         // Ideally checking Price > EMA200
         const ema = tech.movingAverages?.find((m: any) => m.name === "EMA" && m.params === "200")?.value;
-        if (ema === undefined) return "neutral";
+        if (ema === undefined || (typeof ema === "number" && isNaN(ema)) || ema === 0) return "neutral";
 
         return priceDec.greaterThan(safeDec(ema)) ? "bullish" : "bearish";
     };
