@@ -551,17 +551,10 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+  private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (klines.length < 2) return klines;
 
-      // Hardening: Validate first item structure before access
-      const firstVal = KlineRawSchema.safeParse(klines[0]);
-      if (!firstVal.success) {
-          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
-      }
-
-      const filled: KlineRaw[] = [klines[0]];
+      const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
@@ -586,11 +579,11 @@ class MarketWatcher {
                   // [OPTIMIZATION] Use shared ZERO_VOL
                   filled.push({
                       time: nextTime,
-                      open: String(prev.close),
-                      high: String(prev.close),
-                      low: String(prev.close),
-                      close: String(prev.close),
-                      volume: "0"
+                      open: prev.close,
+                      high: prev.close,
+                      low: prev.close,
+                      close: prev.close,
+                      volume: MarketWatcher.ZERO_VOL
                   });
                   nextTime += intervalMs;
                   gapCount++;
