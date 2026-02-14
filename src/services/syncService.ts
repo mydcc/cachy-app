@@ -42,7 +42,7 @@ function calculateInterval(posTime: number, closeTime: number): string {
   return "1m";
 }
 
-async function fetchBatchedKlines(trades: any[]) {
+export async function fetchBatchedKlines(trades: any[]) {
   const prepared = trades.map((p) => {
     const posTime = parseTimestamp(p.ctime);
     let closeTime = parseTimestamp(p.mtime || p.ctime);
@@ -60,6 +60,7 @@ async function fetchBatchedKlines(trades: any[]) {
   }
 
   const results = new Map<string, any[]>(); // key -> Array of {start, end, klines}
+  const fetchTasks: Array<{symbol: string, interval: string, start: number, end: number, key: string}> = [];
 
   for (const [key, items] of groups.entries()) {
     const [symbol, interval] = key.split(":");
@@ -77,14 +78,8 @@ async function fetchBatchedKlines(trades: any[]) {
     let currentStart = items[0]._posTime;
     let currentEnd = items[0]._closeTime;
 
-    const fetchAndStore = async (s: number, e: number) => {
-        try {
-            const klines = await apiService.fetchBitunixKlines(symbol, interval, 1000, s, e, "normal", 30000);
-            if (!results.has(key)) results.set(key, []);
-            results.get(key)!.push({ start: s, end: e, klines });
-        } catch (err) {
-            console.warn(`[Sync] Failed to fetch batch klines for ${symbol}`, err);
-        }
+    const pushTask = (s: number, e: number) => {
+        fetchTasks.push({ symbol, interval, start: s, end: e, key });
     };
 
     for (let i = 1; i < items.length; i++) {
@@ -95,13 +90,24 @@ async function fetchBatchedKlines(trades: any[]) {
         if (candlesNeeded <= 1000) {
             currentEnd = potentialEnd;
         } else {
-            await fetchAndStore(currentStart, currentEnd);
+            pushTask(currentStart, currentEnd);
             currentStart = item._posTime;
             currentEnd = item._closeTime;
         }
     }
-    await fetchAndStore(currentStart, currentEnd);
+    pushTask(currentStart, currentEnd);
   }
+
+  // Execute all tasks concurrently
+  await Promise.all(fetchTasks.map(async (task) => {
+      try {
+          const klines = await apiService.fetchBitunixKlines(task.symbol, task.interval, 1000, task.start, task.end, "normal", 30000);
+          if (!results.has(task.key)) results.set(task.key, []);
+          results.get(task.key)!.push({ start: task.start, end: task.end, klines });
+      } catch (err) {
+          console.warn(`[Sync] Failed to fetch batch klines for ${task.symbol}`, err);
+      }
+  }));
 
   return {
     getKlines: (symbol: string, interval: string, start: number, end: number) => {
