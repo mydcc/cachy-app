@@ -486,61 +486,93 @@ export function getRollingData(
   const profitFactors: number[] = [];
   const sqnValues: number[] = [];
 
-  for (let i = windowSize; i <= sortedTrades.length; i++) {
-    const windowTrades = sortedTrades.slice(i - windowSize, i);
+  // Pre-calculate expensive operations (O(N))
+  const tradeData = sortedTrades.map((t) => {
+    const pnl = getTradePnL(t);
+    const riskAmount = (t.riskAmount && new Decimal(t.riskAmount).gt(0))
+      ? new Decimal(t.riskAmount)
+      : null;
+    let rMultiple = 0;
+    if (riskAmount) {
+      rMultiple = pnl.div(riskAmount).toNumber();
+    }
+    return {
+      date: new Date(t.date),
+      status: t.status,
+      pnl,
+      rMultiple,
+      hasRisk: !!riskAmount
+    };
+  });
 
-    // Calculate Win Rate
-    const wins = windowTrades.filter((t) => t.status === "Won").length;
-    winRates.push((wins / windowSize) * 100);
+  // Single pass over the windows
+  for (let i = windowSize; i <= tradeData.length; i++) {
+    // Current window slice indices
+    const startIdx = i - windowSize;
+    const endIdx = i;
 
-    // Calculate Profit Factor (or Net PnL sum)
+    let wins = 0;
     let grossWin = new Decimal(0);
     let grossLoss = new Decimal(0);
 
-    // For SQN
-    const rMultiples: number[] = [];
+    // SQN accumulators (primitive numbers for speed)
+    let sumR = 0;
+    let sumRSq = 0;
+    let rCount = 0;
 
-    windowTrades.forEach((t) => {
-      const pnl = getTradePnL(t);
-      if (pnl.gt(0)) grossWin = grossWin.plus(pnl);
-      else grossLoss = grossLoss.plus(pnl.abs());
+    // Iterate the window (O(W)) - using simple for loop for max speed
+    for (let j = startIdx; j < endIdx; j++) {
+      const t = tradeData[j];
 
-      // Calculate R
-      if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
-        rMultiples.push(pnl.div(new Decimal(t.riskAmount)).toNumber());
-      } else {
-        // Fallback
+      // Win Rate
+      if (t.status === "Won") {
+        wins++;
       }
-    });
 
-    // Handle Infinity
+      // Profit Factor
+      if (t.pnl.gt(0)) {
+        grossWin = grossWin.plus(t.pnl);
+      } else {
+        grossLoss = grossLoss.plus(t.pnl.abs());
+      }
+
+      // SQN
+      if (t.hasRisk) {
+        sumR += t.rMultiple;
+        sumRSq += t.rMultiple * t.rMultiple;
+        rCount++;
+      }
+    }
+
+    // --- Derived Stats for Window ---
+
+    // 1. Win Rate
+    winRates.push((wins / windowSize) * 100);
+
+    // 2. Profit Factor
     let pf = 0;
     if (grossLoss.isZero()) {
-      pf = grossWin.gt(0) ? 10 : 0; // Cap at 10 for visualization
+      pf = grossWin.gt(0) ? 10 : 0; // Cap at 10
     } else {
       pf = new Decimal(grossWin.div(grossLoss)).toNumber();
     }
     profitFactors.push(pf);
 
-    // Calculate SQN
+    // 3. SQN
     let sqn = 0;
-    if (rMultiples.length > 0) {
-      const sumR = rMultiples.reduce((a, b) => a + b, 0);
-      const avgR = sumR / rMultiples.length; // Expectancy (in R)
-      const variance =
-        rMultiples.reduce((sum, r) => sum + Math.pow(r - avgR, 2), 0) /
-        rMultiples.length;
+    if (rCount > 0) {
+      const avgR = sumR / rCount;
+      const variance = (sumRSq / rCount) - (avgR * avgR);
       const stdDev = Math.sqrt(variance);
 
       if (stdDev > 0) {
-        sqn = (avgR / stdDev) * Math.sqrt(rMultiples.length);
+        sqn = (avgR / stdDev) * Math.sqrt(rCount);
       }
     }
     sqnValues.push(sqn);
 
-    // Label
-    const date = new Date(windowTrades[windowTrades.length - 1].date);
-    labels.push(date.toLocaleDateString());
+    // 4. Label
+    labels.push(tradeData[endIdx - 1].date.toLocaleDateString());
   }
 
   return {
