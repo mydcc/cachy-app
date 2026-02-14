@@ -186,6 +186,10 @@ async function notifyCapabilityStatus() {
     if (!browser || capabilityCheckDone) return;
     capabilityCheckDone = true;
     
+    // Check if warning has already been shown on this device
+    const storageKey = 'cachy_performance_warning_shown';
+    if (localStorage.getItem(storageKey)) return;
+    
     // Ensure we have latest capabilities
     const caps = await getCapabilities();
     
@@ -198,6 +202,9 @@ async function notifyCapabilityStatus() {
         const msg = `Performance Warning: Missing ${missing.join(", ")}. Using fallback engine.`;
         logger.warn('technicals', msg);
         toastService.warning(msg, 8000);
+        
+        // Mark as shown
+        localStorage.setItem(storageKey, 'true');
     } else {
         logger.log('technicals', "All high-performance features available.");
     }
