@@ -117,149 +117,137 @@ export function calculatePerformanceStats(
 
   if (closedTrades.length === 0) return null;
 
-  // If using context, closedTrades is already sorted!
-  const sortedClosedTrades = context
+  // Use sorted array for sequential metrics
+  const sortedTrades = context
     ? closedTrades
     : [...closedTrades].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
 
-  const wonTrades = closedTrades.filter((t) => t.status === "Won");
-  const lostTrades = closedTrades.filter((t) => t.status === "Lost");
-  const totalTrades = closedTrades.length;
-  const winRate = totalTrades > 0 ? (wonTrades.length / totalTrades) * 100 : 0;
+  // Initialize Accumulators
+  let totalTrades = 0;
+  let wonCount = 0;
+  let lostCount = 0;
 
-  const totalProfit = wonTrades.reduce(
-    (sum, t) => sum.plus(new Decimal(t.totalNetProfit || 0)),
-    new Decimal(0),
-  );
-  const totalLoss = lostTrades.reduce(
-    (sum, t) => sum.plus(new Decimal(t.riskAmount || 0)),
-    new Decimal(0),
-  );
-  const profitFactor = totalLoss.gt(0)
-    ? totalProfit.dividedBy(totalLoss)
-    : totalProfit.gt(0)
-      ? new Decimal(Infinity)
-      : new Decimal(0);
+  let totalProfit = new Decimal(0);
+  let totalLoss = new Decimal(0);
+  let totalRRSum = new Decimal(0);
 
-  const avgRR =
-    totalTrades > 0
-      ? closedTrades
-          .reduce(
-            (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
-            new Decimal(0),
-          )
-          .dividedBy(totalTrades)
-      : new Decimal(0);
-  const avgWin =
-    wonTrades.length > 0
-      ? totalProfit.dividedBy(wonTrades.length)
-      : new Decimal(0);
-  const avgLossOnly =
-    lostTrades.length > 0
-      ? totalLoss.dividedBy(lostTrades.length)
-      : new Decimal(0);
-  const winLossRatio = avgLossOnly.gt(0)
-    ? avgWin.dividedBy(avgLossOnly)
-    : new Decimal(0);
-
-  const largestProfit =
-    wonTrades.length > 0
-      ? Decimal.max(
-          0,
-          ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0)),
-        )
-      : new Decimal(0);
-  const largestLoss =
-    lostTrades.length > 0
-      ? Decimal.max(0, ...lostTrades.map((t) => new Decimal(t.riskAmount || 0)))
-      : new Decimal(0);
+  let maxProfit = new Decimal(0);
+  let maxLoss = new Decimal(0);
 
   let totalRMultiples = new Decimal(0);
   let tradesWithRisk = 0;
-  closedTrades.forEach((trade) => {
-    if (trade.riskAmount && new Decimal(trade.riskAmount).gt(0)) {
-      const rMultiple =
-        trade.status === "Won"
-          ? new Decimal(trade.totalNetProfit || 0).dividedBy(
-              new Decimal(trade.riskAmount),
-            )
-          : new Decimal(-1);
-      totalRMultiples = totalRMultiples.plus(rMultiple);
-      tradesWithRisk++;
-    }
-  });
-  const avgRMultiple =
-    tradesWithRisk > 0
-      ? totalRMultiples.dividedBy(tradesWithRisk)
-      : new Decimal(0);
 
-  let cumulativeProfit = new Decimal(0),
-    peakEquity = new Decimal(0),
-    maxDrawdown = new Decimal(0);
-  sortedClosedTrades.forEach((trade) => {
-    cumulativeProfit = cumulativeProfit.plus(getTradePnL(trade));
-    if (cumulativeProfit.gt(peakEquity)) peakEquity = cumulativeProfit;
-    const drawdown = peakEquity.minus(cumulativeProfit);
-    if (drawdown.gt(maxDrawdown)) maxDrawdown = drawdown;
-  });
+  let cumulativeProfit = new Decimal(0);
+  let peakEquity = new Decimal(0);
+  let maxDrawdown = new Decimal(0);
 
-  const recoveryFactor = maxDrawdown.gt(0)
-    ? cumulativeProfit.dividedBy(maxDrawdown)
-    : new Decimal(0);
-  const lossRate =
-    totalTrades > 0 ? (lostTrades.length / totalTrades) * 100 : 0;
-  const expectancy = new Decimal(winRate / 100)
-    .times(avgWin)
-    .minus(new Decimal(lossRate / 100).times(avgLossOnly));
+  let totalProfitLong = new Decimal(0);
+  let totalLossLong = new Decimal(0);
+  let totalProfitShort = new Decimal(0);
+  let totalLossShort = new Decimal(0);
 
-  let totalProfitLong = new Decimal(0),
-    totalLossLong = new Decimal(0),
-    totalProfitShort = new Decimal(0),
-    totalLossShort = new Decimal(0);
-  closedTrades.forEach((trade) => {
-    const pnl = getTradePnL(trade);
-    if (trade.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
-      if (pnl.gte(0)) totalProfitLong = totalProfitLong.plus(pnl);
-      else totalLossLong = totalLossLong.plus(pnl.abs());
-    } else {
-      if (pnl.gte(0)) totalProfitShort = totalProfitShort.plus(pnl);
-      else totalLossShort = totalLossShort.plus(pnl.abs());
-    }
-  });
+  let currentWinningStreak = 0;
+  let longestWinningStreak = 0;
+  let currentLosingStreak = 0;
+  let longestLosingStreak = 0;
 
-  let longestWinningStreak = 0,
-    currentWinningStreak = 0,
-    longestLosingStreak = 0,
-    currentLosingStreak = 0,
-    currentStreakText = "N/A";
-  sortedClosedTrades.forEach((trade) => {
-    if (trade.status === "Won") {
-      currentWinningStreak++;
-      currentLosingStreak = 0;
-      if (currentWinningStreak > longestWinningStreak)
-        longestWinningStreak = currentWinningStreak;
-    } else {
-      currentLosingStreak++;
-      currentWinningStreak = 0;
-      if (currentLosingStreak > longestLosingStreak)
-        longestLosingStreak = currentLosingStreak;
-    }
-  });
-  if (sortedClosedTrades.length > 0) {
-    const lastIsWin =
-      sortedClosedTrades[sortedClosedTrades.length - 1].status === "Won";
-    let streak = 0;
-    for (let i = sortedClosedTrades.length - 1; i >= 0; i--) {
-      if (
-        (lastIsWin && sortedClosedTrades[i].status === "Won") ||
-        (!lastIsWin && sortedClosedTrades[i].status === "Lost")
-      )
-        streak++;
-      else break;
-    }
-    currentStreakText = `${lastIsWin ? "W" : "L"}${streak}`;
+  // Single Pass Loop
+  for (const trade of sortedTrades) {
+      totalTrades++;
+      const pnl = getTradePnL(trade);
+      const isWin = trade.status === "Won";
+      const isLoss = trade.status === "Lost";
+
+      // Win Stats
+      if (isWin) {
+          wonCount++;
+          const profit = new Decimal(trade.totalNetProfit || 0);
+          totalProfit = totalProfit.plus(profit);
+          if (profit.gt(maxProfit)) maxProfit = profit;
+      }
+
+      // Loss Stats
+      if (isLoss) {
+          lostCount++;
+          const loss = new Decimal(trade.riskAmount || 0);
+          totalLoss = totalLoss.plus(loss);
+          if (loss.gt(maxLoss)) maxLoss = loss;
+      }
+
+      // Streak Logic (Original behavior: Won vs Everything Else)
+      if (isWin) {
+          currentWinningStreak++;
+          currentLosingStreak = 0;
+          if (currentWinningStreak > longestWinningStreak) longestWinningStreak = currentWinningStreak;
+      } else {
+          currentLosingStreak++;
+          currentWinningStreak = 0;
+          if (currentLosingStreak > longestLosingStreak) longestLosingStreak = currentLosingStreak;
+      }
+
+      // Avg RR
+      if (trade.totalRR) {
+          totalRRSum = totalRRSum.plus(new Decimal(trade.totalRR));
+      }
+
+      // R Multiple
+      if (trade.riskAmount && new Decimal(trade.riskAmount).gt(0)) {
+          const rMultiple = isWin
+            ? new Decimal(trade.totalNetProfit || 0).dividedBy(new Decimal(trade.riskAmount))
+            : new Decimal(-1);
+
+          totalRMultiples = totalRMultiples.plus(rMultiple);
+          tradesWithRisk++;
+      }
+
+      // Drawdown
+      cumulativeProfit = cumulativeProfit.plus(pnl);
+      if (cumulativeProfit.gt(peakEquity)) peakEquity = cumulativeProfit;
+      const drawdown = peakEquity.minus(cumulativeProfit);
+      if (drawdown.gt(maxDrawdown)) maxDrawdown = drawdown;
+
+      // Long/Short Breakdown
+      if (trade.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
+          if (pnl.gte(0)) totalProfitLong = totalProfitLong.plus(pnl);
+          else totalLossLong = totalLossLong.plus(pnl.abs());
+      } else {
+          if (pnl.gte(0)) totalProfitShort = totalProfitShort.plus(pnl);
+          else totalLossShort = totalLossShort.plus(pnl.abs());
+      }
+  }
+
+  // Derived Stats
+  const winRate = totalTrades > 0 ? (wonCount / totalTrades) * 100 : 0;
+
+  const profitFactor = totalLoss.gt(0)
+    ? totalProfit.dividedBy(totalLoss)
+    : totalProfit.gt(0) ? new Decimal(Infinity) : new Decimal(0);
+
+  const avgRR = totalTrades > 0 ? totalRRSum.dividedBy(totalTrades) : new Decimal(0);
+
+  const avgWin = wonCount > 0 ? totalProfit.dividedBy(wonCount) : new Decimal(0);
+  const avgLossOnly = lostCount > 0 ? totalLoss.dividedBy(lostCount) : new Decimal(0);
+
+  const winLossRatio = avgLossOnly.gt(0) ? avgWin.dividedBy(avgLossOnly) : new Decimal(0);
+
+  const avgRMultiple = tradesWithRisk > 0 ? totalRMultiples.dividedBy(tradesWithRisk) : new Decimal(0);
+
+  const recoveryFactor = maxDrawdown.gt(0) ? cumulativeProfit.dividedBy(maxDrawdown) : new Decimal(0);
+
+  const lossRate = totalTrades > 0 ? (lostCount / totalTrades) * 100 : 0;
+  const expectancy = new Decimal(winRate / 100).times(avgWin).minus(new Decimal(lossRate / 100).times(avgLossOnly));
+
+  // Current Streak Text
+  let currentStreakText = "N/A";
+  if (totalTrades > 0) {
+      const lastIsWin = sortedTrades[sortedTrades.length - 1].status === "Won";
+      if (lastIsWin) {
+          currentStreakText = `W${currentWinningStreak}`;
+      } else {
+          currentStreakText = `L${currentLosingStreak}`;
+      }
   }
 
   return {
@@ -272,8 +260,8 @@ export function calculatePerformanceStats(
     avgWin,
     avgLossOnly,
     winLossRatio,
-    largestProfit,
-    largestLoss,
+    largestProfit: maxProfit,
+    largestLoss: maxLoss,
     maxDrawdown,
     recoveryFactor,
     currentStreakText,
