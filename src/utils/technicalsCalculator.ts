@@ -191,6 +191,7 @@ export function calculateIndicatorsFromArrays(
   const indSeries: Record<string, number[] | Float64Array> = {};
 
   try {
+    try {
     // 1. RSI
     if (shouldCalculate('rsi')) {
       const rsiLen = settings?.rsi?.length || 14;
@@ -835,13 +836,6 @@ export function calculateIndicatorsFromArrays(
 
   const confluence = ConfluenceAnalyzer.analyze(partialData);
 
-  // Cleanup buffers if pool was used
-  if (pool) {
-      for (const buf of cleanupBuffers) {
-          pool.release(buf);
-      }
-  }
-
   return {
     oscillators,
     movingAverages,
@@ -853,6 +847,14 @@ export function calculateIndicatorsFromArrays(
     confluence,
     advanced: advancedInfo,
   };
+  } finally {
+    // Cleanup buffers if pool was used
+    if (pool) {
+        for (const buf of cleanupBuffers) {
+            pool.release(buf);
+        }
+    }
+  }
 }
 
 export function getEmptyData(): TechnicalsData {

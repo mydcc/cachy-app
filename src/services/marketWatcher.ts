@@ -394,7 +394,8 @@ class MarketWatcher {
           const klines = await apiService.fetchBitunixKlines(symbol, tf, limit, undefined, Date.now());
 
           if (klines && klines.length > 0) {
-              marketState.updateSymbolKlines(symbol, tf, klines, "rest");
+              const filled = this.fillGaps(klines, safeTfToMs(tf));
+              marketState.updateSymbolKlines(symbol, tf, filled, "rest");
               shouldRefresh = true;
           }
           return true;
@@ -442,8 +443,9 @@ class MarketWatcher {
         const klines1 = await apiService.fetchBitunixKlines(symbol, tf, initialLimit, undefined, Date.now());
 
         if (klines1 && klines1.length > 0) {
-            marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
-            storageService.saveKlines(symbol, tf, klines1); // Async save
+            const filled1 = this.fillGaps(klines1, safeTfToMs(tf));
+            marketState.updateSymbolKlines(symbol, tf, filled1, "rest");
+            storageService.saveKlines(symbol, tf, filled1); // Async save
 
             // Check if we have enough history now
             const currentLen = klines1.length;
@@ -505,7 +507,8 @@ class MarketWatcher {
                     }
 
                     // Success: Buffer for batch update
-                    backfillBuffer.push(...batch);
+                    const filledBatch = this.fillGaps(batch, safeTfToMs(tf));
+                    backfillBuffer.push(...filledBatch);
                     batchesSubSinceUpdate++;
                     
                     // Update counters for next iteration
@@ -544,24 +547,14 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+  private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (klines.length < 2) return klines;
 
-      // Hardening: Validate first item structure before access
-      const firstVal = KlineRawSchema.safeParse(klines[0]);
-      if (!firstVal.success) {
-          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
-      }
-
-      const filled: KlineRaw[] = [klines[0]];
+      const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
           const curr = klines[i];
-
-          // Hardening: Basic structural check for current item
-          if (!curr || typeof curr.time !== 'number') continue;
 
           // Check for gap (> 1 interval + small buffer for jitter)
           if (curr.time - prev.time > intervalMs * 1.1) {
@@ -579,11 +572,11 @@ class MarketWatcher {
                   // [OPTIMIZATION] Use shared ZERO_VOL
                   filled.push({
                       time: nextTime,
-                      open: String(prev.close),
-                      high: String(prev.close),
-                      low: String(prev.close),
-                      close: String(prev.close),
-                      volume: "0"
+                      open: prev.close,
+                      high: prev.close,
+                      low: prev.close,
+                      close: prev.close,
+                      volume: MarketWatcher.ZERO_VOL
                   });
                   nextTime += intervalMs;
                   gapCount++;
@@ -621,7 +614,8 @@ class MarketWatcher {
         const newKlines = await apiService.fetchBitunixKlines(symbol, tf, 200, undefined, oldestTime - 1);
 
         if (newKlines && newKlines.length > 0) {
-            marketState.updateSymbolKlines(symbol, tf, newKlines, "rest", false);
+            const filled = this.fillGaps(newKlines, safeTfToMs(tf));
+            marketState.updateSymbolKlines(symbol, tf, filled, "rest", false);
             return true;
         }
         return false;
@@ -685,8 +679,9 @@ class MarketWatcher {
                   : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
 
                 if (klines && klines.length > 0) {
-                  marketState.updateSymbolKlines(symbol, tf, klines, "rest");
-                  storageService.saveKlines(symbol, tf, klines);
+                  const filled = this.fillGaps(klines, safeTfToMs(tf));
+                  marketState.updateSymbolKlines(symbol, tf, filled, "rest");
+                  storageService.saveKlines(symbol, tf, filled);
                 }
             }
         } catch (e) {
