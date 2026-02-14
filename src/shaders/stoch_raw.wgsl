@@ -2,8 +2,7 @@
 @group(0) @binding(1) var<storage, read> low_data: array<f32>;
 @group(0) @binding(2) var<storage, read> close_data: array<f32>;
 @group(0) @binding(3) var<storage, read_write> k_line: array<f32>;
-@group(0) @binding(4) var<storage, read_write> d_line: array<f32>;
-@group(0) @binding(5) var<uniform> params: Params;
+@group(0) @binding(4) var<uniform> params: Params;
 
 struct Params {
     k_len: u32,
@@ -12,21 +11,10 @@ struct Params {
     data_len: u32,
 };
 
-// Stochastic is tricky because it has multiple outputs (K and D) and inputs (H, L, C).
-// Our generic compute currently supports 1 output and N inputs. 
-// We can run this in 2 passes or update generic compute.
-// For now, let's implement just the %K calculation (Raw K) in one shader.
-// %D is just an SMA of %K. We can reuse the SMA shader for that!
-// So this shader only calculates Raw %K.
-
-// Actually, typical Stoch is:
-// 1. Raw %K = (Close - LowestLow) / (HighestHigh - LowestLow) * 100
-// 2. Smooth %K = SMA(Raw %K, k_smooth)
-// 3. %D = SMA(Smooth %K, d_len)
-
-// So we only need a shader for "Raw %K". 
+// Stochastic Raw %K Calculation
 // Inputs: High, Low, Close.
 // Output: Raw %K.
+// %D and Smooth %K are calculated via subsequent SMA passes on CPU/GPU.
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {

@@ -7,31 +7,19 @@
 @group(0) @binding(6) var<uniform> params: Params;
 
 struct Params {
-    factor: f32, // Passed as float? No, params buffer is u32/f32 mixed...
-    // We update generic compute to write params as f32 array?
-    // Or we pass factor as separate uniform buffer?
-    // Or we encode it.
-    // Let's assume we update compute method to allow params to be Float32Array!
+    factor: f32,
     data_len: u32,
 };
 
-// Issue: Our generic `compute` takes `params: number[]` and writes to `buffers.push(paramsBuffer)` as `Uint32Array`. 
-// If we pass a float factor, it will be garbled.
-// WE MUST FIX THIS in WebGpuCalculator.ts before using float params.
-// Plan: Allow passing `paramsType: 'u32' | 'f32' | 'mixed'`?
-// Or just use 2 param buffers (int_params, float_params).
-// For now, let's write the shader expecting `params` to be struct of `data_len` (u32, stored as f32?) no.
-
-// To unblock: We will update WebGpuCalculator to use `Float32Array` for params if we request it, OR we pass factor as a separate 1-element buffer.
-// Let's assume we pass factor as `input_factor` buffer of length 1? No, uniform is better.
-// Let's assume we update WebGpuCalculator to support `floatParams`.
+// Generic compute now supports mixed params via ArrayBuffer and multiple outputs.
+// No specialized workaround needed in shader logic, just matching bindings.
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if (global_id.x > 0) { return; }
 
     let count = params.data_len;
-    let factor = params.factor; // Assuming we fix param passing
+    let factor = params.factor;
 
     // Initial state
     var trend = 1.0;
@@ -93,7 +81,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         
         output_supertrend[i] = supertrend;
         output_trend[i] = trend;
-        
-        // Update state for next iter (upper_band/lower_band are updated)
     }
 }
