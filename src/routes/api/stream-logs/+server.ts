@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { logger } from "$lib/server/logger";
+import { logger, type LogEntry } from "$lib/server/logger";
 import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 
@@ -46,7 +46,7 @@ export const GET: RequestHandler = ({ request, url }) => {
   const stream = new ReadableStream({
     start(controller) {
       // Callback function to handle new logs
-      const onLog = (logEntry: any) => {
+      const onLog = (logEntry: LogEntry) => {
         try {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
