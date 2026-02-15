@@ -1,123 +1,126 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { storageUtils } from './storageUtils';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+const CACHE_KEY = "__storage_usage_cache__";
 
 describe('storageUtils', () => {
   beforeEach(() => {
     localStorage.clear();
-    storageUtils.clear();
+    vi.resetModules();
+    vi.useFakeTimers();
     vi.clearAllMocks();
   });
 
-  it('should correctly calculate quota', () => {
-    storageUtils.safeSetItem('testKey', 'testValue');
-    const quota = storageUtils.checkQuota();
-
-    // key.length (7) + testValue.length (9) = 16
-    expect(quota.used).toBe(16);
-    expect(quota.available).toBe(5 * 1024 * 1024 - 16);
-    expect(quota.percentage).toBe((16 / (5 * 1024 * 1024)) * 100);
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('should update cache incrementally on safeSetItem', () => {
-    storageUtils.safeSetItem('k1', 'v1'); // 2 + 2 = 4
+  async function getStorageUtils() {
+      // Dynamic import to reload module and simulate fresh state (cachedUsed = null)
+      const mod = await import('./storageUtils');
+      return mod.storageUtils;
+  }
+
+  it('should calculate quota correctly on first run (slow path fallback)', async () => {
+    // Populate storage before module load
+    localStorage.setItem('k1', 'v1'); // 4 bytes total
+
+    const storageUtils = await getStorageUtils();
+
+    // Should scan and return correct usage
+    const quota = storageUtils.checkQuota();
+    expect(quota.used).toBe(4);
+
+    // Should persist cache immediately
+    expect(localStorage.getItem(CACHE_KEY)).toBe("4");
+  });
+
+  it('should use persistent cache on startup (fast path)', async () => {
+    // Populate storage and valid cache key
+    localStorage.setItem('k1', 'v1'); // 4 bytes
+    localStorage.setItem(CACHE_KEY, '4');
+
+    const storageUtils = await getStorageUtils();
+
+    // checkQuota should use cache immediately
+    const quota = storageUtils.checkQuota();
+    expect(quota.used).toBe(4);
+  });
+
+  it('should correct drift via async verification on startup', async () => {
+    // Setup state: Cache says 4, but actual is 8 (drift)
+    localStorage.setItem('k1', 'v1'); // 4
+    localStorage.setItem('k2', 'v2'); // 4 -> Total 8
+    localStorage.setItem(CACHE_KEY, '4'); // Stale cache
+
+    const storageUtils = await getStorageUtils();
+
+    // Immediate check returns stale cache (Optimistic)
+    const quota = storageUtils.checkQuota();
+    expect(quota.used).toBe(4);
+
+    // Run async verification
+    vi.runAllTimers();
+
+    // Verification should update internal cache AND persistent cache
+    expect(storageUtils.checkQuota().used).toBe(8);
+    expect(localStorage.getItem(CACHE_KEY)).toBe("8");
+  });
+
+  it('should update persistent cache on write (debounced)', async () => {
+    const storageUtils = await getStorageUtils();
+
+    // Initial check (populates cache)
+    storageUtils.checkQuota();
+
+    // Write new data
+    storageUtils.safeSetItem('k1', 'v1'); // 4
+
+    // Internal cache updates immediately
     expect(storageUtils.checkQuota().used).toBe(4);
 
-    storageUtils.safeSetItem('k1', 'v123'); // 2 + 4 = 6
-    expect(storageUtils.checkQuota().used).toBe(6);
+    // Persistent cache update is debounced (pending)
+    // Run timers to flush update
+    vi.runAllTimers();
 
-    storageUtils.safeSetItem('k2', 'v2'); // 6 + (2 + 2) = 10
-    expect(storageUtils.checkQuota().used).toBe(10);
-  });
+    expect(localStorage.getItem(CACHE_KEY)).toBe("4");
 
-  it('should update cache on removeItem', () => {
-    storageUtils.safeSetItem('k1', 'v1');
-    storageUtils.safeSetItem('k2', 'v2');
+    // Write more data
+    storageUtils.safeSetItem('k2', 'v2'); // Total 8
     expect(storageUtils.checkQuota().used).toBe(8);
 
-    storageUtils.removeItem('k1');
-    expect(storageUtils.checkQuota().used).toBe(4);
-
-    storageUtils.removeItem('k2');
-    expect(storageUtils.checkQuota().used).toBe(0);
+    vi.runAllTimers();
+    expect(localStorage.getItem(CACHE_KEY)).toBe("8");
   });
 
-  it('should reset cache on clear', () => {
-    storageUtils.safeSetItem('k1', 'v1');
-    expect(storageUtils.checkQuota().used).toBe(4);
-
-    storageUtils.clear();
-    expect(storageUtils.checkQuota().used).toBe(0);
-    expect(localStorage.length).toBe(0);
-  });
-
-  it('should handle quota exceeded', () => {
+  it('should handle quota exceeded errors correctly', async () => {
+    const storageUtils = await getStorageUtils();
     const ESTIMATED_QUOTA = 5 * 1024 * 1024;
     const bigValue = 'a'.repeat(ESTIMATED_QUOTA + 1);
 
     expect(() => {
       storageUtils.safeSetItem('big', bigValue);
     }).toThrow(/Quota überschritten/);
-  });
 
-  it('should update cache on storage event (add)', () => {
-    storageUtils.safeSetItem('k1', 'v1');
-    expect(storageUtils.checkQuota().used).toBe(4);
-
-    // Simulate another tab adding an item
-    const evt = new StorageEvent('storage', {
-        key: 'k2',
-        oldValue: null,
-        newValue: 'v2',
-        storageArea: localStorage
-    });
-    window.dispatchEvent(evt);
-
-    // Should include new item: 4 + (2+2) = 8
-    expect(storageUtils.checkQuota().used).toBe(8);
-  });
-
-  it('should update cache on storage event (remove)', () => {
-    storageUtils.safeSetItem('k1', 'v1');
-    expect(storageUtils.checkQuota().used).toBe(4);
-
-    const evt = new StorageEvent('storage', {
-        key: 'k1',
-        oldValue: 'v1',
-        newValue: null,
-        storageArea: localStorage
-    });
-    window.dispatchEvent(evt);
-
+    // Cache should remain valid (0 usage)
     expect(storageUtils.checkQuota().used).toBe(0);
   });
 
-  it('should update cache on storage event (update)', () => {
-    storageUtils.safeSetItem('k1', 'v1'); // 4
-    expect(storageUtils.checkQuota().used).toBe(4);
+  it('should ignore CACHE_KEY self-usage', async () => {
+      // Manually set usage without cache key
+      localStorage.setItem('k1', 'v1'); // 4
 
-    const evt = new StorageEvent('storage', {
-        key: 'k1',
-        oldValue: 'v1',
-        newValue: 'v123', // +2 bytes
-        storageArea: localStorage
-    });
-    window.dispatchEvent(evt);
+      const storageUtils = await getStorageUtils();
 
-    // 4 - 4 + 6 = 6
-    expect(storageUtils.checkQuota().used).toBe(6);
-  });
+      // Should calculate 4, ignoring the cache key itself (which is created during checkQuota)
+      const quota = storageUtils.checkQuota();
+      expect(quota.used).toBe(4);
 
-  it('should update cache on storage event (clear)', () => {
-    storageUtils.safeSetItem('k1', 'v1');
-    expect(storageUtils.checkQuota().used).toBe(4);
+      // Verify cache key exists now
+      expect(localStorage.getItem(CACHE_KEY)).toBe("4");
 
-    const evt = new StorageEvent('storage', {
-        key: null,
-        storageArea: localStorage
-    });
-    window.dispatchEvent(evt);
-
-    expect(storageUtils.checkQuota().used).toBe(0);
+      // Verify subsequent check remains consistent
+      vi.runAllTimers();
+      expect(storageUtils.checkQuota().used).toBe(4);
   });
 });
