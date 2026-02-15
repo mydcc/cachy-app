@@ -20,7 +20,7 @@
     import { _ } from "../../../locales/i18n";
     import { windowManager } from "../WindowManager.svelte";
     import type { DialogWindow } from "./DialogWindow.svelte";
-    import { sanitizeHtml } from "../../../utils/sanitizer";
+    import { sanitizeHtml } from "$lib/utils/sanitizer";
     import { trackClick } from "../../../lib/actions";
 
     interface Props {

@@ -20,7 +20,7 @@
   import { _ } from "../../locales/i18n";
   import { fly } from "svelte/transition";
   import { onMount } from "svelte";
-  import { sanitizeHtml } from "../../utils/sanitizer";
+  import { sanitizeHtml } from "$lib/utils/sanitizer";
 
   let visible = $state(false);
 
