@@ -19,6 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { chatStore, type ChatMessage } from "$lib/server/chatStore";
 import { checkAppAuth } from "../../../lib/server/auth";
+import { sanitizeChatInput } from "$lib/server/sanitizer";
 
 export const GET: RequestHandler = async ({ url, request }) => {
   const authError = checkAppAuth(request);
@@ -52,9 +53,12 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Message text is required" }, { status: 400 });
     }
 
+    // Sanitize input to prevent Stored XSS
+    const sanitizedText = sanitizeChatInput(text);
+
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
-      text: text.slice(0, 500), // Limit length per message
+      text: sanitizedText.slice(0, 500), // Limit length per message
       sender: sender || "user",
       timestamp: Date.now(),
       profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
