@@ -20,7 +20,6 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import { uiState } from "../../stores/ui.svelte";
-  import Button from "./Button.svelte";
   import { _ } from "../../locales/i18n";
   import type { OMSPosition } from "../../services/omsTypes";
 
