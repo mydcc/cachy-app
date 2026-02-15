@@ -128,7 +128,7 @@
                         
                         <label class="toggle-card mb-3">
                             <div class="flex flex-col">
-                                <span class="text-sm font-medium">Auto-Optimize Engine</span>
+                                <span class="text-sm font-medium">{$_("settings.engine.autoOptimize")}</span>
                                 <span class="text-[10px] text-[var(--text-secondary)]">
                                     Automatically select TypeScript or WebAssembly based on data size
                                 </span>

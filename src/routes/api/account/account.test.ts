@@ -42,7 +42,7 @@ describe('POST /api/account Security', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({ error: 'Invalid request body' });
+    expect(body.error).toContain('Validation Error');
   });
 
   it('should process valid request correctly', async () => {

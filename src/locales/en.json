@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "engine": {
+      "sharedMem": "SharedMem",
+      "autoOptimize": "Auto-Optimize Engine"
+    },
+    "connections": {
+      "serverSecurity": "Server Security"
+    },
+    "visuals": {
+      "minTradeVolume": "Min Trade Volume ($)"
+    }
+  }
+}

@@ -141,6 +141,7 @@ export function calculateIndicatorsFromArrays(
   // Track buffers acquired from pool for cleanup
   const cleanupBuffers: Float64Array[] = [];
 
+  try {
   // Helper to get source array based on config
   const getSource = (sourceType: string): number[] | Float64Array => {
     switch (sourceType) {
@@ -835,13 +836,6 @@ export function calculateIndicatorsFromArrays(
 
   const confluence = ConfluenceAnalyzer.analyze(partialData);
 
-  // Cleanup buffers if pool was used
-  if (pool) {
-      for (const buf of cleanupBuffers) {
-          pool.release(buf);
-      }
-  }
-
   return {
     oscillators,
     movingAverages,
@@ -853,6 +847,14 @@ export function calculateIndicatorsFromArrays(
     confluence,
     advanced: advancedInfo,
   };
+  } finally {
+    // Cleanup buffers if pool was used (CRITICAL FIX: Ensure always released)
+    if (pool) {
+        for (const buf of cleanupBuffers) {
+            pool.release(buf);
+        }
+    }
+  }
 }
 
 export function getEmptyData(): TechnicalsData {

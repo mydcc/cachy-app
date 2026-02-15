@@ -53,7 +53,7 @@
             <span class="cap" class:cap-on={telemetry.capabilities.ts}>TS</span>
             <span class="cap" class:cap-on={telemetry.capabilities.wasm}>WASM</span>
             <span class="cap" class:cap-on={telemetry.capabilities.simd}>SIMD</span>
-            <span class="cap" class:cap-on={telemetry.capabilities.sharedMemory}>SharedMem</span>
+            <span class="cap" class:cap-on={telemetry.capabilities.sharedMemory}>{$_("settings.engine.sharedMem")}</span>
             <span class="cap" class:cap-on={telemetry.capabilities.gpu}>GPU</span>
         </div>
     </div>

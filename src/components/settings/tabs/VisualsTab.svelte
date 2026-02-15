@@ -1276,7 +1276,7 @@
                                 
                                 <!-- Min Volume -->
                                 <div class="field-group">
-                                    <label for="tf-minvol">Min Trade Volume ($): {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
+                                    <label for="tf-minvol">{$_("settings.visuals.minTradeVolume")}: {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
                                     <input id="tf-minvol" type="range" min="0" max="1000000" step="1000"
                                         bind:value={settingsState.tradeFlowSettings.minVolume}
                                         class="range-input" />

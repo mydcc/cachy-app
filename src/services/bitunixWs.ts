@@ -310,6 +310,15 @@ class BitunixWebSocketService {
     this.cleanup("public");
     this.cleanup("private");
 
+    // Explicitly clear synthetic subs to prevent leak
+    // @ts-ignore
+    if (this.syntheticSubs) {
+        // @ts-ignore
+        this.syntheticSubs.clear();
+        // @ts-ignore
+        this.syntheticSubs = null;
+    }
+
     // 4. Force clear any lingering timers manually (Redundancy check)
     if (this.reconnectTimerPublic) { clearTimeout(this.reconnectTimerPublic); this.reconnectTimerPublic = null; }
     if (this.reconnectTimerPrivate) { clearTimeout(this.reconnectTimerPrivate); this.reconnectTimerPrivate = null; }

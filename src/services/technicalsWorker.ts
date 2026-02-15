@@ -22,11 +22,32 @@ interface WorkerState {
     klines: Kline[];
     settings: any;
     enabledIndicators: any;
+    lastAccessed: number;
 }
 const stateMap = new Map<string, WorkerState>();
+const MAX_CACHE_SIZE = 50; // LRU Limit
 
 function getKey(symbol: string, timeframe: string) {
     return `${symbol}:${timeframe}`;
+}
+
+// Simple LRU Eviction
+function pruneCache() {
+    if (stateMap.size <= MAX_CACHE_SIZE) return;
+
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    for (const [key, state] of stateMap.entries()) {
+        if (state.lastAccessed < oldestTime) {
+            oldestTime = state.lastAccessed;
+            oldestKey = key;
+        }
+    }
+
+    if (oldestKey) {
+        stateMap.delete(oldestKey);
+    }
 }
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
@@ -105,8 +126,10 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              stateMap.set(key, {
                  klines: parsedKlines,
                  settings,
-                 enabledIndicators
+                 enabledIndicators,
+                 lastAccessed: Date.now()
              });
+             pruneCache();
 
              const result = calculateAllIndicators(parsedKlines, settings, enabledIndicators);
 
@@ -120,6 +143,8 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              if (!state) {
                  throw new Error("Worker state missing for " + key);
              }
+
+             state.lastAccessed = Date.now();
 
              const newKline: Kline = {
                  time: kline.time,

@@ -1,3 +1,4 @@
+import { z } from "zod";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -38,14 +39,21 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e) {
     return json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  if (!body || typeof body !== "object") {
-    return json({ error: "Invalid request body" }, { status: 400 });
-  }
-  const { exchange, apiKey, apiSecret, passphrase } = body;
 
-  if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  // Zod Validation for Type Safety
+  const AccountSchema = z.object({
+    exchange: z.enum(["bitunix", "bitget"]),
+    apiKey: z.string().min(5),
+    apiSecret: z.string().min(5),
+    passphrase: z.string().optional(),
+  });
+
+  const parseResult = AccountSchema.safeParse(body);
+  if (!parseResult.success) {
+    return json({ error: "Validation Error", details: parseResult.error.issues }, { status: 400 });
   }
+
+  const { exchange, apiKey, apiSecret, passphrase } = parseResult.data;
 
   try {
     let account = null;
@@ -58,17 +66,18 @@ export const POST: RequestHandler = async ({ request }) => {
       const validationError = validateBitgetKeys(apiKey, apiSecret, passphrase);
       if (validationError) return json({ error: validationError }, { status: 400 });
       account = await fetchBitgetAccount(apiKey, apiSecret, passphrase);
-    } else {
-        return json({ error: "Unsupported exchange" }, { status: 400 });
     }
 
     return json(account);
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Security: Sanitize error log
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`Error fetching account from ${exchange}:`, errorMsg);
+    // Redact keys from log
+    const safeMsg = errorMsg.replace(apiKey, "***").replace(apiSecret, "***");
+
+    console.error(`Error fetching account from ${exchange}:`, safeMsg);
     return json(
-      { error: e.message || "Failed to fetch account" },
+      { error: safeMsg || "Failed to fetch account" },
       { status: 500 },
     );
   }

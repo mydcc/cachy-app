@@ -349,7 +349,12 @@ import { afterNavigate } from "$app/navigation";
   <!-- Global Modals -->
   <MarketDashboardModal />
   <!-- ToastManager Removed as not found -->
-  <!-- LoadingSpinner Removed as not found -->
+
+  {#if uiState.isLoading}
+    <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="w-12 h-12 border-4 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  {/if}
 
   <!-- Jules Report Overlay -->
   <!-- Jules Report Overlay -->
