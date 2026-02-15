@@ -29,8 +29,6 @@
 
   let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
-  // Removed local tooltip state
-
   function handleMouseEnter(event: MouseEvent, order: any) {
     const coords = getTooltipPosition(event);
     uiState.showTooltip("order", order, coords.x, coords.y);
