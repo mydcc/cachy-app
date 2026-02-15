@@ -40,7 +40,6 @@
     ontpSl,
   }: Props = $props();
 
-  // Removed local tooltip state
 
   function handleMouseEnter(event: MouseEvent, pos: any) {
     const coords = getTooltipPosition(event);
