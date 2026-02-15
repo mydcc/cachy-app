@@ -47,6 +47,7 @@ import { connectionManager } from "./connectionManager";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { tradeCalculator } from "./tradeCalculator.svelte";
 import { marketAnalyst } from "./marketAnalyst";
+import { serializationService } from "./serializationService";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -293,19 +294,20 @@ export const app = {
     }
   },
 
-  saveJournal: (d: JournalEntry[]) => {
+  saveJournal: async (d: JournalEntry[]) => {
     if (!browser) return;
     try {
+      const json = await serializationService.stringifyAsync(d);
       storageUtils.safeSetItem(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        JSON.stringify(d),
+        json,
       );
     } catch (error) {
       uiState.showError("Speichern fehlgeschlagen.");
     }
   },
 
-  addTrade: () => {
+  addTrade: async () => {
     const currentAppState = tradeState;
     if (!currentAppState.currentTradeData?.positionSize?.gt(0)) {
       uiState.showError("errors.invalidTrade");
@@ -322,34 +324,34 @@ export const app = {
     } as JournalEntry;
 
     journalData.push(newTrade);
-    app.saveJournal(journalData);
+    await app.saveJournal(journalData);
     journalState.set(journalData);
     uiState.showFeedback("save");
   },
 
-  updateTradeStatus: (id: number, newStatus: string) => {
+  updateTradeStatus: async (id: number, newStatus: string) => {
     const journalData = app.getJournal();
     const tradeIndex = journalData.findIndex((t) => t.id == id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex].status = newStatus;
-      app.saveJournal(journalData);
+      await app.saveJournal(journalData);
       journalState.set(journalData);
     }
   },
 
-  updateTrade: (id: number, updates: Partial<JournalEntry>) => {
+  updateTrade: async (id: number, updates: Partial<JournalEntry>) => {
     const journalData = app.getJournal();
     const tradeIndex = journalData.findIndex((t) => t.id == id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex] = { ...journalData[tradeIndex], ...updates };
-      app.saveJournal(journalData);
+      await app.saveJournal(journalData);
       journalState.set(journalData);
     }
   },
 
-  deleteTrade: (id: number) => {
+  deleteTrade: async (id: number) => {
     const d = app.getJournal().filter((t) => t.id != id);
-    app.saveJournal(d);
+    await app.saveJournal(d);
     journalState.set(d);
   },
 
@@ -360,7 +362,7 @@ export const app = {
       "confirm",
     );
     if (confirmed) {
-      app.saveJournal([]);
+      await app.saveJournal([]);
       journalState.set([]);
     }
   },
@@ -470,7 +472,7 @@ export const app = {
           const unique = Array.from(
             new Map(combined.map((t) => [t.id, t])).values(),
           );
-          app.saveJournal(unique);
+          await app.saveJournal(unique);
           journalState.set(unique);
         }
       }

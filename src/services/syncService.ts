@@ -29,6 +29,7 @@ import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
+import { serializationService } from "./serializationService";
 
 // --- Helper Functions for Optimization ---
 
@@ -454,7 +455,7 @@ export const syncService = {
           );
 
           journalState.set(updatedJournal);
-          syncService.saveJournal(updatedJournal);
+          await syncService.saveJournal(updatedJournal);
         }
 
         newEntries.push(...validResults);
@@ -496,10 +497,10 @@ export const syncService = {
     }
   },
 
-  saveJournal: (d: JournalEntry[]) => {
+  saveJournal: async (d: JournalEntry[]) => {
     if (!browser) return;
     try {
-      const data = JSON.stringify(d);
+      const data = await serializationService.stringifyAsync(d);
       const success = StorageHelper.safeSave(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
         data,
