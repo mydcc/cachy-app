@@ -559,6 +559,22 @@ class MarketWatcher {
           return klines;
       }
 
+      // Optimization: Fast scan for gaps to avoid allocation in happy path (99% of cases)
+      let hasGaps = false;
+      const threshold = intervalMs * 1.1;
+
+      for (let i = 1; i < klines.length; i++) {
+          // Simple subtraction check is much cheaper than object allocation
+          if (klines[i].time - klines[i-1].time > threshold) {
+              hasGaps = true;
+              break;
+          }
+      }
+
+      if (!hasGaps) {
+          return klines;
+      }
+
       const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
@@ -569,7 +585,7 @@ class MarketWatcher {
           if (!curr || typeof curr.time !== 'number') continue;
 
           // Check for gap (> 1 interval + small buffer for jitter)
-          if (curr.time - prev.time > intervalMs * 1.1) {
+          if (curr.time - prev.time > threshold) {
               let nextTime = prev.time + intervalMs;
               let gapCount = 0;
               // Limit gap fill to prevent freezing on massive gaps (e.g. months of missing data)
