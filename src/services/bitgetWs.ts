@@ -183,8 +183,8 @@ class BitgetWebSocketService {
         if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
         if (this.ws !== ws) return;
 
-        if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-          console.log("%c[WS-Bitget] Connected", "color: #0fa; font-weight: bold;");
+        if (settingsState.enableNetworkLogs) {
+          logger.log("network", "[WS-Bitget] Connected");
         }
         marketState.connectionStatus = "connected";
         marketState.updateTelemetry({ activeConnections: (marketState.telemetry.activeConnections || 0) + 1 });
@@ -360,7 +360,7 @@ class BitgetWebSocketService {
 
       this.ws.send(JSON.stringify(payload));
     } catch (e) {
-      if (import.meta.env.DEV) console.warn("[WS-Bitget] Login error:", e);
+      logger.warn("network", "[WS-Bitget] Login error", e);
     }
   }
 
@@ -378,7 +378,7 @@ class BitgetWebSocketService {
     // Check event response
     if ((msg as any).event === "login" && (msg as any).code === "00000") {
       this.isAuthenticated = true;
-      if (import.meta.env.DEV) console.log("%c[WS-Bitget] Login success", "color: #0fa;");
+      if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
       this.subscribePrivate();
       return;
     }
