@@ -65,13 +65,14 @@ export function calculateAllIndicators(
 
   try {
     // Optimization: Single loop extraction into pre-allocated Float64Arrays
+    // Use .toNumber() directly to avoid string allocation and parsing overhead
     for (let i = 0; i < len; i++) {
       const k = klines[i];
-      highsNum[i] = parseFloat(k.high.toString());
-      lowsNum[i] = parseFloat(k.low.toString());
-      closesNum[i] = parseFloat(k.close.toString());
-      opensNum[i] = parseFloat(k.open.toString());
-      volumesNum[i] = parseFloat(k.volume.toString());
+      highsNum[i] = k.high.toNumber();
+      lowsNum[i] = k.low.toNumber();
+      closesNum[i] = k.close.toNumber();
+      opensNum[i] = k.open.toNumber();
+      volumesNum[i] = k.volume.toNumber();
       timesNum[i] = k.time;
     }
 
