@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: cachy-app
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.3
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=4096"
