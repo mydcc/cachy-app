@@ -28,9 +28,8 @@ import type { Kline, SerializedKline } from "./technicalsTypes";
 import { serializeKline, deserializeKline } from "./technicalsTypes";
 
 const DB_NAME = "CachyDB";
-const DB_VERSION = 1;
-const STORE_KLINES = "klines";
-const MAX_STORED_KLINES = 50000;
+const DB_VERSION = 2;
+const STORE_KLINES = "klines_chunks";
 
 export interface StoredKlines {
     id: string; // symbol:tf
@@ -64,6 +63,9 @@ class StorageService {
 
             request.onupgradeneeded = (event) => {
                 const db = (event.target as IDBOpenDBRequest).result;
+                if (db.objectStoreNames.contains("klines")) {
+                    db.deleteObjectStore("klines");
+                }
                 if (!db.objectStoreNames.contains(STORE_KLINES)) {
                     // Key: symbol:tf (e.g., "BTCUSDT:1h")
                     db.createObjectStore(STORE_KLINES, { keyPath: "id" });
@@ -91,73 +93,82 @@ class StorageService {
 
         try {
             const db = await this.getDB();
-            const id = `${symbol}:${tf}`;
 
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_KLINES, "readwrite");
-                const store = tx.objectStore(STORE_KLINES);
-
-                const getReq = store.get(id);
-
-                getReq.onsuccess = () => {
-                    const existingRecord: StoredKlines = getReq.result;
-                    let mergedData: Kline[];
-
-                    if (existingRecord && existingRecord.data) {
-                        // Merge Strategy: Map by time to deduplicate
-                        const map = new Map<number, Kline>();
-                        existingRecord.data.forEach(k => map.set(k.time, deserializeKline(k)));
-                        newKlines.forEach(k => map.set(k.time, k));
-
-                        // Sort by time
-                        mergedData = Array.from(map.values()).sort((a, b) => a.time - b.time);
-                    } else {
-                        mergedData = [...newKlines].sort((a, b) => a.time - b.time);
-                    }
-
-                    // Hard Limit for Storage
-                    if (mergedData.length > MAX_STORED_KLINES) {
-                        mergedData = mergedData.slice(-MAX_STORED_KLINES);
-                    }
-
-                    const record: StoredKlines = {
-                        id,
-                        symbol,
-                        tf,
-                        data: mergedData.map(serializeKline),
-                        lastUpdated: Date.now()
-                    };
-
-                    const putReq = store.put(record);
-                    putReq.onsuccess = () => {
-                        this.logUsage();
-                        resolve();
-                    };
-                    putReq.onerror = () => reject(putReq.error);
-                };
-
-                getReq.onerror = () => reject(getReq.error);
+            // Group by chunk
+            const chunks = new Map<string, Kline[]>();
+            newKlines.forEach(k => {
+                const chunkId = getChunkId(symbol, tf, k.time);
+                if (!chunks.has(chunkId)) chunks.set(chunkId, []);
+                chunks.get(chunkId)!.push(k);
             });
+
+            const tx = db.transaction(STORE_KLINES, "readwrite");
+            const store = tx.objectStore(STORE_KLINES);
+
+            const promises = Array.from(chunks.entries()).map(([chunkId, klines]) => {
+                return new Promise<void>((resolve, reject) => {
+                    const getReq = store.get(chunkId);
+
+                    getReq.onsuccess = () => {
+                        const existingRecord: StoredKlines = getReq.result;
+                        let mergedData: Kline[];
+
+                        if (existingRecord && existingRecord.data) {
+                            const map = new Map<number, Kline>();
+                            existingRecord.data.forEach(k => map.set(k.time, deserializeKline(k)));
+                            klines.forEach(k => map.set(k.time, k));
+                            mergedData = Array.from(map.values()).sort((a, b) => a.time - b.time);
+                        } else {
+                            mergedData = [...klines].sort((a, b) => a.time - b.time);
+                        }
+
+                        const record: StoredKlines = {
+                            id: chunkId,
+                            symbol,
+                            tf,
+                            data: mergedData.map(serializeKline),
+                            lastUpdated: Date.now()
+                        };
+
+                        const putReq = store.put(record);
+                        putReq.onsuccess = () => resolve();
+                        putReq.onerror = () => reject(putReq.error);
+                    };
+                    getReq.onerror = () => reject(getReq.error);
+                });
+            });
+
+            await Promise.all(promises);
+            this.logUsage();
         } catch (e) {
             logger.error("general", "Error saving klines", e);
         }
     }
 
-    async getKlines(symbol: string, tf: string): Promise<Kline[]> {
+async getKlines(symbol: string, tf: string): Promise<Kline[]> {
         if (!this.isSupported) return [];
 
         try {
             const db = await this.getDB();
-            const id = `${symbol}:${tf}`;
+            // Range query for chunks
+            const startKey = `${symbol}:${tf}:`;
+            const endKey = `${symbol}:${tf}:\uffff`;
+            const range = IDBKeyRange.bound(startKey, endKey);
 
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_KLINES, "readonly");
                 const store = tx.objectStore(STORE_KLINES);
-                const req = store.get(id);
+                const req = store.getAll(range);
 
                 req.onsuccess = () => {
-                    const result: StoredKlines = req.result;
-                    resolve(result ? result.data.map(deserializeKline) : []);
+                    const results: StoredKlines[] = req.result;
+                    if (!results || results.length === 0) {
+                        resolve([]);
+                        return;
+                    }
+                    // Chunks are retrieved in key order (chronological), and data inside is sorted.
+                    const allKlines = results.flatMap(r => r.data.map(deserializeKline));
+                    resolve(allKlines);
                 };
 
                 req.onerror = () => reject(req.error);
@@ -187,6 +198,33 @@ class StorageService {
         const tx = db.transaction(STORE_KLINES, "readwrite");
         tx.objectStore(STORE_KLINES).clear();
     }
+}
+
+
+// --- Helpers ---
+
+function getIntervalMs(tf: string): number {
+    const unit = tf.slice(-1);
+    const value = parseInt(tf.slice(0, -1));
+    if (isNaN(value)) return 60 * 1000; // Default 1m
+
+    switch (unit) {
+        case 'm': return value * 60 * 1000;
+        case 'h': return value * 60 * 60 * 1000;
+        case 'd': return value * 24 * 60 * 60 * 1000;
+        case 'w': return value * 7 * 24 * 60 * 60 * 1000;
+        case 'M': return value * 30 * 24 * 60 * 60 * 1000; // Approx
+        default: return 60 * 1000;
+    }
+}
+
+function getChunkId(symbol: string, tf: string, time: number): string {
+    const intervalMs = getIntervalMs(tf);
+    // 1000 candles per chunk
+    const chunkDuration = intervalMs * 1000;
+    const chunkStart = Math.floor(time / chunkDuration) * chunkDuration;
+    // Pad to 14 chars for lexicographical sorting (covers up to year 5138)
+    return `${symbol}:${tf}:${chunkStart.toString().padStart(14, '0')}`;
 }
 
 export const storageService = new StorageService();
