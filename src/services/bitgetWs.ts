@@ -48,7 +48,7 @@ class BitgetWebSocketService {
   private backoffDelay = RECONNECT_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
 
-  public subscriptions: Set<string> = new Set(); // Stores "channel:symbol"
+  public subscriptions: Map<string, number> = new Map(); // Stores "channel:symbol" -> count
 
   private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -512,13 +512,15 @@ class BitgetWebSocketService {
     }
 
     const subKey = `${channel}:${normalizedSymbol}`;
-    if (this.subscriptions.has(subKey)) return;
-    this.subscriptions.add(subKey);
+    const currentCount = this.subscriptions.get(subKey) || 0;
+    this.subscriptions.set(subKey, currentCount + 1);
 
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.sendSubscribe(this.ws, normalizedSymbol, bitgetChannel);
-    } else {
-      this.connect();
+    if (currentCount === 0) {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.sendSubscribe(this.ws, normalizedSymbol, bitgetChannel);
+      } else {
+        this.connect();
+      }
     }
   }
 
@@ -530,11 +532,17 @@ class BitgetWebSocketService {
     if (!bitgetChannel) return;
 
     const subKey = `${channel}:${normalizedSymbol}`;
-    if (this.subscriptions.has(subKey)) {
-      this.subscriptions.delete(subKey);
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
-      }
+    const currentCount = this.subscriptions.get(subKey) || 0;
+
+    if (currentCount > 0) {
+        if (currentCount === 1) {
+            this.subscriptions.delete(subKey);
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
+            }
+        } else {
+            this.subscriptions.set(subKey, currentCount - 1);
+        }
     }
   }
 
@@ -589,13 +597,13 @@ class BitgetWebSocketService {
   }
 
   private resubscribe() {
-    this.subscriptions.forEach(key => {
-      const [channel, symbol] = key.split(":");
+    for (const subKey of this.subscriptions.keys()) {
+      const [channel, symbol] = subKey.split(":");
       const bitgetChannel = this.getBitgetChannel(channel);
       if (bitgetChannel && this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.sendSubscribe(this.ws, symbol, bitgetChannel);
       }
-    });
+    }
   }
 
   private subscribePrivate() {
