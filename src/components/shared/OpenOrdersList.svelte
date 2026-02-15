@@ -19,7 +19,6 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
-  // import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte"; // Global handled
 
   interface Props {
     orders?: any[];
