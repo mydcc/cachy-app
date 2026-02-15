@@ -58,8 +58,8 @@
     "refresh": "Aktualisieren"
   },
   "sidePanel": {
-    "globalChat": "Globaler Chat",
     "myNotes": "Meine Notizen",
+    "globalChat": "Globaler Chat",
     "aiAssistant": "KI Assistent",
     "clearConfirm": "Verlauf löschen?",
     "clearHistory": "Verlauf löschen",

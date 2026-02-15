@@ -58,8 +58,8 @@
     "refresh": "Refresh"
   },
   "sidePanel": {
-    "globalChat": "Global Chat",
     "myNotes": "My Notes",
+    "globalChat": "Global Chat",
     "aiAssistant": "AI Assistant",
     "clearConfirm": "Clear history?",
     "clearHistory": "Clear History",
