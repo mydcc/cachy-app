@@ -1551,7 +1551,9 @@
     "INVALID_PRICE": "Invalid price formatting",
     "INVALID_TRIGGER": "Invalid triggerPrice formatting",
     "BITUNIX_API_ERROR": "Bitunix API error",
-    "BITGET_API_ERROR": "Bitget API error"
+    "BITGET_API_ERROR": "Bitget API error",
+    "bitunixApiError": "Bitunix API Error {code}",
+    "unknown": "Unknown API Error"
   },
   "connection": {
     "connected": "✓ Connected",
@@ -2057,7 +2059,9 @@
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",
-    "dataError": "Data Inconsistency Detected"
+    "dataError": "Data Inconsistency Detected",
+    "fetchFailed": "Fetch failed",
+    "closeAllFailed": "Failed to close all positions."
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",

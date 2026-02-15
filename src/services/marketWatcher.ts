@@ -29,6 +29,7 @@ import { activeTechnicalsManager } from "./activeTechnicalsManager.svelte";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
+import { generateUUID } from "../utils/utils";
 import { KlineRawSchema, type KlineRaw, type Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
@@ -46,7 +47,7 @@ class MarketWatcher {
   private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
 
   // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
-  private pendingRequests = new Map<string, Promise<void>>();
+  private pendingRequests = new Map<string, { promise: Promise<void>; id: string }>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
   
@@ -648,10 +649,11 @@ class MarketWatcher {
 
     // Request Deduplication
     if (this.pendingRequests.has(lockKey)) {
-        return this.pendingRequests.get(lockKey);
+        return this.pendingRequests.get(lockKey)!.promise;
     }
 
     this.inFlight++;
+    const requestId = generateUUID();
 
     // Create the Promise wrapper
     const requestPromise = (async () => {
@@ -675,6 +677,11 @@ class MarketWatcher {
                   priority,
                   timeoutMs
                 );
+
+                // Zombie Check: Only update if request ID matches
+                const active = this.pendingRequests.get(lockKey);
+                if (!active || active.id !== requestId) return;
+
                 marketState.updateSymbol(symbol, {
                   lastPrice: data.lastPrice,
                   highPrice: data.highPrice,
@@ -689,6 +696,10 @@ class MarketWatcher {
                   ? apiService.fetchBitgetKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs)
                   : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
 
+                // Zombie Check
+                const active = this.pendingRequests.get(lockKey);
+                if (!active || active.id !== requestId) return;
+
                 if (klines && klines.length > 0) {
                   const filled = this.fillGaps(klines, safeTfToMs(tf));
                   marketState.updateSymbolKlines(symbol, tf, filled, "rest");
@@ -696,21 +707,28 @@ class MarketWatcher {
                 }
             }
         } catch (e) {
+            // Zombie Check: Don't log if aborted
+            const active = this.pendingRequests.get(lockKey);
+            if (!active || active.id !== requestId) return;
+
             const now = Date.now();
             if (now - this.lastErrorLog > this.errorLogIntervalMs) {
                 logger.warn("market", `[MarketWatcher] Polling error for ${symbol}/${channel}`, e);
                 this.lastErrorLog = now;
             }
         } finally {
-            // Release lock immediately
-            this.pendingRequests.delete(lockKey);
-            this.requestStartTimes.delete(lockKey);
-            this.inFlight = Math.max(0, this.inFlight - 1);
+            // Safe cleanup: Only delete if WE are the owner
+            const active = this.pendingRequests.get(lockKey);
+            if (active && active.id === requestId) {
+                this.pendingRequests.delete(lockKey);
+                this.requestStartTimes.delete(lockKey);
+                this.inFlight = Math.max(0, this.inFlight - 1);
+            }
         }
     })();
 
     // Store the promise
-    this.pendingRequests.set(lockKey, requestPromise);
+    this.pendingRequests.set(lockKey, { promise: requestPromise, id: requestId });
     return requestPromise;
   }
 

@@ -96,3 +96,73 @@ export function generateBitunixSignature(
     bodyStr,
   };
 }
+
+const BASE_URL = "https://fapi.bitunix.com";
+
+/**
+ * Executes a signed request to the Bitunix API.
+ * Handles signature generation, headers, and error parsing.
+ */
+export async function executeBitunixApiCall(
+  apiKey: string,
+  apiSecret: string,
+  method: "GET" | "POST",
+  path: string,
+  params: Record<string, any> = {}
+) {
+  let queryParams: Record<string, string> = {};
+  let bodyPayload: any = "";
+
+  if (method === "GET") {
+      Object.keys(params).forEach((k) => {
+        if (params[k] !== undefined && params[k] !== null && params[k] !== "") {
+          queryParams[k] = String(params[k]);
+        }
+      });
+  } else {
+      bodyPayload = {};
+      Object.keys(params).forEach((k) => {
+        if (params[k] !== undefined && params[k] !== null) {
+           bodyPayload[k] = params[k];
+        }
+      });
+  }
+
+  const { nonce, timestamp, signature, queryString, bodyStr } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    queryParams,
+    bodyPayload,
+  );
+
+  const url = queryString
+    ? `${BASE_URL}${path}?${queryString}`
+    : `${BASE_URL}${path}`;
+
+  const response = await fetch(url, {
+    method,
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+    body: method === "POST" ? bodyStr : undefined,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
+  }
+
+  const res = await response.json();
+  if (res.code !== 0 && res.code !== "0") {
+    throw new Error(
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
+    );
+  }
+
+  return res.data;
+}

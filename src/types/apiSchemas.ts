@@ -166,6 +166,31 @@ export const TpSlRequestSchema = z.discriminatedUnion("action", [
     ModifyRequest
 ]);
 
+// TP/SL Order Response Schema (Strict)
+export const TpSlOrderSchema = z.object({
+    orderId: z.union([z.string(), z.number()]).transform(String),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]),
+    triggerPrice: z.union([z.string(), z.number()]).transform(String),
+    qty: z.union([z.string(), z.number()]).optional().transform(val => val ? String(val) : undefined),
+    status: z.string(),
+    ctime: z.number().optional(),
+    createTime: z.number().optional(),
+    id: z.string().optional(),
+    planId: z.string().optional(),
+
+    // Optional fields for history/execution
+    side: z.string().optional(),
+    price: z.union([z.string(), z.number()]).optional().transform(val => val ? String(val) : undefined),
+    executePrice: z.union([z.string(), z.number()]).optional().transform(val => val ? String(val) : undefined),
+    clientOrderId: z.string().optional(),
+    reduceOnly: z.boolean().optional(),
+    workingType: z.string().optional(),
+    timeInForce: z.string().optional()
+});
+
+export type TpSlOrderZod = z.infer<typeof TpSlOrderSchema>;
+
 // Type inference
 export type PositionRaw = z.infer<typeof PositionRawSchema>;
 export type TpSlRequest = z.infer<typeof TpSlRequestSchema>;

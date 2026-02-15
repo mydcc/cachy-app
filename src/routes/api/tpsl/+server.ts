@@ -18,13 +18,11 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
-  generateBitunixSignature,
   validateBitunixKeys,
+  executeBitunixApiCall,
 } from "../../../utils/server/bitunix";
 import { checkAppAuth } from "../../../lib/server/auth";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
-
-const BASE_URL = "https://fapi.bitunix.com";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -61,33 +59,37 @@ export const POST: RequestHandler = async ({ request }) => {
     let result = null;
     switch (action) {
       case "pending":
-        result = await fetchBitunixTpSl(
+        result = await executeBitunixApiCall(
           apiKey,
           apiSecret,
+          "GET",
           "/api/v1/futures/tp_sl/get_pending_tp_sl_order",
           params,
         );
         break;
       case "history":
-        result = await fetchBitunixTpSl(
+        result = await executeBitunixApiCall(
           apiKey,
           apiSecret,
+          "GET",
           "/api/v1/futures/tp_sl/get_history_tp_sl_order",
           params,
         );
         break;
       case "cancel":
-        result = await executeBitunixAction(
+        result = await executeBitunixApiCall(
           apiKey,
           apiSecret,
+          "POST",
           "/api/v1/futures/tp_sl/cancel_tp_sl_order",
           params,
         );
         break;
       case "modify":
-        result = await executeBitunixAction(
+        result = await executeBitunixApiCall(
           apiKey,
           apiSecret,
+          "POST",
           "/api/v1/futures/tp_sl/modify_tp_sl_order",
           params,
         );
@@ -129,112 +131,3 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 };
 
-// Helper for GET requests (like fetching lists)
-async function fetchBitunixTpSl(
-  apiKey: string,
-  apiSecret: string,
-  path: string,
-  params: any = {},
-) {
-  // Sort params for signature
-  // Remove undefined/null/empty strings
-  const cleanParams: Record<string, string> = {};
-  Object.keys(params).forEach((k) => {
-    if (params[k] !== undefined && params[k] !== null && params[k] !== "") {
-      cleanParams[k] = String(params[k]);
-    }
-  });
-
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    cleanParams,
-    "", // Body is empty for GET
-  );
-
-  // Only append ? if there are query params
-  const url = queryString
-    ? `${BASE_URL}${path}?${queryString}`
-    : `${BASE_URL}${path}`;
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    const safeText = text.slice(0, 200);
-    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
-  }
-
-  const res = await response.json();
-  if (res.code !== 0 && res.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
-    );
-  }
-
-  return res.data;
-}
-
-// Helper for POST requests (actions)
-async function executeBitunixAction(
-  apiKey: string,
-  apiSecret: string,
-  path: string,
-  payload: any,
-) {
-  // Clean payload
-  const cleanPayload: any = {};
-  Object.keys(payload).forEach((k) => {
-    if (payload[k] !== undefined && payload[k] !== null) {
-      // Ensure we don't accidentally send empty strings if they should be filtered,
-      // though for POST usually specific keys matter.
-      // Bitunix signature requires exact match of body content.
-      cleanPayload[k] = payload[k];
-    }
-  });
-
-  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    {}, // No query params for POST actions usually
-    cleanPayload,
-  );
-
-  const url = `${BASE_URL}${path}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
-    body: bodyStr,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    const safeText = text.slice(0, 200);
-    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
-  }
-
-  const res = await response.json();
-  if (res.code !== 0 && res.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
-    );
-  }
-
-  return res.data;
-}

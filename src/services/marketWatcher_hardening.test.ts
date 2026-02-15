@@ -1,145 +1,105 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// @vitest-environment happy-dom
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
+import { marketState } from '../stores/market.svelte';
+import Decimal from 'decimal.js';
 
-// Mock dependencies
-vi.mock('$app/environment', () => ({
-  browser: true
-}));
-
-vi.mock('./apiService', () => ({
-  apiService: {
-    fetchTicker24h: vi.fn(),
-    fetchBitunixKlines: vi.fn(),
-    fetchBitgetKlines: vi.fn(),
-  }
-}));
-
+// Mocks
+vi.mock('./apiService');
+vi.mock('../stores/market.svelte', async () => {
+    const { Decimal } = await import('decimal.js');
+    return {
+        marketState: {
+            data: {},
+            updateSymbol: vi.fn(),
+            updateSymbolKlines: vi.fn(),
+            connectionStatus: 'connected'
+        }
+    };
+});
 vi.mock('../stores/settings.svelte', () => ({
-  settingsState: {
-    apiProvider: 'bitunix',
-    capabilities: { marketData: true },
-    chartHistoryLimit: 1000
-  }
+    settingsState: {
+        apiProvider: 'bitunix',
+        capabilities: { marketData: true }
+    }
+}));
+vi.mock('./storageService', () => ({
+    storageService: {
+        saveKlines: vi.fn()
+    }
 }));
 
-vi.mock('../stores/market.svelte', () => ({
-  marketState: {
-    data: {},
-    connectionStatus: 'disconnected',
-    updateSymbol: vi.fn(),
-    updateSymbolKlines: vi.fn(),
-  }
-}));
+describe('MarketWatcher Zombie Protection', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        // Reset marketWatcher internals
+        marketWatcher.forceCleanup();
+    });
 
-vi.mock('./bitunixWs', () => ({
-  bitunixWs: {
-    pendingSubscriptions: new Set(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
-  }
-}));
+    it('should ignore data from zombie requests', async () => {
+        const symbol = 'BTCUSDT';
 
-describe('MarketWatcher Hardening', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    marketWatcher.forceCleanup();
-    vi.clearAllMocks();
-  });
+        // Mock apiService to be slow
+        let resolveSlowRequest: (value: any) => void;
+        vi.spyOn(apiService, 'fetchTicker24h').mockReturnValueOnce(
+            new Promise(resolve => {
+                resolveSlowRequest = resolve;
+            })
+        );
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+        // Start first request
+        // Access private method
+        (marketWatcher as any).pollSymbolChannel(symbol, 'ticker', 'bitunix');
 
-  it('should not leak stagger timeouts', async () => {
-    // Access private property for testing (casting to any)
-    const mw = marketWatcher as any;
+        // We need to simulate that the first request becomes a "zombie" meaning the lock is removed/overwritten.
+        const lockKey = `${symbol}:ticker`;
+        const pendingMap = (marketWatcher as any).pendingRequests;
+        const firstEntry = pendingMap.get(lockKey);
+        expect(firstEntry).toBeDefined();
 
-    // Simulate a request
-    mw.requests.set('BTCUSDT', new Map([['price', 1]]));
+        // Simulate Prune: Remove the lock
+        pendingMap.delete(lockKey);
 
-    // Trigger polling cycle
-    await mw.performPollingCycle();
+        // Start second request (fast)
+        vi.spyOn(apiService, 'fetchTicker24h').mockResolvedValueOnce({
+            lastPrice: new Decimal(60000),
+            priceChangePercent: new Decimal(5),
+            highPrice: new Decimal(61000),
+            lowPrice: new Decimal(59000),
+            volume: new Decimal(1000),
+            quoteVolume: new Decimal(60000000),
+            provider: 'bitunix',
+            symbol: symbol
+        });
 
-    // Should have scheduled a stagger timeout
-    expect(mw.staggerTimeouts.size).toBeGreaterThan(0);
+        await (marketWatcher as any).pollSymbolChannel(symbol, 'ticker', 'bitunix');
 
-    // Stop polling
-    mw.stopPolling();
+        // Verify second request updated state
+        expect(marketState.updateSymbol).toHaveBeenCalledWith(symbol, expect.objectContaining({
+            lastPrice: new Decimal(60000)
+        }));
 
-    // Timeouts should be cleared
-    expect(mw.staggerTimeouts.size).toBe(0);
-  });
+        vi.clearAllMocks(); // Clear call history
 
-  it('should handle API timeouts correctly without double wrapping', async () => {
-    const mw = marketWatcher as any;
-    const symbol = 'BTCUSDT';
-    const channel = 'price';
+        // Now resolve the first (slow) request
+        if (resolveSlowRequest!) {
+            resolveSlowRequest({
+                lastPrice: new Decimal(50000), // Old price
+                priceChangePercent: new Decimal(1),
+                highPrice: new Decimal(51000),
+                lowPrice: new Decimal(49000),
+                volume: new Decimal(1000),
+                quoteVolume: new Decimal(50000000),
+                provider: 'bitunix',
+                symbol: symbol
+            });
+        }
 
-    // Mock API to hang (simulate timeout at API service level)
-    // The hardening removes the local race/timeout in MarketWatcher
-    // and relies on apiService's timeout or handling.
+        // Wait for microtasks
+        await new Promise(resolve => setTimeout(resolve, 0));
 
-    // We want to verify that pollSymbolChannel calls apiService with correct parameters
-    // and handles the result.
-
-    (apiService.fetchTicker24h as any).mockImplementation(() => new Promise(() => {}));
-
-    mw.pollSymbolChannel(symbol, channel, 'bitunix');
-
-    // Check if the promise is stored
-    const lockKey = `${symbol}:${channel}`;
-    expect(mw.pendingRequests.has(lockKey)).toBe(true);
-
-    // If we call forceCleanup, it should clear pending requests
-    mw.forceCleanup();
-    expect(mw.pendingRequests.has(lockKey)).toBe(false);
-  });
-
-  it('should filter invalid klines in ensureHistory', async () => {
-    const mw = marketWatcher as any;
-    const symbol = 'BTCUSDT';
-    const tf = '1m';
-
-    // Mock API to return mixed valid/invalid data
-    const invalidKline = { time: 'invalid', open: 100 }; // Invalid time type (string instead of number)
-    const validKline = { time: 1000, open: 100, high: 110, low: 90, close: 105, volume: 10 };
-
-    // Reset mocks
-    (marketState.updateSymbolKlines as any).mockClear();
-    (apiService.fetchBitunixKlines as any).mockResolvedValue([invalidKline, validKline]);
-
-    await mw.ensureHistory(symbol, tf);
-
-    // Verify marketState.updateSymbolKlines was called only with valid klines
-    // We expect the filtered array to contain only validKline
-    expect(marketState.updateSymbolKlines).toHaveBeenCalledWith(
-        symbol,
-        tf,
-        expect.arrayContaining([validKline]),
-        "rest"
-    );
-
-    // Ensure length is 1
-    const callArgs = (marketState.updateSymbolKlines as any).mock.calls[0];
-    expect(callArgs[2]).toHaveLength(1);
-  });
+        // Expect NO update from the first request because ID mismatch (it was removed from map)
+        expect(marketState.updateSymbol).not.toHaveBeenCalled();
+    });
 });

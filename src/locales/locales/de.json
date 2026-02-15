@@ -1571,7 +1571,9 @@
     "INVALID_PRICE": "Invalid price formatting",
     "INVALID_TRIGGER": "Invalid triggerPrice formatting",
     "BITUNIX_API_ERROR": "Bitunix API error",
-    "BITGET_API_ERROR": "Bitget API error"
+    "BITGET_API_ERROR": "Bitget API error",
+    "bitunixApiError": "Bitunix API Fehler {code}",
+    "unknown": "Unbekannter API Fehler"
   },
   "connection": {
     "connected": "✓ Verbunden",
@@ -2045,7 +2047,9 @@
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",
     "positionMismatch": "Position Seite stimmt nicht überein (erwartet {expected}, erhalten {actual})",
-    "dataError": "Dateninkonsistenz erkannt"
+    "dataError": "Dateninkonsistenz erkannt",
+    "fetchFailed": "Abrufen fehlgeschlagen",
+    "closeAllFailed": "Fehler beim Schließen aller Positionen."
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",

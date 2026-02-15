@@ -31,42 +31,24 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
+import { generateUUID } from "../utils/utils";
+import { PositionRawSchema, type PositionRaw, TpSlOrderSchema, type TpSlOrderZod } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
-export interface TpSlOrder {
-    orderId: string;
-    symbol: string;
-    planType: "PROFIT" | "LOSS";
-    triggerPrice: string;
-    qty?: string;
-    status: string;
-    ctime?: number;
-    createTime?: number;
-    id?: string;
-    planId?: string;
-    // Hardened types
-    side?: string;
-    price?: string;
-    executePrice?: string;
-    clientOrderId?: string;
-    reduceOnly?: boolean;
-    workingType?: string;
-    timeInForce?: string;
-    [key: string]: unknown; // Safer than any
-}
+// Use the Zod type definition
+export type TpSlOrder = TpSlOrderZod;
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
-        super(message || `Bitunix API Error ${code}`);
+        super(message || `apiErrors.bitunixApiError`); // Code accessible via .code
         this.name = "BitunixApiError";
     }
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
-    FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
+    FETCH_FAILED: "tradeErrors.fetchFailed",
+    CLOSE_ALL_FAILED: "tradeErrors.closeAllFailed"
 };
 
 export class TradeError extends Error {
@@ -128,7 +110,7 @@ class TradeService {
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "Unknown API Error");
+            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "apiErrors.unknown");
         }
 
         return data;
@@ -144,8 +126,8 @@ class TradeService {
         if (!payload) return payload;
         if (payload instanceof Decimal) return payload.toString();
 
-        // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
-        if (typeof payload === 'object' && payload !== null && typeof payload.isZero === 'function' && typeof payload.toFixed === 'function') {
+        // Strict Decimal check
+        if (payload instanceof Decimal || (typeof payload === 'object' && payload !== null && (payload.constructor?.name === 'Decimal' || Decimal.isDecimal(payload)))) {
             return payload.toString();
         }
 
@@ -241,7 +223,7 @@ class TradeService {
         const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
 
         // OPTIMISTIC UPDATE
-        const clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+        const clientOrderId = "opt-" + generateUUID();
         omsService.addOptimisticOrder({
             id: clientOrderId,
             clientOrderId,
@@ -500,7 +482,19 @@ class TradeService {
                                   }
                                   return [];
                               }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+
+                              const rawItems = Array.isArray(data) ? data : (data.rows || []);
+                              // Validate items
+                              const validItems: TpSlOrder[] = [];
+                              for (const item of rawItems) {
+                                  const validation = TpSlOrderSchema.safeParse(item);
+                                  if (validation.success) {
+                                      validItems.push(validation.data);
+                                  } else {
+                                      logger.warn("market", `Invalid TP/SL item skipped for ${sym}`, { item, error: validation.error });
+                                  }
+                              }
+                              return validItems;
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
@@ -525,9 +519,16 @@ class TradeService {
              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-             list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
-             return list;
+             const rawItems = Array.isArray(data) ? data : (data.rows || []);
+             const validItems: TpSlOrder[] = [];
+             for (const item of rawItems) {
+                 const validation = TpSlOrderSchema.safeParse(item);
+                 if (validation.success) {
+                     validItems.push(validation.data);
+                 }
+             }
+             validItems.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+             return validItems;
     }
     }
 

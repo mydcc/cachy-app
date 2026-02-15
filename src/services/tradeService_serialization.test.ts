@@ -1,95 +1,60 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+// @vitest-environment happy-dom
+import { describe, it, expect } from 'vitest';
+import { tradeService } from './tradeService';
+import Decimal from 'decimal.js';
 
+describe('TradeService Serialization', () => {
+    // Access private method via casting to any
+    const service = tradeService as any;
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { tradeService } from "./tradeService";
-import { settingsState } from "../stores/settings.svelte";
-import { Decimal } from "decimal.js";
-
-// Mock settingsState
-vi.mock("../stores/settings.svelte", () => ({
-    settingsState: {
-        apiProvider: "bitunix",
-        apiKeys: {
-            bitunix: { key: "test", secret: "test" }
-        }
-    }
-}));
-
-// Mock Logger
-vi.mock("./logger", () => ({
-    logger: {
-        warn: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn()
-    }
-}));
-
-// Mock tradeState
-vi.mock("../stores/trade.svelte", () => ({
-    tradeState: {
-        symbol: "BTCUSDT",
-        update: vi.fn()
-    }
-}));
-
-describe("TradeService - Serialization Hardening", () => {
-    let fetchSpy: any;
-
-    beforeEach(() => {
-        fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
-            ok: true,
-            text: async () => JSON.stringify({ code: "0", data: [] }),
-            json: async () => ({ code: "0", data: [] })
-        } as Response);
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
-    it("should serialize Decimal objects in cancelTpSlOrder params", async () => {
-        // We simulate passing an order where orderId is a Decimal.
-        // While currently OMS stores IDs as strings, this ensures that if a Decimal
-        // ever sneaks in (e.g. from a calculation or different mapper), it is safely serialized.
-        const decimalId = new Decimal("1234567890123456789.123");
-        const order = {
-            orderId: decimalId,
-            symbol: "BTCUSDT",
-            planType: "profit_plan"
+    it('should serialize Decimal objects to strings', () => {
+        const payload = {
+            price: new Decimal(123.456),
+            qty: new Decimal('0.001')
         };
-
-        await tradeService.cancelTpSlOrder(order);
-
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
-        const call = fetchSpy.mock.calls[0];
-        const body = JSON.parse(call[1].body);
-
-        // Without serializePayload, this might be serialized as an object or number (losing precision)
-        // With serializePayload, it must be a string.
-        expect(body.params.orderId).toBe("1234567890123456789.123");
+        const result = service.serializePayload(payload);
+        expect(result.price).toBe('123.456');
+        expect(result.qty).toBe('0.001');
     });
 
-    it("should recursively serialize nested objects", async () => {
-         // This tests the private serializePayload method indirectly via the fetch call
-         // We can override cancelTpSlOrder logic slightly or just trust the previous test cover it.
-         // Let's rely on the previous test as it covers the critical path:
-         // body -> serializePayload -> object -> params -> object -> orderId (Decimal)
-         // This confirms recursion works (body is object, params is nested object).
+    it('should handle nested objects', () => {
+        const payload = {
+            order: {
+                price: new Decimal(50000),
+                meta: {
+                    fee: new Decimal('1.5')
+                }
+            }
+        };
+        const result = service.serializePayload(payload);
+        expect(result.order.price).toBe('50000');
+        expect(result.order.meta.fee).toBe('1.5');
+    });
+
+    it('should handle arrays', () => {
+        const payload = [new Decimal(1), new Decimal(2)];
+        const result = service.serializePayload(payload);
+        expect(result).toEqual(['1', '2']);
+    });
+
+    it('should NOT serialize plain objects with similar methods (Duck Typing Prevention)', () => {
+        const fakeDecimal = {
+            isZero: () => false,
+            toFixed: () => '1.00'
+        };
+        // It should serialize it as an object (recursively), not convert to string because it fails strict checks
+        const result = service.serializePayload(fakeDecimal);
+        expect(typeof result).toBe('object');
+        // Functions are passed through
+        expect(typeof result.isZero).toBe('function');
+    });
+
+    it('should serialize Decimal-like objects if constructor name matches (e.g. from another realm)', () => {
+        const pseudoDecimal = {
+            constructor: { name: 'Decimal' },
+            toString: () => '99.99'
+        };
+        const result = service.serializePayload(pseudoDecimal);
+        expect(result).toBe('99.99');
     });
 });

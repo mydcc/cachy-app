@@ -504,7 +504,7 @@ export const newsService = {
         return {
           score: 0,
           regime: "UNCERTAIN",
-          summary: "Failed to analyze sentiment.",
+          summary: "news.sentimentFailed",
           keyFactors: [],
         };
       } finally {
