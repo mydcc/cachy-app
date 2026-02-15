@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { newsService } from './newsService';
 import { dbService } from './dbService';
 
@@ -88,7 +88,7 @@ describe('NewsService Limits', () => {
             text: async () => JSON.stringify({ results: manyItems }),
             json: async () => ({ results: manyItems })
         };
-        (global.fetch as any).mockResolvedValue(mockResponse);
+        vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
 
         await newsService.fetchNews('BTC');
 
@@ -96,7 +96,7 @@ describe('NewsService Limits', () => {
         expect(dbService.put).toHaveBeenCalled();
 
         // Verify items length in the saved object
-        const callArgs = (dbService.put as any).mock.calls[0][1];
+        const callArgs = vi.mocked(dbService.put).mock.calls[0][1];
         expect(callArgs.items.length).toBe(100);
     });
 
@@ -106,7 +106,7 @@ describe('NewsService Limits', () => {
             text: async () => JSON.stringify({ results: [] }),
             json: async () => ({ results: [] })
         };
-        (global.fetch as any).mockResolvedValue(mockResponse);
+        vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
 
         await newsService.fetchNews('ETH');
 
