@@ -21,19 +21,16 @@ import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
-  const isDev = process.env.NODE_ENV === "development";
   const secret = env.LOG_STREAM_KEY;
   const token = url.searchParams.get("token");
 
-  if (!isDev) {
-    if (!secret) {
-      return new Response("Log streaming is disabled in production (LOG_STREAM_KEY not set)", {
-        status: 403,
-      });
-    }
-    if (token !== secret) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+  if (!secret) {
+    return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
+      status: 403,
+    });
+  }
+  if (token !== secret) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   // Setze Header für SSE
