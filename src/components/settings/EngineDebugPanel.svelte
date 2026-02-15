@@ -43,7 +43,7 @@
 <div class="debug-panel">
     <div class="panel-header">
         <h4 class="panel-title">⚡ Engine Debug Panel</h4>
-        <button class="refresh-btn" onclick={refresh} title="Refresh">🔄</button>
+        <button class="refresh-btn" onclick={refresh} title={$_("settings.system.debug.refresh")}>🔄</button>
     </div>
 
     <!-- Capabilities -->
@@ -63,13 +63,13 @@
         <div class="section-label">{$_("settings.system.debug.context")}</div>
         <div class="caps-grid">
             <span class="ctx" class:ctx-warn={telemetry.context.lowBattery}>
-                {telemetry.context.lowBattery ? '🪫 Low Battery' : '🔋 OK'}
+                {telemetry.context.lowBattery ? `🪫 ${$_("settings.system.debug.lowBattery")}` : `🔋 ${$_("settings.system.debug.ok")}`}
             </span>
             <span class="ctx" class:ctx-warn={telemetry.context.lowMemory}>
-                {telemetry.context.lowMemory ? '⚠️ Low RAM' : '💾 OK'}
+                {telemetry.context.lowMemory ? `⚠️ ${$_("settings.system.debug.lowMemory")}` : `💾 ${$_("settings.system.debug.ok")}`}
             </span>
             <span class="ctx">
-                {telemetry.context.isMobile ? '📱 Mobile' : '🖥️ Desktop'}
+                {telemetry.context.isMobile ? `📱 ${$_("settings.system.debug.mobile")}` : `🖥️ ${$_("settings.system.debug.desktop")}`}
             </span>
         </div>
     </div>
@@ -95,17 +95,17 @@
               <td class="engine-name">
                 {engine.toUpperCase()}
                 {#if usage > 0}
-                  <span class="usage-badge" title="Usage Share">{usage}%</span>
+                  <span class="usage-badge" title={$_("settings.system.debug.usageShare")}>{usage}%</span>
                 {/if}
               </td>
               <td class="status-cell">
                 {#if telemetry.circuitBreaker && telemetry.circuitBreaker[engine]}
                   {@const health = telemetry.circuitBreaker[engine]}
                   {#if health.healthy}
-                    <span class="status-ok">✅ Healthy</span>
+                    <span class="status-ok">✅ {$_("settings.system.debug.healthy")}</span>
                   {:else}
                     <span class="status-err" title={health.lastError}>
-                      ❌ Disabled ({health.failures})
+                      ❌ {$_("settings.system.debug.disabled")} ({health.failures})
                     </span>
                   {/if}
                 {/if}
@@ -135,7 +135,7 @@
     <!-- Recent History -->
     <div class="section">
         <button class="history-toggle" onclick={() => showHistory = !showHistory}>
-            {showHistory ? '▾' : '▸'} Recent History ({telemetry.performanceHistory.length})
+            {showHistory ? '▾' : '▸'} {$_("settings.system.debug.recentHistory")} ({telemetry.performanceHistory.length})
         </button>
         
         {#if showHistory && recentHistory.length > 0}
