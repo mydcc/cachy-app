@@ -359,7 +359,6 @@
                         // For now, indicators update only on new candles or full refreshes.
                     } catch (e) {
                         // Fallback to full render
-                        // console.warn("[CandleChart] Live update failed, falling back", e);
                     }
                 } else {
                     // Slow Path: Full Render (History load or New Candle)
