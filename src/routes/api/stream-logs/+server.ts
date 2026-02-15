@@ -18,6 +18,7 @@
 import { logger, type LogEntry } from "$lib/server/logger";
 import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
+import crypto from "node:crypto";
 
 export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
@@ -29,7 +30,15 @@ export const GET: RequestHandler = ({ request, url }) => {
       status: 403,
     });
   }
-  if (token !== secret) {
+
+  // Use timingSafeEqual to prevent timing attacks
+  // Compare secret against provided token (or empty string if null)
+  const secretBuffer = Buffer.from(secret);
+  const tokenBuffer = Buffer.from(token || '');
+
+  // timingSafeEqual throws if lengths differ, so we must check length first.
+  // Although checking length leaks length information, it's generally considered acceptable for API keys.
+  if (secretBuffer.length !== tokenBuffer.length || !crypto.timingSafeEqual(secretBuffer, tokenBuffer)) {
     return new Response("Unauthorized", { status: 401 });
   }
 
