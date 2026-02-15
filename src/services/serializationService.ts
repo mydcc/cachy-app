@@ -21,7 +21,7 @@ export const serializationService = {
       return JSON.stringify(data);
     }
 
-    let json = "[";
+    const chunks: string[] = ["["];
     const total = data.length;
 
     for (let i = 0; i < total; i += chunkSize) {
@@ -37,14 +37,15 @@ export const serializationService = {
       // Remove outer brackets []
       if (chunkStr.length > 2) {
           const content = chunkStr.slice(1, -1);
+          // If not the first chunk, add a comma separator
           if (i > 0) {
-            json += ",";
+            chunks.push(",");
           }
-          json += content;
+          chunks.push(content);
       }
     }
 
-    json += "]";
-    return json;
+    chunks.push("]");
+    return chunks.join("");
   }
 };

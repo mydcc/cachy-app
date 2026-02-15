@@ -54,6 +54,8 @@ const calculatorService = new CalculatorService(calculator, uiState);
 let marketStoreUnsubscribe: (() => void) | null = null;
 let tradeStoreUnsubscribe: (() => void) | null = null;
 let isInitialized = false;
+let saveJournalTask: Promise<void> | null = null;
+let pendingJournalData: JournalEntry[] | null = null;
 
 export const app = {
   calculator: calculator,
@@ -294,17 +296,37 @@ export const app = {
     }
   },
 
-  saveJournal: async (d: JournalEntry[]) => {
+    saveJournal: async (d: JournalEntry[]) => {
     if (!browser) return;
-    try {
-      const json = await serializationService.stringifyAsync(d);
-      storageUtils.safeSetItem(
-        CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        json,
-      );
-    } catch (error) {
-      uiState.showError("Speichern fehlgeschlagen.");
-    }
+
+    pendingJournalData = d;
+    if (saveJournalTask) return saveJournalTask;
+
+    saveJournalTask = new Promise<void>((resolve) => {
+      // @ts-ignore
+      const schedule = (window.requestIdleCallback) || ((cb: any) => setTimeout(cb, 1000));
+
+      schedule(async () => {
+        while (pendingJournalData) {
+           const dataToSave = pendingJournalData;
+           pendingJournalData = null;
+
+           try {
+             const json = await serializationService.stringifyAsync(dataToSave);
+             storageUtils.safeSetItem(
+               CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+               json,
+             );
+           } catch (error) {
+             uiState.showError("Speichern fehlgeschlagen.");
+           }
+        }
+        saveJournalTask = null;
+        resolve();
+      }, { timeout: 3000 });
+    });
+
+    return saveJournalTask;
   },
 
   addTrade: async () => {
