@@ -233,7 +233,7 @@ export interface WorkerCalculatePayloadSoA {
   enabledIndicators?: Partial<Record<string, boolean>>;
 }
 
-export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE" | "SHIFT";
+export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE" | "SHIFT" | "CLEANUP";
 
 export interface WorkerMessage {
   type: WorkerMessageType;

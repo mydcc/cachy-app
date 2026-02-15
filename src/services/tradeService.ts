@@ -53,7 +53,6 @@ export interface TpSlOrder {
     reduceOnly?: boolean;
     workingType?: string;
     timeInForce?: string;
-    [key: string]: unknown; // Safer than any
 }
 
 export class BitunixApiError extends Error {
@@ -266,6 +265,9 @@ class TradeService {
                 // Priority: Capital Preservation (Exit Position) > Clean State (No Naked Orders).
                 // In a true emergency (e.g. flash crash), getting out is more important than cleaning up triggers.
                 logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close to prevent stuck position. Naked orders may remain!`, cancelError);
+
+                // HARDENING: Schedule background retry to eventually cancel orders
+                this.scheduleCancelRetry(symbol);
             }
 
             return await this.signedRequest("POST", "/api/orders", {
@@ -326,6 +328,26 @@ class TradeService {
 
             throw e;
         }
+    }
+
+    private scheduleCancelRetry(symbol: string) {
+        // Fire and forget background task
+        (async () => {
+            try {
+                await RetryPolicy.execute(
+                    () => this.cancelAllOrders(symbol, true),
+                    {
+                        maxAttempts: 5,
+                        initialDelayMs: 1000,
+                        maxDelayMs: 10000,
+                        name: `CancelOrders-${symbol}`
+                    }
+                );
+                logger.log("market", `[FlashClose] Background cancel successful for ${symbol}`);
+            } catch (e) {
+                logger.error("market", `[FlashClose] CRITICAL: Background cancel PERMANENTLY FAILED for ${symbol}. Naked orders may remain!`, e);
+            }
+        })();
     }
 
     // Emergency Fallback to fetch ALL open positions directly from Bitunix/API

@@ -1100,7 +1100,13 @@
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
       "quickActions": "Schnellaktionen",
       "debug": {
+        "title": "Engine Debug Panel",
         "capabilities": "Fähigkeiten",
+        "ts": "TS",
+        "wasm": "WASM",
+        "simd": "SIMD",
+        "sharedMem": "SharedMem",
+        "gpu": "GPU",
         "context": "Kontext",
         "engineStats": "Engine Status",
         "noData": "Keine Daten",

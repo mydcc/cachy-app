@@ -345,4 +345,16 @@ export const technicalsService = {
     }));
     return calculateAllIndicators(klinesDec, finalSettings, enabledIndicators);
   },
+
+  cleanup(symbol: string, timeframe: string) {
+    if (workerManager.isHealthy()) {
+        workerManager.postMessage({
+            type: "CLEANUP",
+            payload: { symbol, timeframe }
+        }).catch(e => {
+            // Ignore timeouts or errors during cleanup
+            logger.debug('technicals', "Worker cleanup failed (harmless)", e);
+        });
+    }
+  }
 };

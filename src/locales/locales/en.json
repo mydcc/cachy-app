@@ -1302,7 +1302,13 @@
       "avoidTranslating": "Avoid translating technical words",
       "quickActions": "Quick Actions",
       "debug": {
+        "title": "Engine Debug Panel",
         "capabilities": "Capabilities",
+        "ts": "TS",
+        "wasm": "WASM",
+        "simd": "SIMD",
+        "sharedMem": "SharedMem",
+        "gpu": "GPU",
         "context": "Context",
         "engineStats": "Engine Stats",
         "noData": "No Data",

@@ -124,10 +124,10 @@
     <div class="mb-6 p-4 bg-[var(--bg-primary)] rounded border border-[var(--border-color)] flex items-center justify-between">
         <div>
             <h4 class="font-medium text-[var(--text-primary)]">
-                {$_("settings.data.repairTimeframe") || "Calculation Timeframe"}
+                {$_("settings.data.repairTimeframe")}
             </h4>
             <p class="text-sm text-[var(--text-secondary)]">
-                {$_("settings.data.repairTimeframeDesc") || "Timeframe used for historical data (ATR/MFE/MAE)."}
+                {$_("settings.data.repairTimeframeDesc")}
             </p>
         </div>
         <select

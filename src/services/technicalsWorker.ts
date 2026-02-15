@@ -142,6 +142,14 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              const result = calculateAllIndicators(history, state.settings, state.enabledIndicators);
 
              self.postMessage({ type: "RESULT", id, payload: result });
+
+        } else if (type === "CLEANUP") {
+             const { symbol, timeframe } = payload;
+             const key = getKey(symbol, timeframe);
+             if (stateMap.has(key)) {
+                 stateMap.delete(key);
+                 // Optional: Post a confirmation or just fail silently (cleaner)
+             }
         }
     } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);

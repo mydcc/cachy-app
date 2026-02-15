@@ -552,14 +552,32 @@ class MarketWatcher {
   private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (!klines || klines.length < 2) return klines || [];
 
-      // Validating Decimal presence
-      if (klines[0] && !(klines[0].open instanceof Decimal)) {
-          // Fallback if somehow not Decimal, though types suggest it is.
-          // In strict TS, this check might not be needed if typed correctly, but for runtime safety:
+      // Validating Decimal presence (Hardened & Optimized)
+      const first = klines[0];
+      // Duck typing check for Decimal to handle both Decimal instances and potential plain objects from IDB/JSON
+      if (!first || !first.open || typeof (first.open as any).plus !== 'function') {
           return klines;
       }
 
-      const filled: Kline[] = [klines[0]];
+      // 1. Fast Scan: Check if gaps exist to avoid allocation if not needed
+      let hasGaps = false;
+      // Heuristic: Check every 10th element or sequential? Sequential is safest for data integrity.
+      // Performance cost is O(N) but simple property access is fast.
+      for (let i = 1; i < klines.length; i++) {
+          const prevTime = klines[i - 1].time;
+          const currTime = klines[i].time;
+          if (currTime - prevTime > intervalMs * 1.1) {
+              hasGaps = true;
+              break;
+          }
+      }
+
+      // Optimization: If no gaps, return original array (Zero Allocation)
+      if (!hasGaps) return klines;
+
+      // 2. Fill Gaps
+      const filled: Kline[] = [];
+      filled.push(first);
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];

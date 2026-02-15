@@ -256,6 +256,10 @@ class ActiveTechnicalsManager {
         marketWatcher.unregister(symbol, "ticker", "stateless");
         marketWatcher.unregister(symbol, `kline_${timeframe}`, "stateless");
 
+        // CLEANUP Worker Memory
+        technicalsService.cleanup(symbol, timeframe);
+        this.workerState.delete(key); // Also clear local init state tracking
+
         if (import.meta.env.DEV) {
             logger.debug("technicals", `[ActiveManager] Stopped monitoring ${key}`);
         }

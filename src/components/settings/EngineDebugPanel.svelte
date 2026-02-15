@@ -42,7 +42,7 @@
 
 <div class="debug-panel">
     <div class="panel-header">
-        <h4 class="panel-title">⚡ Engine Debug Panel</h4>
+        <h4 class="panel-title">⚡ {$_("settings.system.debug.title")}</h4>
         <button class="refresh-btn" onclick={refresh} title={$_("settings.system.debug.refresh")}>🔄</button>
     </div>
 
@@ -50,11 +50,11 @@
     <div class="section">
         <div class="section-label">{$_("settings.system.debug.capabilities")}</div>
         <div class="caps-grid">
-            <span class="cap" class:cap-on={telemetry.capabilities.ts}>TS</span>
-            <span class="cap" class:cap-on={telemetry.capabilities.wasm}>WASM</span>
-            <span class="cap" class:cap-on={telemetry.capabilities.simd}>SIMD</span>
-            <span class="cap" class:cap-on={telemetry.capabilities.sharedMemory}>SharedMem</span>
-            <span class="cap" class:cap-on={telemetry.capabilities.gpu}>GPU</span>
+            <span class="cap" class:cap-on={telemetry.capabilities.ts}>{$_("settings.system.debug.ts")}</span>
+            <span class="cap" class:cap-on={telemetry.capabilities.wasm}>{$_("settings.system.debug.wasm")}</span>
+            <span class="cap" class:cap-on={telemetry.capabilities.simd}>{$_("settings.system.debug.simd")}</span>
+            <span class="cap" class:cap-on={telemetry.capabilities.sharedMemory}>{$_("settings.system.debug.sharedMem")}</span>
+            <span class="cap" class:cap-on={telemetry.capabilities.gpu}>{$_("settings.system.debug.gpu")}</span>
         </div>
     </div>
 
