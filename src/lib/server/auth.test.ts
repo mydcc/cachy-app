@@ -33,13 +33,17 @@ describe("checkAppAuth", () => {
     mockEnv.APP_ACCESS_TOKEN = undefined;
   });
 
-  it("should return null if no APP_ACCESS_TOKEN is configured", () => {
+  it("should return 401 if no APP_ACCESS_TOKEN is configured", async () => {
     const request = new Request("http://localhost", {
       headers: { "x-app-access-token": "any-token" }
     });
 
     const result = checkAppAuth(request);
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result?.status).toBe(401);
+
+    const body = await result?.json();
+    expect(body.error).toContain("App Access Token not configured");
   });
 
   it("should return 401 if APP_ACCESS_TOKEN is configured but header is missing", async () => {

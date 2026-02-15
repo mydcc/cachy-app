@@ -9,6 +9,7 @@
 
 import { env } from "$env/dynamic/private";
 import { json } from "@sveltejs/kit";
+import crypto from "node:crypto";
 
 /**
  * Checks if the request contains the correct App Access Token.
@@ -26,9 +27,14 @@ export function checkAppAuth(request: Request): Response | null {
     );
   }
 
-  const clientToken = request.headers.get("x-app-access-token");
+  const clientToken = request.headers.get("x-app-access-token") || "";
 
-  if (!clientToken || clientToken !== serverToken) {
+  // Use timingSafeEqual on hashes to prevent timing attacks and length leaks.
+  const serverHash = crypto.createHash("sha256").update(serverToken).digest();
+  const clientHash = crypto.createHash("sha256").update(clientToken).digest();
+
+  // crypto.timingSafeEqual throws if lengths differ, but SHA256 hashes are always 32 bytes.
+  if (!crypto.timingSafeEqual(clientHash, serverHash)) {
     return json(
       { error: "Unauthorized: Invalid or missing App Access Token" },
       { status: 401 }
