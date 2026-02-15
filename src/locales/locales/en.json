@@ -58,6 +58,7 @@
     "refresh": "Refresh"
   },
   "sidePanel": {
+    "globalChat": "Global Chat",
     "myNotes": "My Notes",
     "aiAssistant": "AI Assistant",
     "clearConfirm": "Clear history?",
@@ -841,6 +842,7 @@
     "enableSidePanel": "Enable Side Panel (AI/Notes)",
     "sidePanelMode": "Side Panel Mode",
     "modeNotes": "My Notes",
+    "modeChat": "Global Chat",
     "sidePanelLayout": "Layout",
     "layoutStandard": "Standard (Colored)",
     "layoutStandardDesc": "Fixed left, solid background",
@@ -1313,7 +1315,17 @@
           "candles": "Candles",
           "time": "Time",
           "memory": "Memory"
-        }
+        },
+        "lowBattery": "Low Battery",
+        "lowMemory": "Low RAM",
+        "mobile": "Mobile",
+        "desktop": "Desktop",
+        "ok": "OK",
+        "healthy": "Healthy",
+        "disabled": "Disabled",
+        "usageShare": "Usage Share",
+        "recentHistory": "Recent History",
+        "refresh": "Refresh"
       }
     },
     "performance": {
@@ -2069,5 +2081,18 @@
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
     "known": "I knew it"
+  },
+  "cloud": {
+    "title": "Community Cloud (Beta)",
+    "description": "Connect to SpacetimeDB to chat with other traders.",
+    "connectButton": "Connect",
+    "noMessages": "No messages yet.",
+    "sendButton": "Send",
+    "placeholder": "Say hello..."
+  },
+  "jules": {
+    "title": "Jules Inspector",
+    "analyzing": "Analyzing system status...",
+    "close": "Close Report"
   }
 }

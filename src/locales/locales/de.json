@@ -1024,9 +1024,6 @@
         "period": "Periode"
       }
     },
-    "candlestickPatterns": {
-      "title": "Candlestick Muster Akademie"
-    },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
     "imgbb1h": "1 Stunde",
@@ -1116,7 +1113,17 @@
           "candles": "Kerzen",
           "time": "Zeit",
           "memory": "Speicher"
-        }
+        },
+        "lowBattery": "Niedriger Akku",
+        "lowMemory": "Wenig RAM",
+        "mobile": "Mobil",
+        "desktop": "Desktop",
+        "ok": "OK",
+        "healthy": "Gesund",
+        "disabled": "Deaktiviert",
+        "usageShare": "Nutzungsanteil",
+        "recentHistory": "Verlauf",
+        "refresh": "Aktualisieren"
       }
     },
     "performance": {
@@ -1637,6 +1644,7 @@
     }
   },
   "candlestickPatterns": {
+    "title": "Candlestick Muster Akademie",
     "doji": {
       "name": "Doji",
       "description": "Ein Doji bildet sich, wenn Eröffnungs- und Schlusskurs fast identisch sind. Er signalisiert ein Gleichgewicht zwischen Käufern und Verkäufern.\n\n### Mathematische Kriterien\n\n  $$ |\\text{Open} - \\text{Close}| \\le 0.1 \\times (\\text{High} - \\text{Low}) $$",
