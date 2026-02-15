@@ -1,37 +1,48 @@
-# Status & Risk Report
+# Status & Risk Report (Security & Hardening)
+
+This document details findings from the in-depth analysis performed by the Lead Architect.
 
 ## 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
 
-1.  **Data Continuity Gap (`MarketWatcher.ts`)**:
-    -   **Finding**: The `fillGaps` method is defined but **never called**.
-    -   **Risk**: Chart data may contain holes (missing candles) during network instability or exchange downtime. This causes indicators (MA, RSI, etc.) to calculate incorrect values, potentially triggering false trading signals.
-    -   **Location**: `src/services/marketWatcher.ts`
+1.  **Security / Input Validation**:
+    -   **Finding**: `src/routes/api/account/+server.ts` relies on manual validation of the request body instead of using strict Zod schemas.
+    -   **Risk**: Injection vulnerability or runtime logic errors from malformed input. Inconsistent with the secure pattern used in `src/routes/api/tpsl/+server.ts`.
+    -   **Location**: `src/routes/api/account/+server.ts`
 
-2.  **Flash Close Safety Logic (`TradeService.ts`)**:
-    -   **Finding**: `flashClosePosition` explicitly aborts the position closure if `cancelAllOrders` fails (`trade.closeAbortedSafety`).
-    -   **Risk**: In a high-volatility event or partial API outage (where "cancel" endpoint is 500 but "order" is 200), the user is unable to exit a losing position. While intended to prevent "naked stop losses", preventing the *exit* is often worse.
-    -   **Location**: `src/services/tradeService.ts`
+2.  **Type Safety / Runtime Risk**:
+    -   **Finding**: `src/services/bitunixWs.ts` uses an undeclared property `syntheticSubs` with `@ts-ignore`.
+    -   **Risk**: Bypasses TypeScript's safety checks. High risk of runtime errors (`undefined` access) if the property is accessed before initialization or incorrectly typed.
+    -   **Location**: `src/services/bitunixWs.ts`
 
-3.  **Loose Typing in Financial Service (`TradeService.ts`)**:
-    -   **Finding**: `TpSlOrder` interface uses `[key: string]: any` and `TradeError` uses `any` for details.
-    -   **Risk**: Increases the chance of runtime errors due to undefined properties or unexpected types, especially when handling exchange responses.
-    -   **Location**: `src/services/tradeService.ts`
+3.  **CSP Configuration**:
+    -   **Finding**: `svelte.config.js` enables `unsafe-inline` and `unsafe-eval` in the Content Security Policy.
+    -   **Risk**: Significantly increases the attack surface for Cross-Site Scripting (XSS). An attacker could inject malicious scripts that execute in the context of the application.
+    -   **Location**: `svelte.config.js`
 
 ## 🟡 WARNING (Performance issue, UX error, missing i18n)
 
 1.  **Missing Internationalization (i18n)**:
-    -   **Finding**: `src/components/settings/EngineDebugPanel.svelte` contains multiple hardcoded strings ("TS", "WASM", "Low Battery", "Healthy", "Recent History").
+    -   **Finding**: Hardcoded strings found in critical UI components.
+    -   **Examples**:
+        -   `src/lib/windows/implementations/CandleChartView.svelte`: "LOADING HISTORY", "FETCHING MARKET DATA..."
+        -   `src/routes/+page.svelte`: Fallback titles like `|| "Favorites"`, and button texts.
     -   **Impact**: Poor UX for non-English users.
 
-2.  **Unused Optimizations**:
-    -   **Finding**: `MarketWatcher.ts` defines `ZERO_VOL` constant for `Decimal` optimization but instantiates new `"0"` strings/Decimals instead.
-    -   **Impact**: Minor performance inefficiency in hot paths.
+2.  **Loose Typing in Financial Service**:
+    -   **Finding**: `TpSlOrder` interface uses `[key: string]: unknown`.
+    -   **Risk**: Effectively disables type checking for properties, defeating the purpose of strict typing for financial data handling.
+    -   **Location**: `src/services/tradeService.ts`
+
+3.  **Potential Flakiness (Loading State)**:
+    -   **Finding**: `CandleChartView.svelte` uses a `setTimeout` based debounce for loading history.
+    -   **Risk**: Unreliable behavior under heavy load or slow network conditions.
 
 ## 🔵 REFACTOR (Technical Debt)
 
-1.  **Error Handling Patterns**:
-    -   **Finding**: Widespread use of `catch (e: any)` instead of `catch (e: unknown)` with type guards.
-    -   **Impact**: Reduces type safety and makes error handling logic harder to maintain.
+1.  **Inconsistent Validation Patterns**:
+    -   **Finding**: The codebase mixes Zod validation (in `newsService`, `tpsl`) with manual validation (in `account`).
+    -   **Action**: Standardize to use Zod schemas globally for all API endpoints.
 
-2.  **Complex Fetch Logic**:
-    -   **Finding**: `TradeService.ts` `fetchOpenPositionsFromApi` has complex manual validation that could be simplified with stricter Zod schemas upstream.
+2.  **Code Duplication**:
+    -   **Finding**: Similar validation logic for API keys exists in multiple places.
+    -   **Action**: Centralize validation logic into shared utilities.

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: cachy-app
+    env: node
+    buildCommand: npm ci --audit=false && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.3
