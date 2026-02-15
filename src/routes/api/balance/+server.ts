@@ -18,11 +18,15 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
+import { checkAppAuth } from "../../../lib/server/auth";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
 
   if (!exchange || !apiKey || !apiSecret) {

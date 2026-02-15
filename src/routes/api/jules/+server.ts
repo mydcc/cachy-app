@@ -19,6 +19,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "$env/dynamic/private";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { checkAppAuth } from "../../../lib/server/auth";
 
 // Access env variable dynamically
 const API_KEY = env.JULES_API;
@@ -27,6 +28,9 @@ const API_KEY = env.JULES_API;
 const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   if (!genAI) {
     console.error("JULES_API key is missing on server.");
     return json(

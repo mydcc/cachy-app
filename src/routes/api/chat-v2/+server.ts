@@ -18,8 +18,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { chatStore, type ChatMessage } from "$lib/server/chatStore";
+import { checkAppAuth } from "../../../lib/server/auth";
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   const since = url.searchParams.get("since");
   const messages = await chatStore.getMessages();
   let result = messages;
@@ -38,6 +42,9 @@ export const GET: RequestHandler = async ({ url }) => {
 };
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   try {
     const { text, sender, profitFactor, clientId } = await request.json();
 

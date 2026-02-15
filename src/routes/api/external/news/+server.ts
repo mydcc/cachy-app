@@ -9,6 +9,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { checkAppAuth } from "../../../../lib/server/auth";
 
 // In-Memory Cache for News Proxy
 interface CachedResponse {
@@ -32,6 +33,9 @@ function setCache(key: string, data: any) {
 }
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   let cacheKey = ""; // Scope erweitern für catch-Block
 
   try {
