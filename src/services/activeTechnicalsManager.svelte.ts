@@ -190,6 +190,10 @@ class ActiveTechnicalsManager {
             if (count === 1) {
                 this.subscribers.delete(key);
                 this.stopMonitoring(symbol, timeframe);
+
+                // === FIX: Cleanup Worker State ===
+                technicalsService.cleanupTechnicals(symbol, timeframe);
+                this.workerState.delete(key);
             } else {
                 this.subscribers.set(key, count - 1);
             }

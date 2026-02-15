@@ -338,6 +338,20 @@ export const technicalsService = {
     }
   },
 
+  // Cleanup: Remove worker state to prevent leaks
+  async cleanupTechnicals(symbol: string, timeframe: string) {
+      if (!workerManager.isHealthy()) return;
+      try {
+          await workerManager.postMessage({
+              type: "CLEANUP",
+              payload: { symbol, timeframe }
+          });
+          logger.debug('technicals', `Cleaned up worker state for ${symbol}:${timeframe}`);
+      } catch (e) {
+          logger.warn('technicals', `Failed to cleanup worker state for ${symbol}:${timeframe}`, e);
+      }
+  },
+
   calculateTechnicalsInline(klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): TechnicalsData {
     const finalSettings = settings || indicatorState.toJSON();
     const klinesDec = klines.map((k) => ({
