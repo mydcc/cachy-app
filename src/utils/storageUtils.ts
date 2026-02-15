@@ -20,22 +20,38 @@
  * Provides safe storage operations with quota checking
  */
 
+let cachedUsed: number | null = null;
+
+// Initialize cache invalidation on storage events (cross-tab changes)
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", () => {
+    cachedUsed = null;
+  });
+}
+
 export const storageUtils = {
   /**
    * Checks available LocalStorage space
    * @returns Object with used bytes, available bytes, and percentage
    */
   checkQuota(): { used: number; available: number; percentage: number } {
-    let used = 0;
-
-    // Calculate current usage
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        const value = localStorage[key];
-        used += value.length + key.length;
-      }
+    if (typeof localStorage === "undefined") {
+      return { used: 0, available: 5 * 1024 * 1024, percentage: 0 };
     }
 
+    if (cachedUsed === null) {
+      let total = 0;
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        const value = localStorage.getItem(key);
+        if (value !== null) {
+          total += value.length + key.length;
+        }
+      }
+      cachedUsed = total;
+    }
+
+    const used = cachedUsed;
     // Most browsers: ~5-10MB, we assume 5MB conservative estimate
     const ESTIMATED_QUOTA = 5 * 1024 * 1024; // 5MB in bytes
     const available = ESTIMATED_QUOTA - used;
@@ -51,6 +67,8 @@ export const storageUtils = {
    * @throws Error if quota would be exceeded
    */
   safeSetItem(key: string, value: string): void {
+    if (typeof localStorage === "undefined") return;
+
     const dataSize = value.length + key.length;
     const quota = this.checkQuota();
 
@@ -78,7 +96,17 @@ export const storageUtils = {
     }
 
     try {
+      const oldValue = localStorage.getItem(key);
       localStorage.setItem(key, value);
+
+      // Incremental cache update
+      if (cachedUsed !== null) {
+        if (oldValue !== null) {
+          cachedUsed += value.length - oldValue.length;
+        } else {
+          cachedUsed += key.length + value.length;
+        }
+      }
     } catch (e) {
       // QuotaExceededError or other storage errors
       if (e instanceof Error && e.name === "QuotaExceededError") {
@@ -90,6 +118,31 @@ export const storageUtils = {
         "Fehler beim Speichern. Der lokale Speicher ist möglicherweise blockiert.",
       );
     }
+  },
+
+  /**
+   * Safely removes data from LocalStorage and updates cache
+   * @param key - Storage key
+   */
+  removeItem(key: string): void {
+    if (typeof localStorage === "undefined") return;
+
+    const oldValue = localStorage.getItem(key);
+    if (oldValue !== null) {
+      localStorage.removeItem(key);
+      if (cachedUsed !== null) {
+        cachedUsed -= key.length + oldValue.length;
+      }
+    }
+  },
+
+  /**
+   * Clears all LocalStorage data and resets cache
+   */
+  clear(): void {
+    if (typeof localStorage === "undefined") return;
+    localStorage.clear();
+    cachedUsed = 0;
   },
 
   /**
