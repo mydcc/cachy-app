@@ -462,7 +462,7 @@ class MarketWatcher {
                 let lastOldestTime = klines1[0].time;
                 
                 // BACKFILL OPTIMIZATION: Batch store updates to prevent technicals-restart-spam
-                let backfillBuffer: any[] = [];
+                let backfillBuffer: Kline[] = []; // Typed for Decimal
                 const storeUpdateThreshold = 10; // Update store every 10 batches (2000 candles)
                 let batchesSubSinceUpdate = 0;
 
@@ -509,7 +509,6 @@ class MarketWatcher {
 
                     // Success: Buffer for batch update
                     // Apply fillGaps to the batch before pushing to buffer
-                    // Note: batch is usually ascending. fillGaps expects ascending.
                     const filledBatch = this.fillGaps(batch, safeTfToMs(tf));
                     backfillBuffer.push(...filledBatch);
                     batchesSubSinceUpdate++;
@@ -550,17 +549,17 @@ class MarketWatcher {
   }
 
   // Helper to fill gaps in candle data to preserve time-series integrity for indicators
-  private fillGaps(klines: KlineRaw[], intervalMs: number): KlineRaw[] {
+  private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (!klines || klines.length < 2) return klines || [];
 
-      // Hardening: Validate first item structure before access
-      const firstVal = KlineRawSchema.safeParse(klines[0]);
-      if (!firstVal.success) {
-          logger.warn("market", "[fillGaps] Invalid kline structure in first element", firstVal.error);
-          return klines; // Abort fill if structure is wrong
+      // Validating Decimal presence
+      if (klines[0] && !(klines[0].open instanceof Decimal)) {
+          // Fallback if somehow not Decimal, though types suggest it is.
+          // In strict TS, this check might not be needed if typed correctly, but for runtime safety:
+          return klines;
       }
 
-      const filled: KlineRaw[] = [klines[0]];
+      const filled: Kline[] = [klines[0]];
 
       for (let i = 1; i < klines.length; i++) {
           const prev = filled[filled.length - 1];
@@ -584,11 +583,11 @@ class MarketWatcher {
                   // Fill with flat candle (Close of previous)
                   filled.push({
                       time: nextTime,
-                      open: String(prev.close),
-                      high: String(prev.close),
-                      low: String(prev.close),
-                      close: String(prev.close),
-                      volume: "0" // Optimized: Use string literal "0" as per benchmark findings
+                      open: prev.close, // Share reference to previous close Decimal (immutable)
+                      high: prev.close,
+                      low: prev.close,
+                      close: prev.close,
+                      volume: MarketWatcher.ZERO_VOL // Use static constant
                   });
                   nextTime += intervalMs;
                   gapCount++;
