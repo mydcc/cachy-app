@@ -295,7 +295,7 @@
     },
     "account": {
       "balance": "Verfügbar",
-    "confirmCancelOrder": "Diesen Auftrag stornieren?",
+      "confirmCancelOrder": "Diesen Auftrag stornieren?",
       "margin": "Margin",
       "pnl": "Gesamt PnL",
       "totalEquity": "Gesamt Equity",
@@ -783,7 +783,8 @@
       },
       "appearanceTitle": "Optik & Design",
       "layoutTitle": "Layout & Struktur",
-      "backgroundTitle": "Hintergrund"
+      "backgroundTitle": "Hintergrund",
+      "minTradeVolume": "Min. Handelsvolumen ($)"
     },
     "title": "Einstellungen",
     "appearance": {
@@ -836,7 +837,6 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
-
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
@@ -1101,23 +1101,23 @@
       "dashboard": "Dashboard",
       "englishTechnicalTerms": "Englische Fachbegriffe",
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
-    "quickActions": "Schnellaktionen",
-    "debug": {
-      "capabilities": "Fähigkeiten",
-      "context": "Kontext",
-      "engineStats": "Engine Status",
-      "noData": "Keine Daten",
-      "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
-      "columns": {
-        "engine": "Engine",
-        "health": "Gesundheit",
-        "avg": "Ø",
-        "samples": "Proben",
-        "candles": "Kerzen",
-        "time": "Zeit",
-        "memory": "Speicher"
+      "quickActions": "Schnellaktionen",
+      "debug": {
+        "capabilities": "Fähigkeiten",
+        "context": "Kontext",
+        "engineStats": "Engine Status",
+        "noData": "Keine Daten",
+        "noCalculations": "Noch keine Berechnungen aufgezeichnet.",
+        "columns": {
+          "engine": "Engine",
+          "health": "Gesundheit",
+          "avg": "Ø",
+          "samples": "Proben",
+          "candles": "Kerzen",
+          "time": "Zeit",
+          "memory": "Speicher"
+        }
       }
-    }
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -1172,7 +1172,8 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
-      }
+      },
+      "serverSecurity": "Server Sicherheit"
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",
@@ -1376,6 +1377,10 @@
       "healthTitle": "Daten-Gesundheit",
       "networkLogsTitle": "Netzwerk-Protokollierung",
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
+    },
+    "engine": {
+      "sharedMem": "SharedMem",
+      "autoOptimize": "Engine Auto-Optimierung"
     }
   },
   "calculationDashboard": {

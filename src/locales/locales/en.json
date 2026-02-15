@@ -295,7 +295,7 @@
     },
     "account": {
       "balance": "Available",
-    "confirmCancelOrder": "Cancel this order?",
+      "confirmCancelOrder": "Cancel this order?",
       "margin": "Margin",
       "pnl": "Total PnL",
       "totalEquity": "Total Equity",
@@ -783,7 +783,8 @@
       },
       "appearanceTitle": "Appearance & Design",
       "backgroundTitle": "Background",
-      "layoutTitle": "Layout & Structure"
+      "layoutTitle": "Layout & Structure",
+      "minTradeVolume": "Min Trade Volume ($)"
     },
     "title": "Settings",
     "appearance": {
@@ -836,7 +837,6 @@
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
-
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
     "showSidebars": "Show Sidebars",
@@ -1245,7 +1245,8 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
-      }
+      },
+      "serverSecurity": "Server Security"
     },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
@@ -1301,23 +1302,23 @@
       "restoreDesc": "Import a backup from a file.",
       "englishTechnicalTerms": "English Technical Terms",
       "avoidTranslating": "Avoid translating technical words",
-    "quickActions": "Quick Actions",
-    "debug": {
-      "capabilities": "Capabilities",
-      "context": "Context",
-      "engineStats": "Engine Stats",
-      "noData": "No Data",
-      "noCalculations": "No calculations recorded yet.",
-      "columns": {
-        "engine": "Engine",
-        "health": "Health",
-        "avg": "Avg",
-        "samples": "Samples",
-        "candles": "Candles",
-        "time": "Time",
-        "memory": "Memory"
+      "quickActions": "Quick Actions",
+      "debug": {
+        "capabilities": "Capabilities",
+        "context": "Context",
+        "engineStats": "Engine Stats",
+        "noData": "No Data",
+        "noCalculations": "No calculations recorded yet.",
+        "columns": {
+          "engine": "Engine",
+          "health": "Health",
+          "avg": "Avg",
+          "samples": "Samples",
+          "candles": "Candles",
+          "time": "Time",
+          "memory": "Memory"
+        }
       }
-    }
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -1376,6 +1377,10 @@
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
+    },
+    "engine": {
+      "sharedMem": "SharedMem",
+      "autoOptimize": "Auto-Optimize Engine"
     }
   },
   "positionsList": {
