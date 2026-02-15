@@ -80,9 +80,20 @@ class ChatManager {
     const minPF = settings.minChatProfitFactor || 0;
 
     // 2. Apply Profit Factor Filter
-    const filteredIncoming = incoming.filter(
-      (m) => (m.profitFactor ?? 0) >= minPF,
-    );
+    // Allow own messages, system messages, or messages meeting the PF requirement
+    const filteredIncoming = incoming.filter((m) => {
+      // Exclude messages from filtering if they are:
+      // - From system
+      // - From me (by senderId 'me' or matching clientId)
+      // - System messages often have undefined profitFactor, so we should check sender type explicitly
+      const isSystem = m.sender === "system";
+      const isMe = m.senderId === "me" || m.clientId === this.clientId;
+
+      if (isSystem || isMe) return true;
+
+      // Otherwise, enforce PF
+      return (m.profitFactor ?? 0) >= minPF;
+    });
 
     const existingIds = new Set(current.map((m) => m.id));
     const uniqueIncoming = filteredIncoming.filter(

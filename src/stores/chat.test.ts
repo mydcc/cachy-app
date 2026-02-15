@@ -16,9 +16,11 @@ import { chatState } from './chat.svelte';
 
 describe('ChatManager', () => {
   beforeEach(() => {
-    // chatState is a singleton. Reset internal state via casting
+    // chatState is a singleton. Reset internal state via casting to avoid type errors
+    // Since we can't easily re-instantiate, we mutate the instance.
     (chatState as any).messages = [];
     (chatState as any).latestSeenTimestamp = 0;
+    (chatState as any).clientId = "test-client-id";
   });
 
   it('filters incoming messages based on profit factor (minPF=2)', () => {
@@ -29,6 +31,7 @@ describe('ChatManager', () => {
       { id: '3', text: 'No PF', timestamp: 102 } // undefined PF -> 0
     ];
 
+    // Access private method via cast
     const merged = (chatState as any).mergeMessages(current, incoming);
 
     expect(merged).toHaveLength(1);
@@ -42,11 +45,15 @@ describe('ChatManager', () => {
       { id: '1', text: 'New', timestamp: 200, profitFactor: 1 } // filtered out (PF < 2)
     ];
 
+    // Set initial state
     (chatState as any).latestSeenTimestamp = 100;
 
     const merged = (chatState as any).mergeMessages(current, incoming);
 
+    // Verify it was filtered
     expect(merged).toHaveLength(0);
+
+    // Verify timestamp was updated based on incoming max
     expect((chatState as any).latestSeenTimestamp).toBe(200);
   });
 
@@ -60,7 +67,7 @@ describe('ChatManager', () => {
 
       expect(merged).toHaveLength(1);
       expect(merged[0].id).toBe('old');
-      expect((chatState as any).latestSeenTimestamp).toBe(50);
+      expect((chatState as any).latestSeenTimestamp).toBe(50); // Should not change if no incoming
   });
 
   it('handles mixed valid and invalid messages', () => {
@@ -76,6 +83,43 @@ describe('ChatManager', () => {
 
       expect(merged).toHaveLength(1);
       expect(merged[0].id).toBe('1');
-      expect((chatState as any).latestSeenTimestamp).toBe(305);
+      expect((chatState as any).latestSeenTimestamp).toBe(305); // Max of incoming, even if filtered
+  });
+
+  // New Tests for Exemptions
+  it('exempts system messages from profit factor filter', () => {
+    const current: any[] = [];
+    const incoming: any[] = [
+        { id: 'sys1', text: 'System Msg', timestamp: 400, sender: 'system' } // undefined PF
+    ];
+
+    const merged = (chatState as any).mergeMessages(current, incoming);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].id).toBe('sys1');
+  });
+
+  it('exempts own messages from profit factor filter (by clientId)', () => {
+    const current: any[] = [];
+    const incoming: any[] = [
+        { id: 'me1', text: 'My Low PF Msg', timestamp: 500, profitFactor: 0.1, clientId: 'test-client-id' }
+    ];
+
+    const merged = (chatState as any).mergeMessages(current, incoming);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].id).toBe('me1');
+  });
+
+   it('exempts own messages from profit factor filter (by senderId)', () => {
+    const current: any[] = [];
+    const incoming: any[] = [
+        { id: 'me2', text: 'My Low PF Msg', timestamp: 600, profitFactor: 0.1, senderId: 'me' }
+    ];
+
+    const merged = (chatState as any).mergeMessages(current, incoming);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].id).toBe('me2');
   });
 });
