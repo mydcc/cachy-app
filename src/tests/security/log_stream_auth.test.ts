@@ -49,11 +49,23 @@ describe("GET /api/stream-logs Security", () => {
     } as unknown as Request;
   };
 
-  it("should allow access in development mode without token", async () => {
+  it("should deny access in development mode without token", async () => {
     process.env.NODE_ENV = "development";
+    mockEnv.LOG_STREAM_KEY = "dev-secret";
 
     // Simulate Request
     const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+
+    const response = await GET(event);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("should allow access in development mode with correct token", async () => {
+    process.env.NODE_ENV = "development";
+    mockEnv.LOG_STREAM_KEY = "dev-secret";
+
+    const event = { request: createRequest("http://localhost/api/stream-logs?token=dev-secret"), url: new URL("http://localhost/api/stream-logs?token=dev-secret") } as any;
 
     const response = await GET(event);
 
