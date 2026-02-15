@@ -694,7 +694,13 @@
       "interval2sTooltip": "Gut für Intraday-Trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Gut für Day-Trading (15min+). Ausgewogen.",
       "interval10sTooltip": "Ideal für Swing-Trading (1h+). Niedrige CPU.",
-      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung"
+      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung",
+      "qualityMode": {
+        "title": "Leistungsmodus",
+        "speed": "Geschwindigkeit",
+        "balanced": "Ausgewogen",
+        "quality": "Qualität"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -1023,6 +1029,9 @@
         "factor": "Faktor",
         "period": "Periode"
       }
+    },
+    "candlestickPatterns": {
+      "title": "Kerzenmuster"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -1434,6 +1443,8 @@
       "losers": "% Verlierer",
       "vol": "Volumen"
     },
+    "volShort": "Vol",
+    "allShort": "Alle",
     "volFilter": {
       "all": "Alle",
       "1m": "1M",
@@ -1457,7 +1468,8 @@
     "apply": "Anwenden",
     "copy": "Inhalt kopieren",
     "ignore": "Ignorieren",
-    "send": "Nachricht senden"
+    "send": "Nachricht senden",
+    "sendBtn": "Senden"
   },
   "analyst": {
     "trend": {
@@ -1644,7 +1656,7 @@
     }
   },
   "candlestickPatterns": {
-    "title": "Candlestick Muster Akademie",
+    "title": "Kerzenmuster",
     "doji": {
       "name": "Doji",
       "description": "Ein Doji bildet sich, wenn Eröffnungs- und Schlusskurs fast identisch sind. Er signalisiert ein Gleichgewicht zwischen Käufern und Verkäufern.\n\n### Mathematische Kriterien\n\n  $$ |\\text{Open} - \\text{Close}| \\le 0.1 \\times (\\text{High} - \\text{Low}) $$",
