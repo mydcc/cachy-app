@@ -744,6 +744,7 @@
         "buyColor": "Kauf-Farbe",
         "sellColor": "Verkauf-Farbe",
         "minVolume": "Min. Volumen Filter",
+        "minVolumeLabel": "Min. Handelsvolumen ($)",
         "gridWidth": "Gitterbreite",
         "gridLength": "Gitterlänge",
         "speed": "Flussgeschwindigkeit",
@@ -1147,6 +1148,7 @@
     },
     "connections": {
       "exchanges": "Börsen",
+      "serverSecurity": "Server Sicherheit",
       "appAccessToken": "App Zugangstoken (Server Sicherheit)",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
@@ -1297,6 +1299,24 @@
       "maxTimeframesSelected": "Max {max} Timeframes ausgewählt.",
       "syncRsiTimeframe": "RSI Timeframe synchronisieren",
       "syncRsiDesc": "RSI verwendet automatisch den gleichen Timeframe wie der Chart",
+      "optimization": {
+        "title": "Performance Optimierung",
+        "autoOptimize": "Auto-Optimize Engine",
+        "autoOptimizeDesc": "Wählt automatisch TypeScript oder WebAssembly basierend auf Datengröße",
+        "preferredEngine": "Bevorzugte Engine",
+        "performanceMode": "Performance Modus",
+        "engines": {
+          "auto": "Auto (Empfohlen)",
+          "ts": "TypeScript",
+          "wasm": "WebAssembly",
+          "gpu": "GPU (Experimentell)"
+        },
+        "modes": {
+          "speed": "Geschwindigkeit",
+          "balanced": "Ausgewogen",
+          "quality": "Qualität"
+        }
+      },
       "pnlViewMode": "PnL Darstellungsmodus",
       "absoluteValue": "Absoluter Wert",
       "percentage": "Prozent %",

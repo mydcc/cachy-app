@@ -108,7 +108,7 @@
 
                 <div class="api-card mb-6">
                     <div class="header">
-                        <span class="font-bold text-sm">Server Security</span>
+                        <span class="font-bold text-sm">{$_("settings.connections.serverSecurity")}</span>
                         <span class="status-dot {settingsState.appAccessToken ? "connected" : ""}"></span>
                     </div>
                     <div class="body">

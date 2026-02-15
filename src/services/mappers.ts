@@ -21,6 +21,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { logger } from "./logger";
 import type { OMSOrder, OMSPosition, OMSOrderSide, OMSOrderStatus } from "./omsTypes";
 
 /**
@@ -73,11 +74,7 @@ export function mapToOMSOrder(data: any): OMSOrder {
     if (typeof data.orderId === 'number') {
         // Safe limit is 2^53 - 1
         if (data.orderId > Number.MAX_SAFE_INTEGER) {
-            // We can't log here easily without importing logger,
-            // but the value is likely already corrupted.
-            // Ideally logger is imported, but to keep mappers pure/testable we skip side effects
-            // or we could accept an optional logger?
-            // For now, we just proceed with string conversion.
+            logger.warn("market", `[Mapper] CRITICAL: Precision Loss detected for orderId: ${data.orderId}. Ensure safeJsonParse is used upstream.`);
         }
     }
 

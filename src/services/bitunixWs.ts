@@ -114,6 +114,8 @@ class BitunixWebSocketService {
   // The 'pendingSubscriptions' acts as a buffer that survives re-connects.
   // Updated to Map for reference counting.
   public pendingSubscriptions: Map<string, number> = new Map();
+  // Track synthetic subscriptions (e.g. 20m from 5m) for cleanup
+  private syntheticSubs = new Map<string, number>();
 
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
@@ -988,9 +990,7 @@ class BitunixWebSocketService {
 
                           // [SYNTHETIC] Dynamic Support
                           // Iterate active synthetic subscriptions to see if any depend on this update
-                          // @ts-ignore
-                          if (this.syntheticSubs) {
-                              // @ts-ignore
+                          if (this.syntheticSubs.size > 0) {
                               for (const [key, count] of this.syntheticSubs.entries()) {
                                   // key format: "SYMBOL:TF"
                                   const parts = key.split(":");
@@ -1366,11 +1366,7 @@ class BitunixWebSocketService {
         targetChannel = `kline_${resolved.base}`;
         const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
         
-        // @ts-ignore
-        if (!this.syntheticSubs) this.syntheticSubs = new Map<string, number>();
-        // @ts-ignore
         const count = this.syntheticSubs.get(synthKey) || 0;
-        // @ts-ignore
         this.syntheticSubs.set(synthKey, count + 1);
         
         if (import.meta.env.DEV) {
@@ -1415,6 +1411,17 @@ class BitunixWebSocketService {
   unsubscribe(symbol: string, channel: string) {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
+
+    // [SYNTHETIC] Cleanup
+    const resolved = this.resolveTimeframe(channel.replace("kline_", ""));
+    if (channel.startsWith("kline_") && resolved.isSynthetic) {
+        const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
+        const count = this.syntheticSubs.get(synthKey) || 0;
+        if (count > 0) {
+            if (count === 1) this.syntheticSubs.delete(synthKey);
+            else this.syntheticSubs.set(synthKey, count - 1);
+        }
+    }
 
     // [FIX] Map internal channel format to Bitunix specific format
     const bitunixChannel = this.getBitunixChannel(channel);

@@ -192,6 +192,9 @@ class TradeService {
                 );
              } catch (e) {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
+                // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
+                // We throw here to abort the operation.
+                throw new Error("tradeErrors.fetchFailed");
              }
         }
 
@@ -205,6 +208,8 @@ class TradeService {
                 );
              } catch (e) {
                 logger.error("market", `[Freshness] API Fallback failed`, e);
+                // Propagate error if we really expected a position but couldn't confirm
+                throw e;
             }
         }
 

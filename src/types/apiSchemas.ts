@@ -109,6 +109,14 @@ export const PositionRawSchema = z.object({
 
 export const PositionListSchema = z.array(PositionRawSchema);
 
+// Account Request Schema
+export const AccountRequestSchema = z.object({
+    exchange: z.enum(["bitunix", "bitget"]),
+    apiKey: z.string().min(1),
+    apiSecret: z.string().min(1),
+    passphrase: z.string().optional() // Required for Bitget
+});
+
 // --- TP/SL Request Validation Schemas ---
 
 // Common Headers

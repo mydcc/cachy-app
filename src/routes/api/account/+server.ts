@@ -28,24 +28,26 @@ import {
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { checkAppAuth } from "../../../lib/server/auth";
+import { AccountRequestSchema } from "../../../types/apiSchemas";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
   let body;
   try {
-    body = await request.json();
+    body = safeJsonParse(await request.text());
   } catch (e) {
     return json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  if (!body || typeof body !== "object") {
-    return json({ error: "Invalid request body" }, { status: 400 });
-  }
-  const { exchange, apiKey, apiSecret, passphrase } = body;
 
-  if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  // Zod Validation
+  const validation = AccountRequestSchema.safeParse(body);
+  if (!validation.success) {
+    return json({ error: "Validation Error", details: validation.error.issues }, { status: 400 });
   }
+
+  const { exchange, apiKey, apiSecret, passphrase } = validation.data;
 
   try {
     let account = null;

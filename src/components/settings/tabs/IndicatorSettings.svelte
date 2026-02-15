@@ -123,14 +123,14 @@
                     <!-- Performance Optimization -->
                     <div class="mt-6 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
                         <h4 class="text-xs font-bold uppercase mb-3 text-[var(--text-primary)]">
-                            Performance Optimization
+                            {$_("settings.technicals.optimization.title")}
                         </h4>
                         
                         <label class="toggle-card mb-3">
                             <div class="flex flex-col">
-                                <span class="text-sm font-medium">Auto-Optimize Engine</span>
+                                <span class="text-sm font-medium">{$_("settings.technicals.optimization.autoOptimize")}</span>
                                 <span class="text-[10px] text-[var(--text-secondary)]">
-                                    Automatically select TypeScript or WebAssembly based on data size
+                                    {$_("settings.technicals.optimization.autoOptimizeDesc")}
                                 </span>
                             </div>
                             <Toggle bind:checked={indicatorState.autoOptimize} />
@@ -139,32 +139,32 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div class="field-group">
                                 <label for="preferred-engine" class="text-xs font-semibold mb-1 block">
-                                    Preferred Engine
+                                    {$_("settings.technicals.optimization.preferredEngine")}
                                 </label>
                                 <select 
                                     id="preferred-engine"
                                     bind:value={indicatorState.preferredEngine}
                                     class="input-field"
                                 >
-                                    <option value="auto">Auto (Recommended)</option>
-                                    <option value="ts">TypeScript</option>
-                                    <option value="wasm">WebAssembly</option>
-                                    <option value="gpu">GPU (Experimental)</option>
+                                    <option value="auto">{$_("settings.technicals.optimization.engines.auto")}</option>
+                                    <option value="ts">{$_("settings.technicals.optimization.engines.ts")}</option>
+                                    <option value="wasm">{$_("settings.technicals.optimization.engines.wasm")}</option>
+                                    <option value="gpu">{$_("settings.technicals.optimization.engines.gpu")}</option>
                                 </select>
                             </div>
                             
                             <div class="field-group">
                                 <label for="performance-mode" class="text-xs font-semibold mb-1 block">
-                                    Performance Mode
+                                    {$_("settings.technicals.optimization.performanceMode")}
                                 </label>
                                 <select 
                                     id="performance-mode"
                                     bind:value={indicatorState.performanceMode}
                                     class="input-field"
                                 >
-                                    <option value="speed">Speed</option>
-                                    <option value="balanced">Balanced</option>
-                                    <option value="quality">Quality</option>
+                                    <option value="speed">{$_("settings.technicals.optimization.modes.speed")}</option>
+                                    <option value="balanced">{$_("settings.technicals.optimization.modes.balanced")}</option>
+                                    <option value="quality">{$_("settings.technicals.optimization.modes.quality")}</option>
                                 </select>
                             </div>
                         </div>

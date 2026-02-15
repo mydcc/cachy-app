@@ -23,6 +23,7 @@ import {
 } from "../../../utils/server/bitunix";
 import { checkAppAuth } from "../../../lib/server/auth";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -31,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (authError) return authError;
   // Wrap the entire parsing logic in try-catch to handle malformed JSON
   try {
-    const body = await request.json();
+    const body = safeJsonParse(await request.text());
 
     // Zod Validation (Strict)
     const validation = TpSlRequestSchema.safeParse(body);

@@ -744,6 +744,7 @@
         "buyColor": "Buy Color",
         "sellColor": "Sell Color",
         "minVolume": "Min Volume Filter",
+        "minVolumeLabel": "Min Trade Volume ($)",
         "gridWidth": "Grid Width",
         "gridLength": "Grid Length",
         "speed": "Flow Speed",
@@ -948,6 +949,24 @@
       "historyLimit": "History Scope (Candles)",
       "syncRsi": "Synchronize RSI Timeframe",
       "syncRsiDesc": "Use chart timeframe for RSI",
+      "optimization": {
+        "title": "Performance Optimization",
+        "autoOptimize": "Auto-Optimize Engine",
+        "autoOptimizeDesc": "Automatically select TypeScript or WebAssembly based on data size",
+        "preferredEngine": "Preferred Engine",
+        "performanceMode": "Performance Mode",
+        "engines": {
+          "auto": "Auto (Recommended)",
+          "ts": "TypeScript",
+          "wasm": "WebAssembly",
+          "gpu": "GPU (Experimental)"
+        },
+        "modes": {
+          "speed": "Speed",
+          "balanced": "Balanced",
+          "quality": "Quality"
+        }
+      },
       "pnlMode": "PnL Display Mode",
       "favorites": "Favorite Timeframes",
       "pnlModes": {
@@ -1211,6 +1230,7 @@
       }
     },
     "connections": {
+      "serverSecurity": "Server Security",
       "appAccessToken": "App Access Token (Server Security)",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
