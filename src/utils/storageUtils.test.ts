@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { storageUtils } from './storageUtils';
 
@@ -59,18 +60,64 @@ describe('storageUtils', () => {
     }).toThrow(/Quota überschritten/);
   });
 
-  it('should invalidate cache on storage event', () => {
+  it('should update cache on storage event (add)', () => {
     storageUtils.safeSetItem('k1', 'v1');
     expect(storageUtils.checkQuota().used).toBe(4);
 
-    // Modify localStorage directly (simulating another tab)
-    localStorage.setItem('k2', 'v2');
+    // Simulate another tab adding an item
+    const evt = new StorageEvent('storage', {
+        key: 'k2',
+        oldValue: null,
+        newValue: 'v2',
+        storageArea: localStorage
+    });
+    window.dispatchEvent(evt);
 
-    // Trigger storage event
-    window.dispatchEvent(new Event('storage'));
-
-    // checkQuota should now re-calculate and find both items
-    // k1 (4) + k2 (4) = 8
+    // Should include new item: 4 + (2+2) = 8
     expect(storageUtils.checkQuota().used).toBe(8);
+  });
+
+  it('should update cache on storage event (remove)', () => {
+    storageUtils.safeSetItem('k1', 'v1');
+    expect(storageUtils.checkQuota().used).toBe(4);
+
+    const evt = new StorageEvent('storage', {
+        key: 'k1',
+        oldValue: 'v1',
+        newValue: null,
+        storageArea: localStorage
+    });
+    window.dispatchEvent(evt);
+
+    expect(storageUtils.checkQuota().used).toBe(0);
+  });
+
+  it('should update cache on storage event (update)', () => {
+    storageUtils.safeSetItem('k1', 'v1'); // 4
+    expect(storageUtils.checkQuota().used).toBe(4);
+
+    const evt = new StorageEvent('storage', {
+        key: 'k1',
+        oldValue: 'v1',
+        newValue: 'v123', // +2 bytes
+        storageArea: localStorage
+    });
+    window.dispatchEvent(evt);
+
+    // 4 - 4 + 6 = 6
+    expect(storageUtils.checkQuota().used).toBe(6);
+  });
+
+  it('should update cache on storage event (clear)', () => {
+    storageUtils.safeSetItem('k1', 'v1');
+    expect(storageUtils.checkQuota().used).toBe(4);
+
+    const evt = new StorageEvent('storage', {
+        key: null,
+        storageArea: localStorage
+    });
+    window.dispatchEvent(evt);
+
+    expect(storageUtils.checkQuota().used).toBe(0);
   });
 });
