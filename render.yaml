@@ -2,10 +2,15 @@ services:
   - type: web
     name: cachy-app
     env: node
-    buildCommand: npm install && npm run build
+    # Use npm ci for clean, deterministic installs.
+    # We disable audit to speed up the process.
+    # Ensure package-lock.json is in sync with package.json!
+    buildCommand: npm config set audit false && npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 20.18.3
-      - key: NODE_OPTIONS
-        value: "--max-old-space-size=4096"
+      # Removed NODE_OPTIONS to let the container manage memory automatically.
+      # If you have a large instance (>= 2GB RAM), you can uncomment this:
+      # - key: NODE_OPTIONS
+      #   value: "--max-old-space-size=4096"
