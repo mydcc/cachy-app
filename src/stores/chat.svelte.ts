@@ -30,6 +30,7 @@ const POLL_INTERVAL = 3000;
 class ChatManager {
   messages = $state<ChatMessage[]>([]);
   lastSentTimestamp = $state(0);
+  latestSeenTimestamp = $state(0);
   loading = $state(false);
   clientId = $state("");
 
@@ -67,11 +68,26 @@ class ChatManager {
     current: ChatMessage[],
     incoming: ChatMessage[],
   ): ChatMessage[] {
+    // 1. Update latest timestamp BEFORE filtering (prevents stuck polling)
+    if (incoming.length > 0) {
+      const maxTs = Math.max(...incoming.map((m) => m.timestamp));
+      if (maxTs > this.latestSeenTimestamp) {
+        this.latestSeenTimestamp = maxTs;
+      }
+    }
+
     const settings = settingsState;
-    // const minPF = settings.minChatProfitFactor || 0; // Usage if filtering needed
+    const minPF = settings.minChatProfitFactor || 0;
+
+    // 2. Apply Profit Factor Filter
+    const filteredIncoming = incoming.filter(
+      (m) => (m.profitFactor ?? 0) >= minPF,
+    );
 
     const existingIds = new Set(current.map((m) => m.id));
-    const uniqueIncoming = incoming.filter((m) => !existingIds.has(m.id));
+    const uniqueIncoming = filteredIncoming.filter(
+      (m) => !existingIds.has(m.id),
+    );
 
     if (uniqueIncoming.length === 0) return current;
 
@@ -86,8 +102,8 @@ class ChatManager {
   }
 
   private async poll() {
-    const lastMsg = this.messages[this.messages.length - 1];
-    const since = lastMsg ? lastMsg.timestamp : 0;
+    // Use tracked timestamp to ensure we advance even if messages are filtered out
+    const since = this.latestSeenTimestamp;
 
     try {
       const res = await fetch(`/api/chat-v2?since=${since}`);
