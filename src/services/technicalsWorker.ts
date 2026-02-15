@@ -22,11 +22,32 @@ interface WorkerState {
     klines: Kline[];
     settings: any;
     enabledIndicators: any;
+    lastAccessed: number;
 }
 const stateMap = new Map<string, WorkerState>();
+const MAX_STATE_ENTRIES = 50;
 
 function getKey(symbol: string, timeframe: string) {
     return `${symbol}:${timeframe}`;
+}
+
+// Simple LRU cleanup
+function enforceLimit() {
+    if (stateMap.size <= MAX_STATE_ENTRIES) return;
+
+    let oldestKey = '';
+    let oldestTime = Infinity;
+
+    for (const [key, state] of stateMap.entries()) {
+        if (state.lastAccessed < oldestTime) {
+            oldestTime = state.lastAccessed;
+            oldestKey = key;
+        }
+    }
+
+    if (oldestKey) {
+        stateMap.delete(oldestKey);
+    }
 }
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
@@ -93,6 +114,9 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
              const key = getKey(symbol, timeframe);
 
+             // Enforce LRU limit before adding new state
+             enforceLimit();
+
              const parsedKlines: Kline[] = klines.map((k: any) => ({
                  time: k.time,
                  open: new Decimal(k.open),
@@ -105,7 +129,8 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              stateMap.set(key, {
                  klines: parsedKlines,
                  settings,
-                 enabledIndicators
+                 enabledIndicators,
+                 lastAccessed: Date.now()
              });
 
              const result = calculateAllIndicators(parsedKlines, settings, enabledIndicators);
@@ -120,6 +145,9 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              if (!state) {
                  throw new Error("Worker state missing for " + key);
              }
+
+             // Update access time
+             state.lastAccessed = Date.now();
 
              const newKline: Kline = {
                  time: kline.time,
@@ -142,6 +170,25 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              const result = calculateAllIndicators(history, state.settings, state.enabledIndicators);
 
              self.postMessage({ type: "RESULT", id, payload: result });
+
+        } else if (type === "CLEANUP") {
+             // Explicit cleanup
+             const { symbol, timeframe } = payload;
+             if (symbol && timeframe) {
+                 const key = getKey(symbol, timeframe);
+                 stateMap.delete(key);
+             } else if (symbol) {
+                 // Clear all timeframes for symbol
+                 for (const key of stateMap.keys()) {
+                     if (key.startsWith(symbol + ":")) {
+                         stateMap.delete(key);
+                     }
+                 }
+             } else {
+                 // Clear all
+                 stateMap.clear();
+             }
+             self.postMessage({ type: "RESULT", id, payload: { success: true } });
         }
     } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);

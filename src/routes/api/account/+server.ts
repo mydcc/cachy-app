@@ -28,24 +28,30 @@ import {
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { checkAppAuth } from "../../../lib/server/auth";
+import { safeJsonParse } from "../../../utils/safeJson";
+import { AccountRequestSchema } from "../../../types/accountSchemas";
+import { logger } from "$lib/server/logger";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
-  let body;
+
+  let body: unknown;
   try {
-    body = await request.json();
+    const text = await request.text();
+    body = safeJsonParse(text);
   } catch (e) {
     return json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  if (!body || typeof body !== "object") {
-    return json({ error: "Invalid request body" }, { status: 400 });
-  }
-  const { exchange, apiKey, apiSecret, passphrase } = body;
 
-  if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  const validation = AccountRequestSchema.safeParse(body);
+  if (!validation.success) {
+      const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
+      logger.warn(`[Account] Validation failed: ${errors}`);
+      return json({ error: "Validation Error", details: errors }, { status: 400 });
   }
+
+  const { exchange, apiKey, apiSecret, passphrase } = validation.data;
 
   try {
     let account = null;
@@ -63,12 +69,19 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(account);
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Security: Sanitize error log
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`Error fetching account from ${exchange}:`, errorMsg);
+
+    // Redact sensitive keys from logs
+    let safeLog = errorMsg;
+    if (apiKey.length > 4) safeLog = safeLog.replaceAll(apiKey, "***");
+    if (apiSecret.length > 4) safeLog = safeLog.replaceAll(apiSecret, "***");
+
+    logger.error(`[Account] Fetch failed for ${exchange}: ${safeLog}`);
+
     return json(
-      { error: e.message || "Failed to fetch account" },
+      { error: "Failed to fetch account data" },
       { status: 500 },
     );
   }
@@ -113,7 +126,9 @@ async function fetchBitunixAccount(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
+  const text = await response.text();
+  const res = safeJsonParse(text); // Use safe parser
+
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
       `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
@@ -168,7 +183,9 @@ async function fetchBitgetAccount(
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
-    const res = await response.json();
+    const text = await response.text();
+    const res = safeJsonParse(text);
+
     if (res.code !== "00000") throw new Error(res.msg);
 
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;

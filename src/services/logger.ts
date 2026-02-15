@@ -2,9 +2,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -35,7 +35,8 @@ export type LogCategory =
     | "governance"
     | "journal"
     | "data"
-    | "ui";
+    | "ui"
+    | "api"; // Added api
 
 export interface LogOptions {
     force?: boolean;
@@ -125,6 +126,7 @@ class LoggerService {
             case "journal": return "color: #f8a; font-weight: bold;";
             case "ui": return "color: #8df; font-weight: bold;";
             case "governance": return "color: #fca; font-weight: bold; border-left: 3px solid #f84; padding-left: 4px;";
+            case "api": return "color: #f88; font-weight: bold;";
             default: return "color: #ccc;";
         }
     }

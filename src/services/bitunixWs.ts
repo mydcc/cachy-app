@@ -114,6 +114,8 @@ class BitunixWebSocketService {
   // The 'pendingSubscriptions' acts as a buffer that survives re-connects.
   // Updated to Map for reference counting.
   public pendingSubscriptions: Map<string, number> = new Map();
+  // [FIX] Initialize syntheticSubs to prevent TS errors and runtime undefined access
+  private syntheticSubs: Map<string, number> = new Map();
 
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
@@ -935,7 +937,7 @@ class BitunixWebSocketService {
                     const asks = sData.a as [string, string][];
 
                     if (!this.shouldThrottle(`${symbol}:depth`)) {
-                      marketState.updateDepth(symbol, { bids, asks });
+                      marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
                     }
                     return;
                   } catch (fastPathError) {
@@ -988,9 +990,7 @@ class BitunixWebSocketService {
 
                           // [SYNTHETIC] Dynamic Support
                           // Iterate active synthetic subscriptions to see if any depend on this update
-                          // @ts-ignore
                           if (this.syntheticSubs) {
-                              // @ts-ignore
                               for (const [key, count] of this.syntheticSubs.entries()) {
                                   // key format: "SYMBOL:TF"
                                   const parts = key.split(":");
@@ -1366,11 +1366,7 @@ class BitunixWebSocketService {
         targetChannel = `kline_${resolved.base}`;
         const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
         
-        // @ts-ignore
-        if (!this.syntheticSubs) this.syntheticSubs = new Map<string, number>();
-        // @ts-ignore
         const count = this.syntheticSubs.get(synthKey) || 0;
-        // @ts-ignore
         this.syntheticSubs.set(synthKey, count + 1);
         
         if (import.meta.env.DEV) {
@@ -1414,10 +1410,33 @@ class BitunixWebSocketService {
 
   unsubscribe(symbol: string, channel: string) {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
-    const subKey = `${channel}:${normalizedSymbol}`;
+
+    // [SYNTHETIC] Dynamic Support Cleanup
+    const resolved = this.resolveTimeframe(channel.replace("kline_", ""));
+    let targetChannel = channel;
+
+    if (channel.startsWith("kline_") && resolved.isSynthetic) {
+        targetChannel = `kline_${resolved.base}`;
+        const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
+
+        const count = this.syntheticSubs.get(synthKey) || 0;
+        if (count > 0) {
+            const newCount = count - 1;
+            if (newCount === 0) {
+                this.syntheticSubs.delete(synthKey);
+                if (import.meta.env.DEV) {
+                    logger.log("network", `[BitunixWS] Synthetic Unsubscribe ${synthKey}. Removed.`);
+                }
+            } else {
+                this.syntheticSubs.set(synthKey, newCount);
+            }
+        }
+    }
+
+    const subKey = `${targetChannel}:${normalizedSymbol}`;
 
     // [FIX] Map internal channel format to Bitunix specific format
-    const bitunixChannel = this.getBitunixChannel(channel);
+    const bitunixChannel = this.getBitunixChannel(targetChannel);
     if (!bitunixChannel) return;
 
     // Reference Counting Logic
@@ -1440,6 +1459,19 @@ class BitunixWebSocketService {
   // Forcefully remove subscription regardless of ref count (Emergency/Cleanup)
   forceUnsubscribe(symbol: string, channel: string) {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+
+    // [SYNTHETIC] Force Cleanup
+    if (channel.startsWith("kline_")) {
+        const resolved = this.resolveTimeframe(channel.replace("kline_", ""));
+        let targetChannel = channel;
+        if (resolved.isSynthetic) {
+            targetChannel = `kline_${resolved.base}`;
+            const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
+            this.syntheticSubs.delete(synthKey);
+        }
+        channel = targetChannel; // update for main removal
+    }
+
     const subKey = `${channel}:${normalizedSymbol}`;
 
     const bitunixChannel = this.getBitunixChannel(channel);
