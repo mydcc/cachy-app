@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { z } from "zod";
+import { checkAppAuth } from "../../../lib/server/auth";
 import {
   generateBitunixSignature,
   validateBitunixKeys,
@@ -39,6 +40,9 @@ const SyncRequestSchema = z.object({
 });
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
 

@@ -9,11 +9,15 @@
 
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import { checkAppAuth } from '../../../lib/server/auth';
 
 const ENV_OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const ENV_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export const POST: RequestHandler = async ({ request }) => {
+    const authError = checkAppAuth(request);
+    if (authError) return authError;
+
     try {
         const { headlines, provider, model, apiKey } = await request.json();
         if (!Array.isArray(headlines) || headlines.length === 0) {

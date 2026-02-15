@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { generateBitunixSignature } from "../../../../utils/server/bitunix";
+import { checkAppAuth } from "../../../../lib/server/auth";
 import type { BitunixOrder } from "../../../../types/bitunix";
 import { z } from "zod";
 
@@ -28,6 +29,9 @@ const RequestSchema = z.object({
 });
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   let body;
   try {
     body = await request.json();

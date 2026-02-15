@@ -19,6 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
+import { checkAppAuth } from "../../../../lib/server/auth";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -27,6 +28,9 @@ const RequestSchema = z.object({
 });
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   let body;
   try {
     body = await request.json();

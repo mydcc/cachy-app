@@ -18,8 +18,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getErrorMessage } from "../../../../utils/errorUtils";
+import { checkAppAuth } from "../../../../lib/server/auth";
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   try {
     const { messages, model } = await request.json();
     const apiKey = request.headers.get("x-api-key");

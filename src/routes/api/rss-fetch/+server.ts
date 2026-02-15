@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import Parser from "rss-parser";
+import { checkAppAuth } from "../../../lib/server/auth";
 
 const parser = new Parser({
   timeout: 10000,
@@ -64,6 +65,9 @@ function isUrlAllowed(urlStr: string): boolean {
 }
 
 export const POST: RequestHandler = async ({ request }) => {
+  const authError = checkAppAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { url } = body;
