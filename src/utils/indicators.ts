@@ -363,23 +363,6 @@ export const JSIndicators = {
       pool.release(emaSlow);
     }
 
-    // macdLine is a new Float64Array (or reused)
-    // We use subarray for efficiency (no copy)
-    const macdLineSub = macdLine.subarray(slow - 1);
-
-    // Calculate signal on the sliced part
-    // Note: ema now skips leading NaNs.
-    // macdLine has NaNs up to slow-1.
-    // So we don't strictly need to subarray if we pass full array?
-    // But passing full array preserves indices.
-    // If we pass subarray, we get a short array back starting with NaNs.
-    // The original logic was:
-    // const macdSignalPart = this.ema(macdLineSub, signal);
-    // paddedSignal.set(macdSignalPart, slow - 1);
-
-    // If macdLine has leading NaNs, we can just pass macdLine to ema!
-    // And it will return a signal line aligned with macdLine (with more NaNs).
-
     // Optimization: Avoid subarray and copy back.
     const signalLine = (outSignal && outSignal.length === len) ? outSignal : new Float64Array(len);
     this.ema(macdLine, signal, signalLine);
