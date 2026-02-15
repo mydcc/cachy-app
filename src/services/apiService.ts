@@ -31,6 +31,7 @@ import {
   validateResponseSize,
   sanitizeErrorMessage,
 } from "../types/apiSchemas";
+import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 export type { Kline };
 
 export interface Ticker24h {
@@ -134,6 +135,7 @@ class RequestManager {
 
   // Logging for debugging latency
   private readonly LOG_LIMIT = 50;
+  private lastRateLimitLog = 0;
 
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -244,7 +246,7 @@ class RequestManager {
 
             try {
               return await task(controller.signal);
-            } catch (e) {
+            } catch (e: unknown) {
               if (e instanceof Error && e.name === "AbortError") {
                 logger.warn("network", `[ReqMgr] Timeout for ${key}`);
               }
@@ -295,10 +297,29 @@ class RequestManager {
             logger.log("network", `[Response] Success: ${key}`);
           }
           resolve(result);
-        } catch (e) {
+        } catch (e: unknown) {
           if (settingsState.enableNetworkLogs) {
             logger.error("network", `[Response] Failed: ${key}`, e);
           }
+
+          // Enhanced error reporting with quota tracker integration
+          const provider = (key.startsWith("BITUNIX") || key.includes("bitunix")) ? "bitunix" :
+                           (key.startsWith("BITGET") || key.includes("bitget")) ? "bitget" : "unknown";
+
+          if (provider !== "unknown") {
+              const msg = e instanceof Error ? e.message : String(e);
+              if (msg.includes("429") || msg.toLowerCase().includes("too many")) {
+                  const now = Date.now();
+                  if (now - this.lastRateLimitLog > 5000) {
+                      logger.warn("api", `Rate limit hit for ${key}`, e);
+                      this.lastRateLimitLog = now;
+                  }
+                  apiQuotaTracker.recordError(provider, "429");
+              } else {
+                  apiQuotaTracker.recordError(provider, msg);
+              }
+          }
+
           reject(e);
         } finally {
           this.activeCount--;
@@ -440,9 +461,9 @@ export const apiService = {
           }
           const data = validatedRes.data[0];
           return data.lastPrice;
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (e instanceof Error && e.name === "AbortError") throw e;
-          if (e.status || (e.message && e.message.includes("."))) throw e;
+          if (e instanceof Error && ((e as any).status || (e.message && e.message.includes(".")))) throw e;
           throw new Error("apiErrors.generic");
         }
       },
@@ -531,7 +552,7 @@ export const apiService = {
               return null;
             }
           }).filter((k): k is Kline => k !== null);
-        } catch (e) {
+        } catch (e: unknown) {
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
@@ -712,12 +733,12 @@ export const apiService = {
            
            return mapped;
 
-        } catch (e: any) {
-          if (e.message !== "apiErrors.symbolNotFound") {
+        } catch (e: unknown) {
+          if (e instanceof Error && e.message !== "apiErrors.symbolNotFound") {
             logger.error("network", `fetchBitunixKlines error for ${symbol}`, e);
           }
           if (e instanceof Error && e.name === "AbortError") throw e;
-          if (e.status || (e.message && e.message.includes("."))) throw e;
+          if (e instanceof Error && ((e as any).status || (e.message && e.message.includes(".")))) throw e;
           throw new Error("apiErrors.generic");
         }
       },
@@ -786,7 +807,7 @@ export const apiService = {
               priceChangePercent: new Decimal(t.priceChangePercent || 0) // Or calculate
             }));
           }
-        } catch (e) {
+        } catch (e: unknown) {
           logger.error("network", "Snapshot Fetch Error", e);
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
@@ -878,7 +899,7 @@ export const apiService = {
               priceChangePercent: new Decimal(ticker.priceChangePercent || 0)
             };
           }
-        } catch (e) {
+        } catch (e: unknown) {
           logger.error("network", "fetchTicker24h error", e);
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (

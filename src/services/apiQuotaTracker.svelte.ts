@@ -11,7 +11,7 @@ import { browser } from "$app/environment";
 import { logger } from "./logger";
 
 export interface QuotaEntry {
-    provider: "cryptopanic" | "newsapi";
+    provider: string; // Allow general strings for Bitunix/Bitget
     resetDate: number;
     totalCalls: number;
     failedCalls: number;
@@ -58,7 +58,7 @@ class ApiQuotaTracker {
         }
     }
 
-    logCall(provider: "cryptopanic" | "newsapi", success: boolean, errorMsg?: string) {
+    logCall(provider: string, success: boolean, errorMsg?: string) {
         // Ensure entry exists
         if (!this.quotas[provider]) {
             this.quotas[provider] = {
@@ -86,12 +86,35 @@ class ApiQuotaTracker {
         this.save();
     }
 
-    getStats(provider: "cryptopanic" | "newsapi"): QuotaEntry | null {
+    // New method for direct error recording
+    recordError(provider: string, errorMsg: string) {
+        if (!this.quotas[provider]) {
+            this.quotas[provider] = {
+                provider,
+                resetDate: getNextMonthStart(),
+                totalCalls: 0,
+                failedCalls: 0,
+                lastError: null,
+                last429At: null,
+            };
+        }
+
+        const entry = this.quotas[provider];
+        entry.failedCalls++;
+        entry.lastError = errorMsg;
+
+        if (errorMsg.includes("429") || errorMsg.includes("Too many")) {
+            entry.last429At = Date.now();
+        }
+        this.save();
+    }
+
+    getStats(provider: string): QuotaEntry | null {
         this.resetIfNeeded();
         return this.quotas[provider] || null;
     }
 
-    isQuotaExhausted(provider: "cryptopanic" | "newsapi"): boolean {
+    isQuotaExhausted(provider: string): boolean {
         const stats = this.getStats(provider);
         if (!stats || !stats.last429At) return false;
         const hoursSince429 = (Date.now() - stats.last429At) / (1000 * 60 * 60);
@@ -117,7 +140,7 @@ class ApiQuotaTracker {
         if (hasChanges) this.save();
     }
 
-    manualReset(provider?: "cryptopanic" | "newsapi") {
+    manualReset(provider?: string) {
         if (provider) {
             if (this.quotas[provider]) {
                  this.quotas[provider] = {
