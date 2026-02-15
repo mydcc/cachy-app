@@ -950,6 +950,24 @@
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
+      "optimization": {
+        "title": "Performance Optimierung",
+        "autoOptimize": "Auto-Optimize Engine",
+        "autoOptimizeDesc": "Wählt automatisch TypeScript oder WebAssembly basierend auf Datengröße",
+        "preferredEngine": "Bevorzugte Engine",
+        "performanceMode": "Performance Modus",
+        "engines": {
+          "auto": "Auto (Empfohlen)",
+          "ts": "TypeScript",
+          "wasm": "WebAssembly",
+          "gpu": "GPU (Experimentell)"
+        },
+        "modes": {
+          "speed": "Geschwindigkeit",
+          "balanced": "Ausgewogen",
+          "quality": "Qualität"
+        }
+      },
       "summaryAction": "Zusammenfassung",
       "marketConfluence": "Markt Konfluenz",
       "oscillatorsTitle": "Oszillatoren",
@@ -1299,24 +1317,6 @@
       "maxTimeframesSelected": "Max {max} Timeframes ausgewählt.",
       "syncRsiTimeframe": "RSI Timeframe synchronisieren",
       "syncRsiDesc": "RSI verwendet automatisch den gleichen Timeframe wie der Chart",
-      "optimization": {
-        "title": "Performance Optimierung",
-        "autoOptimize": "Auto-Optimize Engine",
-        "autoOptimizeDesc": "Wählt automatisch TypeScript oder WebAssembly basierend auf Datengröße",
-        "preferredEngine": "Bevorzugte Engine",
-        "performanceMode": "Performance Modus",
-        "engines": {
-          "auto": "Auto (Empfohlen)",
-          "ts": "TypeScript",
-          "wasm": "WebAssembly",
-          "gpu": "GPU (Experimentell)"
-        },
-        "modes": {
-          "speed": "Geschwindigkeit",
-          "balanced": "Ausgewogen",
-          "quality": "Qualität"
-        }
-      },
       "pnlViewMode": "PnL Darstellungsmodus",
       "absoluteValue": "Absoluter Wert",
       "percentage": "Prozent %",
@@ -1362,7 +1362,10 @@
       "expertDesc": "Erweiterte Optionen für erfahrene Benutzer",
       "focusDesc": "Fokus-Modus blendet ablenkende Elemente aus",
       "paramsDesc": "Zeigt detaillierte Indikator-Parameter",
-      "sidebarTitle": "Sidebar-Konfiguration"
+    "sidebarTitle": "Sidebar-Konfiguration"
+  },
+  "candlestickPatterns": {
+    "title": "Candlestick Muster"
     },
     "data": {
       "title": "Daten-Wartung",
