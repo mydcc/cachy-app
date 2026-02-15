@@ -40,7 +40,7 @@ export type TpSlOrder = TpSlOrderZod;
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
-        super(message || `apiErrors.bitunixApiError`); // Code accessible via .code
+        super(message || `bitunixErrors.bitunixApiError`); // Code accessible via .code
         this.name = "BitunixApiError";
     }
 }
@@ -110,7 +110,7 @@ class TradeService {
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "apiErrors.unknown");
+            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "bitunixErrors.unknown");
         }
 
         return data;

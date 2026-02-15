@@ -504,7 +504,7 @@ export const newsService = {
         return {
           score: 0,
           regime: "UNCERTAIN",
-          summary: "news.sentimentFailed",
+          summary: "dashboard.sentimentFailed",
           keyFactors: [],
         };
       } finally {
