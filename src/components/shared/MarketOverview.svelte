@@ -586,8 +586,8 @@
     <div in:fade={{ duration: 400 }} class="flex flex-col gap-1 mt-1">
       <div class="flex justify-between items-baseline">
         <div class="text-2xl font-bold tracking-tight flex">
-          {#key animationKey}
-            {#each priceParts as part}
+          {#each priceParts as part}
+            {#key part.changed ? animationKey : 'static'}
               <span
                 class={part.changed
                   ? priceTrend === "up"
@@ -598,8 +598,8 @@
               >
                 {part.char}
               </span>
-            {/each}
-          {/key}
+            {/key}
+          {/each}
         </div>
         {#if priceChangePercent}
           <span
