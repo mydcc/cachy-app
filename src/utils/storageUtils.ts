@@ -24,8 +24,21 @@ let cachedUsed: number | null = null;
 
 // Initialize cache invalidation on storage events (cross-tab changes)
 if (typeof window !== "undefined") {
-  window.addEventListener("storage", () => {
-    cachedUsed = null;
+  window.addEventListener("storage", (event) => {
+    if (cachedUsed === null) return;
+
+    if (event.key === null) {
+      cachedUsed = 0;
+      return;
+    }
+
+    if (event.storageArea !== localStorage) return;
+
+    const keyLen = event.key.length;
+    const oldLen = event.oldValue ? event.oldValue.length + keyLen : 0;
+    const newLen = event.newValue ? event.newValue.length + keyLen : 0;
+
+    cachedUsed += newLen - oldLen;
   });
 }
 
