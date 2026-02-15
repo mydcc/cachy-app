@@ -575,43 +575,56 @@ class MarketWatcher {
           return klines;
       }
 
-      const filled: Kline[] = [klines[0]];
+      // Optimized single-pass gap filling
+      const result: Kline[] = [];
+      // Heuristic: Pre-allocate a bit more space if gaps are expected?
+      // V8 handles array growth well, but we can avoid resizing for small gaps.
+      // However, we do not know total size without a pass. Just use standard push.
+
+      let prev = klines[0];
+      result.push(prev);
+
+      const MAX_GAP_FILL = 5000;
 
       for (let i = 1; i < klines.length; i++) {
-          const prev = filled[filled.length - 1];
           const curr = klines[i];
 
           // Hardening: Basic structural check for current item
-          if (!curr || typeof curr.time !== 'number') continue;
+          if (!curr || typeof curr.time !== "number") continue;
 
-          // Check for gap (> 1 interval + small buffer for jitter)
-          if (curr.time - prev.time > threshold) {
-              let nextTime = prev.time + intervalMs;
-              let gapCount = 0;
-              // Limit gap fill to prevent freezing on massive gaps (e.g. months of missing data)
-              const MAX_GAP_FILL = 5000;
+          const diff = curr.time - prev.time;
+          if (diff > threshold) {
+               // Calculate missing candles
+               // Example: T=0, T=3. Diff=3. Interval=1. 3/1 - 1 = 2 missing (T+1, T+2).
+               const gapCount = Math.floor(diff / intervalMs) - 1;
 
-              while (nextTime < curr.time) {
-                  if (gapCount >= MAX_GAP_FILL) {
-                      logger.warn("market", `[fillGaps] Max gap fill limit reached (${MAX_GAP_FILL}) for candle interval ${intervalMs}. Data discontinuity possible.`);
-                      break;
-                  }
-                  // Fill with flat candle (Close of previous)
-                  filled.push({
-                      time: nextTime,
-                      open: prev.close, // Share reference to previous close Decimal (immutable)
-                      high: prev.close,
-                      low: prev.close,
-                      close: prev.close,
-                      volume: MarketWatcher.ZERO_VOL // Use static constant
-                  });
-                  nextTime += intervalMs;
-                  gapCount++;
-              }
+               if (gapCount > 0) {
+                   const fillCount = Math.min(gapCount, MAX_GAP_FILL);
+
+                   if (gapCount >= MAX_GAP_FILL) {
+                       logger.warn("market", `[fillGaps] Max gap fill limit reached (${MAX_GAP_FILL}) for candle interval ${intervalMs}. Data discontinuity possible.`);
+                   }
+
+                   const fillClose = prev.close; // Reuse Decimal reference
+                   let nextTime = prev.time + intervalMs;
+
+                   for (let j = 0; j < fillCount; j++) {
+                       result.push({
+                           time: nextTime,
+                           open: fillClose,
+                           high: fillClose,
+                           low: fillClose,
+                           close: fillClose,
+                           volume: MarketWatcher.ZERO_VOL
+                       });
+                       nextTime += intervalMs;
+                   }
+               }
           }
-          filled.push(curr);
+          result.push(curr);
+          prev = curr;
       }
-      return filled;
+      return result;
   }
 
   public async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {
