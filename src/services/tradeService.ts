@@ -45,7 +45,15 @@ export interface TpSlOrder {
     createTime?: number;
     id?: string;
     planId?: string;
-    [key: string]: any;
+    // Hardened types
+    side?: string;
+    price?: string;
+    executePrice?: string;
+    clientOrderId?: string;
+    reduceOnly?: boolean;
+    workingType?: string;
+    timeInForce?: string;
+    [key: string]: unknown; // Safer than any
 }
 
 export class BitunixApiError extends Error {
@@ -254,10 +262,10 @@ class TradeService {
             try {
                 await this.cancelAllOrders(symbol, true);
             } catch (cancelError) {
-                // If cancellation fails, we ABORT the close to prevent naked orders.
-                // The user must manually handle the open orders or retry.
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Aborting close to prevent naked orders.`, cancelError);
-                throw new Error("trade.closeAbortedSafety");
+                // If cancellation fails, we log CRITICAL error but PROCEED with closing.
+                // Priority: Capital Preservation (Exit Position) > Clean State (No Naked Orders).
+                // In a true emergency (e.g. flash crash), getting out is more important than cleaning up triggers.
+                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close to prevent stuck position. Naked orders may remain!`, cancelError);
             }
 
             return await this.signedRequest("POST", "/api/orders", {
@@ -268,7 +276,7 @@ class TradeService {
                 reduceOnly: true,
                 clientOrderId
             });
-        } catch (e: any) {
+        } catch (e: unknown) {
             // HARDENING: Two Generals Problem.
             // If request fails (timeout/network), order might be live.
             // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
@@ -377,7 +385,7 @@ class TradeService {
                 logger.warn("market", `[TradeService] Sync completed with ${errorCount} skipped invalid items.`);
             }
 
-        } catch (e) {
+        } catch (e: unknown) {
             logger.error("market", "[TradeService] Failed to fetch open positions", e);
             throw e;
         }
@@ -401,7 +409,7 @@ class TradeService {
                 symbol,
                 type: "cancel-all"
              });
-        } catch (e) {
+        } catch (e: unknown) {
              logger.warn("market", `[Trade] Failed to cancel orders for ${symbol}`, e);
              if (throwOnError) throw e;
         }
@@ -484,7 +492,7 @@ class TradeService {
                               const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                                   action: view,
                                   params
-                              }).catch(e => ({ error: e.message })); // Catch signedRequest throw to match previous behavior
+                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
 
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
@@ -493,7 +501,7 @@ class TradeService {
                                   return [];
                               }
                               return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-                          } catch (e) {
+                          } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
                           }
