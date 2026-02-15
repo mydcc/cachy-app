@@ -494,7 +494,7 @@
         // Init Physics
         stressLogic = new StressLogic(scene);
         stressLogic.init().then(() => {
-            console.log("Ammo Physics Loaded");
+            if (import.meta.env.DEV) console.debug("Ammo Physics Loaded");
         });
 
         // Init Duck

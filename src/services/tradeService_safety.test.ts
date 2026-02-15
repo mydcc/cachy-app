@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -134,7 +135,7 @@ describe("TradeService Safety - Flash Close", () => {
         expect(optimisticOrder).toBeUndefined();
     });
 
-    it("should abort flash close if cancelAllOrders fails", async () => {
+    it("should PROCEED with flash close even if cancelAllOrders fails (Capital Preservation)", async () => {
         // 1. Setup Position
         const symbol = "BTCUSDT";
         const side = "long";
@@ -153,18 +154,21 @@ describe("TradeService Safety - Flash Close", () => {
         // 2. Mock cancelAllOrders to fail
         vi.spyOn(tradeService, "cancelAllOrders").mockRejectedValue(new Error("API Error"));
 
-        // 3. Spy on signedRequest to ensure it is NOT called
-        const requestSpy = vi.spyOn(tradeService as any, "signedRequest");
+        // 3. Spy on signedRequest to ensure it IS called (Close should proceed)
+        const requestSpy = vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({ code: 0 });
 
-        // 4. Execute and Expect Error
-        await expect(tradeService.flashClosePosition(symbol, side)).rejects.toThrow("trade.closeAbortedSafety");
+        // 4. Execute (Should NOT throw)
+        await tradeService.flashClosePosition(symbol, side);
 
-        // 5. Assert close request was NOT sent
-        // Note: spy might be called for cancelAllOrders itself depending on implementation,
-        // but here we mocked cancelAllOrders so signedRequest inside it won't be called.
-        // We want to ensure the CLOSE request (POST /api/orders with side=SELL) wasn't sent.
-        // However, signedRequest is generic.
-        // Let's check call count. cancelAllOrders is mocked so it won't call signedRequest.
-        expect(requestSpy).not.toHaveBeenCalled();
+        // 5. Assert close request WAS sent
+        expect(requestSpy).toHaveBeenCalledWith(
+            "POST",
+            "/api/orders",
+            expect.objectContaining({
+                symbol: "BTCUSDT",
+                side: "SELL",
+                reduceOnly: true
+            })
+        );
     });
 });

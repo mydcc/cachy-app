@@ -255,7 +255,7 @@
                     onclick={() => (viewMode = "all")}
                     title={$_("symbolPicker.all")}
                 >
-                    <span class="label uppercase text-xs">All</span>
+                    <span class="label uppercase text-xs">{$_("symbolPicker.allShort")}</span>
                 </button>
             </div>
 
@@ -284,7 +284,7 @@
                     bind:value={minVolumeStr}
                     class="bg-transparent border border-[var(--border-color)] rounded px-2 py-0.5 outline-none"
                 >
-                    <option value="0">All</option>
+                    <option value="0">{$_("symbolPicker.allShort")}</option>
                     <option value="1000000">1M+</option>
                     <option value="10000000">10M+</option>
                     <option value="50000000">50M+</option>
@@ -312,7 +312,7 @@
                 <button
                     class="sort-pill"
                     class:active={sortMode === "volume"}
-                    onclick={() => (sortMode = "volume")}>Vol</button
+                    onclick={() => (sortMode = "volume")}>{$_("symbolPicker.volShort")}</button
                 >
             </div>
         </div>

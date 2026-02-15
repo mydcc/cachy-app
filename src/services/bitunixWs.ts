@@ -115,6 +115,9 @@ class BitunixWebSocketService {
   // Updated to Map for reference counting.
   public pendingSubscriptions: Map<string, number> = new Map();
 
+  // Track synthetic subscriptions (e.g. 5m -> 1m aggregation)
+  private syntheticSubs = new Map<string, number>();
+
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
@@ -988,9 +991,7 @@ class BitunixWebSocketService {
 
                           // [SYNTHETIC] Dynamic Support
                           // Iterate active synthetic subscriptions to see if any depend on this update
-                          // @ts-ignore
                           if (this.syntheticSubs) {
-                              // @ts-ignore
                               for (const [key, count] of this.syntheticSubs.entries()) {
                                   // key format: "SYMBOL:TF"
                                   const parts = key.split(":");
@@ -1366,11 +1367,7 @@ class BitunixWebSocketService {
         targetChannel = `kline_${resolved.base}`;
         const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
         
-        // @ts-ignore
-        if (!this.syntheticSubs) this.syntheticSubs = new Map<string, number>();
-        // @ts-ignore
         const count = this.syntheticSubs.get(synthKey) || 0;
-        // @ts-ignore
         this.syntheticSubs.set(synthKey, count + 1);
         
         if (import.meta.env.DEV) {

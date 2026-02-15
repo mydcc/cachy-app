@@ -20,7 +20,7 @@ let wasmModule: any = null;
 // Hardened WASM load
 loadWasm().then(mod => {
     if (mod) {
-        console.log("[Worker] WASM Engine ready.");
+        console.debug("[Worker] WASM Engine ready.");
         wasmModule = mod;
     }
 }).catch(() => {

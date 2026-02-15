@@ -162,9 +162,9 @@
                                     bind:value={indicatorState.performanceMode}
                                     class="input-field"
                                 >
-                                    <option value="speed">Speed</option>
-                                    <option value="balanced">Balanced</option>
-                                    <option value="quality">Quality</option>
+                                    <option value="speed">{$_("settings.calculation.qualityMode.speed")}</option>
+                                    <option value="balanced">{$_("settings.calculation.qualityMode.balanced")}</option>
+                                    <option value="quality">{$_("settings.calculation.qualityMode.quality")}</option>
                                 </select>
                             </div>
                         </div>

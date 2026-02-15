@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import { _ } from "../../../locales/i18n";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
 
     interface Props {
@@ -33,7 +34,7 @@
     </div>
     <div class="input-area">
         <input type="text" placeholder="Nachricht..." />
-        <button>Senden</button>
+        <button>{$_("common.sendBtn")}</button>
     </div>
 </div>
 

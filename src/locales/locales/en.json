@@ -694,7 +694,13 @@
       "interval2sTooltip": "Great for intraday trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Good for day trading (15min+). Balanced.",
       "interval10sTooltip": "Ideal for swing trading (1h+). Low CPU.",
-      "intervalDesc": "Controls data freshness vs CPU usage"
+      "intervalDesc": "Controls data freshness vs CPU usage",
+      "qualityMode": {
+        "title": "Performance Mode",
+        "speed": "Speed",
+        "balanced": "Balanced",
+        "quality": "Quality"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -1414,6 +1420,8 @@
       "losers": "% Losers",
       "vol": "Volume"
     },
+    "volShort": "Vol",
+    "allShort": "All",
     "volFilter": {
       "all": "All",
       "1m": "1M",
@@ -1437,7 +1445,8 @@
     "apply": "Apply",
     "copy": "Copy Content",
     "ignore": "Ignore",
-    "send": "Send message"
+    "send": "Send message",
+    "sendBtn": "Send"
   },
   "analyst": {
     "trend": {

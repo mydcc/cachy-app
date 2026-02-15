@@ -32,9 +32,15 @@ export const GET: RequestHandler = async ({ url }) => {
   const endParam =
     url.searchParams.get("endTime") || url.searchParams.get("end");
   const provider = url.searchParams.get("provider") || "bitunix";
-  const limit = limitParam ? parseInt(limitParam) : 50;
-  const start = startParam ? parseInt(startParam) : undefined;
-  const end = endParam ? parseInt(endParam) : undefined;
+
+  let limit = limitParam ? parseInt(limitParam) : 50;
+  if (isNaN(limit)) limit = 50;
+
+  let start = startParam ? parseInt(startParam) : undefined;
+  if (start && isNaN(start)) start = undefined;
+
+  let end = endParam ? parseInt(endParam) : undefined;
+  if (end && isNaN(end)) end = undefined;
 
   if (!symbol) {
     return json({ error: "Symbol is required" }, { status: 400 });
@@ -141,6 +147,10 @@ async function fetchBitunixKlines(
   const responseText = await response.text();
   const data = safeJsonParse(responseText);
 
+  if (!data || typeof data !== 'object') {
+      throw new Error("Invalid API response format");
+  }
+
   if (data.code !== 0 && data.code !== "0") {
     if (
         data.code === 2 ||
@@ -156,10 +166,6 @@ async function fetchBitunixKlines(
 
   const results = data.data || [];
   
-  if (limit > 5) {
-      console.log(`[Bitunix API] ${symbol}:${interval} requested ${limit} with end ${end}. Got ${results.length}. FirstTS: ${results[0]?.time || results[0]?.id}, LastTS: ${results[results.length-1]?.time || results[results.length-1]?.id}`);
-  }
-
   const mapped = results.map((k: any) => ({
     open: String(k.open || k.o || 0),
     high: String(k.high || k.h || 0),

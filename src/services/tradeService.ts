@@ -53,7 +53,14 @@ export interface TpSlOrder {
     reduceOnly?: boolean;
     workingType?: string;
     timeInForce?: string;
-    [key: string]: unknown; // Safer than any
+}
+
+interface TpSlResponse {
+    rows?: TpSlOrder[];
+    code?: string | number;
+    msg?: string;
+    error?: string;
+    [key: string]: unknown; // Allow extra fields in response wrapper
 }
 
 export class BitunixApiError extends Error {
@@ -489,10 +496,10 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<TpSlResponse>("POST", "/api/tpsl", {
                                   action: view,
                                   params
-                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) } as TpSlResponse)); // Hardened
 
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
@@ -522,7 +529,7 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<TpSlResponse>("POST", "/api/tpsl", {
                   action: view
              });
              const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];

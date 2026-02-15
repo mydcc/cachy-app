@@ -1717,4 +1717,10 @@ export type TranslationKey =
   | "cloud.placeholder"
   | "jules.title"
   | "jules.analyzing"
-  | "jules.close";
+  | "jules.close"
+  | "settings.calculation.qualityMode.speed"
+  | "settings.calculation.qualityMode.balanced"
+  | "settings.calculation.qualityMode.quality"
+  | "symbolPicker.allShort"
+  | "symbolPicker.volShort"
+  | "common.sendBtn";

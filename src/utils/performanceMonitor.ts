@@ -66,7 +66,7 @@ export class PerformanceMonitor {
         calls = ` | DrawCalls: ${this.renderer.info.render.calls}`;
     }
 
-    console.log(`[${this.name}] FPS: ${fps}${calls}`);
+    // console.debug(`[${this.name}] FPS: ${fps}${calls}`);
 
     this.frameCount = 0;
     this.lastTime = now;

@@ -280,14 +280,14 @@
                                                 onclick={() =>
                                                     aiState.confirmAction(
                                                         pendingId,
-                                                    )}>Anwenden</button
+                                                    )}>{$_("common.apply")}</button
                                             >
                                             <button
                                                 class="reject-btn"
                                                 onclick={() =>
                                                     aiState.rejectAction(
                                                         pendingId,
-                                                    )}>Ignorieren</button
+                                                    )}>{$_("common.ignore")}</button
                                             >
                                         </div>
                                     </div>
