@@ -111,22 +111,30 @@ class StorageService {
 
                     getReq.onsuccess = () => {
                         const existingRecord: StoredKlines = getReq.result;
-                        let mergedData: Kline[];
+
+                        // Optimize: Serialize new klines once
+                        const serializedNewKlines = klines.map(serializeKline);
+                        let finalData: SerializedKline[];
 
                         if (existingRecord && existingRecord.data) {
-                            const map = new Map<number, Kline>();
-                            existingRecord.data.forEach(k => map.set(k.time, deserializeKline(k)));
-                            klines.forEach(k => map.set(k.time, k));
-                            mergedData = Array.from(map.values()).sort((a, b) => a.time - b.time);
+                            // Identify timestamps being updated/added
+                            const newTimestamps = new Set(serializedNewKlines.map(k => k.time));
+
+                            // Keep existing records that are NOT being updated
+                            // This avoids deserializing the entire history chunk
+                            const keptExisting = existingRecord.data.filter(k => !newTimestamps.has(k.time));
+
+                            // Merge and sort by time (numeric sort on property)
+                            finalData = [...keptExisting, ...serializedNewKlines].sort((a, b) => a.time - b.time);
                         } else {
-                            mergedData = [...klines].sort((a, b) => a.time - b.time);
+                            finalData = serializedNewKlines.sort((a, b) => a.time - b.time);
                         }
 
                         const record: StoredKlines = {
                             id: chunkId,
                             symbol,
                             tf,
-                            data: mergedData.map(serializeKline),
+                            data: finalData,
                             lastUpdated: Date.now()
                         };
 
@@ -145,7 +153,7 @@ class StorageService {
         }
     }
 
-async getKlines(symbol: string, tf: string): Promise<Kline[]> {
+    async getKlines(symbol: string, tf: string): Promise<Kline[]> {
         if (!this.isSupported) return [];
 
         try {
