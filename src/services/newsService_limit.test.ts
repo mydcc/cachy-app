@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -96,7 +97,6 @@ describe('NewsService Limits', () => {
 
         // Verify items length in the saved object
         const callArgs = (dbService.put as any).mock.calls[0][1];
-        // console.log("Items length:", callArgs.items.length);
         expect(callArgs.items.length).toBe(100);
     });
 
