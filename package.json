@@ -1,8 +1,6 @@
 {
-  "type": "module",
-  "engines": {
-    "node": ">=20.0.0"
-  },
+  "name": "cachy-app",
+  "version": "0.0.1",
   "scripts": {
     "build:wasm": "bash ./scripts/build_wasm.sh",
     "dev": "npm run build:wasm && vite dev",
@@ -67,5 +65,9 @@
     "vite": "^7.3.1",
     "ws": "^8.19.0",
     "zod": "^4.3.6"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
