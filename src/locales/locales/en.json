@@ -326,7 +326,8 @@
     },
     "riskRewardRatio": "Risk/Reward Ratio",
     "promptForData": "Please enter required trade data to start calculation.",
-    "instructionsTitle": "Instructions: Dashboard"
+    "instructionsTitle": "Instructions: Dashboard",
+    "triggerPulse": "Trigger Quantum Pulse"
   },
   "journal": {
     "title": "Trade Journal",
@@ -1457,7 +1458,8 @@
     "apply": "Apply",
     "copy": "Copy Content",
     "ignore": "Ignore",
-    "send": "Send message"
+    "send": "Send message",
+    "analyzing": "Analyzing..."
   },
   "analyst": {
     "trend": {

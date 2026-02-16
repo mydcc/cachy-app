@@ -50,11 +50,17 @@ class AccountManager {
   openOrders = $state<OpenOrder[]>([]);
   assets = $state<Asset[]>([]);
 
+  private syncCallback: (() => void) | null = null;
+
   reset() {
     this.positions = [];
     this.openOrders = [];
     this.assets = [];
     this.notifyListeners();
+  }
+
+  registerSyncCallback(fn: () => void) {
+    this.syncCallback = fn;
   }
 
   // --- WS Actions ---
@@ -88,9 +94,13 @@ class AccountManager {
 
       if (!side) {
         console.warn(
-          "Bitunix WS: Ignored position update due to missing side",
+          "Bitunix WS: Ignored position update due to missing side. Requesting full sync.",
           data,
         );
+        // [FIX] Trigger sync callback if available to repair state
+        if (this.syncCallback) {
+            this.syncCallback();
+        }
         return;
       }
 

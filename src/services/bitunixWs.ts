@@ -1364,14 +1364,6 @@ class BitunixWebSocketService {
     
     if (channel.startsWith("kline_") && resolved.isSynthetic) {
         targetChannel = `kline_${resolved.base}`;
-        const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
-        
-        const count = this.syntheticSubs.get(synthKey) || 0;
-        this.syntheticSubs.set(synthKey, count + 1);
-        
-        if (import.meta.env.DEV) {
-            logger.log("network", `[BitunixWS] Synthetic Subscribe ${channel.replace("kline_", "")} -> ${resolved.base} for ${normalizedSymbol}. Ref: ${count + 1}`);
-        }
     }
 
     // [FIX] Map internal channel format to Bitunix specific format
@@ -1386,6 +1378,18 @@ class BitunixWebSocketService {
              logger.warn("network", `[BitunixWS] Unsupported timeframe/channel: ${channel}. Target: ${targetChannel}. Subscription ignored.`);
         }
         return;
+    }
+
+    // [MOVED] Now safe to track synthetic subscription
+    if (channel.startsWith("kline_") && resolved.isSynthetic) {
+        const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
+
+        const count = this.syntheticSubs.get(synthKey) || 0;
+        this.syntheticSubs.set(synthKey, count + 1);
+
+        if (import.meta.env.DEV) {
+            logger.log("network", `[BitunixWS] Synthetic Subscribe ${channel.replace("kline_", "")} -> ${resolved.base} for ${normalizedSymbol}. Ref: ${count + 1}`);
+        }
     }
 
     const subKey = `${targetChannel}:${normalizedSymbol}`; // Use TARGET channel (5m)
