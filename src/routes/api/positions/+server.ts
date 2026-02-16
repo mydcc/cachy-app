@@ -24,6 +24,7 @@ import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -33,7 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     body = safeJsonParse(await request.text());
   } catch (e) {
-    return json({ error: "Invalid JSON" }, { status: 400 });
+    return jsonError("Invalid JSON body", "INVALID_JSON", 400);
   }
 
   // Zod Validation
@@ -41,7 +42,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   if (!validation.success) {
     const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
-    return json({ error: "Validation Error", details: errors }, { status: 400 });
+    return jsonError("Validation Error", "VALIDATION_ERROR", 400, errors);
   }
 
   const { exchange, apiKey, apiSecret, passphrase } = validation.data;
@@ -52,19 +53,16 @@ export const POST: RequestHandler = async ({ request }) => {
     if (exchange === "bitunix") {
       positions = await fetchBitunixPositions(apiKey, apiSecret);
     } else if (exchange === "bitget") {
-      if (!passphrase) return json({ error: "Missing passphrase for Bitget" }, { status: 400 });
+      if (!passphrase) return jsonError("Missing passphrase for Bitget", "MISSING_PASSPHRASE", 400);
       positions = await fetchBitgetPositions(apiKey, apiSecret, passphrase);
     } else {
-      return json({ error: "Unsupported exchange" }, { status: 400 });
+      return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
     }
 
-    return json({ positions });
+    return jsonSuccess({ positions });
   } catch (e: any) {
     console.error(`Error fetching positions from ${exchange}:`, e);
-    return json(
-      { error: e.message || "Failed to fetch positions" },
-      { status: 500 },
-    );
+    return handleApiError(e);
   }
 };
 
@@ -212,18 +210,6 @@ async function fetchBitgetPositions(
     return data
         .filter((p: any) => parseFloat(p.total || "0") !== 0) // Filter empty positions
         .map((p: any) => {
-            // Bitget fields:
-            // symbol: symbol
-            // holdSide: long/short
-            // total: position size
-            // averageOpenPrice: entry
-            // markPrice: mark
-            // liquidationPrice: liq
-            // margin: margin
-            // unrealizedPL: pnl
-            // leverage: leverage
-            // marginMode: crossed/isolated
-
             return {
                 symbol: p.symbol,
                 side: (p.holdSide || "").toUpperCase(),
@@ -234,7 +220,7 @@ async function fetchBitgetPositions(
                 margin: formatApiNum(p.margin),
                 unrealizedPnL: formatApiNum(p.unrealizedPL),
                 leverage: formatApiNum(p.leverage),
-                marginMode: p.marginMode // crossed, isolated
+                marginMode: p.marginMode
             };
         });
 }
