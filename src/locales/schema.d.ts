@@ -34,6 +34,7 @@ export type TranslationKey =
   | "app.backupWrongPassword"
   | "app.passwordRequiredTitle"
   | "app.enterBackupPassword"
+  | "app.triggerQuantumPulse"
   | "app.marketDashboard.buttonTitle"
   | "app.marketDashboard.point"
   | "app.marketDashboard.title"

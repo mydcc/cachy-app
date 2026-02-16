@@ -559,6 +559,9 @@ class MarketWatcher {
           return klines;
       }
 
+      // Hardening: Ensure sorted order before gap detection to prevent negative diffs
+      klines.sort((a, b) => a.time - b.time);
+
       // Optimization: Fast scan for gaps to avoid allocation in happy path (99% of cases)
       let hasGaps = false;
       const threshold = intervalMs * 1.1;

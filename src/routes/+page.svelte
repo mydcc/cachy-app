@@ -668,7 +668,7 @@
             <FloatingIframeButton />
             <button
               class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
-              title="Trigger Quantum Pulse"
+              title={$_("app.triggerQuantumPulse")}
               onclick={(e) =>
                 effectsState.triggerProjectile(e.currentTarget as HTMLElement)}
             >
@@ -709,7 +709,7 @@
           <div
             class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1"
           >
-            {$_("dashboard.favorites") || "Favorites"}
+            {$_("dashboard.favorites")}
           </div>
           {#each favoritesState.items as fav (fav)}
             {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
@@ -755,7 +755,7 @@
           <div
             class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
           >
-            {$_("dashboard.favorites") || "Favorites"}
+            {$_("dashboard.favorites")}
           </div>
         {/if}
         {#each favoritesState.items as fav (fav)}

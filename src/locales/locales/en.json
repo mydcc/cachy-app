@@ -34,6 +34,7 @@
     "backupWrongPassword": "Wrong password. Restore failed.",
     "passwordRequiredTitle": "Password Required",
     "enterBackupPassword": "Please enter the password for this backup:",
+    "triggerQuantumPulse": "Trigger Quantum Pulse",
     "marketDashboard": {
       "buttonTitle": "Open Market Overview",
       "point": "Market Overview",

@@ -268,8 +268,44 @@ class BitunixWebSocketService {
 
         // We no longer trigger autonomous reconnections here.
         // The ConnectionManager or handleOffline/handleOnline handle lifecycle.
+
+        // [MAINTENANCE] Prune zombie synthetic subscriptions
+        if (now % 60000 < 5000) {
+            this.pruneSyntheticSubs();
+        }
       }, 5000);
     }
+  }
+
+  // [MAINTENANCE] Prune synthetic subs that have lost their base subscription
+  private pruneSyntheticSubs() {
+      if (this.syntheticSubs.size === 0) return;
+
+      for (const [key, count] of this.syntheticSubs.entries()) {
+          // Key format: "NORMALIZED_SYMBOL:TF"
+          const parts = key.split(":");
+          if (parts.length !== 2) continue;
+          const symbol = parts[0];
+          const tf = parts[1];
+
+          // Resolve base
+          const resolved = this.resolveTimeframe(tf);
+          if (!resolved.isSynthetic) {
+              // Should not happen for keys in syntheticSubs, but safety check
+              this.syntheticSubs.delete(key);
+              continue;
+          }
+
+          const baseChannel = `kline_${resolved.base}`;
+          // Check if base is subscribed
+          const subKey = `${baseChannel}:${symbol}`;
+          if (!this.pendingSubscriptions.has(subKey)) {
+              if (import.meta.env.DEV) {
+                  logger.warn("network", `[BitunixWS] Pruning zombie synthetic sub ${key} (Base ${subKey} missing).`);
+              }
+              this.syntheticSubs.delete(key);
+          }
+      }
   }
 
   private shouldThrottle(key: string): boolean {
