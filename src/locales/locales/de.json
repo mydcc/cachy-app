@@ -55,7 +55,10 @@
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "launchApp": "App starten",
+    "academy": "Academy",
+    "deepwiki": "Deepwiki"
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",

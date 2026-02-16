@@ -55,7 +55,10 @@
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "launchApp": "Launch App",
+    "academy": "Academy",
+    "deepwiki": "Deepwiki"
   },
   "sidePanel": {
     "globalChat": "Global Chat",

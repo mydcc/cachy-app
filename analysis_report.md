@@ -1,61 +1,48 @@
 # Status & Risk Report: cachy-app Hardening
 
 ## 1. Executive Summary
-Die Codebasis zeigt eine solide Grundstruktur mit bewussten Entscheidungen für Performance (WASM, WebGPU Ansätze) und Sicherheit (Zod, Decimal.js). Dennoch wurden kritische Schwachstellen in der Datenintegrität (`tradeService`), Ressourcenverwaltung (`bitunixWs`) und API-Sicherheit gefunden, die sofortiges Handeln erfordern. UI/UX ist funktional, aber lückenhaft in der Internationalisierung.
+The codebase exhibits a robust architecture leveraging Svelte 5, Zod for validation, and Decimal.js for financial precision. Key services (`tradeService`, `marketWatcher`) implement defensive patterns (e.g., optimistic updates, zombie pruning). However, critical risks remain in concurrency management (potential race conditions in request counting) and resource management (WebSocket listener leaks). Internationalization (i18n) is incomplete in the SEO layout.
 
 ## 2. Findings (Prioritized)
 
 ### 🔴 CRITICAL (Immediate Action Required)
 
-1.  **Trade Execution Risk (`src/services/tradeService.ts`)**
-    *   **Problem:** Die Methode `flashClosePosition` liest `position.amount` aus dem lokalen Cache (`omsService`), validiert die Frische nur über einen Zeitstempel, und sendet dann eine Order.
-    *   **Risk:** Wenn der Cache durch einen WebSocket-Disconnect oder Race Condition asynchron wird (Desync), wird eine Order mit falscher Menge gesendet. Dies kann zu "Flipping" führen (Long schließen -> Short öffnen statt flat).
-    *   **Recommendation:** Vor `flashClosePosition` *zwingend* einen `await fetchPosition(symbol)` Call absetzen oder eine "Safe Close" Strategie implementieren, die `reduceOnly: true` mit `retry` Mechanismen kombiniert.
+1.  **Concurrency Race Condition in `MarketWatcher` (`src/services/marketWatcher.ts`)**
+    *   **Problem:** `pruneZombieRequests` forcibly removes "stuck" requests (>20s) and decrements `inFlight`. However, if the original request eventually completes (e.g., at 21s), the `finally` block in `pollSymbolChannel` decrements `inFlight` *again*.
+    *   **Risk:** `inFlight` count becomes inaccurate (lower than reality), causing the scheduler to spawn more concurrent requests than the `maxConcurrentPolls` limit (6). This significantly increases the risk of API Rate Limit bans (429 Too Many Requests).
+    *   **Recommendation:** Implement a set of `prunedRequestIds` to prevent double-decrementing in the `finally` block.
 
-2.  **Memory Leak in WebSocket Client (`src/services/bitunixWs.ts`)**
-    *   **Problem:** Die `syntheticSubs` Map wird in `subscribe()` befüllt (via `@ts-ignore`), aber in `unsubscribe()` *niemals* bereinigt.
-    *   **Risk:** Bei jedem Chart-Wechsel oder Timeframe-Wechsel wächst der Speicherbedarf linear an. Langzeit-Sessions (Pro-Trader) führen zum Browser-Crash (OOM).
-    *   **Recommendation:** `syntheticSubs` Typisierung fixen und Cleanup-Logik in `unsubscribe()` implementieren.
-
-3.  **Precision Loss Risk (`src/services/mappers.ts` & `api/account`)**
-    *   **Problem:** `orderId`s werden in `mappers.ts` geprüft, *nachdem* sie bereits durch `JSON.parse` gelaufen sind. Bei 19-stelligen IDs (Bitunix/Bitget Standard) droht Rundungsfehler im JavaScript `number` Typ.
-    *   **Risk:** Order-IDs werden korrupt, Cancel-Requests schlagen fehl ("Order not found").
-    *   **Recommendation:** Globalen Custom JSON Parser (oder `json-bigint`) in `apiService` und allen API-Routen integrieren, der große Zahlen als Strings liest.
+2.  **Potential Memory Leak in `BitunixWebSocketService` (`src/services/bitunixWs.ts`)**
+    *   **Problem:** `tradeListeners` uses a `Map<string, Set<Function>>`. While `subscribeTrade` returns a cleanup function, there is no safeguard if a consumer component fails to call it (e.g., during ungraceful unmounts or HMR updates).
+    *   **Risk:** Accumulation of stale listeners prevents garbage collection of closures, leading to memory leaks over time.
+    *   **Recommendation:** Use `WeakRef` or a more robust subscription manager that ties listeners to component lifecycles (or simply ensure `onDestroy` is strictly used).
 
 ### 🟡 WARNING (High Priority Fixes)
 
-4.  **Inconsistent Validation (`src/routes/api/account/+server.ts`)**
-    *   **Problem:** Der Account-Endpunkt nutzt manuelle `if (!body || ...)` Checks statt Zod Schemas.
-    *   **Risk:** Fragil gegenüber API-Änderungen, schwer zu warten, inkonsistente Fehlermeldungen.
-    *   **Recommendation:** `AccountRequestSchema` (Zod) einführen und anwenden.
+3.  **Hardcoded Strings in Layout (`src/routes/[[lang]]/(seo)/+layout.svelte`)**
+    *   **Problem:** Strings like "Academy", "Launch App", "Deepwiki" are hardcoded or use a local `dict` object instead of the global `svelte-i18n` store.
+    *   **Risk:** Inconsistent user experience for non-English users; maintenance burden.
+    *   **Recommendation:** Extract all strings to `src/locales/locales/{en,de}.json` and use the `$t` (or `$_`) helper.
 
-5.  **Broken Subscription State (`src/services/bitgetWs.ts`)**
-    *   **Problem:** Nutzt ein einfaches `Set` für Subscriptions. Wenn zwei Komponenten (z.B. Chart & Ticker-Widget) denselben Channel abonnieren und eine Komponente unmountet, wird der Channel für *beide* geschlossen.
-    *   **Risk:** Datenverlust in der UI ohne Fehlermeldung.
-    *   **Recommendation:** Reference Counting (wie in `bitunixWs` gefixt) implementieren.
+4.  **Silent Failure in Gap Filling (`src/services/marketWatcher.ts`)**
+    *   **Problem:** `fillGaps` limits filling to 5000 candles. If a gap is larger, it logs a warning but leaves the data discontinuous.
+    *   **Risk:** Technical indicators (MA, RSI) may produce incorrect values due to time jumps.
+    *   **Recommendation:** Throw a specific error or trigger a "Hard Reset" (fetch fresh history) if the gap exceeds the safe limit.
 
-6.  **Missing i18n (`src/components/settings/`)**
-    *   **Problem:** Zahlreiche Hardcoded Strings in `IndicatorSettings.svelte`, `VisualsTab.svelte`, `ConnectionsTab.svelte`.
-    *   **Risk:** Unprofessioneller Eindruck bei nicht-englischen Nutzern.
-    *   **Recommendation:** Alle Strings in `en.json` extrahieren und `$t()` nutzen.
-
-7.  **Unsafe Type Casts (`src/services/marketWatcher.ts`)**
-    *   **Problem:** `fillGaps` verlässt sich darauf, dass `klines` bereits `Decimal` sind. Runtime-Check existiert, aber Fallback ist unklar definiert.
-    *   **Recommendation:** Explizite Typ-Guards oder Zod-Transformation im `apiService` erzwingen, bevor Daten an `marketWatcher` gehen.
+5.  **Optimistic Order Cancellation Risk (`src/services/tradeService.ts`)**
+    *   **Problem:** `flashClosePosition` attempts to `cancelAllOrders` before closing. If cancellation fails, it catches the error and proceeds.
+    *   **Risk:** While this prioritizes closing the position (safety), it may leave "Naked Stop Losses" open if the close succeeds but the cancel failed.
+    *   **Recommendation:** Ensure the UI displays a persistent "Check Open Orders" warning if this specific catch block is triggered.
 
 ### 🔵 REFACTOR (Technical Debt)
 
-8.  **Inconsistent JSON Parsing (`src/routes/api/tpsl/+server.ts`)**
-    *   **Problem:** Nutzt `request.json()` direkt statt `safeJsonParse`.
-    *   **Recommendation:** Auf `safeJsonParse` umstellen für einheitliches Error-Handling.
-
-9.  **DOM Manipulation Audit**
-    *   **Status:** `innerHTML` wird genutzt, aber via `DOMPurify` (in `tooltip.ts`) und `renderSafeMarkdown` abgesichert.
-    *   **Recommendation:** Beibehalten und in CI/CD als Check verankern.
+6.  **Complex Type Handling in `apiService.ts`**
+    *   **Problem:** `fetchBitunixKlines` contains complex logic to handle `Decimal` vs `number` and synthetic aggregation.
+    *   **Recommendation:** Extract synthetic aggregation logic to a dedicated helper/service (`TimeframeUtils`) to improve readability and testability.
 
 ## 3. Next Steps (Action Plan Phase 2)
 
-Der Aktionsplan für Schritt 2 wird diese Findings in drei Arbeitspakete clustern:
-1.  **Core Stability & Safety** (Fixes 1, 2, 3)
-2.  **API Hardening** (Fixes 4, 5, 8)
-3.  **UI Polish** (Fixes 6)
+The implementation plan will focus on:
+1.  **Stability:** Fix the `MarketWatcher` race condition and `BitunixWebSocket` listener management.
+2.  **i18n:** Full extraction of strings in SEO layout.
+3.  **Verification:** Add regression tests for the concurrency fix.
