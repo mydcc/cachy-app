@@ -2,10 +2,8 @@ services:
   - type: web
     name: cachy-app
     env: node
-    # Use npm ci for clean, deterministic installs.
-    # We disable audit to speed up the process.
-    # Ensure package-lock.json is in sync with package.json!
-    buildCommand: npm config set audit false && npm ci && npm run build
+    # Use the dedicated build script to handle Rust/WASM dependencies + npm ci
+    buildCommand: ./scripts/render_build.sh
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
