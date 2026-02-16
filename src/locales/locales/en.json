@@ -53,7 +53,7 @@
         "rsi": "RSI (1h)"
       }
     },
-    "tradeExecutionDev": "🚧 Trade Execution in Development",
+    "tradeExecutionDev": "\ud83d\udea7 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
     "refresh": "Refresh"
   },
@@ -326,7 +326,8 @@
     },
     "riskRewardRatio": "Risk/Reward Ratio",
     "promptForData": "Please enter required trade data to start calculation.",
-    "instructionsTitle": "Instructions: Dashboard"
+    "instructionsTitle": "Instructions: Dashboard",
+    "triggerPulse": "Trigger Quantum Pulse"
   },
   "journal": {
     "title": "Trade Journal",
@@ -434,7 +435,7 @@
     "messages": {
       "unlocked": "unlocked",
       "deactivated": "deactivated",
-      "vipSpaceUnlocked": "🚀 VIP Space unlocked",
+      "vipSpaceUnlocked": "\ud83d\ude80 VIP Space unlocked",
       "uploading": "Uploading screenshot...",
       "syncing": "Synchronizing...",
       "uploadFailed": "Screenshot upload failed",
@@ -780,7 +781,7 @@
         "y": "Y",
         "z": "Z",
         "px": "px",
-        "deg": "°"
+        "deg": "\u00b0"
       },
       "appearanceTitle": "Appearance & Design",
       "backgroundTitle": "Background",
@@ -889,11 +890,11 @@
       "safetyTitle": "Safety & Verifications",
       "confirmActions": "Confirm Actions",
       "confirmClear": "Confirm Clear History",
-      "geminiRecommended": "Gemini 2.5 Flash (Recommended ⭐)",
+      "geminiRecommended": "Gemini 2.5 Flash (Recommended \u2b50)",
       "geminiStable": "Gemini 2.0 Flash (Stable)",
-      "geminiPreview": "Gemini 3 Flash (Preview 🚀)",
-      "geminiPro": "Gemini 3 Pro (Preview 🧠)",
-      "gemmaOpen": "Gemma 3 27b (Open Model ✨)",
+      "geminiPreview": "Gemini 3 Flash (Preview \ud83d\ude80)",
+      "geminiPro": "Gemini 3 Pro (Preview \ud83e\udde0)",
+      "gemmaOpen": "Gemma 3 27b (Open Model \u2728)",
       "confirmActionsDesc": "Requires confirmation before AI actions",
       "confirmClearHistory": "Confirm Clear History",
       "confirmClearHistoryDesc": "Requires confirmation before clearing chat history",
@@ -1040,8 +1041,8 @@
       "directMode": "Direct Mode (Fast, No Modifier)",
       "customConfig": "Custom Configuration",
       "activePreset": "Active Preset:",
-      "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
-      "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
+      "mode1Desc": "\u26a1 Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
+      "mode2Desc": "\ud83d\udee1\ufe0f Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
       "switchToCustom": "Switch to Custom Configuration"
     },
     "tabs": {
@@ -1448,7 +1449,7 @@
     "cancel": "Cancel",
     "ok": "OK",
     "close": "Close",
-    "remove": "×",
+    "remove": "\u00d7",
     "warning": "Warning",
     "resize": "Resize",
     "tp": "TP",
@@ -1457,7 +1458,8 @@
     "apply": "Apply",
     "copy": "Copy Content",
     "ignore": "Ignore",
-    "send": "Send message"
+    "send": "Send message",
+    "analyzing": "Analyzing..."
   },
   "analyst": {
     "trend": {
@@ -1574,13 +1576,13 @@
     "BITGET_API_ERROR": "Bitget API error"
   },
   "connection": {
-    "connected": "✓ Connected",
-    "connecting": "⟳ Connecting...",
-    "connectingTo": "⟳ Connecting to {provider}...",
-    "reconnecting": "⟳ Reconnecting...",
-    "reconnectingTo": "⟳ Reconnecting to {provider}...",
-    "disconnected": "✗ Waiting for connection...",
-    "error": "✗ Connection error",
+    "connected": "\u2713 Connected",
+    "connecting": "\u27f3 Connecting...",
+    "connectingTo": "\u27f3 Connecting to {provider}...",
+    "reconnecting": "\u27f3 Reconnecting...",
+    "reconnectingTo": "\u27f3 Reconnecting to {provider}...",
+    "disconnected": "\u2717 Waiting for connection...",
+    "error": "\u2717 Connection error",
     "offline": "OFFLINE - CHECK CONNECTION"
   },
   "errors": {
@@ -1629,32 +1631,32 @@
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analysis Status",
     "nextCycleIn": "Next Cycle In",
-    "analyzing": "🔄 Analyzing",
-    "waiting": "⏱️ Waiting",
+    "analyzing": "\ud83d\udd04 Analyzing",
+    "waiting": "\u23f1\ufe0f Waiting",
     "interval": "Interval: {seconds}s",
     "cacheUsage": "Cache Usage",
-    "healthy": "🟢 Healthy",
-    "warning": "🟡 Warning",
-    "critical": "🔴 Critical",
+    "healthy": "\ud83d\udfe2 Healthy",
+    "warning": "\ud83d\udfe1 Warning",
+    "critical": "\ud83d\udd34 Critical",
     "estMemory": "Est. Memory",
     "memoryDesc": "Rough estimate for analysis data",
     "profile": "Profile",
-    "profileLight": "💡 Light",
-    "profileBalanced": "⚖️ Balanced",
-    "profilePro": "⚡ Pro",
-    "profileCustom": "🔧 Custom",
+    "profileLight": "\ud83d\udca1 Light",
+    "profileBalanced": "\u2696\ufe0f Balanced",
+    "profilePro": "\u26a1 Pro",
+    "profileCustom": "\ud83d\udd27 Custom",
     "activeConfig": "Active configuration",
     "allFavorites": "All Favorites",
     "top4": "Top 4",
     "currentlyAnalyzing": "Currently Analyzing",
     "noSymbols": "No symbols analyzed yet. Add favorites to get started.",
     "moreSymbols": "+{count} more symbols...",
-    "quickTips": "⚡ Quick Tips",
+    "quickTips": "\u26a1 Quick Tips",
     "hintHighFreq": "<strong>High frequency:</strong> Analysis runs every {seconds}s. Consider Light or Balanced profile if CPU is high.",
     "hintFavorites": "<strong>Many favorites:</strong> Analyzing {count} symbols can increase CPU. Consider Light profile or disable \"Analyze All Favorites\".",
     "hintCache": "<strong>Cache nearly full:</strong> Consider increasing cache size or disabling analysis.",
     "hintSmartPause": "<strong>Smart pause disabled:</strong> Analysis will continue even when browser is inactive.",
-    "hintGood": "<strong>✓ All systems normal:</strong> Configuration is optimal for current load.",
+    "hintGood": "<strong>\u2713 All systems normal:</strong> Configuration is optimal for current load.",
     "symbolsInMemory": "Symbols in memory",
     "pending": "Pending"
   },

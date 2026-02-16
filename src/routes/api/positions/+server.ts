@@ -22,16 +22,29 @@ import { checkAppAuth } from "../../../lib/server/auth";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
+import { BaseRequestSchema } from "../../../types/orderSchemas";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
 
-  const { exchange, apiKey, apiSecret, passphrase } = await request.json();
-
-  if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  let body: unknown;
+  try {
+    body = safeJsonParse(await request.text());
+  } catch (e) {
+    return json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  // Zod Validation
+  const validation = BaseRequestSchema.safeParse(body);
+
+  if (!validation.success) {
+    const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
+    return json({ error: "Validation Error", details: errors }, { status: 400 });
+  }
+
+  const { exchange, apiKey, apiSecret, passphrase } = validation.data;
 
   try {
     let positions = [];
@@ -39,7 +52,7 @@ export const POST: RequestHandler = async ({ request }) => {
     if (exchange === "bitunix") {
       positions = await fetchBitunixPositions(apiKey, apiSecret);
     } else if (exchange === "bitget") {
-      if (!passphrase) return json({ error: "Missing passphrase" }, { status: 400 });
+      if (!passphrase) return json({ error: "Missing passphrase for Bitget" }, { status: 400 });
       positions = await fetchBitgetPositions(apiKey, apiSecret, passphrase);
     } else {
       return json({ error: "Unsupported exchange" }, { status: 400 });

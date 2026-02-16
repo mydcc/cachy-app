@@ -1731,4 +1731,8 @@ export type TranslationKey =
   | "cloud.placeholder"
   | "jules.title"
   | "jules.analyzing"
-  | "jules.close";
+  | "jules.close"
+  | "common.close"
+  | "common.analyzing"
+  | "dashboard.triggerPulse"
+  | "dashboard.favorites";

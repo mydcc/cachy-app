@@ -1,61 +1,41 @@
-# Status & Risk Report: cachy-app Hardening
+# Systematic Maintenance & Hardening Report
 
-## 1. Executive Summary
-Die Codebasis zeigt eine solide Grundstruktur mit bewussten Entscheidungen für Performance (WASM, WebGPU Ansätze) und Sicherheit (Zod, Decimal.js). Dennoch wurden kritische Schwachstellen in der Datenintegrität (`tradeService`), Ressourcenverwaltung (`bitunixWs`) und API-Sicherheit gefunden, die sofortiges Handeln erfordern. UI/UX ist funktional, aber lückenhaft in der Internationalisierung.
+## Status Quo Analysis
 
-## 2. Findings (Prioritized)
+The codebase demonstrates a solid foundation with TypeSript strict mode, usage of `decimal.js` for financial calculations, and some usage of Zod for validation. However, critical vulnerabilities regarding data integrity and resource management were identified.
+
+## Prioritized Findings
 
 ### 🔴 CRITICAL (Immediate Action Required)
 
-1.  **Trade Execution Risk (`src/services/tradeService.ts`)**
-    *   **Problem:** Die Methode `flashClosePosition` liest `position.amount` aus dem lokalen Cache (`omsService`), validiert die Frische nur über einen Zeitstempel, und sendet dann eine Order.
-    *   **Risk:** Wenn der Cache durch einen WebSocket-Disconnect oder Race Condition asynchron wird (Desync), wird eine Order mit falscher Menge gesendet. Dies kann zu "Flipping" führen (Long schließen -> Short öffnen statt flat).
-    *   **Recommendation:** Vor `flashClosePosition` *zwingend* einen `await fetchPosition(symbol)` Call absetzen oder eine "Safe Close" Strategie implementieren, die `reduceOnly: true` mit `retry` Mechanismen kombiniert.
+1.  **Data Integrity in Position Updates (`src/stores/account.svelte.ts`)**
+    *   **Risk:** Financial/UX. The `updatePositionFromWs` method silently discards WebSocket updates if the `side` property is missing from the payload (which occurs in some Bitunix update events) AND the local position is not yet initialized.
+    *   **Consequence:** Users may see "No Position" while an open position exists, preventing them from closing it via the UI.
+    *   **Fix:** Accept updates matching the `positionId` even if `side` is missing, or fetch the full position snapshot immediately if a partial update arrives for an unknown position.
 
-2.  **Memory Leak in WebSocket Client (`src/services/bitunixWs.ts`)**
-    *   **Problem:** Die `syntheticSubs` Map wird in `subscribe()` befüllt (via `@ts-ignore`), aber in `unsubscribe()` *niemals* bereinigt.
-    *   **Risk:** Bei jedem Chart-Wechsel oder Timeframe-Wechsel wächst der Speicherbedarf linear an. Langzeit-Sessions (Pro-Trader) führen zum Browser-Crash (OOM).
-    *   **Recommendation:** `syntheticSubs` Typisierung fixen und Cleanup-Logik in `unsubscribe()` implementieren.
+2.  **Memory Leak in WebSocket Service (`src/services/bitunixWs.ts`)**
+    *   **Risk:** Performance/Crash. The `syntheticSubs` map (used for calculated timeframes like 4h on streams that don't support it natively) accumulates entries. The `unsubscribe` logic may fail to clean these up correctly when the reference count drops to zero, especially if the `resolved.isSynthetic` check differs during unsubscribe or if the `getBitunixChannel` call returns null before cleanup.
+    *   **Fix:** Ensure `syntheticSubs.delete(key)` is called when the last listener unsubscribes, regardless of whether the native channel mapping is found.
 
-3.  **Precision Loss Risk (`src/services/mappers.ts` & `api/account`)**
-    *   **Problem:** `orderId`s werden in `mappers.ts` geprüft, *nachdem* sie bereits durch `JSON.parse` gelaufen sind. Bei 19-stelligen IDs (Bitunix/Bitget Standard) droht Rundungsfehler im JavaScript `number` Typ.
-    *   **Risk:** Order-IDs werden korrupt, Cancel-Requests schlagen fehl ("Order not found").
-    *   **Recommendation:** Globalen Custom JSON Parser (oder `json-bigint`) in `apiService` und allen API-Routen integrieren, der große Zahlen als Strings liest.
+### 🟡 WARNING (High Priority)
 
-### 🟡 WARNING (High Priority Fixes)
+3.  **Inconsistent Input Validation (`src/routes/api/orders/+server.ts`)**
+    *   **Risk:** Security/Stability. While `tpsl/+server.ts` uses Zod, the main orders endpoint relies on manual parsing and casting (`safeDecimal` helper).
+    *   **Fix:** Implement Zod schemas for all order endpoints to reject malformed data before processing.
 
-4.  **Inconsistent Validation (`src/routes/api/account/+server.ts`)**
-    *   **Problem:** Der Account-Endpunkt nutzt manuelle `if (!body || ...)` Checks statt Zod Schemas.
-    *   **Risk:** Fragil gegenüber API-Änderungen, schwer zu warten, inkonsistente Fehlermeldungen.
-    *   **Recommendation:** `AccountRequestSchema` (Zod) einführen und anwenden.
+4.  **Missing Internationalization (`src/routes/+layout.svelte`)**
+    *   **Risk:** UX. Hardcoded strings (e.g., "Jules Report", "Analyzing...") are present in the layout, bypassing the `svelte-i18n` system.
+    *   **Fix:** Extract strings to `en.json` / `de.json` and use `$_()`.
 
-5.  **Broken Subscription State (`src/services/bitgetWs.ts`)**
-    *   **Problem:** Nutzt ein einfaches `Set` für Subscriptions. Wenn zwei Komponenten (z.B. Chart & Ticker-Widget) denselben Channel abonnieren und eine Komponente unmountet, wird der Channel für *beide* geschlossen.
-    *   **Risk:** Datenverlust in der UI ohne Fehlermeldung.
-    *   **Recommendation:** Reference Counting (wie in `bitunixWs` gefixt) implementieren.
-
-6.  **Missing i18n (`src/components/settings/`)**
-    *   **Problem:** Zahlreiche Hardcoded Strings in `IndicatorSettings.svelte`, `VisualsTab.svelte`, `ConnectionsTab.svelte`.
-    *   **Risk:** Unprofessioneller Eindruck bei nicht-englischen Nutzern.
-    *   **Recommendation:** Alle Strings in `en.json` extrahieren und `$t()` nutzen.
-
-7.  **Unsafe Type Casts (`src/services/marketWatcher.ts`)**
-    *   **Problem:** `fillGaps` verlässt sich darauf, dass `klines` bereits `Decimal` sind. Runtime-Check existiert, aber Fallback ist unklar definiert.
-    *   **Recommendation:** Explizite Typ-Guards oder Zod-Transformation im `apiService` erzwingen, bevor Daten an `marketWatcher` gehen.
+5.  **Risky Serialization Logic (`src/services/serializationService.ts`)**
+    *   **Risk:** Stability. The `stringifyAsync` method manually constructs JSON strings by slicing `JSON.stringify` output (`slice(1, -1)`). If the runtime behavior of `JSON.stringify` changes (e.g., spacing/formatting), this could corrupt data.
+    *   **Fix:** Use a robust streaming JSON library or stricter checks before slicing.
 
 ### 🔵 REFACTOR (Technical Debt)
 
-8.  **Inconsistent JSON Parsing (`src/routes/api/tpsl/+server.ts`)**
-    *   **Problem:** Nutzt `request.json()` direkt statt `safeJsonParse`.
-    *   **Recommendation:** Auf `safeJsonParse` umstellen für einheitliches Error-Handling.
+6.  **Inconsistent API Error Handling**
+    *   Some endpoints return 500 for logic errors; others return 400. Standardize on a helper like `getErrorMessage` or a middleware pattern.
 
-9.  **DOM Manipulation Audit**
-    *   **Status:** `innerHTML` wird genutzt, aber via `DOMPurify` (in `tooltip.ts`) und `renderSafeMarkdown` abgesichert.
-    *   **Recommendation:** Beibehalten und in CI/CD als Check verankern.
+## Implementation Plan
 
-## 3. Next Steps (Action Plan Phase 2)
-
-Der Aktionsplan für Schritt 2 wird diese Findings in drei Arbeitspakete clustern:
-1.  **Core Stability & Safety** (Fixes 1, 2, 3)
-2.  **API Hardening** (Fixes 4, 5, 8)
-3.  **UI Polish** (Fixes 6)
+The following plan addresses these findings, starting with the Critical items.

@@ -372,7 +372,7 @@ import { afterNavigate } from "$app/navigation";
       >
         <button
           class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          aria-label="Close"
+          aria-label={$_("common.close")}
           onclick={() => julesState.hideReport()}
         >
           <svg
