@@ -1,24 +1,40 @@
 import json
 import os
 
-path = 'src/locales/locales/en.json'
+files = {
+    'en': 'src/locales/locales/en.json',
+    'de': 'src/locales/locales/de.json'
+}
 
-with open(path, 'r') as f:
-    data = json.load(f)
+translations = {
+    'common': {
+        'close': {'en': "Close", 'de': "Schließen"},
+        'analyzing': {'en': "Analyzing...", 'de': "Analysiere..."}
+    },
+    'dashboard': {
+        'triggerPulse': {'en': "Trigger Quantum Pulse", 'de': "Quantenpuls auslösen"},
+        'favorites': {'en': "Favorites", 'de': "Favoriten"}
+    }
+}
 
-# Update common
-if 'common' not in data:
-    data['common'] = {}
-data['common']['close'] = "Close"
-data['common']['analyzing'] = "Analyzing..."
+for lang, path in files.items():
+    if not os.path.exists(path):
+        print(f"File not found: {path}")
+        continue
 
-# Update dashboard
-if 'dashboard' not in data:
-    data['dashboard'] = {}
-data['dashboard']['triggerPulse'] = "Trigger Quantum Pulse"
-data['dashboard']['favorites'] = "Favorites" # Ensure it exists
+    with open(path, 'r') as f:
+        data = json.load(f)
 
-# Write back
-with open(path, 'w') as f:
-    json.dump(data, f, indent=2)
-    f.write('\n') # Add newline
+    # Apply updates
+    for section, keys in translations.items():
+        if section not in data:
+            data[section] = {}
+        for key, vals in keys.items():
+            data[section][key] = vals[lang]
+
+    # Write back
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write('\n') # Add newline
+
+    print(f"Updated {lang} translations.")
