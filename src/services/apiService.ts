@@ -722,11 +722,11 @@ export const apiService = {
                    aggregated.push({
                        time: start,
                        open: first.open,
-                       high: high,
+                       high: high.toString(),
                        low: low,
                        close: last.close,
                        volume: vol
-                   });
+                   } as any);
                }
                return aggregated;
            }

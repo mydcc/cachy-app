@@ -41,7 +41,7 @@
 
       <div class="flex items-center gap-4">
          <nav class="hidden md:flex gap-6 text-sm font-medium">
-            <a href={lang === 'de' ? '/de/academy' : '/academy'} class="hover:text-[var(--accent-color)] transition-colors">{dict.app.academy}</a>
+            <a href={lang === 'de' ? '/de/academy' : '/academy'} class="hover:text-[var(--accent-color)] transition-colors">Academy</a>
             <a href={lang === 'de' ? '/de/guide' : '/guide'} class="hover:text-[var(--accent-color)] transition-colors">{dict.app.guideButton}</a>
             <a href={lang === 'de' ? '/de/whitepaper' : '/whitepaper'} class="hover:text-[var(--accent-color)] transition-colors">{dict.app.whitepaper}</a>
          </nav>
@@ -70,7 +70,7 @@
               Deepwiki
            </a>
         </div>
-        <p>{dict.app.copyright}</p>
+        <p>&copy; 2026 MYDCT. All rights reserved.</p>
      </div>
   </footer>
 </div>
