@@ -25,6 +25,8 @@ export type TranslationKey =
   | "app.version"
   | "app.privacyLegal"
   | "app.whitepaper"
+  | "app.academy"
+  | "app.copyright"
   | "app.pro"
   | "app.proActive"
   | "app.backupEncryptQuestion"

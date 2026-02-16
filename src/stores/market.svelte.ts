@@ -601,7 +601,15 @@ export class MarketManager {
 
       if (firstNewTime > lastHistTime) {
         // Fast Path 1: Strict Append (New candle started)
-        history.push(...newKlines);
+        // [HARDENING] Use chunked push to avoid stack overflow on large backfills
+        const CHUNK_SIZE = 10000;
+        if (newKlines.length < CHUNK_SIZE) {
+            history.push(...newKlines);
+        } else {
+            for (let i = 0; i < newKlines.length; i += CHUNK_SIZE) {
+                history.push(...newKlines.slice(i, i + CHUNK_SIZE));
+            }
+        }
 
         // Optimize: Check limit *immediately* to keep array small
         if (history.length > effectiveLimit) {

@@ -18,27 +18,38 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { z } from "zod";
 
 interface ApiError extends Error {
   status?: number;
 }
 
-export const GET: RequestHandler = async ({ url }) => {
-  const symbol = url.searchParams.get("symbol");
-  const interval = url.searchParams.get("interval") || "1d";
-  const limitParam = url.searchParams.get("limit");
-  const startParam =
-    url.searchParams.get("startTime") || url.searchParams.get("start");
-  const endParam =
-    url.searchParams.get("endTime") || url.searchParams.get("end");
-  const provider = url.searchParams.get("provider") || "bitunix";
-  const limit = limitParam ? parseInt(limitParam) : 50;
-  const start = startParam ? parseInt(startParam) : undefined;
-  const end = endParam ? parseInt(endParam) : undefined;
+const KlineRequestSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  interval: z.string().default("1d"),
+  limit: z.coerce.number().int().positive().max(1500).optional().default(50),
+  start: z.coerce.number().int().nonnegative().optional(), // startTime alias handled manually
+  end: z.coerce.number().int().nonnegative().optional(),   // endTime alias handled manually
+  provider: z.enum(["bitunix", "bitget"]).optional().default("bitunix")
+});
 
-  if (!symbol) {
-    return json({ error: "Symbol is required" }, { status: 400 });
+export const GET: RequestHandler = async ({ url }) => {
+  // Extract and alias params for validation
+  const raw: Record<string, string> = {};
+  url.searchParams.forEach((val, key) => { raw[key] = val; });
+
+  // Handle aliases explicitly
+  if (raw.startTime && !raw.start) raw.start = raw.startTime;
+  if (raw.endTime && !raw.end) raw.end = raw.endTime;
+
+  const validation = KlineRequestSchema.safeParse(raw);
+
+  if (!validation.success) {
+    const errorMsg = validation.error.issues.map(i => `${i.path}: ${i.message}`).join(", ");
+    return json({ error: "Validation Error", details: errorMsg }, { status: 400 });
   }
+
+  const { symbol, interval, limit, start, end, provider } = validation.data;
 
   try {
     let klines;
