@@ -306,6 +306,8 @@ class WindowManager {
 
     /**
      * Resets Z-Indices for all windows to prevent overflow, preserving relative order.
+     * Note: Mutates $state properties in a loop; however, the impact is negligible
+     * given the low window count and the high invocation threshold.
      */
     private normalizeZIndices() {
         // Sort windows by their current Z-Index
