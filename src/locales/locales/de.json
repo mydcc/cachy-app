@@ -329,7 +329,8 @@
     },
     "riskRewardRatio": "Chance-Risiko-Verhältnis",
     "promptForData": "Bitte geben Sie die erforderlichen Handelsdaten ein, um die Berechnung zu starten.",
-    "instructionsTitle": "Anleitung: Dashboard"
+    "instructionsTitle": "Anleitung: Dashboard",
+    "triggerPulse": "Quantenpuls auslösen"
   },
   "journal": {
     "title": "Trade Journal",
@@ -844,7 +845,6 @@
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
     "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
-    "enableSidePanel": "Side Panel (Chat/Notizen) aktivieren",
     "enableSidePanel": "Side Panel (KI/Notizen) aktivieren",
     "sidePanelMode": "Side Panel Modus",
     "modeNotes": "Meine Notizen",
@@ -1365,10 +1365,10 @@
       "expertDesc": "Erweiterte Optionen für erfahrene Benutzer",
       "focusDesc": "Fokus-Modus blendet ablenkende Elemente aus",
       "paramsDesc": "Zeigt detaillierte Indikator-Parameter",
-    "sidebarTitle": "Sidebar-Konfiguration"
-  },
-  "candlestickPatterns": {
-    "title": "Candlestick Muster"
+      "sidebarTitle": "Sidebar-Konfiguration"
+    },
+    "candlestickPatterns": {
+      "title": "Candlestick Muster"
     },
     "data": {
       "title": "Daten-Wartung",
@@ -1483,7 +1483,8 @@
     "apply": "Anwenden",
     "copy": "Inhalt kopieren",
     "ignore": "Ignorieren",
-    "send": "Nachricht senden"
+    "send": "Nachricht senden",
+    "analyzing": "Analysiere..."
   },
   "analyst": {
     "trend": {

@@ -31,6 +31,7 @@ import { checkAppAuth } from "../../../lib/server/auth";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
+import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -41,14 +42,14 @@ export const POST: RequestHandler = async ({ request }) => {
     const text = await request.text();
     body = safeJsonParse(text);
   } catch (e) {
-    return json({ error: "Invalid JSON body" }, { status: 400 });
+    return jsonError("Invalid JSON body", "INVALID_JSON", 400);
   }
 
   const validation = AccountRequestSchema.safeParse(body);
   if (!validation.success) {
       const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
       logger.warn(`[Account] Validation failed: ${errors}`);
-      return json({ error: "Validation Error", details: errors }, { status: 400 });
+      return jsonError("Validation Error", "VALIDATION_ERROR", 400, errors);
   }
 
   const { exchange, apiKey, apiSecret, passphrase } = validation.data;
@@ -57,33 +58,31 @@ export const POST: RequestHandler = async ({ request }) => {
     let account = null;
     if (exchange === "bitunix") {
       const validationError = validateBitunixKeys(apiKey, apiSecret);
-      if (validationError) return json({ error: validationError }, { status: 400 });
+      if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
       account = await fetchBitunixAccount(apiKey, apiSecret);
     } else if (exchange === "bitget") {
-      if (!passphrase) return json({ error: "Missing passphrase" }, { status: 400 });
+      if (!passphrase) return jsonError("Missing passphrase", "MISSING_PASSPHRASE", 400);
       const validationError = validateBitgetKeys(apiKey, apiSecret, passphrase);
-      if (validationError) return json({ error: validationError }, { status: 400 });
+      if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
       account = await fetchBitgetAccount(apiKey, apiSecret, passphrase);
     } else {
-        return json({ error: "Unsupported exchange" }, { status: 400 });
+        return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
     }
 
-    return json(account);
+    return jsonSuccess(account);
   } catch (e: unknown) {
-    // Security: Sanitize error log
+    // Security: Redact sensitive info before logging is handled by handleApiError logic if we customized it,
+    // but here we manually log safely first.
     const errorMsg = e instanceof Error ? e.message : String(e);
 
-    // Redact sensitive keys from logs
+    // Redact
     let safeLog = errorMsg;
     if (apiKey.length > 4) safeLog = safeLog.replaceAll(apiKey, "***");
     if (apiSecret.length > 4) safeLog = safeLog.replaceAll(apiSecret, "***");
 
     logger.error(`[Account] Fetch failed for ${exchange}: ${safeLog}`);
 
-    return json(
-      { error: "Failed to fetch account data" },
-      { status: 500 },
-    );
+    return handleApiError(e);
   }
 };
 
@@ -94,7 +93,6 @@ async function fetchBitunixAccount(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
 
-  // We assume USDT for now as it's the standard
   const params: Record<string, string> = {
     marginCoin: "USDT",
   };
@@ -121,13 +119,12 @@ async function fetchBitunixAccount(
 
   if (!response.ok) {
     const text = await response.text();
-    // Truncate error text to prevent massive log dumps or leakage
     const safeText = text.slice(0, 200);
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const text = await response.text();
-  const res = safeJsonParse(text); // Use safe parser
+  const res = safeJsonParse(text);
 
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
@@ -135,8 +132,6 @@ async function fetchBitunixAccount(
     );
   }
 
-  // Response structure: data is an array according to example, or object?
-  // Docs say: {"code":0,"data":[{"marginCoin":"USDT",...}]}
   const data = Array.isArray(res.data) ? res.data[0] : res.data;
 
   if (!data) throw new Error("No account data found");
@@ -191,14 +186,12 @@ async function fetchBitgetAccount(
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
     if (!data) throw new Error("No account data found");
 
-    // Bitget fields: available, locked, equity, usdtEquity, unrealizedPL
     return {
         available: formatApiNum(data.available),
-        margin: formatApiNum(data.locked), // locked margin?
+        margin: formatApiNum(data.locked),
         totalUnrealizedPnL: formatApiNum(data.unrealizedPL),
         marginCoin: data.marginCoin,
-        frozen: formatApiNum(data.locked), // Bitget usually groups margin/frozen in locked
-        // Map other fields as needed
+        frozen: formatApiNum(data.locked),
         equity: formatApiNum(data.equity)
     };
 }

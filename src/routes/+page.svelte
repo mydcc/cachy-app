@@ -668,7 +668,7 @@
             <FloatingIframeButton />
             <button
               class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
-              title="Trigger Quantum Pulse"
+              title={$_("dashboard.triggerPulse")}
               onclick={(e) =>
                 effectsState.triggerProjectile(e.currentTarget as HTMLElement)}
             >
