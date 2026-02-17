@@ -2,10 +2,9 @@ services:
   - type: web
     name: cachy-app
     env: node
-    # Use npm ci for clean, deterministic installs.
+    # Use npm install instead of npm ci to avoid strict lockfile mismatch errors on deployment.
     # We disable audit to speed up the process.
-    # Ensure package-lock.json is in sync with package.json!
-    buildCommand: npm config set audit false && npm ci && npm run build
+    buildCommand: npm config set audit false && npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
