@@ -88,6 +88,7 @@ export class MarketManager {
   private cacheMetadata = new Map<string, CacheMetadata>();
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
+  private backingBuffers = new Map<string, KlineBuffers>();
   private pendingKlineUpdates = new Map<string, any[]>();
   private bufferPool = new BufferPool();
   private cleanupIntervalId: any = null;
@@ -133,6 +134,7 @@ export class MarketManager {
     }
     this.cacheMetadata.clear();
     this.pendingUpdates.clear();
+    this.backingBuffers.clear();
     this.data = {};
   }
 
@@ -234,6 +236,7 @@ export class MarketManager {
           }
         });
         this.pendingUpdates.clear();
+    this.backingBuffers.clear();
       }
 
       // 2. Apply Kline Updates
@@ -426,14 +429,11 @@ export class MarketManager {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
-    // Optimization: Deduplicate raw updates first to avoid unnecessary Decimal allocation
+    // [OPTIMIZATION] Deduplicate raw updates
     if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
-        // Sort raw data
         klines.sort((a, b) => a.time - b.time);
-
         const dedupedRaw: any[] = [];
         let lastTime = -1;
-        // Simple linear deduplication
         for (const k of klines) {
              if (k.time === lastTime) {
                  dedupedRaw[dedupedRaw.length - 1] = k;
@@ -445,25 +445,24 @@ export class MarketManager {
         klines = dedupedRaw;
     }
 
-    // Normalize new klines to correct Kline type
-    // We perform this here (lazy) instead of on receipt
+    // Normalize
     let newKlines: Kline[] = klines.map(k => ({
       open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
       high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
       low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
       close: k.close instanceof Decimal ? k.close : new Decimal(k.close),
       volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
-      time: k.time // number
+      time: k.time
     }));
 
-    // Deduplicate incoming batch (keep latest per timestamp)
+    // Deduplicate normalized
     if (newKlines.length > 1) {
       newKlines.sort((a, b) => a.time - b.time);
       const deduped: Kline[] = [];
       let lastTime = -1;
       for (const k of newKlines) {
         if (k.time === lastTime) {
-          deduped[deduped.length - 1] = k; // Overwrite with newer
+          deduped[deduped.length - 1] = k;
         } else {
           deduped.push(k);
           lastTime = k.time;
@@ -472,257 +471,153 @@ export class MarketManager {
       newKlines = deduped;
     }
 
-    // Get existing history or init empty
+    // Update History (Logic preserved)
     let history = current.klines[timeframe] || [];
     if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
-    // Get existing buffers
-    if (!current.klinesBuffers) current.klinesBuffers = {};
-    let buffers = current.klinesBuffers[timeframe];
-
-    // Calculate Limit *BEFORE* merging to optimize allocations
+    // Calculate Limit
     const userLimit = settingsState.chartHistoryLimit || 2000;
     const safetyLimit = 50000;
     let effectiveLimit = userLimit;
     if (!enforceLimit) {
       effectiveLimit = safetyLimit;
     } else {
-      // Logic: Allow growth up to safetyLimit, but generally aim for userLimit
-      // If we already have more data (backfill), keep it up to safety limit.
       const previousLength = Math.max(0, history.length);
       effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
     }
 
-    // Helper: Release buffers back to pool
-    const releaseBuffers = (b: KlineBuffers) => {
-        this.bufferPool.release(b.times);
-        this.bufferPool.release(b.opens);
-        this.bufferPool.release(b.highs);
-        this.bufferPool.release(b.lows);
-        this.bufferPool.release(b.closes);
-        this.bufferPool.release(b.volumes);
-    };
+    // [MEMORY FIX] Backing Buffer Management
+    const bufferKey = `${symbol}:${timeframe}`;
+    let backing = this.backingBuffers.get(bufferKey);
+    let offset = 0; // Where to start writing in backing buffer
+    let isAppend = false;
 
-    // Helper: Build full buffers from history (Slow Path)
-    const rebuildBuffers = (sourceKlines: Kline[]) => {
-      const len = sourceKlines.length;
-      // Optimization: Use BufferPool
-      const b: KlineBuffers = {
-        times: this.bufferPool.acquire(len),
-        opens: this.bufferPool.acquire(len),
-        highs: this.bufferPool.acquire(len),
-        lows: this.bufferPool.acquire(len),
-        closes: this.bufferPool.acquire(len),
-        volumes: this.bufferPool.acquire(len),
-      };
-
-      for (let i = 0; i < len; i++) {
-        const k = sourceKlines[i];
-        b.times[i] = k.time;
-        b.opens[i] = k.open.toNumber();
-        b.highs[i] = k.high.toNumber();
-        b.lows[i] = k.low.toNumber();
-        b.closes[i] = k.close.toNumber();
-        b.volumes[i] = k.volume.toNumber();
-      }
-      return b;
-    };
-
-    // Helper: Append to buffers (Fast Path)
-    const appendBuffers = (oldBuffers: KlineBuffers, appendKlines: Kline[]): KlineBuffers => {
-      const oldLen = oldBuffers.times.length;
-      const newLen = oldLen + appendKlines.length;
-
-      const b: KlineBuffers = {
-        times: this.bufferPool.acquire(newLen),
-        opens: this.bufferPool.acquire(newLen),
-        highs: this.bufferPool.acquire(newLen),
-        lows: this.bufferPool.acquire(newLen),
-        closes: this.bufferPool.acquire(newLen),
-        volumes: this.bufferPool.acquire(newLen),
-      };
-
-      // Copy old data (fast native copy)
-      b.times.set(oldBuffers.times);
-      b.opens.set(oldBuffers.opens);
-      b.highs.set(oldBuffers.highs);
-      b.lows.set(oldBuffers.lows);
-      b.closes.set(oldBuffers.closes);
-      b.volumes.set(oldBuffers.volumes);
-
-      // Add new data
-      for (let i = 0; i < appendKlines.length; i++) {
-        const k = appendKlines[i];
-        const idx = oldLen + i;
-        b.times[idx] = k.time;
-        b.opens[idx] = k.open.toNumber();
-        b.highs[idx] = k.high.toNumber();
-        b.lows[idx] = k.low.toNumber();
-        b.closes[idx] = k.close.toNumber();
-        b.volumes[idx] = k.volume.toNumber();
-      }
-      return b;
-    };
-
-    // Helper: Update last N items in buffers (In-place)
-    const updateBufferTail = (bufs: KlineBuffers, updateKlines: Kline[], startIndex: number) => {
-      for (let i = 0; i < updateKlines.length; i++) {
-        const k = updateKlines[i];
-        const idx = startIndex + i;
-        if (idx < bufs.times.length) {
-          bufs.times[idx] = k.time;
-          bufs.opens[idx] = k.open.toNumber();
-          bufs.highs[idx] = k.high.toNumber();
-          bufs.lows[idx] = k.low.toNumber();
-          bufs.closes[idx] = k.close.toNumber();
-          bufs.volumes[idx] = k.volume.toNumber();
-        }
-      }
-    };
-
-    // Merge strategy: Optimized for memory usage
-    if (newKlines.length === 0) {
-      // No updates
-    } else if (history.length === 0) {
-      newKlines.sort((a, b) => a.time - b.time);
-      if (newKlines.length > effectiveLimit) {
-          newKlines = newKlines.slice(-effectiveLimit);
-      }
-      history = newKlines;
-      current.klines[timeframe] = history;
-      // No old buffers to release (it was empty)
-      buffers = rebuildBuffers(history);
-    } else {
-      // Ensure incoming klines are sorted (usually are, but safety first)
-      newKlines.sort((a, b) => a.time - b.time);
-
-      const lastHistTime = history[history.length - 1].time;
-      const firstNewTime = newKlines[0].time;
-
-      if (firstNewTime > lastHistTime) {
-        // Fast Path 1: Strict Append (New candle started)
-        history.push(...newKlines);
-
-        // Optimize: Check limit *immediately* to keep array small
-        if (history.length > effectiveLimit) {
-             const overflow = history.length - effectiveLimit;
-             // Use splice for in-place removal to avoid new array allocation
-             history.splice(0, overflow);
-             // Since we spliced, buffers are out of sync. Rebuild is safest.
-             if (buffers) releaseBuffers(buffers);
-             buffers = rebuildBuffers(history);
+    // Apply updates to history
+    if (newKlines.length > 0) {
+        if (history.length === 0) {
+            newKlines.sort((a, b) => a.time - b.time);
+            if (newKlines.length > effectiveLimit) newKlines = newKlines.slice(-effectiveLimit);
+            history = newKlines;
+            current.klines[timeframe] = history;
+            // Full rebuild implies offset 0
         } else {
-             // Only append buffers if valid
-             if (buffers) {
-                 const newB = appendBuffers(buffers, newKlines);
-                 releaseBuffers(buffers); // Release old
-                 buffers = newB;
-             } else {
-                 buffers = rebuildBuffers(history);
-             }
-        }
+            newKlines.sort((a, b) => a.time - b.time);
+            const lastHistTime = history[history.length - 1].time;
+            const firstNewTime = newKlines[0].time;
 
-      } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
-        // Fast Path 2: Live Update (Update current candle)
-        history[history.length - 1] = newKlines[0];
-
-        if (buffers && buffers.times.length === history.length) {
-            updateBufferTail(buffers, newKlines, buffers.times.length - 1);
-        } else {
-            buffers = rebuildBuffers(history);
-        }
-
-      } else if (firstNewTime >= lastHistTime) {
-        // Fast Path 3: Overlap at the end
-        const itemsToAppend: Kline[] = [];
-        for (const k of newKlines) {
-          if (k.time === lastHistTime) {
-            history[history.length - 1] = k;
-            if (buffers && buffers.times.length === history.length) {
-                updateBufferTail(buffers, [k], buffers.times.length - 1);
+            if (firstNewTime > lastHistTime) {
+                // Append
+                offset = history.length;
+                history.push(...newKlines);
+                isAppend = true;
+            } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
+                // Update Tail
+                offset = history.length - 1;
+                history[history.length - 1] = newKlines[0];
+                isAppend = true;
+            } else if (firstNewTime >= lastHistTime) {
+                // Overlap Append (Simplified: fall back to full rewrite for safety)
+                for (const k of newKlines) {
+                    if (k.time === lastHistTime) {
+                        history[history.length - 1] = k;
+                    } else if (k.time > lastHistTime) {
+                        history.push(k);
+                    }
+                }
+                isAppend = false;
+            } else {
+                // Merge/Sort/Slice
+                const merged: Kline[] = [];
+                let i = 0, j = 0;
+                while (i < history.length && j < newKlines.length) {
+                    if (history[i].time < newKlines[j].time) merged.push(history[i++]);
+                    else if (history[i].time > newKlines[j].time) merged.push(newKlines[j++]);
+                    else { merged.push(newKlines[j++]); i++; }
+                }
+                while (i < history.length) merged.push(history[i++]);
+                while (j < newKlines.length) merged.push(newKlines[j++]);
+                history = merged;
+                isAppend = false;
             }
-          } else if (k.time > lastHistTime) {
-            history.push(k);
-            itemsToAppend.push(k);
-          }
+
+            // Slice if needed
+            if (history.length > effectiveLimit) {
+                history = history.slice(-effectiveLimit);
+                current.klines[timeframe] = history;
+                isAppend = false; // Shifted/Sliced means we need full write
+            }
         }
-
-        if (history.length > effectiveLimit) {
-             history.splice(0, history.length - effectiveLimit);
-             if (buffers) releaseBuffers(buffers);
-             buffers = rebuildBuffers(history);
-        } else if (itemsToAppend.length > 0) {
-             if (buffers) {
-                 const newB = appendBuffers(buffers, itemsToAppend);
-                 releaseBuffers(buffers);
-                 buffers = newB;
-             }
-             else buffers = rebuildBuffers(history);
-        }
-
-      } else {
-        // Slow Path: Historical backfill or disordered data
-        // Use linear merge algorithm (O(N+M))
-        const merged: Kline[] = [];
-        let i = 0;
-        let j = 0;
-        const hLen = history.length;
-        const nLen = newKlines.length;
-
-        // Optimization: Pre-calculate max needed size
-        // If (hLen + nLen) > effectiveLimit, we might skip early items in history
-        // But since we merge by time, skipping is tricky.
-        // We stick to standard merge then slice, but immediately.
-
-        const safePush = (k: Kline) => {
-          const last = merged.length > 0 ? merged[merged.length - 1] : null;
-          if (last && last.time === k.time) {
-            merged[merged.length - 1] = k;
-          } else {
-            merged.push(k);
-          }
-        };
-
-        while (i < hLen && j < nLen) {
-          const hTime = history[i].time;
-          const nTime = newKlines[j].time;
-
-          if (hTime < nTime) {
-            safePush(history[i]);
-            i++;
-          } else if (hTime > nTime) {
-            safePush(newKlines[j]);
-            j++;
-          } else {
-            safePush(newKlines[j]);
-            i++;
-            j++;
-          }
-        }
-
-        while (i < hLen) safePush(history[i++]);
-        while (j < nLen) safePush(newKlines[j++]);
-
-        // Immediate Slice to avoid storing huge array in state
-        if (merged.length > effectiveLimit) {
-             history = merged.slice(-effectiveLimit);
-        } else {
-             history = merged;
-        }
-
-        // Assignment new merged array
-        current.klines[timeframe] = history;
-        
-        // Full rebuild needed (now on optimized size)
-        if (buffers) releaseBuffers(buffers);
-        buffers = rebuildBuffers(history);
-      }
     }
 
-    current.klinesBuffers[timeframe] = buffers;
-    current.lastUpdated = Date.now();
+    const neededLen = history.length;
+    if (neededLen === 0) return;
 
-    // FORCE REACTIVITY
+    // Check Backing Buffer Capacity
+    if (!backing || backing.times.length < neededLen) {
+        // Allocate with 1.5x growth
+        const newCap = Math.ceil(Math.max(neededLen * 1.5, 1000));
+
+        // Release old if exists
+        if (backing) {
+            this.bufferPool.release(backing.times);
+            this.bufferPool.release(backing.opens);
+            this.bufferPool.release(backing.highs);
+            this.bufferPool.release(backing.lows);
+            this.bufferPool.release(backing.closes);
+            this.bufferPool.release(backing.volumes);
+        }
+
+        backing = {
+            times: this.bufferPool.acquire(newCap),
+            opens: this.bufferPool.acquire(newCap),
+            highs: this.bufferPool.acquire(newCap),
+            lows: this.bufferPool.acquire(newCap),
+            closes: this.bufferPool.acquire(newCap),
+            volumes: this.bufferPool.acquire(newCap)
+        };
+        this.backingBuffers.set(bufferKey, backing);
+        isAppend = false; // New buffer needs full write
+    }
+
+    // Write to Buffer
+    if (isAppend) {
+        // Only write the new/updated part
+        for (let i = offset; i < neededLen; i++) {
+            const k = history[i];
+            backing.times[i] = k.time;
+            backing.opens[i] = k.open.toNumber();
+            backing.highs[i] = k.high.toNumber();
+            backing.lows[i] = k.low.toNumber();
+            backing.closes[i] = k.close.toNumber();
+            backing.volumes[i] = k.volume.toNumber();
+        }
+    } else {
+        // Full Write
+        for (let i = 0; i < neededLen; i++) {
+            const k = history[i];
+            backing.times[i] = k.time;
+            backing.opens[i] = k.open.toNumber();
+            backing.highs[i] = k.high.toNumber();
+            backing.lows[i] = k.low.toNumber();
+            backing.closes[i] = k.close.toNumber();
+            backing.volumes[i] = k.volume.toNumber();
+        }
+    }
+
+    // Create Views for MarketData
+    // subarray creates a lightweight view. Consumers see correct length.
+    const views: KlineBuffers = {
+        times: backing.times.subarray(0, neededLen),
+        opens: backing.opens.subarray(0, neededLen),
+        highs: backing.highs.subarray(0, neededLen),
+        lows: backing.lows.subarray(0, neededLen),
+        closes: backing.closes.subarray(0, neededLen),
+        volumes: backing.volumes.subarray(0, neededLen)
+    };
+
+    if (!current.klinesBuffers) current.klinesBuffers = {};
+    current.klinesBuffers[timeframe] = views;
+    current.lastUpdated = Date.now();
     this.data[symbol] = current;
   }
 
