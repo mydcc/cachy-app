@@ -30,6 +30,17 @@ export function getBitunixErrorKey(code: number | string): string {
 
 export function mapApiErrorToLabel(error: unknown): string {
     const msg = getErrorMessage(error);
+    const lowerMsg = msg.toLowerCase();
+
+    // Map common authentication errors
+    if (lowerMsg.includes("key") && (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect"))) {
+        return "settings.errors.invalidApiKey";
+    }
+
+    if (lowerMsg.includes("ip") && (lowerMsg.includes("allow") || lowerMsg.includes("whitelist"))) {
+        return "settings.errors.ipNotAllowed";
+    }
+
     // Simple mapping for now, can be expanded
     if (msg.includes("429")) return "apiErrors.tooManyRequests";
     if (msg.includes("401")) return "apiErrors.unauthorized";
