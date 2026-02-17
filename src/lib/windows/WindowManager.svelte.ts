@@ -26,6 +26,10 @@ import { IframeWindow } from "./implementations/IframeWindow.svelte";
 // ChartWindow and ChannelWindow are imported dynamically in createFromData 
 // to avoid circular dependencies during initialization.
 
+const BASE_Z_INDEX = 11000;
+const MAX_SAFE_Z_INDEX = 1000000;
+const SAVE_DEBOUNCE_MS = 500;
+
 /**
  * WindowManager is a singleton class that manages the lifecycle, stacking order,
  * and visibility of all windows in the application.
@@ -34,7 +38,9 @@ class WindowManager {
     /** Reactive list of all currently open window instances. */
     private _windows = $state<WindowBase[]>([]);
     /** Internal counter for global stacking order. Incremented on every focus event. */
-    private _nextZIndex = 11000;
+    private _nextZIndex = BASE_Z_INDEX;
+    /** Timer for debounced session saving. */
+    private _saveSessionTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         // Automatic rehydration from session storage if available
@@ -59,13 +65,33 @@ class WindowManager {
 
     /**
      * Persists the current list of open windows to session storage.
+     * Debounced to prevent race conditions and excessive writes.
      */
     private saveSession() {
         if (typeof sessionStorage === 'undefined') return;
-        const openWindows = this._windows
-            .filter(w => w.windowType !== 'dialog') // Don't persist temporary alerts
-            .map(w => w.serialize());
-        sessionStorage.setItem('cachy_open_windows', JSON.stringify(openWindows));
+
+        if (this._saveSessionTimer) {
+            clearTimeout(this._saveSessionTimer);
+        }
+
+        this._saveSessionTimer = setTimeout(() => {
+            this._performSaveSession();
+            this._saveSessionTimer = null;
+        }, SAVE_DEBOUNCE_MS);
+    }
+
+    /**
+     * Internal method to execute the session save logic.
+     */
+    private _performSaveSession() {
+        try {
+            const openWindows = this._windows
+                .filter(w => w.windowType !== 'dialog') // Don't persist temporary alerts
+                .map(w => w.serialize());
+            sessionStorage.setItem('cachy_open_windows', JSON.stringify(openWindows));
+        } catch (e) {
+            console.error("Failed to save window session:", e);
+        }
     }
 
     /**
@@ -76,15 +102,48 @@ class WindowManager {
         try {
             const saved = sessionStorage.getItem('cachy_open_windows');
             if (saved) {
-                const data = JSON.parse(saved);
-                const instances = await Promise.all(data.map((d: any) => this.createFromData(d)));
-                for (const instance of instances) {
+                let data: any[];
+                try {
+                    data = JSON.parse(saved);
+                } catch (parseError) {
+                    console.error("Corrupt session data found. Clearing session storage.", parseError);
+                    sessionStorage.removeItem('cachy_open_windows');
+                    if (typeof window !== 'undefined' && window.alert) {
+                        window.alert("Window session could not be restored due to data corruption. Resetting layout.");
+                    }
+                    return;
+                }
 
-                    if (instance) this.open(instance);
+                if (!Array.isArray(data)) {
+                    console.warn("Invalid session data format (not an array). Clearing session.");
+                    sessionStorage.removeItem('cachy_open_windows');
+                    return;
+                }
+
+                const validInstances: WindowBase[] = [];
+
+                // Process each window item individually to prevent total failure
+                for (const item of data) {
+                    try {
+                        const instance = await this.createFromData(item);
+                        if (instance) {
+                            validInstances.push(instance);
+                        } else {
+                            console.warn("Failed to recreate window from data (null result):", item);
+                        }
+                    } catch (itemError) {
+                        console.error("Error rehydrating specific window:", item, itemError);
+                        // Continue with other windows (fail-safe)
+                    }
+                }
+
+                // Open all successfully created instances
+                for (const instance of validInstances) {
+                    this.open(instance);
                 }
             }
         } catch (e) {
-            console.error("Failed to rehydrate windows:", e);
+            console.error("Critical failure during window rehydration:", e);
         }
     }
 
@@ -92,6 +151,8 @@ class WindowManager {
      * Factory method to create window instances from serialized data.
      */
     private async createFromData(data: any): Promise<WindowBase | null> {
+        if (!data || !data.type) return null;
+
         switch (data.type) {
             case 'chart':
                 const { ChartWindow } = await import("./implementations/ChartWindow.svelte");
@@ -217,6 +278,12 @@ class WindowManager {
     bringToFront(id: string) {
         const win = this._windows.find(w => w.id === id);
         if (win) {
+            // Normalize Z-Indices if we are approaching the safe integer limit
+            // or a reasonably high number to prevent overflow over long sessions.
+            if (this._nextZIndex > MAX_SAFE_Z_INDEX) {
+                this.normalizeZIndices();
+            }
+
             win.zIndex = this._nextZIndex++;
 
             // Handle focus synchronization.
@@ -229,6 +296,22 @@ class WindowManager {
                     w.isFocused = (w.id === id);
                 }
             });
+        }
+    }
+
+    /**
+     * Resets Z-Indices for all windows to prevent overflow, preserving relative order.
+     */
+    private normalizeZIndices() {
+        // Sort windows by their current Z-Index
+        const sorted = [...this._windows].sort((a, b) => a.zIndex - b.zIndex);
+
+        // Reset base counter
+        this._nextZIndex = BASE_Z_INDEX;
+
+        // Reassign new sequential Z-Indices
+        for (const win of sorted) {
+            win.zIndex = this._nextZIndex++;
         }
     }
 
