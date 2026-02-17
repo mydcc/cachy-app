@@ -115,9 +115,7 @@ class WindowManager {
                 } catch (parseError) {
                     console.error("Corrupt session data found. Clearing session storage.", parseError);
                     sessionStorage.removeItem('cachy_open_windows');
-                    if (typeof window !== 'undefined' && window.alert) {
-                        window.alert("Window session could not be restored due to data corruption. Resetting layout.");
-                    }
+
                     return;
                 }
 
