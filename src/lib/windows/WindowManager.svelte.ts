@@ -292,14 +292,14 @@ class WindowManager {
             win.zIndex = this._nextZIndex++;
 
             // Handle focus synchronization.
+            // 1. Identify and close transient windows (e.g. Symbol Selector)
+            // if another window takes focus.
+            this._windows.filter(w => w.id !== id && w.closeOnBlur)
+                .forEach(w => this.close(w.id));
+
+            // 2. Update focus state for remaining windows.
             this._windows.forEach(w => {
-                if (w.id !== id && w.closeOnBlur) {
-                    // Automatically close "transient" windows (e.g. Symbol Selector)
-                    // if another window takes focus.
-                    this.close(w.id);
-                } else {
-                    w.isFocused = (w.id === id);
-                }
+                w.isFocused = (w.id === id);
             });
         }
     }
