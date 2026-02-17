@@ -286,7 +286,7 @@ class WindowManager {
             // Normalize Z-Indices if we are approaching the safe integer limit
             // or a reasonably high number to prevent overflow over long sessions.
             if (this._nextZIndex > MAX_SAFE_Z_INDEX) {
-                this.normalizeZIndices();
+                this.normalizeZIndices(id);
             }
 
             win.zIndex = this._nextZIndex++;
@@ -308,8 +308,10 @@ class WindowManager {
      * Resets Z-Indices for all windows to prevent overflow, preserving relative order.
      * Note: Mutates $state properties in a loop; however, the impact is negligible
      * given the low window count and the high invocation threshold.
+     * 
+     * @param excludeId Optional ID of a window to skip (usually the one being brought to front).
      */
-    private normalizeZIndices() {
+    private normalizeZIndices(excludeId?: string) {
         // Sort windows by their current Z-Index
         const sorted = [...this._windows].sort((a, b) => a.zIndex - b.zIndex);
 
@@ -318,6 +320,7 @@ class WindowManager {
 
         // Reassign new sequential Z-Indices
         for (const win of sorted) {
+            if (win.id === excludeId) continue;
             win.zIndex = this._nextZIndex++;
         }
     }
