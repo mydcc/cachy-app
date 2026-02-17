@@ -60,6 +60,13 @@ class WindowManager {
                 // If we reach here, the click happened in the "empty space" behind the UI.
                 this.handleBackgroundClick();
             });
+
+            window.addEventListener('beforeunload', () => {
+                if (this._saveSessionTimer) {
+                    clearTimeout(this._saveSessionTimer);
+                    this._performSaveSession();
+                }
+            });
         }
     }
 
