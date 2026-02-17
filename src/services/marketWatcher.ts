@@ -58,6 +58,9 @@ class MarketWatcher {
   // Helper to store subscriptions intent
   private historyLocks = new Set<string>();
 
+  // Track pruned requests to prevent double-decrement of inFlight
+  private prunedRequestIds = new Set<string>();
+
   private staggerTimeouts = new Set<ReturnType<typeof setTimeout>>(); // Track staggered requests to prevent zombie calls
   private maxConcurrentPolls = 6; // Reduced to mitigate rate limits (aligned with strict token bucket)
   private inFlight = 0;
@@ -217,6 +220,8 @@ class MarketWatcher {
             // Decrease inFlight count if it was counted
             // Since we don't know for sure if it finished or hung, we decrement carefully
             this.inFlight = Math.max(0, this.inFlight - 1);
+            // Mark as pruned so the finally block doesn't decrement again
+            this.prunedRequestIds.add(key);
         }
     });
   }
@@ -602,7 +607,7 @@ class MarketWatcher {
                    const fillCount = Math.min(gapCount, MAX_GAP_FILL);
 
                    if (gapCount >= MAX_GAP_FILL) {
-                       logger.warn("market", `[fillGaps] Max gap fill limit reached (${MAX_GAP_FILL}) for candle interval ${intervalMs}. Data discontinuity possible.`);
+                       logger.error("market", `[fillGaps] CRITICAL: Max gap fill limit reached (${MAX_GAP_FILL}) for candle interval ${intervalMs}. Data discontinuity possible.`);
                    }
 
                    const fillClose = prev.close; // Reuse Decimal reference
@@ -734,7 +739,14 @@ class MarketWatcher {
             // Release lock immediately
             this.pendingRequests.delete(lockKey);
             this.requestStartTimes.delete(lockKey);
-            this.inFlight = Math.max(0, this.inFlight - 1);
+
+            // Check if this request was already pruned as a zombie
+            if (this.prunedRequestIds.has(lockKey)) {
+                this.prunedRequestIds.delete(lockKey);
+                // Do NOT decrement inFlight, as it was already decremented by pruneZombieRequests
+            } else {
+                this.inFlight = Math.max(0, this.inFlight - 1);
+            }
         }
     })();
 
