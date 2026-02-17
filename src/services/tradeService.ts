@@ -23,6 +23,7 @@
  */
 
 import Decimal from "decimal.js";
+import { z } from "zod";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
@@ -34,27 +35,27 @@ import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 
-export interface TpSlOrder {
-    orderId: string;
-    symbol: string;
-    planType: "PROFIT" | "LOSS";
-    triggerPrice: string;
-    qty?: string;
-    status: string;
-    ctime?: number;
-    createTime?: number;
-    id?: string;
-    planId?: string;
-    // Hardened types
-    side?: string;
-    price?: string;
-    executePrice?: string;
-    clientOrderId?: string;
-    reduceOnly?: boolean;
-    workingType?: string;
-    timeInForce?: string;
-    [key: string]: unknown; // Safer than any
-}
+const TpSlOrderSchema = z.object({
+    orderId: z.union([z.string(), z.number()]).transform(String),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]),
+    triggerPrice: z.union([z.string(), z.number()]).transform(String),
+    qty: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
+    status: z.string().optional(),
+    ctime: z.number().optional(),
+    createTime: z.number().optional(),
+    id: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
+    planId: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
+    side: z.string().optional(),
+    price: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
+    executePrice: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
+    clientOrderId: z.string().optional(),
+    reduceOnly: z.boolean().optional(),
+    workingType: z.string().optional(),
+    timeInForce: z.string().optional(),
+}).catchall(z.unknown());
+
+export type TpSlOrder = z.infer<typeof TpSlOrderSchema>;
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -494,18 +495,30 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const rawData = await this.signedRequest<any>("POST", "/api/tpsl", {
                                   action: view,
                                   params
-                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) }));
 
-                              if (data.error) {
-                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
+                              if (rawData.error) {
+                                  if (!String(rawData.error).includes("code: 2")) { // Symbol not found
+                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${rawData.error}`);
                                   }
                                   return [];
                               }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+
+                              const list = Array.isArray(rawData) ? rawData : rawData.rows || [];
+                              const validItems: TpSlOrder[] = [];
+
+                              for (const item of list) {
+                                  const result = TpSlOrderSchema.safeParse(item);
+                                  if (result.success) {
+                                      validItems.push(result.data);
+                                  } else {
+                                      logger.warn("market", `[TradeService] Invalid TP/SL order skipped: ${result.error.message}`, item);
+                                  }
+                              }
+                              return validItems;
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];

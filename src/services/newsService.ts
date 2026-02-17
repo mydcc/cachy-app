@@ -137,8 +137,6 @@ function shouldFetchNews(cached: NewsCacheEntry | undefined | null): boolean {
   const timeSinceLastCall = now - (cached.lastApiCall || 0);
   if (timeSinceLastCall < MIN_FETCH_INTERVAL) return false;
 
-  if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) return false;
-
   const ageMs = now - cached.timestamp;
   if (ageMs > MAX_NEWS_AGE_MS) return true;
   if (cached.items.length < MIN_NEWS_PER_COIN) return true;
@@ -429,7 +427,10 @@ export const newsService = {
 
   async analyzeSentiment(news: NewsItem[]): Promise<SentimentAnalysis | null> {
     if (news.length === 0) return null;
-    const newsHash = news[0].title;
+
+    // Hardening: Robust hash generation using multiple items to detect changes
+    const raw = news.slice(0, 5).map(n => n.title + (typeof n.url === 'string' ? n.url : '')).join('|');
+    const newsHash = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(raw)).substring(0, 128);
 
     if (pendingSentimentFetches.has(newsHash)) {
       return pendingSentimentFetches.get(newsHash)!;

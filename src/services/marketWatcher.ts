@@ -49,6 +49,10 @@ class MarketWatcher {
   private pendingRequests = new Map<string, Promise<void>>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
+  // Race Condition Prevention: Track active request IDs
+  private activeRequestIds = new Map<string, string>();
+  private prunedRequestIds = new Set<string>();
+  private requestIdCounter = 0;
   
   // Track symbol:timeframe pairs that have reached broker limits
   private exhaustedHistory = new Set<string>();
@@ -211,9 +215,15 @@ class MarketWatcher {
     const timeout = 20000; // 20s hard limit for HTTP requests
     this.requestStartTimes.forEach((start, key) => {
         if (now - start > timeout) {
+            const requestId = this.activeRequestIds.get(key);
+            if (requestId) {
+                this.prunedRequestIds.add(requestId);
+                this.activeRequestIds.delete(key);
+            }
             logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
             this.pendingRequests.delete(key);
             this.requestStartTimes.delete(key);
+
             // Decrease inFlight count if it was counted
             // Since we don't know for sure if it finished or hung, we decrement carefully
             this.inFlight = Math.max(0, this.inFlight - 1);
@@ -681,11 +691,14 @@ class MarketWatcher {
     }
 
     this.inFlight++;
+    const requestId = (++this.requestIdCounter).toString();
 
     // Create the Promise wrapper
     const requestPromise = (async () => {
         try {
             this.requestStartTimes.set(lockKey, Date.now());
+            this.activeRequestIds.set(lockKey, requestId);
+
             // Determine priority: high for the main trading symbol, normal for the rest
             const isMainSymbol =
               tradeState.symbol &&
@@ -704,6 +717,10 @@ class MarketWatcher {
                   priority,
                   timeoutMs
                 );
+
+                // Race Condition Check: If pruned, abort update
+                if (this.prunedRequestIds.has(requestId)) return;
+
                 marketState.updateSymbol(symbol, {
                   lastPrice: data.lastPrice,
                   highPrice: data.highPrice,
@@ -718,6 +735,9 @@ class MarketWatcher {
                   ? apiService.fetchBitgetKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs)
                   : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
 
+                // Race Condition Check: If pruned, abort update
+                if (this.prunedRequestIds.has(requestId)) return;
+
                 if (klines && klines.length > 0) {
                   const filled = this.fillGaps(klines, safeTfToMs(tf));
                   marketState.updateSymbolKlines(symbol, tf, filled, "rest");
@@ -731,10 +751,20 @@ class MarketWatcher {
                 this.lastErrorLog = now;
             }
         } finally {
-            // Release lock immediately
-            this.pendingRequests.delete(lockKey);
+            // Cleanup
+            this.activeRequestIds.delete(lockKey);
             this.requestStartTimes.delete(lockKey);
-            this.inFlight = Math.max(0, this.inFlight - 1);
+
+            // Only remove lock if it's still associated with THIS request
+            // (Though with PromiseMap deduplication, it usually is, but safe to just delete as we own it)
+            this.pendingRequests.delete(lockKey);
+
+            // Race Condition Check: If pruned, do NOT decrement inFlight (it was already decremented by prune)
+            if (this.prunedRequestIds.has(requestId)) {
+                this.prunedRequestIds.delete(requestId);
+            } else {
+                this.inFlight = Math.max(0, this.inFlight - 1);
+            }
         }
     })();
 
