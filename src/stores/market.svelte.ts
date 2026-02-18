@@ -537,8 +537,9 @@ export class MarketManager {
                 while (i < history.length) merged.push(history[i++]);
                 while (j < newKlines.length) merged.push(newKlines[j++]);
                 history = merged;
+                current.klines[timeframe] = history;
                 isAppend = false;
-            }
+
 
             // Slice if needed
             if (history.length > effectiveLimit) {
