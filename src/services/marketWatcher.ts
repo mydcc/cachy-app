@@ -564,6 +564,9 @@ class MarketWatcher {
           return klines;
       }
 
+      // [FIX] Explicitly sort by time to prevent negative gaps if API returns out-of-order data
+      klines.sort((a, b) => a.time - b.time);
+
       // Optimization: Fast scan for gaps to avoid allocation in happy path (99% of cases)
       let hasGaps = false;
       const threshold = intervalMs * 1.1;

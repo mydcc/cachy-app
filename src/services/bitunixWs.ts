@@ -430,7 +430,8 @@ class BitunixWebSocketService {
               rawData.includes('"topic":"trade"') || rawData.includes('"ch":"trade"'))) {
               // Regex to target specific keys followed by a number
               // Captures: 1=key, 2=value
-              const regex = /"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              // Improved regex: handles spaces before colon and avoids matching escaped quotes (keys inside strings)
+              const regex = /(?<!\\)"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l)"\s*:\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
               rawData = rawData.replace(regex, '"$1":"$2"');
           }
 
@@ -557,7 +558,8 @@ class BitunixWebSocketService {
 
           if (rawData && (rawData.includes('"topic":"order"') || rawData.includes('"ch":"order"') ||
               rawData.includes('"topic":"position"') || rawData.includes('"ch":"position"'))) {
-              const regex = /"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              // Improved regex: handles spaces before colon and avoids matching escaped quotes
+              const regex = /(?<!\\)"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice)"\s*:\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
               rawData = rawData.replace(regex, '"$1":"$2"');
           }
 

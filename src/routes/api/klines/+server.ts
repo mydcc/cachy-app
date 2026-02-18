@@ -21,6 +21,7 @@ import { safeJsonParse } from "../../../utils/safeJson";
 
 interface ApiError extends Error {
   status?: number;
+  code?: string;
 }
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -53,6 +54,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     let status = 500;
     let message = "Failed to fetch klines";
+    let code = "INTERNAL_ERROR";
 
     if (e instanceof Error) {
       message = e.message;
@@ -60,12 +62,15 @@ export const GET: RequestHandler = async ({ url }) => {
       if (typeof apiError.status === 'number') {
         status = apiError.status;
       }
+      if (apiError.code) {
+        code = apiError.code;
+      }
     } else if (typeof e === 'object' && e !== null && 'message' in e) {
       // Fallback for non-Error objects that might have a message
       message = String((e as any).message);
     }
 
-    return json({ error: message }, { status });
+    return json({ error: message, code }, { status });
   }
 };
 
@@ -128,6 +133,7 @@ async function fetchBitunixKlines(
     ) {
       const error = new Error("Symbol not found") as ApiError;
       error.status = 404;
+      error.code = "SYMBOL_NOT_FOUND";
       throw error;
     }
 
@@ -149,6 +155,7 @@ async function fetchBitunixKlines(
       ) {
         const error = new Error("Symbol not found") as ApiError;
         error.status = 404;
+        error.code = "SYMBOL_NOT_FOUND";
         throw error;
       }
       throw new Error(`Bitunix API error: ${data.msg}`);

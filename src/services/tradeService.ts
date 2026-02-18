@@ -353,6 +353,11 @@ class TradeService {
 
             const pendingText = await pendingResponse.text();
             const pendingResult = safeJsonParse(pendingText);
+
+            if (!pendingResult || typeof pendingResult !== 'object') {
+                 throw new Error("apiErrors.invalidResponse");
+            }
+
             if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             // Hardening: Best Effort Processing
