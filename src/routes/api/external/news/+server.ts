@@ -8,7 +8,7 @@
  */
 
 import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./";
+import type { RequestHandler } from "./$types";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
