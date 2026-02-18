@@ -89,6 +89,13 @@ vi.mock('../services/rmsService', () => ({
     }
 }));
 
+vi.mock('../services/toastService.svelte', () => ({
+    toastService: {
+        error: vi.fn(),
+        add: vi.fn()
+    }
+}));
+
 import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
 
