@@ -832,8 +832,8 @@
       "noCalls": "No API calls made yet."
     },
     "errors": {
-      "invalidApiKey": "Invalid API Key or Secret.",
-      "ipNotAllowed": "IP address not allowed.",
+      "invalidApiKey": "Invalid API Key",
+      "ipNotAllowed": "IP Address not allowed",
       "invalidSignature": "Invalid signature.",
       "timestampError": "Timestamp error. Check your system time."
     },

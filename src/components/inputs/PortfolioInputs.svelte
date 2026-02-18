@@ -23,7 +23,6 @@
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
   import { createEventDispatcher, onMount } from "svelte";
-  import Icon from "../shared/Icon.svelte";
   import { icons } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -90,15 +89,16 @@
   });
 
   function validateInput(value: string, allowEmpty = true, min = 0, max = Infinity): string | null {
-    // Hardening: Treat empty input as "0" to prevent Decimal constructor crashes
-    if (value === "") return "0";
+    const val = value.trim();
+    // Hardening: Treat empty input as null (if allowed) or "0" to prevent Decimal constructor crashes
+    if (val === "") return allowEmpty ? null : "0";
 
-    const num = parseFloat(value);
+    const num = parseFloat(val);
     if (isNaN(num)) return "0"; // Safe fallback
 
     if (num < min) return String(min);
     if (num > max) return String(max);
-    return value;
+    return val;
   }
 
   function handleAccountSizeInput(e: Event) {
@@ -111,7 +111,7 @@
     localAccountSize = value; // Keep user input in UI
     tradeState.update((s) => ({
       ...s,
-      accountSize: validated,
+      accountSize: validated ?? "0",
     }));
   }
 
@@ -124,7 +124,7 @@
     localRiskPercentage = value;
     tradeState.update((s) => ({
       ...s,
-      riskPercentage: validated,
+      riskPercentage: validated ?? "0",
     }));
   }
 
@@ -137,7 +137,7 @@
     localRiskAmount = value;
     tradeState.update((s) => ({
       ...s,
-      riskAmount: validated,
+      riskAmount: validated ?? "0",
     }));
   }
 
@@ -251,7 +251,7 @@
           title={$_("dashboard.portfolioInputs.fetchBalanceTitle")}
           disabled={isFetchingBalance || !isConnected}
         >
-          <Icon data={icons.refresh} />
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
         </button>
       </div>
     </div>

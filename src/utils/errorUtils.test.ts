@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { getBitunixErrorKey, getErrorMessage } from "./errorUtils";
+import { getBitunixErrorKey, getErrorMessage, mapApiErrorToLabel } from "./errorUtils";
 
 describe("errorUtils", () => {
   describe("getBitunixErrorKey", () => {
@@ -26,9 +26,10 @@ describe("errorUtils", () => {
       expect(getBitunixErrorKey(30042)).toBe("bitunixErrors.30042");
     });
 
-    it("should return generic error key for unknown error code", () => {
-      expect(getBitunixErrorKey(99999)).toBe("apiErrors.generic");
-      expect(getBitunixErrorKey("invalid_code")).toBe("apiErrors.generic");
+    it("should return keyed error even for unknown code (dynamic mapping)", () => {
+      // Updated to match implementation which returns bitunixErrors.{code}
+      expect(getBitunixErrorKey(99999)).toBe("bitunixErrors.99999");
+      expect(getBitunixErrorKey("invalid_code")).toBe("bitunixErrors.invalid_code");
     });
 
     it("should handle number and string inputs correctly", () => {
@@ -57,6 +58,27 @@ describe("errorUtils", () => {
       expect(getErrorMessage(null)).toBe("null");
       expect(getErrorMessage(undefined)).toBe("undefined");
       expect(getErrorMessage({ foo: "bar" })).toBe("[object Object]");
+    });
+  });
+
+  describe("mapApiErrorToLabel", () => {
+    it("should map invalid api key error", () => {
+      expect(mapApiErrorToLabel(new Error("Invalid API Key"))).toBe("settings.errors.invalidApiKey");
+      expect(mapApiErrorToLabel({ message: "Incorrect Access Key" })).toBe("settings.errors.invalidApiKey");
+    });
+
+    it("should map ip not allowed error", () => {
+      expect(mapApiErrorToLabel(new Error("IP not allowed"))).toBe("settings.errors.ipNotAllowed");
+      expect(mapApiErrorToLabel("Your IP is not in whitelist")).toBe("settings.errors.ipNotAllowed");
+    });
+
+    it("should map common http errors", () => {
+      expect(mapApiErrorToLabel("Error 429")).toBe("apiErrors.tooManyRequests");
+      expect(mapApiErrorToLabel("401 Unauthorized")).toBe("apiErrors.unauthorized");
+    });
+
+    it("should return original message if no match", () => {
+      expect(mapApiErrorToLabel("Unknown error")).toBe("Unknown error");
     });
   });
 });

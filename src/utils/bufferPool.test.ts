@@ -108,4 +108,22 @@ describe("BufferPool", () => {
     const recycled = pool.acquire(0);
     expect(recycled).toBe(buffer);
   });
+
+  it("should handle high load without errors", () => {
+    const iterations = 10000;
+    const length = 50;
+
+    // Perform 10,000 allocations and releases
+    for (let i = 0; i < iterations; i++) {
+      const buf = pool.acquire(length);
+      // Fill with some data to ensure it works
+      buf[0] = i;
+      pool.release(buf);
+    }
+
+    // Verify pool integrity (should have at least 1 buffer of length 50 available for reuse)
+    const buf = pool.acquire(length);
+    expect(buf.length).toBe(length);
+    expect(buf).toBeInstanceOf(Float64Array);
+  });
 });
