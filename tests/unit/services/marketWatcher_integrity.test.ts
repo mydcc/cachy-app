@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { marketWatcher } from './marketWatcher';
+import { marketWatcher } from '../../../src/services/marketWatcher';
 import { Decimal } from 'decimal.js';
 
 describe('MarketWatcher Data Integrity', () => {
@@ -26,12 +26,6 @@ describe('MarketWatcher Data Integrity', () => {
             }
         ];
 
-        // The current implementation (before fix) iterates linearly.
-        // If unsorted:
-        // 1. prev=T+2. curr=T. diff = -2 mins. No gap detected (diff < threshold).
-        // 2. prev=T. curr=T+1. diff = 1 min. No gap detected.
-        // Result order: T+2, T, T+1. Still unsorted.
-
         const result = fillGaps(input, intervalMs);
 
         // Check if sorted
@@ -49,8 +43,6 @@ describe('MarketWatcher Data Integrity', () => {
         ];
 
         const result = fillGaps(input, intervalMs);
-        // Expect duplicates to remain or be handled? Sorting doesn't remove duplicates.
-        // Ideally we should probably dedupe too, but sorting is the primary goal here.
         expect(result.length).toBeGreaterThanOrEqual(2);
         expect(result[0].time).toBe(baseTime);
         expect(result[1].time).toBe(baseTime);

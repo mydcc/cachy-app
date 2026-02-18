@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { tradeService } from './tradeService';
-import { settingsState } from '../stores/settings.svelte';
+import { tradeService } from '../../../src/services/tradeService';
+import { settingsState } from '../../../src/stores/settings.svelte';
 
 // Mock settingsState
-vi.mock('../stores/settings.svelte', () => ({
+vi.mock('../../../src/stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
         apiKeys: {
@@ -13,7 +13,7 @@ vi.mock('../stores/settings.svelte', () => ({
     }
 }));
 
-vi.mock('./logger', () => ({
+vi.mock('../../../src/services/logger', () => ({
     logger: {
         warn: vi.fn(),
         error: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('./logger', () => ({
     }
 }));
 
-vi.mock('./toastService.svelte', () => ({
+vi.mock('../../../src/services/toastService.svelte', () => ({
     toastService: {
         error: vi.fn()
     }

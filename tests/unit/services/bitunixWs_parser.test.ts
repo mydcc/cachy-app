@@ -39,13 +39,11 @@ describe('Bitunix WebSocket JSON Parser Regex', () => {
 
     it('should handle spaces', () => {
         const input = '{"price" :  123}';
-        // Now it should work!
         const expected = '{"price":"123"}';
         expect(process(input)).toBe(expected);
     });
 
     it('should handle large integers (precision check)', () => {
-        // "volume" is in the list
         const largeVol = '1234567890123456789.123';
         const inputVol = `{"volume": ${largeVol}}`;
         const expectedVol = `{"volume":"${largeVol}"}`;
@@ -58,7 +56,6 @@ describe('Bitunix WebSocket JSON Parser Regex', () => {
 
         // Edge case: Escaped quotes
         const inputTricky = '{"msg": "Look at \\"price\\": 100"}';
-        // Should NOT be modified thanks to (?<!\\)
         expect(process(inputTricky)).toBe(inputTricky);
     });
 });
