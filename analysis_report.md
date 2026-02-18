@@ -1,42 +1,63 @@
-# Systematic Maintenance & Hardening Report
+# Cachy App Code Analysis & Hardening Report
 
-## Status Quo Analysis
+**Date:** 2026-05-22
+**Auditor:** Jules (Senior Lead Developer)
+**Status:** In-Depth Analysis Complete
 
-The codebase has been systematically hardened to address data integrity, resource management, and security risks. All critical findings from the initial audit have been resolved and verified with tests.
+## 🔴 CRITICAL (Risk of Financial Loss, Crash, or Security Vulnerability)
 
-## Resolved Findings
+### 1. Data Integrity: Type Mismatch in `fetchBitunixKlines`
+- **Location:** `src/services/apiService.ts` (Line ~418)
+- **Issue:** The `high` property of a Kline is assigned as a `string` (`high.toString()`) but the `Kline` interface strictly requires `Decimal`.
+- **Risk:** Downstream calculations (Technicals, Indicators) expecting a `Decimal` object will crash immediately when attempting methods like `.plus()` or `.times()`. This is a guaranteed runtime error if that code path is hit.
+- **Fix Required:** Remove `.toString()` and ensure strict `Decimal` type assignment.
 
-### 🔴 CRITICAL (Resolved)
+### 2. Performance: Synchronous Execution Risk in `fillGaps`
+- **Location:** `src/services/marketWatcher.ts`
+- **Issue:** The `fillGaps` method iterates synchronously up to `klines.length` (potentially 1000+) and can insert up to 5000 candles per gap.
+- **Risk:** While optimized for V8, a massive data gap (e.g., after sleep mode) could block the main thread for >50ms, causing UI stutter during critical market movements.
+- **Fix Required:** Move heavy gap-filling logic to a Web Worker or break into chunks using `requestIdleCallback`.
 
-1.  **Data Integrity in Position Updates (`src/stores/account.svelte.ts`)**
-    *   **Resolution:** Implemented `registerSyncCallback` to handle partial WebSocket updates (missing `side`) by triggering a full data synchronization. Verified with `src/stores/account.test.ts`.
+### 3. Data Integrity: Manual Parsing in `bitgetWs`
+- **Location:** `src/services/bitgetWs.ts` (Inferred/Checked)
+- **Issue:** The WebSocket handler for Bitget parses candle/ticker data manually without strict Zod validation schema (unlike `bitunixWs.ts`).
+- **Risk:** If Bitget changes their API response format (e.g., fields become null or change type), the app could process corrupt data, leading to incorrect trading decisions.
+- **Fix Required:** Implement strict Zod schemas for Bitget WS messages similar to `BitunixWSMessageSchema`.
 
-2.  **Memory Leak in WebSocket Service (`src/services/bitunixWs.ts`)**
-    *   **Resolution:** Refactored `unsubscribe` logic to ensure `syntheticSubs` are correctly decremented and removed, preventing memory leaks from accumulated "ghost" subscriptions. Verified with `src/services/bitunixWs.leak.test.ts`.
+## 🟡 WARNING (Performance Issue, UX Error, Missing i18n)
 
-### 🟡 WARNING (Resolved)
+### 1. Accessibility & UX: Hardcoded Error Strings
+- **Location:** `src/routes/+layout.svelte`
+- **Issue:** Error messages like "An unexpected error occurred." are hardcoded strings.
+- **Risk:** Non-English users will see untranslated errors.
+- **Fix Required:** Move all error strings to `src/locales/locales/{en,de}.json`.
 
-3.  **Inconsistent Input Validation**
-    *   **Resolution:** Implemented strict Zod validation schemas (`BaseRequestSchema`, `OrderRequestSchema`) for `orders`, `account`, and `positions` endpoints. Invalid requests are now rejected with 400 Bad Request before processing.
+### 2. Accessibility: Interactive Elements without Keyboard Support
+- **Location:** `src/routes/+layout.svelte` (Jules Report Overlay)
+- **Issue:** `div` elements with `onclick` handlers use `svelte-ignore a11y_click_events_have_key_events`.
+- **Risk:** Users navigating via keyboard cannot close the overlay.
+- **Fix Required:** Replace `div` with `<button>` or add `onkeydown` handlers and `role="button"`.
 
-4.  **Missing Internationalization**
-    *   **Resolution:** Added missing keys (`common.analyzing`, `dashboard.triggerPulse`, etc.) to both English and German locales. Verified with `audit_translations.py`.
+### 3. Type Safety: Loose Typing in `tradeService`
+- **Location:** `src/services/tradeService.ts`
+- **Issue:** `TpSlOrder` interface uses `[key: string]: unknown`, allowing arbitrary properties. `fetchTpSlOrders` uses `any` in generics.
+- **Risk:** Refactoring could break hidden dependencies.
+- **Fix Required:** Define strict types for all Order properties.
 
-5.  **Risky Serialization Logic (`src/services/serializationService.ts`)**
-    *   **Resolution:** Replaced manual string slicing with a safer chunking approach that verifies JSON integrity. Verified with `src/services/serializationService.test.ts`.
+### 4. Data Integrity: Manual API Mapping in `newsService`
+- **Location:** `src/services/newsService.ts`
+- **Issue:** Responses from CryptoPanic and NewsAPI are mapped manually.
+- **Risk:** API changes could break the news feed silently.
+- **Fix Required:** Add Zod validation step before mapping.
 
-### 🔵 REFACTOR (Completed)
+## 🔵 REFACTOR (Technical Debt)
 
-6.  **Standardized API Error Handling**
-    *   **Resolution:** Created `src/utils/apiResponse.ts` and applied `jsonSuccess`/`handleApiError` to key endpoints, ensuring consistent JSON error structures.
+### 1. Resource Management: Synthetic Subscription Complexity
+- **Location:** `src/services/bitunixWs.ts`
+- **Issue:** The `syntheticSubs` logic (creating 1h candles from 1m stream) is complex and potentially fragile if state drifts.
+- **Recommendation:** Isolate synthetic logic into a dedicated `SyntheticMarketService` to improve testability.
 
-## Verification
-
-*   **Unit Tests:** All new hardening tests passed (`npm run test`).
-*   **E2E Tests:** Basic smoke tests and trade flow simulations passed (`npx playwright test`).
-*   **Manual Review:** Code review confirmed strict typing and defensive programming patterns.
-
-## Next Steps
-
-*   Monitor production logs for any remaining edge cases.
-*   Consider expanding E2E coverage to include actual (non-mocked) trade execution in a sandbox environment.
+### 2. State Management: Polling in `chat.svelte.ts`
+- **Location:** `src/stores/chat.svelte.ts`
+- **Issue:** Uses `setInterval` for polling.
+- **Recommendation:** Switch to WebSocket or Server-Sent Events (SSE) for chat to reduce server load and improve latency.
