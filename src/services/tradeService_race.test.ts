@@ -43,6 +43,13 @@ vi.mock('../stores/settings.svelte', () => ({
   }
 }));
 
+vi.mock('./toastService.svelte', () => ({
+    toastService: {
+        error: vi.fn(),
+        add: vi.fn()
+    }
+}));
+
 const globalFetch = vi.fn();
 
 describe('TradeService Race Condition Hardening', () => {
@@ -85,10 +92,10 @@ describe('TradeService Race Condition Hardening', () => {
       }))
     });
 
-    // Execute Flash Close
-    // Should throw because position is gone after sync
-    await expect(tradeService.flashClosePosition('BTCUSDT', 'long'))
-      .rejects.toThrow('tradeErrors.positionNotFound');
+    // Execute Flash Close — now returns { success: false } instead of throwing
+    const result = await tradeService.flashClosePosition('BTCUSDT', 'long');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('tradeErrors.positionNotFound');
 
     // Verify Sync was called
     expect(globalFetch).toHaveBeenCalledWith(

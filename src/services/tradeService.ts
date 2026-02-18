@@ -27,6 +27,7 @@ import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
+import { toastService } from "./toastService.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
@@ -217,123 +218,123 @@ class TradeService {
     }
 
     public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
-        // 1. Get fresh position
-        const position = await this.ensurePositionFreshness(symbol, positionSide);
-
-        if (!position) {
-            logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
-            throw new Error("tradeErrors.positionNotFound");
-        }
-
-        // 2. Execute Close
-        // Close Long -> Sell
-        // Close Short -> Buy
-        const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
-        const apiSide = side === "sell" ? "SELL" : "BUY";
-
-        // CRITICAL: Use exact amount from OMS
-        if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
-            logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-            throw new Error("apiErrors.invalidAmount");
-        }
-
-        const qty = position.amount.toString();
-
-        logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
-
-        // Retrieve current market price for optimistic UI feedback
-        // Fallback to 0 if not available, but usually MarketWatcher ensures it is.
-        const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
-
-        // OPTIMISTIC UPDATE
-        const clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-        omsService.addOptimisticOrder({
-            id: clientOrderId,
-            clientOrderId,
-            symbol,
-            side: side,
-            type: "market",
-            status: "pending",
-            price: currentPrice,
-            amount: position.amount,
-            filledAmount: new Decimal(0),
-            timestamp: Date.now(),
-            _isOptimistic: true
-        });
-
+        let clientOrderId = "";
         try {
+            // 1. Get fresh position
+            const position = await this.ensurePositionFreshness(symbol, positionSide);
+
+            if (!position) {
+                throw new Error("tradeErrors.positionNotFound");
+            }
+
+            // 2. Execute Close
+            // Close Long -> Sell
+            // Close Short -> Buy
+            const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
+            const apiSide = side === "sell" ? "SELL" : "BUY";
+
+            // CRITICAL: Use exact amount from OMS
+            if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
+                logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
+                throw new Error("apiErrors.invalidAmount");
+            }
+
+            const qty = position.amount.toString();
+
+            logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
+
+            // Retrieve current market price for optimistic UI feedback
+            const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
+
+            // OPTIMISTIC UPDATE
+            clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+            omsService.addOptimisticOrder({
+                id: clientOrderId,
+                clientOrderId,
+                symbol,
+                side: side,
+                type: "market",
+                status: "pending",
+                price: currentPrice,
+                amount: position.amount,
+                filledAmount: new Decimal(0),
+                timestamp: Date.now(),
+                _isOptimistic: true
+            });
+
             // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
-            // This prevents "Naked Stop Loss" scenarios where a position is closed but the SL remains.
             try {
                 await this.cancelAllOrders(symbol, true);
             } catch (cancelError) {
-                // If cancellation fails, we log CRITICAL error but PROCEED with closing.
-                // Priority: Capital Preservation (Exit Position) > Clean State (No Naked Orders).
-                // In a true emergency (e.g. flash crash), getting out is more important than cleaning up triggers.
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close to prevent stuck position. Naked orders may remain!`, cancelError);
+                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close.`, cancelError);
             }
 
-            return await this.signedRequest("POST", "/api/orders", {
+            const result = await this.signedRequest("POST", "/api/orders", {
                 symbol,
                 side: apiSide,
                 orderType: "MARKET",
-                qty, // String for precision
+                qty,
                 reduceOnly: true,
                 clientOrderId
             });
+
+            return { success: true, data: result };
+
         } catch (e: unknown) {
-            // HARDENING: Two Generals Problem.
-            // If request fails (timeout/network), order might be live.
-            // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
+            const msg = e instanceof Error ? e.message : String(e);
 
-            logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
+            // Handle Optimistic Order Rollback/Recovery
+            if (clientOrderId) {
+                logger.warn("market", `[FlashClose] Request failed. Handling optimistic order ${clientOrderId}.`, e);
 
-            // HARDENING: Clean up optimistic order if we KNOW it failed (e.g. 4xx error)
-            const isTerminalError =
-                (e instanceof BitunixApiError) ||
-                (e instanceof Error && (
-                    e.message.includes("400") ||
-                    e.message.includes("401") ||
-                    e.message.includes("403") ||
-                    (e as any).code === "VALIDATION_ERROR" ||
-                    (e as any).status === 400 ||
-                    (e as any).status === 401 ||
-                    (e as any).status === 403
-                ));
+                const isTerminalError =
+                    (e instanceof BitunixApiError) ||
+                    (e instanceof Error && (
+                        e.message.includes("400") ||
+                        e.message.includes("401") ||
+                        e.message.includes("403") ||
+                        (e as any).code === "VALIDATION_ERROR" ||
+                        (e as any).status === 400 ||
+                        (e as any).status === 401 ||
+                        (e as any).status === 403
+                    ));
 
-            if (isTerminalError) {
-                 logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
-                 omsService.removeOrder(clientOrderId);
-            } else {
-                 // Indeterminate state (Timeout / Network Error)
-                 // Mark as unconfirmed
-                 const order = omsService.getOrder(clientOrderId);
-                 if (order) {
-                     order._isUnconfirmed = true;
-                     omsService.updateOrder(order);
-                 }
+                if (isTerminalError) {
+                     logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
+                     omsService.removeOrder(clientOrderId);
+                } else {
+                     // Indeterminate state (Timeout / Network Error)
+                     const order = omsService.getOrder(clientOrderId);
+                     if (order) {
+                         order._isUnconfirmed = true;
+                         omsService.updateOrder(order);
+                     }
+                }
+
+                // Trigger background sync
+                (async () => {
+                    try {
+                        await RetryPolicy.execute(() => this.fetchOpenPositionsFromApi(), {
+                            maxAttempts: 5,
+                            initialDelayMs: 500,
+                            maxDelayMs: 5000,
+                            name: "FlashClose Recovery Sync"
+                        });
+                    } catch (err) {
+                        logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
+                    }
+                })();
             }
 
-            // Trigger background sync with RETRY LOGIC (Backoff)
-            (async () => {
-                try {
-                    await RetryPolicy.execute(() => this.fetchOpenPositionsFromApi(), {
-                        maxAttempts: 5,
-                        initialDelayMs: 500,
-                        maxDelayMs: 5000,
-                        name: "FlashClose Recovery Sync"
-                    });
-                    logger.log("market", `[FlashClose] Recovery sync successful.`);
-                } catch (err) {
-                    logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
-                }
-            })();
+            // [FIX] Notify User & Prevent Crash
+            logger.error("market", `[FlashClose] Failed: ${msg}`, e);
+            toastService.error(`Flash Close Failed: ${msg}`);
 
-            throw e;
+            // Return failure object instead of throwing
+            return { success: false, error: msg };
         }
     }
 
-    // Emergency Fallback to fetch ALL open positions directly from Bitunix/API
     private async fetchOpenPositionsFromApi() {
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 

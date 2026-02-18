@@ -89,6 +89,13 @@ vi.mock('../services/rmsService', () => ({
     }
 }));
 
+vi.mock('../services/toastService.svelte', () => ({
+    toastService: {
+        error: vi.fn(),
+        add: vi.fn()
+    }
+}));
+
 import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
 
@@ -145,13 +152,23 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         expect(body.orderType).toBe('MARKET');
     });
 
-    it('should throw error when position is unknown', async () => {
+    it('should return failure object when position is unknown', async () => {
         // Mock OMS with no positions
         vi.mocked(omsService.getPositions).mockReturnValue([]);
 
-        await expect(
-            tradeService.flashClosePosition('ETHUSDT', 'long')
-        ).rejects.toThrow();
+        // Mock global fetch to avoid URL parsing error in Node environment and simulate empty API response
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            text: () => Promise.resolve(JSON.stringify({ code: 0, data: [] }))
+        } as any);
+
+        const result = await tradeService.flashClosePosition('ETHUSDT', 'long');
+
+        // Should NOT throw, but return success: false
+        expect(result).toBeDefined();
+        expect(result.success).toBe(false);
+        // We expect it to complain about position not found after fallback fails
+        expect(result.error).toContain('tradeErrors.positionNotFound');
     });
 
     it('should use exact amount for closePosition with OMS data', async () => {
