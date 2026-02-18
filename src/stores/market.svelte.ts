@@ -184,6 +184,26 @@ export class MarketManager {
     return null;
   }
 
+  /** Release all backing buffers for a given symbol back to the pool */
+  private releaseSymbolBackingBuffers(symbol: string) {
+    const keysToDelete: string[] = [];
+    const prefix = `${symbol}:`;
+    this.backingBuffers.forEach((backing, key) => {
+      if (key.startsWith(prefix)) {
+        this.bufferPool.release(backing.times);
+        this.bufferPool.release(backing.opens);
+        this.bufferPool.release(backing.highs);
+        this.bufferPool.release(backing.lows);
+        this.bufferPool.release(backing.closes);
+        this.bufferPool.release(backing.volumes);
+        keysToDelete.push(key);
+      }
+    });
+    for (const key of keysToDelete) {
+      this.backingBuffers.delete(key);
+    }
+  }
+
   private enforceCacheLimit() {
     // Dynamically respect settingsState.marketCacheSize
     const maxSize = getMaxCacheSize();
@@ -192,9 +212,13 @@ export class MarketManager {
       if (!toEvict) {
         // Fallback: If metadata is out of sync, delete arbitrary key
         const key = Object.keys(this.data)[0];
-        if (key) delete this.data[key];
+        if (key) {
+          this.releaseSymbolBackingBuffers(key);
+          delete this.data[key];
+        }
         break;
       }
+      this.releaseSymbolBackingBuffers(toEvict);
       delete this.data[toEvict];
     }
   }
@@ -708,6 +732,16 @@ export class MarketManager {
   }
 
   reset() {
+    // Release all backing buffers back to pool before clearing
+    this.backingBuffers.forEach((backing) => {
+      this.bufferPool.release(backing.times);
+      this.bufferPool.release(backing.opens);
+      this.bufferPool.release(backing.highs);
+      this.bufferPool.release(backing.lows);
+      this.bufferPool.release(backing.closes);
+      this.bufferPool.release(backing.volumes);
+    });
+    this.backingBuffers.clear();
     this.cacheMetadata.clear();
     this.data = {};
   }
@@ -719,6 +753,7 @@ export class MarketManager {
       if (now - meta.lastAccessed > TTL_MS) stale.push(symbol);
     });
     stale.forEach((symbol) => {
+      this.releaseSymbolBackingBuffers(symbol);
       this.cacheMetadata.delete(symbol);
       delete this.data[symbol];
     });
