@@ -93,6 +93,9 @@ class TradeService {
         if (!keys || !keys.key) {
             throw new Error("apiErrors.missingCredentials");
         }
+        if (!keys || !keys.key || !keys.secret) {
+            throw new Error("apiErrors.missingCredentials");
+        }
 
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
@@ -101,6 +104,7 @@ class TradeService {
             "X-Api-Key": keys.key,
             "X-Api-Secret": keys.secret,
             ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
+        };
         };
 
         // Deep serialize Decimals to strings before JSON.stringify
