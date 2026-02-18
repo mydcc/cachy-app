@@ -1,3 +1,4 @@
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -69,7 +70,15 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const payload = validation.data;
-  const { exchange, apiKey, apiSecret, passphrase } = payload;
+  const { exchange } = payload;
+  const creds = extractApiCredentials(request, body);
+  const apiKey = creds.apiKey || payload.apiKey;
+  const apiSecret = creds.apiSecret || payload.apiSecret;
+  const passphrase = creds.passphrase || payload.passphrase;
+
+  if (!apiKey || !apiSecret) {
+      return json({ error: "Missing API Credentials" }, { status: 401 });
+  }
 
   // 2. Key Validation (Additional Check)
   if (exchange === "bitunix") {

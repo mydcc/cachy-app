@@ -112,8 +112,8 @@ export const PositionListSchema = z.array(PositionRawSchema);
 // Account Request Schema
 export const AccountRequestSchema = z.object({
     exchange: z.enum(["bitunix", "bitget"]),
-    apiKey: z.string().min(1),
-    apiSecret: z.string().min(1),
+    apiKey: z.string().optional(),
+    apiSecret: z.string().optional(),
     passphrase: z.string().optional() // Required for Bitget
 });
 
@@ -122,8 +122,8 @@ export const AccountRequestSchema = z.object({
 // Common Headers
 const BaseRequest = z.object({
     exchange: z.literal("bitunix"),
-    apiKey: z.string().min(10),
-    apiSecret: z.string().min(10),
+    apiKey: z.string().optional(),
+    apiSecret: z.string().optional(),
 });
 
 // Base params for lists

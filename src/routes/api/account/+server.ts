@@ -1,3 +1,4 @@
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -52,7 +53,15 @@ export const POST: RequestHandler = async ({ request }) => {
       return jsonError("Validation Error", "VALIDATION_ERROR", 400, errors);
   }
 
-  const { exchange, apiKey, apiSecret, passphrase } = validation.data;
+  const { exchange } = validation.data;
+    const creds = extractApiCredentials(request, body);
+    const apiKey = creds.apiKey || validation.data.apiKey;
+    const apiSecret = creds.apiSecret || validation.data.apiSecret;
+    const passphrase = creds.passphrase || validation.data.passphrase;
+
+    if (!apiKey || !apiSecret) {
+        return jsonError("Missing API Credentials", "MISSING_CREDENTIALS", 401);
+    }
 
   try {
     let account = null;

@@ -1,4 +1,6 @@
-/*
+import sys
+
+content = """/*
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
@@ -8,7 +10,7 @@
  */
 
 import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
+import type { RequestHandler } from "./";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
@@ -189,3 +191,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     );
   }
 };
+"""
+
+with open('src/routes/api/external/news/+server.ts', 'w') as f:
+    f.write(content)

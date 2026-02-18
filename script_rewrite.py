@@ -1,4 +1,6 @@
-/*
+import sys
+
+content = """/*
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
@@ -340,13 +342,11 @@ class TradeService {
             // Re-use the sync endpoint which wraps the signed API call
             const pendingResponse = await fetch("/api/sync/positions-pending", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}),
-                    "X-Api-Key": settingsState.apiKeys.bitunix.key,
-                    "X-Api-Secret": settingsState.apiKeys.bitunix.secret
-                },
-                body: JSON.stringify({}),
+                headers: { "Content-Type": "application/json", ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}) },
+                body: JSON.stringify({
+                    apiKey: settingsState.apiKeys.bitunix.key,
+                    apiSecret: settingsState.apiKeys.bitunix.secret,
+                }),
             });
 
             if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
@@ -569,3 +569,7 @@ class TradeService {
 }
 
 export const tradeService = new TradeService();
+"""
+
+with open('src/services/tradeService.ts', 'w') as f:
+    f.write(content)
