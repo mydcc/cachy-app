@@ -90,10 +90,7 @@ class TradeService {
         const provider = settingsState.apiProvider;
         const keys = settingsState.apiKeys[provider];
 
-        if (!keys || !keys.key || !keys.secret) {
-            throw new Error("apiErrors.missingCredentials");
-        }
-        if (!keys || !keys.key || !keys.secret) {
+        if (!keys || !keys.key) {
             throw new Error("apiErrors.missingCredentials");
         }
 
@@ -105,15 +102,9 @@ class TradeService {
             "X-Api-Secret": keys.secret,
             ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
         };
-        };
 
         // Deep serialize Decimals to strings before JSON.stringify
         const serializedPayload = this.serializePayload(payload);
-
-        // Inject exchange field if not already present (required by server-side Zod schemas)
-        if (!serializedPayload.exchange) {
-            serializedPayload.exchange = provider;
-        }
 
         const response = await fetch(endpoint, {
             method,

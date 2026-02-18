@@ -101,6 +101,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
               const validation = CryptoPanicResponseSchema.safeParse(rawData);
               if (!validation.success) {
                    console.warn("[NewsProxy] Schema Validation Warning:", validation.error);
+                   // Proceed with best effort or throw?
+                   // Given it's a proxy, invalid schema might break UI. Best to sanitize or just pass if 'results' exists.
+                   // The prompt asked for Strict Schema Validation.
+                   // If schema fails, we treat it as an error.
                    throw new Error("Upstream response failed schema validation");
               }
               const data = validation.data;
