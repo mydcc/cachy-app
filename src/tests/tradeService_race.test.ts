@@ -51,6 +51,13 @@ vi.mock('../services/logger', () => ({
     }
 }));
 
+vi.mock('../services/toastService.svelte', () => ({
+    toastService: {
+        error: vi.fn(),
+        add: vi.fn()
+    }
+}));
+
 describe('TradeService Race Conditions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -77,8 +84,10 @@ describe('TradeService Race Conditions', () => {
         const addOptimisticSpy = vi.spyOn(omsService, 'addOptimisticOrder');
         const removeOrderSpy = vi.spyOn(omsService, 'removeOrder');
 
-        // Execute
-        await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).rejects.toThrow('Network Error');
+        // Execute — now returns { success: false } instead of throwing
+        const result = await tradeService.flashClosePosition('BTCUSDT', 'long');
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Network Error');
 
         // Assertions
         expect(addOptimisticSpy).toHaveBeenCalled();
@@ -112,8 +121,9 @@ describe('TradeService Race Conditions', () => {
 
         const removeOrderSpy = vi.spyOn(omsService, 'removeOrder');
 
-        // Execute
-        await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).rejects.toThrow();
+        // Execute — now returns { success: false } instead of throwing
+        const result = await tradeService.flashClosePosition('BTCUSDT', 'long');
+        expect(result.success).toBe(false);
 
         // Assertions
         expect(removeOrderSpy).toHaveBeenCalled();
@@ -157,12 +167,9 @@ describe('TradeService Race Conditions', () => {
 
         const removeOrderSpy = vi.spyOn(omsService, 'removeOrder');
 
-        // Execute
-        try {
-            await tradeService.flashClosePosition('BTCUSDT', 'long');
-        } catch (e) {
-            // Expected
-        }
+        // Execute — now returns { success: false } instead of throwing
+        const result = await tradeService.flashClosePosition('BTCUSDT', 'long');
+        expect(result.success).toBe(false);
 
         // With current code, 429 is NOT in the list, so it might FAIL this test (expecting call, but got none)
         // This confirms we need to add 429 handling.

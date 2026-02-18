@@ -46,6 +46,14 @@ vi.mock("./logger", () => ({
     }
 }));
 
+// Mock toastService (flashClosePosition now calls toastService.error on failure)
+vi.mock("./toastService.svelte", () => ({
+    toastService: {
+        error: vi.fn(),
+        add: vi.fn()
+    }
+}));
+
 describe("TradeService Safety - Flash Close", () => {
     beforeEach(() => {
         // Reset OMS
@@ -81,13 +89,10 @@ describe("TradeService Safety - Flash Close", () => {
         // We can mock cancelAllOrders directly to isolate the close logic.
         vi.spyOn(tradeService, "cancelAllOrders").mockResolvedValue(undefined);
 
-        // 4. Execute Flash Close
-        try {
-            await tradeService.flashClosePosition(symbol, side);
-        } catch (e) {
-            // Expected error
-            expect((e as Error).message).toBe("Network Timeout");
-        }
+        // 4. Execute Flash Close — now returns { success: false } instead of throwing
+        const result = await tradeService.flashClosePosition(symbol, side);
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Network Timeout");
 
         // 5. Assertions
         const orders = omsService.getAllOrders();
@@ -119,12 +124,9 @@ describe("TradeService Safety - Flash Close", () => {
         vi.spyOn(tradeService as any, "signedRequest").mockRejectedValue(apiError);
         vi.spyOn(tradeService, "cancelAllOrders").mockResolvedValue(undefined);
 
-        // 3. Execute
-        try {
-            await tradeService.flashClosePosition(symbol, side);
-        } catch (e) {
-            // Expected
-        }
+        // 3. Execute — now returns { success: false } instead of throwing
+        const result = await tradeService.flashClosePosition(symbol, side);
+        expect(result.success).toBe(false);
 
         // 4. Assertions
         const orders = omsService.getAllOrders();
@@ -134,7 +136,7 @@ describe("TradeService Safety - Flash Close", () => {
         expect(optimisticOrder).toBeUndefined();
     });
 
-    it("should abort flash close if cancelAllOrders fails", async () => {
+    it("should proceed with flash close even if cancelAllOrders fails (Capital Preservation)", async () => {
         // 1. Setup Position
         const symbol = "BTCUSDT";
         const side = "long";
@@ -153,18 +155,20 @@ describe("TradeService Safety - Flash Close", () => {
         // 2. Mock cancelAllOrders to fail
         vi.spyOn(tradeService, "cancelAllOrders").mockRejectedValue(new Error("API Error"));
 
-        // 3. Spy on signedRequest to ensure it is NOT called
-        const requestSpy = vi.spyOn(tradeService as any, "signedRequest");
+        // 3. Mock signedRequest to succeed for the close order
+        const requestSpy = vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({
+            code: 0, msg: "success"
+        });
 
-        // 4. Execute and Expect Error
-        await expect(tradeService.flashClosePosition(symbol, side)).rejects.toThrow("trade.closeAbortedSafety");
+        // 4. Execute — cancelAllOrders failure is caught internally, close proceeds
+        const result = await tradeService.flashClosePosition(symbol, side);
 
-        // 5. Assert close request was NOT sent
-        // Note: spy might be called for cancelAllOrders itself depending on implementation,
-        // but here we mocked cancelAllOrders so signedRequest inside it won't be called.
-        // We want to ensure the CLOSE request (POST /api/orders with side=SELL) wasn't sent.
-        // However, signedRequest is generic.
-        // Let's check call count. cancelAllOrders is mocked so it won't call signedRequest.
-        expect(requestSpy).not.toHaveBeenCalled();
+        // 5. Assert close request WAS sent (capital preservation > clean state)
+        expect(result.success).toBe(true);
+        expect(requestSpy).toHaveBeenCalledWith("POST", "/api/orders", expect.objectContaining({
+            symbol: "BTCUSDT",
+            side: "SELL",
+            reduceOnly: true
+        }));
     });
 });
