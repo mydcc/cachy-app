@@ -5,6 +5,7 @@
 [![Svelte 5](https://img.shields.io/badge/Svelte_5-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mydcc/cachy-app)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
 Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Binance.
