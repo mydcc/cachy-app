@@ -34,8 +34,8 @@ const ExchangeEnum = z.enum(["bitunix", "bitget"]);
 // --- Base Request ---
 export const BaseRequestSchema = z.object({
   exchange: ExchangeEnum,
-  apiKey: z.string().min(1),
-  apiSecret: z.string().min(1),
+  apiKey: z.string().optional(),
+  apiSecret: z.string().optional(),
   passphrase: z.string().optional(), // Required for Bitget
 });
 

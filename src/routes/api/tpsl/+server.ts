@@ -1,3 +1,4 @@
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -43,7 +44,14 @@ export const POST: RequestHandler = async ({ request }) => {
       );
     }
 
-    const { exchange, apiKey, apiSecret, action, params = {} } = validation.data;
+    const { exchange, action, params = {} } = validation.data;
+    const creds = extractApiCredentials(request, body);
+    const apiKey = creds.apiKey || validation.data.apiKey;
+    const apiSecret = creds.apiSecret || validation.data.apiSecret;
+
+    if (!apiKey || !apiSecret) {
+         return json({ error: "Missing API Credentials" }, { status: 401 });
+    }
 
     // Redundant check covered by Zod, but safe to keep for explicit error logic if needed
     if (exchange !== "bitunix") {

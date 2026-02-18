@@ -327,6 +327,12 @@ class BitunixWebSocketService {
   private connectPublic(force = false) {
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
+    // HARDENING: Enforce WSS
+    if (!WS_PUBLIC_URL.startsWith("wss://")) {
+        logger.error("network", "[BitunixWS] Insecure WebSocket URL detected (Public). Aborting connection.");
+        return;
+    }
+
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
       return;
@@ -470,6 +476,12 @@ class BitunixWebSocketService {
 
   private connectPrivate(force = false) {
     if (this.isDestroyed) return;
+
+    // HARDENING: Enforce WSS
+    if (!WS_PRIVATE_URL.startsWith("wss://")) {
+        logger.error("network", "[BitunixWS] Insecure WebSocket URL detected (Private). Aborting connection.");
+        return;
+    }
 
     const settings = settingsState;
     const apiKey = settings.apiKeys?.bitunix?.key;

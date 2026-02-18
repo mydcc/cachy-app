@@ -1,3 +1,4 @@
+import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -26,8 +27,8 @@ import { z } from "zod";
 // Ensure strictly HTTPS is used. Request bodies are NOT logged on error.
 
 const RequestSchema = z.object({
-  apiKey: z.string().min(1),
-  apiSecret: z.string().min(1),
+  apiKey: z.string().optional(),
+  apiSecret: z.string().optional(),
 });
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -49,7 +50,14 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const { apiKey, apiSecret } = result.data;
+  const { apiKey: bodyKey, apiSecret: bodySecret } = result.data;
+  const creds = extractApiCredentials(request, body);
+  const apiKey = creds.apiKey || bodyKey;
+  const apiSecret = creds.apiSecret || bodySecret;
+
+  if (!apiKey || !apiSecret) {
+      return json({ error: "Missing API Credentials" }, { status: 401 });
+  }
 
   try {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
