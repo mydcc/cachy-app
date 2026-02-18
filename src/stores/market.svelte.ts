@@ -468,6 +468,57 @@ export class MarketManager {
         klines = dedupedRaw;
     }
 
+    // [OPTIMIZATION] Fast Path for Single Tail Update (Common Case)
+    // This avoids mapping, slicing, and full buffer writes for frequent price updates
+    const existingHistory = current.klines[timeframe];
+    if (klines.length === 1 && existingHistory && existingHistory.length > 0) {
+        const lastIdx = existingHistory.length - 1;
+        const lastKline = existingHistory[lastIdx];
+        const newRaw = klines[0];
+
+        if (newRaw.time === lastKline.time) {
+            // 1. Update History In-Place (Minimizing Decimal Allocations)
+            // We use a helper to only create new Decimals if value changed
+            const updateDecimal = (oldVal: Decimal, newVal: any): Decimal => {
+                if (typeof newVal === "number") {
+                     return new Decimal(newVal);
+                }
+                if (typeof newVal === "string" && oldVal.toString() === newVal) return oldVal;
+                return new Decimal(newVal);
+            };
+
+            const updatedKline: Kline = {
+                open: updateDecimal(lastKline.open, newRaw.open),
+                high: updateDecimal(lastKline.high, newRaw.high),
+                low: updateDecimal(lastKline.low, newRaw.low),
+                close: updateDecimal(lastKline.close, newRaw.close),
+                volume: updateDecimal(lastKline.volume, newRaw.volume),
+                time: newRaw.time
+            };
+
+            existingHistory[lastIdx] = updatedKline;
+
+            // 2. Update Buffer Directly (Skip Decimal.toNumber() overhead)
+            const bufferKey = `${symbol}:${timeframe}`;
+            const backing = this.backingBuffers.get(bufferKey);
+            if (backing && backing.times.length > lastIdx) {
+                 const getNum = (val: any): number => {
+                    if (typeof val === "number") return val;
+                    if (typeof val === "string") return parseFloat(val);
+                    return val instanceof Decimal ? val.toNumber() : Number(val);
+                 };
+
+                 backing.opens[lastIdx] = getNum(newRaw.open);
+                 backing.highs[lastIdx] = getNum(newRaw.high);
+                 backing.lows[lastIdx] = getNum(newRaw.low);
+                 backing.closes[lastIdx] = getNum(newRaw.close);
+                 backing.volumes[lastIdx] = getNum(newRaw.volume);
+            }
+
+            current.lastUpdated = Date.now();
+            return;
+        }
+    }
     // Normalize
     let newKlines: Kline[] = klines.map(k => ({
       open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
@@ -493,8 +544,6 @@ export class MarketManager {
       }
       newKlines = deduped;
     }
-
-    // Update History (Logic preserved)
     let history = current.klines[timeframe] || [];
     if (!current.klines[timeframe]) current.klines[timeframe] = history;
 
@@ -560,6 +609,7 @@ export class MarketManager {
                 while (i < history.length) merged.push(history[i++]);
                 while (j < newKlines.length) merged.push(newKlines[j++]);
                 history = merged;
+                current.klines[timeframe] = history;
                 isAppend = false;
             }
 
