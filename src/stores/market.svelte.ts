@@ -236,7 +236,7 @@ export class MarketManager {
           }
         });
         this.pendingUpdates.clear();
-    this.backingBuffers.clear();
+
       }
 
       // 2. Apply Kline Updates
