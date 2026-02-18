@@ -161,7 +161,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         expect(result).toBeDefined();
         expect(result.success).toBe(false);
         // We expect it to complain about position not found after fallback fails
-        expect(result.error).toContain('trade.positionNotFound');
+        expect(result.error).toContain('tradeErrors.positionNotFound');
     });
 
     it('should use exact amount for closePosition with OMS data', async () => {
