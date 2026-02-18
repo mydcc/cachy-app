@@ -249,4 +249,5 @@ Copyright (C) 2026 MYDCT
 - **Improvement:** Symbol input field now accepts letters and numbers.
 - **Fixed:** Tooltip border is now theme-dependent and the double border issue has been fixed.
 - **Improvement:** "Add Trade to Journal" and "Show Instructions" buttons are now theme-dependent.
+
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mydcc/cachy-app)
