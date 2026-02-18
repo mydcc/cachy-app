@@ -6,7 +6,6 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
-[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mydcc/cachy-app)
 
 Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Binance.
 Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and supports real-time market data from Bitunix and Binance.
@@ -250,3 +249,4 @@ Copyright (C) 2026 MYDCT
 - **Improvement:** Symbol input field now accepts letters and numbers.
 - **Fixed:** Tooltip border is now theme-dependent and the double border issue has been fixed.
 - **Improvement:** "Add Trade to Journal" and "Show Instructions" buttons are now theme-dependent.
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mydcc/cachy-app)
