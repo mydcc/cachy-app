@@ -19,6 +19,8 @@
 set -o errexit
 
 echo "Build script started."
+echo "Node version: $(node -v)"
+echo "NPM version: $(npm -v)"
 
 # Ensure Cargo is available
 if ! command -v cargo &> /dev/null; then
@@ -42,8 +44,10 @@ rustup target add wasm32-unknown-unknown
 echo "Installing Node dependencies..."
 # Use npm ci for reliable builds if lockfile exists
 if [ -f "package-lock.json" ]; then
+    echo "Running npm ci..."
     npm ci
 else
+    echo "Running npm install (no lockfile)..."
     npm install
 fi
 
