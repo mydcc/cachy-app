@@ -1520,7 +1520,9 @@
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",
     "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "syncFailed": "Sync failed: {error}",
+    "symbolRequired": "Symbol erforderlich",
+    "fetchKlinesFailed": "Abrufen der Klines fehlgeschlagen"
   },
   "bitunixErrors": {
     "10001": "Network Error",
@@ -1616,7 +1618,8 @@
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
     "saveFailed": "Speichern fehlgeschlagen.",
-    "modifyFailed": "Änderung der Order fehlgeschlagen."
+    "modifyFailed": "Änderung der Order fehlgeschlagen.",
+    "unexpected": "Ein unerwarteter Fehler ist aufgetreten."
   },
   "modals": {
     "editTP": {
@@ -2118,6 +2121,7 @@
   "trade": {
     "apiError": "API-Fehler: {error}",
     "closeAbortedSafety": "Schließen sicherheitshalber abgebrochen. Offene Orders konnten nicht storniert werden.",
-    "fetchFailed": "Abrufen fehlgeschlagen"
+    "fetchFailed": "Abrufen fehlgeschlagen",
+    "flashCloseFailed": "Flash Close Fehlgeschlagen: {error}"
   }
 }

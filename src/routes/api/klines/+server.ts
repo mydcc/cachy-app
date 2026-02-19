@@ -231,17 +231,6 @@ async function fetchBitgetKlines(
 
   let text = await response.text();
 
-  // HARDENING: Pre-process JSON to wrap numbers in quotes to prevent precision loss
-  // We target floating point numbers that are NOT already quoted.
-  // Look for: non-quote, digit, dot, digit, non-quote.
-  // This safeguards against API returning [1.2345] instead of ["1.2345"]
-  if (text.includes(".") && (text.includes("[") || text.includes(","))) {
-      // Regex: Matches a float like 123.45 not surrounded by quotes
-      // Negative lookbehind (?<!") and lookahead (?!")
-      // We perform this on the raw string before JSON.parse
-      const floatRegex = /(?<!")(\d+\.\d+)(?!")/g;
-      text = text.replace(floatRegex, '"$1"');
-  }
 
   const data = safeJsonParse(text);
   // [[timestamp, open, high, low, close, volume, quoteVol], ...]

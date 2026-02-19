@@ -1489,7 +1489,9 @@
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",
     "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "syncFailed": "Sync failed: {error}",
+    "symbolRequired": "Symbol required",
+    "fetchKlinesFailed": "Failed to fetch klines"
   },
   "chartPatterns": {
     "title": "Chart Patterns Academy",
@@ -1594,7 +1596,8 @@
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
     "saveFailed": "Save failed.",
-    "modifyFailed": "Failed to modify order."
+    "modifyFailed": "Failed to modify order.",
+    "unexpected": "An unexpected error occurred."
   },
   "modals": {
     "editTP": {
@@ -2087,7 +2090,8 @@
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
     "apiError": "API Error: {error}",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "flashCloseFailed": "Flash Close Failed: {error}"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",
