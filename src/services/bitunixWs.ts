@@ -1024,41 +1024,17 @@ class BitunixWebSocketService {
                           marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
 
                           // [SYNTHETIC] Dynamic Support
-                          // Iterate active synthetic subscriptions to see if any depend on this update
-                          if (this.syntheticSubs) {
+                          // Optimization: Fast lookup if we have synthetic subs for this symbol
+                          // The key is constructed as `${normalizedSymbol}:${tf}`.
+                          // 'symbol' is already normalized by normalizeSymbol() at the start of handleMessage.
+                          if (this.syntheticSubs && this.syntheticSubs.size > 0) {
+                              // Iterate only relevant subscriptions using fast prefix check
                               for (const [key, count] of this.syntheticSubs.entries()) {
-                                  // key format: "SYMBOL:TF"
-                                  const parts = key.split(":");
-                                  if (parts.length !== 2) continue;
+                                  if (!key.startsWith(symbol + ":")) continue;
                                   
-                                  const subSymbol = parts[0];
+                                  const parts = key.split(":");
                                   const subTf = parts[1];
                                   
-                                  // Optimization: Only check if symbol matches first
-                                  if (subSymbol !== symbol) continue; // Note: symbol is already normalized in local context? 
-                                  // Wait, `symbol` arg in handleMessage comes from `normalizedSymbol` or raw?
-                                  // `const symbol = message.data.symbol` is raw.
-                                  // The key uses `normalizedSymbol`.
-                                  // We must normalize `symbol` here to compare?
-                                  // In handleMessage: `const symbol = message.data. symbol;` which is e.g. "BTCUSDT".
-                                  // `normalizeKlines` uses "bitunix". 
-                                  // My sub keys use `normalizeSymbol(symbol, "bitunix")`.
-                                  // So I should compare against normalized.
-                                  // `const normalizedMessageSymbol = normalizeSymbol(symbol, "bitunix");`
-                                  // But `marketState.updateSymbolKlines` uses `symbol` (raw?). 
-                                  // Let's check typical usage. `subscribe` normalizes.
-                                  // `handleMessage` (line ~900): `const symbol = message.data.symbol;`
-                                  // This is likely raw "BTCUSDT" or "BTC-USDT".
-                                  // bitunixWs uses `normalizeSymbol` in subscribe.
-                                  // If handleMessage receives "BTCUSDT", and subscribe put "BTCUSDT" in key...
-                                  // Actually `normalizeSymbol` removes hyphens mostly.
-                                  
-                                  // Let's assume strict match on symbol specific to WS message. 
-                                  // Wait, if `syntheticSubs` has normalized, and `message` has raw...
-                                  // I should normalize message symbol before compare.
-                                  const msgSymbolNorm = normalizeSymbol(symbol, "bitunix");
-                                  if (subSymbol !== msgSymbolNorm) continue;
-
                                   // Check timeframe dependency
                                   const resolved = this.resolveTimeframe(subTf);
                                   if (resolved.isSynthetic && resolved.base === timeframe) {

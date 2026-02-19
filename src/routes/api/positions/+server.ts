@@ -186,7 +186,7 @@ async function fetchBitunixPositions(
             : "isolated",
       };
     })
-    .filter((p: any) => parseFloat(p.size || "0") !== 0);
+    .filter((p: any) => !new Decimal(p.size || "0").isZero());
 }
 
 async function fetchBitgetPositions(
@@ -217,7 +217,7 @@ async function fetchBitgetPositions(
     const data = res.data || [];
 
     return data
-        .filter((p: any) => parseFloat(p.total || "0") !== 0) // Filter empty positions
+        .filter((p: any) => !new Decimal(p.total || "0").isZero()) // Filter empty positions
         .map((p: any) => {
             return {
                 symbol: p.symbol,

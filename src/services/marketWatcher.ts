@@ -589,7 +589,9 @@ class MarketWatcher {
       let prev = klines[0];
       result.push(prev);
 
-      const MAX_GAP_FILL = 5000;
+      // [OPTIMIZATION] Reduced from 5000 to 1000 to prevent main-thread blocking
+      // If gap > 1000 candles, we likely need a fresh history fetch anyway.
+      const MAX_GAP_FILL = 1000;
 
       for (let i = 1; i < klines.length; i++) {
           const curr = klines[i];

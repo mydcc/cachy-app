@@ -234,7 +234,19 @@ class BitgetWebSocketService {
         }
 
         try {
-          const message = safeJsonParse(event.data);
+          // [HARDENING] Pre-process raw JSON to protect numeric precision
+          let rawData = typeof event.data === 'string' ? event.data : '';
+
+          // Regex to quote numeric values for specific fields common in Bitget (price, vol, etc)
+          // Bitget uses array format often [ts, open, high...] in 'data', so regex targeting keys is harder.
+          // However, for ticker/depth objects: {"last": 123.45 ...}
+          if (rawData && (rawData.includes('"arg":') || rawData.includes('"action":'))) {
+               // Target common numeric fields in JSON objects
+               const regex = /"(price|last|high24h|low24h|open24h|volume24h|baseVolume|quoteVolume|usdtVolume|accFillSize|priceAvg|total|available|frozen|margin|unrealizedPL)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+               rawData = rawData.replace(regex, '"$1":"$2"');
+          }
+
+          const message = safeJsonParse(rawData || event.data);
           this.handleMessage(message);
         } catch (e) {
           // ignore

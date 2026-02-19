@@ -32,9 +32,13 @@ export const GET: RequestHandler = async ({ url }) => {
   const endParam =
     url.searchParams.get("endTime") || url.searchParams.get("end");
   const provider = url.searchParams.get("provider") || "bitunix";
-  const limit = limitParam ? parseInt(limitParam) : 50;
+  let limit = limitParam ? parseInt(limitParam) : 50;
   const start = startParam ? parseInt(startParam) : undefined;
   const end = endParam ? parseInt(endParam) : undefined;
+
+  // Security: Cap limit to prevent resource exhaustion
+  if (isNaN(limit) || limit < 1) limit = 50;
+  if (limit > 1500) limit = 1500; // Hard cap
 
   if (!symbol) {
     return json({ error: "Symbol is required" }, { status: 400 });
@@ -225,7 +229,20 @@ async function fetchBitgetKlines(
     throw new Error(`Bitget API error: ${response.status}`);
   }
 
-  const text = await response.text();
+  let text = await response.text();
+
+  // HARDENING: Pre-process JSON to wrap numbers in quotes to prevent precision loss
+  // We target floating point numbers that are NOT already quoted.
+  // Look for: non-quote, digit, dot, digit, non-quote.
+  // This safeguards against API returning [1.2345] instead of ["1.2345"]
+  if (text.includes(".") && (text.includes("[") || text.includes(","))) {
+      // Regex: Matches a float like 123.45 not surrounded by quotes
+      // Negative lookbehind (?<!") and lookahead (?!")
+      // We perform this on the raw string before JSON.parse
+      const floatRegex = /(?<!")(\d+\.\d+)(?!")/g;
+      text = text.replace(floatRegex, '"$1"');
+  }
+
   const data = safeJsonParse(text);
   // [[timestamp, open, high, low, close, volume, quoteVol], ...]
   // timestamp is string or number? usually string in response.
@@ -246,11 +263,11 @@ async function fetchBitgetKlines(
   return data
     .map((k: any[]) => ({
       timestamp: parseInt(k[0]),
-      open: k[1],
-      high: k[2],
-      low: k[3],
-      close: k[4],
-      volume: k[5], // base volume
+      open: String(k[1]),
+      high: String(k[2]),
+      low: String(k[3]),
+      close: String(k[4]),
+      volume: String(k[5]), // base volume
     }))
     .sort((a: any, b: any) => a.timestamp - b.timestamp);
 }

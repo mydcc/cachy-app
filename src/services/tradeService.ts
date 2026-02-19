@@ -34,6 +34,8 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 
 export interface TpSlOrder {
     orderId: string;
@@ -326,7 +328,7 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`Flash Close Failed: ${msg}`);
+            toastService.error(get(_)("trade.flashCloseFailed", { values: { error: msg } }));
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
