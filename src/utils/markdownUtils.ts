@@ -17,7 +17,7 @@
 
 import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 // Configure marked with KaTeX support
 marked.use(markedKatex({
@@ -30,8 +30,7 @@ marked.use(markedKatex({
  * Renders Markdown to HTML with sanitization (DOMPurify).
  * Handles AI streaming artifacts (e.g. JSON blocks).
  *
- * SECURITY: Returns empty string during SSR to prevent XSS/hydration mismatches
- * from untrusted content.
+ * SECURITY: Sanitizes output via isomorphic-dompurify (works in both SSR and client).
  */
 export function renderSafeMarkdown(text: string): string {
     try {
@@ -44,15 +43,10 @@ export function renderSafeMarkdown(text: string): string {
 
         const raw = marked.parse(cleaned) as string;
 
-        if (typeof window !== "undefined") {
-            return DOMPurify.sanitize(raw);
-        }
-
-        // SSR Fallback: Return empty string to prevent XSS.
-        return "";
+        return DOMPurify.sanitize(raw);
     } catch (e) {
         console.error("Markdown rendering error:", e);
-        return text;
+        return DOMPurify.sanitize(text);
     }
 }
 

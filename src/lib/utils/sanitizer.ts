@@ -22,18 +22,18 @@
  * Wraps DOMPurify to prevent XSS in standard components.
  */
 
-import DOMPurify from "dompurify";
-import { browser } from "$app/environment";
+import DOMPurify from "isomorphic-dompurify";
+
+const SANITIZE_OPTIONS = {
+  ALLOWED_TAGS: [
+    "b", "i", "em", "strong", "a", "p", "br",
+    "ul", "ol", "li", "span", "div", "code", "pre", "small",
+    "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table", "thead", "tbody", "tr", "td", "th"
+  ],
+  ALLOWED_ATTR: ["href", "target", "class", "style", "title", "alt"]
+};
 
 export function sanitizeHtml(dirty: string): string {
-  if (!browser) return dirty; // SSR safety
-
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: [
-      "b", "i", "em", "strong", "a", "p", "br",
-      "ul", "ol", "li", "span", "div", "code", "pre", "small",
-      "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table", "thead", "tbody", "tr", "td", "th"
-    ],
-    ALLOWED_ATTR: ["href", "target", "class", "style", "title", "alt"]
-  });
+  if (!dirty) return "";
+  return DOMPurify.sanitize(dirty, SANITIZE_OPTIONS);
 }

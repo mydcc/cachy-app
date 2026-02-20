@@ -35,8 +35,6 @@ const config = {
         "default-src": ["self"],
         "script-src": [
           "self",
-          "unsafe-inline",
-          "unsafe-eval",
           "wasm-unsafe-eval",
           "https://s.cachy.app",
           "https://js-agent.newrelic.com",
