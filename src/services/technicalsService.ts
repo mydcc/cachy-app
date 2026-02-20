@@ -232,6 +232,8 @@ export const technicalsService = {
     
     try {
       let finalResult: TechnicalsData | undefined;
+      let actualEngine = engine;
+      const startMs = performance.now();
       
       if (engine === 'wasm') {
         const { wasmCalculator } = await import("./wasmCalculator");
@@ -247,11 +249,16 @@ export const technicalsService = {
 
       if (!finalResult) {
           if (workerManager.isHealthy()) {
+            actualEngine = 'auto'; // Will use TS worker
             finalResult = await this.calculateWithWorker(klines, finalSettings, enabledIndicators);
           } else {
+            actualEngine = 'ts'; // Inline
             finalResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
           }
       }
+      
+      const duration = performance.now() - startMs;
+      calculationStrategy.recordMetrics(actualEngine === 'auto' ? 'ts' : actualEngine, duration, true, klines.length);
 
       // Cache storage
 
@@ -266,7 +273,15 @@ export const technicalsService = {
       return finalResult;
     } catch (e) {
       logger.warn('technicals', "Engine fallback triggered", e);
-      return this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
+      // Engine failed, record failure
+      calculationStrategy.recordMetrics(engine === 'auto' ? 'ts' : engine, 0, false, klines.length);
+      
+      const startFallback = performance.now();
+      const fallbackResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
+      const fallbackDuration = performance.now() - startFallback;
+      calculationStrategy.recordMetrics('ts', fallbackDuration, true, klines.length);
+      
+      return fallbackResult;
     }
   },
 
