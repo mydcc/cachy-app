@@ -140,6 +140,8 @@ export class IncrementalCache {
     return { canUse, entry, newCandles: newCandleCount };
   }
   
+  private accessCounter = 0;
+
   /**
    * Store result in cache
    */
@@ -161,7 +163,7 @@ export class IncrementalCache {
       settingsHash: this.hashSettings(settings),
       enabledHash: this.hashEnabled(enabled),
       timestamp: Date.now(),
-      lastAccessed: Date.now(),
+      lastAccessed: ++this.accessCounter,
       hitCount: 0
     };
     
@@ -196,7 +198,7 @@ export class IncrementalCache {
     }
     
     // Update access stats
-    entry.lastAccessed = Date.now();
+    entry.lastAccessed = ++this.accessCounter;
     entry.hitCount++;
     
     return entry.result;
