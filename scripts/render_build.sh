@@ -40,12 +40,9 @@ echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
 echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
-if [ -f "package-lock.json" ]; then
-    npm ci
-else
-    npm install
-fi
+# Use npm install to ensure dependencies are installed even if lockfile has platform mismatches
+# This fixes "Deployment Failed" caused by npm ci strictness on Render
+npm install
 
 echo "Building..."
 npm run build
