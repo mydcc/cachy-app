@@ -26,3 +26,13 @@ export function sanitizeHtml(html: string): string {
   if (!html) return '';
   return DOMPurify.sanitize(html);
 }
+
+/**
+ * Sanitizes chat input by stripping all HTML tags.
+ * We want plain text only for chat.
+ */
+export function sanitizeChatInput(text: string): string {
+  if (!text) return '';
+  // ALLOWED_TAGS: [] means strip all tags
+  return DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+}
