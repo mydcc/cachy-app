@@ -11,7 +11,7 @@
     "start": "node build/index.js",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "test": "vitest run",
+    "test": "NODE_OPTIONS=\"--expose-gc\" vitest run",
     "test:e2e": "playwright test tests/e2e",
     "benchmark:technicals": "vitest bench"
   },

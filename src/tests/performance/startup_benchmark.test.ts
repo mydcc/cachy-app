@@ -50,6 +50,10 @@ Object.defineProperty(global, 'WebSocket', { value: MockWebSocket });
 global.requestAnimationFrame = (cb) => setTimeout(cb, 0);
 
 // Mock Modules BEFORE imports
+vi.mock('$app/environment', () => ({
+  browser: true
+}));
+
 vi.mock('../../services/bitunixWs', () => ({
   bitunixWs: {
     connect: vi.fn(),
@@ -101,6 +105,7 @@ import { tradeState } from '../../stores/trade.svelte';
 import { marketState } from '../../stores/market.svelte';
 import { analysisState } from '../../stores/analysis.svelte';
 import { settingsState } from '../../stores/settings.svelte';
+import { apiService, type Ticker24h } from '../../services/apiService';
 
 describe('App Startup Performance Benchmark', () => {
   let fetchSpy: any;
@@ -114,50 +119,28 @@ describe('App Startup Performance Benchmark', () => {
     settingsState.apiProvider = 'bitunix';
     settingsState.favoriteSymbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT'];
 
-    // Mock Fetch
-    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url: any) => {
-      const urlStr = url.toString();
-
-      // 1. Ticker Response (Price)
-      if (urlStr.includes('/api/tickers')) {
-        return new Response(JSON.stringify({
-          code: 0,
-          data: [{
-            symbol: 'BTCUSDT',
-            lastPrice: '95000.00',
-            open: '94000.00',
-            high: '96000.00',
-            low: '93000.00',
-            baseVol: '1000.00',
-            quoteVol: '95000000.00'
-          }]
-        }), { status: 200, headers: { 'content-type': 'application/json' } });
-      }
-
-      // 2. Klines Response (History)
-      if (urlStr.includes('/api/klines')) {
-        // Generate dummy klines
-        const limit = parseInt(new URL(urlStr, 'http://localhost').searchParams.get('limit') || '15');
-        const klines = [];
-        const now = Date.now();
-        for(let i=0; i<limit; i++) {
-            klines.push({
-                time: now - (i * 60000),
-                open: '95000',
-                high: '95100',
-                low: '94900',
-                close: '95000',
-                volume: '10'
-            });
-        }
-        return new Response(JSON.stringify(klines), {
-            status: 200,
-            headers: { 'content-type': 'application/json' }
-        });
-      }
-
-      return new Response(JSON.stringify({}), { status: 404 });
+    // Mock apiService directly to avoid global fetch issues
+    vi.spyOn(apiService, 'fetchTicker24h').mockResolvedValue({
+      provider: 'bitunix',
+      symbol: 'BTCUSDT',
+      lastPrice: new Decimal('95000.00'),
+      priceChangePercent: new Decimal('1.06'),
+      highPrice: new Decimal('96000.00'),
+      lowPrice: new Decimal('93000.00'),
+      volume: new Decimal('1000.00'),
+      quoteVolume: new Decimal('95000000.00')
     });
+
+    vi.spyOn(apiService, 'fetchBitunixKlines').mockResolvedValue(
+      Array.from({ length: 15 }, (_, i) => ({
+        time: Date.now() - (i * 60000),
+        open: new Decimal('95000'),
+        high: new Decimal('95100'),
+        low: new Decimal('94900'),
+        close: new Decimal('95000'),
+        volume: new Decimal('10')
+      }))
+    );
   });
 
   afterEach(() => {
@@ -210,27 +193,19 @@ describe('App Startup Performance Benchmark', () => {
         console.warn('[Perf] Analysis timed out (Check mocked klines or settings)');
     }
 
-    // 4. Analyze Request Count
-    const totalRequests = fetchSpy.mock.calls.length;
-    console.log(`[Perf] Total HTTP Requests: ${totalRequests}`);
-
-    // Breakdown
-    const tickerReqs = fetchSpy.mock.calls.filter((c: any) => c[0].toString().includes('tickers')).length;
-    const klineReqs = fetchSpy.mock.calls.filter((c: any) => c[0].toString().includes('klines')).length;
-
-    console.log(`[Perf] Ticker Requests: ${tickerReqs}`);
-    console.log(`[Perf] Kline Requests: ${klineReqs}`);
-
-    // Assertions for Performance Budget
+    // 4. Assertions for Performance Budget
     // Price should be fast (< 1000ms in this mocked env)
     expect(priceTime - start).toBeLessThan(1000);
 
-    // Requests shouldn't explode.
-    // Expect:
-    // 1 ticker fetch for main symbol
-    // 1 kline fetch for ATR
-    // MarketAnalyst: might fetch klines for favorites (4 favorites * 4 timeframes = 16 requests if parallelized)
-    // Total should be around 20-30 max.
+    // API calls were mocked on apiService, so we check those instead of fetchSpy
+    const tickerReqs = vi.mocked(apiService.fetchTicker24h).mock.calls.length;
+    const klineReqs = vi.mocked(apiService.fetchBitunixKlines).mock.calls.length;
+    const totalRequests = tickerReqs + klineReqs;
+    
+    console.log(`[Perf] Total API Calls: ${totalRequests}`);
+    console.log(`[Perf] Ticker Calls: ${tickerReqs}`);
+    console.log(`[Perf] Kline Calls: ${klineReqs}`);
+
     expect(totalRequests).toBeLessThan(50);
 
   }, 10000); // 10s timeout

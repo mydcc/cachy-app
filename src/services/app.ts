@@ -507,16 +507,20 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
     try {
+      console.log(`[handleFetchPrice] Fetching price for ${symbol} via ${settingsState.apiProvider}`);
       const ticker = await apiService.fetchTicker24h(
         symbol,
         settingsState.apiProvider,
       );
+      console.log(`[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
       app.currentMarketPrice = priceVal;
       tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
+      console.log(`[handleFetchPrice] Updated tradeState entryPrice to`, new Decimal(priceVal).toString());
       app.calculateAndDisplay();
     } catch (e) {
+      console.log(`[handleFetchPrice] Error fetching price:`, e);
       if (!isAuto) uiState.showError("errors.priceFetchFailed");
     } finally {
       if (!isAuto) uiState.isPriceFetching = false;

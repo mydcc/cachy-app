@@ -443,9 +443,12 @@ class MarketWatcher {
         }
 
         // 3. Execute Fetch Logic
-        // INITIAL FETCH: Use 200 to align with Bitunix actual behavior and prevent logic issues
         const initialLimit = 200; 
-        const klines1 = await apiService.fetchBitunixKlines(symbol, tf, initialLimit, undefined, Date.now());
+        let klines1 = await apiService.fetchBitunixKlines(symbol, tf, initialLimit, undefined, Date.now());
+
+        if (klines1) {
+            klines1 = klines1.filter(k => k && typeof k.time === 'number' && !isNaN(k.time));
+        }
 
         if (klines1 && klines1.length > 0) {
             // Apply fillGaps to initial batch

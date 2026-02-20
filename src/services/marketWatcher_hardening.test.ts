@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
+import { marketState } from '../stores/market.svelte';
 
 // Mock dependencies
 vi.mock('$app/environment', () => ({

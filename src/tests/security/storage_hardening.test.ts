@@ -60,6 +60,13 @@ describe('Storage Hardening Security', () => {
 
     it('should restore sensitive keys using Device Key on load', async () => {
         getOrGenerateDeviceKey.mockResolvedValue('mock-device-key');
+        
+        // Mock existing settings with encrypted secrets to trigger decryption flow
+        vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({
+           encryptedSecrets: {
+               openaiApiKey: { ciphertext: 'abc', iv: '123', salt: '456', method: 'AES-GCM' }
+           }
+        }));
 
         // This test simulates loading settings and ensures it tries to get the device key
         new SettingsManager();
