@@ -325,11 +325,18 @@ class TradeService {
             }
 
             // [FIX] Notify User & Prevent Crash
+            let displayMsg = msg;
+            if (e instanceof BitunixApiError && /^\d+$/.test(String(e.code))) {
+                displayMsg = `bitunixErrors.${e.code}`;
+            }
+
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`Flash Close Failed: ${msg}`);
+            // If the message is a key, the Toast component should translate it.
+            // If it's raw text, it will display as is.
+            toastService.error(displayMsg);
 
             // Return failure object instead of throwing
-            return { success: false, error: msg };
+            return { success: false, error: displayMsg };
         }
     }
 

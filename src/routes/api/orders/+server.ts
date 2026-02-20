@@ -212,8 +212,11 @@ export const POST: RequestHandler = async ({ request }) => {
       body,
     });
 
-    // Redact response message and details
+    // I18N: If we have a numeric error code (Bitunix), prioritize the translation key
     let sanitizedMsg = errorMsg;
+    if (errorCode && /^\d+$/.test(String(errorCode))) {
+        sanitizedMsg = `bitunixErrors.${errorCode}`;
+    }
     let sanitizedDetails = details ? String(details) : undefined;
 
     if (apiKey && apiKey.length > 3) {

@@ -234,7 +234,19 @@ class BitgetWebSocketService {
         }
 
         try {
-          const message = safeJsonParse(event.data);
+          // [FIX] Precision Loss Protection (Mirroring bitunixWs.ts)
+          // Pre-process raw JSON string to wrap numeric fields in quotes before JSON.parse
+          // This prevents JS from parsing small floats (e.g. 1e-8) as numbers, which causes precision loss.
+          let rawData = typeof event.data === 'string' ? event.data : '';
+
+          if (rawData && (rawData.includes('"last"') || rawData.includes('"price"') ||
+              rawData.includes('"size"') || rawData.includes('"qty"'))) {
+
+              const regex = /"(last|high24h|low24h|baseVolume|quoteVolume|usdtVolume|open24h|price|size|accFillSize|priceAvg|total|openPriceAvg|leverage|unrealizedPL|available|locked|fillPrice|fillQty|fee|profit)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              rawData = rawData.replace(regex, '"$1":"$2"');
+          }
+
+          const message = safeJsonParse(rawData || event.data);
           this.handleMessage(message);
         } catch (e) {
           // ignore
@@ -432,13 +444,15 @@ class BitgetWebSocketService {
       if (Array.isArray(msg.data)) {
         const klines = msg.data.map((k: any) => {
           // k is [ts, o, h, l, c, v]
+          // HARDENING: Enforce String casting before Decimal
+          // OPTIMIZATION: Pass raw strings to MarketStore to avoid premature Decimal allocation and enable deduplication
           return {
             time: parseInt(k[0]),
-            open: new Decimal(k[1]),
-            high: new Decimal(k[2]),
-            low: new Decimal(k[3]),
-            close: new Decimal(k[4]),
-            volume: new Decimal(k[5])
+            open: String(k[1]),
+            high: String(k[2]),
+            low: String(k[3]),
+            close: String(k[4]),
+            volume: String(k[5])
           };
         });
 
@@ -473,9 +487,9 @@ class BitgetWebSocketService {
             orderId: o.orderId,
             symbol: o.instId,
             status: o.status,
-            filled: o.accFillSize, // executed qty
-            price: o.price,
-            avgPrice: o.priceAvg,
+            filled: String(o.accFillSize || 0), // executed qty
+            price: String(o.price || 0),
+            avgPrice: String(o.priceAvg || 0),
             // etc
           });
         });
@@ -487,11 +501,11 @@ class BitgetWebSocketService {
         msg.data.forEach((p: any) => {
           accountState.updatePositionFromWs({
             symbol: p.instId,
-            size: p.total, // or available? total usually
-            entryPrice: p.openPriceAvg,
+            size: String(p.total || 0), // or available? total usually
+            entryPrice: String(p.openPriceAvg || 0),
             marginType: p.marginMode,
-            leverage: p.leverage,
-            unrealizedPnl: p.unrealizedPL
+            leverage: String(p.leverage || 0),
+            unrealizedPnl: String(p.unrealizedPL || 0)
           });
         });
       }
