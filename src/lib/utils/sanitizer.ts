@@ -22,7 +22,8 @@
  * Wraps DOMPurify to prevent XSS in standard components.
  */
 
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "dompurify";
+import { browser } from "$app/environment";
 
 const SANITIZE_OPTIONS = {
   ALLOWED_TAGS: [
@@ -33,7 +34,14 @@ const SANITIZE_OPTIONS = {
   ALLOWED_ATTR: ["href", "target", "class", "style", "title", "alt"]
 };
 
+/**
+ * Sanitizes HTML to prevent XSS in client-side components.
+ * SSR is globally disabled (ssr=false), so the non-browser path
+ * only runs during prerendering where no component HTML is rendered.
+ * Server-side routes use $lib/server/sanitizer instead.
+ */
 export function sanitizeHtml(dirty: string): string {
   if (!dirty) return "";
+  if (!browser) return ""; // Safe: SSR disabled, prerender only generates shell
   return DOMPurify.sanitize(dirty, SANITIZE_OPTIONS);
 }
