@@ -445,14 +445,13 @@ class BitgetWebSocketService {
         const klines = msg.data.map((k: any) => {
           // k is [ts, o, h, l, c, v]
           // HARDENING: Enforce String casting before Decimal
-          // OPTIMIZATION: Pass raw strings to MarketStore to avoid premature Decimal allocation and enable deduplication
           return {
             time: parseInt(k[0]),
-            open: String(k[1]),
-            high: String(k[2]),
-            low: String(k[3]),
-            close: String(k[4]),
-            volume: String(k[5])
+            open: new Decimal(String(k[1])),
+            high: new Decimal(String(k[2])),
+            low: new Decimal(String(k[3])),
+            close: new Decimal(String(k[4])),
+            volume: new Decimal(String(k[5]))
           };
         });
 
