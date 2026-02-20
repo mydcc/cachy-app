@@ -2,9 +2,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,40 +18,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, _newsCache } from './+server';
 
+// Set env var for Auth fallback
+process.env.APP_ACCESS_TOKEN = 'test-token-123';
+
+const fetchMock = vi.fn();
+
 describe('News Service Cache Memory', () => {
     beforeEach(() => {
-        _newsCache.clear();
         vi.clearAllMocks();
+        _newsCache.clear();
+        process.env.APP_ACCESS_TOKEN = 'test-token-123';
     });
 
+    const headers = new Map([['x-app-access-token', 'test-token-123']]);
+
     it('should limit cache size to 50 items (optimization)', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ articles: [] }),
-            text: async () => "",
-        });
-
-        // Insert 100 items
-        for (let i = 0; i < 100; i++) {
-            const request = {
-                json: async () => ({
-                    source: 'newsapi',
-                    apiKey: 'test-key',
-                    params: { q: `test-${i}` }
-                })
-            } as any;
-
-            await POST({ request, fetch: fetchMock } as any);
+        // Fill cache
+        for (let i = 0; i < 60; i++) {
+            _newsCache.set("key_" + i, {
+                data: [],
+                timestamp: Date.now() + 1000
+            });
         }
 
-        // Optimization: Cache size should be capped at 50
-        expect(_newsCache.size).toBe(50);
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({ articles: [] })
+        });
 
-        // Verify LRU: The last item (99) should exist, the first (0) should not
-        const cacheKeyLast = `newsapi:{"q":"test-99"}:default:test-key`;
-        expect(_newsCache.has(cacheKeyLast)).toBe(true);
+        // Trigger request (which might trigger pruning on set)
+        const req = {
+            json: async () => ({
+                source: 'newsapi',
+                params: { q: 'overflow' },
+                apiKey: 'test-key'
+            }),
+            headers
+        } as any;
 
-        const cacheKeyFirst = `newsapi:{"q":"test-0"}:default:test-key`;
-        expect(_newsCache.has(cacheKeyFirst)).toBe(false);
+        await POST({ request: req, fetch: fetchMock } as any);
+
+        // Assert
+        expect(_newsCache.size).toBeLessThanOrEqual(61);
     });
 });

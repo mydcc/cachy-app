@@ -18,13 +18,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 
+// Set env var for Auth fallback
+process.env.APP_ACCESS_TOKEN = 'test-token-123';
+
 describe('POST /api/sync/orders', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const headers = new Map([['x-app-access-token', 'test-token-123']]);
+
   it('should return 400 if JSON is malformed', async () => {
     const request = {
-      json: async () => {
-        throw new Error('Unexpected end of JSON input');
-      },
-    } as Request;
+      json: async () => { throw new Error('Invalid JSON'); },
+      headers
+    } as any;
 
     const response = await POST({ request } as any);
     expect(response.status).toBe(400);
@@ -35,7 +43,8 @@ describe('POST /api/sync/orders', () => {
   it('should return 400 if credentials are missing', async () => {
     const request = {
       json: async () => ({ limit: 10 }),
-    } as Request;
+      headers
+    } as any;
 
     const response = await POST({ request } as any);
     expect(response.status).toBe(400);
@@ -45,8 +54,9 @@ describe('POST /api/sync/orders', () => {
 
   it('should return 400 if limit is not a number', async () => {
     const request = {
-      json: async () => ({ apiKey: 'key', apiSecret: 'secret', limit: 'invalid' }),
-    } as Request;
+      json: async () => ({ apiKey: 'abc', apiSecret: 'def', limit: 'invalid' }),
+      headers
+    } as any;
 
     const response = await POST({ request } as any);
     expect(response.status).toBe(400);
