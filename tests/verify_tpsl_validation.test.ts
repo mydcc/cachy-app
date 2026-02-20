@@ -17,10 +17,10 @@
 
 
 import { describe, it, expect, vi } from 'vitest';
-import { POST } from '../../src/routes/api/tpsl/+server';
+import { POST } from '../src/routes/api/tpsl/+server';
 
 // Mock helpers
-vi.mock('../../src/utils/server/bitunix', () => ({
+vi.mock('../src/utils/server/bitunix', () => ({
   validateBitunixKeys: vi.fn((key, secret) => {
     if (key === 'invalid' || secret === 'invalid') return 'Invalid keys';
     return null;
@@ -34,7 +34,7 @@ vi.mock('../../src/utils/server/bitunix', () => ({
   }))
 }));
 
-vi.mock('../../src/lib/server/auth', () => ({
+vi.mock('../src/lib/server/auth', () => ({
   checkAppAuth: vi.fn(() => null) // Allow all
 }));
 
@@ -46,11 +46,14 @@ describe('TP/SL API Validation', () => {
   const validSecret = '12345678901234567890';
 
   it('should reject requests with invalid structure', async () => {
-    const request = {
-      json: async () => ({
+    const payload = {
         exchange: 'bitunix',
-        // Missing keys
-      })
+      // Missing keys
+    };
+    const request = {
+      json: async () => payload,
+      text: async () => JSON.stringify(payload),
+      headers: new Map([['x-app-access-token', 'test-token-123']])
     };
 
     const response = await POST({ request } as any);
@@ -60,14 +63,17 @@ describe('TP/SL API Validation', () => {
   });
 
   it('should reject requests with invalid action', async () => {
-    const request = {
-      json: async () => ({
+    const payload = {
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
         action: 'hack', // Invalid enum
         params: {}
-      })
+    };
+    const request = {
+      json: async () => payload,
+      text: async () => JSON.stringify(payload),
+      headers: new Map([['x-app-access-token', 'test-token-123']])
     };
 
     const response = await POST({ request } as any);
@@ -77,8 +83,7 @@ describe('TP/SL API Validation', () => {
   });
 
   it('should reject modify action without required params', async () => {
-    const request = {
-      json: async () => ({
+    const payload = {
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -87,7 +92,11 @@ describe('TP/SL API Validation', () => {
             symbol: 'BTCUSDT'
             // Missing orderId, planType, triggerPrice
         }
-      })
+    };
+    const request = {
+      json: async () => payload,
+      text: async () => JSON.stringify(payload),
+      headers: new Map([['x-app-access-token', 'test-token-123']])
     };
 
     const response = await POST({ request } as any);
@@ -97,8 +106,7 @@ describe('TP/SL API Validation', () => {
   });
 
   it('should accept valid pending request', async () => {
-    const request = {
-      json: async () => ({
+    const payload = {
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -106,7 +114,11 @@ describe('TP/SL API Validation', () => {
         params: {
             symbol: 'BTCUSDT'
         }
-      })
+    };
+    const request = {
+      json: async () => payload,
+      text: async () => JSON.stringify(payload),
+      headers: new Map([['x-app-access-token', 'test-token-123']])
     };
 
     // Mock successful fetch for logic flow
@@ -120,8 +132,7 @@ describe('TP/SL API Validation', () => {
   });
 
   it('should accept valid modify request', async () => {
-    const request = {
-      json: async () => ({
+    const payload = {
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -133,7 +144,11 @@ describe('TP/SL API Validation', () => {
             triggerPrice: '90000',
             qty: '0.1'
         }
-      })
+    };
+    const request = {
+      json: async () => payload,
+      text: async () => JSON.stringify(payload),
+      headers: new Map([['x-app-access-token', 'test-token-123']])
     };
 
     // Mock successful fetch

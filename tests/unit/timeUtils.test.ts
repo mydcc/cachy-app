@@ -138,7 +138,7 @@ describe('timeUtils', () => {
 
     describe('formatGermanDate', () => {
         it('should format date correctly', () => {
-            const date = '2026-01-19T23:00:00Z';
+            const date = '2026-01-19T12:00:00Z';
             // result depends on timezone of the environment.
             // Since we use de-DE locale, we expect a specific format.
             // Using a regex to be timezone-independent for the hour/minute part if necessary,

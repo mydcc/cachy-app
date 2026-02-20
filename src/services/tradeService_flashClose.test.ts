@@ -109,7 +109,7 @@ describe('TradeService Flash Close Reproduction', () => {
     });
 
     // Expect flashClosePosition to resolve (Best Effort)
-    await expect(tradeService.flashClosePosition(symbol, side)).resolves.toEqual({ code: 0, msg: 'success' });
+    await expect(tradeService.flashClosePosition(symbol, side)).resolves.toEqual({ success: true, data: { code: 0, msg: 'success' } });
 
     // Verify that the CLOSE order WAS sent despite cancel failure
     // We expect 2 calls (cancel-all, then place-order)

@@ -19,6 +19,9 @@ export function getRelativeTimeString(
 ): string {
   try {
     const publishedDate = new Date(dateString);
+    if (isNaN(publishedDate.getTime())) {
+      return locale === "de" ? "unbekannt" : "unknown";
+    }
     const now = new Date();
     const diffMs = now.getTime() - publishedDate.getTime();
 
@@ -106,6 +109,7 @@ export function getRelativeTimeString(
 export function formatGermanDate(dateString: string): string {
   try {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
     return date.toLocaleString("de-DE", {
       day: "2-digit",
       month: "2-digit",

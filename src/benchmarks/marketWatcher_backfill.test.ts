@@ -57,7 +57,7 @@ describe('MarketWatcher Backfill Performance', () => {
         marketState.data = {};
     });
 
-    it('measures sequential vs parallel backfill', async () => {
+    it('measures sequential backfill', async () => {
         const LATENCY = 50;
 
         vi.spyOn(apiService, 'fetchBitunixKlines').mockImplementation(async (sym, tf, limit, start, end) => {
@@ -84,8 +84,6 @@ describe('MarketWatcher Backfill Performance', () => {
         console.log(`Execution Time: ${duration}ms`);
 
         // Assertions for correctness
-        // 1. Initial fetch (1000)
-        // 2. Parallel backfill (4000)
         // Expect updateSymbolKlines to be called.
 
         expect(marketState.updateSymbolKlines).toHaveBeenCalled();
@@ -95,11 +93,11 @@ describe('MarketWatcher Backfill Performance', () => {
         let totalItems = 0;
         calls.forEach(c => totalItems += c[2].length);
 
-        // Should be at least 5000 (initial 1000 + 4 batches of 1000)
+        // Should be at least 5000 
         expect(totalItems).toBeGreaterThanOrEqual(5000);
 
-        // Expect parallel speedup
-        // Sequential would be ~650ms. Parallel should be < 300ms.
-        expect(duration).toBeLessThan(400);
+        // Backfill is now sequential due to Bitunix API limits.
+        // It should take ~25 batches * 50ms = 1250ms + overhead
+        expect(duration).toBeLessThan(3000);
     });
 });

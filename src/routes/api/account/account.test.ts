@@ -32,6 +32,13 @@ vi.mock('../../../utils/server/bitunix', () => ({
     margin: "10",
     totalUnrealizedPnL: "5",
     // ...other fields mocked minimally
+  })),
+  generateBitunixSignature: vi.fn(() => ({
+    nonce: 'nonce',
+    timestamp: '1234567890',
+    signature: 'signature',
+    queryString: '',
+    bodyStr: '{}'
   }))
 }));
 
@@ -40,6 +47,11 @@ vi.mock('../../../utils/server/bitget', () => ({
   validateBitgetKeys: vi.fn(() => null),
   fetchBitgetAccount: vi.fn(async () => ({}))
 }));
+
+global.fetch = vi.fn().mockResolvedValue({
+  ok: true,
+  text: async () => JSON.stringify({ code: 0, data: [{ available: "100", margin: "10", crossUnrealizedPNL: "5" }] })
+});
 
 describe('POST /api/account Security', () => {
   beforeEach(() => {

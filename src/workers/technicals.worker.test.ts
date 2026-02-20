@@ -67,9 +67,8 @@ describe("technicals.worker", () => {
     it("should handle incomplete data gracefully", () => {
       const shortKlines = klines.slice(0, 5);
       const result = calculateAllIndicators(shortKlines);
-      // Should not crash, just empty or partial results (MAs return 0 if not enough data)
-      expect(result.movingAverages.length).toBe(3);
-      expect(result.movingAverages[0].value).toBe(0);
+      // Should not crash, just empty or partial results (MAs are omitted when NaN)
+      expect(result.movingAverages.length).toBe(0);
     });
   });
 });

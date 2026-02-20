@@ -20,6 +20,33 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const CACHE_KEY = "__storage_usage_cache__";
 
+const mockStorage = new Map<string, string>();
+const storageMock = new Proxy({}, {
+  get(target, prop) {
+    if (prop === 'getItem') return (k: string) => mockStorage.get(k) ?? null;
+    if (prop === 'setItem') return (k: string, v: string) => mockStorage.set(k, String(v));
+    if (prop === 'removeItem') return (k: string) => mockStorage.delete(k);
+    if (prop === 'clear') return () => mockStorage.clear();
+    if (prop === 'key') return (idx: number) => Array.from(mockStorage.keys())[idx] ?? null;
+    if (prop === 'length') return mockStorage.size;
+    return mockStorage.get(prop as string);
+  },
+  set(target, prop, value) {
+    mockStorage.set(prop as string, String(value));
+    return true;
+  },
+  ownKeys() {
+    return Array.from(mockStorage.keys());
+  },
+  getOwnPropertyDescriptor(target, prop) {
+    if (mockStorage.has(prop as string)) {
+      return { enumerable: true, configurable: true, value: mockStorage.get(prop as string) };
+    }
+    return undefined;
+  }
+});
+Object.defineProperty(global, 'localStorage', { value: storageMock, writable: true });
+
 describe('storageUtils', () => {
   beforeEach(() => {
     localStorage.clear();
