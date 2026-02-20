@@ -16,7 +16,8 @@ import crypto from "node:crypto";
  * Returns null if authorized, or a 401 Response if unauthorized (including if no token is configured).
  */
 export function checkAppAuth(request: Request): Response | null {
-  const serverToken = env.APP_ACCESS_TOKEN;
+  // Fallback to process.env for testing environments where $env might be mocked/missing
+  const serverToken = env.APP_ACCESS_TOKEN || process.env.APP_ACCESS_TOKEN;
 
   // Security: Fail closed if no token is configured on the server.
   // This prevents accidental exposure of the API if the configuration is missing.

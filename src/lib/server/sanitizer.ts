@@ -15,28 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { JSDOM } from 'jsdom';
-import DOMPurify from 'dompurify';
-
-const window = new JSDOM('').window;
-// Cast to any to bypass strict type mismatch between JSDOM Window and DOMPurify WindowLike
-const purify = DOMPurify(window as unknown as any);
+// @ts-ignore
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
- * Sanitizes user input for storage.
- * - Strips ALL HTML tags to prevent XSS.
- * - Preserves text content (e.g. "<b>bold</b>" -> "bold").
- * - Removes script/style content entirely.
- * - Designed for Markdown-based chat where raw HTML is not needed.
+ * Sanitizes HTML to prevent XSS.
+ * Uses isomorphic-dompurify for universal support (SSR + Client).
  */
-export function sanitizeChatInput(text: string): string {
-    if (!text) return "";
-
-    return purify.sanitize(text, {
-        ALLOWED_TAGS: [], // Disallow all HTML tags
-        KEEP_CONTENT: true, // Keep text content of stripped tags (except script/style)
-        WHOLE_DOCUMENT: false,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false
-    });
+export function sanitizeHtml(html: string): string {
+  if (!html) return '';
+  return DOMPurify.sanitize(html);
 }
