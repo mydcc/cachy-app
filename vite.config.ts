@@ -8,7 +8,7 @@
  */
 
 import { sveltekit } from "@sveltejs/kit/vite";
-import { defineConfig } from "vite";
+import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
@@ -38,6 +38,14 @@ export default defineConfig({
   worker: {
     format: 'es',
     plugins: () => [tailwindcss()]
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+    exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/*.spec.ts'],
+    env: {
+      APP_ACCESS_TOKEN: 'test-token-123'
+    }
   },
   build: {
     rollupOptions: {
