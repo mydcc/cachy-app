@@ -40,9 +40,9 @@ echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
 echo "Installing Node dependencies..."
-# Use npm install to ensure dependencies are installed even if lockfile has platform mismatches
-# This fixes "Deployment Failed" caused by npm ci strictness on Render
-npm install
+# Use npm install with dev dependencies to ensure build tools (vitest) are available
+# Render sets NODE_ENV=production by default, which prunes devDeps otherwise
+npm install --include=dev
 
 echo "Building..."
 npm run build
