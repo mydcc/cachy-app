@@ -291,7 +291,10 @@ class ActiveTechnicalsManager {
             // === TAKT 1: HIGH FREQUENCY (Realtime) ===
             const timeSinceSwitch = Date.now() - this.lastActiveSymbolChange;
 
-            if (timeSinceSwitch < 200) {
+            // [IDLE OPTIMIZATION]
+            if (idleMonitor.isUserIdle) {
+                delay = 1000; // Slow down to 1s if idle
+            } else if (timeSinceSwitch < 200) {
                 // Debounce: If switched < 200ms ago, impose small wait
                 delay = 200;
             } else {
@@ -305,13 +308,6 @@ class ActiveTechnicalsManager {
                     else userInterval = 500; // balanced
                 }
                 delay = userInterval;
-
-                // [IDLE OPTIMIZATION] Slow down when idle, but respect user's
-                // configured mode — apply a 2x multiplier instead of a hard
-                // override so "realtime" (100ms) becomes 200ms, not 1000ms.
-                if (idleMonitor.isUserIdle) {
-                    delay = Math.min(delay * 2, 1000);
-                }
             }
         } else if (isVisible) {
             // === TAKT 2: BACKGROUND / VISIBLE (Dashboard) ===
