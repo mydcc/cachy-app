@@ -311,7 +311,7 @@ class MarketAnalystService {
 
                 if (anyNeedsUpdate) {
                     delay = 2000; // Fast fill
-                } else if (isHidden) {
+                } else if (typeof document !== "undefined" && document.hidden) {
                     delay = baseDelay * 5; // Very slow if hidden
                 } else if (idleMonitor.isUserIdle) {
                     delay = baseDelay * 2; // Slow if idle
