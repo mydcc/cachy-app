@@ -72,8 +72,13 @@ class MarketAnalystService {
     }
 
     stop() {
+    stop() {
         this.isRunning = false;
-        if (this.timeoutId) clearTimeout(this.timeoutId);
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+        }
+
         if (this.visibilityHandler) {
             document.removeEventListener('visibilitychange', this.visibilityHandler);
             this.visibilityHandler = null;
