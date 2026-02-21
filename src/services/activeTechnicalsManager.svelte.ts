@@ -100,20 +100,35 @@ class ActiveTechnicalsManager {
     }
 
     /**
+     * Cancel a scheduled throttle, handling both setTimeout and requestIdleCallback handles.
+     * Takt 1 uses setTimeout, Takt 2/3 use requestIdleCallback — these are separate ID spaces
+     * and require different cancel APIs. Calling either on an invalid handle is a safe no-op.
+     */
+    private cancelThrottle(key: string) {
+        const handle = this.throttles.get(key);
+        if (handle !== undefined) {
+            clearTimeout(handle);
+            if (typeof window !== 'undefined' && window.cancelIdleCallback) {
+                window.cancelIdleCallback(handle as any);
+            }
+            this.throttles.delete(key);
+        }
+    }
+
+    /**
      * Pause all calculations except Takt 1 (active symbol).
      */
     private pauseNonCriticalCalculations() {
         const activeSymbol = tradeState.symbol;
         
-        for (const [key, timerId] of this.throttles.entries()) {
+        for (const [key] of this.throttles.entries()) {
             const [symbol] = key.split(':');
             
             // Keep active symbol running
             if (symbol === activeSymbol) continue;
             
             // Cancel timer and mark as paused
-            clearTimeout(timerId);
-            this.throttles.delete(key);
+            this.cancelThrottle(key);
             this.pausedCalculations.add(key);
         }
     }
@@ -251,11 +266,8 @@ class ActiveTechnicalsManager {
             this.activeEffects.delete(key);
         }
 
-        // 2. Clear Timers
-        if (this.throttles.has(key)) {
-            clearTimeout(this.throttles.get(key));
-            this.throttles.delete(key);
-        }
+        // 2. Clear Timers (handles both setTimeout and requestIdleCallback)
+        this.cancelThrottle(key);
 
         // 3. Unregister from Market Watcher
         marketWatcher.unregister(symbol, "price", "stateless");
