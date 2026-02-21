@@ -20,7 +20,6 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import { BufferPool } from "../utils/bufferPool";
-import { scheduler } from "../utils/scheduler";
 import { idleMonitor } from "../utils/idleMonitor.svelte";
 
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
@@ -96,7 +95,9 @@ export class MarketManager {
   private bufferPool = new BufferPool();
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
+  private hiddenFlushIntervalId: any = null;
   private lastFlushTime = 0;
+  private visibilityHandler: (() => void) | null = null;
   private telemetryIntervalId: any = null;
   private notifyTimer: any = null;
   private statusNotifyTimer: any = null;
@@ -130,6 +131,14 @@ export class MarketManager {
     if (this.flushIntervalId) {
       cancelAnimationFrame(this.flushIntervalId);
       this.flushIntervalId = null;
+    }
+    if (this.hiddenFlushIntervalId) {
+      clearInterval(this.hiddenFlushIntervalId);
+      this.hiddenFlushIntervalId = null;
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
     }
     if (this.telemetryIntervalId) {
       clearInterval(this.telemetryIntervalId);
@@ -863,24 +872,40 @@ export class MarketManager {
   private startFlushLoop() {
       if (!browser) return;
 
+      // Primary loop: RAF-based for visible tab (pauses automatically when hidden)
       const loop = () => {
           this.flushIntervalId = requestAnimationFrame(loop);
 
           const now = performance.now();
-          // Throttle: 250ms normally
-          // If idle, throttle to 1000ms to save CPU
+          // Throttle: 250ms normally, 1000ms when idle
           const interval = idleMonitor.isUserIdle ? 1000 : 250;
 
           if (now - this.lastFlushTime > interval) {
               this.lastFlushTime = now;
-              // Only flush if tab is visible (RAF handles this mostly, but double check)
-              if (!document.hidden) {
-                  this.flushUpdates();
-              }
+              this.flushUpdates();
           }
       };
 
       this.flushIntervalId = requestAnimationFrame(loop);
+
+      // Secondary loop: Low-frequency setInterval fallback for hidden tabs.
+      // When the tab is hidden, browsers pause RAF. Without flushing,
+      // lastUpdated never updates, causing marketWatcher to think data is
+      // stale and fire redundant REST API calls every 10s.
+      // This 5s interval keeps lastUpdated fresh to prevent that.
+      this.hiddenFlushIntervalId = setInterval(() => {
+          if (document.hidden) {
+              this.flushUpdates();
+          }
+      }, 5000);
+
+      // Flush immediately when tab becomes visible to show latest buffered data
+      this.visibilityHandler = () => {
+          if (!document.hidden) {
+              this.flushUpdates();
+          }
+      };
+      document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 }
 

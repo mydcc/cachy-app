@@ -315,7 +315,7 @@ class ActiveTechnicalsManager {
             const jitter = Math.floor(Math.random() * 500);
 
             if (idleMonitor.isUserIdle) {
-                delay = baseInterval * 2; // Double interval if idle
+                delay = baseInterval * 2 + jitter; // Double interval if idle, keep jitter to prevent thundering herd
             } else {
                 delay = baseInterval + jitter;
             }
