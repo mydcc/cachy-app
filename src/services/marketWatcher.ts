@@ -30,6 +30,8 @@ import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
 import { KlineRawSchema, type KlineRaw, type Kline } from "./technicalsTypes";
+import { idleMonitor } from "../utils/idleMonitor.svelte";
+
 
 interface MarketWatchRequest {
   symbol: string;
@@ -271,6 +273,18 @@ class MarketWatcher {
   private async runPollingLoop() {
     if (!this.isPolling) return;
 
+    // [IDLE OPTIMIZATION]
+    // If hidden, run very slowly (10s)
+    // If idle, run slowly (5s)
+    // Normal: 1s
+    let nextTick = 1000;
+
+    if (typeof document !== 'undefined' && document.hidden) {
+        nextTick = 10000;
+    } else if (idleMonitor.isUserIdle) {
+        nextTick = 5000;
+    }
+
     try {
       // [HYBRID ARCHITECTURE CHANGE]
       // We no longer pause globally if WS is connected.
@@ -299,7 +313,7 @@ class MarketWatcher {
     }
 
     if (this.isPolling) {
-      this.pollingTimeout = setTimeout(() => this.runPollingLoop(), 1000);
+      this.pollingTimeout = setTimeout(() => this.runPollingLoop(), nextTick);
     }
   }
 

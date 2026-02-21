@@ -20,6 +20,9 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import { BufferPool } from "../utils/bufferPool";
+import { scheduler } from "../utils/scheduler";
+import { idleMonitor } from "../utils/idleMonitor.svelte";
+
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
 
 export interface MarketData {
@@ -93,6 +96,7 @@ export class MarketManager {
   private bufferPool = new BufferPool();
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
+  private lastFlushTime = 0;
   private telemetryIntervalId: any = null;
   private notifyTimer: any = null;
   private statusNotifyTimer: any = null;
@@ -104,9 +108,8 @@ export class MarketManager {
       }, 30 * 1000); // Check every 30s
 
       // Batch flushing loop (4 FPS for better CPU efficiency)
-      this.flushIntervalId = setInterval(() => {
-        this.flushUpdates();
-      }, 250);
+      // Batch flushing loop (RAF-based for better idle performance)
+      this.startFlushLoop();
 
       // Reset API calls counter every minute
       this.telemetryIntervalId = setInterval(() => {
@@ -125,7 +128,7 @@ export class MarketManager {
       this.cleanupIntervalId = null;
     }
     if (this.flushIntervalId) {
-      clearInterval(this.flushIntervalId);
+      cancelAnimationFrame(this.flushIntervalId);
       this.flushIntervalId = null;
     }
     if (this.telemetryIntervalId) {
@@ -855,6 +858,29 @@ export class MarketManager {
         (cleanup as any).stop();
       }
     };
+  }
+
+  private startFlushLoop() {
+      if (!browser) return;
+
+      const loop = () => {
+          this.flushIntervalId = requestAnimationFrame(loop);
+
+          const now = performance.now();
+          // Throttle: 250ms normally
+          // If idle, throttle to 1000ms to save CPU
+          const interval = idleMonitor.isUserIdle ? 1000 : 250;
+
+          if (now - this.lastFlushTime > interval) {
+              this.lastFlushTime = now;
+              // Only flush if tab is visible (RAF handles this mostly, but double check)
+              if (!document.hidden) {
+                  this.flushUpdates();
+              }
+          }
+      };
+
+      this.flushIntervalId = requestAnimationFrame(loop);
   }
 }
 
