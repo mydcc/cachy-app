@@ -8,7 +8,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.18.3
-      # Removed NODE_OPTIONS to let the container manage memory automatically.
-      # If you have a large instance (>= 2GB RAM), you can uncomment this:
-      # - key: NODE_OPTIONS
-      #   value: "--max-old-space-size=4096"
+      # Uncommented to prevent OOM on standard instances during SvelteKit build
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=4096"
