@@ -31,6 +31,7 @@ import { favoritesState } from "../stores/favorites.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
 import { toastService } from "./toastService.svelte";
+import { idleMonitor } from "../utils/idleMonitor.svelte";
 import { Decimal } from "decimal.js";
 
 const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
@@ -98,8 +99,16 @@ class MarketAnalystService {
     private async processNext() {
         if (!this.isRunning) return;
 
-        // Check visibility/focus (pause if tab hidden to save resources, unless forced)
+        // [IDLE OPTIMIZATION]
         const isHidden = typeof document !== "undefined" && document.hidden;
+        // If hidden AND idle, we pause completely (5 min check)
+        if (isHidden && idleMonitor.isUserIdle) {
+            this.scheduleNext(300000);
+            return;
+        }
+
+        // Check visibility/focus (pause if tab hidden to save resources, unless forced)
+        // (isHidden already defined above)
 
         const favorites = favoritesState.items;
         if (favorites.length === 0) {
@@ -278,8 +287,19 @@ class MarketAnalystService {
                 });
 
                 const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
-                // If filling gaps, go fast (2s). If maintaining, use user setting.
-                const delay = anyNeedsUpdate ? 2000 : (isHidden ? baseDelay * 2 : baseDelay);
+
+                let delay = baseDelay;
+
+                if (anyNeedsUpdate) {
+                    delay = 2000; // Fast fill
+                } else if (isHidden) {
+                    delay = baseDelay * 5; // Very slow if hidden
+                } else if (idleMonitor.isUserIdle) {
+                    delay = baseDelay * 2; // Slow if idle
+                }
+
+                // Hardening: Enforce minimum 2s
+                delay = Math.max(delay, 2000);
 
                 this.scheduleNext(delay);
             }
