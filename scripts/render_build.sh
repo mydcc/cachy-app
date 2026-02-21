@@ -20,7 +20,9 @@ set -o errexit
 
 echo "Build script started."
 
-# Ensure Cargo is available
+# Ensure Cargo is available (Attempt only)
+# We wrap this to avoid failing the entire build if Rustup fails,
+# as WASM might already be committed in static/wasm
 if ! command -v cargo &> /dev/null; then
     if [ -f "$HOME/.cargo/env" ]; then
         echo "Loading cargo from ~/.cargo/env"
@@ -30,19 +32,26 @@ fi
 
 if ! command -v cargo &> /dev/null; then
     echo "Installing Rust..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    . "$HOME/.cargo/env"
+    # Allow failure here
+    (curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y) || echo "Rust installation failed, proceeding without WASM rebuild."
+
+    if [ -f "$HOME/.cargo/env" ]; then
+        . "$HOME/.cargo/env"
+    fi
 else
     echo "Rust/Cargo is already available."
 fi
 
-echo "Ensuring wasm32-unknown-unknown target..."
-rustup target add wasm32-unknown-unknown
+if command -v rustup &> /dev/null; then
+    echo "Ensuring wasm32-unknown-unknown target..."
+    rustup target add wasm32-unknown-unknown || echo "Failed to add WASM target, proceeding..."
+fi
 
 echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
+# Use npm ci for reliable builds if lockfile exists, but fallback to install if CI fails
+# This handles cases where lockfile version might slightly differ on Render's environment
 if [ -f "package-lock.json" ]; then
-    npm ci
+    npm ci || (echo "npm ci failed, falling back to npm install..." && npm install)
 else
     npm install
 fi
