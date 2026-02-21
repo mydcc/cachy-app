@@ -32,7 +32,6 @@ import { settingsState } from "../stores/settings.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
 import { toastService } from "./toastService.svelte";
 import { idleMonitor } from "../utils/idleMonitor.svelte";
-
 import { Decimal } from "decimal.js";
 
 const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
@@ -49,40 +48,17 @@ class MarketAnalystService {
     private timeoutId: any = null;
     private isRunning = false;
     private currentSymbolIndex = 0;
-    private visibilityHandler: (() => void) | null = null;
 
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
         this.processNext();
-
-        // Resume quickly when tab becomes visible again.
-        // Without this, the 5-minute idle+hidden timeout (line ~107)
-        // would keep the analyst dormant after the user returns.
-        if (typeof document !== 'undefined' && !this.visibilityHandler) {
-            this.visibilityHandler = () => {
-                if (!document.hidden && this.isRunning) {
-                    this.scheduleNext(1000);
-                }
-            };
-            document.addEventListener('visibilitychange', this.visibilityHandler);
-        }
-
         logger.log("technicals", "Market Analyst Service Started");
     }
 
     stop() {
-    stop() {
         this.isRunning = false;
-        if (this.timeoutId) {
-            clearTimeout(this.timeoutId);
-            this.timeoutId = null;
-        }
-
-        if (this.visibilityHandler) {
-            document.removeEventListener('visibilitychange', this.visibilityHandler);
-            this.visibilityHandler = null;
-        }
+        if (this.timeoutId) clearTimeout(this.timeoutId);
         logger.log("technicals", "Market Analyst Service Stopped");
     }
 
@@ -316,7 +292,7 @@ class MarketAnalystService {
 
                 if (anyNeedsUpdate) {
                     delay = 2000; // Fast fill
-                } else if (typeof document !== "undefined" && document.hidden) {
+                } else if (isHidden) {
                     delay = baseDelay * 5; // Very slow if hidden
                 } else if (idleMonitor.isUserIdle) {
                     delay = baseDelay * 2; // Slow if idle

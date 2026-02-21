@@ -49,13 +49,10 @@ class IdleMonitor {
         const handleActivity = () => {
             if (throttleTimer) return;
 
-            // Leading-edge throttle: reset immediately on first activity,
-            // then ignore subsequent events for 1s to avoid overhead.
-            // This ensures isUserIdle is cleared instantly when the user returns.
-            this.resetTimer();
             throttleTimer = setTimeout(() => {
+                this.resetTimer();
                 throttleTimer = null;
-            }, 1000);
+            }, 1000); // Throttle to 1s
         };
 
         events.forEach(event => {
