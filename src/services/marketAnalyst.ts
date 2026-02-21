@@ -61,10 +61,20 @@ class MarketAnalystService {
         logger.log("technicals", "Market Analyst Service Stopped");
     }
 
+    private cachedAnalystSettings: any = null;
+    private lastBaseSettingsJson: string = "";
+
     private getAnalystSettings() {
         // Use user settings but enforce certain defaults for analysis
         const base = indicatorState.toJSON();
-        return {
+        
+        // Cache optimization to maintain referential equality for technicalsService WeakMap
+        if (base._cachedJson === this.lastBaseSettingsJson && this.cachedAnalystSettings) {
+             return this.cachedAnalystSettings;
+        }
+        
+        this.lastBaseSettingsJson = base._cachedJson || "";
+        this.cachedAnalystSettings = {
             ...base,
             // FORCE sufficient history limit for EMA 200 convergence
             // even if user settings has a lower limit (default 750).
@@ -79,6 +89,10 @@ class MarketAnalystService {
                 }
             }
         };
+        
+        // Ensure _cachedJson exists on the cached object for fastSerialize compatibility
+        this.cachedAnalystSettings._cachedJson = JSON.stringify(this.cachedAnalystSettings);
+        return this.cachedAnalystSettings;
     }
 
     private async processNext() {
