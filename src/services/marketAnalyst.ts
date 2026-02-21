@@ -49,17 +49,35 @@ class MarketAnalystService {
     private timeoutId: any = null;
     private isRunning = false;
     private currentSymbolIndex = 0;
+    private visibilityHandler: (() => void) | null = null;
 
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
         this.processNext();
+
+        // Resume quickly when tab becomes visible again.
+        // Without this, the 5-minute idle+hidden timeout (line ~107)
+        // would keep the analyst dormant after the user returns.
+        if (typeof document !== 'undefined' && !this.visibilityHandler) {
+            this.visibilityHandler = () => {
+                if (!document.hidden && this.isRunning) {
+                    this.scheduleNext(1000);
+                }
+            };
+            document.addEventListener('visibilitychange', this.visibilityHandler);
+        }
+
         logger.log("technicals", "Market Analyst Service Started");
     }
 
     stop() {
         this.isRunning = false;
         if (this.timeoutId) clearTimeout(this.timeoutId);
+        if (this.visibilityHandler) {
+            document.removeEventListener('visibilitychange', this.visibilityHandler);
+            this.visibilityHandler = null;
+        }
         logger.log("technicals", "Market Analyst Service Stopped");
     }
 
