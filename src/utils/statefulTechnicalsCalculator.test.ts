@@ -113,4 +113,85 @@ describe('StatefulTechnicalsCalculator', () => {
         expect(updateRsi.value).toBeDefined();
         expect(updateRsi.value).not.toBe(initRsi.value);
     });
+
+    it('regression: should continuously update RSI without state staleness (Bug 1+2)', () => {
+        const history = [];
+        // Steady uptrend but with occasional slight drops so RSI isn't exactly 100
+        for(let i=0; i<50; i++) {
+            const drop = i % 5 === 0 ? -10 : 0;
+            history.push(mockKline(1000 + i*60, 100 + i + drop));
+        }
+
+        const settings = { rsi: { length: 14 } };
+        const enabled = { rsi: true };
+
+        const calc = new StatefulTechnicalsCalculator();
+        const initResult = calc.initialize(history, settings, enabled);
+        const rsiInit = initResult.oscillators.find(o => o.name === "RSI")?.value;
+        expect(rsiInit).toBeDefined();
+        // Since we explicitly added drops, RSI should be < 100
+        expect(rsiInit).toBeLessThan(100);
+
+        // Tick 1: Trend accelerates
+        const tick1 = mockKline(1000 + 50*60, 160);
+        const res1 = calc.update(tick1);
+        const rsi1 = res1.oscillators.find(o => o.name === "RSI")?.value;
+
+        // Tick 2: Trend accelerates even more
+        const tick2 = mockKline(1000 + 51*60, 170);
+        const res2 = calc.update(tick2);
+        const rsi2 = res2.oscillators.find(o => o.name === "RSI")?.value;
+
+        // Because we had a drop, RSI has room to grow correctly
+        expect(rsi1).toBeGreaterThan(rsiInit as number);
+        expect(rsi2).toBeGreaterThan(rsi1 as number);
+    });
+
+    it('regression: should initialize BB prevSumSq so BB width is non-zero after update (Bug 3)', () => {
+        const history = [];
+        // Volatile price history to ensure non-zero variance
+        let price = 100;
+        for(let i=0; i<50; i++) {
+            price += (i % 2 === 0 ? 5 : -3);
+            history.push(mockKline(1000 + i*60, price));
+        }
+
+        const settings = { 
+            ema: { 
+                ema1: { length: 10 },
+                smoothingType: 'sma_bb',
+                smoothingLength: 20,
+                bbStdDev: 2
+            },
+            sma: { 
+                sma1: { length: 20 } 
+            }
+        };
+        const enabled = { ema: true, sma: true };
+
+        const calc = new StatefulTechnicalsCalculator();
+        calc.initialize(history, settings, enabled);
+
+        // Next Tick
+        price += 10;
+        const nextTick = mockKline(1000 + 50*60, price);
+        const updateResult = calc.update(nextTick);
+
+        const emaWithBb = updateResult.movingAverages.find(ma => ma.name === "EMA");
+        expect(emaWithBb).toBeDefined();
+        
+        // Due to the bug, upperBand and lowerBand were exactly equal to the signal (middle band)
+        // because stdDev was 0 due to null prevSumSq.
+        const upper = emaWithBb!.upperBand;
+        const lower = emaWithBb!.lowerBand;
+        const middle = emaWithBb!.signal;
+
+        expect(upper).toBeDefined();
+        expect(lower).toBeDefined();
+        
+        const bbWidth = (upper as number) - (lower as number);
+        expect(bbWidth).toBeGreaterThan(0.001); // Variance should be meaningful
+        expect(upper).toBeGreaterThan(middle as number);
+        expect(lower).toBeLessThan(middle as number);
+    });
 });

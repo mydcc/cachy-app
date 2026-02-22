@@ -230,7 +230,7 @@ export class DivergenceScanner {
     const deduplicated: DivergenceResult[] = [];
 
     for (const div of filtered) {
-      const key = `${div.startIdx}-${div.endIdx}-${div.type}-${div.side}`;
+      const key = `${div.indicator}-${div.startIdx}-${div.endIdx}-${div.type}-${div.side}`;
       if (!seen.has(key)) {
         seen.add(key);
         deduplicated.push(div);

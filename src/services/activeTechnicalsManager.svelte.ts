@@ -58,7 +58,9 @@ class ActiveTechnicalsManager {
     private lastActiveSymbol = "";
 
     // State Tracking for Worker Initialization
-    private workerState = new Map<string, { initialized: boolean, lastTime: number }>();
+    // lastCommittedTime: timestamp of the LAST CLOSED candle seen during init.
+    // Phantom candles for the live period do NOT change lastCommittedTime.
+    private workerState = new Map<string, { initialized: boolean, lastCommittedTime: number }>();
 
     // Memory Management: Reuse buffers to prevent GC spikes
     private pool = new BufferPool();
@@ -509,25 +511,36 @@ class ActiveTechnicalsManager {
         }
 
         // Determine Mode: Initialize or Update
-        // Check if we have initialized this worker
+        // -----------------------------------------------------------------
+        // The history array may end with an injected phantom candle whose
+        // timestamp is the START of the currently forming period. We must NOT
+        // treat a new phantom-candle period as a full re-init — it is still
+        // "the same in-flight candle being updated tick-by-tick".
+        //
+        // Strategy:
+        //   • lastCommittedTime = timestamp of the LAST FULLY CLOSED candle.
+        //     = history[len-2].time when a phantom candle was appended,
+        //     = history[len-1].time when last candle is still the live one.
+        //   • needsInit only when lastCommittedTime changes (a real new bar
+        //     closed) or when there is no state yet.
+        // -----------------------------------------------------------------
         const state = this.workerState.get(key);
-        // Check if history shifted (new candle)
-        // history includes the phantom/realtime candle if we injected it.
-        const currentLastTime = history[history.length - 1].time;
+        const len = history.length;
+        const currentLastTime = history[len - 1].time;
 
-        const needsInit = !state || !state.initialized || state.lastTime !== currentLastTime;
+        // Determine which candle is the last CLOSED candle.
+        // If injectRealtimePrice appended a phantom candle for a new period,
+        // the last-closed is history[len-2]. Otherwise it is history[len-1].
+        const intervalMs = getIntervalMs(timeframe);
+        const currentPeriodStart = Math.floor(Date.now() / intervalMs) * intervalMs;
+        const isPhantomAppended = currentLastTime === currentPeriodStart && len >= 2
+            && history[len - 2].time !== currentPeriodStart;
+        const lastCommittedTime = isPhantomAppended
+            ? history[len - 2].time
+            : currentLastTime;
 
-        // Wait, if lastTime changed (new candle), we treat it as "needsInit" for Phase 1 simplicity.
-        // Or if we are in the SAME candle (lastTime == state.lastTime), we update.
-        // Actually, if we injected a phantom candle, history has the NEW time.
-        // If the *previous* run had a different time, then we have a new candle.
-
-        // BUT: 'injectRealtimePrice' modifies the history array.
-        // If the candle is still forming, the time is the same as the last run.
-        // So:
-        // 1. First run: !state -> Init.
-        // 2. Second run (same candle): state.lastTime == currentLastTime -> Update.
-        // 3. New Candle: state.lastTime != currentLastTime -> Init.
+        const needsInit = !state || !state.initialized
+            || state.lastCommittedTime !== lastCommittedTime;
 
         let result;
 
@@ -542,7 +555,7 @@ class ActiveTechnicalsManager {
                     symbol, timeframe, history, settings, enabledIndicators
                 );
 
-                this.workerState.set(key, { initialized: true, lastTime: currentLastTime });
+                this.workerState.set(key, { initialized: true, lastCommittedTime });
             } else {
                 // UPDATE (Single Tick)
                 const lastK = history[history.length - 1];

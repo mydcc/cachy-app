@@ -96,6 +96,9 @@ export class StatefulTechnicalsCalculator {
        this.updateRsiGroup(newResult, currentPrice, prevPrice);
     }
 
+    // ✅ Bug 2 fix: track last candle so prevPrice is always correct on next tick
+    this.state.lastCandle = tick;
+
     // 3. Update SMA / Bollinger Bands
     if (this.state.sma && this.enabled("sma")) {
         this.updateSmaGroup(newResult, currentPrice);
@@ -317,6 +320,7 @@ export class StatefulTechnicalsCalculator {
 
      // Reconstruct SMA
      if (this.settings?.sma) {
+         if (!this.state.sma) this.state.sma = {};
          const smas = [this.settings.sma.sma1, this.settings.sma.sma2, this.settings.sma.sma3];
          smas.forEach(cfg => {
              if (cfg && cfg.length) {
@@ -324,7 +328,13 @@ export class StatefulTechnicalsCalculator {
                  // SMA = Sum / N => Sum = SMA * N
                  const ma = result.movingAverages.find(m => m.name === "SMA" && m.params === cfg.length.toString());
                  if (ma) {
-                     this.state.sma![cfg.length] = { prevSum: ma.value * cfg.length };
+                     // ✅ Bug 3 fix: also compute prevSumSq so BB variance is non-zero
+                     const window = history.slice(-cfg.length);
+                     const prevSumSq = window.reduce((acc, k) => {
+                         const v = k.close.toNumber();
+                         return acc + v * v;
+                     }, 0);
+                     this.state.sma![cfg.length] = { prevSum: ma.value * cfg.length, prevSumSq };
                  }
              }
          });
@@ -449,7 +459,11 @@ export class StatefulTechnicalsCalculator {
       const len = this.settings?.rsi?.length || 14;
       const state = this.state.rsi[len];
       if (state) {
-          const { rsi } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
+          // ✅ Bug 1 fix: destructure and write avgGain/avgLoss back to state
+          const { rsi, avgGain, avgLoss } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
+          state.avgGain = avgGain;
+          state.avgLoss = avgLoss;
+          state.prevPrice = price;
           rsiInd.value = rsi;
 
           if (rsi > (this.settings?.rsi?.overbought || 70)) rsiInd.action = "Sell";
@@ -591,12 +605,13 @@ export class StatefulTechnicalsCalculator {
   private updateStochRsiGroup(result: TechnicalsData, price: number) {
       const len = this.settings?.stochRsi?.length || 14;
       const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
+      const dPeriod = this.settings?.stochRsi?.dPeriod || 3;
       const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
       
       const state = this.state.stochRsi?.[len];
       if (!state) return;
 
-      // Calculate forming candle RSI
+      // Calculate forming candle RSI (read-only; do not commit to state)
       const { rsi } = JSIndicators.updateRsi(
           state.rsiState.avgGain,
           state.rsiState.avgLoss,
@@ -605,37 +620,41 @@ export class StatefulTechnicalsCalculator {
           rsiLen
       );
 
-      // Create a temporary sliding window including the forming RSI
+      // Temporary RSI window (don't mutate state – this is a "preview" of the forming bar)
       const currentWindow = [...state.rsiHistory, rsi];
       if (currentWindow.length > len) {
-          currentWindow.shift(); // keep it to size 'len'
+          currentWindow.shift();
       }
 
-      // Compute Stochastic raw %K over this window
-      let highestRsi = Math.max(...currentWindow);
-      let lowestRsi = Math.min(...currentWindow);
-      
-      let rawKVal = 50;
-      if (highestRsi !== lowestRsi) {
-          rawKVal = ((rsi - lowestRsi) / (highestRsi - lowestRsi)) * 100;
-      }
-      
-      // Create a temporary sliding window for smoothed %K
+      // Raw %K
+      const highestRsi = Math.max(...currentWindow);
+      const lowestRsi  = Math.min(...currentWindow);
+      const rawKVal = highestRsi !== lowestRsi
+          ? ((rsi - lowestRsi) / (highestRsi - lowestRsi)) * 100
+          : 50;
+
+      // Smoothed %K (SMA of rawK over kPeriod)
       const currentKWindow = [...state.rawKHistory, rawKVal];
-      if (currentKWindow.length > kPeriod) {
-          currentKWindow.shift();
-      }
-      
-      let stochKVal = 0;
-      if (currentKWindow.length > 0) {
-          for (const k of currentKWindow) stochKVal += k;
-          stochKVal /= currentKWindow.length;
-      }
+      if (currentKWindow.length > kPeriod) currentKWindow.shift();
 
-      // Find the StochRSI entry and update
+      let stochKVal = 0;
+      for (const k of currentKWindow) stochKVal += k;
+      stochKVal = currentKWindow.length > 0 ? stochKVal / currentKWindow.length : 0;
+
+      // ✅ Bug 4 fix: compute %D as SMA(K, dPeriod) using a rolling D window
+      if (!state.dHistory) state.dHistory = [];
+      const dHistory = state.dHistory as number[];
+      dHistory.push(stochKVal);
+      if (dHistory.length > dPeriod) dHistory.shift();
+      let stochDVal = 0;
+      for (const d of dHistory) stochDVal += d;
+      stochDVal = dHistory.length > 0 ? stochDVal / dHistory.length : stochKVal;
+
+      // Write to result
       const stInd = result.oscillators.find(o => o.name === "StochRSI");
       if (stInd) {
           stInd.value = stochKVal;
+          stInd.signal = stochDVal; // %D is stored in signal slot (same as batch path)
       }
   }
 

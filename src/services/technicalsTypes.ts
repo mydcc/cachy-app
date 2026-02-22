@@ -292,6 +292,8 @@ export interface StochRsiState {
   rsiHistory: number[];
   // To compute smoothed %K, we need the history of raw %K values
   rawKHistory: number[];
+  // ✅ Bug 4 fix: rolling window for %D (SMA of smoothed %K)
+  dHistory?: number[];
 }
 export interface TechnicalsState {
   lastCandle: Kline | null;

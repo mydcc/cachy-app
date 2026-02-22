@@ -67,4 +67,36 @@ describe("DivergenceScanner", () => {
     expect(duplicates[0].startIdx).toBe(idx2);
     expect(duplicates[0].endIdx).toBe(idx0);
   });
+
+  it("should not deduplicate divergences from different indicators with same pivots", () => {
+    // Bug 5 Regression: RSI and CCI sharing the same pivot pairs should BOTH be returned
+    const length = 50;
+    const priceHighs = new Array(length).fill(100);
+    const priceLows = new Array(length).fill(100);
+    const mockRsi = new Array(length).fill(50);
+    const mockCci = new Array(length).fill(0);
+
+    // Create a regular bullish divergence scenario
+    priceLows[20] = 90;
+    priceLows[40] = 80;
+
+    mockRsi[20] = 30;
+    mockRsi[40] = 40;
+
+    mockCci[20] = -150;
+    mockCci[40] = -100;
+
+    const rsiResults = DivergenceScanner.scan(priceHighs, priceLows, mockRsi, "RSI");
+    const cciResults = DivergenceScanner.scan(priceHighs, priceLows, mockCci, "CCI");
+
+    const allResults = [...rsiResults, ...cciResults];
+
+    // Identify standard Regular Bullish divergences ending at index 40
+    const relevant = allResults.filter(r => r.endIdx === 40 && r.type === "Regular" && r.side === "Bullish");
+
+    // We expect both RSI and CCI to produce a valid divergence
+    expect(relevant.length).toBe(2);
+    expect(relevant.some(r => r.indicator === "RSI")).toBe(true);
+    expect(relevant.some(r => r.indicator === "CCI")).toBe(true);
+  });
 });
