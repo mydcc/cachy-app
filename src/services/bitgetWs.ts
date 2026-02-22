@@ -234,7 +234,20 @@ class BitgetWebSocketService {
         }
 
         try {
-          const message = safeJsonParse(event.data);
+          // [FIX] Precision Loss Protection
+          // Pre-process raw JSON string to wrap numeric fields in quotes before JSON.parse
+          // This is critical for the "Fast Path" to ensure numbers like 0.00000001 aren't parsed as 1e-8 numbers
+          let rawData = typeof event.data === 'string' ? event.data : '';
+
+          if (rawData && (rawData.includes('"action":') || rawData.includes('"arg":') || rawData.includes('"data":'))) {
+              // Regex to target specific keys followed by a number
+              // Captures: 1=key, 2=value
+              // [HARDENING] Use negative lookbehind (?<!\\) to avoid matching keys inside string values (e.g. \"price\": 123)
+              const regex = /(?<!\\)"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l|orderId|id|planId|size|margin|value|entryPrice|liquidationPrice|last|high24h|low24h|baseVolume|usdtVolume|open24h|accFillSize|priceAvg|total|openPriceAvg|unrealizedPL)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              rawData = rawData.replace(regex, '"$1":"$2"');
+          }
+
+          const message = safeJsonParse(rawData || event.data);
           this.handleMessage(message);
         } catch (e) {
           // ignore

@@ -32,12 +32,17 @@ export const GET: RequestHandler = async ({ url }) => {
   const endParam =
     url.searchParams.get("endTime") || url.searchParams.get("end");
   const provider = url.searchParams.get("provider") || "bitunix";
-  const limit = limitParam ? parseInt(limitParam) : 50;
-  const start = startParam ? parseInt(startParam) : undefined;
-  const end = endParam ? parseInt(endParam) : undefined;
+  let limit = limitParam ? parseInt(limitParam) : 50;
+  if (isNaN(limit)) limit = 50;
+
+  let start = startParam ? parseInt(startParam) : undefined;
+  if (start && isNaN(start)) start = undefined;
+
+  let end = endParam ? parseInt(endParam) : undefined;
+  if (end && isNaN(end)) end = undefined;
 
   if (!symbol) {
-    return json({ error: "Symbol is required" }, { status: 400 });
+    return json({ error: "apiErrors.symbolRequired", code: "SYMBOL_REQUIRED" }, { status: 400 });
   }
 
   try {
@@ -65,7 +70,7 @@ export const GET: RequestHandler = async ({ url }) => {
       message = String((e as any).message);
     }
 
-    return json({ error: message }, { status });
+    return json({ error: "apiErrors.klineError", code: "KLINE_ERROR", details: message }, { status });
   }
 };
 

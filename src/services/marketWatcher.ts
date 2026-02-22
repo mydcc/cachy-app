@@ -581,6 +581,9 @@ class MarketWatcher {
           return klines;
       }
 
+      // Hardening: Ensure first item is valid
+      if (!klines[0] || typeof klines[0].time !== "number") return klines;
+
       // Optimization: Fast scan for gaps to avoid allocation in happy path (99% of cases)
       let hasGaps = false;
       const threshold = intervalMs * 1.1;
@@ -613,6 +616,12 @@ class MarketWatcher {
 
           // Hardening: Basic structural check for current item
           if (!curr || typeof curr.time !== "number") continue;
+
+          // Hardening: Ensure prev is valid (should be covered by init, but for loop safety)
+          if (!prev || typeof prev.time !== "number") {
+              prev = curr;
+              continue;
+          }
 
           const diff = curr.time - prev.time;
           if (diff > threshold) {

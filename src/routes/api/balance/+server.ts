@@ -30,7 +30,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
 
   if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+    return json({ error: "apiErrors.missingCredentials", code: "MISSING_CREDENTIALS" }, { status: 400 });
   }
 
   try {
@@ -39,17 +39,17 @@ export const POST: RequestHandler = async ({ request }) => {
     if (exchange === "bitunix") {
       balance = await fetchBitunixBalance(apiKey, apiSecret);
     } else if (exchange === "bitget") {
-      if (!passphrase) return json({ error: "Missing passphrase" }, { status: 400 });
+      if (!passphrase) return json({ error: "apiErrors.missingPassphrase", code: "MISSING_PASSPHRASE" }, { status: 400 });
       balance = await fetchBitgetBalance(apiKey, apiSecret, passphrase);
     } else {
-      return json({ error: "Unsupported exchange" }, { status: 400 });
+      return json({ error: "apiErrors.unsupportedExchange", code: "UNSUPPORTED_EXCHANGE" }, { status: 400 });
     }
 
     return json({ balance });
   } catch (e: any) {
     console.error(`Error fetching balance from ${exchange}:`, e);
     return json(
-      { error: e.message || "Failed to fetch balance" },
+      { error: "apiErrors.fetchFailed", code: "FETCH_FAILED", details: e.message },
       { status: 500 },
     );
   }
