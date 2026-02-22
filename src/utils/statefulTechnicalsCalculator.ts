@@ -328,6 +328,7 @@ export class StatefulTechnicalsCalculator {
      }
 
      // Reconstruct SMA
+     if (!this.state.sma) this.state.sma = {};
      if (this.settings?.sma) {
          const smas = [this.settings.sma.sma1, this.settings.sma.sma2, this.settings.sma.sma3];
          smas.forEach(cfg => {
