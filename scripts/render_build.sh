@@ -20,6 +20,9 @@ set -o errexit
 
 echo "Build script started."
 
+# Ensure execution permissions for build scripts
+chmod +x ./scripts/build_wasm.sh
+
 # Ensure Cargo is available
 if ! command -v cargo &> /dev/null; then
     if [ -f "$HOME/.cargo/env" ]; then
@@ -40,10 +43,15 @@ echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
 echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
+# Use npm ci for reliable builds if lockfile exists, fallback to npm install on failure
 if [ -f "package-lock.json" ]; then
-    npm ci
+    # We use 'if ! command' to catch failure without exiting due to set -e
+    if ! npm ci; then
+        echo "⚠ npm ci failed (likely lockfile sync issue), falling back to npm install..."
+        npm install
+    fi
 else
+    echo "No package-lock.json found, using npm install..."
     npm install
 fi
 
