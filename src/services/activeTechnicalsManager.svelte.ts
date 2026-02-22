@@ -467,11 +467,20 @@ class ActiveTechnicalsManager {
             if (oscA.signal?.toString() !== oscB.signal?.toString()) return false; // StochRSI signal
         }
 
-        // Moving Averages (Sample first one)
-        if (a.movingAverages?.[0]?.value?.toString() !== b.movingAverages?.[0]?.value?.toString()) return false;
+        // Moving Averages (Compare all)
+        if (a.movingAverages?.length !== b.movingAverages?.length) return false;
+        for (let i = 0; i < (a.movingAverages?.length || 0); i++) {
+            const maA = a.movingAverages[i];
+            const maB = b.movingAverages[i];
+            if (maA.name !== maB.name) return false;
+            if (maA.params !== maB.params) return false;
+            if (maA.value?.toString() !== maB.value?.toString()) return false;
+            if (maA.action !== maB.action) return false;
+        }
 
         return true;
     }
+
 
     private async performCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
