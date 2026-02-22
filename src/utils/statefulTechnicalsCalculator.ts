@@ -86,10 +86,9 @@ export class StatefulTechnicalsCalculator {
     newResult.oscillators = prevResult.oscillators.map(o => ({ ...o }));
     newResult.movingAverages = prevResult.movingAverages.map(ma => ({ ...ma }));
 
-    // 1. Update EMA (use configured source, not just close)
+    // 1. Update EMA
     if (this.state.ema && this.enabled("ema")) {
-       const emaPrice = this.getSourceValue(tick, this.settings?.ema?.source);
-       this.updateEmaGroup(newResult, emaPrice);
+       this.updateEmaGroup(newResult, currentPrice);
     }
 
     // 2. Update RSI
@@ -98,8 +97,7 @@ export class StatefulTechnicalsCalculator {
     }
 
     // 3. Update SMA / Bollinger Bands
-    // Run if SMA or Bollinger Bands is enabled (BB state is stored in this.state.sma)
-    if (this.state.sma && (this.enabled("sma") || this.enabled("bollingerBands"))) {
+    if (this.state.sma && this.enabled("sma")) {
         this.updateSmaGroup(newResult, currentPrice);
     }
 
@@ -135,22 +133,14 @@ export class StatefulTechnicalsCalculator {
       // Update Price History
       this.priceHistory.push(price);
 
-      // 1. Update EMA State (use configured source, not just close)
+      // 1. Update EMA State
       if (this.state.ema) {
-          const emaPrice = this.getSourceValue(candle, this.settings?.ema?.source);
           Object.keys(this.state.ema).forEach(key => {
               const len = parseInt(key);
-              const emaState = this.state.ema![len] as any;
+              const emaState = this.state.ema![len];
               // EMA(t) = alpha * price + (1-alpha) * EMA(t-1)
               const k = 2 / (len + 1);
-              emaState.prevEma = (emaPrice * k) + (emaState.prevEma * (1 - k));
-
-              // Maintain offset history buffer
-              const offset = emaState.offset || 0;
-              if (offset > 0 && emaState.history) {
-                  emaState.history.push(emaState.prevEma);
-                  if (emaState.history.length > offset + 1) emaState.history.shift();
-              }
+              emaState.prevEma = (price * k) + (emaState.prevEma * (1 - k));
           });
       }
 
@@ -300,69 +290,27 @@ export class StatefulTechnicalsCalculator {
 
   private enabled(key: string): boolean {
     if (!this.enabledIndicators) return true;
-    // Normalize to lowercase for comparison, since enabledIndicators uses
-    // camelCase keys (e.g. "stochRsi", "bollingerBands") but callers may
-    // pass lowercase (e.g. "stochrsi"). The stateless calculator does the
-    // same normalization in technicalsCalculator.ts:114-122.
-    const normalizedKey = key.toLowerCase();
-    for (const [k, v] of Object.entries(this.enabledIndicators)) {
-      if (k.toLowerCase() === normalizedKey) {
-        return v !== false;
-      }
-    }
-    // Key not found — treat as enabled (matches old behavior and the
-    // stateless calculator's blocklist/allowlist logic).
-    return true;
-  }
-
-  /** Compute the configured source value from a Kline (matches technicalsCalculator's getSource). */
-  private getSourceValue(k: Kline, sourceType?: string): number {
-    const o = k.open.toNumber(), h = k.high.toNumber(), l = k.low.toNumber(), c = k.close.toNumber();
-    switch (sourceType) {
-      case "open":  return o;
-      case "high":  return h;
-      case "low":   return l;
-      case "hl2":   return (h + l) / 2;
-      case "hlc3":  return (h + l + c) / 3;
-      case "ohlc4": return (o + h + l + c) / 4;
-      case "hlcc4": return (h + l + c + c) / 4;
-      default:      return c;
-    }
+    return !!this.enabledIndicators[key];
   }
 
   // --- Helpers to Reconstruct State from Initial Calculation ---
 
   private reconstructState(history: Kline[], result: TechnicalsData) {
      // Reconstruct EMA
-     // We compute the true latest EMA from history rather than using the result value,
-     // because the result value may be offset-adjusted (shifted back by N bars).
-     // The internal state must always track the most recent EMA for correct incremental updates.
      if (this.settings?.ema) {
-         const emaSourceType = this.settings?.ema?.source || "close";
-         const emaSource = history.map(k => this.getSourceValue(k, emaSourceType));
          const emas = [this.settings.ema.ema1, this.settings.ema.ema2, this.settings.ema.ema3];
          emas.forEach(cfg => {
              if (cfg && cfg.length) {
-                const emaResults = JSIndicators.ema(emaSource, cfg.length);
-                const latestEma = emaResults[emaResults.length - 1];
-                if (!isNaN(latestEma)) {
-                    const offset = cfg.offset || 0;
-                    // Seed a small history buffer so we can look back 'offset' bars
-                    const histBuf: number[] = [];
-                    if (offset > 0) {
-                        const start = Math.max(0, emaResults.length - offset - 1);
-                        for (let i = start; i < emaResults.length; i++) {
-                            if (!isNaN(emaResults[i])) histBuf.push(emaResults[i]);
-                        }
-                    }
-                    this.state.ema![cfg.length] = { prevEma: latestEma, history: histBuf, offset };
+                // Find the result in the movingAverages array
+                const ma = result.movingAverages.find(m => m.name === "EMA" && m.params === cfg.length.toString());
+                if (ma) {
+                    this.state.ema![cfg.length] = { prevEma: ma.value };
                 }
              }
          });
      }
 
      // Reconstruct SMA
-     if (!this.state.sma) this.state.sma = {};
      if (this.settings?.sma) {
          const smas = [this.settings.sma.sma1, this.settings.sma.sma2, this.settings.sma.sma3];
          smas.forEach(cfg => {
@@ -377,24 +325,9 @@ export class StatefulTechnicalsCalculator {
          });
      }
 
-     // Reconstruct Bollinger Bands SMA state
-     if (this.enabled("bollingerBands") && result.volatility?.bb) {
-         const bbLen = this.settings?.bollingerBands?.length || 20;
-         const smaVal = result.volatility.bb.middle;
-         if (!this.state.sma) this.state.sma = {};
-         let sumSq = 0;
-         const histLen = history.length;
-         const startIdx = Math.max(0, histLen - bbLen);
-         for (let i = startIdx; i < histLen; i++) {
-             const val = history[i].close.toNumber();
-             sumSq += val * val;
-         }
-         this.state.sma![bbLen] = { prevSum: smaVal * bbLen, prevSumSq: sumSq };
-     }
-
      // Reconstruct RSI
      if (this.settings?.rsi) {
-         const len = this.settings.rsi.length || 14; // RSI period
+         const len = this.settings.rsi.length || 14;
          // We need AvgGain and AvgLoss.
          // We can approximate them if we only have the final RSI value, but that leads to inaccuracy.
          // Better to re-calculate them from the last N*2 candles.
@@ -446,27 +379,16 @@ export class StatefulTechnicalsCalculator {
       const emaInds = result.movingAverages.filter(m => m.name === "EMA");
       for (const ma of emaInds) {
           const len = parseInt(ma.params || "0");
-          const state = this.state.ema[len] as any;
+          const state = this.state.ema[len];
           if (state && len > 0) {
               const k = 2 / (len + 1);
               const newEma = (price * k) + (state.prevEma * (1 - k));
+              ma.value = newEma;
+              ma.action = price > newEma ? "Buy" : "Sell";
 
-              const offset = state.offset || 0;
-              if (offset > 0 && state.history) {
-                  // Push current EMA to history, keep buffer at offset+1 size
-                  state.history.push(newEma);
-                  if (state.history.length > offset + 1) state.history.shift();
-
-                  // Display the value from 'offset' bars ago
-                  const displayIdx = state.history.length - 1 - offset;
-                  if (displayIdx >= 0) {
-                      ma.value = state.history[displayIdx];
-                  }
-                  // else: not enough history yet, keep previous value
-              } else {
-                  ma.value = newEma;
-              }
-              ma.action = price > ma.value ? "Buy" : "Sell";
+              // Note: Signal/Band logic handles smoothing which might be complex to incrementalize perfectly
+              // without extra state. For now, we update the base value.
+              // If smoothing is enabled, we might skip updating signal/bands here or approximate.
           }
       }
   }
@@ -475,7 +397,6 @@ export class StatefulTechnicalsCalculator {
       if (!this.state.sma) return;
 
       const smaInds = result.movingAverages.filter(m => m.name === "SMA");
-      let bbUpdated = false;
       for (const ma of smaInds) {
           const len = parseInt(ma.params || "0");
           const state = this.state.sma[len];
@@ -495,7 +416,7 @@ export class StatefulTechnicalsCalculator {
                   if (result.volatility?.bb) {
                       const bbLen = this.settings?.bollingerBands?.length || 20;
                       if (len === bbLen) {
-                         const prevSumSq = state.prevSumSq || 0;
+                         const prevSumSq = state.prevSumSq || 0; // If not initialized, BB fails. Should be initialized in reconstruct.
                          const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
                          const variance = Math.max(0, (newSumSq / len) - (newSma * newSma));
                          const std = Math.sqrt(variance);
@@ -507,37 +428,8 @@ export class StatefulTechnicalsCalculator {
 
                          const range = result.volatility.bb.upper - result.volatility.bb.lower;
                          result.volatility.bb.percentP = range === 0 ? 0.5 : (price - result.volatility.bb.lower) / range;
-                         bbUpdated = true;
                       }
                   }
-              }
-          }
-      }
-
-      // Standalone BB update when SMA indicator is disabled (no SMA entries in movingAverages)
-      // but Bollinger Bands is enabled and has its own SMA state
-      if (!bbUpdated && result.volatility?.bb) {
-          const bbLen = this.settings?.bollingerBands?.length || 20;
-          const state = this.state.sma[bbLen];
-          if (state && this.priceHistory.getSize() >= bbLen) {
-              const oldestInWindow = this.priceHistory.getSize() - bbLen;
-              const oldVal = this.priceHistory.get(oldestInWindow);
-
-              if (oldVal !== undefined) {
-                  const newSum = state.prevSum - oldVal + price;
-                  const newSma = newSum / bbLen;
-                  const prevSumSq = state.prevSumSq || 0;
-                  const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
-                  const variance = Math.max(0, (newSumSq / bbLen) - (newSma * newSma));
-                  const std = Math.sqrt(variance);
-                  const stdDev = this.settings?.bollingerBands?.stdDev || 2;
-
-                  result.volatility.bb.middle = newSma;
-                  result.volatility.bb.upper = newSma + std * stdDev;
-                  result.volatility.bb.lower = newSma - std * stdDev;
-
-                  const range = result.volatility.bb.upper - result.volatility.bb.lower;
-                  result.volatility.bb.percentP = range === 0 ? 0.5 : (price - result.volatility.bb.lower) / range;
               }
           }
       }
