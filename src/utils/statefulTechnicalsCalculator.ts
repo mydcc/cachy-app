@@ -23,14 +23,15 @@
 import { Decimal } from "decimal.js";
 import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
-import type { TechnicalsData, TechnicalsState, EmaState, RsiState } from "../services/technicalsTypes";
+import type { TechnicalsData, TechnicalsState, EmaState, RsiState, MfiState } from "../services/technicalsTypes";
 import { CircularBuffer } from "./circularBuffer";
 
 export class StatefulTechnicalsCalculator {
   private state: TechnicalsState = {
     lastCandle: null,
     ema: {},
-    rsi: {}
+    rsi: {},
+    mfi: undefined,
   };
 
   private settings: any;
@@ -65,6 +66,9 @@ export class StatefulTechnicalsCalculator {
     // Since we want minimal intrusion, we will reconstruct state for supported incremental indicators.
 
     this.reconstructState(history, result);
+    this.reconstructMfiState(history);
+    this.reconstructAtrState(history);
+    this.reconstructStochRsiState(history);
     this.initHistoryBuffers(history);
 
     return result;
@@ -99,15 +103,24 @@ export class StatefulTechnicalsCalculator {
        this.updateRsiGroup(newResult, currentPrice, prevPrice);
     }
 
-    // 3. Update SMA
-    // For SMA, we need the value falling out of the window.
-    // The current window ends at 'lastCandle'. The value dropping out is at (index - period).
-    // In our ring buffer, we store historical closes.
-    // 'historyIndex' points to the NEXT write slot (which corresponds to 'lastCandle' position in abstract).
-    // Actually, let's keep it simple: RingBuffer stores CLOSED candles.
-    // 'currentPrice' is the forming candle.
+    // 3. Update SMA / Bollinger Bands
     if (this.state.sma && this.enabled("sma")) {
         this.updateSmaGroup(newResult, currentPrice);
+    }
+
+    // 4. Update MFI incrementally (updating with the current forming candle)
+    if (this.state.mfi && this.enabled("mfi") && tick) {
+        this.updateMfiGroup(newResult, tick);
+    }
+
+    // 5. Update ATR incrementally
+    if (this.state.atr && this.enabled("atr")) {
+        this.updateAtrGroup(newResult, tick);
+    }
+
+    // 6. Update StochRSI incrementally
+    if (this.state.stochRsi && this.enabled("stochrsi")) {
+        this.updateStochRsiGroup(newResult, currentPrice);
     }
 
     // Update other non-incremental fields simply by carrying over or re-running light logic?
@@ -208,7 +221,80 @@ export class StatefulTechnicalsCalculator {
 
       // Note: 'lastResult' is not updated here.
       // The first 'update()' call on the new candle will generate the new result based on this shifted state.
+      // Advance MFI State when a new candle is confirmed (shift the window)
+      if (this.state.mfi) {
+          const mfiState = this.state.mfi;
+          const h = newCandle.high.toNumber();
+          const l = newCandle.low.toNumber();
+          const c = newCandle.close.toNumber();
+          const v = newCandle.volume.toNumber();
+          const tp = (h + l + c) / 3;
+          const rawMf = tp * v;
+
+          const posFlow = tp > mfiState.prevTp ? rawMf : 0;
+          const negFlow = tp < mfiState.prevTp ? rawMf : 0;
+
+          // Shift the window: add new entry, remove oldest if window is full
+          const entry = { tp, posFlow, negFlow };
+          if (mfiState.window.length >= mfiState.period) {
+              const removed = mfiState.window.shift()!;
+              mfiState.sumPos -= removed.posFlow;
+              mfiState.sumNeg -= removed.negFlow;
+          }
+          mfiState.window.push(entry);
+          mfiState.sumPos += posFlow;
+          mfiState.sumNeg += negFlow;
+          mfiState.prevTp = tp;
+      }
+
+      // Advance ATR State
+      if (this.state.atr && this.enabled("atr")) {
+          Object.keys(this.state.atr).forEach(k => {
+              const len = parseInt(k);
+              const state = this.state.atr![len];
+              const h = newCandle.high.toNumber();
+              const l = newCandle.low.toNumber();
+              const c = newCandle.close.toNumber();
+              const tr = Math.max(h - l, Math.abs(h - state.prevClose), Math.abs(l - state.prevClose));
+              state.prevAtr = (state.prevAtr * (len - 1) + tr) / len;
+              state.prevClose = c;
+          });
+      }
+
+      // Advance StochRSI State
+      if (this.state.stochRsi && this.enabled("stochrsi")) {
+          Object.keys(this.state.stochRsi).forEach(k => {
+              const len = parseInt(k);
+              const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
+              const state = this.state.stochRsi![len];
+              const { avgGain, avgLoss, rsi } = JSIndicators.updateRsi(
+                  state.rsiState.avgGain, state.rsiState.avgLoss,
+                  lastClose, state.rsiState.prevPrice, rsiLen
+              );
+              state.rsiState.avgGain = avgGain;
+              state.rsiState.avgLoss = avgLoss;
+              state.rsiState.prevPrice = lastClose;
+              
+              state.rsiHistory.push(rsi);
+              if (state.rsiHistory.length > state.length) {
+                  state.rsiHistory.shift();
+              }
+
+              const smoothK = this.settings?.stochRsi?.kPeriod || 3;
+              let highestRsi = Math.max(...state.rsiHistory);
+              let lowestRsi = Math.min(...state.rsiHistory);
+              let rawK = 50;
+              if (highestRsi !== lowestRsi) {
+                  rawK = ((rsi - lowestRsi) / (highestRsi - lowestRsi)) * 100;
+              }
+              state.rawKHistory.push(rawK);
+              if (state.rawKHistory.length > smoothK) {
+                  state.rawKHistory.shift();
+              }
+          });
+      }
   }
+
 
   private enabled(key: string): boolean {
       if (!this.enabledIndicators) return true;
@@ -412,5 +498,246 @@ export class StatefulTechnicalsCalculator {
               }
           }
       }
+  }
+
+  private updateMfiGroup(result: TechnicalsData, tick: Kline) {
+      if (!this.state.mfi || !result.advanced) return;
+      const mfi = this.state.mfi;
+
+      // Compute the forming candle's contribution (not committed to state, just for the view)
+      const h = tick.high.toNumber();
+      const l = tick.low.toNumber();
+      const c = tick.close.toNumber();
+      const v = tick.volume.toNumber();
+      const tp = (h + l + c) / 3;
+      const rawMf = tp * v;
+
+      const posFlow = tp > mfi.prevTp ? rawMf : 0;
+      const negFlow = tp < mfi.prevTp ? rawMf : 0;
+
+      // Tentative sums: add the forming bar, remove the oldest if full
+      let tentSumPos = mfi.sumPos + posFlow;
+      let tentSumNeg = mfi.sumNeg + negFlow;
+      if (mfi.window.length >= mfi.period) {
+          tentSumPos -= mfi.window[0].posFlow;
+          tentSumNeg -= mfi.window[0].negFlow;
+      }
+
+      let mfiVal: number;
+      if (tentSumPos + tentSumNeg === 0) {
+          mfiVal = 50;
+      } else if (tentSumNeg === 0) {
+          mfiVal = 100;
+      } else {
+          const mfr = tentSumPos / tentSumNeg;
+          mfiVal = 100 - 100 / (1 + mfr);
+      }
+
+      let action: string = "Neutral";
+      if (mfiVal > 80)  action = "Sell";
+      else if (mfiVal < 20) action = "Buy";
+
+      result.advanced.mfi = { value: mfiVal, action };
+  }
+
+  private reconstructMfiState(history: Kline[]) {
+      const period = this.settings?.mfi?.length || 14;
+      if (!this.enabled("mfi") || history.length < period + 1) {
+          this.state.mfi = undefined;
+          return;
+      }
+
+      // Build window from the last (period+1) candles of history
+      // We need period+1 candles to compute period flows (each flow needs prev TP)
+      const start = Math.max(0, history.length - period - 1);
+      const window: { tp: number; posFlow: number; negFlow: number }[] = [];
+      let sumPos = 0;
+      let sumNeg = 0;
+      let prevTp = (history[start].high.toNumber() + history[start].low.toNumber() + history[start].close.toNumber()) / 3;
+
+      for (let i = start + 1; i < history.length; i++) {
+          const h = history[i].high.toNumber();
+          const l = history[i].low.toNumber();
+          const c = history[i].close.toNumber();
+          const v = history[i].volume.toNumber();
+          const tp = (h + l + c) / 3;
+          const rawMf = tp * v;
+
+          const posFlow = tp > prevTp ? rawMf : 0;
+          const negFlow = tp < prevTp ? rawMf : 0;
+
+          window.push({ tp, posFlow, negFlow });
+          sumPos += posFlow;
+          sumNeg += negFlow;
+          prevTp = tp;
+      }
+
+      this.state.mfi = { period, window, sumPos, sumNeg, prevTp };
+  }
+
+  private updateAtrGroup(result: TechnicalsData, tick: Kline) {
+      if (!this.state.atr || !result.volatility) return;
+      
+      const len = this.settings?.atr?.length || 14;
+      const state = this.state.atr[len];
+      if (state) {
+          const h = tick.high.toNumber();
+          const l = tick.low.toNumber();
+          const c = tick.close.toNumber();
+          const tr = Math.max(h - l, Math.abs(h - state.prevClose), Math.abs(l - state.prevClose));
+          const newAtr = (state.prevAtr * (len - 1) + tr) / len;
+          result.volatility.atr = newAtr;
+      }
+  }
+
+  private reconstructAtrState(history: Kline[]) {
+      const len = this.settings?.atr?.length || 14;
+      if (!this.enabled("atr") || history.length < len + 1) {
+          this.state.atr = undefined;
+          return;
+      }
+
+      const startIndex = Math.max(1, history.length - len * 2); 
+      let atr = 0;
+      
+      // Calculate initial SMA of TR for first ATR value
+      for (let i = 1; i <= len; i++) {
+          const h = history[i].high.toNumber();
+          const l = history[i].low.toNumber();
+          const pc = history[i-1].close.toNumber();
+          const tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+          atr += tr;
+      }
+      atr /= len;
+
+      // Apply Wilder's Smoothing (RMA) for the rest
+      let prevC = history[len].close.toNumber();
+      for (let i = len + 1; i < history.length; i++) {
+          const h = history[i].high.toNumber();
+          const l = history[i].low.toNumber();
+          const c = history[i].close.toNumber();
+          const tr = Math.max(h - l, Math.abs(h - prevC), Math.abs(l - prevC));
+          atr = (atr * (len - 1) + tr) / len;
+          prevC = c;
+      }
+
+      this.state.atr = { [len]: { prevAtr: atr, prevClose: prevC } };
+  }
+
+  private updateStochRsiGroup(result: TechnicalsData, price: number) {
+      const len = this.settings?.stochRsi?.length || 14;
+      const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
+      const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
+      
+      const state = this.state.stochRsi?.[len];
+      if (!state) return;
+
+      // Calculate forming candle RSI
+      const { rsi } = JSIndicators.updateRsi(
+          state.rsiState.avgGain,
+          state.rsiState.avgLoss,
+          price,
+          state.rsiState.prevPrice,
+          rsiLen
+      );
+
+      // Create a temporary sliding window including the forming RSI
+      const currentWindow = [...state.rsiHistory, rsi];
+      if (currentWindow.length > len) {
+          currentWindow.shift(); // keep it to size 'len'
+      }
+
+      // Compute Stochastic raw %K over this window
+      let highestRsi = Math.max(...currentWindow);
+      let lowestRsi = Math.min(...currentWindow);
+      
+      let rawKVal = 50;
+      if (highestRsi !== lowestRsi) {
+          rawKVal = ((rsi - lowestRsi) / (highestRsi - lowestRsi)) * 100;
+      }
+      
+      // Create a temporary sliding window for smoothed %K
+      const currentKWindow = [...state.rawKHistory, rawKVal];
+      if (currentKWindow.length > kPeriod) {
+          currentKWindow.shift();
+      }
+      
+      let stochKVal = 0;
+      if (currentKWindow.length > 0) {
+          for (const k of currentKWindow) stochKVal += k;
+          stochKVal /= currentKWindow.length;
+      }
+
+      // Find the StochRSI entry and update
+      const stInd = result.oscillators.find(o => o.name === "StochRSI");
+      if (stInd) {
+          stInd.value = stochKVal;
+      }
+  }
+
+  private reconstructStochRsiState(history: Kline[]) {
+      const len = this.settings?.stochRsi?.length || 14;
+      const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
+      
+      if (!this.enabled("stochrsi") || history.length < Math.max(len, rsiLen) + 1) {
+          this.state.stochRsi = undefined;
+          return;
+      }
+
+      // We need effectively the full RSI array first to build the Stoch window.
+      const closes = history.map(k => k.close.toNumber());
+      const rsiArray = new Float64Array(closes.length);
+      JSIndicators.rsi(closes, rsiLen, rsiArray);
+
+      // We only need the last 'len' RSI values for the history window
+      const rsiWindow = Array.from(rsiArray.slice(-len));
+      
+      // We also need the RSI state (avgGain/Loss)
+      let avgGain = 0;
+      let avgLoss = 0;
+      for(let i=1; i<=rsiLen; i++) {
+          const diff = closes[i] - closes[i-1];
+          if (diff > 0) avgGain += diff;
+          else avgLoss -= diff;
+      }
+      avgGain /= rsiLen;
+      avgLoss /= rsiLen;
+
+      for(let i=rsiLen+1; i<closes.length; i++) {
+          const diff = closes[i] - closes[i-1];
+          const gain = diff > 0 ? diff : 0;
+          const loss = diff < 0 ? -diff : 0;
+          avgGain = (avgGain * (rsiLen - 1) + gain) / rsiLen;
+          avgLoss = (avgLoss * (rsiLen - 1) + loss) / rsiLen;
+      }
+
+      const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
+      const rawKHistory: number[] = [];
+      
+      for (let i = 0; i < kPeriod; i++) {
+         const idx = rsiArray.length - kPeriod + i;
+         if (idx >= len - 1) {
+             const window = rsiArray.slice(idx - len + 1, idx + 1);
+             const maxRsi = Math.max(...window);
+             const minRsi = Math.min(...window);
+             const r = maxRsi - minRsi;
+             rawKHistory.push(r === 0 ? 50 : ((rsiArray[idx] - minRsi) / r) * 100);
+         } else {
+             rawKHistory.push(50);
+         }
+      }
+
+      this.state.stochRsi = {
+          [len]: {
+              length: len,
+              rsiState: {
+                  avgGain,
+                  avgLoss,
+                  prevPrice: closes[closes.length - 1]
+              },
+              rsiHistory: rsiWindow,
+              rawKHistory: rawKHistory
+          }
+      };
   }
 }

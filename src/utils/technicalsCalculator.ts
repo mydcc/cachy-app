@@ -178,6 +178,34 @@ export function calculateIndicatorsFromArrays(
           }
         }
         return sourceCache["hlc3"];
+      case "ohlc4":
+        if (!sourceCache["ohlc4"]) {
+          if (pool) {
+            const buf = pool.acquire(len);
+            for (let i = 0; i < len; i++) buf[i] = (opensNum[i] + highsNum[i] + lowsNum[i] + closesNum[i]) / 4;
+            sourceCache["ohlc4"] = buf;
+            cleanupBuffers.push(buf);
+          } else {
+            sourceCache["ohlc4"] = (opensNum as number[]).map(
+              (o, i) => (o + highsNum[i] + lowsNum[i] + closesNum[i]) / 4,
+            );
+          }
+        }
+        return sourceCache["ohlc4"];
+      case "hlcc4":
+        if (!sourceCache["hlcc4"]) {
+          if (pool) {
+            const buf = pool.acquire(len);
+            for (let i = 0; i < len; i++) buf[i] = (highsNum[i] + lowsNum[i] + closesNum[i] + closesNum[i]) / 4;
+            sourceCache["hlcc4"] = buf;
+            cleanupBuffers.push(buf);
+          } else {
+            sourceCache["hlcc4"] = (highsNum as number[]).map(
+              (h, i) => (h + lowsNum[i] + closesNum[i] + closesNum[i]) / 4,
+            );
+          }
+        }
+        return sourceCache["hlcc4"];
       default:
         return closesNum;
     }
@@ -206,9 +234,59 @@ export function calculateIndicatorsFromArrays(
       indSeries["RSI"] = rsiResults;
       const rsiVal = rsiResults[rsiResults.length - 1];
 
+      let rsiSignalVal: number | undefined;
+      let rsiUpperBand: number | undefined;
+      let rsiLowerBand: number | undefined;
+
+      const smoothingType = settings?.rsi?.smoothingType || "sma";
+      const smoothingLen = settings?.rsi?.smoothingLength || 14;
+
+      if (smoothingType !== "none" && smoothingLen > 0) {
+        let smoothedSeries: Float64Array | undefined;
+        if (pool) {
+          smoothedSeries = pool.acquire(len);
+          cleanupBuffers.push(smoothedSeries);
+        }
+
+        if (smoothingType === "sma" || smoothingType === "sma_bb") {
+          if (smoothingType === "sma_bb") {
+            const bbStdDev = settings?.rsi?.bbStdDev || 2;
+            let upperBuf: Float64Array | undefined;
+            let lowerBuf: Float64Array | undefined;
+            if (pool) {
+                upperBuf = pool.acquire(len);
+                lowerBuf = pool.acquire(len);
+                cleanupBuffers.push(upperBuf, lowerBuf);
+            }
+            const bb = JSIndicators.bb(rsiResults, smoothingLen, bbStdDev, smoothedSeries, upperBuf, lowerBuf);
+            rsiSignalVal = bb.middle[bb.middle.length - 1];
+            rsiUpperBand = bb.upper[bb.upper.length - 1];
+            rsiLowerBand = bb.lower[bb.lower.length - 1];
+          } else {
+            smoothedSeries = JSIndicators.sma(rsiResults, smoothingLen, smoothedSeries);
+            rsiSignalVal = smoothedSeries[smoothedSeries.length - 1];
+          }
+        } else if (smoothingType === "ema") {
+          smoothedSeries = JSIndicators.ema(rsiResults, smoothingLen, smoothedSeries);
+          rsiSignalVal = smoothedSeries[smoothedSeries.length - 1];
+        } else if (smoothingType === "smma") {
+          smoothedSeries = JSIndicators.smma(rsiResults, smoothingLen, smoothedSeries);
+          rsiSignalVal = smoothedSeries[smoothedSeries.length - 1];
+        } else if (smoothingType === "wma") {
+          smoothedSeries = JSIndicators.wma(rsiResults, smoothingLen, smoothedSeries);
+          rsiSignalVal = smoothedSeries[smoothedSeries.length - 1];
+        } else if (smoothingType === "vwma") {
+          smoothedSeries = JSIndicators.vwma(rsiResults, volumesNum, smoothingLen, smoothedSeries);
+          rsiSignalVal = smoothedSeries[smoothedSeries.length - 1];
+        }
+      }
+
       oscillators.push({
         name: "RSI",
         value: rsiVal,
+        signal: rsiSignalVal,
+        upperBand: rsiUpperBand,
+        lowerBand: rsiLowerBand,
         params: rsiLen.toString(),
         action: getRsiAction(
           rsiVal,
@@ -300,13 +378,35 @@ export function calculateIndicatorsFromArrays(
           cciResults = JSIndicators.cci(cciSource, cciLen, cciResults);
       }
 
-      if (cciSmoothLen > 1) {
+      const cciSmoothType = settings?.cci?.smoothingType || "none";
+      if (cciSmoothType !== "none" && cciSmoothLen > 1) {
           let smoothed: Float64Array | undefined;
+          let upper: Float64Array | undefined;
+          let lower: Float64Array | undefined;
           if (pool) {
               smoothed = pool.acquire(len);
               cleanupBuffers.push(smoothed);
           }
-          cciResults = JSIndicators.sma(cciResults, cciSmoothLen, smoothed);
+          if (cciSmoothType === "sma_bb") {
+              const bbStdDev = 2;
+              if (pool) {
+                  upper = pool.acquire(len);
+                  lower = pool.acquire(len);
+                  cleanupBuffers.push(upper!, lower!);
+              }
+              const bb = JSIndicators.bb(cciResults, cciSmoothLen, bbStdDev, smoothed, upper, lower);
+              cciResults = bb.middle as Float64Array;
+          } else if (cciSmoothType === "sma") {
+              cciResults = JSIndicators.sma(cciResults, cciSmoothLen, smoothed);
+          } else if (cciSmoothType === "ema") {
+              cciResults = JSIndicators.ema(cciResults, cciSmoothLen, smoothed);
+          } else if (cciSmoothType === "smma") {
+              cciResults = JSIndicators.smma(cciResults, cciSmoothLen, smoothed);
+          } else if (cciSmoothType === "wma") {
+              cciResults = JSIndicators.wma(cciResults, cciSmoothLen, smoothed);
+          } else if (cciSmoothType === "vwma") {
+              cciResults = JSIndicators.vwma(cciResults, volumesNum, cciSmoothLen, smoothed);
+          }
       }
 
       const cciVal = cciResults[cciResults.length - 1];
@@ -337,10 +437,7 @@ export function calculateIndicatorsFromArrays(
           cleanupBuffers.push(adxResults);
       }
 
-      adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen, adxResults, pool);
-      // Note: JSIndicators.adx implementation might use a single length for both currently.
-      // If we want separate DI length, we'd need to update JSIndicators.adx signature.
-      // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
+      adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen, adxResults, pool, adxDiLen);
       const adxVal = adxResults[adxResults.length - 1];
       const adxThreshold = settings?.adx?.threshold || 25;
       indSeries["ADX"] = adxResults;
@@ -397,17 +494,52 @@ export function calculateIndicatorsFromArrays(
       const macdSlow = settings?.macd?.slowLength || 26;
       const macdSig = settings?.macd?.signalLength || 9;
       const macdSource = getSource(settings?.macd?.source || "close");
+      // PineScript allows EMA or SMA for the fast/slow oscillator and for the signal line
+      const macdOscType = settings?.macd?.oscillatorMaType || "ema";
+      const macdSigType = settings?.macd?.signalMaType || "ema";
 
       let outMacd: Float64Array | undefined;
       let outSignal: Float64Array | undefined;
+      let emaFastBuf: Float64Array | undefined;
+      let emaSlowBuf: Float64Array | undefined;
       if (pool) {
           outMacd = pool.acquire(len);
           outSignal = pool.acquire(len);
-          cleanupBuffers.push(outMacd);
-          cleanupBuffers.push(outSignal);
+          emaFastBuf = pool.acquire(len);
+          emaSlowBuf = pool.acquire(len);
+          cleanupBuffers.push(outMacd, outSignal, emaFastBuf, emaSlowBuf);
+      } else {
+          emaFastBuf = new Float64Array(len);
+          emaSlowBuf = new Float64Array(len);
       }
 
-      const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig, outMacd, outSignal, pool);
+      // Calculate fast and slow MAs (EMA or SMA)
+      const maFn = (src: typeof macdSource, period: number, out?: Float64Array) =>
+          macdOscType === "sma" ? JSIndicators.sma(src, period, out) : JSIndicators.ema(src, period, out);
+
+      maFn(macdSource, macdFast, emaFastBuf);
+      maFn(macdSource, macdSlow, emaSlowBuf);
+
+      const macdLine = (outMacd && outMacd.length === len) ? outMacd : new Float64Array(len);
+      macdLine.fill(NaN);
+      for (let i = 0; i < len; i++) {
+          macdLine[i] = emaFastBuf[i] - emaSlowBuf[i];
+      }
+
+      if (pool) {
+          pool.release(emaFastBuf!);
+          pool.release(emaSlowBuf!);
+      }
+
+      // Signal line (EMA or SMA of MACD)
+      const signalLine = (outSignal && outSignal.length === len) ? outSignal : new Float64Array(len);
+      if (macdSigType === "sma") {
+          JSIndicators.sma(macdLine, macdSig, signalLine);
+      } else {
+          JSIndicators.ema(macdLine, macdSig, signalLine);
+      }
+
+      const macdRes = { macd: macdLine, signal: signalLine };
       const macdVal = macdRes.macd[macdRes.macd.length - 1];
       const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
       const macdHist = macdVal - macdSignalVal;
@@ -427,13 +559,13 @@ export function calculateIndicatorsFromArrays(
       });
     }
 
-    // 7. StochRSI (NEW)
+    // 7. StochRSI
     if (shouldCalculate('stochrsi')) {
-        const stochRsiK = settings?.stochRsi?.kPeriod || 3;
+        const stochRsiSmoothK = settings?.stochRsi?.kPeriod || 3;
         const stochRsiD = settings?.stochRsi?.dPeriod || 3;
         const stochRsiLen = settings?.stochRsi?.length || 14;
         const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
-        const stochRsiSmooth = 1; // Not yet in settings, assume 1
+        const stochRsiSource = getSource(settings?.stochRsi?.source || "close");
 
         let outK: Float64Array | undefined;
         let outD: Float64Array | undefined;
@@ -445,11 +577,11 @@ export function calculateIndicatorsFromArrays(
         }
 
         const srRes = JSIndicators.stochRsi(
-          closesNum,
+          stochRsiSource,
           stochRsiRsiLen,
-          stochRsiK,
-          stochRsiD,
-          stochRsiSmooth,
+          stochRsiLen,     // Stoch Length (e.g. 14)
+          stochRsiD,       // D Smoothing (e.g. 3)
+          stochRsiSmoothK, // K Smoothing (e.g. 3)
           outK,
           outD,
           pool
@@ -466,7 +598,7 @@ export function calculateIndicatorsFromArrays(
         name: "StochRSI",
         value: srK,
         signal: srD,
-        params: `${stochRsiRsiLen}, ${stochRsiK}, ${stochRsiD}`,
+        params: `${stochRsiRsiLen}, ${stochRsiLen}, ${stochRsiSmoothK}, ${stochRsiD}`,
         action: srAction,
         });
     }
@@ -474,7 +606,8 @@ export function calculateIndicatorsFromArrays(
     // 8. Williams %R (NEW)
     if (shouldCalculate('williamsr')) {
         const wRLen = settings?.williamsR?.length || 14;
-        const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
+        const wrSource = getSource(settings?.williamsR?.source || "close");
+        const wR = JSIndicators.williamsR(highsNum, lowsNum, wrSource, wRLen);
         const wRVal = wR[wR.length - 1];
         // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
         let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -496,38 +629,40 @@ export function calculateIndicatorsFromArrays(
 
   // --- Divergences Scan ---
   try {
-    // Scanners: RSI, MACD, CCI, StochK
-    // We only scan for what we calculated
-    const scanList = [
-      { name: "RSI", data: indSeries["RSI"] },
-      { name: "MACD", data: indSeries["MACD"] },
-      { name: "CCI", data: indSeries["CCI"] },
-      { name: "Stoch", data: indSeries["StochK"] },
-      { name: "AO", data: indSeries["AO"] },
-    ].filter(i => !!i.data);
+    if (shouldCalculate('divergences')) {
+      // Scanners: RSI, MACD, CCI, StochK
+      // We only scan for what we calculated
+      const scanList = [
+        { name: "RSI", data: indSeries["RSI"] },
+        { name: "MACD", data: indSeries["MACD"] },
+        { name: "CCI", data: indSeries["CCI"] },
+        { name: "Stoch", data: indSeries["StochK"] },
+        { name: "AO", data: indSeries["AO"] },
+      ].filter(i => !!i.data);
 
-    // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)
-    scanList.forEach((item) => {
-      const results = DivergenceScanner.scan(
-        highsNum,
-        lowsNum,
-        item.data,
-        item.name,
-      );
-      results.forEach((res) => {
-        divergences.push({
-          indicator: res.indicator,
-          type: res.type,
-          side: res.side,
-          startIdx: res.startIdx,
-          endIdx: res.endIdx,
-          priceStart: res.priceStart,
-          priceEnd: res.priceEnd,
-          indStart: res.indStart,
-          indEnd: res.indEnd,
+      // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)
+      scanList.forEach((item) => {
+        const results = DivergenceScanner.scan(
+          highsNum,
+          lowsNum,
+          item.data,
+          item.name,
+        );
+        results.forEach((res) => {
+          divergences.push({
+            indicator: res.indicator,
+            type: res.type,
+            side: res.side,
+            startIdx: res.startIdx,
+            endIdx: res.endIdx,
+            priceStart: res.priceStart,
+            priceEnd: res.priceEnd,
+            indStart: res.indStart,
+            indEnd: res.indEnd,
+          });
         });
       });
-    });
+    }
   } catch (e) {
     if (import.meta.env.DEV) {
       console.error("Divergence Scan Error:", e);
@@ -620,18 +755,50 @@ export function calculateIndicatorsFromArrays(
     // MFI
     if (shouldCalculate('mfi')) {
         const mfiLen = settings?.mfi?.length || 14;
-        const mfiVal = calculateMFI(
-            highsNum,
-            lowsNum,
-            closesNum,
-            volumesNum,
-            mfiLen
-        );
-        let mfiAction = "Neutral";
-        if (mfiVal > 80)
-        mfiAction = "Sell"; // Overbought
-        else if (mfiVal < 20) mfiAction = "Buy"; // Oversold
-        advancedInfo.mfi = { value: mfiVal, action: mfiAction };
+
+        // MFI is volume-dependent. The "forming" candle (current live candle) has
+        // incomplete or zero volume that corrupts the calculation.
+        // TradingView computes MFI only on completed bars.
+        // Detect the forming candle: either volume is 0 (phantom) or we can
+        // infer the timeframe interval from timestamps to identify it.
+        let excludeLastCandle = false;
+        const lastVol = volumesNum[volumesNum.length - 1];
+
+        if (lastVol === 0) {
+            // Phantom candle with no volume at all
+            excludeLastCandle = true;
+        } else if (len >= 3) {
+            // Detect forming candle by checking if its timestamp is ahead of the
+            // regular cadence. If interval between candles is consistent and the last
+            // candle was injected with `injectRealtimePrice`, its volume is incomplete.
+            const interval = timesNum[len - 2] - timesNum[len - 3];
+            if (interval > 0) {
+                const now = Date.now();
+                const currentPeriodStart = Math.floor(now / interval) * interval;
+                if (timesNum[len - 1] === currentPeriodStart) {
+                    excludeLastCandle = true;
+                }
+            }
+        }
+
+        const mfiHighs = excludeLastCandle ? highsNum.slice(0, -1) : highsNum;
+        const mfiLows  = excludeLastCandle ? lowsNum.slice(0, -1)  : lowsNum;
+        const mfiClose = excludeLastCandle ? closesNum.slice(0, -1) : closesNum;
+        const mfiVols  = excludeLastCandle ? volumesNum.slice(0, -1) : volumesNum;
+
+        const mfiSeries = JSIndicators.mfi(mfiHighs, mfiLows, mfiClose, mfiVols, mfiLen);
+
+        // Find last non-NaN value
+        let mfiVal = NaN;
+        for (let i = mfiSeries.length - 1; i >= 0; i--) {
+            if (!isNaN(mfiSeries[i])) { mfiVal = mfiSeries[i]; break; }
+        }
+        if (!isNaN(mfiVal)) {
+            let mfiAction = "Neutral";
+            if (mfiVal > 80) mfiAction = "Sell"; // Overbought
+            else if (mfiVal < 20) mfiAction = "Buy"; // Oversold
+            advancedInfo.mfi = { value: mfiVal, action: mfiAction };
+        }
     }
 
     // Choppiness
@@ -695,6 +862,58 @@ export function calculateIndicatorsFromArrays(
         action: ichiAction,
         };
     }
+
+    // Market Structure (HH/HL/LH/LL)
+    if (shouldCalculate('marketStructure')) {
+        const LOOKBACK = 5;
+        const swingHighs: {idx: number, val: number}[] = [];
+        const swingLows: {idx: number, val: number}[] = [];
+
+        for (let i = len - LOOKBACK - 1; i >= LOOKBACK && (swingHighs.length < 2 || swingLows.length < 2); i--) {
+            let isSwingHigh = true;
+            let isSwingLow = true;
+            for (let j = 1; j <= LOOKBACK; j++) {
+                if (highsNum[i - j] >= highsNum[i] || highsNum[i + j] >= highsNum[i]) isSwingHigh = false;
+                if (lowsNum[i - j] <= lowsNum[i] || lowsNum[i + j] <= lowsNum[i]) isSwingLow = false;
+            }
+            if (isSwingHigh && swingHighs.length < 2) swingHighs.push({idx: i, val: highsNum[i]});
+            if (isSwingLow && swingLows.length < 2) swingLows.push({idx: i, val: lowsNum[i]});
+        }
+
+        /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+        let pattern: "HH" | "HL" | "LH" | "LL" | "None" = "None";
+        let msTrend: "Bullish" | "Bearish" | "Neutral" = "Neutral";
+        let msPrice: number = typeof currentPrice === "number" ? currentPrice : 0;
+        
+        // Ensure currentPrice is valid, fall back to last close otherwise
+        if (msPrice === 0 && closesNum.length > 0) {
+           msPrice = closesNum[closesNum.length - 1];
+        }
+
+        if (swingHighs.length === 2 && swingLows.length === 2) {
+            const lastHigh = swingHighs[0];
+            const prevHigh = swingHighs[1];
+            const lastLow = swingLows[0];
+            const prevLow = swingLows[1];
+
+            if (lastHigh.idx > lastLow.idx) {
+               pattern = lastHigh.val > prevHigh.val ? "HH" : "LH";
+               msPrice = lastHigh.val;
+            } else {
+               pattern = lastLow.val > prevLow.val ? "HL" : "LL";
+               msPrice = lastLow.val;
+            }
+
+            if (lastHigh.val > prevHigh.val && lastLow.val > prevLow.val) msTrend = "Bullish";
+            else if (lastHigh.val < prevHigh.val && lastLow.val < prevLow.val) msTrend = "Bearish";
+        }
+
+        advancedInfo.marketStructure = {
+            trend: msTrend,
+            pattern: pattern,
+            price: msPrice
+        };
+    }
   } catch (e) {
     if (import.meta.env.DEV) {
       console.error("Advanced Indicators Error:", e);
@@ -705,24 +924,84 @@ export function calculateIndicatorsFromArrays(
   const movingAverages: IndicatorResult[] = [];
   try {
     if (shouldCalculate('ema')) {
-        const ema1 = settings?.ema?.ema1?.length || 20;
-        const ema2 = settings?.ema?.ema2?.length || 50;
-        const ema3 = settings?.ema?.ema3?.length || 200;
         const emaSource = getSource(settings?.ema?.source || "close");
+        const emaConfigs = [
+            settings?.ema?.ema1 || { length: 21, offset: 0, smoothingType: "sma" as const, smoothingLength: 14, bbStdDev: 2 },
+            settings?.ema?.ema2 || { length: 50, offset: 0, smoothingType: "sma" as const, smoothingLength: 14, bbStdDev: 2 },
+            settings?.ema?.ema3 || { length: 200, offset: 0, smoothingType: "sma" as const, smoothingLength: 14, bbStdDev: 2 }
+        ];
 
-        const emaPeriods = [ema1, ema2, ema3];
-        for (const period of emaPeriods) {
-        const emaResults = JSIndicators.ema(emaSource, period);
-        const rawVal = emaResults[emaResults.length - 1];
-        // Handle insufficient data (NaN) by skipping
-        if (typeof rawVal === 'number' && !isNaN(rawVal)) {
-            movingAverages.push({
-                name: "EMA",
-                params: `${period}`,
-                value: rawVal,
-                action: currentPrice > rawVal ? "Buy" : "Sell",
-            });
+        for (const config of emaConfigs) {
+            const period = config.length;
+            const emaResults = JSIndicators.ema(emaSource, period);
+            const rawVal = emaResults[emaResults.length - 1];
+            
+            // Handle insufficient data (NaN) by skipping
+            if (typeof rawVal === 'number' && !isNaN(rawVal)) {
+                let signalVal: number | undefined;
+                let upperBand: number | undefined;
+                let lowerBand: number | undefined;
+                
+                const smoothingType = settings?.ema?.smoothingType || "sma";
+                const smoothingLen = settings?.ema?.smoothingLength || 14;
+
+                if (smoothingType !== "none" && smoothingLen > 0) {
+                  if (smoothingType === "sma" || smoothingType === "sma_bb") {
+                    if (smoothingType === "sma_bb") {
+                      const bbStdDev = settings?.ema?.bbStdDev || 2;
+                      const bb = JSIndicators.bb(emaResults, smoothingLen, bbStdDev);
+                      signalVal = bb.middle[bb.middle.length - 1];
+                      upperBand = bb.upper[bb.upper.length - 1];
+                      lowerBand = bb.lower[bb.lower.length - 1];
+                    } else {
+                      const smoothed = JSIndicators.sma(emaResults, smoothingLen);
+                      signalVal = smoothed[smoothed.length - 1];
+                    }
+                  } else if (smoothingType === "ema") {
+                    const smoothed = JSIndicators.ema(emaResults, smoothingLen);
+                    signalVal = smoothed[smoothed.length - 1];
+                  } else if (smoothingType === "smma") {
+                    const smoothed = JSIndicators.smma(emaResults, smoothingLen);
+                    signalVal = smoothed[smoothed.length - 1];
+                  } else if (smoothingType === "wma") {
+                    const smoothed = JSIndicators.wma(emaResults, smoothingLen);
+                    signalVal = smoothed[smoothed.length - 1];
+                  } else if (smoothingType === "vwma") {
+                    const smoothed = JSIndicators.vwma(emaResults, volumesNum, smoothingLen);
+                    signalVal = smoothed[smoothed.length - 1];
+                  }
+                }
+
+                movingAverages.push({
+                    name: "EMA",
+                    params: `${period}`,
+                    value: rawVal,
+                    signal: signalVal,
+                    upperBand: upperBand,
+                    lowerBand: lowerBand,
+                    action: currentPrice > rawVal ? "Buy" : "Sell",
+                });
+            }
         }
+    }
+
+    // SMA (3 configurable periods)
+    if (shouldCalculate('sma')) {
+        const sma1 = settings?.sma?.sma1?.length || 9;
+        const sma2 = settings?.sma?.sma2?.length || 21;
+        const sma3 = settings?.sma?.sma3?.length || 50;
+        const smaPeriods = [sma1, sma2, sma3];
+        for (const period of smaPeriods) {
+            const smaResults = JSIndicators.sma(closesNum, period);
+            const rawVal = smaResults[smaResults.length - 1];
+            if (typeof rawVal === 'number' && !isNaN(rawVal)) {
+                movingAverages.push({
+                    name: "SMA",
+                    params: `${period}`,
+                    value: rawVal,
+                    action: currentPrice > rawVal ? "Buy" : "Sell",
+                });
+            }
         }
     }
   } catch (error) {
@@ -730,6 +1009,30 @@ export function calculateIndicatorsFromArrays(
       console.error("Error calculating moving averages:", error);
     }
   }
+
+  // Momentum (shown as oscillator) — close[n] - close[n-period]
+  try {
+    if (shouldCalculate('momentum')) {
+        const momLen = settings?.momentum?.length || 10;
+        const momSource = getSource(settings?.momentum?.source || "close");
+        const momIdx = momSource.length - 1;
+        const momPrevIdx = momIdx - momLen;
+        if (momPrevIdx >= 0) {
+            const momVal = momSource[momIdx] - momSource[momPrevIdx];
+            oscillators.push({
+                name: "Momentum",
+                params: momLen.toString(),
+                value: momVal,
+                action: momVal > 0 ? "Buy" : "Sell",
+            });
+        }
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("Error calculating momentum:", error);
+    }
+  }
+
 
   // --- Pivots ---
   const pivotType = settings?.pivots?.type || "classic";
@@ -792,13 +1095,13 @@ export function calculateIndicatorsFromArrays(
         }
 
         volatility = {
-            atr: currentAtr,
-            bb: {
+            atr: shouldCalculate('atr') ? currentAtr : undefined,
+            bb: shouldCalculate('bollingerBands') ? {
                 upper: bbUpper,
                 middle: bbMiddle,
                 lower: bbLower,
                 percentP: percentP,
-            },
+            } : undefined,
         };
     }
   } catch (e) {

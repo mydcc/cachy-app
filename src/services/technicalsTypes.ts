@@ -90,6 +90,8 @@ export interface IndicatorResult {
   value: number;
   signal?: number; // For MACD signal line, etc.
   histogram?: number; // For MACD histogram
+  upperBand?: number; // For SMA+BB smoothing
+  lowerBand?: number; // For SMA+BB smoothing
   action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
 }
 
@@ -138,7 +140,7 @@ export interface TechnicalsData {
     action: "Buy" | "Sell" | "Neutral";
   };
   volatility?: {
-    atr: number;
+    atr?: number;
     bb?: {
       upper: number;
       middle: number;
@@ -164,6 +166,11 @@ export interface TechnicalsData {
     };
     parabolicSar?: number;
     // Phase 5: Pro Indicators
+    marketStructure?: {
+      trend: "Bullish" | "Bearish" | "Neutral";
+      pattern: "HH" | "HL" | "LH" | "LL" | "None";
+      price: number;
+    };
     superTrend?: { value: number; trend: "bull" | "bear" };
     atrTrailingStop?: { buy: number; sell: number };
     obv?: number;
@@ -263,18 +270,36 @@ export interface RsiState {
   prevPrice: number;
 }
 
-export interface TechnicalsState {
-  // History Buffer (Circular)
-  // Needed for indicators that require looking back N periods (SMA, Bollinger, etc.)
-  // We only need to store 'Close' for most, but High/Low for some.
-  // For MVP, we might just store the last N candles.
-  lastCandle: Kline | null;
+export interface MfiState {
+  period: number;
+  // Circular window of the last (period+1) typical prices and money flows
+  // posFlow[i] / negFlow[i] are 0 if neutral or the wrong direction
+  window: { tp: number; posFlow: number; negFlow: number }[];
+  sumPos: number;
+  sumNeg: number;
+  prevTp: number; // Typical price of the last bar
+}
 
-  // Indicator States
-  ema?: Record<string, EmaState>; // Keyed by length
+export interface AtrState {
+  prevAtr: number; // RMA state from the previous closed candle
+  prevClose: number; // Close from the previous closed candle to compute True Range
+}
+
+export interface StochRsiState {
+  length: number;
+  rsiState: RsiState; // Uses the same underlying RSI state logic
+  // Stoch window needs the history of the last 'length' RSI values
+  rsiHistory: number[];
+  // To compute smoothed %K, we need the history of raw %K values
+  rawKHistory: number[];
+}
+export interface TechnicalsState {
+  lastCandle: Kline | null;
+  ema?: Record<string, EmaState>;
   sma?: Record<string, SmaState>;
   rsi?: Record<string, RsiState>;
-
-  // Last calculated result (to update incrementally)
+  mfi?: MfiState;
+  atr?: Record<string, AtrState>;
+  stochRsi?: Record<string, StochRsiState>;
   lastResult?: TechnicalsData;
 }

@@ -684,12 +684,12 @@
                       >{indicatorState.rsi.source}</span
                     >
                   </div>
-                  {#if indicatorState.rsi.showSignal && signalValue}
+                  {#if indicatorState.rsi.smoothingType !== "none" && signalValue}
                     <div
                       class="flex justify-between gap-4 text-[var(--accent-color)]"
                     >
                       <span
-                        >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
+                        >{$_("marketOverview.signal")} ({indicatorState.rsi.smoothingType.toUpperCase()}):</span
                       >
                       <span class="font-mono"
                         >{formatValue(signalValue, 2)}</span

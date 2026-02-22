@@ -411,57 +411,40 @@
                     </label>
 
                     {#if settingsState.showTechnicals}
-                        <div
-                            class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
-                        >
+                        <div class="flex flex-col gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                            <p class="text-[10px] text-[var(--text-secondary)] uppercase font-semibold mb-1">
+                                {$_(("settings.technicals.panelSections") as any) || "Panel Sections"}
+                            </p>
+
                             <!-- Summary -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={settingsState.showTechnicalsSummary}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.summaryAction") || "Summary"}
-                                </span>
+                            <label class="flex items-center justify-between cursor-pointer py-0.5">
+                                <span class="text-xs">{$_("settings.technicals.summaryAction") || "Summary"}</span>
+                                <Toggle bind:checked={settingsState.showTechnicalsSummary} />
                             </label>
 
                             <!-- Oscillators -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={settingsState.showTechnicalsOscillators}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.oscillators") || "Oscillators"}
-                                </span>
+                            <label class="flex items-center justify-between cursor-pointer py-0.5">
+                                <span class="text-xs">{$_("settings.technicals.oscillators") || "Oscillators"}</span>
+                                <Toggle bind:checked={settingsState.showTechnicalsOscillators} />
                             </label>
 
                             <!-- Moving Averages -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    bind:checked={settingsState.showTechnicalsMAs}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.movingAverages") || "Moving Avgs"}
-                                </span>
+                            <label class="flex items-center justify-between cursor-pointer py-0.5">
+                                <span class="text-xs">{$_("settings.technicals.movingAverages") || "Moving Averages"}</span>
+                                <Toggle bind:checked={settingsState.showTechnicalsMAs} />
                             </label>
 
-                            <!-- Pivots (Syncs with Calculation) -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
+                            <!-- Pivots (syncs visibility + calculation) -->
+                            <label class="flex items-center justify-between cursor-pointer py-0.5">
+                                <span class="text-xs">{$_("settings.technicals.pivots") || "Pivots"}</span>
+                                <Toggle
                                     checked={settingsState.showTechnicalsPivots}
-                                    onchange={(e) => {
-                                        const val = e.currentTarget.checked;
+                                    onchange={(e: Event) => {
+                                        const val = (e.currentTarget as HTMLInputElement).checked;
                                         settingsState.showTechnicalsPivots = val;
-                                        // Sync with calculation engine to ensure data exists
                                         settingsState.enabledIndicators.pivots = val;
                                     }}
                                 />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.pivots") || "Pivots"}
-                                </span>
                             </label>
                         </div>
                     {/if}

@@ -20,9 +20,9 @@ const defaultSettings: IndicatorSettings = {
   rsi: {
     length: 14,
     source: "close",
-    showSignal: true,
-    signalType: "sma",
-    signalLength: 14,
+    smoothingType: "sma",
+    smoothingLength: 14,
+    bbStdDev: 2,
     overbought: 70,
     oversold: 30,
     defaultTimeframe: "1d",
@@ -49,12 +49,13 @@ const defaultSettings: IndicatorSettings = {
   },
   williamsR: {
     length: 14,
+    source: "close",
   },
   cci: {
     length: 20,
     source: "close",
     threshold: 100,
-    smoothingType: "sma",
+    smoothingType: "none",
     smoothingLength: 5,
   },
   adx: {
@@ -71,10 +72,13 @@ const defaultSettings: IndicatorSettings = {
     source: "close",
   },
   ema: {
-    ema1: { length: 21, offset: 0, smoothingType: "sma", smoothingLength: 14 },
-    ema2: { length: 50, offset: 0, smoothingType: "sma", smoothingLength: 14 },
-    ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
+    ema1: { length: 21, offset: 0 },
+    ema2: { length: 50, offset: 0 },
+    ema3: { length: 200, offset: 0 },
     source: "close",
+    smoothingType: "sma",
+    smoothingLength: 14,
+    bbStdDev: 2,
   },
   sma: {
     sma1: { length: 9 },
@@ -306,23 +310,32 @@ class IndicatorManager {
       this.atr = { ...defaultSettings.atr, ...parsed.atr };
       this.bb = { ...defaultSettings.bb, ...parsed.bb };
 
-      this.ema = parsed.ema
-        ? {
+      // EMA hydration logic
+      if (parsed.ema) {
+        this.ema = {
+          ...defaultSettings.ema, // Start with all default EMA settings
+          ...parsed.ema, // Overlay top-level EMA settings from parsed
           ema1: {
             ...defaultSettings.ema.ema1,
-            ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
+            ...(parsed.ema.ema1 || {}),
+            // Handle old `ema1Length` migration if `ema1` object is missing
+            ...(parsed.ema.ema1Length !== undefined ? { length: parsed.ema.ema1Length } : {}),
           },
           ema2: {
             ...defaultSettings.ema.ema2,
-            ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
+            ...(parsed.ema.ema2 || {}),
+            // Handle old `ema2Length` migration if `ema2` object is missing
+            ...(parsed.ema.ema2Length !== undefined ? { length: parsed.ema.ema2Length } : {}),
           },
           ema3: {
             ...defaultSettings.ema.ema3,
             ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
           },
           source: parsed.ema.source || defaultSettings.ema.source,
-        }
-        : defaultSettings.ema;
+        };
+      } else {
+        this.ema = defaultSettings.ema;
+      }
 
       this.sma = parsed.sma ? { ...defaultSettings.sma, ...parsed.sma } : defaultSettings.sma;
       this.wma = parsed.wma ? { ...defaultSettings.wma, ...parsed.wma } : defaultSettings.wma;

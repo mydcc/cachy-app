@@ -52,25 +52,27 @@ export function slidingWindowMax(
       if (head === bufferSize) head = 0;
     }
 
-    // 2. Maintain monotonic decreasing order in deque
-    while (head !== tail) {
-      let lastIdx = tail - 1;
-      if (lastIdx < 0) lastIdx = bufferSize - 1;
+    if (!isNaN(data[i])) {
+      // 2. Maintain monotonic decreasing order in deque
+      while (head !== tail) {
+        let lastIdx = tail - 1;
+        if (lastIdx < 0) lastIdx = bufferSize - 1;
 
-      if (data[deque[lastIdx]] <= data[i]) {
-        tail = lastIdx; // Pop back
-      } else {
-        break;
+        if (data[deque[lastIdx]] <= data[i]) {
+          tail = lastIdx; // Pop back
+        } else {
+          break;
+        }
       }
+
+      // 3. Add current index
+      deque[tail] = i;
+      tail++;
+      if (tail === bufferSize) tail = 0;
     }
 
-    // 3. Add current index
-    deque[tail] = i;
-    tail++;
-    if (tail === bufferSize) tail = 0;
-
-    // 4. Set result if we have a full window
-    if (i >= period - 1) {
+    // 4. Set result if we have a full window (only if head is not equal to tail)
+    if (i >= period - 1 && head !== tail) {
       result[i] = data[deque[head]];
     }
   }
@@ -108,25 +110,27 @@ export function slidingWindowMin(
       if (head === bufferSize) head = 0;
     }
 
-    // 2. Maintain monotonic increasing order in deque
-    while (head !== tail) {
-      let lastIdx = tail - 1;
-      if (lastIdx < 0) lastIdx = bufferSize - 1;
+    if (!isNaN(data[i])) {
+      // 2. Maintain monotonic increasing order in deque
+      while (head !== tail) {
+        let lastIdx = tail - 1;
+        if (lastIdx < 0) lastIdx = bufferSize - 1;
 
-      if (data[deque[lastIdx]] >= data[i]) {
-        tail = lastIdx; // Pop back
-      } else {
-        break;
+        if (data[deque[lastIdx]] >= data[i]) {
+          tail = lastIdx; // Pop back
+        } else {
+          break;
+        }
       }
+
+      // 3. Add current index
+      deque[tail] = i;
+      tail++;
+      if (tail === bufferSize) tail = 0;
     }
 
-    // 3. Add current index
-    deque[tail] = i;
-    tail++;
-    if (tail === bufferSize) tail = 0;
-
-    // 4. Set result
-    if (i >= period - 1) {
+    // 4. Set result (only if head is not equal to tail)
+    if (i >= period - 1 && head !== tail) {
       result[i] = data[deque[head]];
     }
   }

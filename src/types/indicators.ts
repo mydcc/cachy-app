@@ -21,9 +21,9 @@ export interface IndicatorSettings {
   rsi: {
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
-    showSignal: boolean;
-    signalType: "sma" | "ema";
-    signalLength: number;
+    smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma" | "sma_bb";
+    smoothingLength: number;
+    bbStdDev: number;
     overbought: number;
     oversold: number;
     defaultTimeframe: string;
@@ -33,13 +33,13 @@ export interface IndicatorSettings {
     rsiLength: number;
     kPeriod: number;
     dPeriod: number;
-    source: "close";
+    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3" | "ohlc4";
   };
   macd: {
     fastLength: number;
     slowLength: number;
     signalLength: number;
-    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
+    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3" | "ohlc4" | "hlcc4";
     oscillatorMaType: "ema" | "sma";
     signalMaType: "ema" | "sma";
   };
@@ -50,12 +50,13 @@ export interface IndicatorSettings {
   };
   williamsR: {
     length: number;
+    source: "close" | "open" | "high" | "low" | "hl2" | "hlc3" | "ohlc4";
   };
   cci: {
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     threshold: number;
-    smoothingType: "sma" | "ema";
+    smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma" | "sma_bb";
     smoothingLength: number;
   };
   adx: {
@@ -75,22 +76,19 @@ export interface IndicatorSettings {
     ema1: {
       length: number;
       offset: number;
-      smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma";
-      smoothingLength: number;
     };
     ema2: {
       length: number;
       offset: number;
-      smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma";
-      smoothingLength: number;
     };
     ema3: {
       length: number;
       offset: number;
-      smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma";
-      smoothingLength: number;
     };
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
+    smoothingType: "none" | "sma" | "ema" | "smma" | "wma" | "vwma" | "sma_bb";
+    smoothingLength: number;
+    bbStdDev: number;
   };
   sma: {
     sma1: { length: number; };

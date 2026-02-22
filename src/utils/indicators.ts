@@ -422,12 +422,16 @@ export const JSIndicators = {
     period: number,
     out?: Float64Array,
     pool?: BufferPool,
+    diLength?: number, // Separate DI smoothing length (PineScript: dilen). Defaults to period.
   ): Float64Array {
     const len = close.length;
     const result = (out && out.length === len) ? out : new Float64Array(len);
     result.fill(NaN);
 
-    if (len < period * 2) return result;
+    // Use separate diLength for DM/TR smoothing vs period for final ADX RMA
+    const diLen = diLength ?? period;
+
+    if (len < Math.max(period, diLen) * 2) return result;
 
     let upMove: Float64Array;
     let downMove: Float64Array;
@@ -442,9 +446,6 @@ export const JSIndicators = {
       upMove = pool.acquire(len);
       downMove = pool.acquire(len);
       tr = pool.acquire(len);
-      // We can reuse buffers sequentially if we are careful, but adx needs parallel vectors
-      // plusDI_S, minusDI_S, tr_S needed simultaneously for DX calc.
-      // So we need separate buffers.
       plusDI_S = pool.acquire(len);
       minusDI_S = pool.acquire(len);
       tr_S = pool.acquire(len);
@@ -454,17 +455,15 @@ export const JSIndicators = {
       upMove = new Float64Array(len);
       downMove = new Float64Array(len);
       tr = new Float64Array(len);
-      plusDI_S = new Float64Array(len); // Allocated by smma if not passed? No, we pass logic.
+      plusDI_S = new Float64Array(len);
       minusDI_S = new Float64Array(len);
       tr_S = new Float64Array(len);
       dx = new Float64Array(len);
     }
 
-    // Fill with 0 (since acquire might be dirty)
     upMove.fill(0);
     downMove.fill(0);
     tr.fill(0);
-    // Others are filled by their producers (smma) or calc loops
 
     for (let i = 1; i < len; i++) {
       const up = high[i] - high[i - 1];
@@ -479,18 +478,26 @@ export const JSIndicators = {
       );
     }
 
-    this.smma(upMove, period, plusDI_S);
-    this.smma(downMove, period, minusDI_S);
-    this.smma(tr, period, tr_S);
+    // PineScript: DI smoothing uses dilen (diLen), ADX smoothing uses adxlen (period)
+    this.smma(upMove, diLen, plusDI_S);
+    this.smma(downMove, diLen, minusDI_S);
+    this.smma(tr, diLen, tr_S);
 
-    // dx
+    // Compute DX from smoothed DI values
     for (let i = 0; i < len; i++) {
-      const pDI = (plusDI_S[i] / (tr_S[i] || 1)) * 100;
-      const mDI = (minusDI_S[i] / (tr_S[i] || 1)) * 100;
+      const trVal = tr_S[i];
+      // fixnan: skip NaN early entries (like PineScript's fixnan)
+      if (isNaN(trVal) || trVal === 0) {
+        dx[i] = 0;
+        continue;
+      }
+      const pDI = (plusDI_S[i] / trVal) * 100;
+      const mDI = (minusDI_S[i] / trVal) * 100;
       const sum = pDI + mDI;
       dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
     }
 
+    // Final ADX = RMA of DX using adxlen (period)
     const res = this.smma(dx, period, result);
 
     if (pooled && pool) {
@@ -882,7 +889,7 @@ export const JSIndicators = {
     conversionPeriod: number,
     basePeriod: number,
     spanBPeriod: number,
-    laggingSpan2: number,
+    laggingSpan2: number, // This is the displacement (default 26 in PineScript)
   ) {
     const len = high.length;
 
@@ -901,28 +908,28 @@ export const JSIndicators = {
     const spanB = new Float64Array(len).fill(NaN);
 
     for (let i = 0; i < len; i++) {
+      // Use NaN (not 0) for early bars where calculation is not yet valid
       if (i >= conversionPeriod - 1) {
         conversion[i] = (convHigh[i] + convLow[i]) / 2;
-      } else {
-        conversion[i] = 0;
       }
-
+      // base starts at basePeriod - 1
       if (i >= basePeriod - 1) {
         base[i] = (baseHigh[i] + baseLow[i]) / 2;
-      } else {
-        base[i] = 0;
       }
-
-      spanA[i] = (conversion[i] + base[i]) / 2;
-
+      // spanA = avg(conversion, base) — only valid when both are valid
+      if (i >= basePeriod - 1 && i >= conversionPeriod - 1) {
+        spanA[i] = (conversion[i] + base[i]) / 2;
+      }
+      // spanB
       if (i >= spanBPeriod - 1) {
         spanB[i] = (spanBHigh[i] + spanBLow[i]) / 2;
-      } else {
-        spanB[i] = 0;
       }
     }
 
-    const displacement = basePeriod;
+    // PineScript: `leadLine1` plotted at `offset = displacement - 1`
+    // In our data model we shift spanA/spanB forward by `displacement`
+    // displacement comes from laggingSpan2 param (default 26), NOT from basePeriod
+    const displacement = laggingSpan2;
 
     const currentSpanA = new Float64Array(len).fill(NaN);
     const currentSpanB = new Float64Array(len).fill(NaN);
@@ -936,6 +943,7 @@ export const JSIndicators = {
       conversion,
       base,
       spanA: currentSpanA,
+
       spanB: currentSpanB,
       lagging: new Float64Array(0),
     };
@@ -957,49 +965,66 @@ export const JSIndicators = {
     const basicLower = new Float64Array(len).fill(NaN);
     const finalUpper = new Float64Array(len).fill(NaN);
     const finalLower = new Float64Array(len).fill(NaN);
-    const trend = new Int8Array(len).fill(0); // 1 = Bull, -1 = Bear
-    // Initialize trend
-    trend[0] = 1;
+    const trend = new Int8Array(len).fill(1); // 1 = Bull, -1 = Bear
 
-    // Calculation loop
-    for (let i = 1; i < len; i++) {
-      const hl2 = (high[i] + low[i]) / 2;
-      basicUpper[i] = hl2 + multiplier * atr[i];
-      basicLower[i] = hl2 - multiplier * atr[i];
+    let firstValid = -1;
+    for (let i = 0; i < len; i++) {
+        if (!isNaN(atr[i])) {
+            firstValid = i;
+            break;
+        }
+    }
 
-      if (
-        basicUpper[i] < finalUpper[i - 1] ||
-        close[i - 1] > finalUpper[i - 1]
-      ) {
-        finalUpper[i] = basicUpper[i];
-      } else {
-        finalUpper[i] = finalUpper[i - 1];
-      }
+    if (firstValid !== -1) {
+        const hl2 = (high[firstValid] + low[firstValid]) / 2;
+        basicUpper[firstValid] = hl2 + multiplier * atr[firstValid];
+        basicLower[firstValid] = hl2 - multiplier * atr[firstValid];
+        finalUpper[firstValid] = basicUpper[firstValid];
+        finalLower[firstValid] = basicLower[firstValid];
 
-      if (
-        basicLower[i] > finalLower[i - 1] ||
-        close[i - 1] < finalLower[i - 1]
-      ) {
-        finalLower[i] = basicLower[i];
-      } else {
-        finalLower[i] = finalLower[i - 1];
-      }
+        for (let i = firstValid + 1; i < len; i++) {
+          const currentHl2 = (high[i] + low[i]) / 2;
+          basicUpper[i] = currentHl2 + multiplier * atr[i];
+          basicLower[i] = currentHl2 - multiplier * atr[i];
 
-      // Trend Rule
-      let currentTrend = trend[i - 1];
-      if (currentTrend === 1) {
-        if (close[i] < finalLower[i - 1]) currentTrend = -1;
-      } else {
-        if (close[i] > finalUpper[i - 1]) currentTrend = 1;
-      }
-      trend[i] = currentTrend;
+          if (
+            basicUpper[i] < finalUpper[i - 1] ||
+            close[i - 1] > finalUpper[i - 1]
+          ) {
+            finalUpper[i] = basicUpper[i];
+          } else {
+            finalUpper[i] = finalUpper[i - 1];
+          }
+
+          if (
+            basicLower[i] > finalLower[i - 1] ||
+            close[i - 1] < finalLower[i - 1]
+          ) {
+            finalLower[i] = basicLower[i];
+          } else {
+            finalLower[i] = finalLower[i - 1];
+          }
+
+          // Trend Rule
+          let currentTrend = trend[i - 1];
+          if (currentTrend === 1) {
+            if (close[i] < finalLower[i - 1]) currentTrend = -1;
+          } else {
+            if (close[i] > finalUpper[i - 1]) currentTrend = 1;
+          }
+          trend[i] = currentTrend;
+        }
     }
 
     // Convert trend back to float for consistent API, or just map active line
     // Map trend to active line value
     const value = new Float64Array(len);
     for(let i=0; i<len; i++) {
-        value[i] = trend[i] === 1 ? finalLower[i] : finalUpper[i];
+        if (i < firstValid || firstValid === -1) {
+            value[i] = NaN;
+        } else {
+            value[i] = trend[i] === 1 ? finalLower[i] : finalUpper[i];
+        }
     }
 
     return {

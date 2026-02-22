@@ -1320,6 +1320,7 @@ export class SettingsManager {
       this.enableIndicatorOptimization = merged.enableIndicatorOptimization ?? defaultSettings.enableIndicatorOptimization;
       this.chartHistoryLimit = merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
       this.repairTimeframe = merged.repairTimeframe || defaultSettings.repairTimeframe;
+      this.enabledIndicators = merged.enabledIndicators || defaultSettings.enabledIndicators;
 
       // Burning Borders Persistence
       this.enableBurningBorders = merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;

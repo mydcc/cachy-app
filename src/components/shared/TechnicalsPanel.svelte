@@ -246,7 +246,7 @@
     {:else if data}
       <div
         class="flex-1 overflow-y-auto pr-1 custom-scrollbar"
-        style="max-height: 500px;"
+        style="max-height: calc(100vh - 120px);"
       >
         <div class="flex flex-col gap-4">
           <!-- DASHBOARD SECTION (Minimalist List) -->
@@ -323,6 +323,7 @@
 
             <!-- Volatility -->
             {#if settingsState.showTechnicalsVolatility && data.volatility}
+              {#if data.volatility.atr !== undefined}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
@@ -337,6 +338,7 @@
                   )}</span
                 >
               </div>
+              {/if}
               {#if data.volatility.bb}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
@@ -372,7 +374,7 @@
                 <div
                   class="grid grid-cols-[1fr_auto_auto] gap-x-2 text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded group"
                 >
-                  <span class="truncate" title={osc.params}>{osc.name}</span>
+                  <span class="truncate" title="Params: {osc.params}{osc.signal !== undefined ? `\nSignal: ${TechnicalsPresenter.formatVal(osc.signal, indicatorSettings?.precision)}` : ''}{osc.upperBand !== undefined ? `\nUpper BB: ${TechnicalsPresenter.formatVal(osc.upperBand, indicatorSettings?.precision)}` : ''}{osc.lowerBand !== undefined ? `\nLower BB: ${TechnicalsPresenter.formatVal(osc.lowerBand, indicatorSettings?.precision)}` : ''}">{osc.name}</span>
                   <span class="font-mono text-right"
                     >{TechnicalsPresenter.formatVal(
                       osc.value,
@@ -411,7 +413,7 @@
                 <div
                   class="flex justify-between text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded"
                 >
-                  <span>{ma.name} ({ma.params})</span>
+                  <span title="Params: {ma.params}{ma.signal !== undefined ? `\nSignal: ${TechnicalsPresenter.formatVal(ma.signal, indicatorSettings?.precision)}` : ''}{ma.upperBand !== undefined ? `\nUpper BB: ${TechnicalsPresenter.formatVal(ma.upperBand, indicatorSettings?.precision)}` : ''}{ma.lowerBand !== undefined ? `\nLower BB: ${TechnicalsPresenter.formatVal(ma.lowerBand, indicatorSettings?.precision)}` : ''}">{ma.name}</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -577,21 +579,49 @@
               <!-- Ichimoku (Restyled) -->
               {#if data.advanced.ichimoku}
                 <div
+                  class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <div class="flex justify-between items-center">
+                    <span>{$_("settings.technicals.ichimoku")}</span>
+                    <span
+                      class="font-bold {TechnicalsPresenter.getActionColor(
+                        data.advanced.ichimoku.action,
+                      )}">{translateAction(data.advanced.ichimoku.action)}</span
+                    >
+                  </div>
+                  <div class="flex justify-between text-[10px] text-[var(--text-secondary)] mt-0.5">
+                    <span>Conv / Base</span>
+                    <span class="font-mono">
+                      {TechnicalsPresenter.formatVal(data.advanced.ichimoku.conversion, indicatorSettings?.precision)} / {TechnicalsPresenter.formatVal(data.advanced.ichimoku.base, indicatorSettings?.precision)}
+                    </span>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Parabolic SAR -->
+              {#if data.advanced.parabolicSar != null}
+                <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>{$_("settings.technicals.ichimoku")}</span>
-                  <span
-                    class="font-bold {TechnicalsPresenter.getActionColor(
-                      data.advanced.ichimoku.action,
-                    )}">{translateAction(data.advanced.ichimoku.action)}</span
-                  >
+                  <span>Parabolic SAR</span>
+                  <div class="flex gap-2">
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.parabolicSar,
+                        indicatorSettings?.precision,
+                      )}</span
+                    >
+                    <span class="font-bold {TechnicalsPresenter.getActionColor(data.advanced.parabolicSar < (data.pivotBasis?.close ?? 0) ? 'Buy' : 'Sell')}">
+                      {data.advanced.parabolicSar < (data.pivotBasis?.close ?? 0) ? "↑" : "↓"}
+                    </span>
+                  </div>
                 </div>
               {/if}
             </div>
           {/if}
 
           <!-- SIGNALS SECTION (Restyled) -->
-          {#if settingsState.showTechnicalsSignals}
+          {#if settingsState.showTechnicalsSignals && (settingsState.enabledIndicators.divergences || settingsState.enabledIndicators.marketStructure)}
             <div
               class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
             >
@@ -600,6 +630,25 @@
               >
                 {$_("settings.workspace.signals")}
               </div>
+
+              {#if data.advanced?.marketStructure}
+                <div
+                  class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0"
+                >
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium">Market Structure</span>
+                    <span
+                      class="font-bold {data.advanced.marketStructure.trend === 'Bullish' ? 'text-[var(--success-color)]' : data.advanced.marketStructure.trend === 'Bearish' ? 'text-[var(--danger-color)]' : 'text-[var(--text-secondary)]'}"
+                    >
+                      {data.advanced.marketStructure.trend}
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center text-[10px] text-[var(--text-secondary)] mt-0.5">
+                    <span>Recent Pattern</span>
+                    <span class="font-mono">{data.advanced.marketStructure.pattern} @ {TechnicalsPresenter.formatVal(data.advanced.marketStructure.price, indicatorSettings?.precision)}</span>
+                  </div>
+                </div>
+              {/if}
 
               {#if data.divergences && data.divergences.length > 0}
                 {#each data.divergences as div}
@@ -638,7 +687,7 @@
                     </div>
                   </div>
                 {/each}
-              {:else}
+              {:else if settingsState.enabledIndicators.divergences}
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >
