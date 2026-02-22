@@ -86,9 +86,10 @@ export class StatefulTechnicalsCalculator {
     newResult.oscillators = prevResult.oscillators.map(o => ({ ...o }));
     newResult.movingAverages = prevResult.movingAverages.map(ma => ({ ...ma }));
 
-    // 1. Update EMA
+    // 1. Update EMA (use configured source, not just close)
     if (this.state.ema && this.enabled("ema")) {
-       this.updateEmaGroup(newResult, currentPrice);
+       const emaPrice = this.getSourceValue(tick, this.settings?.ema?.source);
+       this.updateEmaGroup(newResult, emaPrice);
     }
 
     // 2. Update RSI
@@ -134,14 +135,15 @@ export class StatefulTechnicalsCalculator {
       // Update Price History
       this.priceHistory.push(price);
 
-      // 1. Update EMA State
+      // 1. Update EMA State (use configured source, not just close)
       if (this.state.ema) {
+          const emaPrice = this.getSourceValue(candle, this.settings?.ema?.source);
           Object.keys(this.state.ema).forEach(key => {
               const len = parseInt(key);
               const emaState = this.state.ema![len];
               // EMA(t) = alpha * price + (1-alpha) * EMA(t-1)
               const k = 2 / (len + 1);
-              emaState.prevEma = (price * k) + (emaState.prevEma * (1 - k));
+              emaState.prevEma = (emaPrice * k) + (emaState.prevEma * (1 - k));
           });
       }
 
@@ -306,6 +308,21 @@ export class StatefulTechnicalsCalculator {
     return true;
   }
 
+  /** Compute the configured source value from a Kline (matches technicalsCalculator's getSource). */
+  private getSourceValue(k: Kline, sourceType?: string): number {
+    const o = k.open.toNumber(), h = k.high.toNumber(), l = k.low.toNumber(), c = k.close.toNumber();
+    switch (sourceType) {
+      case "open":  return o;
+      case "high":  return h;
+      case "low":   return l;
+      case "hl2":   return (h + l) / 2;
+      case "hlc3":  return (h + l + c) / 3;
+      case "ohlc4": return (o + h + l + c) / 4;
+      case "hlcc4": return (h + l + c + c) / 4;
+      default:      return c;
+    }
+  }
+
   // --- Helpers to Reconstruct State from Initial Calculation ---
 
   private reconstructState(history: Kline[], result: TechnicalsData) {
@@ -314,7 +331,8 @@ export class StatefulTechnicalsCalculator {
      // because the result value may be offset-adjusted (shifted back by N bars).
      // The internal state must always track the most recent EMA for correct incremental updates.
      if (this.settings?.ema) {
-         const emaSource = history.map(k => k.close.toNumber());
+         const emaSourceType = this.settings?.ema?.source || "close";
+         const emaSource = history.map(k => this.getSourceValue(k, emaSourceType));
          const emas = [this.settings.ema.ema1, this.settings.ema.ema2, this.settings.ema.ema3];
          emas.forEach(cfg => {
              if (cfg && cfg.length) {
