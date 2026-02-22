@@ -109,6 +109,18 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
             }
         }
 
+            else if (type === "CLEANUP") {
+            const { symbol, timeframe } = payload;
+            const key = `${symbol}:${timeframe}`;
+            if (calculators.has(key)) {
+                calculators.delete(key);
+                ctx.postMessage({ type: "RESULT", payload: { success: true }, id });
+            } else {
+                // If it doesn't exist, it's already clean. Still success.
+                ctx.postMessage({ type: "RESULT", payload: { success: true }, id });
+            }
+        }
+
     } catch (err: any) {
         ctx.postMessage({ type: "ERROR", error: err.message, id });
     }
