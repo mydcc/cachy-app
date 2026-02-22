@@ -234,7 +234,18 @@ class BitgetWebSocketService {
         }
 
         try {
-          const message = safeJsonParse(event.data);
+          // FAST PATH: Precision Loss Protection for Bitget
+          // Wrap high-precision numeric fields in quotes before JSON parsing
+          let rawData = typeof event.data === 'string' ? event.data : '';
+
+          if (rawData && (rawData.includes('"arg":') || rawData.includes('"data":') || rawData.includes('"action":'))) {
+              // Regex to target specific keys followed by a number
+              // Hardened: Allow whitespace before/after colon
+              const regex = /"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice|total|available|locked|equity|unrealizedPL|maxOpenPosCost|usdtVolume|volume24h|high24h|low24h|last|open24h)"\s*:\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              rawData = rawData.replace(regex, '"$1":"$2"');
+          }
+
+          const message = safeJsonParse(rawData || event.data);
           this.handleMessage(message);
         } catch (e) {
           // ignore

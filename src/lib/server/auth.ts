@@ -10,6 +10,7 @@
 import { env } from "$env/dynamic/private";
 import { json } from "@sveltejs/kit";
 import crypto from "node:crypto";
+import { jsonError } from "../../utils/apiResponse";
 
 /**
  * Checks if the request contains the correct App Access Token.
@@ -22,10 +23,7 @@ export function checkAppAuth(request: Request): Response | null {
   // Security: Fail closed if no token is configured on the server.
   // This prevents accidental exposure of the API if the configuration is missing.
   if (!serverToken) {
-    return json(
-      { error: "Unauthorized: App Access Token not configured on server" },
-      { status: 401 }
-    );
+    return jsonError("Unauthorized: App Access Token not configured on server", "AUTH_CONFIG_ERROR", 401);
   }
 
   const clientToken = request.headers.get("x-app-access-token") || "";
@@ -36,10 +34,7 @@ export function checkAppAuth(request: Request): Response | null {
 
   // crypto.timingSafeEqual throws if lengths differ, but SHA256 hashes are always 32 bytes.
   if (!crypto.timingSafeEqual(clientHash, serverHash)) {
-    return json(
-      { error: "Unauthorized: Invalid or missing App Access Token" },
-      { status: 401 }
-    );
+    return jsonError("Unauthorized: Invalid or missing App Access Token", "AUTH_INVALID_TOKEN", 401);
   }
 
   return null;

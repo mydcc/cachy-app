@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { jsonError, jsonSuccess } from "../../../utils/apiResponse";
 
 interface ApiError extends Error {
   status?: number;
@@ -37,7 +38,7 @@ export const GET: RequestHandler = async ({ url }) => {
   const end = endParam ? parseInt(endParam) : undefined;
 
   if (!symbol) {
-    return json({ error: "Symbol is required" }, { status: 400 });
+    return jsonError("Symbol is required", "MISSING_SYMBOL", 400);
   }
 
   try {
@@ -47,7 +48,7 @@ export const GET: RequestHandler = async ({ url }) => {
     } else {
       klines = await fetchBitunixKlines(symbol, interval, limit, start, end);
     }
-    return json(klines);
+    return jsonSuccess(klines);
   } catch (e: unknown) {
     console.error(`Error fetching klines from ${provider}:`, e);
 
@@ -65,7 +66,7 @@ export const GET: RequestHandler = async ({ url }) => {
       message = String((e as any).message);
     }
 
-    return json({ error: message }, { status });
+    return jsonError(message, "FETCH_FAILED", status, { originalError: String(e) });
   }
 };
 

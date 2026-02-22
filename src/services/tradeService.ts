@@ -28,6 +28,8 @@ import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
 import { toastService } from "./toastService.svelte";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
@@ -279,7 +281,18 @@ class TradeService {
             return { success: true, data: result };
 
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
+            let msg = e instanceof Error ? e.message : String(e);
+            let code = (e as any).code;
+
+            // Try to resolve localized error message if code exists
+            if (code && (e instanceof BitunixApiError || String(code).startsWith('20') || String(code).startsWith('30'))) {
+                const t = get(_);
+                const localized = t(`bitunixErrors.${code}`);
+                // If translation exists (doesn't return key), use it
+                if (localized && localized !== `bitunixErrors.${code}`) {
+                    msg = localized;
+                }
+            }
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -329,7 +342,7 @@ class TradeService {
             toastService.error(`Flash Close Failed: ${msg}`);
 
             // Return failure object instead of throwing
-            return { success: false, error: msg };
+            return { success: false, error: msg, code };
         }
     }
 

@@ -587,7 +587,9 @@ class MarketWatcher {
 
       for (let i = 1; i < klines.length; i++) {
           // Simple subtraction check is much cheaper than object allocation
-          if (klines[i].time - klines[i-1].time > threshold) {
+          const diff = klines[i].time - klines[i-1].time;
+          // If diff is NaN (invalid timestamp) or gap > threshold, trigger full pass
+          if (isNaN(diff) || diff > threshold) {
               hasGaps = true;
               break;
           }
@@ -612,7 +614,8 @@ class MarketWatcher {
           const curr = klines[i];
 
           // Hardening: Basic structural check for current item
-          if (!curr || typeof curr.time !== "number") continue;
+          // Check for NaN specifically as typeof NaN is "number"
+          if (!curr || typeof curr.time !== "number" || isNaN(curr.time)) continue;
 
           const diff = curr.time - prev.time;
           if (diff > threshold) {
