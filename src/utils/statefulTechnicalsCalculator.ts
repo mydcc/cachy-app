@@ -97,7 +97,8 @@ export class StatefulTechnicalsCalculator {
     }
 
     // 3. Update SMA / Bollinger Bands
-    if (this.state.sma && this.enabled("sma")) {
+    // Run if SMA or Bollinger Bands is enabled (BB state is stored in this.state.sma)
+    if (this.state.sma && (this.enabled("sma") || this.enabled("bollingerBands"))) {
         this.updateSmaGroup(newResult, currentPrice);
     }
 
