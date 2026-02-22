@@ -290,12 +290,25 @@ export class StatefulTechnicalsCalculator {
 
   private enabled(key: string): boolean {
     if (!this.enabledIndicators) return true;
-    return !!this.enabledIndicators[key];
+    // Normalize to lowercase for comparison, since enabledIndicators uses
+    // camelCase keys (e.g. "stochRsi", "bollingerBands") but callers may
+    // pass lowercase (e.g. "stochrsi"). The stateless calculator does the
+    // same normalization in technicalsCalculator.ts:114-122.
+    const normalizedKey = key.toLowerCase();
+    for (const [k, v] of Object.entries(this.enabledIndicators)) {
+      if (k.toLowerCase() === normalizedKey) {
+        return v !== false;
+      }
+    }
+    // Key not found — treat as enabled (matches old behavior and the
+    // stateless calculator's blocklist/allowlist logic).
+    return true;
   }
 
   // --- Helpers to Reconstruct State from Initial Calculation ---
 
   private reconstructState(history: Kline[], result: TechnicalsData) {
+     // (marker)
      // Reconstruct EMA
      if (this.settings?.ema) {
          const emas = [this.settings.ema.ema1, this.settings.ema.ema2, this.settings.ema.ema3];
