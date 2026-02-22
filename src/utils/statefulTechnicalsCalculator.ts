@@ -156,20 +156,20 @@ export class StatefulTechnicalsCalculator {
     let neutral = 0;
 
     [...(newResult.oscillators || []), ...(newResult.movingAverages || [])].forEach((ind) => {
-        if (ind.action.includes(Buy)) buy++;
-        else if (ind.action.includes(Sell)) sell++;
+        if (ind.action.includes("Buy")) buy++;
+        else if (ind.action.includes("Sell")) sell++;
         else neutral++;
     });
 
-    let summaryAction: Buy | Sell | Neutral = Neutral;
-    if (buy > sell && buy > neutral) summaryAction = Buy;
-    else if (sell > buy && sell > neutral) summaryAction = Sell;
+    let summaryAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+    if (buy > sell && buy > neutral) summaryAction = "Buy";
+    else if (sell > buy && sell > neutral) summaryAction = "Sell";
 
     newResult.summary = { buy, sell, neutral, action: summaryAction };
 
     // 2. Pivots
     if (this.settings?.pivots && this.state.lastCandle) {
-        const pivotType = this.settings.pivots.type || classic;
+        const pivotType = this.settings.pivots.type || "classic";
         const pc = this.state.lastCandle;
 
         const pivotData = calculatePivotsFromValues(
