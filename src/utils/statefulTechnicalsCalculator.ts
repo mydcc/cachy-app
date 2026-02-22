@@ -308,7 +308,6 @@ export class StatefulTechnicalsCalculator {
   // --- Helpers to Reconstruct State from Initial Calculation ---
 
   private reconstructState(history: Kline[], result: TechnicalsData) {
-     // (marker)
      // Reconstruct EMA
      if (this.settings?.ema) {
          const emas = [this.settings.ema.ema1, this.settings.ema.ema2, this.settings.ema.ema3];
@@ -345,7 +344,7 @@ export class StatefulTechnicalsCalculator {
          // We can approximate them if we only have the final RSI value, but that leads to inaccuracy.
          // Better to re-calculate them from the last N*2 candles.
 
-         const subset = history.slice(-len * 10); // Lookback enough to stabilize
+         const subset = history.slice(-len * 10); // Lookback enough to stabilize (RSI)
          // Standard Wilder's RSI calculation on subset
          let avgGain = 0, avgLoss = 0;
          const closes = subset.map(k => k.close.toNumber());
