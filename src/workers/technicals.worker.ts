@@ -62,11 +62,11 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
             ctx.postMessage({ type: "RESULT", payload: result, id });
         } 
         else if (type === "INITIALIZE") {
-            const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
+            const { symbol, timeframe, klines, settings, enabledIndicators, hasPhantom } = payload;
             const key = `${symbol}:${timeframe}`;
             
             const calc = new StatefulTechnicalsCalculator();
-            const result = calc.initialize(convertToDecimalKlines(klines), settings, enabledIndicators);
+            const result = calc.initialize(convertToDecimalKlines(klines), settings, enabledIndicators, hasPhantom);
             
             calculators.set(key, calc);
             ctx.postMessage({ type: "RESULT", payload: result, id });

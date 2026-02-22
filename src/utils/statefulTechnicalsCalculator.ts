@@ -45,19 +45,21 @@ export class StatefulTechnicalsCalculator {
     this.priceHistory = new CircularBuffer<number>(this.MAX_HISTORY_SIZE);
   }
 
-  public initialize(
+    public initialize(
     history: Kline[],
     settings: any,
-    enabledIndicators?: Partial<Record<string, boolean>>
+    enabledIndicators?: Partial<Record<string, boolean>>,
+    hasPhantom: boolean = false
   ): TechnicalsData {
     this.settings = settings;
     this.enabledIndicators = enabledIndicators;
 
-    // Detect phantom candle (live forming candle)
-    // It's the last candle, and typically has volume 0 if it's just started/forming
-    // The ActiveTechnicalsManager injects it with volume 0.
-    const lastCandle = history[history.length - 1];
-    const isPhantom = lastCandle && lastCandle.volume.isZero();
+    // Detect phantom candle (live forming candle) using explicit flag
+    // Fallback to volume check only if flag is not provided (for backward compat if needed, though we control callers)
+    // Actually, better to rely solely on flag if provided.
+    const isPhantom = hasPhantom;
+
+    // 1. Run full calculation to get the baseline for UI (includes phantom)
 
     // 1. Run full calculation to get the baseline for UI (includes phantom)
     const result = calculateAllIndicators(history, settings, enabledIndicators);

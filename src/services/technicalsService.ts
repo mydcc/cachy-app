@@ -332,7 +332,7 @@ export const technicalsService = {
     return result;
   },
 
-  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings, enabledIndicators?: any, hasPhantom: boolean = false): Promise<TechnicalsData> {
     notifyCapabilityStatus();
     if (!workerManager.isHealthy()) {
         return this.calculateTechnicalsInline(klines, settings, enabledIndicators);

@@ -567,7 +567,7 @@ class ActiveTechnicalsManager {
                 // INITIALIZE (Full History)
                 // Fallback for cold start OR multi-candle gap
                 result = await technicalsService.initializeTechnicals(
-                    symbol, timeframe, history, settings, enabledIndicators
+                    symbol, timeframe, history, settings, enabledIndicators, isPhantomAppended
                 );
 
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
