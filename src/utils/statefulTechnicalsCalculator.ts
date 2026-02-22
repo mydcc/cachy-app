@@ -310,14 +310,18 @@ export class StatefulTechnicalsCalculator {
 
   private reconstructState(history: Kline[], result: TechnicalsData) {
      // Reconstruct EMA
+     // We compute the true latest EMA from history rather than using the result value,
+     // because the result value may be offset-adjusted (shifted back by N bars).
+     // The internal state must always track the most recent EMA for correct incremental updates.
      if (this.settings?.ema) {
+         const emaSource = history.map(k => k.close.toNumber());
          const emas = [this.settings.ema.ema1, this.settings.ema.ema2, this.settings.ema.ema3];
          emas.forEach(cfg => {
              if (cfg && cfg.length) {
-                // Find the result in the movingAverages array
-                const ma = result.movingAverages.find(m => m.name === "EMA" && m.params === cfg.length.toString());
-                if (ma) {
-                    this.state.ema![cfg.length] = { prevEma: ma.value };
+                const emaResults = JSIndicators.ema(emaSource, cfg.length);
+                const latestEma = emaResults[emaResults.length - 1];
+                if (!isNaN(latestEma)) {
+                    this.state.ema![cfg.length] = { prevEma: latestEma };
                 }
              }
          });
