@@ -534,15 +534,30 @@ class ActiveTechnicalsManager {
             ? history[len - 2].time
             : currentLastTime;
 
-        // Determine Actions
+                // Determine Actions
         const needsInit = !state || !state.initialized;
-        const needsShift = state && state.initialized && state.lastCommittedTime !== lastCommittedTime;
+
+        // Check gap size for shifting
+        const intervalMs = getIntervalMs(timeframe);
+        // lastCommittedTime is timestamp of newly closed candle (or current forming if just opened)
+        // state.lastCommittedTime is timestamp of PREVIOUSLY closed candle
+
+        // Calculate gap in number of intervals
+        // Note: intervalMs is in milliseconds.
+        // If state.lastCommittedTime = 100, lastCommittedTime = 104, gap = 4.
+        const gap = state && state.initialized
+            ? (lastCommittedTime - state.lastCommittedTime) / intervalMs
+            : 0;
+
+        const needsShift = state && state.initialized && gap === 1;
+        const needsReinit = state && state.initialized && gap > 1;
 
         let result;
 
         try {
-            if (needsInit) {
+            if (needsInit || needsReinit) {
                 // INITIALIZE (Full History)
+                // Fallback for cold start OR multi-candle gap
                 result = await technicalsService.initializeTechnicals(
                     symbol, timeframe, history, settings, enabledIndicators
                 );
@@ -550,7 +565,7 @@ class ActiveTechnicalsManager {
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
             } else if (needsShift) {
                 // SHIFT + UPDATE
-                // We have moved to a new candle. Commit the previous closed candle.
+                // We have moved to a new candle (gap === 1). Commit the previous closed candle.
 
                 let closedCandle = isPhantomAppended ? history[len - 2] : history[len - 1];
 
@@ -565,6 +580,7 @@ class ActiveTechnicalsManager {
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
             } else {
                 // UPDATE (Single Tick)
+                // Same candle period (gap === 0)
                 const lastK = history[history.length - 1];
                 result = await technicalsService.updateTechnicals(
                     symbol, timeframe, lastK
@@ -574,6 +590,7 @@ class ActiveTechnicalsManager {
             if (result) {
                 this.handleResult(symbol, timeframe, marketData, result);
             }
+
 
         } catch (e: any) {
             if (e.message === "Worker unavailable for update" || e.message === "Worker unavailable for shift") {
