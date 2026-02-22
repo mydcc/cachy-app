@@ -600,10 +600,10 @@ class ActiveTechnicalsManager {
             }
 
 
-        } catch (e: any) {
-            if (e.message === "Worker unavailable for update" || e.message === "Worker unavailable for shift") {
+                } catch (e: any) {
+            if (e.message === "Worker unavailable for update" || e.message === "Worker unavailable for shift" || e.message === "CALCULATOR_NOT_FOUND") {
                 if (import.meta.env.DEV) {
-                    logger.debug("technicals", `[ActiveManager] Worker unavailable on ${key}, scheduling re-init.`);
+                    logger.debug("technicals", `[ActiveManager] Worker state invalid for ${key} (${e.message}), scheduling re-init.`);
                 }
             } else {
                 logger.error("technicals", `Calculation failed for ${key}`, e);
@@ -611,6 +611,7 @@ class ActiveTechnicalsManager {
             // On error, force re-init next time
             this.workerState.delete(key);
         }
+
     }
 
 

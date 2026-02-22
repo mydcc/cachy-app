@@ -71,7 +71,7 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
             calculators.set(key, calc);
             ctx.postMessage({ type: "RESULT", payload: result, id });
         }
-        else if (type === "UPDATE") {
+                else if (type === "UPDATE") {
             const { symbol, timeframe, kline } = payload;
             const key = `${symbol}:${timeframe}`;
             const calc = calculators.get(key);
@@ -85,6 +85,8 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
                     volume: new Decimal(kline.volume),
                 };
                 ctx.postMessage({ type: "RESULT", payload: calc.update(tick), id });
+            } else {
+                ctx.postMessage({ type: "ERROR", error: "CALCULATOR_NOT_FOUND", id });
             }
         }
         else if (type === "SHIFT") {
@@ -102,8 +104,11 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
                 };
                 calc.commitCandle(tick);
                 ctx.postMessage({ type: "RESULT", payload: { success: true }, id });
+            } else {
+                ctx.postMessage({ type: "ERROR", error: "CALCULATOR_NOT_FOUND", id });
             }
         }
+
     } catch (err: any) {
         ctx.postMessage({ type: "ERROR", error: err.message, id });
     }
