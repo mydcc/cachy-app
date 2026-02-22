@@ -17,8 +17,13 @@
 
 # Exit on error
 set -o errexit
+# Print commands for debugging
+set -x
 
 echo "Build script started."
+
+# Ensure execution permissions for build scripts
+chmod +x ./scripts/build_wasm.sh
 
 # Ensure Cargo is available
 if ! command -v cargo &> /dev/null; then
@@ -39,13 +44,14 @@ fi
 echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
-echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
-if [ -f "package-lock.json" ]; then
-    npm ci
-else
-    npm install
-fi
+echo "Cleaning up node_modules to ensure clean state..."
+rm -rf node_modules
 
-echo "Building..."
+echo "Installing Node dependencies with npm install (ignoring lockfile strictness)..."
+npm install
+
+echo "Rebuilding native modules..."
+npm rebuild
+
+echo "Building application..."
 npm run build
