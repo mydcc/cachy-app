@@ -17,6 +17,8 @@
 
 # Exit on error
 set -o errexit
+# Print commands for debugging
+set -x
 
 echo "Build script started."
 
@@ -42,18 +44,14 @@ fi
 echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
-echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists, fallback to npm install on failure
-if [ -f "package-lock.json" ]; then
-    # We use 'if ! command' to catch failure without exiting due to set -e
-    if ! npm ci; then
-        echo "⚠ npm ci failed (likely lockfile sync issue), falling back to npm install..."
-        npm install
-    fi
-else
-    echo "No package-lock.json found, using npm install..."
-    npm install
-fi
+echo "Cleaning up node_modules to ensure clean state..."
+rm -rf node_modules
 
-echo "Building..."
+echo "Installing Node dependencies with npm install (ignoring lockfile strictness)..."
+npm install
+
+echo "Rebuilding native modules..."
+npm rebuild
+
+echo "Building application..."
 npm run build
