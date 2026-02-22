@@ -626,6 +626,7 @@ class ActiveTechnicalsManager {
     }
 
     private prepareBuffersWithRealtime(original: KlineBuffers, timeframe: string, price: Decimal | null): KlineBuffers {
+        const intervalMs = getIntervalMs(timeframe);
         const len = original.times.length;
         if (len === 0) return original; // Should typically clone even here? But empty is empty.
 
@@ -691,6 +692,7 @@ class ActiveTechnicalsManager {
 
     // Stateless Helper: mutates a copy of the history array found in memory
     private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal, symbol: string) {
+        const intervalMs = getIntervalMs(timeframe);
         if (history.length === 0) return;
 
         const lastIdx = history.length - 1;
