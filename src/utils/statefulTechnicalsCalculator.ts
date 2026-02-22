@@ -314,6 +314,17 @@ export class StatefulTechnicalsCalculator {
              sState.rawKHistory.push(rawK);
              const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
              if (sState.rawKHistory.length > kPeriod) sState.rawKHistory.shift();
+
+             // Calculate Smoothed %K for closed candle
+             let stochKVal = 0;
+             for (const k of sState.rawKHistory) stochKVal += k;
+             stochKVal = sState.rawKHistory.length > 0 ? stochKVal / sState.rawKHistory.length : 0;
+
+             // Update %D history
+             if (!sState.dHistory) sState.dHistory = [];
+             const dPeriod = this.settings?.stochRsi?.dPeriod || 3;
+             sState.dHistory.push(stochKVal);
+             if (sState.dHistory.length > dPeriod) sState.dHistory.shift();
           });
       }
 
@@ -666,10 +677,11 @@ export class StatefulTechnicalsCalculator {
       stochKVal = currentKWindow.length > 0 ? stochKVal / currentKWindow.length : 0;
 
       // ✅ Bug 4 fix: compute %D as SMA(K, dPeriod) using a rolling D window
+      // NO MUTATION of state.dHistory here!
       if (!state.dHistory) state.dHistory = [];
-      const dHistory = state.dHistory as number[];
-      dHistory.push(stochKVal);
+      const dHistory = [...state.dHistory, stochKVal]; // Create shallow copy with new value
       if (dHistory.length > dPeriod) dHistory.shift();
+
       let stochDVal = 0;
       for (const d of dHistory) stochDVal += d;
       stochDVal = dHistory.length > 0 ? stochDVal / dHistory.length : stochKVal;
@@ -720,19 +732,60 @@ export class StatefulTechnicalsCalculator {
 
       const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
       const rawKHistory: number[] = [];
+      const dPeriod = this.settings?.stochRsi?.dPeriod || 3;
+      const dHistory: number[] = [];
       
       // Rebuild rawK history
-      for (let i = 0; i < kPeriod; i++) {
-         const idx = rsiArray.length - kPeriod + i;
-         if (idx >= len - 1) {
-             const window = rsiArray.slice(idx - len + 1, idx + 1);
-             const maxRsi = Math.max(...window);
-             const minRsi = Math.min(...window);
-             const r = maxRsi - minRsi;
-             rawKHistory.push(r === 0 ? 50 : ((rsiArray[idx] - minRsi) / r) * 100);
+      // We also need to rebuild dHistory which is SMA(%K, dPeriod)
+      // To do this properly, we need to calculate %K for the last dPeriod candles
+
+      const startD = Math.max(0, rsiArray.length - dPeriod - kPeriod - len);
+      // This is complicated to reconstruct perfectly without re-running.
+      // But we can just use the tail.
+
+      // Simple reconstruction:
+      // 1. Calculate %K for all candles
+      const kValues: number[] = [];
+      for (let i = 0; i < rsiArray.length; i++) {
+          if (i >= len - 1) {
+              const window = rsiArray.slice(i - len + 1, i + 1);
+              const max = Math.max(...window);
+              const min = Math.min(...window);
+              const r = max - min;
+              const rawK = r === 0 ? 50 : ((rsiArray[i] - min) / r) * 100;
+              kValues.push(rawK);
+          } else {
+              kValues.push(50);
+          }
+      }
+
+      // 2. Smoothed %K
+      const smoothKValues: number[] = [];
+      for (let i = 0; i < kValues.length; i++) {
+         if (i >= kPeriod - 1) {
+             let sum = 0;
+             for (let j = 0; j < kPeriod; j++) sum += kValues[i - j];
+             smoothKValues.push(sum / kPeriod);
          } else {
-             rawKHistory.push(50);
+             smoothKValues.push(kValues[i]);
          }
+      }
+
+      // 3. Extract histories
+      // rawKHistory needs last kPeriod values of Smoothed %K??
+      // Wait, 'rawKHistory' in state is used to calculate Smoothed %K.
+      // So it should contain 'Raw %K' values.
+
+      // Get last kPeriod raw K values
+      for (let i = 0; i < kPeriod; i++) {
+          const idx = kValues.length - kPeriod + i;
+          if (idx >= 0) rawKHistory.push(kValues[idx]);
+      }
+
+      // Get last dPeriod smoothed K values for dHistory
+      for (let i = 0; i < dPeriod; i++) {
+          const idx = smoothKValues.length - dPeriod + i;
+          if (idx >= 0) dHistory.push(smoothKValues[idx]);
       }
 
       this.state.stochRsi = {
@@ -744,7 +797,8 @@ export class StatefulTechnicalsCalculator {
                   prevPrice: closes[closes.length - 1]
               },
               rsiHistory: rsiWindow,
-              rawKHistory: rawKHistory
+              rawKHistory: rawKHistory,
+              dHistory: dHistory
           }
       };
   }
