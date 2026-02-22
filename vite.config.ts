@@ -5,12 +5,21 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { sveltekit } from "@sveltejs/kit/vite";
-import { defineConfig, configDefaults } from "vitest/config";
+import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 
+// Explicitly typecast to any to avoid TS errors with 'test' property when vitest is not loaded
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
   define: {
@@ -42,7 +51,16 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/*.spec.ts'],
+    // Hardcoded defaults to avoid importing vitest/config in production
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/cypress/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+      'tests/e2e/**',
+      '**/*.spec.ts'
+    ],
     env: {
       APP_ACCESS_TOKEN: 'test-token-123'
     }
@@ -72,4 +90,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
-});
+} as any);
