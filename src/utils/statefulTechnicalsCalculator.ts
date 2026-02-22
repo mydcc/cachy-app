@@ -140,10 +140,17 @@ export class StatefulTechnicalsCalculator {
           const emaPrice = this.getSourceValue(candle, this.settings?.ema?.source);
           Object.keys(this.state.ema).forEach(key => {
               const len = parseInt(key);
-              const emaState = this.state.ema![len];
+              const emaState = this.state.ema![len] as any;
               // EMA(t) = alpha * price + (1-alpha) * EMA(t-1)
               const k = 2 / (len + 1);
               emaState.prevEma = (emaPrice * k) + (emaState.prevEma * (1 - k));
+
+              // Maintain offset history buffer
+              const offset = emaState.offset || 0;
+              if (offset > 0 && emaState.history) {
+                  emaState.history.push(emaState.prevEma);
+                  if (emaState.history.length > offset + 1) emaState.history.shift();
+              }
           });
       }
 
@@ -339,7 +346,16 @@ export class StatefulTechnicalsCalculator {
                 const emaResults = JSIndicators.ema(emaSource, cfg.length);
                 const latestEma = emaResults[emaResults.length - 1];
                 if (!isNaN(latestEma)) {
-                    this.state.ema![cfg.length] = { prevEma: latestEma };
+                    const offset = cfg.offset || 0;
+                    // Seed a small history buffer so we can look back 'offset' bars
+                    const histBuf: number[] = [];
+                    if (offset > 0) {
+                        const start = Math.max(0, emaResults.length - offset - 1);
+                        for (let i = start; i < emaResults.length; i++) {
+                            if (!isNaN(emaResults[i])) histBuf.push(emaResults[i]);
+                        }
+                    }
+                    this.state.ema![cfg.length] = { prevEma: latestEma, history: histBuf, offset };
                 }
              }
          });
@@ -430,16 +446,27 @@ export class StatefulTechnicalsCalculator {
       const emaInds = result.movingAverages.filter(m => m.name === "EMA");
       for (const ma of emaInds) {
           const len = parseInt(ma.params || "0");
-          const state = this.state.ema[len];
+          const state = this.state.ema[len] as any;
           if (state && len > 0) {
               const k = 2 / (len + 1);
               const newEma = (price * k) + (state.prevEma * (1 - k));
-              ma.value = newEma;
-              ma.action = price > newEma ? "Buy" : "Sell";
 
-              // Note: Signal/Band logic handles smoothing which might be complex to incrementalize perfectly
-              // without extra state. For now, we update the base value.
-              // If smoothing is enabled, we might skip updating signal/bands here or approximate.
+              const offset = state.offset || 0;
+              if (offset > 0 && state.history) {
+                  // Push current EMA to history, keep buffer at offset+1 size
+                  state.history.push(newEma);
+                  if (state.history.length > offset + 1) state.history.shift();
+
+                  // Display the value from 'offset' bars ago
+                  const displayIdx = state.history.length - 1 - offset;
+                  if (displayIdx >= 0) {
+                      ma.value = state.history[displayIdx];
+                  }
+                  // else: not enough history yet, keep previous value
+              } else {
+                  ma.value = newEma;
+              }
+              ma.action = price > ma.value ? "Buy" : "Sell";
           }
       }
   }
