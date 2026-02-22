@@ -538,7 +538,6 @@ class ActiveTechnicalsManager {
         const needsInit = !state || !state.initialized;
 
         // Check gap size for shifting
-        const intervalMs = getIntervalMs(timeframe);
         // lastCommittedTime is timestamp of newly closed candle (or current forming if just opened)
         // state.lastCommittedTime is timestamp of PREVIOUSLY closed candle
 
@@ -637,7 +636,6 @@ class ActiveTechnicalsManager {
 
         if (price) {
             const now = Date.now();
-            const intervalMs = getIntervalMs(timeframe);
             currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
 
             if (lastTime === currentPeriodStart) updateType = 'update';
@@ -699,7 +697,6 @@ class ActiveTechnicalsManager {
         const lastCandle = { ...history[lastIdx] }; // Clone to avoid mutating state directly outside action
 
         const now = Date.now();
-        const intervalMs = getIntervalMs(timeframe);
         const currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
 
         if (lastCandle.time === currentPeriodStart) {
