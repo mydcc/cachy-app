@@ -131,7 +131,7 @@ export class StatefulTechnicalsCalculator {
       const price = candle.close.toNumber();
 
       // Update Price History
-      this.priceHistory.push(price);
+      // Deferred: push to priceHistory after SMA update (step 3)
 
       // 1. Update EMA State
       if (this.state.ema) {
@@ -181,7 +181,9 @@ export class StatefulTechnicalsCalculator {
               // Next step: 6. History: 2,3,4,5,6.
               // We removed 1.
               // So we need value at index (currentSize - len - 1).
-              const oldValIdx = this.priceHistory.getSize() - len - 1;
+              // Price has NOT been pushed yet, so buffer still holds the old window.
+              // The value falling out of the window is at index (size - len).
+              const oldValIdx = this.priceHistory.getSize() - len;
               const oldVal = this.priceHistory.get(oldValIdx);
 
               if (oldVal !== undefined) {
@@ -193,6 +195,9 @@ export class StatefulTechnicalsCalculator {
               }
           });
       }
+
+      // Now push to price history (after SMA has read the old value)
+      this.priceHistory.push(price);
 
       // 4. Update MFI State
       if (this.state.mfi) {
