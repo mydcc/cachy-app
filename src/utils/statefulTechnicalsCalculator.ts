@@ -430,6 +430,7 @@ export class StatefulTechnicalsCalculator {
       if (!this.state.sma) return;
 
       const smaInds = result.movingAverages.filter(m => m.name === "SMA");
+      let bbUpdated = false;
       for (const ma of smaInds) {
           const len = parseInt(ma.params || "0");
           const state = this.state.sma[len];
@@ -449,7 +450,7 @@ export class StatefulTechnicalsCalculator {
                   if (result.volatility?.bb) {
                       const bbLen = this.settings?.bollingerBands?.length || 20;
                       if (len === bbLen) {
-                         const prevSumSq = state.prevSumSq || 0; // If not initialized, BB fails. Should be initialized in reconstruct.
+                         const prevSumSq = state.prevSumSq || 0;
                          const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
                          const variance = Math.max(0, (newSumSq / len) - (newSma * newSma));
                          const std = Math.sqrt(variance);
@@ -461,8 +462,37 @@ export class StatefulTechnicalsCalculator {
 
                          const range = result.volatility.bb.upper - result.volatility.bb.lower;
                          result.volatility.bb.percentP = range === 0 ? 0.5 : (price - result.volatility.bb.lower) / range;
+                         bbUpdated = true;
                       }
                   }
+              }
+          }
+      }
+
+      // Standalone BB update when SMA indicator is disabled (no SMA entries in movingAverages)
+      // but Bollinger Bands is enabled and has its own SMA state
+      if (!bbUpdated && result.volatility?.bb) {
+          const bbLen = this.settings?.bollingerBands?.length || 20;
+          const state = this.state.sma[bbLen];
+          if (state && this.priceHistory.getSize() >= bbLen) {
+              const oldestInWindow = this.priceHistory.getSize() - bbLen;
+              const oldVal = this.priceHistory.get(oldestInWindow);
+
+              if (oldVal !== undefined) {
+                  const newSum = state.prevSum - oldVal + price;
+                  const newSma = newSum / bbLen;
+                  const prevSumSq = state.prevSumSq || 0;
+                  const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
+                  const variance = Math.max(0, (newSumSq / bbLen) - (newSma * newSma));
+                  const std = Math.sqrt(variance);
+                  const stdDev = this.settings?.bollingerBands?.stdDev || 2;
+
+                  result.volatility.bb.middle = newSma;
+                  result.volatility.bb.upper = newSma + std * stdDev;
+                  result.volatility.bb.lower = newSma - std * stdDev;
+
+                  const range = result.volatility.bb.upper - result.volatility.bb.lower;
+                  result.volatility.bb.percentP = range === 0 ? 0.5 : (price - result.volatility.bb.lower) / range;
               }
           }
       }
