@@ -25,6 +25,8 @@ import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState, EmaState, RsiState, MfiState } from "../services/technicalsTypes";
 import { CircularBuffer } from "./circularBuffer";
+import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
+import { calculatePivotsFromValues } from "./indicators";
 
 export class StatefulTechnicalsCalculator {
   private state: TechnicalsState = {
@@ -45,24 +47,46 @@ export class StatefulTechnicalsCalculator {
     this.priceHistory = new CircularBuffer<number>(this.MAX_HISTORY_SIZE);
   }
 
-  public initialize(
+    public initialize(
     history: Kline[],
     settings: any,
-    enabledIndicators?: Partial<Record<string, boolean>>
+    enabledIndicators?: Partial<Record<string, boolean>>,
+    hasPhantom: boolean = false
   ): TechnicalsData {
     this.settings = settings;
     this.enabledIndicators = enabledIndicators;
 
-    // 1. Run full calculation to get the baseline
+    // Detect phantom candle (live forming candle) using explicit flag
+    // Fallback to volume check only if flag is not provided (for backward compat if needed, though we control callers)
+    // Actually, better to rely solely on flag if provided.
+    const isPhantom = hasPhantom;
+
+    // 1. Run full calculation to get the baseline for UI (includes phantom)
+
+    // 1. Run full calculation to get the baseline for UI (includes phantom)
     const result = calculateAllIndicators(history, settings, enabledIndicators);
     this.state.lastResult = result;
-    this.state.lastCandle = history[history.length - 1];
 
-    this.reconstructState(history, result);
-    this.reconstructMfiState(history);
-    this.reconstructAtrState(history);
-    this.reconstructStochRsiState(history);
-    this.initHistoryBuffers(history);
+    // 2. Reconstruct state using only CLOSED candles
+    // If we have a phantom, exclude it from state reconstruction
+    const closedHistory = isPhantom ? history.slice(0, -1) : history;
+
+    // If we sliced off the phantom, we need the result for the closed history
+    // to correctly reconstruct state (e.g. prevEma).
+    // calculateAllIndicators is fast enough to run again for the closed history.
+    let closedResult = result;
+    if (isPhantom) {
+        closedResult = calculateAllIndicators(closedHistory, settings, enabledIndicators);
+    }
+
+    // Important: Update lastCandle to the last CLOSED candle for state tracking
+    this.state.lastCandle = closedHistory[closedHistory.length - 1];
+
+    this.reconstructState(closedHistory, closedResult);
+    this.reconstructMfiState(closedHistory);
+    this.reconstructAtrState(closedHistory);
+    this.reconstructStochRsiState(closedHistory);
+    this.initHistoryBuffers(closedHistory);
 
     return result;
   }
@@ -77,14 +101,17 @@ export class StatefulTechnicalsCalculator {
     const prevPrice = this.state.lastCandle.close.toNumber();
 
     // Clone the previous result to modify it
-    // Deep clone might be expensive, but structure is simple.
-    // For perf, we mutate a fresh object based on prev.
-    const newResult = { ...prevResult }; // Shallow copy of top level
-
-    // Arrays (oscillators, MAs) need to be cloned or we just replace the entries we update.
-    // Since 'oscillators' is an array of objects, we can map it.
-    newResult.oscillators = prevResult.oscillators.map(o => ({ ...o }));
-    newResult.movingAverages = prevResult.movingAverages.map(ma => ({ ...ma }));
+    // Use deeper cloning for nested objects to ensure reference equality checks in UI fail correctly
+    const newResult = {
+        ...prevResult,
+        oscillators: prevResult.oscillators.map(o => ({ ...o })),
+        movingAverages: prevResult.movingAverages.map(ma => ({ ...ma })),
+        volatility: prevResult.volatility ? {
+            ...prevResult.volatility,
+            bb: prevResult.volatility.bb ? { ...prevResult.volatility.bb } : undefined
+        } : undefined,
+        advanced: prevResult.advanced ? { ...prevResult.advanced } : undefined
+    };
 
     // 1. Update EMA
     if (this.state.ema && this.enabled("ema")) {
@@ -96,8 +123,9 @@ export class StatefulTechnicalsCalculator {
        this.updateRsiGroup(newResult, currentPrice, prevPrice);
     }
 
-    // ✅ Bug 2 fix: track last candle so prevPrice is always correct on next tick
-    this.state.lastCandle = tick;
+    // Note: We do NOT update this.state.lastCandle to 'tick' here.
+    // We want this.state.lastCandle to always point to the last CLOSED candle
+    // so that 'prevPrice' remains the close of the previous candle.
 
     // 3. Update SMA / Bollinger Bands
     if (this.state.sma && this.enabled("sma")) {
@@ -118,6 +146,54 @@ export class StatefulTechnicalsCalculator {
     if (this.state.stochRsi && this.enabled("stochrsi")) {
         this.updateStochRsiGroup(newResult, currentPrice);
     }
+
+
+    // --- Recalculate Aggregates (Summary, Pivots, Confluence) ---
+
+    // 1. Summary
+    let buy = 0;
+    let sell = 0;
+    let neutral = 0;
+
+    [...(newResult.oscillators || []), ...(newResult.movingAverages || [])].forEach((ind) => {
+        if (ind.action.includes("Buy")) buy++;
+        else if (ind.action.includes("Sell")) sell++;
+        else neutral++;
+    });
+
+    let summaryAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+    if (buy > sell && buy > neutral) summaryAction = "Buy";
+    else if (sell > buy && sell > neutral) summaryAction = "Sell";
+
+    newResult.summary = { buy, sell, neutral, action: summaryAction };
+
+    // 2. Pivots
+    if (this.settings?.pivots && this.state.lastCandle) {
+        const pivotType = this.settings.pivots.type || "classic";
+        const pc = this.state.lastCandle;
+
+        const pivotData = calculatePivotsFromValues(
+            pc.high.toNumber(),
+            pc.low.toNumber(),
+            pc.close.toNumber(),
+            pc.open.toNumber(),
+            pivotType
+        );
+
+        newResult.pivots = pivotData.pivots;
+        newResult.pivotBasis = pivotData.basis;
+    }
+
+    // 3. Confluence
+    const partialData: any = {
+        oscillators: newResult.oscillators,
+        movingAverages: newResult.movingAverages,
+        divergences: newResult.divergences,
+        advanced: newResult.advanced,
+        pivotBasis: newResult.pivotBasis,
+    };
+
+    newResult.confluence = ConfluenceAnalyzer.analyze(partialData);
 
     // Update State for next tick
     this.state.lastResult = newResult;
@@ -290,6 +366,17 @@ export class StatefulTechnicalsCalculator {
              sState.rawKHistory.push(rawK);
              const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
              if (sState.rawKHistory.length > kPeriod) sState.rawKHistory.shift();
+
+             // Calculate Smoothed %K for closed candle
+             let stochKVal = 0;
+             for (const k of sState.rawKHistory) stochKVal += k;
+             stochKVal = sState.rawKHistory.length > 0 ? stochKVal / sState.rawKHistory.length : 0;
+
+             // Update %D history
+             if (!sState.dHistory) sState.dHistory = [];
+             const dPeriod = this.settings?.stochRsi?.dPeriod || 3;
+             sState.dHistory.push(stochKVal);
+             if (sState.dHistory.length > dPeriod) sState.dHistory.shift();
           });
       }
 
@@ -459,11 +546,11 @@ export class StatefulTechnicalsCalculator {
       const len = this.settings?.rsi?.length || 14;
       const state = this.state.rsi[len];
       if (state) {
-          // ✅ Bug 1 fix: destructure and write avgGain/avgLoss back to state
-          const { rsi, avgGain, avgLoss } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
-          state.avgGain = avgGain;
-          state.avgLoss = avgLoss;
-          state.prevPrice = price;
+          // Calculate forming RSI without mutating state
+          // state.avgGain/Loss are from the last CLOSED candle.
+          // prevPrice is from the last CLOSED candle.
+          const { rsi } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
+
           rsiInd.value = rsi;
 
           if (rsi > (this.settings?.rsi?.overbought || 70)) rsiInd.action = "Sell";
@@ -642,10 +729,11 @@ export class StatefulTechnicalsCalculator {
       stochKVal = currentKWindow.length > 0 ? stochKVal / currentKWindow.length : 0;
 
       // ✅ Bug 4 fix: compute %D as SMA(K, dPeriod) using a rolling D window
+      // NO MUTATION of state.dHistory here!
       if (!state.dHistory) state.dHistory = [];
-      const dHistory = state.dHistory as number[];
-      dHistory.push(stochKVal);
+      const dHistory = [...state.dHistory, stochKVal]; // Create shallow copy with new value
       if (dHistory.length > dPeriod) dHistory.shift();
+
       let stochDVal = 0;
       for (const d of dHistory) stochDVal += d;
       stochDVal = dHistory.length > 0 ? stochDVal / dHistory.length : stochKVal;
@@ -696,19 +784,60 @@ export class StatefulTechnicalsCalculator {
 
       const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
       const rawKHistory: number[] = [];
+      const dPeriod = this.settings?.stochRsi?.dPeriod || 3;
+      const dHistory: number[] = [];
       
       // Rebuild rawK history
-      for (let i = 0; i < kPeriod; i++) {
-         const idx = rsiArray.length - kPeriod + i;
-         if (idx >= len - 1) {
-             const window = rsiArray.slice(idx - len + 1, idx + 1);
-             const maxRsi = Math.max(...window);
-             const minRsi = Math.min(...window);
-             const r = maxRsi - minRsi;
-             rawKHistory.push(r === 0 ? 50 : ((rsiArray[idx] - minRsi) / r) * 100);
+      // We also need to rebuild dHistory which is SMA(%K, dPeriod)
+      // To do this properly, we need to calculate %K for the last dPeriod candles
+
+      const startD = Math.max(0, rsiArray.length - dPeriod - kPeriod - len);
+      // This is complicated to reconstruct perfectly without re-running.
+      // But we can just use the tail.
+
+      // Simple reconstruction:
+      // 1. Calculate %K for all candles
+      const kValues: number[] = [];
+      for (let i = 0; i < rsiArray.length; i++) {
+          if (i >= len - 1) {
+              const window = rsiArray.slice(i - len + 1, i + 1);
+              const max = Math.max(...window);
+              const min = Math.min(...window);
+              const r = max - min;
+              const rawK = r === 0 ? 50 : ((rsiArray[i] - min) / r) * 100;
+              kValues.push(rawK);
+          } else {
+              kValues.push(50);
+          }
+      }
+
+      // 2. Smoothed %K
+      const smoothKValues: number[] = [];
+      for (let i = 0; i < kValues.length; i++) {
+         if (i >= kPeriod - 1) {
+             let sum = 0;
+             for (let j = 0; j < kPeriod; j++) sum += kValues[i - j];
+             smoothKValues.push(sum / kPeriod);
          } else {
-             rawKHistory.push(50);
+             smoothKValues.push(kValues[i]);
          }
+      }
+
+      // 3. Extract histories
+      // rawKHistory needs last kPeriod values of Smoothed %K??
+      // Wait, 'rawKHistory' in state is used to calculate Smoothed %K.
+      // So it should contain 'Raw %K' values.
+
+      // Get last kPeriod raw K values
+      for (let i = 0; i < kPeriod; i++) {
+          const idx = kValues.length - kPeriod + i;
+          if (idx >= 0) rawKHistory.push(kValues[idx]);
+      }
+
+      // Get last dPeriod smoothed K values for dHistory
+      for (let i = 0; i < dPeriod; i++) {
+          const idx = smoothKValues.length - dPeriod + i;
+          if (idx >= 0) dHistory.push(smoothKValues[idx]);
       }
 
       this.state.stochRsi = {
@@ -720,7 +849,8 @@ export class StatefulTechnicalsCalculator {
                   prevPrice: closes[closes.length - 1]
               },
               rsiHistory: rsiWindow,
-              rawKHistory: rawKHistory
+              rawKHistory: rawKHistory,
+              dHistory: dHistory
           }
       };
   }

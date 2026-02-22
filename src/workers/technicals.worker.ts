@@ -62,16 +62,16 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
             ctx.postMessage({ type: "RESULT", payload: result, id });
         } 
         else if (type === "INITIALIZE") {
-            const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
+            const { symbol, timeframe, klines, settings, enabledIndicators, hasPhantom } = payload;
             const key = `${symbol}:${timeframe}`;
             
             const calc = new StatefulTechnicalsCalculator();
-            const result = calc.initialize(convertToDecimalKlines(klines), settings, enabledIndicators);
+            const result = calc.initialize(convertToDecimalKlines(klines), settings, enabledIndicators, hasPhantom);
             
             calculators.set(key, calc);
             ctx.postMessage({ type: "RESULT", payload: result, id });
         }
-        else if (type === "UPDATE") {
+                else if (type === "UPDATE") {
             const { symbol, timeframe, kline } = payload;
             const key = `${symbol}:${timeframe}`;
             const calc = calculators.get(key);
@@ -85,8 +85,42 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
                     volume: new Decimal(kline.volume),
                 };
                 ctx.postMessage({ type: "RESULT", payload: calc.update(tick), id });
+            } else {
+                ctx.postMessage({ type: "ERROR", error: "CALCULATOR_NOT_FOUND", id });
             }
         }
+        else if (type === "SHIFT") {
+            const { symbol, timeframe, kline } = payload;
+            const key = `${symbol}:${timeframe}`;
+            const calc = calculators.get(key);
+            if (calc) {
+                const tick = {
+                    time: kline.time,
+                    open: new Decimal(kline.open),
+                    high: new Decimal(kline.high),
+                    low: new Decimal(kline.low),
+                    close: new Decimal(kline.close),
+                    volume: new Decimal(kline.volume),
+                };
+                calc.commitCandle(tick);
+                ctx.postMessage({ type: "RESULT", payload: { success: true }, id });
+            } else {
+                ctx.postMessage({ type: "ERROR", error: "CALCULATOR_NOT_FOUND", id });
+            }
+        }
+
+            else if (type === "CLEANUP") {
+            const { symbol, timeframe } = payload;
+            const key = `${symbol}:${timeframe}`;
+            if (calculators.has(key)) {
+                calculators.delete(key);
+                ctx.postMessage({ type: "RESULT", payload: { success: true }, id });
+            } else {
+                // If it doesn't exist, it's already clean. Still success.
+                ctx.postMessage({ type: "RESULT", payload: { success: true }, id });
+            }
+        }
+
     } catch (err: any) {
         ctx.postMessage({ type: "ERROR", error: err.message, id });
     }

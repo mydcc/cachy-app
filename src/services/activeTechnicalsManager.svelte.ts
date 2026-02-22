@@ -425,39 +425,73 @@ class ActiveTechnicalsManager {
         };
     }
 
-    // Helper for deep equality
+        // Helper for deep equality
     private isTechnicalsEqual(a: any, b: any): boolean {
         // Fast path for references
         if (!a || !b) return false;
+        if (a === b) return true;
 
-        // Check timestamp first (optimization)
-        if (a.lastUpdated !== b.lastUpdated) {
-            // If only lastUpdated changed but rest is same...
-            // But usually calculation changes result. 
-            // We ignore lastUpdated for content equality check if we generated it.
-        }
-
-        // Specific field checks for efficiency instead of full recursive JSON stringify
-        // Summary Action
+        // Specific field checks for efficiency
         if (a.summary?.action !== b.summary?.action) return false;
         if (a.confluence?.score !== b.confluence?.score) return false;
-
-        // Oscillators (check length and values of first few)
         if (a.oscillators?.length !== b.oscillators?.length) return false;
-        if (a.oscillators?.[0]?.value?.toString() !== b.oscillators?.[0]?.value?.toString()) return false;
+        if (a.movingAverages?.length !== b.movingAverages?.length) return false;
 
-        // Volatility
-        if (a.volatility?.atr?.toString() !== b.volatility?.atr?.toString()) return false;
-
-        // Deep verification for critical changes
-        try {
-            const cleanA = { ...a, lastUpdated: 0 };
-            const cleanB = { ...b, lastUpdated: 0 };
-            return JSON.stringify(cleanA) === JSON.stringify(cleanB);
-        } catch {
-            return false;
+        // Volatility Deep Check
+        const volA = a.volatility;
+        const volB = b.volatility;
+        if (!volA && !volB) {} // Equal (both undefined)
+        else if (!volA || !volB) return false; // One is undefined
+        else {
+             if (volA.atr?.toString() !== volB.atr?.toString()) return false;
+             // Check BB
+             const bbA = volA.bb;
+             const bbB = volB.bb;
+             if (!bbA && !bbB) {}
+             else if (!bbA || !bbB) return false;
+             else {
+                 if (bbA.middle?.toString() !== bbB.middle?.toString()) return false;
+                 if (bbA.upper?.toString() !== bbB.upper?.toString()) return false;
+                 if (bbA.lower?.toString() !== bbB.lower?.toString()) return false;
+             }
         }
+
+        // Oscillators Deep Check (Sample critical ones like RSI, StochRSI)
+        // Since we map them in update(), references are new.
+        for (let i = 0; i < (a.oscillators?.length || 0); i++) {
+            const oscA = a.oscillators[i];
+            const oscB = b.oscillators[i];
+            if (oscA.name !== oscB.name) return false;
+            if (oscA.value?.toString() !== oscB.value?.toString()) return false;
+            if (oscA.action !== oscB.action) return false;
+            if (oscA.signal?.toString() !== oscB.signal?.toString()) return false; // StochRSI signal
+        }
+
+        // Moving Averages (Compare all)
+        if (a.movingAverages?.length !== b.movingAverages?.length) return false;
+        for (let i = 0; i < (a.movingAverages?.length || 0); i++) {
+            const maA = a.movingAverages[i];
+            const maB = b.movingAverages[i];
+            if (maA.name !== maB.name) return false;
+            if (maA.params !== maB.params) return false;
+            if (maA.value?.toString() !== maB.value?.toString()) return false;
+            if (maA.action !== maB.action) return false;
+        }
+
+                // Advanced (MFI)
+        const advA = a.advanced;
+        const advB = b.advanced;
+        if (!advA && !advB) {} // Both undefined
+        else if (!advA || !advB) return false;
+        else {
+            if (advA.mfi?.value?.toString() !== advB.mfi?.value?.toString()) return false;
+            if (advA.mfi?.action !== advB.mfi?.action) return false;
+        }
+
+        return true;
     }
+
+
 
     private async performCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
@@ -467,8 +501,6 @@ class ActiveTechnicalsManager {
         if (!marketData) return;
 
         // === BACKFILL THROTTLE (Optimization) ===
-        // If MarketWatcher is currently backfilling this symbol, we skip calculations
-        // to prevent churn. EXCEPT if we have no technicals yet (Initial Load UI needs data)
         if (marketWatcher.isBackfilling(symbol, timeframe)) {
             const hasTechnicals = !!marketData.technicals?.[timeframe];
             if (hasTechnicals) {
@@ -488,8 +520,6 @@ class ActiveTechnicalsManager {
         const settings = indicatorState.toJSON();
         const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
 
-        // Fallback: Legacy Object Path
-        // Get history immediately from MarketState
         let history = (marketData.klines && marketData.klines[timeframe]) ? [...marketData.klines[timeframe]] : [];
 
         if (history.length === 0) return;
@@ -498,7 +528,6 @@ class ActiveTechnicalsManager {
         const limit = settings.historyLimit || 750;
         if (history.length > limit) {
             history = history.slice(-limit);
-            
             if (import.meta.env.DEV) {
                 logger.debug('technicals', `[ActiveManager] Applied historyLimit: ${history.length}/${limit} for ${key}`);
             }
@@ -510,54 +539,67 @@ class ActiveTechnicalsManager {
             this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
         }
 
-        // Determine Mode: Initialize or Update
-        // -----------------------------------------------------------------
-        // The history array may end with an injected phantom candle whose
-        // timestamp is the START of the currently forming period. We must NOT
-        // treat a new phantom-candle period as a full re-init — it is still
-        // "the same in-flight candle being updated tick-by-tick".
-        //
-        // Strategy:
-        //   • lastCommittedTime = timestamp of the LAST FULLY CLOSED candle.
-        //     = history[len-2].time when a phantom candle was appended,
-        //     = history[len-1].time when last candle is still the live one.
-        //   • needsInit only when lastCommittedTime changes (a real new bar
-        //     closed) or when there is no state yet.
-        // -----------------------------------------------------------------
+        // Determine Mode: Initialize, Shift, or Update
         const state = this.workerState.get(key);
         const len = history.length;
         const currentLastTime = history[len - 1].time;
 
-        // Determine which candle is the last CLOSED candle.
-        // If injectRealtimePrice appended a phantom candle for a new period,
-        // the last-closed is history[len-2]. Otherwise it is history[len-1].
         const intervalMs = getIntervalMs(timeframe);
         const currentPeriodStart = Math.floor(Date.now() / intervalMs) * intervalMs;
         const isPhantomAppended = currentLastTime === currentPeriodStart && len >= 2
             && history[len - 2].time !== currentPeriodStart;
+
+        // The timestamp of the last fully closed candle
         const lastCommittedTime = isPhantomAppended
             ? history[len - 2].time
             : currentLastTime;
 
-        const needsInit = !state || !state.initialized
-            || state.lastCommittedTime !== lastCommittedTime;
+                // Determine Actions
+        const needsInit = !state || !state.initialized;
+
+        // Check gap size for shifting
+        // lastCommittedTime is timestamp of newly closed candle (or current forming if just opened)
+        // state.lastCommittedTime is timestamp of PREVIOUSLY closed candle
+
+        // Calculate gap in number of intervals
+        // Note: intervalMs is in milliseconds.
+        // If state.lastCommittedTime = 100, lastCommittedTime = 104, gap = 4.
+        const gap = state && state.initialized
+            ? (lastCommittedTime - state.lastCommittedTime) / intervalMs
+            : 0;
+
+        const needsShift = state && state.initialized && gap === 1;
+        const needsReinit = state && state.initialized && gap !== 0 && gap !== 1;
 
         let result;
 
         try {
-            if (needsInit) {
+            if (needsInit || needsReinit) {
                 // INITIALIZE (Full History)
-                // Note: We use the Object array for Init as `StatefulTechnicalsCalculator` expects Kline[].
-                // We could use buffers but `calculateTechnicalsFromBuffers` is legacy stateless.
-                // We need a new `technicalsService.initializeTechnicals`.
-
+                // Fallback for cold start OR multi-candle gap
                 result = await technicalsService.initializeTechnicals(
-                    symbol, timeframe, history, settings, enabledIndicators
+                    symbol, timeframe, history, settings, enabledIndicators, isPhantomAppended
+                );
+
+                this.workerState.set(key, { initialized: true, lastCommittedTime });
+            } else if (needsShift) {
+                // SHIFT + UPDATE
+                // We have moved to a new candle (gap === 1). Commit the previous closed candle.
+
+                let closedCandle = isPhantomAppended ? history[len - 2] : history[len - 1];
+
+                await technicalsService.shiftTechnicals(symbol, timeframe, closedCandle);
+
+                // Now calculate the current live tick
+                const lastK = history[history.length - 1];
+                result = await technicalsService.updateTechnicals(
+                    symbol, timeframe, lastK
                 );
 
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
             } else {
                 // UPDATE (Single Tick)
+                // Same candle period (gap === 0)
                 const lastK = history[history.length - 1];
                 result = await technicalsService.updateTechnicals(
                     symbol, timeframe, lastK
@@ -568,11 +610,11 @@ class ActiveTechnicalsManager {
                 this.handleResult(symbol, timeframe, marketData, result);
             }
 
-        } catch (e: any) {
-            if (e.message === "Worker unavailable for update") {
-                // Expected fallback behavior - just log debug and re-init next time
+
+                } catch (e: any) {
+            if (e.message === "Worker unavailable for update" || e.message === "Worker unavailable for shift" || e.message === "CALCULATOR_NOT_FOUND") {
                 if (import.meta.env.DEV) {
-                    logger.debug("technicals", `[ActiveManager] Worker unavailable for update on ${key}, scheduling re-init.`);
+                    logger.debug("technicals", `[ActiveManager] Worker state invalid for ${key} (${e.message}), scheduling re-init.`);
                 }
             } else {
                 logger.error("technicals", `Calculation failed for ${key}`, e);
@@ -580,7 +622,9 @@ class ActiveTechnicalsManager {
             // On error, force re-init next time
             this.workerState.delete(key);
         }
+
     }
+
 
     private handleResult(symbol: string, timeframe: string, marketData: any, result: any) {
         // Anti-Flicker: Check if content actually changed
@@ -603,6 +647,7 @@ class ActiveTechnicalsManager {
     }
 
     private prepareBuffersWithRealtime(original: KlineBuffers, timeframe: string, price: Decimal | null): KlineBuffers {
+        const intervalMs = getIntervalMs(timeframe);
         const len = original.times.length;
         if (len === 0) return original; // Should typically clone even here? But empty is empty.
 
@@ -613,7 +658,6 @@ class ActiveTechnicalsManager {
 
         if (price) {
             const now = Date.now();
-            const intervalMs = getIntervalMs(timeframe);
             currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
 
             if (lastTime === currentPeriodStart) updateType = 'update';
@@ -669,13 +713,13 @@ class ActiveTechnicalsManager {
 
     // Stateless Helper: mutates a copy of the history array found in memory
     private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal, symbol: string) {
+        const intervalMs = getIntervalMs(timeframe);
         if (history.length === 0) return;
 
         const lastIdx = history.length - 1;
         const lastCandle = { ...history[lastIdx] }; // Clone to avoid mutating state directly outside action
 
         const now = Date.now();
-        const intervalMs = getIntervalMs(timeframe);
         const currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
 
         if (lastCandle.time === currentPeriodStart) {

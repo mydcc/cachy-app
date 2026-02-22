@@ -332,7 +332,7 @@ export const technicalsService = {
     return result;
   },
 
-  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings, enabledIndicators?: any, hasPhantom: boolean = false): Promise<TechnicalsData> {
     notifyCapabilityStatus();
     if (!workerManager.isHealthy()) {
         return this.calculateTechnicalsInline(klines, settings, enabledIndicators);
@@ -344,7 +344,7 @@ export const technicalsService = {
             payload: {
                 symbol, timeframe,
                 klines: klines.map(k => ({ ...k, open: k.open.toString(), high: k.high.toString(), low: k.low.toString(), close: k.close.toString(), volume: k.volume?.toString() || "0" })),
-                settings, enabledIndicators
+                settings, enabledIndicators, hasPhantom
             }
         });
         return result;
@@ -371,6 +371,23 @@ export const technicalsService = {
     } catch (e) {
         throw e; // Propagate error to manager to trigger re-init
     }
+  },
+
+  async shiftTechnicals(symbol: string, timeframe: string, kline: any): Promise<void> {
+      if (!workerManager.isHealthy()) {
+          throw new Error("Worker unavailable for shift");
+      }
+      try {
+          await workerManager.postMessage({
+              type: "SHIFT",
+              payload: {
+                  symbol, timeframe,
+                  kline: { ...kline, open: kline.open.toString(), high: kline.high.toString(), low: kline.low.toString(), close: kline.close.toString(), volume: kline.volume?.toString() || "0" }
+              }
+          });
+      } catch (e) {
+          throw e;
+      }
   },
 
   // Cleanup: Remove worker state to prevent leaks
