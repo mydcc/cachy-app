@@ -569,7 +569,7 @@ class ActiveTechnicalsManager {
             : 0;
 
         const needsShift = state && state.initialized && gap === 1;
-        const needsReinit = state && state.initialized && gap > 1;
+        const needsReinit = state && state.initialized && gap !== 0 && gap !== 1;
 
         let result;
 
