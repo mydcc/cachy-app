@@ -255,22 +255,7 @@ export class StatefulTechnicalsCalculator {
              const loss = change < 0 ? -change : 0;
 
              // Update RSI state
-             sState.rsiState.avgGain = (sState.rsiState.avgGain * (sState.rsiState.length - 1) + gain) / sState.rsiState.length; // Wait, rsiLen is sState.rsiState.length? No rsiState is RsiState interface which doesn't have length.
-             // We need rsiLength. It is passed in reconstruct.
-             // But StochRSIState definition:
-             /*
-             export interface StochRsiState {
-                length: number; // This is Stoch length? or RSI length?
-                rsiState: RsiState;
-                rsiHistory: number[];
-                rawKHistory: number[];
-             }
-             */
-             // The settings has rsiLength. We should probably store rsiLength in state or assume it from settings.
-             // For safety, let's assume we use settings or a fixed fallback, but ideally it should be in state.
-             // In reconstructStochRsiState we used settings.stochRsi.rsiLength.
-             // Let's assume standard 14 if missing or access settings.
-
+             // Note: RsiState does not track length, so we rely on settings or default
              const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
 
              sState.rsiState.avgGain = (sState.rsiState.avgGain * (rsiLen - 1) + gain) / rsiLen;
