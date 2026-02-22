@@ -194,4 +194,75 @@ describe('StatefulTechnicalsCalculator', () => {
         expect(upper).toBeGreaterThan(middle as number);
         expect(lower).toBeLessThan(middle as number);
     });
+
+    it('pure function: calling update() multiple times with the same tick should not mutate state and yield identical results', () => {
+        const history = [];
+        for(let i=0; i<50; i++) {
+            history.push(mockKline(1000 + i*60, 100 + i)); // Trend
+        }
+
+        const settings = { 
+            ema: { ema1: { length: 14 } },
+            rsi: { length: 14 },
+            sma: { sma1: { length: 20 } },
+            mfi: { length: 14 },
+            stochRsi: { length: 14, kPeriod: 3, dPeriod: 3, rsiLength: 14 }
+        };
+        const enabled = { ema: true, rsi: true, sma: true, mfi: true, stochrsi: true };
+
+        const calc = new StatefulTechnicalsCalculator();
+        calc.initialize(history, settings, enabled);
+
+        // Create a forming tick
+        const activeTick = mockKline(1000 + 50*60, 155);
+
+        // 1st call
+        const result1 = calc.update(activeTick);
+        
+        // 2nd call (simulating a second tick arriving with the same price before the candle closes)
+        const result2 = calc.update(activeTick);
+
+        // 100th call (stress test)
+        let result100;
+        for (let i = 0; i < 98; i++) {
+            result100 = calc.update(activeTick);
+        }
+
+        // Deep equality check: If `update` is pure, calling it 100 times on the same state + tick 
+        // must yield the EXACT same mathematical result without compounding NaN/Infinity destruction.
+        expect(result2).toEqual(result1);
+        expect(result100).toEqual(result1);
+    });
+
+    it('SHIFT flow: commitCandle() should correctly advance the base state', () => {
+        const history = [];
+        for(let i=0; i<50; i++) {
+            history.push(mockKline(1000 + i*60, 100 + i)); // Trend
+        }
+
+        const settings = { ema: { ema1: { length: 14 } } };
+        const enabled = { ema: true };
+
+        const calc = new StatefulTechnicalsCalculator();
+        const initResult = calc.initialize(history, settings, enabled);
+        const o1 = initResult.movingAverages.find(m => m.name === "EMA");
+
+        // The UI receives a forming tick
+        const activeTick = mockKline(1000 + 50*60, 200);
+        const updateResult = calc.update(activeTick);
+        const o2 = updateResult.movingAverages.find(m => m.name === "EMA");
+        expect(o1!.value).not.toEqual(o2!.value);
+
+        // The candle closes. The manager sends a SHIFT event.
+        calc.commitCandle(activeTick);
+
+        // A new candle begins forming
+        const nextTick = mockKline(1000 + 51*60, 210);
+        const res3 = calc.update(nextTick);
+        const o3 = res3.movingAverages.find(m => m.name === "EMA");
+        
+        expect(o3!.value).toBeDefined();
+        // It should progress linearly, not jump wildly
+        expect(o3!.value).not.toEqual(o2!.value);
+    });
 });

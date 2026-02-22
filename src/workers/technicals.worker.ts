@@ -87,6 +87,23 @@ ctx.onmessage = async (e: MessageEvent<any>) => {
                 ctx.postMessage({ type: "RESULT", payload: calc.update(tick), id });
             }
         }
+        else if (type === "SHIFT") {
+            const { symbol, timeframe, kline } = payload;
+            const key = `${symbol}:${timeframe}`;
+            const calc = calculators.get(key);
+            if (calc) {
+                const closedCandle = {
+                    time: kline.time,
+                    open: new Decimal(kline.open),
+                    high: new Decimal(kline.high),
+                    low: new Decimal(kline.low),
+                    close: new Decimal(kline.close),
+                    volume: new Decimal(kline.volume),
+                };
+                calc.commitCandle(closedCandle);
+                ctx.postMessage({ type: "RESULT", payload: calc.state.lastResult, id });
+            }
+        }
     } catch (err: any) {
         ctx.postMessage({ type: "ERROR", error: err.message, id });
     }

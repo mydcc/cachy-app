@@ -53,16 +53,27 @@ export class StatefulTechnicalsCalculator {
     this.settings = settings;
     this.enabledIndicators = enabledIndicators;
 
-    // 1. Run full calculation to get the baseline
+    // 1. Run full calculation to get the baseline (UI preview)
     const result = calculateAllIndicators(history, settings, enabledIndicators);
-    this.state.lastResult = result;
-    this.state.lastCandle = history[history.length - 1];
+    
+    // 2. Pure Closed baseline for State
+    const lastHistoryCandle = history[history.length - 1];
+    // Phantom candles are injected with a 0 volume by ActiveTechnicalsManager
+    const hasPhantom = !!(lastHistoryCandle && lastHistoryCandle.volume.toNumber() === 0);
+    const closedHistory = hasPhantom ? history.slice(0, -1) : history;
+    
+    const closedResult = hasPhantom 
+        ? calculateAllIndicators(closedHistory, settings, enabledIndicators)
+        : result;
 
-    this.reconstructState(history, result);
-    this.reconstructMfiState(history);
-    this.reconstructAtrState(history);
-    this.reconstructStochRsiState(history);
-    this.initHistoryBuffers(history);
+    this.state.lastResult = closedResult;
+    this.state.lastCandle = closedHistory[closedHistory.length - 1] || null;
+
+    this.reconstructState(closedHistory, closedResult);
+    this.reconstructMfiState(closedHistory);
+    this.reconstructAtrState(closedHistory);
+    this.reconstructStochRsiState(closedHistory);
+    this.initHistoryBuffers(closedHistory);
 
     return result;
   }
@@ -76,15 +87,20 @@ export class StatefulTechnicalsCalculator {
     const currentPrice = tick.close.toNumber();
     const prevPrice = this.state.lastCandle.close.toNumber();
 
-    // Clone the previous result to modify it
-    // Deep clone might be expensive, but structure is simple.
-    // For perf, we mutate a fresh object based on prev.
-    const newResult = { ...prevResult }; // Shallow copy of top level
+    // Shallow copy of top level
+    const newResult = { ...prevResult }; 
 
-    // Arrays (oscillators, MAs) need to be cloned or we just replace the entries we update.
-    // Since 'oscillators' is an array of objects, we can map it.
+    // Deep clone nested arrays/objects to trigger Svelte reactivity
     newResult.oscillators = prevResult.oscillators.map(o => ({ ...o }));
     newResult.movingAverages = prevResult.movingAverages.map(ma => ({ ...ma }));
+    
+    if (prevResult.volatility) {
+        newResult.volatility = {
+            ...prevResult.volatility,
+            bb: prevResult.volatility.bb ? { ...prevResult.volatility.bb } : undefined,
+            atr: prevResult.volatility.atr
+        } as any;
+    }
 
     // 1. Update EMA
     if (this.state.ema && this.enabled("ema")) {
@@ -95,9 +111,6 @@ export class StatefulTechnicalsCalculator {
     if (this.state.rsi && this.enabled("rsi")) {
        this.updateRsiGroup(newResult, currentPrice, prevPrice);
     }
-
-    // ✅ Bug 2 fix: track last candle so prevPrice is always correct on next tick
-    this.state.lastCandle = tick;
 
     // 3. Update SMA / Bollinger Bands
     if (this.state.sma && this.enabled("sma")) {
@@ -119,9 +132,6 @@ export class StatefulTechnicalsCalculator {
         this.updateStochRsiGroup(newResult, currentPrice);
     }
 
-    // Update State for next tick
-    this.state.lastResult = newResult;
-
     return newResult;
   }
 
@@ -131,67 +141,42 @@ export class StatefulTechnicalsCalculator {
         return;
       }
 
+      // 1. Generate the final closed result for this candle using the pure preview math
+      const closedResult = this.update(candle);
+
       const price = candle.close.toNumber();
 
-      // Update Price History
-      // Deferred: push to priceHistory after SMA update (step 3)
-
-      // 1. Update EMA State
+      // 2. Advance the mathematical state
       if (this.state.ema) {
           Object.keys(this.state.ema).forEach(key => {
               const len = parseInt(key);
               const emaState = this.state.ema![len];
-              // EMA(t) = alpha * price + (1-alpha) * EMA(t-1)
               const k = 2 / (len + 1);
               emaState.prevEma = (price * k) + (emaState.prevEma * (1 - k));
           });
       }
 
-      // 2. Update RSI State
       if (this.state.rsi) {
            Object.keys(this.state.rsi).forEach(key => {
               const len = parseInt(key);
               const rsiState = this.state.rsi![len];
-
               const change = price - rsiState.prevPrice;
               let gain = change > 0 ? change : 0;
               let loss = change < 0 ? -change : 0;
-
-              // RMA update
               rsiState.avgGain = (rsiState.avgGain * (len - 1) + gain) / len;
               rsiState.avgLoss = (rsiState.avgLoss * (len - 1) + loss) / len;
               rsiState.prevPrice = price;
           });
       }
 
-      // 3. Update SMA State
       if (this.state.sma) {
           Object.keys(this.state.sma).forEach(key => {
               const len = parseInt(key);
               const smaState = this.state.sma![len];
-
-              // Remove oldest value from sum
-              // The buffer is already updated with 'price' at the end.
-              // So the oldest value is at 'size - len - 1' (because 'len' includes the new one)
-              // Wait, if history size is N, and we just pushed, size is N.
-              // We need the value from N - len (0-indexed? No circular buffer get is logical index).
-              // If buffer has [0, 1, 2 ... N], newest is N.
-              // Window is [N-len+1 ... N].
-              // Oldest in window was N-len?
-              // The SMA formula is: sum = sum - old + new.
-              // 'old' is the value that just fell out of the window.
-              // If window size is 5. History: 1,2,3,4,5.
-              // Next step: 6. History: 2,3,4,5,6.
-              // We removed 1.
-              // So we need value at index (currentSize - len - 1).
-              // Price has NOT been pushed yet, so buffer still holds the old window.
-              // The value falling out of the window is at index (size - len).
               const oldValIdx = this.priceHistory.getSize() - len;
               const oldVal = this.priceHistory.get(oldValIdx);
-
               if (oldVal !== undefined) {
                   smaState.prevSum = smaState.prevSum - oldVal + price;
-
                   if (smaState.prevSumSq !== undefined) {
                       smaState.prevSumSq = smaState.prevSumSq - (oldVal * oldVal) + (price * price);
                   }
@@ -199,10 +184,8 @@ export class StatefulTechnicalsCalculator {
           });
       }
 
-      // Now push to price history (after SMA has read the old value)
       this.priceHistory.push(price);
 
-      // 4. Update MFI State
       if (this.state.mfi) {
           const mfi = this.state.mfi;
           const h = candle.high.toNumber();
@@ -211,7 +194,6 @@ export class StatefulTechnicalsCalculator {
           const v = candle.volume.toNumber();
           const tp = (h + l + c) / 3;
           const rawMf = tp * v;
-
           const posFlow = tp > mfi.prevTp ? rawMf : 0;
           const negFlow = tp < mfi.prevTp ? rawMf : 0;
 
@@ -229,43 +211,29 @@ export class StatefulTechnicalsCalculator {
           }
       }
 
-      // 5. Update ATR State
       if (this.state.atr) {
           Object.keys(this.state.atr).forEach(key => {
              const len = parseInt(key);
              const atrState = this.state.atr![len];
-
              const h = candle.high.toNumber();
              const l = candle.low.toNumber();
-             const pc = atrState.prevClose; // Close of previous candle
-
+             const pc = atrState.prevClose;
              const tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
-
-             // RMA update: ATR = (PrevATR * (n-1) + TR) / n
              atrState.prevAtr = (atrState.prevAtr * (len - 1) + tr) / len;
              atrState.prevClose = candle.close.toNumber();
           });
       }
 
-      // 6. Update StochRSI State
       if (this.state.stochRsi) {
           Object.keys(this.state.stochRsi).forEach(key => {
              const len = parseInt(key);
              const sState = this.state.stochRsi![len];
-
-             // Calculate RSI for this closed candle
-             // We reuse the RSI logic or rely on the RSI state we just updated?
-             // Since StochRSI maintains its OWN RSI state (independent of the main RSI indicator to avoid dependency issues if RSI is disabled),
-             // we update it here.
-
+             
+             // Advance inner RSI
              const change = price - sState.rsiState.prevPrice;
              const gain = change > 0 ? change : 0;
              const loss = change < 0 ? -change : 0;
-
-             // Update RSI state
-             // Note: RsiState does not track length, so we rely on settings or default
              const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
-
              sState.rsiState.avgGain = (sState.rsiState.avgGain * (rsiLen - 1) + gain) / rsiLen;
              sState.rsiState.avgLoss = (sState.rsiState.avgLoss * (rsiLen - 1) + loss) / rsiLen;
              sState.rsiState.prevPrice = price;
@@ -273,11 +241,10 @@ export class StatefulTechnicalsCalculator {
              const rs = sState.rsiState.avgLoss === 0 ? 100 : sState.rsiState.avgGain / sState.rsiState.avgLoss;
              const rsi = sState.rsiState.avgLoss === 0 ? 100 : 100 - (100 / (1 + rs));
 
-             // Push to history
+             // Advance K and D windows
              sState.rsiHistory.push(rsi);
              if (sState.rsiHistory.length > len) sState.rsiHistory.shift();
 
-             // Calculate %K
              let rawK = 50;
              if (sState.rsiHistory.length >= len) {
                  const max = Math.max(...sState.rsiHistory);
@@ -290,10 +257,21 @@ export class StatefulTechnicalsCalculator {
              sState.rawKHistory.push(rawK);
              const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
              if (sState.rawKHistory.length > kPeriod) sState.rawKHistory.shift();
+
+             let stochKVal = 0;
+             for (const k of sState.rawKHistory) stochKVal += k;
+             stochKVal = sState.rawKHistory.length > 0 ? stochKVal / sState.rawKHistory.length : 0;
+
+             if (!sState.dHistory) sState.dHistory = [];
+             sState.dHistory.push(stochKVal);
+             const dPeriod = this.settings?.stochRsi?.dPeriod || 3;
+             if (sState.dHistory.length > dPeriod) sState.dHistory.shift();
           });
       }
 
+      // 3. Commit the new baseline status
       this.state.lastCandle = candle;
+      this.state.lastResult = closedResult;
   }
 
   private enabled(key: string): boolean {
@@ -641,20 +619,20 @@ export class StatefulTechnicalsCalculator {
       for (const k of currentKWindow) stochKVal += k;
       stochKVal = currentKWindow.length > 0 ? stochKVal / currentKWindow.length : 0;
 
-      // ✅ Bug 4 fix: compute %D as SMA(K, dPeriod) using a rolling D window
-      if (!state.dHistory) state.dHistory = [];
-      const dHistory = state.dHistory as number[];
-      dHistory.push(stochKVal);
-      if (dHistory.length > dPeriod) dHistory.shift();
-      let stochDVal = 0;
-      for (const d of dHistory) stochDVal += d;
-      stochDVal = dHistory.length > 0 ? stochDVal / dHistory.length : stochKVal;
+      // ✅ Bug 4 fix (Pure version): compute %D as SMA(K, dPeriod) using a read-only rolling D window
+      const dHistoryPrefix = state.dHistory || [];
+      const currentDWindow = [...dHistoryPrefix, stochKVal];
+      if (currentDWindow.length > dPeriod) currentDWindow.shift();
 
-      // Write to result
-      const stInd = result.oscillators.find(o => o.name === "StochRSI");
-      if (stInd) {
-          stInd.value = stochKVal;
-          stInd.signal = stochDVal; // %D is stored in signal slot (same as batch path)
+      let stochDVal = 0;
+      for (const d of currentDWindow) stochDVal += d;
+      stochDVal = currentDWindow.length > 0 ? stochDVal / currentDWindow.length : 0;
+
+      const stochRsiInd = result.oscillators.find(o => o.name === "StochRSI");
+      if (stochRsiInd) {
+          stochRsiInd.value = stochKVal;
+          stochRsiInd.signal = stochDVal;
+          stochRsiInd.action = stochKVal > 80 ? "Sell" : (stochKVal < 20 ? "Buy" : "Neutral");
       }
   }
 

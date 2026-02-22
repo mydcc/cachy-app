@@ -539,25 +539,30 @@ class ActiveTechnicalsManager {
             ? history[len - 2].time
             : currentLastTime;
 
-        const needsInit = !state || !state.initialized
-            || state.lastCommittedTime !== lastCommittedTime;
+        const needsInit = !state || !state.initialized;
+        const needsShift = state && state.initialized && state.lastCommittedTime !== lastCommittedTime;
 
         let result;
 
         try {
             if (needsInit) {
                 // INITIALIZE (Full History)
-                // Note: We use the Object array for Init as `StatefulTechnicalsCalculator` expects Kline[].
-                // We could use buffers but `calculateTechnicalsFromBuffers` is legacy stateless.
-                // We need a new `technicalsService.initializeTechnicals`.
-
                 result = await technicalsService.initializeTechnicals(
                     symbol, timeframe, history, settings, enabledIndicators
                 );
-
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
+                
+            } else if (needsShift) {
+                // SHIFT (Closed Candle)
+                // Use the definitively closed candle
+                const closedCandle = isPhantomAppended ? history[len - 2] : history[len - 1];
+                result = await technicalsService.shiftTechnicals(
+                    symbol, timeframe, closedCandle
+                );
+                this.workerState.set(key, { initialized: true, lastCommittedTime });
+                
             } else {
-                // UPDATE (Single Tick)
+                // UPDATE (Single Tick on forming candle)
                 const lastK = history[history.length - 1];
                 result = await technicalsService.updateTechnicals(
                     symbol, timeframe, lastK
@@ -569,10 +574,10 @@ class ActiveTechnicalsManager {
             }
 
         } catch (e: any) {
-            if (e.message === "Worker unavailable for update") {
+            if (e.message === "Worker unavailable for update" || e.message === "Worker unavailable for shift") {
                 // Expected fallback behavior - just log debug and re-init next time
                 if (import.meta.env.DEV) {
-                    logger.debug("technicals", `[ActiveManager] Worker unavailable for update on ${key}, scheduling re-init.`);
+                    logger.debug("technicals", `[ActiveManager] Worker unavailable on ${key}, scheduling re-init: ${e.message}`);
                 }
             } else {
                 logger.error("technicals", `Calculation failed for ${key}`, e);
