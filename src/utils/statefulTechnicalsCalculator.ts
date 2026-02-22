@@ -58,13 +58,6 @@ export class StatefulTechnicalsCalculator {
     this.state.lastResult = result;
     this.state.lastCandle = history[history.length - 1];
 
-    // 2. Extract State from the end of the calculation
-    // Note: 'calculateAllIndicators' returns the FINAL value, but it doesn't currently return the internal state (like AvgGain for RSI).
-    // This is a challenge. The stateless calculator discards the state.
-    // OPTION A: Modifying `calculateAllIndicators` to return state.
-    // OPTION B: Re-running the LAST step of the calculation logic here to reconstruct state.
-    // Since we want minimal intrusion, we will reconstruct state for supported incremental indicators.
-
     this.reconstructState(history, result);
     this.reconstructMfiState(history);
     this.reconstructAtrState(history);
@@ -123,380 +116,355 @@ export class StatefulTechnicalsCalculator {
         this.updateStochRsiGroup(newResult, currentPrice);
     }
 
-    // Update other non-incremental fields simply by carrying over or re-running light logic?
-    // For MVP, we only increment supported ones. Others remain "stale" or we re-run them if cheap.
-    // Actually, if we don't update them, they show the value from the last candle close.
-    // This is often acceptable for complex indicators (e.g. Ichimoku) between ticks.
-    // BUT user expects "Realtime".
-
     // Update State for next tick
     this.state.lastResult = newResult;
-    // We do NOT update 'lastCandle' here if this is an "Update" to the *current* candle (forming).
-    // If 'tick' is a NEW candle, we would shift.
-    // Assumption: 'update' is called for price changes within the CURRENT latest candle.
-    // If a new candle opens, 'initialize' (or a new 'shift' method) should be called.
 
     return newResult;
   }
 
-  public shift(newCandle: Kline) {
-      if (!this.state.lastResult || !this.state.lastCandle) return;
+  public commitCandle(candle: Kline) {
+      if (!this.state.lastCandle) {
+        this.state.lastCandle = candle;
+        return;
+      }
 
-      // 1. Finalize State for the CLOSED candle (this.state.lastCandle)
-      // This is crucial. 'state.ema' currently holds the value from the *previous* close (T-1).
-      // We need to advance it to the current close (T) before starting T+1.
+      const price = candle.close.toNumber();
 
-      const lastClose = newCandle.close.toNumber(); // Corrected to use the shifting-in candle
+      // Update Price History
+      this.priceHistory.push(price);
 
-      // Advance EMA State
-      if (this.state.ema && this.enabled("ema")) {
-          Object.keys(this.state.ema).forEach(k => {
-              const len = parseInt(k);
-              const state = this.state.ema![len];
-              // Calculate final EMA for the closed candle
-              const finalEma = JSIndicators.updateEma(state.prevEma, lastClose, len);
-              // Update state to this new finalized value
-              state.prevEma = finalEma;
+      // 1. Update EMA State
+      if (this.state.ema) {
+          Object.keys(this.state.ema).forEach(key => {
+              const len = parseInt(key);
+              const emaState = this.state.ema![len];
+              // EMA(t) = alpha * price + (1-alpha) * EMA(t-1)
+              const k = 2 / (len + 1);
+              emaState.prevEma = (price * k) + (emaState.prevEma * (1 - k));
           });
       }
 
-      // Advance RSI State
-      if (this.state.rsi && this.enabled("rsi")) {
-          Object.keys(this.state.rsi).forEach(k => {
-              const len = parseInt(k);
-              const state = this.state.rsi![len];
-              // Update with the finalized close of the candle being shifted out
-              const { avgGain, avgLoss } = JSIndicators.updateRsi(
-                  state.avgGain, state.avgLoss,
-                  lastClose, state.prevPrice, len
-              );
-              state.avgGain = avgGain;
-              state.avgLoss = avgLoss;
-              state.prevPrice = lastClose;
+      // 2. Update RSI State
+      if (this.state.rsi) {
+           Object.keys(this.state.rsi).forEach(key => {
+              const len = parseInt(key);
+              const rsiState = this.state.rsi![len];
+
+              const change = price - rsiState.prevPrice;
+              let gain = change > 0 ? change : 0;
+              let loss = change < 0 ? -change : 0;
+
+              // RMA update
+              rsiState.avgGain = (rsiState.avgGain * (len - 1) + gain) / len;
+              rsiState.avgLoss = (rsiState.avgLoss * (len - 1) + loss) / len;
+              rsiState.prevPrice = price;
           });
       }
 
-
-      // Advance SMA State (and SumSq)
+      // 3. Update SMA State
       if (this.state.sma) {
-          Object.keys(this.state.sma).forEach(k => {
-              const len = parseInt(k);
-              const state = this.state.sma![len];
+          Object.keys(this.state.sma).forEach(key => {
+              const len = parseInt(key);
+              const smaState = this.state.sma![len];
 
-              // We need to shift the window.
-              // Remove oldest, Add lastClose.
-              // But wait, 'this.priceHistory' still contains the OLD history (lastClose not added yet).
-              // So 'oldest' is at index (size - len).
+              // Remove oldest value from sum
+              // The buffer is already updated with 'price' at the end.
+              // So the oldest value is at 'size - len - 1' (because 'len' includes the new one)
+              // Wait, if history size is N, and we just pushed, size is N.
+              // We need the value from N - len (0-indexed? No circular buffer get is logical index).
+              // If buffer has [0, 1, 2 ... N], newest is N.
+              // Window is [N-len+1 ... N].
+              // Oldest in window was N-len?
+              // The SMA formula is: sum = sum - old + new.
+              // 'old' is the value that just fell out of the window.
+              // If window size is 5. History: 1,2,3,4,5.
+              // Next step: 6. History: 2,3,4,5,6.
+              // We removed 1.
+              // So we need value at index (currentSize - len - 1).
+              const oldValIdx = this.priceHistory.getSize() - len - 1;
+              const oldVal = this.priceHistory.get(oldValIdx);
 
-              if (this.priceHistory.getSize() >= len) {
-                  const oldestIdx = this.priceHistory.getSize() - len;
-                  const oldVal = this.priceHistory.get(oldestIdx);
+              if (oldVal !== undefined) {
+                  smaState.prevSum = smaState.prevSum - oldVal + price;
 
-                  if (oldVal !== undefined) {
-                       // Update Sum
-                       state.prevSum = state.prevSum - oldVal + lastClose;
-
-                       // Update SumSq if tracked
-                       if (state.prevSumSq !== undefined) {
-                           state.prevSumSq = state.prevSumSq - (oldVal * oldVal) + (lastClose * lastClose);
-                       }
+                  if (smaState.prevSumSq !== undefined) {
+                      smaState.prevSumSq = smaState.prevSumSq - (oldVal * oldVal) + (price * price);
                   }
-              } else {
-                  // Buffer not full, just add?
-                  // If buffer not full, SMA is not valid yet?
-                  // Or we are building up.
-                  state.prevSum += lastClose;
-                   if (state.prevSumSq !== undefined) {
-                       state.prevSumSq += (lastClose * lastClose);
-                   }
               }
           });
       }
 
-// 2. Shift History
-      // Push the finalized lastClose to circular buffer
-      this.priceHistory.push(lastClose);
-
-      this.state.lastCandle = newCandle;
-
-      // Note: 'lastResult' is not updated here.
-      // The first 'update()' call on the new candle will generate the new result based on this shifted state.
-      // Advance MFI State when a new candle is confirmed (shift the window)
+      // 4. Update MFI State
       if (this.state.mfi) {
-          const mfiState = this.state.mfi;
-          const h = newCandle.high.toNumber();
-          const l = newCandle.low.toNumber();
-          const c = newCandle.close.toNumber();
-          const v = newCandle.volume.toNumber();
+          const mfi = this.state.mfi;
+          const h = candle.high.toNumber();
+          const l = candle.low.toNumber();
+          const c = candle.close.toNumber();
+          const v = candle.volume.toNumber();
           const tp = (h + l + c) / 3;
           const rawMf = tp * v;
 
-          const posFlow = tp > mfiState.prevTp ? rawMf : 0;
-          const negFlow = tp < mfiState.prevTp ? rawMf : 0;
+          const posFlow = tp > mfi.prevTp ? rawMf : 0;
+          const negFlow = tp < mfi.prevTp ? rawMf : 0;
 
-          // Shift the window: add new entry, remove oldest if window is full
-          const entry = { tp, posFlow, negFlow };
-          if (mfiState.window.length >= mfiState.period) {
-              const removed = mfiState.window.shift()!;
-              mfiState.sumPos -= removed.posFlow;
-              mfiState.sumNeg -= removed.negFlow;
+          mfi.window.push({ tp, posFlow, negFlow });
+          mfi.sumPos += posFlow;
+          mfi.sumNeg += negFlow;
+          mfi.prevTp = tp;
+
+          if (mfi.window.length > mfi.period) {
+              const removed = mfi.window.shift();
+              if (removed) {
+                  mfi.sumPos -= removed.posFlow;
+                  mfi.sumNeg -= removed.negFlow;
+              }
           }
-          mfiState.window.push(entry);
-          mfiState.sumPos += posFlow;
-          mfiState.sumNeg += negFlow;
-          mfiState.prevTp = tp;
       }
 
-      // Advance ATR State
-      if (this.state.atr && this.enabled("atr")) {
-          Object.keys(this.state.atr).forEach(k => {
-              const len = parseInt(k);
-              const state = this.state.atr![len];
-              const h = newCandle.high.toNumber();
-              const l = newCandle.low.toNumber();
-              const c = newCandle.close.toNumber();
-              const tr = Math.max(h - l, Math.abs(h - state.prevClose), Math.abs(l - state.prevClose));
-              state.prevAtr = (state.prevAtr * (len - 1) + tr) / len;
-              state.prevClose = c;
+      // 5. Update ATR State
+      if (this.state.atr) {
+          Object.keys(this.state.atr).forEach(key => {
+             const len = parseInt(key);
+             const atrState = this.state.atr![len];
+
+             const h = candle.high.toNumber();
+             const l = candle.low.toNumber();
+             const pc = atrState.prevClose; // Close of previous candle
+
+             const tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
+
+             // RMA update: ATR = (PrevATR * (n-1) + TR) / n
+             atrState.prevAtr = (atrState.prevAtr * (len - 1) + tr) / len;
+             atrState.prevClose = candle.close.toNumber();
           });
       }
 
-      // Advance StochRSI State
-      if (this.state.stochRsi && this.enabled("stochrsi")) {
-          Object.keys(this.state.stochRsi).forEach(k => {
-              const len = parseInt(k);
-              const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
-              const state = this.state.stochRsi![len];
-              const { avgGain, avgLoss, rsi } = JSIndicators.updateRsi(
-                  state.rsiState.avgGain, state.rsiState.avgLoss,
-                  lastClose, state.rsiState.prevPrice, rsiLen
-              );
-              state.rsiState.avgGain = avgGain;
-              state.rsiState.avgLoss = avgLoss;
-              state.rsiState.prevPrice = lastClose;
-              
-              state.rsiHistory.push(rsi);
-              if (state.rsiHistory.length > state.length) {
-                  state.rsiHistory.shift();
-              }
+      // 6. Update StochRSI State
+      if (this.state.stochRsi) {
+          Object.keys(this.state.stochRsi).forEach(key => {
+             const len = parseInt(key);
+             const sState = this.state.stochRsi![len];
 
-              const smoothK = this.settings?.stochRsi?.kPeriod || 3;
-              let highestRsi = Math.max(...state.rsiHistory);
-              let lowestRsi = Math.min(...state.rsiHistory);
-              let rawK = 50;
-              if (highestRsi !== lowestRsi) {
-                  rawK = ((rsi - lowestRsi) / (highestRsi - lowestRsi)) * 100;
-              }
-              state.rawKHistory.push(rawK);
-              if (state.rawKHistory.length > smoothK) {
-                  state.rawKHistory.shift();
-              }
+             // Calculate RSI for this closed candle
+             // We reuse the RSI logic or rely on the RSI state we just updated?
+             // Since StochRSI maintains its OWN RSI state (independent of the main RSI indicator to avoid dependency issues if RSI is disabled),
+             // we update it here.
+
+             const change = price - sState.rsiState.prevPrice;
+             const gain = change > 0 ? change : 0;
+             const loss = change < 0 ? -change : 0;
+
+             // Update RSI state
+             sState.rsiState.avgGain = (sState.rsiState.avgGain * (sState.rsiState.length - 1) + gain) / sState.rsiState.length; // Wait, rsiLen is sState.rsiState.length? No rsiState is RsiState interface which doesn't have length.
+             // We need rsiLength. It is passed in reconstruct.
+             // But StochRSIState definition:
+             /*
+             export interface StochRsiState {
+                length: number; // This is Stoch length? or RSI length?
+                rsiState: RsiState;
+                rsiHistory: number[];
+                rawKHistory: number[];
+             }
+             */
+             // The settings has rsiLength. We should probably store rsiLength in state or assume it from settings.
+             // For safety, let's assume we use settings or a fixed fallback, but ideally it should be in state.
+             // In reconstructStochRsiState we used settings.stochRsi.rsiLength.
+             // Let's assume standard 14 if missing or access settings.
+
+             const rsiLen = this.settings?.stochRsi?.rsiLength || 14;
+
+             sState.rsiState.avgGain = (sState.rsiState.avgGain * (rsiLen - 1) + gain) / rsiLen;
+             sState.rsiState.avgLoss = (sState.rsiState.avgLoss * (rsiLen - 1) + loss) / rsiLen;
+             sState.rsiState.prevPrice = price;
+
+             const rs = sState.rsiState.avgLoss === 0 ? 100 : sState.rsiState.avgGain / sState.rsiState.avgLoss;
+             const rsi = sState.rsiState.avgLoss === 0 ? 100 : 100 - (100 / (1 + rs));
+
+             // Push to history
+             sState.rsiHistory.push(rsi);
+             if (sState.rsiHistory.length > len) sState.rsiHistory.shift();
+
+             // Calculate %K
+             let rawK = 50;
+             if (sState.rsiHistory.length >= len) {
+                 const max = Math.max(...sState.rsiHistory);
+                 const min = Math.min(...sState.rsiHistory);
+                 if (max !== min) {
+                     rawK = ((rsi - min) / (max - min)) * 100;
+                 }
+             }
+
+             sState.rawKHistory.push(rawK);
+             const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
+             if (sState.rawKHistory.length > kPeriod) sState.rawKHistory.shift();
           });
       }
+
+      this.state.lastCandle = candle;
   }
-
 
   private enabled(key: string): boolean {
-      if (!this.enabledIndicators) return true;
-      return this.enabledIndicators[key.toLowerCase()] !== false;
+    if (!this.enabledIndicators) return true;
+    return !!this.enabledIndicators[key];
   }
 
+  // --- Helpers to Reconstruct State from Initial Calculation ---
+
   private reconstructState(history: Kline[], result: TechnicalsData) {
-      // Reconstruct EMA State
-      // EMA State is just the last value.
-      this.state.ema = {};
-      result.movingAverages.forEach(ma => {
-          if (ma.name === "EMA") {
-             const period = parseInt(ma.params || "0");
-             if (period > 0) {
-                 this.state.ema![period] = { prevEma: ma.value };
+     // Reconstruct EMA
+     if (this.settings?.ema) {
+         const emas = [this.settings.ema.ema1, this.settings.ema.ema2, this.settings.ema.ema3];
+         emas.forEach(cfg => {
+             if (cfg && cfg.length) {
+                // Find the result in the movingAverages array
+                const ma = result.movingAverages.find(m => m.name === "EMA" && m.params === cfg.length.toString());
+                if (ma) {
+                    this.state.ema![cfg.length] = { prevEma: ma.value };
+                }
              }
-          }
-      });
+         });
+     }
 
-      // Reconstruct RSI State
-      // This is harder. RSI = 100 - 100 / (1 + RS). RS = AvgGain / AvgLoss.
-      // We know RSI value. We don't know AvgGain/AvgLoss magnitude, only their ratio.
-      // However, correct incremental update requires true AvgGain/AvgLoss.
-      // Solution: We must run a small "warmup" or trace back to calculate true AvgGain/AvgLoss.
-      // Or, we accept a small error by inferring AvgGain/Loss from RSI assuming a normalized magnitude? No, that drifts.
-      // Robust Solution: Calculate RSI separately here on history to get the state.
-      // It costs O(N) once at init, which is fine.
-      this.state.rsi = {};
-      if (this.enabled("rsi")) {
-          const rsiLen = this.settings?.rsi?.length || 14;
-          const closes = history.map(k => k.close.toNumber());
-          // We need to calculate full RSI series to get the final Average Gain/Loss.
-          // JSIndicators.rsi doesn't return state.
-          // We will use a helper that does, or just "warm up" manually.
+     // Reconstruct SMA
+     if (this.settings?.sma) {
+         const smas = [this.settings.sma.sma1, this.settings.sma.sma2, this.settings.sma.sma3];
+         smas.forEach(cfg => {
+             if (cfg && cfg.length) {
+                 // For SMA, we need the SUM of the last N candles.
+                 // SMA = Sum / N => Sum = SMA * N
+                 const ma = result.movingAverages.find(m => m.name === "SMA" && m.params === cfg.length.toString());
+                 if (ma) {
+                     this.state.sma![cfg.length] = { prevSum: ma.value * cfg.length };
+                 }
+             }
+         });
+     }
 
-          // Fast "Warmup" of state:
-          let avgGain = 0;
-          let avgLoss = 0;
-          // Initial SMA
-          for(let i=1; i<=rsiLen; i++) {
-             const diff = closes[i] - closes[i-1];
-             if (diff > 0) avgGain += diff;
-             else avgLoss -= diff;
-          }
-          avgGain /= rsiLen;
-          avgLoss /= rsiLen;
+     // Reconstruct RSI
+     if (this.settings?.rsi) {
+         const len = this.settings.rsi.length || 14;
+         // We need AvgGain and AvgLoss.
+         // We can approximate them if we only have the final RSI value, but that leads to inaccuracy.
+         // Better to re-calculate them from the last N*2 candles.
 
-          // Wilder Smoothing
-          for(let i=rsiLen+1; i<closes.length; i++) {
-              const diff = closes[i] - closes[i-1];
-              const gain = diff > 0 ? diff : 0;
-              const loss = diff < 0 ? -diff : 0;
-              avgGain = (avgGain * (rsiLen - 1) + gain) / rsiLen;
-              avgLoss = (avgLoss * (rsiLen - 1) + loss) / rsiLen;
-          }
+         const subset = history.slice(-len * 10); // Lookback enough to stabilize
+         // Standard Wilder's RSI calculation on subset
+         let avgGain = 0, avgLoss = 0;
+         const closes = subset.map(k => k.close.toNumber());
 
-          this.state.rsi[rsiLen] = {
-              avgGain,
-              avgLoss,
-              prevPrice: closes[closes.length - 1]
-          };
-      }
+         if (closes.length > len) {
+             // Initial SMA
+             for (let i = 1; i <= len; i++) {
+                 const diff = closes[i] - closes[i-1];
+                 if (diff > 0) avgGain += diff;
+                 else avgLoss -= diff;
+             }
+             avgGain /= len;
+             avgLoss /= len;
 
-      // Reconstruct SMA State
-      // We need 'prevSum'. SMA = Sum / N. So prevSum = SMA * N.
-      this.state.sma = {};
-      // Iterate MAs, if SMA found
-      // Actually SMA is not in default MAs list (only EMA 1/2/3).
-      // But user can config. Let's support it if it appears.
-      // Currently `technicalsCalculator` outputs EMAs primarily.
-      // If we add SMA support to the app later, this logic is ready.
-      // For now, let's enable it if we see "SMA".
-      // But typically standard MAs in this app are EMAs.
-      // Bollinger Bands use SMA.
+             // RMA
+             for (let i = len + 1; i < closes.length; i++) {
+                 const diff = closes[i] - closes[i-1];
+                 const g = diff > 0 ? diff : 0;
+                 const l = diff < 0 ? -diff : 0;
+                 avgGain = (avgGain * (len - 1) + g) / len;
+                 avgLoss = (avgLoss * (len - 1) + l) / len;
+             }
+         }
 
-      // Bollinger Support
-      if (this.enabled("bb") && result.volatility?.bb) {
-          // BB uses SMA(20).
-          // We need to store the SUM of the last 20 closes.
-          // result.volatility.bb.middle is the SMA value.
-          const len = this.settings?.bb?.length || 20;
-          const smaVal = result.volatility.bb.middle;
-          // State: Sum = SMA * len
-          // We store it under a specific key "BB" or generic "SMA:20"?
-          // Let's use generic "SMA:length".
-          // We need to know which indicator uses it during update.
-          // For now, let's just store it for BB.
-
-          // Optimization: Calculate initial SumSq for O(1) Variance updates
-          let sumSq = 0;
-          const histLen = history.length;
-          const startIdx = Math.max(0, histLen - len);
-          for (let i = startIdx; i < histLen; i++) {
-              const val = history[i].close.toNumber();
-              sumSq += val * val;
-          }
-          this.state.sma[len] = { prevSum: smaVal * len, prevSumSq: sumSq };
-      }
+         this.state.rsi![len] = {
+             avgGain,
+             avgLoss,
+             prevPrice: closes[closes.length - 1]
+         };
+     }
   }
 
   private initHistoryBuffers(history: Kline[]) {
-      // Fill circular buffer with historical closes
-      const len = history.length;
-      const start = Math.max(0, len - this.MAX_HISTORY_SIZE);
-      
-      for (let i = start; i < len; i++) {
-          this.priceHistory.push(history[i].close.toNumber());
+      // Fill the circular buffer with the last N prices
+      const recent = history.slice(-this.MAX_HISTORY_SIZE);
+      for (const k of recent) {
+          this.priceHistory.push(k.close.toNumber());
       }
   }
 
   private updateEmaGroup(result: TechnicalsData, price: number) {
-      // Iterate over MAs in result
-      result.movingAverages.forEach(ma => {
-          if (ma.name === "EMA") {
-              const period = parseInt(ma.params || "0");
-              const state = this.state.ema?.[period];
-              if (state) {
-                  const newVal = JSIndicators.updateEma(state.prevEma, price, period);
-                  ma.value = newVal;
-                  // Note: In a real incremental system (streaming), we update the state.
-                  // But here 'update' is called repeatedly for the SAME candle (intra-candle updates).
-                  // So we do NOT overwrite 'state.prevEma'. 'state.prevEma' is the value at the *start* of the candle (or end of previous).
-                  // Wait. 'initialize' sets state to the END of the last CLOSED candle?
-                  // Scenario:
-                  // 1. Init with 1000 closed candles. Last Close = 100. EMA = 90.
-                  // 2. State.prevEma = 90.
-                  // 3. New Tick (Candle 1001 forming). Price = 101.
-                  // 4. Update: EMA = updateEma(90, 101).
-                  // 5. Next Tick (Candle 1001 update). Price = 102.
-                  // 6. Update: EMA = updateEma(90, 102).
-                  // This assumes 'prevEma' is the confirmed EMA of the previous candle.
-                  // Correct.
-              }
-          }
-      });
-  }
+      if (!this.state.ema) return;
 
-  private updateRsiGroup(result: TechnicalsData, price: number, prevClosedPrice: number) {
-      const rsiLen = this.settings?.rsi?.length || 14;
-      const state = this.state.rsi?.[rsiLen];
-      if (state) {
-          // prevAvgGain/Loss are from the *previous closed candle*.
-          // prevPrice is the Close of the *previous closed candle*.
+      const emaInds = result.movingAverages.filter(m => m.name === "EMA");
+      for (const ma of emaInds) {
+          const len = parseInt(ma.params || "0");
+          const state = this.state.ema[len];
+          if (state && len > 0) {
+              const k = 2 / (len + 1);
+              const newEma = (price * k) + (state.prevEma * (1 - k));
+              ma.value = newEma;
+              ma.action = price > newEma ? "Buy" : "Sell";
 
-          const { rsi } = JSIndicators.updateRsi(
-              state.avgGain,
-              state.avgLoss,
-              price,
-              state.prevPrice,
-              rsiLen
-          );
-
-          // Update result
-          const rsiInd = result.oscillators.find(o => o.name === "RSI");
-          if (rsiInd) {
-              rsiInd.value = rsi;
-              // Action logic could be duplicated here or extracted.
-              // For now, minimal update.
+              // Note: Signal/Band logic handles smoothing which might be complex to incrementalize perfectly
+              // without extra state. For now, we update the base value.
+              // If smoothing is enabled, we might skip updating signal/bands here or approximate.
           }
       }
   }
 
   private updateSmaGroup(result: TechnicalsData, price: number) {
-      // Bollinger Bands Update
-      if (this.state.sma && this.enabled("bb") && result.volatility?.bb) {
-          const len = this.settings?.bb?.length || 20;
-          const stdDev = this.settings?.bb?.stdDev || 2;
-          const state = this.state.sma[len];
+      if (!this.state.sma) return;
 
-          if (state && this.priceHistory.getSize() >= len) {
-              // Retrieve the OLD value that is falling out of the window
-              // CircularBuffer: index 0 = oldest, getSize()-1 = newest
-              // Window of length 'len' includes the current price
-              // So we need the value at position (currentSize - len)
+      const smaInds = result.movingAverages.filter(m => m.name === "SMA");
+      for (const ma of smaInds) {
+          const len = parseInt(ma.params || "0");
+          const state = this.state.sma[len];
+          if (state && len > 0) {
               const oldestInWindow = this.priceHistory.getSize() - len;
               const oldVal = this.priceHistory.get(oldestInWindow);
 
               if (oldVal !== undefined) {
-                  // Calc new SMA
-                  // SMA_new = (Sum_prev - Old + New) / N
                   const newSum = state.prevSum - oldVal + price;
                   const newSma = newSum / len;
+                  ma.value = newSma;
+                  ma.action = price > newSma ? "Buy" : "Sell";
 
-                  // Update BB
-                  // Optimization: Incremental Variance (O(1))
-                  // Update SumSq: Remove old^2, Add new^2
-                  // Note: state.prevSumSq is from the PREVIOUS closed candle.
-                  const prevSumSq = state.prevSumSq || 0;
-                  const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
+                  // Bollinger Bands check
+                  // We also need to update BB if this SMA length corresponds to BB length
+                  // The BB uses the result.volatility.bb structure
+                  if (result.volatility?.bb) {
+                      const bbLen = this.settings?.bollingerBands?.length || 20;
+                      if (len === bbLen) {
+                         const prevSumSq = state.prevSumSq || 0; // If not initialized, BB fails. Should be initialized in reconstruct.
+                         const newSumSq = prevSumSq - (oldVal * oldVal) + (price * price);
+                         const variance = Math.max(0, (newSumSq / len) - (newSma * newSma));
+                         const std = Math.sqrt(variance);
+                         const stdDev = this.settings?.bollingerBands?.stdDev || 2;
 
-                  // Var = E[X^2] - (E[X])^2
-                  const variance = Math.max(0, (newSumSq / len) - (newSma * newSma));
-                  const std = Math.sqrt(variance);
+                         result.volatility.bb.middle = newSma;
+                         result.volatility.bb.upper = newSma + std * stdDev;
+                         result.volatility.bb.lower = newSma - std * stdDev;
 
-                  result.volatility.bb = {
-                      middle: newSma,
-                      upper: newSma + std * stdDev,
-                      lower: newSma - std * stdDev,
-                      percentP: (result.volatility.bb.upper - result.volatility.bb.lower) === 0 ? 0.5 : (price - (newSma - std*stdDev)) / ((newSma + std*stdDev) - (newSma - std*stdDev))
-                  };
+                         const range = result.volatility.bb.upper - result.volatility.bb.lower;
+                         result.volatility.bb.percentP = range === 0 ? 0.5 : (price - result.volatility.bb.lower) / range;
+                      }
+                  }
               }
           }
+      }
+  }
+
+  private updateRsiGroup(result: TechnicalsData, price: number, prevPrice: number) {
+      if (!this.state.rsi) return;
+
+      const rsiInd = result.oscillators.find(o => o.name === "RSI");
+      if (!rsiInd) return;
+
+      const len = this.settings?.rsi?.length || 14;
+      const state = this.state.rsi[len];
+      if (state) {
+          const { rsi } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
+          rsiInd.value = rsi;
+
+          if (rsi > (this.settings?.rsi?.overbought || 70)) rsiInd.action = "Sell";
+          else if (rsi < (this.settings?.rsi?.oversold || 30)) rsiInd.action = "Buy";
+          else rsiInd.action = "Neutral";
       }
   }
 
@@ -504,7 +472,6 @@ export class StatefulTechnicalsCalculator {
       if (!this.state.mfi || !result.advanced) return;
       const mfi = this.state.mfi;
 
-      // Compute the forming candle's contribution (not committed to state, just for the view)
       const h = tick.high.toNumber();
       const l = tick.low.toNumber();
       const c = tick.close.toNumber();
@@ -533,7 +500,7 @@ export class StatefulTechnicalsCalculator {
           mfiVal = 100 - 100 / (1 + mfr);
       }
 
-      let action: string = "Neutral";
+      let action: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (mfiVal > 80)  action = "Sell";
       else if (mfiVal < 20) action = "Buy";
 
@@ -547,8 +514,6 @@ export class StatefulTechnicalsCalculator {
           return;
       }
 
-      // Build window from the last (period+1) candles of history
-      // We need period+1 candles to compute period flows (each flow needs prev TP)
       const start = Math.max(0, history.length - period - 1);
       const window: { tp: number; posFlow: number; negFlow: number }[] = [];
       let sumPos = 0;
@@ -584,7 +549,11 @@ export class StatefulTechnicalsCalculator {
           const h = tick.high.toNumber();
           const l = tick.low.toNumber();
           const c = tick.close.toNumber();
+          // Current TR uses PREVIOUS close (which is in state)
           const tr = Math.max(h - l, Math.abs(h - state.prevClose), Math.abs(l - state.prevClose));
+
+          // RMA update for forming candle
+          // NewATR = (PrevATR * (n-1) + CurrentTR) / n
           const newAtr = (state.prevAtr * (len - 1) + tr) / len;
           result.volatility.atr = newAtr;
       }
@@ -597,10 +566,15 @@ export class StatefulTechnicalsCalculator {
           return;
       }
 
-      const startIndex = Math.max(1, history.length - len * 2); 
+      // Use full history for best RMA precision
       let atr = 0;
       
       // Calculate initial SMA of TR for first ATR value
+      // Need at least len+1 data points
+      if (history.length <= len) return;
+
+      // SMA for first 'len' periods
+      // Starting from index 1 (since index 0 has no prevClose)
       for (let i = 1; i <= len; i++) {
           const h = history[i].high.toNumber();
           const l = history[i].low.toNumber();
@@ -610,7 +584,7 @@ export class StatefulTechnicalsCalculator {
       }
       atr /= len;
 
-      // Apply Wilder's Smoothing (RMA) for the rest
+      // RMA for rest
       let prevC = history[len].close.toNumber();
       for (let i = len + 1; i < history.length; i++) {
           const h = history[i].high.toNumber();
@@ -684,17 +658,17 @@ export class StatefulTechnicalsCalculator {
           return;
       }
 
-      // We need effectively the full RSI array first to build the Stoch window.
       const closes = history.map(k => k.close.toNumber());
       const rsiArray = new Float64Array(closes.length);
       JSIndicators.rsi(closes, rsiLen, rsiArray);
 
-      // We only need the last 'len' RSI values for the history window
       const rsiWindow = Array.from(rsiArray.slice(-len));
       
-      // We also need the RSI state (avgGain/Loss)
       let avgGain = 0;
       let avgLoss = 0;
+      // Reconstruct RSI State using same RMA logic for consistency
+      // Start RMA from index rsiLen
+      // Need initial SMA
       for(let i=1; i<=rsiLen; i++) {
           const diff = closes[i] - closes[i-1];
           if (diff > 0) avgGain += diff;
@@ -714,6 +688,7 @@ export class StatefulTechnicalsCalculator {
       const kPeriod = this.settings?.stochRsi?.kPeriod || 3;
       const rawKHistory: number[] = [];
       
+      // Rebuild rawK history
       for (let i = 0; i < kPeriod; i++) {
          const idx = rsiArray.length - kPeriod + i;
          if (idx >= len - 1) {

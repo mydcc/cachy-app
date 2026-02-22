@@ -833,32 +833,34 @@ export function calculateIndicatorsFromArrays(
         ichiSpanB,
         ichiDisp,
         );
-        const idx = ichi.conversion.length - 1;
+        const idx = len - 1;
+
         const conv = ichi.conversion[idx] || 0;
         const base = ichi.base[idx] || 0;
-        const spanA = ichi.spanA[idx] || 0;
-        const spanB = ichi.spanB[idx] || 0;
 
-        // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
-        // Price < Cloud && Conv < Base = Sell
+        // JSIndicators.ichimoku already shifts Span A/B forward by displacement.
+        // So the value at [idx] corresponds to the Cloud value at the current time (calculated 'displacement' bars ago).
+        const spanA = ichi.spanA[idx];
+        const spanB = ichi.spanB[idx];
+
         let ichiAction = "Neutral";
-        const cloudTop = spanA > spanB ? spanA : spanB;
-        const cloudBottom = spanA < spanB ? spanA : spanB;
 
-        if (currentPrice > cloudTop && conv > base) ichiAction = "Buy";
-        else if (
-        currentPrice > cloudTop &&
-        conv > base &&
-        currentPrice > base
-        )
-        ichiAction = "Strong Buy";
-        else if (currentPrice < cloudBottom && conv < base) ichiAction = "Sell";
+        if (!isNaN(spanA) && !isNaN(spanB)) {
+            const cloudTop = spanA > spanB ? spanA : spanB;
+            const cloudBottom = spanA < spanB ? spanA : spanB;
+
+            if (currentPrice > cloudTop) {
+                if (conv > base) ichiAction = "Buy";
+            } else if (currentPrice < cloudBottom) {
+                if (conv < base) ichiAction = "Sell";
+            }
+        }
 
         advancedInfo.ichimoku = {
         conversion: conv,
         base: base,
-        spanA: spanA,
-        spanB: spanB,
+        spanA: !isNaN(spanA) ? spanA : 0,
+        spanB: !isNaN(spanB) ? spanB : 0,
         action: ichiAction,
         };
     }
@@ -926,15 +928,25 @@ export function calculateIndicatorsFromArrays(
     if (shouldCalculate('ema')) {
         const emaSource = getSource(settings?.ema?.source || "close");
         const emaConfigs = [
-            settings?.ema?.ema1 || { length: 21, offset: 0, smoothingType: "sma" as const, smoothingLength: 14, bbStdDev: 2 },
-            settings?.ema?.ema2 || { length: 50, offset: 0, smoothingType: "sma" as const, smoothingLength: 14, bbStdDev: 2 },
-            settings?.ema?.ema3 || { length: 200, offset: 0, smoothingType: "sma" as const, smoothingLength: 14, bbStdDev: 2 }
+            settings?.ema?.ema1 || { length: 21, offset: 0 },
+            settings?.ema?.ema2 || { length: 50, offset: 0 },
+            settings?.ema?.ema3 || { length: 200, offset: 0 }
         ];
+
+        const smoothingType = settings?.ema?.smoothingType || "sma";
+        const smoothingLen = settings?.ema?.smoothingLength || 14;
+        const bbStdDev = settings?.ema?.bbStdDev || 2;
 
         for (const config of emaConfigs) {
             const period = config.length;
+            const offset = config.offset || 0;
             const emaResults = JSIndicators.ema(emaSource, period);
-            const rawVal = emaResults[emaResults.length - 1];
+
+            // Apply Offset: Shift result index
+            const targetIdx = emaResults.length - 1 - offset;
+            if (targetIdx < 0) continue;
+
+            const rawVal = emaResults[targetIdx];
             
             // Handle insufficient data (NaN) by skipping
             if (typeof rawVal === 'number' && !isNaN(rawVal)) {
@@ -942,33 +954,32 @@ export function calculateIndicatorsFromArrays(
                 let upperBand: number | undefined;
                 let lowerBand: number | undefined;
                 
-                const smoothingType = settings?.ema?.smoothingType || "sma";
-                const smoothingLen = settings?.ema?.smoothingLength || 14;
-
                 if (smoothingType !== "none" && smoothingLen > 0) {
-                  if (smoothingType === "sma" || smoothingType === "sma_bb") {
-                    if (smoothingType === "sma_bb") {
-                      const bbStdDev = settings?.ema?.bbStdDev || 2;
+                  let smoothedResults: Float64Array | undefined;
+
+                  if (smoothingType === "sma_bb") {
                       const bb = JSIndicators.bb(emaResults, smoothingLen, bbStdDev);
-                      signalVal = bb.middle[bb.middle.length - 1];
-                      upperBand = bb.upper[bb.upper.length - 1];
-                      lowerBand = bb.lower[bb.lower.length - 1];
-                    } else {
-                      const smoothed = JSIndicators.sma(emaResults, smoothingLen);
-                      signalVal = smoothed[smoothed.length - 1];
-                    }
-                  } else if (smoothingType === "ema") {
-                    const smoothed = JSIndicators.ema(emaResults, smoothingLen);
-                    signalVal = smoothed[smoothed.length - 1];
-                  } else if (smoothingType === "smma") {
-                    const smoothed = JSIndicators.smma(emaResults, smoothingLen);
-                    signalVal = smoothed[smoothed.length - 1];
-                  } else if (smoothingType === "wma") {
-                    const smoothed = JSIndicators.wma(emaResults, smoothingLen);
-                    signalVal = smoothed[smoothed.length - 1];
-                  } else if (smoothingType === "vwma") {
-                    const smoothed = JSIndicators.vwma(emaResults, volumesNum, smoothingLen);
-                    signalVal = smoothed[smoothed.length - 1];
+                      const idx = Math.max(0, bb.middle.length - 1 - offset);
+                      signalVal = bb.middle[idx];
+                      upperBand = bb.upper[idx];
+                      lowerBand = bb.lower[idx];
+                  } else {
+                      if (smoothingType === "sma") {
+                        smoothedResults = JSIndicators.sma(emaResults, smoothingLen);
+                      } else if (smoothingType === "ema") {
+                        smoothedResults = JSIndicators.ema(emaResults, smoothingLen);
+                      } else if (smoothingType === "smma") {
+                        smoothedResults = JSIndicators.smma(emaResults, smoothingLen);
+                      } else if (smoothingType === "wma") {
+                        smoothedResults = JSIndicators.wma(emaResults, smoothingLen);
+                      } else if (smoothingType === "vwma") {
+                        smoothedResults = JSIndicators.vwma(emaResults, volumesNum, smoothingLen);
+                      }
+
+                      if (smoothedResults) {
+                          const idx = Math.max(0, smoothedResults.length - 1 - offset);
+                          signalVal = smoothedResults[idx];
+                      }
                   }
                 }
 
