@@ -287,7 +287,7 @@ class TradeService {
             // Try to resolve localized error message if code exists
             if (code && (e instanceof BitunixApiError || String(code).startsWith('20') || String(code).startsWith('30'))) {
                 const t = get(_);
-                const localized = t(`bitunixErrors.${code}`);
+                const localized = t(`bitunixErrors.${code}` as any);
                 // If translation exists (doesn't return key), use it
                 if (localized && localized !== `bitunixErrors.${code}`) {
                     msg = localized;
