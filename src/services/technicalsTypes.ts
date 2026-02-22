@@ -295,6 +295,12 @@ export interface StochRsiState {
   // ✅ Bug 4 fix: rolling window for %D (SMA of smoothed %K)
   dHistory?: number[];
 }
+export interface MacdState {
+  fastEma: number;
+  slowEma: number;
+  signalEma: number;
+}
+
 export interface TechnicalsState {
   lastCandle: Kline | null;
   ema?: Record<string, EmaState>;
@@ -303,5 +309,6 @@ export interface TechnicalsState {
   mfi?: MfiState;
   atr?: Record<string, AtrState>;
   stochRsi?: Record<string, StochRsiState>;
+  macd?: MacdState;
   lastResult?: TechnicalsData;
 }

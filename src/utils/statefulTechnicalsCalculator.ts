@@ -23,7 +23,7 @@
 import { Decimal } from "decimal.js";
 import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
-import type { TechnicalsData, TechnicalsState, EmaState, RsiState, MfiState } from "../services/technicalsTypes";
+import type { TechnicalsData, TechnicalsState, EmaState, RsiState, MfiState, MacdState } from "../services/technicalsTypes";
 import { CircularBuffer } from "./circularBuffer";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
 import { calculatePivotsFromValues } from "./indicators";
@@ -34,6 +34,7 @@ export class StatefulTechnicalsCalculator {
     ema: {},
     rsi: {},
     mfi: undefined,
+    macd: undefined,
   };
 
   private settings: any;
@@ -86,6 +87,7 @@ export class StatefulTechnicalsCalculator {
     this.reconstructMfiState(closedHistory);
     this.reconstructAtrState(closedHistory);
     this.reconstructStochRsiState(closedHistory);
+    this.reconstructMacdState(closedHistory, closedResult);
     this.initHistoryBuffers(closedHistory);
 
     return result;
@@ -146,6 +148,11 @@ export class StatefulTechnicalsCalculator {
     if (this.state.stochRsi && this.enabled("stochrsi")) {
         this.updateStochRsiGroup(newResult, currentPrice);
     }
+    // 7. Update MACD incrementally
+    if (this.state.macd && this.enabled(macd)) {
+        this.updateMacdGroup(newResult, currentPrice);
+    }
+
 
 
     // --- Recalculate Aggregates (Summary, Pivots, Confluence) ---
@@ -380,7 +387,26 @@ export class StatefulTechnicalsCalculator {
           });
       }
 
-      this.state.lastCandle = candle;
+
+      // 7. Update MACD State
+      if (this.state.macd) {
+          const mState = this.state.macd;
+          const fastLen = this.settings?.macd?.fast || 12;
+          const slowLen = this.settings?.macd?.slow || 26;
+          const sigLen = this.settings?.macd?.signal || 9;
+
+          const kFast = 2 / (fastLen + 1);
+          const kSlow = 2 / (slowLen + 1);
+          const kSig = 2 / (sigLen + 1);
+
+          mState.fastEma = (price * kFast) + (mState.fastEma * (1 - kFast));
+          mState.slowEma = (price * kSlow) + (mState.slowEma * (1 - kSlow));
+
+          const macdLine = mState.fastEma - mState.slowEma;
+          mState.signalEma = (macdLine * kSig) + (mState.signalEma * (1 - kSig));
+      }
+
+this.state.lastCandle = candle;
   }
 
   private enabled(key: string): boolean {
@@ -853,5 +879,67 @@ export class StatefulTechnicalsCalculator {
               dHistory: dHistory
           }
       };
+  }
+
+  private updateMacdGroup(result: TechnicalsData, price: number) {
+      if (!this.state.macd) return;
+
+      const mState = this.state.macd;
+      // We need to find the indicator in oscillators.
+      // If it's missing (e.g. settings disabled initially), we skip.
+      const macdInd = result.oscillators?.find(o => o.name === MACD);
+      if (!macdInd) return;
+
+      const fastLen = this.settings?.macd?.fast || 12;
+      const slowLen = this.settings?.macd?.slow || 26;
+      const sigLen = this.settings?.macd?.signal || 9;
+
+      const kFast = 2 / (fastLen + 1);
+      const kSlow = 2 / (slowLen + 1);
+      const kSig = 2 / (sigLen + 1);
+
+      // Calc new values for forming candle (read-only)
+      const newFast = (price * kFast) + (mState.fastEma * (1 - kFast));
+      const newSlow = (price * kSlow) + (mState.slowEma * (1 - kSlow));
+      const newMacdLine = newFast - newSlow;
+      const newSignal = (newMacdLine * kSig) + (mState.signalEma * (1 - kSig));
+      const newHist = newMacdLine - newSignal;
+
+      macdInd.value = newMacdLine;
+      macdInd.signal = newSignal;
+      macdInd.histogram = newHist;
+
+      if (newHist > 0 && newMacdLine > 0) macdInd.action = Buy;
+      else if (newHist < 0 && newMacdLine < 0) macdInd.action = Sell;
+      else macdInd.action = Neutral;
+  }
+
+  private reconstructMacdState(history: Kline[], result: TechnicalsData) {
+      if (!this.enabled(macd)) {
+          this.state.macd = undefined;
+          return;
+      }
+
+      const macdInd = result.oscillators?.find(o => o.name === MACD);
+      if (!macdInd) return;
+
+      const closes = history.map(k => k.close.toNumber());
+      const fastLen = this.settings?.macd?.fast || 12;
+      const slowLen = this.settings?.macd?.slow || 26;
+
+      // Compute last EMAs from full history
+      const fastEma = JSIndicators.ema(closes, fastLen);
+      const slowEma = JSIndicators.ema(closes, slowLen);
+
+      if (fastEma.length > 0 && slowEma.length > 0) {
+          const lastFast = fastEma[fastEma.length - 1];
+          const lastSlow = slowEma[slowEma.length - 1];
+
+          this.state.macd = {
+              fastEma: lastFast,
+              slowEma: lastSlow,
+              signalEma: macdInd.signal || 0
+          };
+      }
   }
 }
