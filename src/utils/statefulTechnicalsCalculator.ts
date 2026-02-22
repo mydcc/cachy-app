@@ -337,14 +337,29 @@ export class StatefulTechnicalsCalculator {
          });
      }
 
+     // Reconstruct Bollinger Bands SMA state
+     if (this.enabled("bollingerBands") && result.volatility?.bb) {
+         const bbLen = this.settings?.bollingerBands?.length || 20;
+         const smaVal = result.volatility.bb.middle;
+         if (!this.state.sma) this.state.sma = {};
+         let sumSq = 0;
+         const histLen = history.length;
+         const startIdx = Math.max(0, histLen - bbLen);
+         for (let i = startIdx; i < histLen; i++) {
+             const val = history[i].close.toNumber();
+             sumSq += val * val;
+         }
+         this.state.sma![bbLen] = { prevSum: smaVal * bbLen, prevSumSq: sumSq };
+     }
+
      // Reconstruct RSI
      if (this.settings?.rsi) {
-         const len = this.settings.rsi.length || 14;
+         const len = this.settings.rsi.length || 14; // RSI period
          // We need AvgGain and AvgLoss.
          // We can approximate them if we only have the final RSI value, but that leads to inaccuracy.
          // Better to re-calculate them from the last N*2 candles.
 
-         const subset = history.slice(-len * 10); // Lookback enough to stabilize (RSI)
+         const subset = history.slice(-len * 10); // Lookback enough to stabilize
          // Standard Wilder's RSI calculation on subset
          let avgGain = 0, avgLoss = 0;
          const closes = subset.map(k => k.close.toNumber());
