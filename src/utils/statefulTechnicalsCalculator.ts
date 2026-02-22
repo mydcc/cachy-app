@@ -25,6 +25,8 @@ import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState, EmaState, RsiState, MfiState } from "../services/technicalsTypes";
 import { CircularBuffer } from "./circularBuffer";
+import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
+import { calculatePivotsFromValues } from "./indicators";
 
 export class StatefulTechnicalsCalculator {
   private state: TechnicalsState = {
@@ -144,6 +146,54 @@ export class StatefulTechnicalsCalculator {
     if (this.state.stochRsi && this.enabled("stochrsi")) {
         this.updateStochRsiGroup(newResult, currentPrice);
     }
+
+
+    // --- Recalculate Aggregates (Summary, Pivots, Confluence) ---
+
+    // 1. Summary
+    let buy = 0;
+    let sell = 0;
+    let neutral = 0;
+
+    [...(newResult.oscillators || []), ...(newResult.movingAverages || [])].forEach((ind) => {
+        if (ind.action.includes(Buy)) buy++;
+        else if (ind.action.includes(Sell)) sell++;
+        else neutral++;
+    });
+
+    let summaryAction: Buy | Sell | Neutral = Neutral;
+    if (buy > sell && buy > neutral) summaryAction = Buy;
+    else if (sell > buy && sell > neutral) summaryAction = Sell;
+
+    newResult.summary = { buy, sell, neutral, action: summaryAction };
+
+    // 2. Pivots
+    if (this.settings?.pivots && this.state.lastCandle) {
+        const pivotType = this.settings.pivots.type || classic;
+        const pc = this.state.lastCandle;
+
+        const pivotData = calculatePivotsFromValues(
+            pc.high.toNumber(),
+            pc.low.toNumber(),
+            pc.close.toNumber(),
+            pc.open.toNumber(),
+            pivotType
+        );
+
+        newResult.pivots = pivotData.pivots;
+        newResult.pivotBasis = pivotData.basis;
+    }
+
+    // 3. Confluence
+    const partialData: any = {
+        oscillators: newResult.oscillators,
+        movingAverages: newResult.movingAverages,
+        divergences: newResult.divergences,
+        advanced: newResult.advanced,
+        pivotBasis: newResult.pivotBasis,
+    };
+
+    newResult.confluence = ConfluenceAnalyzer.analyze(partialData);
 
     // Update State for next tick
     this.state.lastResult = newResult;
