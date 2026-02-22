@@ -373,6 +373,23 @@ export const technicalsService = {
     }
   },
 
+  async shiftTechnicals(symbol: string, timeframe: string, kline: any): Promise<void> {
+      if (!workerManager.isHealthy()) {
+          throw new Error("Worker unavailable for shift");
+      }
+      try {
+          await workerManager.postMessage({
+              type: "SHIFT",
+              payload: {
+                  symbol, timeframe,
+                  kline: { ...kline, open: kline.open.toString(), high: kline.high.toString(), low: kline.low.toString(), close: kline.close.toString(), volume: kline.volume?.toString() || "0" }
+              }
+          });
+      } catch (e) {
+          throw e;
+      }
+  },
+
   // Cleanup: Remove worker state to prevent leaks
   async cleanupTechnicals(symbol: string, timeframe: string) {
       if (!workerManager.isHealthy()) return;

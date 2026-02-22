@@ -53,16 +53,36 @@ export class StatefulTechnicalsCalculator {
     this.settings = settings;
     this.enabledIndicators = enabledIndicators;
 
-    // 1. Run full calculation to get the baseline
+    // Detect phantom candle (live forming candle)
+    // It's the last candle, and typically has volume 0 if it's just started/forming
+    // The ActiveTechnicalsManager injects it with volume 0.
+    const lastCandle = history[history.length - 1];
+    const isPhantom = lastCandle && lastCandle.volume.isZero();
+
+    // 1. Run full calculation to get the baseline for UI (includes phantom)
     const result = calculateAllIndicators(history, settings, enabledIndicators);
     this.state.lastResult = result;
-    this.state.lastCandle = history[history.length - 1];
 
-    this.reconstructState(history, result);
-    this.reconstructMfiState(history);
-    this.reconstructAtrState(history);
-    this.reconstructStochRsiState(history);
-    this.initHistoryBuffers(history);
+    // 2. Reconstruct state using only CLOSED candles
+    // If we have a phantom, exclude it from state reconstruction
+    const closedHistory = isPhantom ? history.slice(0, -1) : history;
+
+    // If we sliced off the phantom, we need the result for the closed history
+    // to correctly reconstruct state (e.g. prevEma).
+    // calculateAllIndicators is fast enough to run again for the closed history.
+    let closedResult = result;
+    if (isPhantom) {
+        closedResult = calculateAllIndicators(closedHistory, settings, enabledIndicators);
+    }
+
+    // Important: Update lastCandle to the last CLOSED candle for state tracking
+    this.state.lastCandle = closedHistory[closedHistory.length - 1];
+
+    this.reconstructState(closedHistory, closedResult);
+    this.reconstructMfiState(closedHistory);
+    this.reconstructAtrState(closedHistory);
+    this.reconstructStochRsiState(closedHistory);
+    this.initHistoryBuffers(closedHistory);
 
     return result;
   }
@@ -77,14 +97,17 @@ export class StatefulTechnicalsCalculator {
     const prevPrice = this.state.lastCandle.close.toNumber();
 
     // Clone the previous result to modify it
-    // Deep clone might be expensive, but structure is simple.
-    // For perf, we mutate a fresh object based on prev.
-    const newResult = { ...prevResult }; // Shallow copy of top level
-
-    // Arrays (oscillators, MAs) need to be cloned or we just replace the entries we update.
-    // Since 'oscillators' is an array of objects, we can map it.
-    newResult.oscillators = prevResult.oscillators.map(o => ({ ...o }));
-    newResult.movingAverages = prevResult.movingAverages.map(ma => ({ ...ma }));
+    // Use deeper cloning for nested objects to ensure reference equality checks in UI fail correctly
+    const newResult = {
+        ...prevResult,
+        oscillators: prevResult.oscillators.map(o => ({ ...o })),
+        movingAverages: prevResult.movingAverages.map(ma => ({ ...ma })),
+        volatility: prevResult.volatility ? {
+            ...prevResult.volatility,
+            bb: prevResult.volatility.bb ? { ...prevResult.volatility.bb } : undefined
+        } : undefined,
+        advanced: prevResult.advanced ? { ...prevResult.advanced } : undefined
+    };
 
     // 1. Update EMA
     if (this.state.ema && this.enabled("ema")) {
@@ -96,8 +119,9 @@ export class StatefulTechnicalsCalculator {
        this.updateRsiGroup(newResult, currentPrice, prevPrice);
     }
 
-    // ✅ Bug 2 fix: track last candle so prevPrice is always correct on next tick
-    this.state.lastCandle = tick;
+    // Note: We do NOT update this.state.lastCandle to 'tick' here.
+    // We want this.state.lastCandle to always point to the last CLOSED candle
+    // so that 'prevPrice' remains the close of the previous candle.
 
     // 3. Update SMA / Bollinger Bands
     if (this.state.sma && this.enabled("sma")) {
@@ -459,11 +483,11 @@ export class StatefulTechnicalsCalculator {
       const len = this.settings?.rsi?.length || 14;
       const state = this.state.rsi[len];
       if (state) {
-          // ✅ Bug 1 fix: destructure and write avgGain/avgLoss back to state
-          const { rsi, avgGain, avgLoss } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
-          state.avgGain = avgGain;
-          state.avgLoss = avgLoss;
-          state.prevPrice = price;
+          // Calculate forming RSI without mutating state
+          // state.avgGain/Loss are from the last CLOSED candle.
+          // prevPrice is from the last CLOSED candle.
+          const { rsi } = JSIndicators.updateRsi(state.avgGain, state.avgLoss, price, prevPrice, len);
+
           rsiInd.value = rsi;
 
           if (rsi > (this.settings?.rsi?.overbought || 70)) rsiInd.action = "Sell";
