@@ -478,8 +478,19 @@ class ActiveTechnicalsManager {
             if (maA.action !== maB.action) return false;
         }
 
+                // Advanced (MFI)
+        const advA = a.advanced;
+        const advB = b.advanced;
+        if (!advA && !advB) {} // Both undefined
+        else if (!advA || !advB) return false;
+        else {
+            if (advA.mfi?.value?.toString() !== advB.mfi?.value?.toString()) return false;
+            if (advA.mfi?.action !== advB.mfi?.action) return false;
+        }
+
         return true;
     }
+
 
 
     private async performCalculation(symbol: string, timeframe: string) {
