@@ -344,7 +344,7 @@ export const technicalsService = {
             payload: {
                 symbol, timeframe,
                 klines: klines.map(k => ({ ...k, open: k.open.toString(), high: k.high.toString(), low: k.low.toString(), close: k.close.toString(), volume: k.volume?.toString() || "0" })),
-                settings, enabledIndicators
+                settings, enabledIndicators, hasPhantom
             }
         });
         return result;
