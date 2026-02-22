@@ -279,8 +279,13 @@
                     </div>
                     <div class="tile-params">
                         <Field id="ema1" label="EMA 1" type="number" bind:value={indicatorState.ema.ema1.length} min={1} />
+                        <Field id="ema1-off" label="Offset" type="number" bind:value={indicatorState.ema.ema1.offset} />
+
                         <Field id="ema2" label="EMA 2" type="number" bind:value={indicatorState.ema.ema2.length} min={1} />
+                        <Field id="ema2-off" label="Offset" type="number" bind:value={indicatorState.ema.ema2.offset} />
+
                         <Field id="ema3" label="EMA 3" type="number" bind:value={indicatorState.ema.ema3.length} min={1} />
+                        <Field id="ema3-off" label="Offset" type="number" bind:value={indicatorState.ema.ema3.offset} />
                         
                         <div class="col-span-2 border-t border-[var(--border-color)] pt-2 mt-1">
                             <span class="text-[10px] text-[var(--text-secondary)] uppercase font-bold px-1">Smoothing (All lines)</span>
