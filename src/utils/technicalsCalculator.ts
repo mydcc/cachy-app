@@ -844,7 +844,7 @@ export function calculateIndicatorsFromArrays(
               cleanupBuffers.push(outLower);
             }
 
-            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev, outMiddle, outUpper, outLower);
+            const bbSource = getSource(settings?.bollingerBands?.source || "close"); const bbResults = JSIndicators.bb(bbSource, bbLen, bbStdDev, outMiddle, outUpper, outLower);
             bbUpper = bbResults.upper[bbResults.upper.length - 1];
             bbLower = bbResults.lower[bbResults.lower.length - 1];
             bbMiddle = bbResults.middle[bbResults.middle.length - 1];
