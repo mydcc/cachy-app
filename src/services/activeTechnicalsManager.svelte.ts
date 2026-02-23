@@ -678,13 +678,14 @@ class ActiveTechnicalsManager {
 
         // If we really want deep equality, we can use JSON stringify or a more robust check.
         // For performance, we check key indicators.
-
         // Check MACD specifically as it was buggy
         const macdA = a.oscillators?.find((o: any) => o.name === 'MACD');
         const macdB = b.oscillators?.find((o: any) => o.name === 'MACD');
         if (macdA?.value !== macdB?.value) return false;
 
-        return JSON.stringify(a) === JSON.stringify(b);
+        const { lastUpdated: _a, ...restA } = a;
+        const { lastUpdated: _b, ...restB } = b;
+        return JSON.stringify(restA) === JSON.stringify(restB);
     }
 }
 
