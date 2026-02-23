@@ -10,11 +10,11 @@
 
     // Tabs
     const tabs = [
-        { id: "general", label: "General" },
-        { id: "oscillators", label: "Oscillators" },
-        { id: "trend", label: "Trend & Direction" },
-        { id: "volatility", label: "Volatility" },
-        { id: "volume", label: "Volume & Signals" },
+        { id: "general", label: $_("settings.technicals.tabs.general") },
+        { id: "oscillators", label: $_("settings.technicals.tabs.oscillators") },
+        { id: "trend", label: $_("settings.technicals.tabs.trend") },
+        { id: "volatility", label: $_("settings.technicals.tabs.volatility") },
+        { id: "volume", label: $_("settings.technicals.tabs.volume") },
     ];
     let activeCategory = $state("general");
 
