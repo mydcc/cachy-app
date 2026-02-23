@@ -308,6 +308,9 @@ export interface Settings {
     mfi: boolean;
     ema: boolean;
     sma: boolean;
+    wma: boolean;
+    vwma: boolean;
+    hma: boolean;
     bollingerBands: boolean;
     atr: boolean;
     vwap: boolean;
@@ -532,6 +535,9 @@ const defaultSettings: Settings = {
     momentum: false,
     mfi: false,
     sma: false,
+    wma: false,
+    vwma: false,
+    hma: false,
     volumeMa: false,
     volumeProfile: false,
     superTrend: false,

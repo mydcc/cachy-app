@@ -49,15 +49,9 @@
 
     const categories = [
         { id: "general", label: $_("settings.tabs.general") },
-        {
-            id: "oscillators",
-            label: $_("settings.technicals.oscillators"),
-        },
+        { id: "oscillators", label: $_("settings.technicals.oscillators") },
         { id: "trend", label: $_("settings.indicators.trend") },
-        {
-            id: "volatility",
-            label: $_("settings.indicators.volatility"),
-        },
+        { id: "volatility", label: $_("settings.indicators.volatility") },
         { id: "volume", label: $_("settings.indicators.volume") },
     ] as const;
 
@@ -65,6 +59,13 @@
         { value: "value", label: $_("settings.technicals.pnlModes.absolute") },
         { value: "percent", label: $_("settings.technicals.pnlModes.percent") },
         { value: "bar", label: $_("settings.technicals.pnlModes.bar") },
+    ];
+
+    const pivotModes = [
+        { value: "classic", label: "Classic" },
+        { value: "woodie", label: "Woodie" },
+        { value: "camarilla", label: "Camarilla" },
+        { value: "fibonacci", label: "Fibonacci" },
     ];
 </script>
 
@@ -183,20 +184,6 @@
                     <Toggle bind:checked={settingsState.syncRsiTimeframe} />
                 </label>
 
-                <label class="toggle-card mt-2">
-                    <div class="flex flex-col">
-                        <span class="text-sm font-medium"
-                            >{$_("settings.technicals.pivots")}</span
-                        >
-                        <span class="text-[10px] text-[var(--text-secondary)]"
-                            >{$_("settings.technicals.pivotsDesc")}</span
-                        >
-                    </div>
-                    <Toggle
-                        bind:checked={settingsState.enabledIndicators.pivots}
-                    />
-                </label>
-
                 <!-- PnL Mode -->
                 <div class="field-group mt-4">
                     <span
@@ -233,181 +220,293 @@
                 </div>
             </section>
         {:else if activeCategory === "oscillators"}
-            <div class="grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- RSI -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.rsi.title")}</h4>
-                    <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="rsi-len"
-                            label={$_("settings.technicals.labels.length")}
-                            type="number"
-                            bind:value={indicatorState.rsi.length}
-                            min={2}
-                        />
-                        <Select
-                            id="rsi-src"
-                            label={$_("settings.technicals.labels.source")}
-                            bind:value={indicatorState.rsi.source}
-                            options={[
-                                "close",
-                                "open",
-                                "high",
-                                "low",
-                                "hl2",
-                                "hlc3",
-                            ]}
-                        />
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.rsi.title")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.rsi} />
                     </div>
-                    <div class="flex items-center justify-between mt-2">
-                        <span class="text-xs">{$_("settings.technicals.rsi.showSignal")}</span>
-                        <Toggle bind:checked={indicatorState.rsi.showSignal} />
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="rsi-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.rsi.length} min={2} />
+                        <Select id="rsi-src" label={$_("settings.technicals.labels.source")} bind:value={indicatorState.rsi.source} options={["close", "open", "high", "low", "hl2", "hlc3"]} />
+                        <Field id="rsi-sm-len" label="Sm. Length" type="number" bind:value={indicatorState.rsi.signalLength} min={1} />
+                        <Select id="rsi-sm-type" label="Smoothing" bind:value={indicatorState.rsi.signalType} options={["sma", "ema"]} />
+                        <Field id="rsi-ob" label="Overbought" type="number" bind:value={indicatorState.rsi.overbought} min={50} max={100} />
+                        <Field id="rsi-os" label="Oversold" type="number" bind:value={indicatorState.rsi.oversold} min={0} max={50} />
                     </div>
                 </div>
+
                 <!-- Stoch RSI -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.stochRsi.title")}</h4>
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.stochRsi.title")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.stochRsi} />
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="srsi-len"
-                            label={$_("settings.technicals.stochRsi.len")}
-                            type="number"
-                            bind:value={indicatorState.stochRsi.length}
-                            min={2}
-                        />
-                        <Field
-                            id="srsi-rlen"
-                            label={$_("settings.technicals.stochRsi.rsiLen")}
-                            type="number"
-                            bind:value={indicatorState.stochRsi.rsiLength}
-                            min={2}
-                        />
-                        <Field
-                            id="srsi-k"
-                            label="%K"
-                            type="number"
-                            bind:value={indicatorState.stochRsi.kPeriod}
-                        />
-                        <Field
-                            id="srsi-d"
-                            label="%D"
-                            type="number"
-                            bind:value={indicatorState.stochRsi.dPeriod}
-                        />
+                        <Field id="srsi-len" label="Stoch Len" type="number" bind:value={indicatorState.stochRsi.length} min={2} />
+                        <Field id="srsi-rlen" label="RSI Len" type="number" bind:value={indicatorState.stochRsi.rsiLength} min={2} />
+                        <Field id="srsi-k" label="%K Period" type="number" bind:value={indicatorState.stochRsi.kPeriod} />
+                        <Field id="srsi-d" label="%D Period" type="number" bind:value={indicatorState.stochRsi.dPeriod} />
+                        <Select id="srsi-src" label="RSI Source" bind:value={indicatorState.stochRsi.source} options={["close"]} />
+                    </div>
+                </div>
+
+                <!-- Stochastic -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">STOCHASTIC</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.stochastic} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="stoch-k" label="%K Period" type="number" bind:value={indicatorState.stochastic.kPeriod} />
+                        <Field id="stoch-ks" label="%K Smooth" type="number" bind:value={indicatorState.stochastic.kSmoothing} />
+                        <Field id="stoch-d" label="%D Period" type="number" bind:value={indicatorState.stochastic.dPeriod} />
+                    </div>
+                </div>
+
+                <!-- Williams %R -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">WILLIAMS %R</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.williamsR} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="wr-len" label="Length" type="number" bind:value={indicatorState.williamsR.length} />
+                        <!-- Assuming source is fixed or configurable if needed -->
+                    </div>
+                </div>
+
+                <!-- CCI -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">CCI</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.cci} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="cci-len" label="Length" type="number" bind:value={indicatorState.cci.length} />
+                        <Select id="cci-src" label="Source" bind:value={indicatorState.cci.source} options={["close", "hlc3", "hl2"]} />
+                        <Field id="cci-thr" label="Threshold" type="number" bind:value={indicatorState.cci.threshold} />
+                        <Select id="cci-sm" label="Smoothing" bind:value={indicatorState.cci.smoothingType} options={["sma", "ema"]} />
+                        <Field id="cci-sml" label="Sm. Length" type="number" bind:value={indicatorState.cci.smoothingLength} />
+                    </div>
+                </div>
+
+                <!-- Awesome Osc -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">AWESOME OSC.</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.ao} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="ao-fast" label="Fast" type="number" bind:value={indicatorState.ao.fastLength} />
+                        <Field id="ao-slow" label="Slow" type="number" bind:value={indicatorState.ao.slowLength} />
+                    </div>
+                </div>
+
+                 <!-- Divergences -->
+                 <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] col-span-1 md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Divergences</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.divergences} />
+                    </div>
+                    <div class="text-[10px] text-[var(--text-secondary)]">
+                        RSI, MACD, CCI, Stoch divergences. Shown in Signals panel section.
                     </div>
                 </div>
             </div>
         {:else if activeCategory === "trend"}
-            <div class="grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- MACD -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.macd.title")}</h4>
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.macd.title")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.macd} />
+                    </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <Field
-                            id="macd-fast"
-                            label={$_("settings.technicals.labels.fast")}
-                            type="number"
-                            bind:value={indicatorState.macd.fastLength}
-                        />
-                        <Field
-                            id="macd-slow"
-                            label={$_("settings.technicals.labels.slow")}
-                            type="number"
-                            bind:value={indicatorState.macd.slowLength}
-                        />
-                        <Field
-                            id="macd-sig"
-                            label={$_("settings.technicals.labels.signal")}
-                            type="number"
-                            bind:value={indicatorState.macd.signalLength}
-                        />
+                        <Field id="macd-fast" label={$_("settings.technicals.labels.fast")} type="number" bind:value={indicatorState.macd.fastLength} />
+                        <Field id="macd-slow" label={$_("settings.technicals.labels.slow")} type="number" bind:value={indicatorState.macd.slowLength} />
+                        <Field id="macd-sig" label={$_("settings.technicals.labels.signal")} type="number" bind:value={indicatorState.macd.signalLength} />
                     </div>
                 </div>
+
                 <!-- SuperTrend -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.superTrend.title")}</h4>
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.superTrend.title")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.superTrend} />
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="st-fac"
-                            label={$_("settings.technicals.labels.factor")}
-                            type="number"
-                            step={0.1}
-                            bind:value={indicatorState.superTrend.factor}
-                        />
-                        <Field
-                            id="st-per"
-                            label={$_("settings.technicals.labels.period")}
-                            type="number"
-                            bind:value={indicatorState.superTrend.period}
-                        />
+                        <Field id="st-fac" label={$_("settings.technicals.labels.factor")} type="number" step={0.1} bind:value={indicatorState.superTrend.factor} />
+                        <Field id="st-per" label={$_("settings.technicals.labels.period")} type="number" bind:value={indicatorState.superTrend.period} />
+                    </div>
+                </div>
+
+                <!-- Parabolic SAR -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Parabolic SAR</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.parabolicSar} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="psar-start" label="Start" type="number" step={0.01} bind:value={indicatorState.parabolicSar.start} />
+                        <Field id="psar-inc" label="Increment" type="number" step={0.01} bind:value={indicatorState.parabolicSar.increment} />
+                        <Field id="psar-max" label="Max" type="number" step={0.01} bind:value={indicatorState.parabolicSar.max} />
+                    </div>
+                </div>
+
+                <!-- Ichimoku -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Ichimoku</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.ichimoku} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="ichi-conv" label="Conversion" type="number" bind:value={indicatorState.ichimoku.conversionPeriod} />
+                        <Field id="ichi-base" label="Base" type="number" bind:value={indicatorState.ichimoku.basePeriod} />
+                        <Field id="ichi-spanb" label="Span B" type="number" bind:value={indicatorState.ichimoku.spanBPeriod} />
+                        <Field id="ichi-disp" label="Displacement" type="number" bind:value={indicatorState.ichimoku.displacement} />
+                    </div>
+                </div>
+
+                <!-- ADX -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">ADX</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.adx} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="adx-sm" label="Smoothing" type="number" bind:value={indicatorState.adx.adxSmoothing} />
+                        <Field id="adx-di" label="DI Length" type="number" bind:value={indicatorState.adx.diLength} />
+                        <Field id="adx-thr" label="Threshold" type="number" bind:value={indicatorState.adx.threshold} />
+                    </div>
+                </div>
+
+                <!-- Moving Averages Group (New) -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] col-span-1 md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Moving Averages</h4>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center"><span class="text-xs font-semibold">SMA</span><Toggle bind:checked={settingsState.enabledIndicators.sma} /></div>
+                            <Field id="sma1" label="Len 1" type="number" bind:value={indicatorState.sma.sma1.length} />
+                            <Field id="sma2" label="Len 2" type="number" bind:value={indicatorState.sma.sma2.length} />
+                            <Field id="sma3" label="Len 3" type="number" bind:value={indicatorState.sma.sma3.length} />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center"><span class="text-xs font-semibold">EMA</span><Toggle bind:checked={settingsState.enabledIndicators.ema} /></div>
+                            <Field id="ema1" label="Len 1" type="number" bind:value={indicatorState.ema.ema1.length} />
+                            <Field id="ema2" label="Len 2" type="number" bind:value={indicatorState.ema.ema2.length} />
+                            <Field id="ema3" label="Len 3" type="number" bind:value={indicatorState.ema.ema3.length} />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center"><span class="text-xs font-semibold">WMA</span><Toggle bind:checked={settingsState.enabledIndicators.wma} /></div>
+                            <Field id="wma" label="Length" type="number" bind:value={indicatorState.wma.length} />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center"><span class="text-xs font-semibold">VWMA</span><Toggle bind:checked={settingsState.enabledIndicators.vwma} /></div>
+                            <Field id="vwma" label="Length" type="number" bind:value={indicatorState.vwma.length} />
+                            <div class="flex justify-between items-center mt-2"><span class="text-xs font-semibold">HMA</span><Toggle bind:checked={settingsState.enabledIndicators.hma} /></div>
+                            <Field id="hma" label="Length" type="number" bind:value={indicatorState.hma.length} />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pivot Points Card -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] col-span-1 md:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.pivots")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.pivots} />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs text-[var(--text-secondary)] uppercase font-semibold">Mode</span>
+                        <div class="flex rounded-md overflow-hidden border border-[var(--border-color)]">
+                            {#each pivotModes as mode}
+                                <button
+                                    class="flex-1 py-2 text-xs font-medium transition-colors
+                                    {indicatorState.pivots.type === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}"
+                                    onclick={() => indicatorState.pivots.type = mode.value as any}
+                                >
+                                    {mode.label}
+                                </button>
+                            {/each}
+                        </div>
+                        {#if indicatorState.pivots.type === 'fibonacci'}
+                            <span class="text-[10px] text-[var(--text-tertiary)] mt-1">Fibonacci ratios: 38.2% · 61.8% · 100%</span>
+                        {/if}
+                    </div>
+                </div>
+
+                <!-- Market Structure -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] col-span-1 md:col-span-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Market Structure</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.marketStructure} />
+                    </div>
+                    <div class="text-[10px] text-[var(--text-secondary)]">
+                        HH/HL/LH/LL swing detection. Shown in Signals panel section.
                     </div>
                 </div>
             </div>
         {:else if activeCategory === "volatility"}
-            <div class="grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Bollinger -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">
-                        {$_("settings.technicals.bollingerBands.title")}
-                    </h4>
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.bollingerBands.title")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.bollingerBands} />
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="bb-len"
-                            label={$_("settings.technicals.labels.length")}
-                            type="number"
-                            bind:value={indicatorState.bollingerBands.length}
-                        />
-                        <Field
-                            id="bb-std"
-                            label={$_("settings.technicals.bollingerBands.stdDev")}
-                            type="number"
-                            step={0.1}
-                            bind:value={indicatorState.bollingerBands.stdDev}
-                        />
+                        <Field id="bb-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.bollingerBands.length} />
+                        <Field id="bb-std" label={$_("settings.technicals.bollingerBands.stdDev")} type="number" step={0.1} bind:value={indicatorState.bollingerBands.stdDev} />
+                        <Select id="bb-src" label="Source" bind:value={indicatorState.bollingerBands.source} options={["close", "open", "high", "low", "hl2", "hlc3"]} />
                     </div>
                 </div>
                 <!-- ATR -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.atr")}</h4>
-                    <Field
-                        id="atr-len"
-                        label={$_("settings.technicals.labels.length")}
-                        type="number"
-                        bind:value={indicatorState.atr.length}
-                    />
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.atr")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.atr} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="atr-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.atr.length} />
+                    </div>
+                </div>
+                <!-- Choppiness -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Choppiness Index</h4>
+                        <!-- No toggle for choppiness in basic enabledIndicators? Assuming always active or bundled -->
+                        <!-- Actually it is just calculated if in Advanced section usually. Adding toggle if it exists. -->
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="chop-len" label="Length" type="number" bind:value={indicatorState.choppiness.length} />
+                    </div>
                 </div>
             </div>
         {:else if activeCategory === "volume"}
-            <div class="grid grid-cols-1 gap-4">
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.volumeMa.title")}</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Volume MA -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">{$_("settings.technicals.volumeMa.title")}</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.volumeMa} />
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="vma-len"
-                            label={$_("settings.technicals.labels.length")}
-                            type="number"
-                            bind:value={indicatorState.volumeMa.length}
-                        />
-                        <Select
-                            id="vma-type"
-                            label={$_("settings.technicals.labels.type")}
-                            bind:value={indicatorState.volumeMa.maType}
-                            options={["sma", "ema", "wma"]}
-                        />
+                        <Field id="vma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.volumeMa.length} />
+                        <Select id="vma-type" label={$_("settings.technicals.labels.type")} bind:value={indicatorState.volumeMa.maType} options={["sma", "ema", "wma"]} />
+                    </div>
+                </div>
+
+                <!-- Volume Profile -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">Volume Profile</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.volumeProfile} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="vp-rows" label="Rows" type="number" bind:value={indicatorState.volumeProfile.rows} />
                     </div>
                 </div>
             </div>
