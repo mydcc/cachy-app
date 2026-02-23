@@ -1,0 +1,7 @@
+Zusammenfassung der Änderungen:
+- Implementierung von Market Structure (Swing Highs/Lows) in der Berechnungslogik und Anzeige.
+- Implementierung von Volume MA (Moving Average auf Volumen) in der Berechnungslogik und Anzeige.
+- Aktualisierung der Typendefinitionen (types/indicators.ts, technicalsTypes.ts) zur Behebung von TypeScript-Fehlern in der CI.
+- Entfernung des redundanten Pivot-Toggles aus TradingTab.svelte.
+- Aktualisierung von TechnicalsPanel.svelte zur Darstellung der neuen Indikatoren.
+- Verifizierung der Berechnung von SMA, WMA, VWMA, HMA im Calculator.
