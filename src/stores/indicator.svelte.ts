@@ -405,6 +405,11 @@ class IndicatorManager {
     this.volumeProfile = next.volumeProfile;
     this.volumeMa = next.volumeMa;
     this.marketStructure = next.marketStructure;
+    this.sma = next.sma;
+    this.wma = next.wma;
+    this.vwma = next.vwma;
+    this.hma = next.hma;
+    this.bollingerBands = next.bollingerBands;
   }
 
   reset() {
@@ -438,6 +443,11 @@ class IndicatorManager {
     this.volumeProfile = d.volumeProfile;
     this.volumeMa = d.volumeMa;
     this.marketStructure = d.marketStructure;
+    this.sma = d.sma;
+    this.wma = d.wma;
+    this.vwma = d.vwma;
+    this.hma = d.hma;
+    this.bollingerBands = d.bollingerBands;
   }
 }
 
