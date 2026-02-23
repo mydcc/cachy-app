@@ -431,7 +431,7 @@
           {/if}
 
           <!-- Pivot Points -->
-          {#if settingsState.showTechnicalsPivots && data.pivots}
+          {#if settingsState.enabledIndicators.pivots && data.pivots}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"

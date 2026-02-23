@@ -678,9 +678,13 @@ export function calculateIndicatorsFromArrays(
         const cloudTop = spanA > spanB ? spanA : spanB;
         const cloudBottom = spanA < spanB ? spanA : spanB;
 
-        if (currentPrice > cloudTop && conv > base && currentPrice > base)
+        if (currentPrice > cloudTop && conv > base) ichiAction = "Buy";
+        else if (
+        currentPrice > cloudTop &&
+        conv > base &&
+        currentPrice > base
+        )
         ichiAction = "Strong Buy";
-        else if (currentPrice > cloudTop && conv > base) ichiAction = "Buy";
         else if (currentPrice < cloudBottom && conv < base) ichiAction = "Sell";
 
         advancedInfo.ichimoku = {
