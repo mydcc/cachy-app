@@ -178,7 +178,7 @@ export function calculateIndicatorsFromArrays(
         const srsiD = settings?.stochRsi?.dPeriod || 3;
 
         // JSIndicators.stochRsi returns { k, d } (object)
-        const stochRsiRes = JSIndicators.stochRsi(closesNum, srsiLen, srsiRsiLen, srsiK, srsiD) as unknown as { k: Float64Array, d: Float64Array };
+        const stochRsiRes = JSIndicators.stochRsi(closesNum, srsiRsiLen, srsiLen, srsiD, srsiK) as unknown as { k: Float64Array, d: Float64Array };
         const kVal = stochRsiRes.k[stochRsiRes.k.length - 1];
         const dVal = stochRsiRes.d[stochRsiRes.d.length - 1];
 
