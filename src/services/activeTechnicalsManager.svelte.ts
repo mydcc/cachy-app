@@ -1,133 +1,109 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Active Technicals Manager (Optimized for Svelte 5)
+ * Manages which symbols get calculated based on visibility and activity.
  */
 
-/*
- * Copyright (C) 2026 MYDCT
- *
- * Active Technicals Manager
- * Orchestrates background calculation of technical indicators for subscribed symbols.
- * Ensures data is updated in real-time regardless of UI state.
- */
-
-import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
-import { scheduler } from "../utils/scheduler";
-import { indicatorState } from "../stores/indicator.svelte";
-import { settingsState } from "../stores/settings.svelte";
-import { favoritesState } from "../stores/favorites.svelte";
 import { tradeState } from "../stores/trade.svelte";
-import { technicalsService } from "./technicalsService";
+import { settingsState } from "../stores/settings.svelte";
 import { marketWatcher } from "./marketWatcher";
+import { technicalsService } from "./technicalsService";
+import { logger } from "../utils/logger";
 import { browser } from "$app/environment";
-import { normalizeTimeframeInput, getIntervalMs, parseTimestamp } from "../utils/utils";
-import { logger } from "./logger";
-import { Decimal } from "decimal.js";
-import type { Kline, KlineBuffers } from "./technicalsTypes";
-import { networkMonitor } from "../utils/networkMonitor";
-import { BufferPool } from "../utils/bufferPool";
+import { favoritesState } from "../stores/favorites.svelte";
 import { idleMonitor } from "../utils/idleMonitor.svelte";
+import { scheduler } from "../utils/scheduler";
+import { Decimal } from "decimal.js";
+import { getIntervalMs } from "../utils/timeframeUtils";
+import { BufferPool } from "../utils/bufferPool";
+import type { Kline, KlineBuffers } from "../types/market";
 
+interface WorkerState {
+    initialized: boolean;
+    lastCommittedTime: number; // Timestamp of the last fully processed candle
+}
+
+interface ThrottleHandle {
+    id: any;
+    type: 'timeout' | 'idle';
+}
 
 class ActiveTechnicalsManager {
-    // Ref counting: `symbol:timeframe` -> count
+    // Track calculation throttles/timers
+    private throttles = new Map<string, ThrottleHandle>();
+    private activeEffects = new Map<string, () => void>();
     private subscribers = new Map<string, number>();
 
-    // Active effects cleanups: `symbol:timeframe` -> cleanup function
-    private activeEffects = new Map<string, () => void>();
-
-    // Throttle timers: `symbol:timeframe` -> timer ID
-    private throttles = new Map<string, ReturnType<typeof setTimeout>>();
-
-    // 🌟 Pro-Level: Visibility & Debounce State
+    // Priority Management
     private visibleSymbols = new Set<string>();
-    private lastActiveSymbolChange = 0;
-    private lastActiveSymbol = "";
+    private lastActiveSymbol: string | null = null;
+    private lastActiveSymbolChange: number = 0;
 
-    // State Tracking for Worker Initialization
-    // lastCommittedTime: timestamp of the LAST CLOSED candle seen during init.
-    // Phantom candles for the live period do NOT change lastCommittedTime.
-    private workerState = new Map<string, { initialized: boolean, lastCommittedTime: number }>();
+    // Worker State Tracking (Per Symbol+Timeframe)
+    private workerState = new Map<string, WorkerState>();
 
-    // Memory Management: Reuse buffers to prevent GC spikes
+    // Generation Tracking to prevent race conditions
+    private calculationGenerations = new Map<string, number>();
+
+    // Buffer Pool for allocations
     private pool = new BufferPool();
 
-    // Page Visibility State
-    private isTabVisible = true;
+    // Paused calculations (e.g. when tab is hidden)
     private pausedCalculations = new Set<string>();
 
     constructor() {
-        // Singleton
-        
-        // Page Visibility API: Pause calculations when tab is hidden
-        if (browser && typeof document !== 'undefined') {
-            this.isTabVisible = !document.hidden;
-            
-            document.addEventListener('visibilitychange', () => {
-                this.handleVisibilityChange();
+        if (browser) {
+            // Monitor visibility changes
+            $effect.root(() => {
+                $effect(() => {
+                    this.handleVisibilityChange(idleMonitor.isDocumentVisible, idleMonitor.isUserIdle);
+                });
             });
         }
     }
 
-    /**
-     * Handle Page Visibility API changes.
-     * Pauses non-critical calculations when tab is hidden.
-     */
-    private handleVisibilityChange() {
-        const wasVisible = this.isTabVisible;
-        this.isTabVisible = !document.hidden;
-
-        if (!this.isTabVisible && wasVisible) {
-            // Tab just became hidden - pause non-critical calculations
-            logger.log('general', '[ActiveManager] Tab hidden - pausing non-critical calculations');
+    private handleVisibilityChange(isVisible: boolean, isIdle: boolean) {
+        if (!isVisible) {
             this.pauseNonCriticalCalculations();
-        } else if (this.isTabVisible && !wasVisible) {
-            // Tab just became visible - resume calculations
-            logger.log('general', '[ActiveManager] Tab visible - resuming calculations');
+        } else {
             this.resumeCalculations();
         }
     }
 
-    /**
-     * Pause all calculations except Takt 1 (active symbol).
-     */
     private pauseNonCriticalCalculations() {
-        const activeSymbol = tradeState.symbol;
+        if (import.meta.env.DEV) {
+            logger.debug("technicals", "[ActiveManager] Pausing non-critical calculations");
+        }
         
-        for (const [key, timerId] of this.throttles.entries()) {
+        // Cancel all pending Takt 2/3 calculations
+        for (const [key, handle] of this.throttles) {
+            // Don't pause active symbol
             const [symbol] = key.split(':');
-            
-            // Keep active symbol running
-            if (symbol === activeSymbol) continue;
-            
-            // Cancel timer and mark as paused
-            clearTimeout(timerId);
+            if (symbol === tradeState.symbol) continue;
+
+            if (handle.type === 'timeout') {
+                clearTimeout(handle.id);
+            } else {
+                const cancelIdle = this.getCancelIdleCallback();
+                cancelIdle(handle.id);
+            }
             this.throttles.delete(key);
             this.pausedCalculations.add(key);
         }
     }
 
-    /**
-     * Resume paused calculations with lower priority.
-     */
     private resumeCalculations() {
+        if (this.pausedCalculations.size === 0) return;
+
+        if (import.meta.env.DEV) {
+            logger.debug("technicals", `[ActiveManager] Resuming ${this.pausedCalculations.size} calculations`);
+        }
+
+        // Reschedule paused items with staggered start
         for (const key of this.pausedCalculations) {
             const [symbol, timeframe] = key.split(':');
-            
-            // Resume with a slight delay to avoid thundering herd
             setTimeout(() => {
                 this.scheduleCalculation(symbol, timeframe);
             }, Math.random() * 1000); // Stagger 0-1s
@@ -206,30 +182,28 @@ class ActiveTechnicalsManager {
 
     private startMonitoring(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
+        if (this.activeEffects.has(key)) return;
 
-        // 1. Ensure Market Watcher provides price/ticker/klines for updates
+        // 1. Ensure Market Watcher is active
         marketWatcher.register(symbol, "price", "stateless");
         marketWatcher.register(symbol, "ticker", "stateless");
-        // Register for klines without triggering deep history (stateless)
         marketWatcher.register(symbol, `kline_${timeframe}`, "stateless");
 
-        // 2. Start Reactive Effect
-        // We use $effect.root because we are outside component context
+        // 2. Reactive Trigger (Svelte 5)
+        // We watch marketState for updates and trigger calculation
         const cleanup = $effect.root(() => {
             $effect(() => {
-                // Dependencies we track:
-                const data = marketState.data[symbol];
-                if (!data) return;
+                // Dependency tracking
+                const _lastPrice = marketState.getSymbol(symbol)?.lastPrice;
+                const _klines = marketState.getSymbol(symbol)?.klines?.[timeframe];
 
-                // Track kline updates
-                // We need to access the specific kline entry to trigger on update
-                const klineData = data.klines[timeframe];
+                // When data changes, schedule calculation
+                // Use untracked to avoid loops if needed, but here we want to react.
+                // However, we must debounce/throttle.
 
-                // Also track price for real-time updates (formation of current candle)
-                const currentPrice = data.lastPrice;
-
-                untrack(() => {
-                    if (klineData || currentPrice) {
+                // Note: We use a scheduler to decouple reactivity from calculation logic
+                scheduler.schedule(() => {
+                    if (marketState.getSymbol(symbol)) {
                         this.scheduleCalculation(symbol, timeframe);
                     }
                 });
@@ -255,7 +229,13 @@ class ActiveTechnicalsManager {
 
         // 2. Clear Timers
         if (this.throttles.has(key)) {
-            clearTimeout(this.throttles.get(key));
+            const handle = this.throttles.get(key)!;
+            if (handle.type === 'timeout') {
+                clearTimeout(handle.id);
+            } else {
+                const cancelIdle = this.getCancelIdleCallback();
+                cancelIdle(handle.id);
+            }
             this.throttles.delete(key);
         }
 
@@ -271,12 +251,30 @@ class ActiveTechnicalsManager {
 
     private scheduleCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
-        // If already scheduled, don't overwrite (unless we want to support urgency upgrades? Keep simple for now)
-        if (this.throttles.has(key)) return;
+        const isActiveSymbol = tradeState.symbol === symbol;
+
+        // If already scheduled
+        if (this.throttles.has(key)) {
+            // Priority Upgrade: If it's the active symbol but we have a pending background task (idle),
+            // we must cancel the background task and schedule a high-priority one immediately.
+            // This prevents the "stale overwrite" issue where a slow background task finishes after a fast active one.
+            const handle = this.throttles.get(key)!;
+
+            if (isActiveSymbol && handle.type === 'idle') {
+                if (import.meta.env.DEV) {
+                    logger.debug("technicals", `[ActiveManager] Upgrading priority for ${key} (cancelling idle)`);
+                }
+                const cancelIdle = this.getCancelIdleCallback();
+                cancelIdle(handle.id);
+                this.throttles.delete(key);
+                // Proceed to schedule high priority below
+            } else {
+                // Already scheduled correctly or high priority already
+                return;
+            }
+        }
 
         // --- 3-Tact Strategy Logic ---
-
-        const isActiveSymbol = tradeState.symbol === symbol;
 
         // Debounce Detection
         if (isActiveSymbol && symbol !== this.lastActiveSymbol) {
@@ -311,6 +309,14 @@ class ActiveTechnicalsManager {
                 }
                 delay = userInterval;
             }
+
+            // Schedule Takt 1 (Timeout)
+            const timer = setTimeout(() => {
+                this.throttles.delete(key);
+                this.performCalculation(symbol, timeframe);
+            }, delay);
+            this.throttles.set(key, { id: timer, type: 'timeout' });
+
         } else if (isVisible) {
             // === TAKT 2: BACKGROUND / VISIBLE (Dashboard) ===
             const baseInterval = Math.max(5000, (settingsState.marketAnalysisInterval || 10) * 1000);
@@ -322,66 +328,22 @@ class ActiveTechnicalsManager {
                 delay = baseInterval + jitter;
             }
 
+            // Schedule Takt 2 (Idle Callback)
+            const handle = this.scheduleIdleCallback(key, symbol, timeframe, delay);
+            this.throttles.set(key, { id: handle, type: 'idle' });
+
         } else if (isFavorite) {
             // === TAKT 3: HIDDEN FAVORITE ===
-            // Keep warm but slow
+            // Very slow updates just to keep favorites somewhat fresh
             delay = 30000;
-        }
-
-        // Global Throttle on Blur (Sleep Mode)
-        // If hidden (not just blurred), we might want to pause completely?
-        // But Page Visibility API handles "hidden" via handleVisibilityChange -> pauseNonCriticalCalculations.
-        // This check detects "blur" (window visible but not focused).
-        if (settingsState.pauseAnalysisOnBlur && typeof document !== "undefined" && !document.hasFocus() && !isActiveSymbol) {
-            delay = delay * 3;
-        }
-
-        // [IDLE + HIDDEN] Extreme Throttling
-        if (typeof document !== 'undefined' && document.hidden) {
-             delay = Math.max(delay, 10000); // Min 10s if hidden
-        }
-
-        // Connection-Aware Scaling (Pro Feature)
-        // Dynamically adjust update rate based on network quality (e.g. Mobile Hotspot)
-        const networkInhibitor = networkMonitor.getThrottleMultiplier();
-        if (networkInhibitor > 1.0) {
-            delay = delay * networkInhibitor;
-            if (isActiveSymbol && import.meta.env.DEV) {
-                // Warn dev about throttling
-                console.debug(`[ActiveManager] Network Throttling Active: ${networkInhibitor}x slowdown`);
-            }
-        }
-
-        // Skip scheduling if tab is hidden (handled by Page Visibility API)
-        if (!this.isTabVisible && !isActiveSymbol) {
-            this.pausedCalculations.add(key);
-            return;
-        }
-
-        // Takt 1: Active Symbol → setTimeout (highest priority, realtime)
-        if (isActiveSymbol) {
-            this.throttles.set(key, setTimeout(() => {
-                this.throttles.delete(key);
-                this.performCalculation(symbol, timeframe);
-            }, delay));
-        }
-        // Takt 2/3: Non-active symbols → requestIdleCallback (low priority)
-        else {
-            const callback = (deadline?: IdleDeadline) => {
-                // Only execute if enough time remaining (min 10ms) or timeout occurred
-                if (!deadline || deadline.timeRemaining() > 10 || deadline.didTimeout) {
-                    this.throttles.delete(key);
-                    this.performCalculation(symbol, timeframe);
-                } else {
-                    // Not enough time - reschedule
-                    this.scheduleIdleCallback(key, symbol, timeframe, delay);
-                }
-            };
-
-            // Use requestIdleCallback with polyfill fallback
-            const requestIdleCb = this.getRequestIdleCallback();
-            const handle = requestIdleCb(callback, { timeout: delay }) as any;
-            this.throttles.set(key, handle);
+            const handle = this.scheduleIdleCallback(key, symbol, timeframe, delay);
+            this.throttles.set(key, { id: handle, type: 'idle' });
+        } else {
+            // Not visible, not active, not favorite.
+            // Why are we here? Maybe explicit subscription?
+            // Fallback to very slow.
+             const handle = this.scheduleIdleCallback(key, symbol, timeframe, 60000);
+             this.throttles.set(key, { id: handle, type: 'idle' });
         }
     }
 
@@ -396,13 +358,14 @@ class ActiveTechnicalsManager {
                 this.performCalculation(symbol, timeframe);
             } else {
                 // Still not enough time - reschedule again
-                this.scheduleIdleCallback(key, symbol, timeframe, delay);
+                const handle = this.scheduleIdleCallback(key, symbol, timeframe, delay);
+                this.throttles.set(key, { id: handle, type: 'idle' });
             }
         };
 
         const requestIdleCb = this.getRequestIdleCallback();
         const handle = requestIdleCb(callback, { timeout: delay }) as any;
-        this.throttles.set(key, handle);
+        return handle;
     }
 
     /**
@@ -425,95 +388,30 @@ class ActiveTechnicalsManager {
         };
     }
 
-        // Helper for deep equality
-    private isTechnicalsEqual(a: any, b: any): boolean {
-        // Fast path for references
-        if (!a || !b) return false;
-        if (a === b) return true;
-
-        // Specific field checks for efficiency
-        if (a.summary?.action !== b.summary?.action) return false;
-        if (a.confluence?.score !== b.confluence?.score) return false;
-        if (a.oscillators?.length !== b.oscillators?.length) return false;
-        if (a.movingAverages?.length !== b.movingAverages?.length) return false;
-
-        // Volatility Deep Check
-        const volA = a.volatility;
-        const volB = b.volatility;
-        if (!volA && !volB) {} // Equal (both undefined)
-        else if (!volA || !volB) return false; // One is undefined
-        else {
-             if (volA.atr?.toString() !== volB.atr?.toString()) return false;
-             // Check BB
-             const bbA = volA.bb;
-             const bbB = volB.bb;
-             if (!bbA && !bbB) {}
-             else if (!bbA || !bbB) return false;
-             else {
-                 if (bbA.middle?.toString() !== bbB.middle?.toString()) return false;
-                 if (bbA.upper?.toString() !== bbB.upper?.toString()) return false;
-                 if (bbA.lower?.toString() !== bbB.lower?.toString()) return false;
-             }
+    private getCancelIdleCallback(): (handle: number) => void {
+        if (typeof window !== 'undefined' && window.cancelIdleCallback) {
+            return window.cancelIdleCallback.bind(window);
         }
-
-        // Oscillators Deep Check (Sample critical ones like RSI, StochRSI)
-        // Since we map them in update(), references are new.
-        for (let i = 0; i < (a.oscillators?.length || 0); i++) {
-            const oscA = a.oscillators[i];
-            const oscB = b.oscillators[i];
-            if (oscA.name !== oscB.name) return false;
-            if (oscA.value?.toString() !== oscB.value?.toString()) return false;
-            if (oscA.action !== oscB.action) return false;
-            if (oscA.signal?.toString() !== oscB.signal?.toString()) return false; // StochRSI signal
-        }
-
-        // Moving Averages (Compare all)
-        if (a.movingAverages?.length !== b.movingAverages?.length) return false;
-        for (let i = 0; i < (a.movingAverages?.length || 0); i++) {
-            const maA = a.movingAverages[i];
-            const maB = b.movingAverages[i];
-            if (maA.name !== maB.name) return false;
-            if (maA.params !== maB.params) return false;
-            if (maA.value?.toString() !== maB.value?.toString()) return false;
-            if (maA.action !== maB.action) return false;
-        }
-
-                // Advanced (MFI)
-        const advA = a.advanced;
-        const advB = b.advanced;
-        if (!advA && !advB) {} // Both undefined
-        else if (!advA || !advB) return false;
-        else {
-            if (advA.mfi?.value?.toString() !== advB.mfi?.value?.toString()) return false;
-            if (advA.mfi?.action !== advB.mfi?.action) return false;
-        }
-
-        return true;
+        return clearTimeout;
     }
-
-
 
     private async performCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
 
-        // 1. Gather Data (Single Source of Truth: marketState)
-        const marketData = marketState.data[symbol];
+        // --- RACE CONDITION PROTECTION ---
+        // Increment generation ID. Any previous calculation still running will detect mismatch and abort.
+        const currentGen = (this.calculationGenerations.get(key) || 0) + 1;
+        this.calculationGenerations.set(key, currentGen);
+
+        const marketData = marketState.getSymbol(symbol);
+
         if (!marketData) return;
 
-        // === BACKFILL THROTTLE (Optimization) ===
-        if (marketWatcher.isBackfilling(symbol, timeframe)) {
-            const hasTechnicals = !!marketData.technicals?.[timeframe];
-            if (hasTechnicals) {
-                if (import.meta.env.DEV && (timeframe === '15m' || timeframe === '30m')) {
-                    logger.debug("technicals", `[ActiveManager] Skipping calculation for ${key} - Backfill in progress.`);
-                }
-                return;
-            }
-        }
-
-        if (timeframe === '15m' || timeframe === '30m') {
-             if (import.meta.env.DEV) {
-                 logger.log("technicals", `[ActiveManager] performCalculation for ${key}. Has data? ${!!marketData.klines && !!marketData.klines[timeframe]} Len: ${marketData.klines?.[timeframe]?.length}`);
+        // Ensure we have minimal data
+        if (import.meta.env.DEV) {
+             if (!marketData.klines || !marketData.klines[timeframe]) {
+                 // Debug log only
+                 // logger.log("technicals", `[ActiveManager] performCalculation for ${key}. Has data? ${!!marketData.klines && !!marketData.klines[timeframe]} Len: ${marketData.klines?.[timeframe]?.length}`);
              }
         }
 
@@ -554,16 +452,10 @@ class ActiveTechnicalsManager {
             ? history[len - 2].time
             : currentLastTime;
 
-                // Determine Actions
+        // Determine Actions
         const needsInit = !state || !state.initialized;
 
         // Check gap size for shifting
-        // lastCommittedTime is timestamp of newly closed candle (or current forming if just opened)
-        // state.lastCommittedTime is timestamp of PREVIOUSLY closed candle
-
-        // Calculate gap in number of intervals
-        // Note: intervalMs is in milliseconds.
-        // If state.lastCommittedTime = 100, lastCommittedTime = 104, gap = 4.
         const gap = state && state.initialized
             ? (lastCommittedTime - state.lastCommittedTime) / intervalMs
             : 0;
@@ -576,19 +468,22 @@ class ActiveTechnicalsManager {
         try {
             if (needsInit || needsReinit) {
                 // INITIALIZE (Full History)
-                // Fallback for cold start OR multi-candle gap
                 result = await technicalsService.initializeTechnicals(
                     symbol, timeframe, history, settings, enabledIndicators, isPhantomAppended
                 );
 
+                // STALE CHECK
+                if (this.calculationGenerations.get(key) !== currentGen) return;
+
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
             } else if (needsShift) {
                 // SHIFT + UPDATE
-                // We have moved to a new candle (gap === 1). Commit the previous closed candle.
-
                 let closedCandle = isPhantomAppended ? history[len - 2] : history[len - 1];
 
                 await technicalsService.shiftTechnicals(symbol, timeframe, closedCandle);
+
+                // STALE CHECK 1
+                if (this.calculationGenerations.get(key) !== currentGen) return;
 
                 // Now calculate the current live tick
                 const lastK = history[history.length - 1];
@@ -596,14 +491,19 @@ class ActiveTechnicalsManager {
                     symbol, timeframe, lastK
                 );
 
+                // STALE CHECK 2
+                if (this.calculationGenerations.get(key) !== currentGen) return;
+
                 this.workerState.set(key, { initialized: true, lastCommittedTime });
             } else {
                 // UPDATE (Single Tick)
-                // Same candle period (gap === 0)
                 const lastK = history[history.length - 1];
                 result = await technicalsService.updateTechnicals(
                     symbol, timeframe, lastK
                 );
+
+                // STALE CHECK
+                if (this.calculationGenerations.get(key) !== currentGen) return;
             }
 
             if (result) {
@@ -611,7 +511,10 @@ class ActiveTechnicalsManager {
             }
 
 
-                } catch (e: any) {
+        } catch (e: any) {
+            // Even if failed, check generation. If stale, ignore error (new calc handles it).
+            if (this.calculationGenerations.get(key) !== currentGen) return;
+
             if (e.message === "Worker unavailable for update" || e.message === "Worker unavailable for shift" || e.message === "CALCULATOR_NOT_FOUND") {
                 if (import.meta.env.DEV) {
                     logger.debug("technicals", `[ActiveManager] Worker state invalid for ${key} (${e.message}), scheduling re-init.`);
@@ -649,7 +552,7 @@ class ActiveTechnicalsManager {
     private prepareBuffersWithRealtime(original: KlineBuffers, timeframe: string, price: Decimal | null): KlineBuffers {
         const intervalMs = getIntervalMs(timeframe);
         const len = original.times.length;
-        if (len === 0) return original; // Should typically clone even here? But empty is empty.
+        if (len === 0) return original;
 
         // Determine if we update last or append
         const lastTime = original.times[len - 1];
@@ -753,6 +656,34 @@ class ActiveTechnicalsManager {
             };
             history.push(newCandle);
         }
+    }
+
+    // Helper for deep equality
+    private isTechnicalsEqual(a: any, b: any): boolean {
+        if (a === b) return true;
+        if (!a || !b) return false;
+
+        // Simple comparison of lastUpdated to short-circuit
+        // (Assuming results are new objects but maybe structurally equal)
+
+        // Compare summary
+        if (a.summary?.action !== b.summary?.action) return false;
+
+        // Compare oscillators length
+        if (a.oscillators?.length !== b.oscillators?.length) return false;
+
+        // Compare first oscillator value as a heuristic
+        if (a.oscillators?.[0]?.value !== b.oscillators?.[0]?.value) return false;
+
+        // If we really want deep equality, we can use JSON stringify or a more robust check.
+        // For performance, we check key indicators.
+
+        // Check MACD specifically as it was buggy
+        const macdA = a.oscillators?.find((o: any) => o.name === 'MACD');
+        const macdB = b.oscillators?.find((o: any) => o.name === 'MACD');
+        if (macdA?.value !== macdB?.value) return false;
+
+        return JSON.stringify(a) === JSON.stringify(b);
     }
 }
 
