@@ -8,17 +8,18 @@
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { technicalsService } from "./technicalsService";
-import { logger } from "../utils/logger";
+import { logger } from "./logger";
 import { browser } from "$app/environment";
 import { favoritesState } from "../stores/favorites.svelte";
 import { idleMonitor } from "../utils/idleMonitor.svelte";
 import { scheduler } from "../utils/scheduler";
 import { Decimal } from "decimal.js";
-import { getIntervalMs } from "../utils/timeframeUtils";
+import { getIntervalMs } from "../utils/utils";
 import { BufferPool } from "../utils/bufferPool";
-import type { Kline, KlineBuffers } from "../types/market";
+import type { Kline, KlineBuffers } from "./technicalsTypes";
 
 interface WorkerState {
     initialized: boolean;
@@ -194,8 +195,8 @@ class ActiveTechnicalsManager {
         const cleanup = $effect.root(() => {
             $effect(() => {
                 // Dependency tracking
-                const _lastPrice = marketState.getSymbol(symbol)?.lastPrice;
-                const _klines = marketState.getSymbol(symbol)?.klines?.[timeframe];
+                const _lastPrice = marketState.data[symbol]?.lastPrice;
+                const _klines = marketState.data[symbol]?.klines?.[timeframe];
 
                 // When data changes, schedule calculation
                 // Use untracked to avoid loops if needed, but here we want to react.
@@ -203,7 +204,7 @@ class ActiveTechnicalsManager {
 
                 // Note: We use a scheduler to decouple reactivity from calculation logic
                 scheduler.schedule(() => {
-                    if (marketState.getSymbol(symbol)) {
+                    if (marketState.data[symbol]) {
                         this.scheduleCalculation(symbol, timeframe);
                     }
                 });
@@ -403,7 +404,7 @@ class ActiveTechnicalsManager {
         const currentGen = (this.calculationGenerations.get(key) || 0) + 1;
         this.calculationGenerations.set(key, currentGen);
 
-        const marketData = marketState.getSymbol(symbol);
+        const marketData = marketState.data[symbol];
 
         if (!marketData) return;
 

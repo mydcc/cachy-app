@@ -29,6 +29,7 @@ class IdleMonitor {
     // Reactive state
     isUserIdle = $state(false);
     lastActivity = $state(Date.now());
+    isDocumentVisible = $state(true);
 
     private idleTimeout: any = null;
     private readonly IDLE_THRESHOLD = 60000; // 60 seconds
@@ -36,6 +37,7 @@ class IdleMonitor {
     constructor() {
         if (browser) {
             this.setupListeners();
+            this.setupVisibilityListener();
             this.resetTimer();
         }
     }
@@ -57,6 +59,16 @@ class IdleMonitor {
 
         events.forEach(event => {
             window.addEventListener(event, handleActivity, { passive: true });
+        });
+    }
+
+    private setupVisibilityListener() {
+        if (typeof document === 'undefined') return;
+
+        this.isDocumentVisible = !document.hidden;
+
+        document.addEventListener('visibilitychange', () => {
+            this.isDocumentVisible = !document.hidden;
         });
     }
 
