@@ -18,7 +18,17 @@ export interface IndicatorSettings {
   autoOptimize: boolean;
   preferredEngine: 'auto' | 'ts' | 'wasm' | 'gpu';
   performanceMode: 'balanced' | 'quality' | 'speed';
+
+  // Panel Configuration
+  panelSections: {
+    summary: boolean;
+    oscillators: boolean;
+    movingAverages: boolean;
+    pivots: boolean;
+  };
+
   rsi: {
+    enabled: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     showSignal: boolean;
@@ -29,6 +39,7 @@ export interface IndicatorSettings {
     defaultTimeframe: string;
   };
   stochRsi: {
+    enabled: boolean;
     length: number;
     rsiLength: number;
     kPeriod: number;
@@ -36,6 +47,7 @@ export interface IndicatorSettings {
     source: "close";
   };
   macd: {
+    enabled: boolean;
     fastLength: number;
     slowLength: number;
     signalLength: number;
@@ -44,14 +56,17 @@ export interface IndicatorSettings {
     signalMaType: "ema" | "sma";
   };
   stochastic: {
+    enabled: boolean;
     kPeriod: number;
     kSmoothing: number;
     dPeriod: number;
   };
   williamsR: {
+    enabled: boolean;
     length: number;
   };
   cci: {
+    enabled: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     threshold: number;
@@ -59,19 +74,23 @@ export interface IndicatorSettings {
     smoothingLength: number;
   };
   adx: {
+    enabled: boolean;
     adxSmoothing: number;
     diLength: number;
     threshold: number;
   };
   ao: {
+    enabled: boolean;
     fastLength: number;
     slowLength: number;
   };
   momentum: {
+    enabled: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
   };
   ema: {
+    enabled: boolean;
     ema1: {
       length: number;
       offset: number;
@@ -93,46 +112,53 @@ export interface IndicatorSettings {
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
   };
   sma: {
+    enabled: boolean;
     sma1: { length: number; };
     sma2: { length: number; };
     sma3: { length: number; };
   };
-  wma: { length: number; };
-  vwma: { length: number; };
-  hma: { length: number; };
+  wma: { enabled: boolean; length: number; };
+  vwma: { enabled: boolean; length: number; };
+  hma: { enabled: boolean; length: number; };
   ichimoku: {
+    enabled: boolean;
     conversionPeriod: number;
     basePeriod: number;
     spanBPeriod: number;
     displacement: number;
   };
   pivots: {
+    enabled: boolean;
     type: "classic" | "woodie" | "camarilla" | "fibonacci";
     viewMode: "integrated" | "separated" | "abstract";
   };
-  atr: { length: number; };
-  bb: { length: number; stdDev: number; };
-  choppiness: { length: number; };
-  superTrend: { factor: number; period: number; };
-  atrTrailingStop: { period: number; multiplier: number; };
-  obv: { smoothingLength: number; };
-  mfi: { length: number; };
+  atr: { enabled: boolean; length: number; };
+  bb: { enabled: boolean; length: number; stdDev: number; };
+  choppiness: { enabled: boolean; length: number; };
+  superTrend: { enabled: boolean; factor: number; period: number; };
+  atrTrailingStop: { enabled: boolean; period: number; multiplier: number; };
+  obv: { enabled: boolean; smoothingLength: number; };
+  mfi: { enabled: boolean; length: number; };
   vwap: {
+    enabled: boolean;
     length: number;
     anchor: "session" | "fixed";
     anchorPoint?: number;
   };
   parabolicSar: {
+    enabled: boolean;
     start: number;
     increment: number;
     max: number;
   };
   volumeMa: {
+    enabled: boolean;
     length: number;
     maType: "sma" | "ema" | "wma";
   };
-  volumeProfile: { rows: number; };
+  volumeProfile: { enabled: boolean; rows: number; };
   bollingerBands: {
+    enabled: boolean;
     length: number;
     stdDev: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";

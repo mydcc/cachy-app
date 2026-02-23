@@ -91,6 +91,7 @@ export interface IndicatorResult {
   signal?: number; // For MACD signal line, etc.
   histogram?: number; // For MACD histogram
   action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
+  extra?: string; // Optional extra info string (e.g., "D: 80")
 }
 
 export interface DivergenceItem {
@@ -174,6 +175,7 @@ export interface TechnicalsData {
       rows: { priceStart: number; priceEnd: number; volume: number }[];
     };
     volumeMa?: number;
+    adx?: { value: number; pdi: number; mdi: number; trend: string; dir: string };
   };
   lastUpdated?: number;
 }

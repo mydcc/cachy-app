@@ -16,8 +16,6 @@
  */
 
 /*
- * Copyright (C) 2026 MYDCT
- *
  * Shared Calculation Logic for Technical Indicators.
  * Used by running both in Main Thread (Fallback) and Worker (Performance).
  */
@@ -28,9 +26,8 @@ import {
   calculateAwesomeOscillator,
   calculateMFI,
   calculateCCISeries,
-  calculatePivots,
-  getRsiAction,
   calculatePivotsFromValues,
+  getRsiAction,
   type Kline,
 } from "./indicators";
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
@@ -49,694 +46,492 @@ const bufferPool = new BufferPool();
 export function calculateAllIndicators(
   klines: Kline[],
   settings?: IndicatorSettings,
-  enabledIndicators?: Partial<Record<string, boolean>>,
+  allowedList?: string[] | Partial<Record<string, boolean>> // Support both legacy array and new map
 ): TechnicalsData {
-  if (klines.length < 2) return getEmptyData();
+  if (!klines || klines.length === 0) return getEmptyData();
 
   const len = klines.length;
+  const pool = settings?.performanceMode === "speed" ? bufferPool : null;
+  const cleanupBuffers: Float64Array[] = [];
 
-  // Acquire buffers from the pool
-  const highsNum = bufferPool.acquire(len);
-  const lowsNum = bufferPool.acquire(len);
-  const closesNum = bufferPool.acquire(len);
-  const opensNum = bufferPool.acquire(len);
-  const volumesNum = bufferPool.acquire(len);
-  const timesNum = bufferPool.acquire(len);
+  let highsNum: Float64Array;
+  let lowsNum: Float64Array;
+  let closesNum: Float64Array;
+  let opensNum: Float64Array;
+  let volumesNum: Float64Array;
+  let timesNum: number[] = [];
 
-  try {
-    // Optimization: Single loop extraction into pre-allocated Float64Arrays
-    for (let i = 0; i < len; i++) {
-      const k = klines[i];
-      highsNum[i] = parseFloat(k.high.toString());
-      lowsNum[i] = parseFloat(k.low.toString());
-      closesNum[i] = parseFloat(k.close.toString());
-      opensNum[i] = parseFloat(k.open.toString());
-      volumesNum[i] = parseFloat(k.volume.toString());
-      timesNum[i] = k.time;
-    }
+  if (pool) {
+      highsNum = pool.acquire(len);
+      lowsNum = pool.acquire(len);
+      closesNum = pool.acquire(len);
+      opensNum = pool.acquire(len);
+      volumesNum = pool.acquire(len);
+      cleanupBuffers.push(highsNum, lowsNum, closesNum, opensNum, volumesNum);
 
-    return calculateIndicatorsFromArrays(
-      timesNum,
-      opensNum,
-      highsNum,
-      lowsNum,
-      closesNum,
-      volumesNum,
-      settings,
-      enabledIndicators,
-      bufferPool
-    );
-  } finally {
-    // Release buffers back to the pool
-    bufferPool.release(highsNum);
-    bufferPool.release(lowsNum);
-    bufferPool.release(closesNum);
-    bufferPool.release(opensNum);
-    bufferPool.release(volumesNum);
-    bufferPool.release(timesNum);
+      for (let i = 0; i < len; i++) {
+          const k = klines[i];
+          highsNum[i] = typeof k.high === 'number' ? k.high : k.high.toNumber();
+          lowsNum[i] = typeof k.low === 'number' ? k.low : k.low.toNumber();
+          closesNum[i] = typeof k.close === 'number' ? k.close : k.close.toNumber();
+          opensNum[i] = typeof k.open === 'number' ? k.open : k.open.toNumber();
+          volumesNum[i] = typeof k.volume === 'number' ? k.volume : k.volume.toNumber();
+          timesNum.push(k.time);
+      }
+  } else {
+      highsNum = new Float64Array(len);
+      lowsNum = new Float64Array(len);
+      closesNum = new Float64Array(len);
+      opensNum = new Float64Array(len);
+      volumesNum = new Float64Array(len);
+
+      for (let i = 0; i < len; i++) {
+          const k = klines[i];
+          highsNum[i] = typeof k.high === 'number' ? k.high : k.high.toNumber();
+          lowsNum[i] = typeof k.low === 'number' ? k.low : k.low.toNumber();
+          closesNum[i] = typeof k.close === 'number' ? k.close : k.close.toNumber();
+          opensNum[i] = typeof k.open === 'number' ? k.open : k.open.toNumber();
+          volumesNum[i] = typeof k.volume === 'number' ? k.volume : k.volume.toNumber();
+          timesNum.push(k.time);
+      }
   }
+
+  const result = calculateIndicatorsFromArrays(
+      highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings, allowedList
+  );
+
+  if (pool) {
+      for (const buf of cleanupBuffers) {
+          pool.release(buf);
+      }
+  }
+
+  return result;
 }
 
 export function calculateIndicatorsFromArrays(
-  timesNum: number[] | Float64Array,
-  opensNum: number[] | Float64Array,
-  highsNum: number[] | Float64Array,
-  lowsNum: number[] | Float64Array,
-  closesNum: number[] | Float64Array,
-  volumesNum: number[] | Float64Array,
-  settings?: IndicatorSettings,
-  enabledIndicators?: Partial<Record<string, boolean>>,
-  pool?: BufferPool,
+    highsNum: Float64Array,
+    lowsNum: Float64Array,
+    closesNum: Float64Array,
+    opensNum: Float64Array,
+    volumesNum: Float64Array,
+    timesNum: number[] | Float64Array, // Support both
+    settings?: IndicatorSettings,
+    allowedList?: string[] | Partial<Record<string, boolean>>
 ): TechnicalsData {
-  const len = closesNum.length;
-  const currentPrice = closesNum[len - 1];
 
-  // Normalize enabledIndicators keys to lowercase
-  const normalizedEnabled: Record<string, boolean> = {};
-  if (enabledIndicators) {
-    Object.entries(enabledIndicators).forEach(([k, v]) => {
-      if (v !== undefined) {
-        normalizedEnabled[k.toLowerCase()] = v;
-      }
-    });
-  }
+  if (!closesNum || closesNum.length === 0) return getEmptyData();
 
-  // Determine filtering mode:
-  // If ANY key is explicitly true -> Allowlist mode (only calc enabled)
-  // Else -> Blocklist mode (calc all except disabled)
-  const hasAllowList = Object.values(normalizedEnabled).some((v) => v === true);
+  const currentPrice = closesNum[closesNum.length - 1];
+  const oscillators: IndicatorResult[] = [];
+  const divergences: DivergenceItem[] = [];
+  const advancedInfo: any = {};
 
-  // Helper to check if indicator should be calculated
-  const shouldCalculate = (name: string) => {
-    if (!enabledIndicators) return true;
-    const key = name.toLowerCase();
-    if (hasAllowList) {
-      return normalizedEnabled[key] === true;
-    }
-    return normalizedEnabled[key] !== false;
-  };
-
-  // Cache for derived sources
-  const sourceCache: Record<string, number[] | Float64Array> = {};
-  // Track buffers acquired from pool for cleanup
-  const cleanupBuffers: Float64Array[] = [];
-
-  // Helper to get source array based on config
-  const getSource = (sourceType: string): number[] | Float64Array => {
-    switch (sourceType) {
-      case "open":
-        return opensNum;
-      case "high":
-        return highsNum;
-      case "low":
-        return lowsNum;
-      case "hl2":
-        if (!sourceCache["hl2"]) {
-          if (pool) {
-            const buf = pool.acquire(len);
-            for (let i = 0; i < len; i++) buf[i] = (highsNum[i] + lowsNum[i]) / 2;
-            sourceCache["hl2"] = buf;
-            cleanupBuffers.push(buf);
-          } else {
-            sourceCache["hl2"] = (highsNum as number[]).map(
-              (h, i) => (h + lowsNum[i]) / 2,
-            );
-          }
+  const shouldCalculate = (key: keyof IndicatorSettings): boolean => {
+    // If allowedList is provided (worker context usually), check it first
+    if (allowedList) {
+        if (Array.isArray(allowedList)) {
+            // Legacy array support
+            if (allowedList.length > 0 && !allowedList.includes(key)) return false;
+        } else {
+            // Map support
+            if (allowedList[key] === false) return false;
+            // If explicit true, continue. If undefined, check settings.
         }
-        return sourceCache["hl2"];
-      case "hlc3":
-        if (!sourceCache["hlc3"]) {
-          if (pool) {
-            const buf = pool.acquire(len);
-            for (let i = 0; i < len; i++) buf[i] = (highsNum[i] + lowsNum[i] + closesNum[i]) / 3;
-            sourceCache["hlc3"] = buf;
-            cleanupBuffers.push(buf);
-          } else {
-            sourceCache["hlc3"] = (highsNum as number[]).map(
-              (h, i) => (h + lowsNum[i] + closesNum[i]) / 3,
-            );
-          }
-        }
-        return sourceCache["hlc3"];
-      default:
-        return closesNum;
     }
+
+    if (!settings) return true;
+    const config = settings[key];
+    if (config && typeof config === 'object' && 'enabled' in config) {
+        return (config as any).enabled;
+    }
+    return true;
   };
 
   // --- Oscillators ---
-  const oscillators: IndicatorResult[] = [];
-  const divergences: DivergenceItem[] = [];
-
-  // Temporary storage for signals to valid divergences against
-  const indSeries: Record<string, number[] | Float64Array> = {};
-
   try {
-    // 1. RSI
+    // RSI
     if (shouldCalculate('rsi')) {
-      const rsiLen = settings?.rsi?.length || 14;
-      const rsiSource = getSource(settings?.rsi?.source || "close");
+        const rsiLen = settings?.rsi?.length || 14;
+        const rsiSource = getSourceArray(settings?.rsi?.source || "close", opensNum, highsNum, lowsNum, closesNum);
+        const rsiRes = JSIndicators.rsi(rsiSource, rsiLen);
+        const rsiVal = rsiRes[rsiRes.length - 1];
 
-      let rsiResults: Float64Array | undefined;
-      if (pool) {
-          rsiResults = pool.acquire(len);
-          cleanupBuffers.push(rsiResults);
-      }
+        oscillators.push({
+            name: "RSI",
+            value: rsiVal,
+            action: getRsiAction(rsiVal, settings?.rsi?.overbought || 70, settings?.rsi?.oversold || 30),
+        });
 
-      rsiResults = JSIndicators.rsi(rsiSource, rsiLen, rsiResults);
-      indSeries["RSI"] = rsiResults;
-      const rsiVal = rsiResults[rsiResults.length - 1];
-
-      oscillators.push({
-        name: "RSI",
-        value: rsiVal,
-        params: rsiLen.toString(),
-        action: getRsiAction(
-          rsiVal,
-          settings?.rsi?.overbought || 70,
-          settings?.rsi?.oversold || 30,
-        ),
-      });
+        // Divergence Scan
+        const rsiDivs = DivergenceScanner.scan(
+            highsNum, lowsNum, rsiRes, "RSI"
+        );
+        divergences.push(...rsiDivs);
     }
 
-    // 2. Stochastic
+    // Stoch RSI
+    if (shouldCalculate('stochRsi')) {
+        const srsiLen = settings?.stochRsi?.length || 14;
+        const srsiRsiLen = settings?.stochRsi?.rsiLength || 14;
+        const srsiK = settings?.stochRsi?.kPeriod || 3;
+        const srsiD = settings?.stochRsi?.dPeriod || 3;
+
+        // JSIndicators.stochRsi returns { k, d } (object)
+        const stochRsiRes = JSIndicators.stochRsi(closesNum, srsiLen, srsiRsiLen, srsiK, srsiD) as unknown as { k: Float64Array, d: Float64Array };
+        const kVal = stochRsiRes.k[stochRsiRes.k.length - 1];
+        const dVal = stochRsiRes.d[stochRsiRes.d.length - 1];
+
+        oscillators.push({
+            name: "Stoch.RSI",
+            value: kVal,
+            action: kVal > 80 ? "Sell" : kVal < 20 ? "Buy" : "Neutral",
+            extra: `D: ${dVal.toFixed(2)}`
+        });
+    }
+
+    // Stochastic
     if (shouldCalculate('stochastic')) {
-      const stochK = settings?.stochastic?.kPeriod || 14;
-      const stochD = settings?.stochastic?.dPeriod || 3;
-      const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
+        const stochK = settings?.stochastic?.kPeriod || 14;
+        const stochD = settings?.stochastic?.dPeriod || 3;
+        const stochSmooth = settings?.stochastic?.kSmoothing || 3;
 
-      let kLine: Float64Array | undefined;
-      if (pool) {
-          kLine = pool.acquire(len);
-          cleanupBuffers.push(kLine);
-      }
+        // Calculate Raw K
+        const kRaw = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK) as unknown as Float64Array;
 
-      kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK, kLine, pool);
+        // Smooth K
+        let kLine = kRaw;
+        if (stochSmooth > 1) {
+            kLine = JSIndicators.sma(kRaw, stochSmooth);
+        }
 
-      if (stochKSmooth > 1) {
-          // If smoothing, we might need another buffer or overwrite?
-          // JSIndicators.sma returns new/out.
-          // We can overwrite kLine if we don't need raw anymore.
-          // But sma needs input and output.
-          // If we pass kLine as input and output, SMA implementation needs to be safe for in-place.
-          // SMA is safe for in-place?
-          // sum = sum - data[i-period] + data[i]. If data is result, data[i] is overwritten before read?
-          // No, result[i] is written. data[i] is read. If result === data, then data[i] is effectively new value.
-          // Next iteration reads data[i].
-          // So SMA is NOT safe for in-place if period > 1.
+        // Calculate D (SMA of K)
+        // D-Line is optional in some contexts but usually standard Stoch has K and D.
 
-          let smoothed: Float64Array | undefined;
-          if (pool) {
-              smoothed = pool.acquire(len);
-              cleanupBuffers.push(smoothed);
-          }
-          kLine = JSIndicators.sma(kLine!, stochKSmooth, smoothed);
-          // Note: kLine now points to smoothed. The original kLine buffer is still in cleanupBuffers.
-      }
+        const kVal = kLine[kLine.length - 1];
 
-      let dLine: Float64Array | undefined;
-      if (pool) {
-          dLine = pool.acquire(len);
-          cleanupBuffers.push(dLine);
-      }
-      dLine = JSIndicators.sma(kLine!, stochD, dLine);
-
-      indSeries["StochK"] = kLine!;
-
-      const stochKVal = kLine![kLine!.length - 1];
-      const stochDVal = dLine[dLine.length - 1];
-
-      let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      // Classic Stoch Strategy
-      if (stochKVal < 20 && stochDVal < 20 && stochKVal > stochDVal)
-        stochAction = "Buy";
-      else if (stochKVal > 80 && stochDVal > 80 && stochKVal < stochDVal)
-        stochAction = "Sell";
-
-      oscillators.push({
-        name: "Stoch",
-        params: `${stochK}, ${stochKSmooth}, ${stochD}`,
-        value: stochKVal,
-        action: stochAction,
-        signal: stochDVal,
-      });
+        oscillators.push({
+            name: "Stoch.K",
+            value: kVal,
+            action: kVal > 80 ? "Sell" : kVal < 20 ? "Buy" : "Neutral",
+        });
     }
 
-    // 3. CCI
+    // Williams %R
+    if (shouldCalculate('williamsR')) {
+        const wLen = settings?.williamsR?.length || 14;
+        const wRes = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wLen);
+        const wVal = wRes[wRes.length - 1];
+
+        oscillators.push({
+            name: "Williams %R",
+            value: wVal,
+            action: wVal > -20 ? "Sell" : wVal < -80 ? "Buy" : "Neutral",
+        });
+    }
+
+    // CCI
     if (shouldCalculate('cci')) {
-      const cciLen = settings?.cci?.length || 20;
-      const cciSmoothLen = settings?.cci?.smoothingLength || 1;
-      const cciSourceType = settings?.cci?.source || "hlc3";
+        const cciLen = settings?.cci?.length || 20;
+        const cciSource = getSourceArray(settings?.cci?.source || "close", opensNum, highsNum, lowsNum, closesNum);
+        const cciRes = calculateCCISeries(highsNum, lowsNum, cciSource, cciLen);
+        const cciVal = cciRes[cciRes.length - 1];
 
-      let cciResults: Float64Array | undefined;
-      if (pool) {
-          cciResults = pool.acquire(len);
-          cleanupBuffers.push(cciResults);
-      }
-
-      if (cciSourceType === "hlc3") {
-          cciResults = calculateCCISeries(highsNum, lowsNum, closesNum, cciLen, cciResults);
-      } else {
-          const cciSource = getSource(cciSourceType);
-          cciResults = JSIndicators.cci(cciSource, cciLen, cciResults);
-      }
-
-      if (cciSmoothLen > 1) {
-          let smoothed: Float64Array | undefined;
-          if (pool) {
-              smoothed = pool.acquire(len);
-              cleanupBuffers.push(smoothed);
-          }
-          cciResults = JSIndicators.sma(cciResults, cciSmoothLen, smoothed);
-      }
-
-      const cciVal = cciResults[cciResults.length - 1];
-      const cciThreshold = settings?.cci?.threshold || 100;
-      indSeries["CCI"] = cciResults;
-
-      oscillators.push({
-        name: "CCI",
-        value: cciVal,
-        params:
-          cciSmoothLen > 1 ? `${cciLen}, ${cciSmoothLen}` : cciLen.toString(),
-        action: cciVal > cciThreshold
-          ? "Sell"
-          : cciVal < -cciThreshold
-            ? "Buy"
-            : "Neutral",
-      });
+        oscillators.push({
+            name: "CCI",
+            value: cciVal,
+            action: cciVal > 100 ? "Sell" : cciVal < -100 ? "Buy" : "Neutral",
+        });
     }
 
-    // 4. ADX (Trend Strength)
-    if (shouldCalculate('adx')) {
-      const adxLen = settings?.adx?.adxSmoothing || 14;
-      const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
+    // Momentum (MOM)
+    if (shouldCalculate('momentum')) {
+        const momLen = settings?.momentum?.length || 10;
+        const momSource = getSourceArray(settings?.momentum?.source || "close", opensNum, highsNum, lowsNum, closesNum);
+        const momRes = JSIndicators.mom(momSource, momLen);
+        const momVal = momRes[momRes.length - 1];
 
-      let adxResults: Float64Array | undefined;
-      if (pool) {
-          adxResults = pool.acquire(len);
-          cleanupBuffers.push(adxResults);
-      }
-
-      adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen, adxResults, pool);
-      // Note: JSIndicators.adx implementation might use a single length for both currently.
-      // If we want separate DI length, we'd need to update JSIndicators.adx signature.
-      // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
-      const adxVal = adxResults[adxResults.length - 1];
-      const adxThreshold = settings?.adx?.threshold || 25;
-      indSeries["ADX"] = adxResults;
-
-      let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      // ADX itself just means trend strength, direction comes from price or DMI (omitted for brevity here but could add)
-      // If strong trend, we assume continuation of current short term trend
-      if (adxVal > adxThreshold) {
-        const prevClose = closesNum[closesNum.length - 2];
-        adxAction = currentPrice > prevClose ? "Buy" : "Sell";
-      }
-
-      oscillators.push({
-        name: "ADX",
-        value: adxVal,
-        params: adxLen.toString(),
-        action: adxAction,
-      });
+        oscillators.push({
+            name: "Momentum",
+            value: momVal,
+            action: momVal > 0 ? "Buy" : "Sell",
+        });
     }
 
-    // 5. Awesome Oscillator
+    // Awesome Oscillator (AO)
     if (shouldCalculate('ao')) {
-      const aoFast = settings?.ao?.fastLength || 5;
-      const aoSlow = settings?.ao?.slowLength || 34;
-
-      let aoSeries: Float64Array | undefined;
-      if (pool) {
-          aoSeries = pool.acquire(len);
-          cleanupBuffers.push(aoSeries);
-      }
-
-      aoSeries = calculateAwesomeOscillator(
-        highsNum,
-        lowsNum,
-        aoFast,
-        aoSlow,
-        aoSeries,
-      );
-
-      const aoVal = aoSeries[aoSeries.length - 1];
-      indSeries["AO"] = aoSeries;
-
-      oscillators.push({
-        name: "Awesome Osc.",
-        params: `${aoFast}, ${aoSlow}`,
-        value: aoVal,
-        action: aoVal > 0 ? "Buy" : "Sell",
-      });
-    }
-
-    // 6. MACD
-    if (shouldCalculate('macd')) {
-      const macdFast = settings?.macd?.fastLength || 12;
-      const macdSlow = settings?.macd?.slowLength || 26;
-      const macdSig = settings?.macd?.signalLength || 9;
-      const macdSource = getSource(settings?.macd?.source || "close");
-
-      let outMacd: Float64Array | undefined;
-      let outSignal: Float64Array | undefined;
-      if (pool) {
-          outMacd = pool.acquire(len);
-          outSignal = pool.acquire(len);
-          cleanupBuffers.push(outMacd);
-          cleanupBuffers.push(outSignal);
-      }
-
-      const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig, outMacd, outSignal, pool);
-      const macdVal = macdRes.macd[macdRes.macd.length - 1];
-      const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
-      const macdHist = macdVal - macdSignalVal;
-      indSeries["MACD"] = macdRes.macd; // Scan divergences on MACD line
-
-      let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      if (macdVal > macdSignalVal) macdAction = "Buy";
-      else if (macdVal < macdSignalVal) macdAction = "Sell";
-
-      oscillators.push({
-        name: "MACD",
-        params: `${macdFast}, ${macdSlow}, ${macdSig}`,
-        value: macdVal,
-        signal: macdSignalVal,
-        histogram: macdHist,
-        action: macdAction,
-      });
-    }
-
-    // 7. StochRSI (NEW)
-    if (shouldCalculate('stochrsi')) {
-        const stochRsiK = settings?.stochRsi?.kPeriod || 3;
-        const stochRsiD = settings?.stochRsi?.dPeriod || 3;
-        const stochRsiLen = settings?.stochRsi?.length || 14;
-        const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
-        const stochRsiSmooth = 1; // Not yet in settings, assume 1
-
-        let outK: Float64Array | undefined;
-        let outD: Float64Array | undefined;
-        if (pool) {
-            outK = pool.acquire(len);
-            outD = pool.acquire(len);
-            cleanupBuffers.push(outK);
-            cleanupBuffers.push(outD);
-        }
-
-        const srRes = JSIndicators.stochRsi(
-          closesNum,
-          stochRsiRsiLen,
-          stochRsiK,
-          stochRsiD,
-          stochRsiSmooth,
-          outK,
-          outD,
-          pool
-        );
-        const srK = srRes.k[srRes.k.length - 1];
-        const srD = srRes.d[srRes.d.length - 1];
-
-        let srAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-        // StochRSI logic similar to Stoch but more sensitive
-        if (srK < 20 && srD < 20 && srK > srD) srAction = "Buy";
-        else if (srK > 80 && srD > 80 && srK < srD) srAction = "Sell";
+        const fast = settings?.ao?.fastLength || 5;
+        const slow = settings?.ao?.slowLength || 34;
+        const aoRes = calculateAwesomeOscillator(highsNum, lowsNum, fast, slow);
+        const aoVal = aoRes[aoRes.length - 1];
 
         oscillators.push({
-        name: "StochRSI",
-        value: srK,
-        signal: srD,
-        params: `${stochRsiRsiLen}, ${stochRsiK}, ${stochRsiD}`,
-        action: srAction,
+            name: "AO",
+            value: aoVal,
+            action: aoVal > 0 ? "Buy" : "Sell",
         });
     }
 
-    // 8. Williams %R (NEW)
-    if (shouldCalculate('williamsr')) {
-        const wRLen = settings?.williamsR?.length || 14;
-        const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
-        const wRVal = wR[wR.length - 1];
-        // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
-        let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-        if (wRVal < -80) wRAction = "Buy";
-        else if (wRVal > -20) wRAction = "Sell";
-
-        oscillators.push({
-        name: "Will %R",
-        value: wRVal,
-        params: wRLen.toString(),
-        action: wRAction,
-        });
-    }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error("Error calculating oscillators:", error);
-    }
-  }
-
-  // --- Divergences Scan ---
-  try {
-    // Scanners: RSI, MACD, CCI, StochK
-    // We only scan for what we calculated
-    const scanList = [
-      { name: "RSI", data: indSeries["RSI"] },
-      { name: "MACD", data: indSeries["MACD"] },
-      { name: "CCI", data: indSeries["CCI"] },
-      { name: "Stoch", data: indSeries["StochK"] },
-      { name: "AO", data: indSeries["AO"] },
-    ].filter(i => !!i.data);
-
-    // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)
-    scanList.forEach((item) => {
-      const results = DivergenceScanner.scan(
-        highsNum,
-        lowsNum,
-        item.data,
-        item.name,
-      );
-      results.forEach((res) => {
-        divergences.push({
-          indicator: res.indicator,
-          type: res.type,
-          side: res.side,
-          startIdx: res.startIdx,
-          endIdx: res.endIdx,
-          priceStart: res.priceStart,
-          priceEnd: res.priceEnd,
-          indStart: res.indStart,
-          indEnd: res.indEnd,
-        });
-      });
-    });
   } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error("Divergence Scan Error:", e);
-    }
-  }
-
-  // --- Advanced / New Indicators ---
-  let advancedInfo: TechnicalsData["advanced"] = {};
-  try {
-    // Phase 5: Pro Indicators Calculations
-    if (shouldCalculate('supertrend')) {
-        const stResult = JSIndicators.superTrend(
-        highsNum,
-        lowsNum,
-        closesNum,
-        settings?.superTrend?.period || 10,
-        settings?.superTrend?.factor || 3,
-        );
-        advancedInfo.superTrend = {
-            value: stResult.value[stResult.value.length - 1],
-            trend: stResult.trend[stResult.trend.length - 1] === 1 ? "bull" : "bear",
-        };
-    }
-
-    if (shouldCalculate('atrtrailingstop')) {
-        const atrTsResult = JSIndicators.atrTrailingStop(
-        highsNum,
-        lowsNum,
-        closesNum,
-        settings?.atrTrailingStop?.period || 14,
-        settings?.atrTrailingStop?.multiplier || 3.5,
-        );
-        advancedInfo.atrTrailingStop = {
-            buy: atrTsResult.buyStop[atrTsResult.buyStop.length - 1],
-            sell: atrTsResult.sellStop[atrTsResult.sellStop.length - 1],
-        };
-    }
-
-    if (shouldCalculate('obv')) {
-        const obvResult = JSIndicators.obv(closesNum, volumesNum);
-        advancedInfo.obv = obvResult[obvResult.length - 1];
-    }
-
-    if (shouldCalculate('volumeprofile')) {
-        const vpResult = JSIndicators.volumeProfile(
-        highsNum,
-        lowsNum,
-        closesNum,
-        volumesNum,
-        settings?.volumeProfile?.rows || 24,
-        );
-        if (vpResult) {
-            advancedInfo.volumeProfile = {
-                poc: vpResult.poc,
-                vaHigh: vpResult.vaHigh,
-                vaLow: vpResult.vaLow,
-                rows: vpResult.rows.map((r) => ({
-                priceStart: r.priceStart,
-                priceEnd: r.priceEnd,
-                volume: r.volume,
-                })),
-            };
-        }
-    }
-
-    // VWAP
-    if (shouldCalculate('vwap')) {
-        const vwapSeries = JSIndicators.vwap(
-        highsNum,
-        lowsNum,
-        closesNum,
-        volumesNum,
-        timesNum,
-        {
-            mode: (settings?.vwap as any)?.anchor || "session",
-            anchorPoint: (settings?.vwap as any)?.anchorPoint
-        }
-        );
-        advancedInfo.vwap = vwapSeries[vwapSeries.length - 1];
-    }
-
-    // Parabolic SAR
-    if (shouldCalculate('parabolicSar')) {
-        const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
-        const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
-        const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
-        advancedInfo.parabolicSar = psarSeries[psarSeries.length - 1];
-    }
-
-    // MFI
-    if (shouldCalculate('mfi')) {
-        const mfiLen = settings?.mfi?.length || 14;
-        const mfiVal = calculateMFI(
-            highsNum,
-            lowsNum,
-            closesNum,
-            volumesNum,
-            mfiLen
-        );
-        let mfiAction = "Neutral";
-        if (mfiVal > 80)
-        mfiAction = "Sell"; // Overbought
-        else if (mfiVal < 20) mfiAction = "Buy"; // Oversold
-        advancedInfo.mfi = { value: mfiVal, action: mfiAction };
-    }
-
-    // Choppiness
-    if (shouldCalculate('choppiness')) {
-        const chopLen = settings?.choppiness?.length || 14;
-        const chopSeries = JSIndicators.choppiness(
-        highsNum,
-        lowsNum,
-        closesNum,
-        chopLen,
-        );
-        const chopVal = chopSeries[chopSeries.length - 1];
-        // > 61.8 = Consolidation/Chop, < 38.2 = Trending
-        advancedInfo.choppiness = {
-        value: chopVal,
-        state: chopVal > 61.8 ? "Range" : chopVal < 38.2 ? "Trend" : "Range",
-        };
-    }
-
-    // Ichimoku
-    if (shouldCalculate('ichimoku')) {
-        const ichiConv = settings?.ichimoku?.conversionPeriod || 9;
-        const ichiBase = settings?.ichimoku?.basePeriod || 26;
-        const ichiSpanB = settings?.ichimoku?.spanBPeriod || 52;
-        const ichiDisp = settings?.ichimoku?.displacement || 26;
-
-        const ichi = JSIndicators.ichimoku(
-        highsNum,
-        lowsNum,
-        ichiConv,
-        ichiBase,
-        ichiSpanB,
-        ichiDisp,
-        );
-        const idx = ichi.conversion.length - 1;
-        const conv = ichi.conversion[idx] || 0;
-        const base = ichi.base[idx] || 0;
-        const spanA = ichi.spanA[idx] || 0;
-        const spanB = ichi.spanB[idx] || 0;
-
-        // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
-        // Price < Cloud && Conv < Base = Sell
-        let ichiAction = "Neutral";
-        const cloudTop = spanA > spanB ? spanA : spanB;
-        const cloudBottom = spanA < spanB ? spanA : spanB;
-
-        if (currentPrice > cloudTop && conv > base) ichiAction = "Buy";
-        else if (
-        currentPrice > cloudTop &&
-        conv > base &&
-        currentPrice > base
-        )
-        ichiAction = "Strong Buy";
-        else if (currentPrice < cloudBottom && conv < base) ichiAction = "Sell";
-
-        advancedInfo.ichimoku = {
-        conversion: conv,
-        base: base,
-        spanA: spanA,
-        spanB: spanB,
-        action: ichiAction,
-        };
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error("Advanced Indicators Error:", e);
-    }
+    if (import.meta.env.DEV) console.error("Oscillators calculation error:", e);
   }
 
   // --- Moving Averages ---
   const movingAverages: IndicatorResult[] = [];
   try {
-    if (shouldCalculate('ema')) {
-        const ema1 = settings?.ema?.ema1?.length || 20;
-        const ema2 = settings?.ema?.ema2?.length || 50;
-        const ema3 = settings?.ema?.ema3?.length || 200;
-        const emaSource = getSource(settings?.ema?.source || "close");
+      if (shouldCalculate('ema')) {
+          const emaConfig = settings?.ema;
+          const emaSource = getSourceArray(emaConfig?.source || "close", opensNum, highsNum, lowsNum, closesNum);
 
-        const emaPeriods = [ema1, ema2, ema3];
-        for (const period of emaPeriods) {
-        const emaResults = JSIndicators.ema(emaSource, period);
-        const rawVal = emaResults[emaResults.length - 1];
-        // Handle insufficient data (NaN) by skipping
-        if (typeof rawVal === 'number' && !isNaN(rawVal)) {
-            movingAverages.push({
-                name: "EMA",
-                params: `${period}`,
-                value: rawVal,
-                action: currentPrice > rawVal ? "Buy" : "Sell",
-            });
-        }
-        }
-    }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error("Error calculating moving averages:", error);
-    }
+          if (emaConfig?.ema1?.length) calculateMA("EMA", emaConfig.ema1.length, emaSource, movingAverages);
+          if (emaConfig?.ema2?.length) calculateMA("EMA", emaConfig.ema2.length, emaSource, movingAverages);
+          if (emaConfig?.ema3?.length) calculateMA("EMA", emaConfig.ema3.length, emaSource, movingAverages);
+      }
+
+      if (shouldCalculate('sma')) {
+          const smaConfig = settings?.sma;
+          const smaSource = closesNum;
+          if (smaConfig?.sma1?.length) calculateMA("SMA", smaConfig.sma1.length, smaSource, movingAverages);
+          if (smaConfig?.sma2?.length) calculateMA("SMA", smaConfig.sma2.length, smaSource, movingAverages);
+          if (smaConfig?.sma3?.length) calculateMA("SMA", smaConfig.sma3.length, smaSource, movingAverages);
+      }
+
+      if (shouldCalculate('wma')) {
+          const len = settings?.wma?.length || 14;
+          calculateMA("WMA", len, closesNum, movingAverages);
+      }
+
+      if (shouldCalculate('vwma')) {
+          const len = settings?.vwma?.length || 20;
+          const vwmaRes = JSIndicators.vwma(closesNum, volumesNum, len);
+          const val = vwmaRes[vwmaRes.length - 1];
+          if (!isNaN(val)) {
+             movingAverages.push({
+                 name: "VWMA",
+                 params: `${len}`,
+                 value: val,
+                 action: currentPrice > val ? "Buy" : "Sell"
+             });
+          }
+      }
+
+      if (shouldCalculate('hma')) {
+          const len = settings?.hma?.length || 9;
+          calculateMA("HMA", len, closesNum, movingAverages);
+      }
+
+  } catch (e) {
+      if (import.meta.env.DEV) console.error("MA calculation error:", e);
   }
 
-  // --- Pivots ---
-  const pivotType = settings?.pivots?.type || "classic";
-  const prevIdx = closesNum.length - 2;
-  let pivotData;
+  // --- Advanced / Trend ---
+  try {
+      if (shouldCalculate('macd')) {
+          const fast = settings?.macd?.fastLength || 12;
+          const slow = settings?.macd?.slowLength || 26;
+          const sig = settings?.macd?.signalLength || 9;
+          const src = getSourceArray(settings?.macd?.source || "close", opensNum, highsNum, lowsNum, closesNum);
 
-  // Note: getEmptyData returns dummy pivots.
+          const macdRes = JSIndicators.macd(src, fast, slow, sig) as unknown as { macd: Float64Array, signal: Float64Array, histogram?: Float64Array };
+          const idx = macdRes.macd.length - 1;
+
+          const macdVal = macdRes.macd[idx];
+          const sigVal = macdRes.signal[idx];
+          const histVal = macdRes.histogram ? macdRes.histogram[idx] : (macdVal - sigVal);
+          const action = histVal > 0 ? "Buy" : "Sell";
+
+          oscillators.push({
+              name: "MACD",
+              value: macdVal,
+              action: action,
+              extra: `Sig: ${sigVal.toFixed(2)}`
+          });
+      }
+
+      if (shouldCalculate('adx')) {
+          const per = settings?.adx?.diLength || 14;
+          const res = JSIndicators.adx(highsNum, lowsNum, closesNum, per) as unknown as { adx: Float64Array, pdi: Float64Array, mdi: Float64Array } | Float64Array;
+
+          let val = 0, pdi = 0, mdi = 0;
+
+          if ('adx' in (res as any)) {
+             const r = res as { adx: Float64Array, pdi: Float64Array, mdi: Float64Array };
+             const idx = r.adx.length - 1;
+             val = r.adx[idx];
+             pdi = r.pdi[idx];
+             mdi = r.mdi[idx];
+          } else {
+             const r = res as Float64Array;
+             val = r[r.length - 1];
+          }
+
+          const trend = val > 25 ? "Strong Trend" : "Weak Trend";
+          const dir = pdi > mdi ? "Bullish" : "Bearish";
+
+          advancedInfo.adx = { value: val, pdi, mdi, trend, dir };
+      }
+
+      if (shouldCalculate('superTrend')) {
+          const per = settings?.superTrend?.period || 10;
+          const fac = settings?.superTrend?.factor || 3;
+          const res = JSIndicators.superTrend(highsNum, lowsNum, closesNum, per, fac);
+          const idx = res.value.length - 1;
+
+          advancedInfo.superTrend = {
+              value: res.value[idx],
+              trend: res.trend[idx] === 1 ? "bull" : "bear"
+          };
+      }
+
+      if (shouldCalculate('ichimoku')) {
+          const conv = settings?.ichimoku?.conversionPeriod || 9;
+          const base = settings?.ichimoku?.basePeriod || 26;
+          const spanB = settings?.ichimoku?.spanBPeriod || 52;
+          const disp = settings?.ichimoku?.displacement || 26;
+
+          const res = JSIndicators.ichimoku(highsNum, lowsNum, conv, base, spanB, disp);
+          const idx = res.conversion.length - 1;
+
+          const cVal = res.conversion[idx];
+          const bVal = res.base[idx];
+          const saVal = res.spanA[idx];
+          const sbVal = res.spanB[idx];
+
+          let action = "Neutral";
+          const cloudTop = Math.max(saVal, sbVal);
+          const cloudBottom = Math.min(saVal, sbVal);
+
+          if (currentPrice > cloudTop && cVal > bVal) action = "Buy";
+          else if (currentPrice < cloudBottom && cVal < bVal) action = "Sell";
+
+          advancedInfo.ichimoku = {
+              conversion: cVal,
+              base: bVal,
+              spanA: saVal,
+              spanB: sbVal,
+              action: action
+          };
+      }
+
+      if (shouldCalculate('atrTrailingStop')) {
+          const per = settings?.atrTrailingStop?.period || 14;
+          const mult = settings?.atrTrailingStop?.multiplier || 3.5;
+          const res = JSIndicators.atrTrailingStop(highsNum, lowsNum, closesNum, per, mult);
+          const idx = res.buyStop.length - 1;
+
+          advancedInfo.atrTrailingStop = {
+              buy: res.buyStop[idx],
+              sell: res.sellStop[idx]
+          };
+      }
+
+      if (shouldCalculate('parabolicSar')) {
+          const start = settings?.parabolicSar?.start || 0.02;
+          const max = settings?.parabolicSar?.max || 0.2;
+          const res = JSIndicators.psar(highsNum, lowsNum, start, max);
+          advancedInfo.parabolicSar = res[res.length - 1];
+      }
+
+  } catch (e) {
+      if (import.meta.env.DEV) console.error("Trend/Advanced calculation error:", e);
+  }
+
+  // --- Volatility ---
+  let volatility: any = undefined;
+  try {
+      if (shouldCalculate('atr') || shouldCalculate('bollingerBands') || shouldCalculate('choppiness')) {
+          volatility = {};
+
+          if (shouldCalculate('atr')) {
+              const len = settings?.atr?.length || 14;
+              const res = JSIndicators.atr(highsNum, lowsNum, closesNum, len);
+              volatility.atr = res[res.length - 1];
+          }
+
+          if (shouldCalculate('bollingerBands')) {
+             const len = settings?.bollingerBands?.length || 20;
+             const std = settings?.bollingerBands?.stdDev || 2;
+             const res = JSIndicators.bb(closesNum, len, std);
+             const idx = res.middle.length - 1;
+             const upper = res.upper[idx];
+             const lower = res.lower[idx];
+             const range = upper - lower;
+             const percentP = range === 0 ? 0.5 : (currentPrice - lower) / range;
+
+             volatility.bb = {
+                 upper,
+                 middle: res.middle[idx],
+                 lower,
+                 percentP
+             };
+          }
+
+          if (shouldCalculate('choppiness')) {
+              const len = settings?.choppiness?.length || 14;
+              const res = JSIndicators.choppiness(highsNum, lowsNum, closesNum, len);
+              const val = res[res.length - 1];
+              advancedInfo.choppiness = {
+                  value: val,
+                  state: val > 61.8 ? "Range" : val < 38.2 ? "Trend" : "Range"
+              };
+          }
+      }
+  } catch (e) {
+      if (import.meta.env.DEV) console.error("Volatility calculation error:", e);
+  }
+
+  // --- Volume ---
+  try {
+      if (shouldCalculate('mfi')) {
+          const len = settings?.mfi?.length || 14;
+          const val = calculateMFI(highsNum, lowsNum, closesNum, volumesNum, len);
+          let action = "Neutral";
+          if (val > 80) action = "Sell";
+          else if (val < 20) action = "Buy";
+          advancedInfo.mfi = { value: val, action };
+      }
+
+      if (shouldCalculate('obv')) {
+          const res = JSIndicators.obv(closesNum, volumesNum);
+          advancedInfo.obv = res[res.length - 1];
+      }
+
+      if (shouldCalculate('vwap')) {
+          const config = settings?.vwap;
+          const res = JSIndicators.vwap(highsNum, lowsNum, closesNum, volumesNum, Array.isArray(timesNum) ? timesNum : Array.from(timesNum), {
+             mode: config?.anchor || "session",
+             anchorPoint: config?.anchorPoint
+          });
+          advancedInfo.vwap = res[res.length - 1];
+      }
+
+      if (shouldCalculate('volumeProfile')) {
+          const rows = settings?.volumeProfile?.rows || 24;
+          const res = JSIndicators.volumeProfile(highsNum, lowsNum, closesNum, volumesNum, rows);
+          if (res) {
+              advancedInfo.volumeProfile = {
+                  poc: res.poc,
+                  vaHigh: res.vaHigh,
+                  vaLow: res.vaLow,
+                  rows: res.rows
+              };
+          }
+      }
+
+      if (shouldCalculate('volumeMa')) {
+          const len = settings?.volumeMa?.length || 20;
+          const res = JSIndicators.sma(volumesNum, len);
+          advancedInfo.volumeMa = res[res.length - 1];
+      }
+
+  } catch (e) {
+      if (import.meta.env.DEV) console.error("Volume calculation error:", e);
+  }
+
+  const pivotType = settings?.pivots?.type || "classic";
+  let pivotData;
+  const prevIdx = closesNum.length - 2;
+
   if (prevIdx >= 0 && shouldCalculate('pivots')) {
     pivotData = calculatePivotsFromValues(
       highsNum[prevIdx],
@@ -746,70 +541,9 @@ export function calculateIndicatorsFromArrays(
       pivotType
     );
   } else {
-    // Return empty/placeholder if disabled or not enough data
     pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
   }
 
-  // --- Volatility ---
-  let volatility = undefined;
-  try {
-    if (shouldCalculate('atr') || shouldCalculate('bollingerBands')) {
-        const atrLen = settings?.atr?.length || 14;
-        const bbLen = settings?.bollingerBands?.length || 20;
-        const bbStdDev = settings?.bollingerBands?.stdDev || 2;
-
-        let currentAtr = 0;
-        if (shouldCalculate('atr')) {
-            const atrResults = JSIndicators.atr(highsNum, lowsNum, closesNum, atrLen);
-            currentAtr = atrResults[atrResults.length - 1];
-        }
-
-        let bbUpper = 0, bbLower = 0, bbMiddle = 0, percentP = 0;
-
-        if (shouldCalculate('bollingerBands')) {
-            let outMiddle: Float64Array | undefined;
-            let outUpper: Float64Array | undefined;
-            let outLower: Float64Array | undefined;
-
-            if (pool) {
-              outMiddle = pool.acquire(len);
-              outUpper = pool.acquire(len);
-              outLower = pool.acquire(len);
-              cleanupBuffers.push(outMiddle);
-              cleanupBuffers.push(outUpper);
-              cleanupBuffers.push(outLower);
-            }
-
-            const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev, outMiddle, outUpper, outLower);
-            bbUpper = bbResults.upper[bbResults.upper.length - 1];
-            bbLower = bbResults.lower[bbResults.lower.length - 1];
-            bbMiddle = bbResults.middle[bbResults.middle.length - 1];
-
-            const range = bbUpper - bbLower;
-            percentP = range === 0
-            ? 0.5
-            : (currentPrice - bbLower) / range;
-        }
-
-        volatility = {
-            atr: currentAtr,
-            bb: {
-                upper: bbUpper,
-                middle: bbMiddle,
-                lower: bbLower,
-                percentP: percentP,
-            },
-        };
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error("Volatility calculation error:", e);
-    }
-  }
-
-
-
-  // --- Summary & Confluence ---
   let buy = 0;
   let sell = 0;
   let neutral = 0;
@@ -824,7 +558,6 @@ export function calculateIndicatorsFromArrays(
   if (buy > sell && buy > neutral) summaryAction = "Buy";
   else if (sell > buy && sell > neutral) summaryAction = "Sell";
 
-  // Construct Partial result for Confluence Analysis
   const partialData: Partial<TechnicalsData> = {
     oscillators,
     movingAverages,
@@ -834,13 +567,6 @@ export function calculateIndicatorsFromArrays(
   };
 
   const confluence = ConfluenceAnalyzer.analyze(partialData);
-
-  // Cleanup buffers if pool was used
-  if (pool) {
-      for (const buf of cleanupBuffers) {
-          pool.release(buf);
-      }
-  }
 
   return {
     oscillators,
@@ -853,6 +579,52 @@ export function calculateIndicatorsFromArrays(
     confluence,
     advanced: advancedInfo,
   };
+}
+
+// Helper to calculate generic MA
+function calculateMA(type: string, period: number, source: Float64Array, target: IndicatorResult[]) {
+    let res: Float64Array;
+    switch(type) {
+        case "EMA": res = JSIndicators.ema(source, period); break;
+        case "SMA": res = JSIndicators.sma(source, period); break;
+        case "WMA": res = JSIndicators.wma(source, period); break;
+        case "HMA": res = JSIndicators.hma(source, period); break;
+        default: return;
+    }
+    const val = res[res.length - 1];
+    if (!isNaN(val)) {
+        target.push({
+            name: type,
+            params: `${period}`,
+            value: val,
+            action: source[source.length - 1] > val ? "Buy" : "Sell"
+        });
+    }
+}
+
+// Helper to get source array
+function getSourceArray(
+    source: string,
+    open: Float64Array,
+    high: Float64Array,
+    low: Float64Array,
+    close: Float64Array
+): Float64Array {
+    switch (source) {
+        case "open": return open;
+        case "high": return high;
+        case "low": return low;
+        case "hl2":
+            const hl2 = new Float64Array(close.length);
+            for(let i=0; i<close.length; i++) hl2[i] = (high[i] + low[i]) / 2;
+            return hl2;
+        case "hlc3":
+            const hlc3 = new Float64Array(close.length);
+            for(let i=0; i<close.length; i++) hlc3[i] = (high[i] + low[i] + close[i]) / 3;
+            return hlc3;
+        case "close":
+        default: return close;
+    }
 }
 
 export function getEmptyData(): TechnicalsData {

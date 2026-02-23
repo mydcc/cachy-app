@@ -1,439 +1,362 @@
-<!--
-  Copyright (C) 2026 MYDCT
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <https://www.gnu.org/licenses/>.
--->
-
 <script lang="ts">
-    import { _ } from "../../../locales/i18n";
-    import Toggle from "../../shared/Toggle.svelte";
-    import { enhancedInput } from "../../../lib/actions/inputEnhancements";
-    import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
-    import { settingsState } from "../../../stores/settings.svelte";
+    import { _ } from "svelte-i18n";
     import { indicatorState } from "../../../stores/indicator.svelte";
-    import { uiState } from "../../../stores/ui.svelte";
+    import { settingsState } from "../../../stores/settings.svelte";
+    import Toggle from "../../shared/Toggle.svelte";
     import Field from "./IndicatorField.svelte";
     import Select from "./IndicatorSelect.svelte";
+    import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
+    import IndicatorCard from "./IndicatorCard.svelte";
 
-    // Re-use logic from AnalysisTab
-    export const availableTimeframes = [
-        "1m",
-        "3m",
-        "5m",
-        "15m",
-        "30m",
-        "1h",
-        "2h",
-        "4h",
-        "6h",
-        "8h",
-        "12h",
-        "1d",
-        "3d",
-        "1w",
-        "1M",
+    // Tabs
+    const tabs = [
+        { id: "general", label: "General" },
+        { id: "oscillators", label: "Oscillators" },
+        { id: "trend", label: "Trend & Direction" },
+        { id: "volatility", label: "Volatility" },
+        { id: "volume", label: "Volume & Signals" },
+    ];
+    let activeCategory = $state("general");
+
+    const availableTimeframes = [
+        "1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d", "3d", "1w", "1M"
     ];
 
-    const activeCategory = $derived(uiState.settingsIndicatorCategory);
-
-    const categories = [
-        { id: "general", label: $_("settings.tabs.general") },
-        {
-            id: "oscillators",
-            label: $_("settings.technicals.oscillators"),
-        },
-        { id: "trend", label: $_("settings.indicators.trend") },
-        {
-            id: "volatility",
-            label: $_("settings.indicators.volatility"),
-        },
-        { id: "volume", label: $_("settings.indicators.volume") },
-    ] as const;
-
-    const pnlModes = [
-        { value: "value", label: $_("settings.technicals.pnlModes.absolute") },
-        { value: "percent", label: $_("settings.technicals.pnlModes.percent") },
-        { value: "bar", label: $_("settings.technicals.pnlModes.bar") },
+    // Options
+    const sourceOptions = ["close", "open", "high", "low", "hl2", "hlc3"];
+    const pivotTypes = [
+        { value: "classic", label: "Classic" },
+        { value: "woodie", label: "Woodie" },
+        { value: "camarilla", label: "Camarilla" },
+        { value: "fibonacci", label: "Fibonacci" }
     ];
 </script>
 
-<div class="indicator-settings flex flex-col gap-4">
-    <!-- Sub-Navigation -->
-    <div
-        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 mb-2"
-    >
-        {#each categories as category}
+<div class="flex flex-col h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
+    <!-- Tabs -->
+    <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar">
+        {#each tabs as tab}
             <button
-                class="category-btn px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all {activeCategory ===
-                category.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg scale-105 z-10'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}"
-                onclick={() =>
-                    (uiState.settingsIndicatorCategory = category.id)}
+                class="px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative {activeCategory ===
+                tab.id
+                    ? 'text-[var(--accent-color)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+                onclick={() => (activeCategory = tab.id)}
             >
-                {category.label}
+                {tab.label}
+                {#if activeCategory === tab.id}
+                    <div
+                        class="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-color)]"
+                    ></div>
+                {/if}
             </button>
         {/each}
     </div>
 
     <!-- Content -->
-    <div class="flex flex-col gap-6">
+    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {#if activeCategory === "general"}
-            <section class="settings-section">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Precision -->
-                    <div class="field-group">
-                        <label for="precision">{$_("settings.technicals.precision")}</label>
-                        <input
-                            id="precision"
-                            type="number"
-                            bind:value={indicatorState.precision}
-                            min="0"
-                            max="8"
-                            class="input-field"
-                        />
-                    </div>
-                    <!-- History Limit -->
-                    <div class="field-group">
-                        <label for="history-limit"
-                            >{$_("settings.technicals.historyLimit")}</label
-                        >
-                        <input
-                            id="history-limit"
-                            type="number"
-                            bind:value={indicatorState.historyLimit}
-                            min="100"
-                            max="10000"
-                            step="100"
-                            class="input-field"
-                        />
-                    </div>
-                    
-                    <!-- Performance Optimization -->
-                    <div class="mt-6 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
-                        <h4 class="text-xs font-bold uppercase mb-3 text-[var(--text-primary)]">
-                            {$_("settings.technicals.optimization.title")}
-                        </h4>
-                        
-                        <label class="toggle-card mb-3">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-medium">{$_("settings.technicals.optimization.autoOptimize")}</span>
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.technicals.optimization.autoOptimizeDesc")}
-                                </span>
-                            </div>
-                            <Toggle bind:checked={indicatorState.autoOptimize} />
-                        </label>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="field-group">
-                                <label for="preferred-engine" class="text-xs font-semibold mb-1 block">
-                                    {$_("settings.technicals.optimization.preferredEngine")}
-                                </label>
-                                <select 
-                                    id="preferred-engine"
-                                    bind:value={indicatorState.preferredEngine}
-                                    class="input-field"
-                                >
-                                    <option value="auto">{$_("settings.technicals.optimization.engines.auto")}</option>
-                                    <option value="ts">{$_("settings.technicals.optimization.engines.ts")}</option>
-                                    <option value="wasm">{$_("settings.technicals.optimization.engines.wasm")}</option>
-                                    <option value="gpu">{$_("settings.technicals.optimization.engines.gpu")}</option>
-                                </select>
-                            </div>
-                            
-                            <div class="field-group">
-                                <label for="performance-mode" class="text-xs font-semibold mb-1 block">
-                                    {$_("settings.technicals.optimization.performanceMode")}
-                                </label>
-                                <select 
-                                    id="performance-mode"
-                                    bind:value={indicatorState.performanceMode}
-                                    class="input-field"
-                                >
-                                    <option value="speed">{$_("settings.technicals.optimization.modes.speed")}</option>
-                                    <option value="balanced">{$_("settings.technicals.optimization.modes.balanced")}</option>
-                                    <option value="quality">{$_("settings.technicals.optimization.modes.quality")}</option>
-                                </select>
-                            </div>
+            <section class="space-y-6">
+                <!-- Panel Sections Visibility -->
+                <div class="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
+                    <h4 class="text-xs font-bold uppercase text-[var(--text-secondary)] mb-3">
+                        Panel Sections
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Summary</span>
+                            <Toggle bind:checked={indicatorState.panelSections.summary} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Oscillators</span>
+                            <Toggle bind:checked={indicatorState.panelSections.oscillators} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Moving Averages</span>
+                            <Toggle bind:checked={indicatorState.panelSections.movingAverages} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Pivots</span>
+                            <Toggle bind:checked={indicatorState.panelSections.pivots} />
                         </div>
                     </div>
                 </div>
 
-                <label class="toggle-card mt-4">
-                    <div class="flex flex-col">
-                        <span class="text-sm font-medium"
-                            >{$_("settings.technicals.syncRsi")}</span
-                        >
-                        <span class="text-[10px] text-[var(--text-secondary)]"
-                            >{$_("settings.technicals.syncRsiDesc")}</span
-                        >
+                <!-- Global Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                        <h4 class="text-xs font-bold uppercase mb-2">Calculation</h4>
+                        <div class="space-y-2">
+                             <Field
+                                id="hist-limit"
+                                label="History Limit"
+                                type="number"
+                                bind:value={indicatorState.historyLimit}
+                                step={50}
+                            />
+                            <div class="flex justify-between items-center pt-2">
+                                <span class="text-sm">Auto Optimize</span>
+                                <Toggle bind:checked={indicatorState.autoOptimize} />
+                            </div>
+                        </div>
                     </div>
-                    <Toggle bind:checked={settingsState.syncRsiTimeframe} />
-                </label>
 
-                <label class="toggle-card mt-2">
-                    <div class="flex flex-col">
-                        <span class="text-sm font-medium"
-                            >{$_("settings.technicals.pivots")}</span
-                        >
-                        <span class="text-[10px] text-[var(--text-secondary)]"
-                            >{$_("settings.technicals.pivotsDesc")}</span
-                        >
-                    </div>
-                    <Toggle
-                        bind:checked={settingsState.enabledIndicators.pivots}
-                    />
-                </label>
-
-                <!-- PnL Mode -->
-                <div class="field-group mt-4">
-                    <span
-                        class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
-                        >{$_("settings.technicals.pnlMode")}</span
-                    >
-                    <div class="flex gap-2">
-                        {#each pnlModes as mode}
-                            <button
-                                class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.pnlViewMode ===
-                                mode.value
-                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] shadow-md'
-                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)]'}"
-                                onclick={() =>
-                                    (settingsState.pnlViewMode =
-                                        mode.value as any)}
-                            >
-                                {mode.label}
-                            </button>
-                        {/each}
+                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                         <h4 class="text-xs font-bold uppercase mb-2">Display</h4>
+                         <div class="space-y-2">
+                            <Field
+                                id="precision"
+                                label="Precision"
+                                type="number"
+                                bind:value={indicatorState.precision}
+                                min={0}
+                                max={8}
+                            />
+                            <div class="flex flex-col gap-2 mt-2">
+                                <span class="text-xs text-[var(--text-secondary)]">PnL Display Mode</span>
+                                <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
+                                    {#each [{ value: "absolute", label: "Value" }, { value: "percent", label: "%" }] as mode}
+                                        <button
+                                            class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-white' : 'text-[var(--text-secondary)]'}"
+                                            onclick={() => (settingsState.pnlViewMode = mode.value as any)}
+                                        >
+                                            {mode.label}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+                         </div>
                     </div>
                 </div>
 
                 <!-- Timeframes -->
-                <div class="mt-4">
-                    <span
-                        class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                        >{$_("settings.technicals.favorites")}</span
-                    >
+                <div class="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
+                    <h4 class="text-xs font-bold uppercase mb-2">Favorite Timeframes</h4>
                     <TimeframeSelector
                         bind:selected={settingsState.favoriteTimeframes}
                         options={availableTimeframes}
                     />
                 </div>
             </section>
+
         {:else if activeCategory === "oscillators"}
-            <div class="grid grid-cols-1 gap-4">
-                <!-- RSI -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.rsi.title")}</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <IndicatorCard title="RSI" bind:enabled={indicatorState.rsi.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="rsi-len"
-                            label={$_("settings.technicals.labels.length")}
-                            type="number"
-                            bind:value={indicatorState.rsi.length}
-                            min={2}
-                        />
-                        <Select
-                            id="rsi-src"
-                            label={$_("settings.technicals.labels.source")}
-                            bind:value={indicatorState.rsi.source}
-                            options={[
-                                "close",
-                                "open",
-                                "high",
-                                "low",
-                                "hl2",
-                                "hlc3",
-                            ]}
-                        />
+                        <Field id="rsi-len" label="Length" type="number" bind:value={indicatorState.rsi.length} min={2} />
+                        <Select id="rsi-src" label="Source" bind:value={indicatorState.rsi.source} options={sourceOptions} />
+                        <Field id="rsi-ob" label="Overbought" type="number" bind:value={indicatorState.rsi.overbought} />
+                        <Field id="rsi-os" label="Oversold" type="number" bind:value={indicatorState.rsi.oversold} />
+                        <div class="col-span-2 flex justify-between items-center mt-1">
+                            <span class="text-xs">Show Signal (MA)</span>
+                            <Toggle bind:checked={indicatorState.rsi.showSignal} />
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between mt-2">
-                        <span class="text-xs">{$_("settings.technicals.rsi.showSignal")}</span>
-                        <Toggle bind:checked={indicatorState.rsi.showSignal} />
-                    </div>
-                </div>
-                <!-- Stoch RSI -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.stochRsi.title")}</h4>
+                </IndicatorCard>
+
+                <IndicatorCard title="Stoch RSI" bind:enabled={indicatorState.stochRsi.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="srsi-len"
-                            label={$_("settings.technicals.stochRsi.len")}
-                            type="number"
-                            bind:value={indicatorState.stochRsi.length}
-                            min={2}
-                        />
-                        <Field
-                            id="srsi-rlen"
-                            label={$_("settings.technicals.stochRsi.rsiLen")}
-                            type="number"
-                            bind:value={indicatorState.stochRsi.rsiLength}
-                            min={2}
-                        />
-                        <Field
-                            id="srsi-k"
-                            label="%K"
-                            type="number"
-                            bind:value={indicatorState.stochRsi.kPeriod}
-                        />
-                        <Field
-                            id="srsi-d"
-                            label="%D"
-                            type="number"
-                            bind:value={indicatorState.stochRsi.dPeriod}
-                        />
+                        <Field id="srsi-len" label="Length" type="number" bind:value={indicatorState.stochRsi.length} />
+                        <Field id="srsi-rlen" label="RSI Len" type="number" bind:value={indicatorState.stochRsi.rsiLength} />
+                        <Field id="srsi-k" label="%K" type="number" bind:value={indicatorState.stochRsi.kPeriod} />
+                        <Field id="srsi-d" label="%D" type="number" bind:value={indicatorState.stochRsi.dPeriod} />
                     </div>
-                </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Stochastic" bind:enabled={indicatorState.stochastic.enabled}>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="stoch-k" label="%K" type="number" bind:value={indicatorState.stochastic.kPeriod} />
+                        <Field id="stoch-d" label="%D" type="number" bind:value={indicatorState.stochastic.dPeriod} />
+                        <Field id="stoch-s" label="Smooth" type="number" bind:value={indicatorState.stochastic.kSmoothing} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Williams %R" bind:enabled={indicatorState.williamsR.enabled}>
+                    <Field id="wr-len" label="Length" type="number" bind:value={indicatorState.williamsR.length} />
+                </IndicatorCard>
+
+                <IndicatorCard title="CCI" bind:enabled={indicatorState.cci.enabled}>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="cci-len" label="Length" type="number" bind:value={indicatorState.cci.length} />
+                        <Select id="cci-src" label="Source" bind:value={indicatorState.cci.source} options={sourceOptions} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Momentum" bind:enabled={indicatorState.momentum.enabled}>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="mom-len" label="Length" type="number" bind:value={indicatorState.momentum.length} />
+                        <Select id="mom-src" label="Source" bind:value={indicatorState.momentum.source} options={sourceOptions} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Awesome Osc." bind:enabled={indicatorState.ao.enabled}>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="ao-fast" label="Fast" type="number" bind:value={indicatorState.ao.fastLength} />
+                        <Field id="ao-slow" label="Slow" type="number" bind:value={indicatorState.ao.slowLength} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="MFI" bind:enabled={indicatorState.mfi.enabled}>
+                    <Field id="mfi-len" label="Length" type="number" bind:value={indicatorState.mfi.length} />
+                </IndicatorCard>
             </div>
+
         {:else if activeCategory === "trend"}
-            <div class="grid grid-cols-1 gap-4">
-                <!-- MACD -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.macd.title")}</h4>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <IndicatorCard title="MACD" bind:enabled={indicatorState.macd.enabled}>
                     <div class="grid grid-cols-3 gap-2">
-                        <Field
-                            id="macd-fast"
-                            label={$_("settings.technicals.labels.fast")}
-                            type="number"
-                            bind:value={indicatorState.macd.fastLength}
-                        />
-                        <Field
-                            id="macd-slow"
-                            label={$_("settings.technicals.labels.slow")}
-                            type="number"
-                            bind:value={indicatorState.macd.slowLength}
-                        />
-                        <Field
-                            id="macd-sig"
-                            label={$_("settings.technicals.labels.signal")}
-                            type="number"
-                            bind:value={indicatorState.macd.signalLength}
-                        />
+                        <Field id="macd-fast" label="Fast" type="number" bind:value={indicatorState.macd.fastLength} />
+                        <Field id="macd-slow" label="Slow" type="number" bind:value={indicatorState.macd.slowLength} />
+                        <Field id="macd-sig" label="Signal" type="number" bind:value={indicatorState.macd.signalLength} />
                     </div>
-                </div>
-                <!-- SuperTrend -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.superTrend.title")}</h4>
+                </IndicatorCard>
+
+                <IndicatorCard title="ADX" bind:enabled={indicatorState.adx.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="st-fac"
-                            label={$_("settings.technicals.labels.factor")}
-                            type="number"
-                            step={0.1}
-                            bind:value={indicatorState.superTrend.factor}
-                        />
-                        <Field
-                            id="st-per"
-                            label={$_("settings.technicals.labels.period")}
-                            type="number"
-                            bind:value={indicatorState.superTrend.period}
-                        />
+                         <Field id="adx-len" label="DI Length" type="number" bind:value={indicatorState.adx.diLength} />
+                         <Field id="adx-smooth" label="Smoothing" type="number" bind:value={indicatorState.adx.adxSmoothing} />
+                         <Field id="adx-thr" label="Threshold" type="number" bind:value={indicatorState.adx.threshold} />
                     </div>
-                </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="SuperTrend" bind:enabled={indicatorState.superTrend.enabled}>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="st-per" label="Period" type="number" bind:value={indicatorState.superTrend.period} />
+                        <Field id="st-fac" label="Factor" type="number" step={0.1} bind:value={indicatorState.superTrend.factor} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Ichimoku" bind:enabled={indicatorState.ichimoku.enabled}>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="ichi-conv" label="Conversion" type="number" bind:value={indicatorState.ichimoku.conversionPeriod} />
+                        <Field id="ichi-base" label="Base" type="number" bind:value={indicatorState.ichimoku.basePeriod} />
+                        <Field id="ichi-spanb" label="Span B" type="number" bind:value={indicatorState.ichimoku.spanBPeriod} />
+                        <Field id="ichi-disp" label="Displacement" type="number" bind:value={indicatorState.ichimoku.displacement} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Parabolic SAR" bind:enabled={indicatorState.parabolicSar.enabled}>
+                     <div class="grid grid-cols-3 gap-2">
+                        <Field id="psar-start" label="Start" type="number" step={0.01} bind:value={indicatorState.parabolicSar.start} />
+                        <Field id="psar-inc" label="Inc" type="number" step={0.01} bind:value={indicatorState.parabolicSar.increment} />
+                        <Field id="psar-max" label="Max" type="number" step={0.01} bind:value={indicatorState.parabolicSar.max} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Pivot Points" bind:enabled={indicatorState.pivots.enabled}>
+                    <div class="grid grid-cols-1 gap-2">
+                        <span class="text-xs text-[var(--text-secondary)]">Calculation Mode</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            {#each pivotTypes as pType}
+                                <button
+                                    class="text-xs py-1.5 rounded border border-[var(--border-color)] transition-colors {indicatorState.pivots.type === pType.value ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)]'}"
+                                    onclick={() => indicatorState.pivots.type = pType.value as any}
+                                >
+                                    {pType.label}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="EMA" bind:enabled={indicatorState.ema.enabled}>
+                    <div class="flex flex-col gap-2">
+                        <div class="grid grid-cols-3 gap-2">
+                             <Field id="ema-1" label="EMA 1" type="number" bind:value={indicatorState.ema.ema1.length} />
+                             <Field id="ema-2" label="EMA 2" type="number" bind:value={indicatorState.ema.ema2.length} />
+                             <Field id="ema-3" label="EMA 3" type="number" bind:value={indicatorState.ema.ema3.length} />
+                        </div>
+                        <Select id="ema-src" label="Source" bind:value={indicatorState.ema.source} options={sourceOptions} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="SMA" bind:enabled={indicatorState.sma.enabled}>
+                    <div class="grid grid-cols-3 gap-2">
+                            <Field id="sma-1" label="SMA 1" type="number" bind:value={indicatorState.sma.sma1.length} />
+                            <Field id="sma-2" label="SMA 2" type="number" bind:value={indicatorState.sma.sma2.length} />
+                            <Field id="sma-3" label="SMA 3" type="number" bind:value={indicatorState.sma.sma3.length} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="WMA" bind:enabled={indicatorState.wma.enabled}>
+                    <Field id="wma-len" label="Length" type="number" bind:value={indicatorState.wma.length} />
+                </IndicatorCard>
+                <IndicatorCard title="VWMA" bind:enabled={indicatorState.vwma.enabled}>
+                    <Field id="vwma-len" label="Length" type="number" bind:value={indicatorState.vwma.length} />
+                </IndicatorCard>
+                <IndicatorCard title="HMA" bind:enabled={indicatorState.hma.enabled}>
+                    <Field id="hma-len" label="Length" type="number" bind:value={indicatorState.hma.length} />
+                </IndicatorCard>
             </div>
+
         {:else if activeCategory === "volatility"}
-            <div class="grid grid-cols-1 gap-4">
-                <!-- Bollinger -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">
-                        {$_("settings.technicals.bollingerBands.title")}
-                    </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <IndicatorCard title="Bollinger Bands" bind:enabled={indicatorState.bollingerBands.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="bb-len"
-                            label={$_("settings.technicals.labels.length")}
-                            type="number"
-                            bind:value={indicatorState.bollingerBands.length}
-                        />
-                        <Field
-                            id="bb-std"
-                            label={$_("settings.technicals.bollingerBands.stdDev")}
-                            type="number"
-                            step={0.1}
-                            bind:value={indicatorState.bollingerBands.stdDev}
-                        />
+                        <Field id="bb-len" label="Length" type="number" bind:value={indicatorState.bollingerBands.length} />
+                        <Field id="bb-std" label="Std Dev" type="number" step={0.1} bind:value={indicatorState.bollingerBands.stdDev} />
                     </div>
-                </div>
-                <!-- ATR -->
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.atr")}</h4>
-                    <Field
-                        id="atr-len"
-                        label={$_("settings.technicals.labels.length")}
-                        type="number"
-                        bind:value={indicatorState.atr.length}
-                    />
-                </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="ATR" bind:enabled={indicatorState.atr.enabled}>
+                    <Field id="atr-len" label="Length" type="number" bind:value={indicatorState.atr.length} />
+                </IndicatorCard>
+
+                <IndicatorCard title="Choppiness Idx" bind:enabled={indicatorState.choppiness.enabled}>
+                    <Field id="chop-len" label="Length" type="number" bind:value={indicatorState.choppiness.length} />
+                </IndicatorCard>
+
+                <IndicatorCard title="ATR Trailing Stop" bind:enabled={indicatorState.atrTrailingStop.enabled}>
+                     <div class="grid grid-cols-2 gap-2">
+                        <Field id="ats-per" label="Period" type="number" bind:value={indicatorState.atrTrailingStop.period} />
+                        <Field id="ats-mult" label="Multiplier" type="number" step={0.1} bind:value={indicatorState.atrTrailingStop.multiplier} />
+                    </div>
+                </IndicatorCard>
             </div>
+
         {:else if activeCategory === "volume"}
-            <div class="grid grid-cols-1 gap-4">
-                <div
-                    class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                    <h4 class="text-xs font-bold uppercase mb-2">{$_("settings.technicals.volumeMa.title")}</h4>
-                    <div class="grid grid-cols-2 gap-2">
-                        <Field
-                            id="vma-len"
-                            label={$_("settings.technicals.labels.length")}
-                            type="number"
-                            bind:value={indicatorState.volumeMa.length}
-                        />
-                        <Select
-                            id="vma-type"
-                            label={$_("settings.technicals.labels.type")}
-                            bind:value={indicatorState.volumeMa.maType}
-                            options={["sma", "ema", "wma"]}
-                        />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <IndicatorCard title="Volume MA" bind:enabled={indicatorState.volumeMa.enabled}>
+                     <div class="grid grid-cols-2 gap-2">
+                        <Field id="vma-len" label="Length" type="number" bind:value={indicatorState.volumeMa.length} />
+                        <Select id="vma-type" label="Type" bind:value={indicatorState.volumeMa.maType} options={["sma", "ema", "wma"]} />
                     </div>
-                </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="OBV" bind:enabled={indicatorState.obv.enabled}>
+                    <div class="text-xs text-[var(--text-secondary)] italic">On Balance Volume has no configurable parameters.</div>
+                </IndicatorCard>
+
+                <IndicatorCard title="VWAP" bind:enabled={indicatorState.vwap.enabled}>
+                     <div class="grid grid-cols-1 gap-2">
+                         <Select id="vwap-anchor" label="Anchor" bind:value={indicatorState.vwap.anchor} options={["session", "fixed"]} />
+                    </div>
+                </IndicatorCard>
+
+                <IndicatorCard title="Volume Profile" bind:enabled={indicatorState.volumeProfile.enabled}>
+                     <Field id="vp-rows" label="Rows" type="number" bind:value={indicatorState.volumeProfile.rows} />
+                </IndicatorCard>
             </div>
         {/if}
     </div>
 </div>
 
 <style>
-    .input-field {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        color: var(--text-primary);
-        outline: none;
-        width: 100%;
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
     }
-    .toggle-card {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
-        cursor: pointer;
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 2px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
 </style>
