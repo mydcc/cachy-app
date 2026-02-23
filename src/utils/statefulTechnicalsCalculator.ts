@@ -149,7 +149,7 @@ export class StatefulTechnicalsCalculator {
         this.updateStochRsiGroup(newResult, currentPrice);
     }
     // 7. Update MACD incrementally
-    if (this.state.macd && this.enabled(macd)) {
+    if (this.state.macd && this.enabled("macd")) {
         this.updateMacdGroup(newResult, currentPrice);
     }
 
@@ -887,7 +887,7 @@ this.state.lastCandle = candle;
       const mState = this.state.macd;
       // We need to find the indicator in oscillators.
       // If it's missing (e.g. settings disabled initially), we skip.
-      const macdInd = result.oscillators?.find(o => o.name === MACD);
+      const macdInd = result.oscillators?.find(o => o.name === "MACD");
       if (!macdInd) return;
 
       const fastLen = this.settings?.macd?.fast || 12;
@@ -909,18 +909,18 @@ this.state.lastCandle = candle;
       macdInd.signal = newSignal;
       macdInd.histogram = newHist;
 
-      if (newHist > 0 && newMacdLine > 0) macdInd.action = Buy;
-      else if (newHist < 0 && newMacdLine < 0) macdInd.action = Sell;
-      else macdInd.action = Neutral;
+      if (newHist > 0 && newMacdLine > 0) macdInd.action = "Buy";
+      else if (newHist < 0 && newMacdLine < 0) macdInd.action = "Sell";
+      else macdInd.action = "Neutral";
   }
 
   private reconstructMacdState(history: Kline[], result: TechnicalsData) {
-      if (!this.enabled(macd)) {
+      if (!this.enabled("macd")) {
           this.state.macd = undefined;
           return;
       }
 
-      const macdInd = result.oscillators?.find(o => o.name === MACD);
+      const macdInd = result.oscillators?.find(o => o.name === "MACD");
       if (!macdInd) return;
 
       const closes = history.map(k => k.close.toNumber());
