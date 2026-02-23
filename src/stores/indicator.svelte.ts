@@ -139,6 +139,9 @@ const defaultSettings: IndicatorSettings = {
     stdDev: 2,
     source: "close",
   },
+  marketStructure: {
+    period: 5,
+  },
 };
 
 const STORE_KEY = "cachy_indicator_settings";
@@ -180,11 +183,12 @@ class IndicatorManager {
   // Volume & Misc
   obv = $state(defaultSettings.obv);
   vwap = $state(defaultSettings.vwap);
-  parabolicSar = $state(defaultSettings.parabolicSar); // Add state
+  parabolicSar = $state(defaultSettings.parabolicSar);
   volumeProfile = $state(defaultSettings.volumeProfile);
   volumeMa = $state(defaultSettings.volumeMa);
   bollingerBands = $state(defaultSettings.bollingerBands);
   pivots = $state(defaultSettings.pivots);
+  marketStructure = $state(defaultSettings.marketStructure);
 
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
   private saveTimer: any = null;
@@ -221,6 +225,7 @@ class IndicatorManager {
     volumeProfile: $state.snapshot(this.volumeProfile),
     volumeMa: $state.snapshot(this.volumeMa),
     bollingerBands: $state.snapshot(this.bollingerBands),
+    marketStructure: $state.snapshot(this.marketStructure),
 
     sma: $state.snapshot(this.sma),
     wma: $state.snapshot(this.wma),
@@ -302,6 +307,8 @@ class IndicatorManager {
         ...defaultSettings.volumeProfile,
         ...parsed.volumeProfile,
       };
+      this.volumeMa = { ...defaultSettings.volumeMa, ...parsed.volumeMa };
+      this.marketStructure = { ...defaultSettings.marketStructure, ...parsed.marketStructure };
 
       this.atr = { ...defaultSettings.atr, ...parsed.atr };
       this.bb = { ...defaultSettings.bb, ...parsed.bb };
@@ -396,6 +403,8 @@ class IndicatorManager {
     this.ichimoku = next.ichimoku;
     this.choppiness = next.choppiness;
     this.volumeProfile = next.volumeProfile;
+    this.volumeMa = next.volumeMa;
+    this.marketStructure = next.marketStructure;
   }
 
   reset() {
@@ -427,6 +436,8 @@ class IndicatorManager {
     this.ichimoku = d.ichimoku;
     this.choppiness = d.choppiness;
     this.volumeProfile = d.volumeProfile;
+    this.volumeMa = d.volumeMa;
+    this.marketStructure = d.marketStructure;
   }
 }
 

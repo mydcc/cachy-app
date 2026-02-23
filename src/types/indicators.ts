@@ -132,6 +132,7 @@ export interface IndicatorSettings {
     maType: "sma" | "ema" | "wma";
   };
   volumeProfile: { rows: number; };
+  marketStructure: { period: number; };
   bollingerBands: {
     length: number;
     stdDev: number;

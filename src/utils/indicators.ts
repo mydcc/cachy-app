@@ -1265,6 +1265,64 @@ export const JSIndicators = {
     const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
     return { rsi, avgGain, avgLoss };
   },
+
+  marketStructure(
+    high: NumberArray,
+    low: NumberArray,
+    period: number = 5,
+  ): { highs: { index: number; value: number; type: "HH" | "LH" }[]; lows: { index: number; value: number; type: "LL" | "HL" }[] } {
+    const len = high.length;
+    const pivotHighs: { index: number; value: number; type: "HH" | "LH" }[] = [];
+    const pivotLows: { index: number; value: number; type: "LL" | "HL" }[] = [];
+
+    if (len < period * 2 + 1) return { highs: pivotHighs, lows: pivotLows };
+
+    // Find Pivots
+    for (let i = period; i < len - period; i++) {
+      const currentHigh = high[i];
+      const currentLow = low[i];
+
+      // Check Pivot High
+      let isHigh = true;
+      for (let j = 1; j <= period; j++) {
+        if (high[i - j] > currentHigh || high[i + j] > currentHigh) {
+          isHigh = false;
+          break;
+        }
+      }
+
+      if (isHigh) {
+        // Classify HH/LH
+        let type: "HH" | "LH" = "HH";
+        if (pivotHighs.length > 0) {
+          const prev = pivotHighs[pivotHighs.length - 1];
+          type = currentHigh >= prev.value ? "HH" : "LH";
+        }
+        pivotHighs.push({ index: i, value: currentHigh, type });
+      }
+
+      // Check Pivot Low
+      let isLow = true;
+      for (let j = 1; j <= period; j++) {
+        if (low[i - j] < currentLow || low[i + j] < currentLow) {
+          isLow = false;
+          break;
+        }
+      }
+
+      if (isLow) {
+        // Classify LL/HL
+        let type: "LL" | "HL" = "LL";
+        if (pivotLows.length > 0) {
+          const prev = pivotLows[pivotLows.length - 1];
+          type = currentLow <= prev.value ? "LL" : "HL";
+        }
+        pivotLows.push({ index: i, value: currentLow, type });
+      }
+    }
+
+    return { highs: pivotHighs, lows: pivotLows };
+  },
 };
 
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---
@@ -1972,5 +2030,36 @@ export const indicators = {
         volume: new Decimal(r.volume),
       })),
     };
+  },
+
+  calculateMarketStructure(
+    high: (number | string | Decimal)[],
+    low: (number | string | Decimal)[],
+    period: number = 5,
+  ) {
+    if (high.length < period * 2 + 1) return null;
+    const h = high.map(toNumFast);
+    const l = low.map(toNumFast);
+    const res = JSIndicators.marketStructure(h, l, period);
+    return {
+      highs: res.highs.map(p => ({ ...p, value: new Decimal(p.value) })),
+      lows: res.lows.map(p => ({ ...p, value: new Decimal(p.value) }))
+    };
+  },
+
+  calculateVolumeMA(
+    volume: (number | string | Decimal)[],
+    period: number = 20,
+    type: "sma" | "ema" | "wma" = "sma"
+  ): Decimal | null {
+    if (volume.length < period) return null;
+    const v = volume.map(toNumFast);
+    let res: Float64Array;
+
+    if (type === 'ema') res = JSIndicators.ema(v, period);
+    else if (type === 'wma') res = JSIndicators.wma(v, period);
+    else res = JSIndicators.sma(v, period);
+
+    return new Decimal(res[res.length - 1]);
   },
 };

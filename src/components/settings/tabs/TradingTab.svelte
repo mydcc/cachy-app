@@ -446,23 +446,6 @@
                                     {$_("settings.technicals.movingAverages") || "Moving Avgs"}
                                 </span>
                             </label>
-
-                            <!-- Pivots (Syncs with Calculation) -->
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={settingsState.showTechnicalsPivots}
-                                    onchange={(e) => {
-                                        const val = e.currentTarget.checked;
-                                        settingsState.showTechnicalsPivots = val;
-                                        // Sync with calculation engine to ensure data exists
-                                        settingsState.enabledIndicators.pivots = val;
-                                    }}
-                                />
-                                <span class="text-xs">
-                                    {$_("settings.technicals.pivots") || "Pivots"}
-                                </span>
-                            </label>
                         </div>
                     {/if}
 
