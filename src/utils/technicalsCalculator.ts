@@ -178,6 +178,7 @@ export function calculateIndicatorsFromArrays(
         const srsiD = settings?.stochRsi?.dPeriod || 3;
 
         // JSIndicators.stochRsi returns { k, d } (object)
+        // Correct order: data, period (RSI), kPeriod (Stoch), dPeriod, smoothK
         const stochRsiRes = JSIndicators.stochRsi(closesNum, srsiRsiLen, srsiLen, srsiD, srsiK) as unknown as { k: Float64Array, d: Float64Array };
         const kVal = stochRsiRes.k[stochRsiRes.k.length - 1];
         const dVal = stochRsiRes.d[stochRsiRes.d.length - 1];
@@ -233,9 +234,20 @@ export function calculateIndicatorsFromArrays(
     // CCI
     if (shouldCalculate('cci')) {
         const cciLen = settings?.cci?.length || 20;
-        const cciSource = getSourceArray(settings?.cci?.source || "close", opensNum, highsNum, lowsNum, closesNum);
-        const cciRes = calculateCCISeries(highsNum, lowsNum, cciSource, cciLen);
-        const cciVal = cciRes[cciRes.length - 1];
+        const cciSourceType = settings?.cci?.source || "close";
+
+        let cciVal: number;
+
+        if (cciSourceType === "hlc3") {
+            // Optimized Standard CCI (TP based)
+            const cciRes = calculateCCISeries(highsNum, lowsNum, closesNum, cciLen);
+            cciVal = cciRes[cciRes.length - 1];
+        } else {
+            // Generic CCI (Source based)
+            const cciSource = getSourceArray(cciSourceType, opensNum, highsNum, lowsNum, closesNum);
+            const cciRes = JSIndicators.cci(cciSource, cciLen);
+            cciVal = cciRes[cciRes.length - 1];
+        }
 
         oscillators.push({
             name: "CCI",
