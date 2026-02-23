@@ -1,0 +1,1641 @@
+// This work is licensed under a Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) https://creativecommons.org/licenses/by-nc-sa/4.0/
+// © Patrick Heinze (FVG Integration)
+
+//@version=6
+indicator('SMC+OB+FVG_PH', 'MS+OB_PH', overlay = true, max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500)
+
+//=====================================================================================================================
+// SETTINGS
+//=====================================================================================================================
+
+getLineStyle(lineOption) =>
+    lineOption == '┈' ? line.style_dotted : lineOption == '╌' ? line.style_dashed : line.style_solid
+
+//---------------------------------------------------------------------------------------------------------------------
+// Market Structure Settings
+//---------------------------------------------------------------------------------------------------------------------
+string ms_group = 'Market Structure'
+ms_len = input.int(14, 'CHoCH Detection Period', group = ms_group, tooltip = 'Period for detecting Change of Character (CHoCH). This is the number of bars used to determine the highest high and lowest low for CHoCH detection.')
+ms_shortLen = input.int(3, 'IDM Detection Period', group = ms_group, tooltip = 'Period for detecting Inducement (IDM). This is the number of bars used to determine the highest high and lowest low for IDM detection.')
+ms_bullCss = input.color(#0da49acc, 'Bullish Elements', group = ms_group, inline = 'mscolor')
+ms_bearCss = input.color(#ee485fcc, 'Bearish Elements', group = ms_group, inline = 'mscolor')
+ms_showChoch = input.bool(true, 'CHoCH', group = ms_group, inline = 'row1')
+ms_showBos = input.bool(true, 'BOS', group = ms_group, inline = 'row1')
+ms_showCircles = input.bool(true, 'Swings', group = ms_group, inline = 'row1')
+ms_showIdm = input.bool(true, 'Inducements', group = ms_group, inline = 'row2')
+ms_idmCss = input.color(#9c9c9c9e, '', group = ms_group, inline = 'row2')
+ms_showSweeps = input.bool(true, 'Sweeps', group = ms_group, inline = 'row2')
+ms_sweepsCss = input.color(#9c9c9c93, '', group = ms_group, inline = 'row2')
+isStructBodyCandleBreak = input.bool(true, 'Break with candle body', group = ms_group)
+bosLineStyleOption = input.string('─', title = 'BOS Style', group = ms_group, options = ['─', '┈', '╌'])
+bosLineWidth = input.int(1, title = 'BOS Width', group = ms_group, minval = 1, maxval = 5)
+chochLineStyleOption = input.string('─', title = 'CHoCH Style', group = ms_group, options = ['─', '┈', '╌'])
+chochLineWidth = input.int(1, title = 'CHoCH Width', group = ms_group, minval = 1, maxval = 5)
+
+//---------------------------------------------------------------------------------------------------------------------
+// Volumized Order Blocks Settings
+//---------------------------------------------------------------------------------------------------------------------
+string ob_group = 'Volumized Order Blocks'
+const float ob_overlapThresholdPercentage = 0
+ob_showInvalidated = input.bool(false, 'Historic Zones', group = ob_group, inline = 'EV', tooltip = 'Show Order Blocks that have been invalidated by a later price action. This will show all Order Blocks, even those that are no longer valid.')
+ob_OBsEnabled = true
+ob_orderBlockVolumetricInfo = input.bool(true, 'Volumetric Info', group = ob_group, inline = 'EV', tooltip = 'Show additional volume information for Order Blocks. This will show the volume bars inside the Order Block zones, indicating the volume distribution within the zone.')
+ob_highlightRetest = input.bool(true, 'Hervorhebung bei Retest', group = ob_group, tooltip = 'Hebt Order Blocks, die bereits getestet wurden, mit einem gestrichelten Rahmen hervor. Ungetestete Blöcke bleiben normal.')
+ob_retestBorderWidth = input.int(1, 'Rahmenstärke bei Retest', minval = 1, maxval = 5, group = ob_group, tooltip = 'Dicke des gestrichelten Rahmens für ungetestete Zonen.')
+ob_retestDelay = input.int(4, 'Retest Verzögerung (Kerzen)', minval = 1, group = ob_group, tooltip = 'Anzahl der Kerzen, die gewartet werden muss, bevor ein Retest gezählt wird. 1 bedeutet ab der nächsten Kerze.')
+ob_waitForZoneExit = input.bool(true, 'Erst Ausbruch abwarten', group = ob_group, tooltip = 'Ein Retest wird erst gezählt, nachdem der Preis die Zone einmal komplett verlassen hat (Clean Breakout). Verhindert Signale, wenn der Preis direkt nach Entstehung im Block verweilt.')
+ob_retestMethod = input.string("Close", "Retest Methode", options=["Wick", "Close"], group = ob_group, tooltip = "Wick: Docht berührt Zone. Close: Kerze schließt in der Zone.")
+ob_retestBullBorderColor = input.color(#ffd900cc, 'Retest Rahmen Bull', group = ob_group, inline = 'retestColors')
+ob_retestBearBorderColor = input.color(#9c9c9ccc, 'Retest Rahmen Bear', group = ob_group, inline = 'retestColors')
+ob_retestBullBgColor = input.color(#ffd70019, 'Retest Hintergrund Bull', group = ob_group, inline = 'retestBg')
+ob_retestBearBgColor = input.color(#9c9c9c19, 'Retest Hintergrund Bear', group = ob_group, inline = 'retestBg')
+ob_retestLineStyleOption = input.string('╌', 'Rahmenstil bei Retest', options = ['─', '┈', '╌'], group = ob_group, tooltip = 'Linienstil des Rahmens für ungetestete Zonen.')
+ob_showRetestLabel = input.bool(false, 'Retest Label anzeigen', group = ob_group, tooltip = 'Zeigt ein kleines Label an der Kerze, die den Order Block zum ersten Mal getestet hat.')
+ob_hideTextUntilRetest = input.bool(false, 'Text erst bei Retest anzeigen', group = ob_group, tooltip = 'Zeigt den Text des Order Blocks erst an, wenn der Preis die Zone berührt hat.')
+ob_showTestCount = input.bool(true, 'Test-Count anzeigen', group = ob_group, tooltip = 'Zeigt im Label an, wie viele Kerzen den Order Block bereits getestet (berührt) haben.')
+ob_testCountHighlightThreshold = input.int(3, 'Highlight Test-Count ab', minval = 1, group = ob_group, tooltip = 'Färbt den Text des Order Blocks, wenn der Test-Count diesen Wert erreicht oder überschreitet.')
+ob_testCountHighlightColor = input.color(#0da49acc, 'Highlight Farbe', group = ob_group)
+ob_obEndMethod = input.string('Close', 'Zone Invalidation', options = ['Wick', 'Close'], group = ob_group, tooltip = 'Legt fest, wie die Order Block Zonen ungültig werden. Wick bedeutet, die Zone wird ungültig, wenn der Preis über den Docht des Order Blocks hinausgeht. Close bedeutet, die Zone wird ungültig, wenn der Preis außerhalb der Order Block Zone schließt.')
+ob_swingLength = input.int(10, 'Swing Length', minval = 3, tooltip = 'Swing length is used when finding order block formations. Smaller values will result in finding smaller order blocks.', group = ob_group)
+//ob_zoneCount = input.string('Low', 'Zone Count', options = ['High', 'Medium', 'Low', 'One'], tooltip = 'Number of Order Block Zones to be rendered. Higher options will result in older Order Blocks shown.', group = ob_group)
+ob_bullOrderBlockColor = input.color(#ffd70080, 'Bullish', inline = 'obColor', group = ob_group)
+ob_bearOrderBlockColor = input.color(#9c9c9c80, 'Bearish', inline = 'obColor', group = ob_group)
+ob_textColor = input.color(#ffffffb3, 'Text Color', group = 'Style')
+// Performance-Input direkt bei Orderblocks
+input_maxOrderBlocks = input.int(20, 'Max. Orderblocks pro Richtung', minval = 1, maxval = 30, group = ob_group, inline = 'perf', tooltip = 'Maximale Anzahl an Order Blocks, die pro Richtung (Bullish/Bearish) auf dem Chart angezeigt werden. Höhere Werte können die Performance beeinträchtigen.')
+
+ob_combineOBs = input.bool(false, 'Combine Zones', group = ob_group)
+ob_maxATRMult = input.float(3.5, 'Max Atr Multiplier', group = ob_group)
+ob_extendZonesBy = input.int(2, 'Extend Zones', group = ob_group, minval = 1, maxval = 30, inline = 'ExtendZones')
+ob_extendZonesDynamic = input.bool(true, 'Dynamic', group = ob_group, inline = 'ExtendZones', tooltip = 'If enabled, the zones will be extended dynamically based on the time since the Order Block was formed. If disabled, the zones will be extended by a fixed number of bars.')
+ob_combinedText = input.bool(true, 'Combined Text', group = ob_group, inline = 'CombinedColor', tooltip = 'If enabled, the Order Block text will show the combined timeframes of the Order Blocks. If disabled, only the timeframe of the current chart will be shown.')
+ob_volumeBarsPlace = input.string('Left', 'Volume Bars At', options = ['Left', 'Right'], group = ob_group, inline = 'volumebars', tooltip = 'Determines where the volume bars will be placed inside the Order Block zones. Left means the volume bars will be placed on the left side of the zone, Right means they will be placed on the right side.')
+ob_mirrorVolumeBars = input.bool(true, 'Mirror Volume Bars', group = ob_group, inline = 'volumebars', tooltip = 'If enabled, the volume bars will be mirrored inside the Order Block zones. This means that the volume bars will be placed on both sides of the Order Block zone, showing the volume distribution within the zone.')
+
+//---------------------------------------------------------------------------------------------------------------------
+// Fair Value Gaps Settings
+//---------------------------------------------------------------------------------------------------------------------
+string fvg_group = 'Fair Value Gaps'
+fvg_show = input.bool(true, 'Fair Value Gaps anzeigen', group = fvg_group, tooltip = 'Zeigt die Fair Value Gaps (Imbalance) auf dem Chart an.')
+fvg_threshold = input.bool(true, 'Auto-Schwellenwert', group = fvg_group, tooltip = 'Filtert unbedeutende Fair Value Gaps heraus. Wenn aktiviert, wird ein dynamischer Schwellenwert basierend auf der durchschnittlichen Volatilität verwendet.')
+fvg_timeframe = input.timeframe('', 'Zeitrahmen', group = fvg_group, tooltip = 'Wählt den Zeitrahmen für die Erkennung der Fair Value Gaps. Leer lassen, um den aktuellen Chart-Zeitrahmen zu verwenden.')
+fvg_extend = input.int(14, 'FVG erweitern', group = fvg_group, tooltip = 'Bestimmt, um wie viele Balken die Fair Value Gap Boxen in die Zukunft erweitert werden sollen.', minval = 0)
+fvg_bullColor = input.color(color.new(#ffd700, 80), 'Bullische FVG Farbe', group = fvg_group, tooltip = 'Farbe für bullische (nach oben gerichtete) Fair Value Gaps.')
+fvg_bearColor = input.color(#9c9c9c53, 'Bärische FVG Farbe', group = fvg_group, tooltip = 'Farbe für bärische (nach unten gerichtete) Fair Value Gaps.')
+isMitigatedFvgToReduce = input.bool(true, title = 'Reduce mitigated FVG', group = fvg_group)
+mitigatedFvgColor = input.color(#433f6553, 'Mitigated FVG Color', group = fvg_group)
+// Performance-Input direkt bei FVG
+input_maxFVGs = input.int(10, 'Max. Fair Value Gaps', minval = 1, maxval = 20, group = fvg_group, inline = 'perf', tooltip = 'Maximale Anzahl an Fair Value Gaps, die auf dem Chart angezeigt werden. Höhere Werte können die Performance beeinträchtigen.')
+
+// --- Moving Average Settings (kompakt, Spaltenweise) ---
+string ma_group = 'Moving Averages'
+string ma_options = 'SMA,EMA,SMMA (RMA),WMA,VWMA'
+
+// MA 1
+ma1_show = input.bool(true, 'MA1', group = ma_group, inline = 'ma1')
+ma1_type = input.string('EMA', '', options = ['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], group = ma_group, inline = 'ma1')
+ma1_len = input.int(21, '', minval = 1, group = ma_group, inline = 'ma1')
+ma1_src = input.source(close, '', group = ma_group, inline = 'ma1')
+ma1_color = input.color(#ffd700, '', group = ma_group, inline = 'ma1')
+
+// MA 2
+ma2_show = input.bool(true, 'MA2', group = ma_group, inline = 'ma2')
+ma2_type = input.string('EMA', '', options = ['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], group = ma_group, inline = 'ma2')
+ma2_len = input.int(50, '', minval = 1, group = ma_group, inline = 'ma2')
+ma2_src = input.source(close, '', group = ma_group, inline = 'ma2')
+ma2_color = input.color(#9c9c9c9e, '', group = ma_group, inline = 'ma2')
+
+// MA 3
+ma3_show = input.bool(true, 'MA3', group = ma_group, inline = 'ma3')
+ma3_type = input.string('EMA', '', options = ['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], group = ma_group, inline = 'ma3')
+ma3_len = input.int(200, '', minval = 1, group = ma_group, inline = 'ma3')
+ma3_src = input.source(close, '', group = ma_group, inline = 'ma3')
+ma3_color = input.color(#0da49acc, '', group = ma_group, inline = 'ma3')
+
+// MA 4
+ma4_show = input.bool(true, 'MA4', group = ma_group, inline = 'ma4')
+ma4_type = input.string('EMA', '', options = ['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], group = ma_group, inline = 'ma4')
+ma4_len = input.int(88, '', minval = 1, group = ma_group, inline = 'ma4')
+ma4_src = input.source(close, '', group = ma_group, inline = 'ma4')
+ma4_color = input.color(#334eff61, '', group = ma_group, inline = 'ma4')
+
+// MA 5
+ma5_show = input.bool(false, 'MA5', group = ma_group, inline = 'ma5')
+ma5_type = input.string('EMA', '', options = ['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'], group = ma_group, inline = 'ma5')
+ma5_len = input.int(3, '', minval = 1, group = ma_group, inline = 'ma5')
+ma5_src = input.source(close, '', group = ma_group, inline = 'ma5')
+ma5_color = input.color(#9c9c9c9e, '', group = ma_group, inline = 'ma5')
+
+//---------------------------------------------------------------------------------------------------------------------
+// Williams Alligator Settings
+//---------------------------------------------------------------------------------------------------------------------
+string alligator_group = 'Williams Alligator'
+showAlligator = input.bool(true, 'Show Alligator', group = alligator_group)
+jawLength = input.int(13, minval=1, title="Jaw Length", group = alligator_group)
+teethLength = input.int(8, minval=1, title="Teeth Length", group = alligator_group)
+lipsLength = input.int(5, minval=1, title="Lips Length", group = alligator_group)
+jawOffset = input.int(8, title="Jaw Offset", group = alligator_group)
+teethOffset = input.int(5, title="Teeth Offset", group = alligator_group)
+lipsOffset = input.int(3, title="Lips Offset", group = alligator_group)
+jawColor = input.color(#334eff60, "Jaw Color", group = alligator_group)
+teethColor = input.color(#ee485f60, "Teeth Color", group = alligator_group)
+lipsColor = input.color(#0da49a60, "Lips Color", group = alligator_group)
+alligatorLineStyle = input.string('┈', title="Alligator Style", group=alligator_group, options=['─', '┈', '╌'])
+
+//---------------------------------------------------------------------------------------------------------------------
+// Trendlines with Breaks Settings
+//---------------------------------------------------------------------------------------------------------------------
+string tl_group = 'Trendlines with Breaks'
+tl_show = input.bool(false, 'Show Trendlines', group = tl_group)
+tl_length = input.int(14, 'Swing Detection Lookback', group = tl_group)
+tl_mult = input.float(1.0, 'Slope', minval = 0, step = .1, group = tl_group)
+tl_calcMethod = input.string('Atr', 'Slope Calculation Method', options = ['Atr', 'Stdev', 'Linreg'], group = tl_group)
+tl_backpaint = input.bool(true, 'Backpainting', tooltip = 'Backpainting offset displayed elements in the past. Disable backpainting to see real time information returned by the indicator.', group = tl_group)
+
+//Style
+tl_upCss = input.color(#0da49a9e, 'Up Trendline Color', group = tl_group)
+tl_dnCss = input.color(#ee485f9e, 'Down Trendline Color', group = tl_group)
+tl_showExt = input.bool(true, 'Show Extended Lines', group = tl_group)
+
+//---------------------------------------------------------------------------------------------------------------------
+// Three Bar Reversal Pattern Settings
+//---------------------------------------------------------------------------------------------------------------------
+string tb_brp_group = 'Three Bar Reversal Pattern'
+tb_display_opt = display.all - display.status_line
+tb_brpType = input.string('All', 'Pattern Type', options = ['Normal', 'Enhanced', 'All'], group = tb_brp_group, display = tb_display_opt)
+tb_brpSR = input.string('Level', 'Derived Support and Resistance', options = ['Level', 'Zone', 'None'], group = tb_brp_group, display = tb_display_opt)
+tb_brpAC = input.color(#2962ff, 'Bullish Reversal Patterns', group = tb_brp_group)
+tb_brpSC = input.color(#ff9800, 'Bearish Reversal Patterns', group = tb_brp_group)
+
+string tb_trendIndiGroup = 'Three Bar Reversal - Trend Filtering'
+tb_trendType = input.string('None', 'Filtering', options = ['Moving Average Cloud', 'Supertrend', 'Donchian Channels', 'None'], group = tb_trendIndiGroup, inline = 'flt', display = tb_display_opt)
+tb_trendFilt = input.string('Aligned', '', options = ['Aligned', 'Opposite'], group = tb_trendIndiGroup, inline = 'flt', display = tb_display_opt)
+tb_trendAC = input.color(#089981, 'Bullish Trend', group = tb_trendIndiGroup, inline = 'trnd')
+tb_trendSC = input.color(#f23645, 'Bearish Trend', group = tb_trendIndiGroup, inline = 'trnd')
+
+string tb_ma_Group = 'Three Bar Reversal - MA Settings'
+tb_maType = input.string('HMA', 'Type', options = ['SMA', 'EMA', 'HMA', 'RMA', 'WMA', 'VWMA'], group = tb_ma_Group, display = tb_display_opt)
+tb_maFLength = input.int(50, 'Fast Length', minval = 1, maxval = 100, group = tb_ma_Group, display = tb_display_opt)
+tb_maSLength = input.int(200, 'Slow Length', minval = 100, group = tb_ma_Group, display = tb_display_opt)
+
+string tb_st_Group = 'Three Bar Reversal - Supertrend Settings'
+tb_atrPeriod = input.int(10, 'ATR Length', minval = 1, group = tb_st_Group, display = tb_display_opt)
+tb_factor = input.float(3, 'Factor', minval = 2, step = 0.1, group = tb_st_Group, display = tb_display_opt)
+
+string tb_dc_Group = 'Three Bar Reversal - Donchian Settings'
+tb_length = input.int(13, 'Length', minval = 1, group = tb_dc_Group, display = tb_display_opt)
+
+//---------------------------------------------------------------------------------------------------------------------
+// Fibonacci & Current Structure Settings (from SMC)
+//---------------------------------------------------------------------------------------------------------------------
+string fibo_group = 'Structure Fibonacci & Range'
+isCurrentStructToShow = input.bool(true, 'Show Current Range Lines', group = fibo_group)
+currentStructColor = input.color(#433f65, 'Range Line Color', group = fibo_group)
+currentStructLineStyleOption = input.string('─', title = 'Range Line Style', group = fibo_group, options = ['─', '┈', '╌'])
+currentStructLineWidth = input.int(3, title = 'Range Line Width', group = fibo_group, minval = 1, maxval = 5)
+
+// Fibo 1
+isFibo1ToShow = input.bool(true, '', group = fibo_group, inline = 'Fibo1')
+fibo1Value = input.float(0.382, '', group = fibo_group, inline = 'Fibo1')
+fibo1Color = input.color(#e6f6f59e, '', group = fibo_group, inline = 'Fibo1')
+fibo1StyleOption = input.string('─', title = '', group = fibo_group, options = ['─', '┈', '╌'], inline = 'Fibo1')
+fibo1LineWidth = input.int(1, title = '', group = fibo_group, minval = 1, maxval = 5, inline = 'Fibo1')
+
+// Fibo 2
+isFibo2ToShow = input.bool(true, '', group = fibo_group, inline = 'Fibo2')
+fibo2Value = input.float(0.50, '', group = fibo_group, inline = 'Fibo2')
+fibo2Color = input.color(#433f659e, '', group = fibo_group, inline = 'Fibo2')
+fibo2StyleOption = input.string('─', title = '', group = fibo_group, options = ['─', '┈', '╌'], inline = 'Fibo2')
+fibo2LineWidth = input.int(1, title = '', group = fibo_group, minval = 1, maxval = 5, inline = 'Fibo2')
+
+// Fibo 3
+isFibo3ToShow = input.bool(true, '', group = fibo_group, inline = 'Fibo3')
+fibo3Value = input.float(0.618, '', group = fibo_group, inline = 'Fibo3')
+fibo3Color = input.color(#ffd7009e, '', group = fibo_group, inline = 'Fibo3')
+fibo3StyleOption = input.string('─', title = '', group = fibo_group, options = ['─', '┈', '╌'], inline = 'Fibo3')
+fibo3LineWidth = input.int(1, title = '', group = fibo_group, minval = 1, maxval = 5, inline = 'Fibo3')
+
+// Fibo 4 (0.5)
+isFibo4ToShow = input.bool(true, '', group = fibo_group, inline = 'Fibo4')
+fibo4Value = input.float(0.786, '', group = fibo_group, inline = 'Fibo4')
+fibo4Color = input.color(#ee485f9e, '', group = fibo_group, inline = 'Fibo4')
+fibo4StyleOption = input.string('─', title = '', group = fibo_group, options = ['─', '┈', '╌'], inline = 'Fibo4')
+fibo4LineWidth = input.int(1, title = '', group = fibo_group, minval = 1, maxval = 5, inline = 'Fibo4')
+
+// Fibo 5
+isFibo5ToShow = input.bool(true, '', group = fibo_group, inline = 'Fibo5')
+fibo5Value = input.float(0.886, '', group = fibo_group, inline = 'Fibo5')
+fibo5Color = input.color(#334eff9e, '', group = fibo_group, inline = 'Fibo5')
+fibo5StyleOption = input.string('─', title = '', group = fibo_group, options = ['─', '┈', '╌'], inline = 'Fibo5')
+fibo5LineWidth = input.int(1, title = '', group = fibo_group, minval = 1, maxval = 5, inline = 'Fibo5')
+
+// Fibo 6
+isFibo6ToShow = input.bool(true, '', group = fibo_group, inline = 'Fibo6')
+fibo6Value = input.float(0.236, '', group = fibo_group, inline = 'Fibo6')
+fibo6Color = input.color(#ee485f9e, '', group = fibo_group, inline = 'Fibo6')
+fibo6StyleOption = input.string('─', title = '', group = fibo_group, options = ['─', '┈', '╌'], inline = 'Fibo6')
+fibo6LineWidth = input.int(1, title = '', group = fibo_group, minval = 1, maxval = 5, inline = 'Fibo6')
+
+//=====================================================================================================================
+// GENAUIGKEITS-VERBESSERUNGEN (Filter & Schwellenwerte) - mit Inputs
+//=====================================================================================================================
+string accuracy_group = 'Genauigkeit / Filter'
+atr_period = input.int(10, 'ATR Periode', minval = 1, group = accuracy_group, inline = 'atr', tooltip = 'Periode für den Average True Range (ATR), der zur Bestimmung der Mindestgröße von Orderblocks und Swings verwendet wird. Ein höherer Wert führt zu weniger, aber stabileren Orderblocks und Swings.')
+SWING_MIN_ATR_MULT = input.float(0.5, 'Min. ATR für Swings', minval = 0, step = 0.1, group = accuracy_group, tooltip = 'Mindestgröße eines Swings in Bezug auf den ATR. Ein höherer Wert führt zu weniger, aber stabileren Swings.')
+OB_MIN_ATR_MULT = input.float(0.5, 'Min. ATR für Orderblocks', minval = 0, step = 0.1, group = accuracy_group, tooltip = 'Mindestgröße eines Orderblocks in Bezug auf den ATR. Ein höherer Wert führt zu weniger, aber stabileren Orderblocks.')
+OB_MIN_DIST_ATR_MULT = input.float(0.25, 'Min. Abstand Orderblocks (ATR)', minval = 0, step = 0.05, group = accuracy_group, tooltip = 'Mindestabstand zwischen Orderblocks in Bezug auf den ATR. Ein höherer Wert führt zu weniger, aber stabileren Orderblocks.')
+OB_MIN_VOL_MULT = input.float(1.0, 'Min. Volumenfaktor Orderblocks', minval = 0, step = 0.1, group = accuracy_group, tooltip = 'Mindestvolumen eines Orderblocks in Bezug auf das durchschnittliche Volumen. Ein höherer Wert führt zu weniger, aber stabileren Orderblocks.')
+FVG_MIN_ATR_MULT = input.float(0.5, 'Min. ATR für FVG', minval = 0, step = 0.1, group = accuracy_group, tooltip = 'Mindestgröße eines Fair Value Gaps in Bezug auf den ATR. Ein höherer Wert führt zu weniger, aber stabileren Fair Value Gaps.')
+vol_avg_period = input.int(20, 'Volumen SMA Periode', minval = 1, group = accuracy_group, tooltip = 'Periode für den Volumen-Durchschnitt (SMA), der für Volumen-Filter (Orderblocks, 3 Line Strike) verwendet wird.')
+
+// --- ATR Anzeige-Option ---
+atr_smoothing = input.string(title="ATR Smoothing", defval="RMA", options=["RMA", "SMA", "EMA", "WMA"], group = accuracy_group, tooltip = "Glättungsmethode für den ATR.")
+
+ma_function(source, length) =>
+    switch atr_smoothing
+        "RMA" => ta.rma(source, length)
+        "SMA" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+        => ta.wma(source, length)
+
+my_atr = ma_function(ta.tr(true), atr_period)
+ob_atr = my_atr
+ob_avgVol = ta.sma(volume, vol_avg_period)
+
+
+//=====================================================================================================================
+// TYPES & FUNCTIONS
+//=====================================================================================================================
+
+// Global bar_index
+n = bar_index
+
+//---------------------------------------------------------------------------------------------------------------------
+// Market Structure Functions
+//---------------------------------------------------------------------------------------------------------------------
+f_ms_swings(len, current_atr) =>
+    var os = 0
+    var int topx = na
+    var int btmx = na
+    highest_val = ta.highest(len)
+    lowest_val = ta.lowest(len)
+    os := high[len] > highest_val and (high[len] - lowest_val) > SWING_MIN_ATR_MULT * current_atr ? 0 : low[len] < lowest_val and (highest_val - low[len]) > SWING_MIN_ATR_MULT * current_atr ? 1 : os[1]
+    top = os == 0 and os[1] != 0 ? high[len] : na
+    topx := os == 0 and os[1] != 0 ? n[len] : topx
+    btm = os == 1 and os[1] != 1 ? low[len] : na
+    btmx := os == 1 and os[1] != 1 ? n[len] : btmx
+    [top, topx, btm, btmx]
+
+//---------------------------------------------------------------------------------------------------------------------
+// Order Block Types & Functions
+//---------------------------------------------------------------------------------------------------------------------
+type orderBlockInfo
+	float top
+	float bottom
+	float obVolume
+	string obType
+	int startTime
+	float bbVolume
+	float obLowVolume
+	float obHighVolume
+	bool breaker
+	int breakTime
+	string timeframeStr
+	bool disabled = false
+	string combinedTimeframesStr = na
+	bool combined = false
+	bool retested = false
+	int testCount = 0
+	bool triggerAlert = false
+	int detectionIndex = 0
+
+type orderBlock
+	orderBlockInfo info
+	bool isRendered = false
+	box orderBox = na
+	box breakerBox = na
+	line orderBoxLineTop = na
+	line orderBoxLineBottom = na
+	line breakerBoxLineTop = na
+	line breakerBoxLineBottom = na
+	box orderBoxText = na
+	box orderBoxPositive = na
+	box orderBoxNegative = na
+	line orderSeperator = na
+	line orderTextSeperator = na
+
+type timeframeInfo
+	int index
+	string timeframeStr
+	bool isEnabled
+	array<orderBlockInfo> bullishOrderBlocksList
+	array<orderBlockInfo> bearishOrderBlocksList
+
+type obSwing
+	int x
+	float y
+	float swingVolume
+	bool crossed
+
+f_ob_createOrderBlock(orderBlockInfoF) =>
+    orderBlock.new(orderBlockInfoF)
+
+f_ob_safeDeleteOrderBlock(orderBlockF) =>
+    orderBlockF.isRendered := false
+    box.delete(orderBlockF.orderBox)
+    box.delete(orderBlockF.breakerBox)
+    box.delete(orderBlockF.orderBoxText)
+    box.delete(orderBlockF.orderBoxPositive)
+    box.delete(orderBlockF.orderBoxNegative)
+    line.delete(orderBlockF.orderBoxLineTop)
+    line.delete(orderBlockF.orderBoxLineBottom)
+    line.delete(orderBlockF.breakerBoxLineTop)
+    line.delete(orderBlockF.breakerBoxLineBottom)
+    line.delete(orderBlockF.orderSeperator)
+    line.delete(orderBlockF.orderTextSeperator)
+
+f_ob_newTimeframeInfo(index, timeframeStr, isEnabled) =>
+    newTFInfo = timeframeInfo.new()
+    newTFInfo.index := index
+    newTFInfo.isEnabled := isEnabled
+    newTFInfo.timeframeStr := timeframeStr
+    newTFInfo
+
+f_ob_moveLine(_line, _x, _y, _x2) =>
+    line.set_xy1(_line, _x, _y)
+    line.set_xy2(_line, _x2, _y)
+
+f_ob_moveBox(_box, _topLeftX, _topLeftY, _bottomRightX, _bottomRightY) =>
+    box.set_lefttop(_box, _topLeftX, _topLeftY)
+    box.set_rightbottom(_box, _bottomRightX, _bottomRightY)
+
+f_ob_isTimeframeLower(timeframe1F, timeframe2F) =>
+    timeframe.in_seconds(timeframe1F) < timeframe.in_seconds(timeframe2F)
+
+f_ob_formatTimeframeString(formatTimeframe) =>
+    timeframeF = formatTimeframe == '' ? timeframe.period : formatTimeframe
+    if str.contains(timeframeF, 'D') or str.contains(timeframeF, 'W') or str.contains(timeframeF, 'S') or str.contains(timeframeF, 'M')
+        timeframeF
+    else
+        seconds = timeframe.in_seconds(timeframeF)
+        if seconds >= 3600
+            str.tostring(int(seconds / 3600)) + ' Hour' + (int(seconds / 3600) > 1 ? 's' : '')
+        else
+            timeframeF + ' Min'
+
+f_ob_colorWithTransparency(colorF, transparencyX) =>
+    color.new(colorF, color.t(colorF) * transparencyX)
+
+f_ob_createOBBox(boxColor, transparencyX = 1.0, xlocType = xloc.bar_time) =>
+    box.new(na, na, na, na, text_size = size.small, xloc = xlocType, extend = extend.none, bgcolor = f_ob_colorWithTransparency(boxColor, transparencyX), text_color = ob_textColor, text_halign = text.align_center, border_color = #00000000)
+
+f_ob_renderOrderBlock(ob) =>
+    info = ob.info
+    ob.isRendered := true
+    orderColor = info.obType == 'Bull' ? ob_bullOrderBlockColor : ob_bearOrderBlockColor
+    if ob_OBsEnabled and not(not ob_showInvalidated and info.breaker)
+        ob.orderBox := f_ob_createOBBox(orderColor, 1.5)
+        if ob_highlightRetest
+            if info.retested
+                retestBorderColor = info.obType == 'Bull' ? ob_retestBullBorderColor : ob_retestBearBorderColor
+                retestBgColor = info.obType == 'Bull' ? ob_retestBullBgColor : ob_retestBearBgColor
+                box.set_bgcolor(ob.orderBox, retestBgColor)
+                box.set_border_color(ob.orderBox, retestBorderColor)
+                box.set_border_style(ob.orderBox, getLineStyle(ob_retestLineStyleOption))
+                box.set_border_width(ob.orderBox, ob_retestBorderWidth)
+            else
+                box.set_border_color(ob.orderBox, color.new(orderColor, 100))
+
+        if info.combined
+            ob.orderBox.set_bgcolor(f_ob_colorWithTransparency(orderColor, 1.1))
+        ob.orderBoxText := f_ob_createOBBox(color.new(color.white, 100))
+        if ob_hideTextUntilRetest and not info.retested
+            box.set_text_color(ob.orderBoxText, color.new(ob_textColor, 100))
+        else if ob_showTestCount and info.testCount >= ob_testCountHighlightThreshold
+            box.set_text_color(ob.orderBoxText, ob_testCountHighlightColor)
+        if ob_orderBlockVolumetricInfo
+            ob.orderBoxPositive := f_ob_createOBBox(ob_bullOrderBlockColor)
+            ob.orderBoxNegative := f_ob_createOBBox(ob_bearOrderBlockColor)
+            ob.orderSeperator := line.new(na, na, na, na, xloc.bar_time, extend.none, ob_textColor, line.style_dashed, 1)
+            ob.orderTextSeperator := line.new(na, na, na, na, xloc.bar_time, extend.none, ob_textColor, line.style_solid, 1)
+            ob.orderTextSeperator
+
+        extendZonesByTime = ob_extendZonesBy * timeframe.in_seconds(timeframe.period) * 1000
+        zoneSize = ob_extendZonesDynamic ? na(info.breakTime) ? extendZonesByTime : info.breakTime - info.startTime : extendZonesByTime
+        if na(info.breakTime)
+            zoneSize := (time - info.startTime) + extendZonesByTime
+            zoneSize
+
+        startX = ob_volumeBarsPlace == 'Left' ? info.startTime : info.startTime + zoneSize - zoneSize / 3
+        maxEndX = ob_volumeBarsPlace == 'Left' ? info.startTime + zoneSize / 3 : info.startTime + zoneSize
+
+        f_ob_moveBox(ob.orderBox, info.startTime, info.top, info.startTime + zoneSize, info.bottom)
+        f_ob_moveBox(ob.orderBoxText, ob_volumeBarsPlace == 'Left' ? maxEndX : info.startTime, info.top, ob_volumeBarsPlace == 'Left' ? info.startTime + zoneSize : startX, info.bottom)
+
+        percentage = math.max(info.obHighVolume, info.obLowVolume) > 0 ? int(math.min(info.obHighVolume, info.obLowVolume) / math.max(info.obHighVolume, info.obLowVolume) * 100.0) : 0
+        OBText = (na(info.combinedTimeframesStr) ? f_ob_formatTimeframeString(info.timeframeStr) : info.combinedTimeframesStr) + ' OB'
+        if ob_showTestCount and info.testCount > 0
+            OBText := OBText + ' (' + str.tostring(info.testCount) + ')'
+        box.set_text(ob.orderBoxText, (ob_orderBlockVolumetricInfo ? str.tostring(info.obVolume, format.volume) + ' (' + str.tostring(percentage) + '%) ' : '') + (ob_combinedText and info.combined ? '[C] ' : '') + OBText)
+
+        if ob_orderBlockVolumetricInfo
+            if info.obVolume > 0
+                curEndXHigh = int(math.ceil(info.obHighVolume / info.obVolume * (maxEndX - startX) + startX))
+                curEndXLow = int(math.ceil(info.obLowVolume / info.obVolume * (maxEndX - startX) + startX))
+
+                f_ob_moveBox(ob.orderBoxPositive, ob_mirrorVolumeBars ? startX : curEndXLow, info.top, ob_mirrorVolumeBars ? curEndXHigh : maxEndX, (info.bottom + info.top) / 2)
+                f_ob_moveBox(ob.orderBoxNegative, ob_mirrorVolumeBars ? startX : curEndXHigh, info.bottom, ob_mirrorVolumeBars ? curEndXLow : maxEndX, (info.bottom + info.top) / 2)
+                f_ob_moveLine(ob.orderSeperator, ob_volumeBarsPlace == 'Left' ? startX : maxEndX, (info.bottom + info.top) / 2, ob_volumeBarsPlace == 'Left' ? maxEndX : startX)
+
+                line.set_xy1(ob.orderTextSeperator, ob_volumeBarsPlace == 'Left' ? maxEndX : startX, info.top)
+                line.set_xy2(ob.orderTextSeperator, ob_volumeBarsPlace == 'Left' ? maxEndX : startX, info.bottom)
+
+f_ob_findOBSwings(len) =>
+    var swingType = 0
+    var top = obSwing.new(na, na, na, false)
+    var bottom = obSwing.new(na, na, na, false)
+    upper = ta.highest(len)
+    lower = ta.lowest(len)
+    swingType := high[len] > upper ? 0 : low[len] < lower ? 1 : swingType
+    if swingType == 0 and swingType[1] != 0
+        top := obSwing.new(bar_index[len], high[len], volume[len], false)
+        top
+    if swingType == 1 and swingType[1] != 1
+        bottom := obSwing.new(bar_index[len], low[len], volume[len], false)
+        bottom
+    [top, bottom]
+
+f_ob_areaOfOB(OBInfoF) =>
+    // Fläche eines Rechtecks = Breite * Höhe
+    // Breite (Zeitachse)
+    width = (na(OBInfoF.breakTime) ? time + 1 : OBInfoF.breakTime) - OBInfoF.startTime
+    // Höhe (Preisachse)
+    height = OBInfoF.top - OBInfoF.bottom // 'top' ist preislich höher als 'bottom' für einen gültigen Order Block
+    width * height
+
+f_ob_doOBsTouch(OBInfo1, OBInfo2) =>
+    XA1 = OBInfo1.startTime
+    XA2 = na(OBInfo1.breakTime) ? time + 1 : OBInfo1.breakTime
+    YA1 = OBInfo1.top
+    YA2 = OBInfo1.bottom
+    XB1 = OBInfo2.startTime
+    XB2 = na(OBInfo2.breakTime) ? time + 1 : OBInfo2.breakTime
+    YB1 = OBInfo2.top
+    YB2 = OBInfo2.bottom
+    intersectionArea = math.max(0, math.min(XA2, XB2) - math.max(XA1, XB1)) * math.max(0, math.min(YA1, YB1) - math.max(YA2, YB2))
+    unionArea = f_ob_areaOfOB(OBInfo1) + f_ob_areaOfOB(OBInfo2) - intersectionArea
+    overlapPercentage = unionArea > 0 ? intersectionArea / unionArea * 100.0 : 0
+    overlapPercentage > ob_overlapThresholdPercentage
+
+f_ob_isOBValid(OBInfo) =>
+    valid = true
+    if OBInfo.disabled
+        valid := false
+        valid
+    valid
+
+//---------------------------------------------------------------------------------------------------------------------
+// Fair Value Gap Types & Functions
+//---------------------------------------------------------------------------------------------------------------------
+const int FVG_BULLISH = 1
+const int FVG_BEARISH = -1
+
+type fairValueGap
+	float top
+	float bottom
+	int bias
+	box topBox
+	box bottomBox
+
+f_fvg_drawBox(leftTime, rightTime, topPrice, bottomPrice, boxColor) =>
+    extendBars = fvg_extend > 0 ? fvg_extend * (time - time[1]) : 0
+    box.new(leftTime, topPrice, rightTime + extendBars, bottomPrice, xloc = xloc.bar_time, border_color = color(na), bgcolor = boxColor)
+
+f_fvg_manageGaps(array<fairValueGap> fairValueGapsArray) => // Diese Zeile ist entscheidend
+    var newGaps = array.new<fairValueGap>()
+    array.clear(newGaps)
+    // Nur ausführen, wenn das Array nicht leer ist
+    if array.size(fairValueGapsArray) > 0
+        for i = 0 to array.size(fairValueGapsArray) - 1
+            eachGap = fairValueGapsArray.get(i)
+            // Full mitigation (Invalidation)
+            isInvalidated = (low < eachGap.bottom and eachGap.bias == FVG_BULLISH) or (high > eachGap.top and eachGap.bias == FVG_BEARISH)
+            
+            // Partial mitigation (Touch)
+            isMitigated = (low < eachGap.top and eachGap.bias == FVG_BULLISH) or (high > eachGap.bottom and eachGap.bias == FVG_BEARISH)
+
+            if isInvalidated
+                // Wenn das Gap erreicht wurde, lösche die Boxen vom Chart.
+                if not na(eachGap.topBox)
+                    box.delete(eachGap.topBox)
+                    box.delete(eachGap.bottomBox)
+            else
+                if isMitigated
+                    if not na(eachGap.topBox)
+                        box.set_bgcolor(eachGap.topBox, mitigatedFvgColor)
+                        box.set_bgcolor(eachGap.bottomBox, mitigatedFvgColor)
+                    
+                    if isMitigatedFvgToReduce
+                        // Dynamically resize the FVG boxes to the current price
+                        if eachGap.bias == FVG_BULLISH
+                            newTop = low
+                            mid = math.avg(newTop, eachGap.bottom)
+                            box.set_top(eachGap.topBox, newTop)
+                            box.set_bottom(eachGap.topBox, mid)
+                            box.set_top(eachGap.bottomBox, mid)
+                        else
+                            newBottom = high
+                            mid = math.avg(eachGap.top, newBottom)
+                            box.set_bottom(eachGap.bottomBox, newBottom)
+                            box.set_top(eachGap.bottomBox, mid)
+                            box.set_bottom(eachGap.topBox, mid)
+
+                // Wenn nicht, füge es zur neuen, gefilterten Liste hinzu.
+                array.push(newGaps, eachGap)
+    newGaps
+
+f_fvg_drawGaps(fairValueGapsArray) =>
+    var float _sec_close1_cached = na
+    var float _sec_open1_cached = na
+    var int _sec_time1_cached = na
+    var float _sec_high0_cached = na
+    var float _sec_low0_cached = na
+    var int _sec_time0_cached = na
+    var float _sec_high2_cached = na
+    var float _sec_low2_cached = na
+    
+    _isNewTimeframeBar = fvg_timeframe == '' ? true : timeframe.change(fvg_timeframe)
+
+    if _isNewTimeframeBar
+        if fvg_timeframe == ''
+            _sec_close1_cached := close[1]
+            _sec_open1_cached := open[1]
+            _sec_time1_cached := time[1]
+            _sec_high0_cached := high[0]
+            _sec_low0_cached := low[0]
+            _sec_time0_cached := time[0]
+            _sec_high2_cached := high[2]
+            _sec_low2_cached := low[2]
+        else
+            [sec_close1, sec_open1, sec_time1, sec_high0, sec_low0, sec_time0, sec_high2, sec_low2] = request.security(syminfo.tickerid, fvg_timeframe, [close[1], open[1], time[1], high[0], low[0], time[0], high[2], low[2]], lookahead = barmerge.lookahead_on)
+            _sec_close1_cached := sec_close1
+            _sec_open1_cached := sec_open1
+            _sec_time1_cached := sec_time1
+            _sec_high0_cached := sec_high0
+            _sec_low0_cached := sec_low0
+            _sec_time0_cached := sec_time0
+            _sec_high2_cached := sec_high2
+            _sec_low2_cached := sec_low2
+
+    // --- Verbesserte Schwellenwert-Logik (Restored from Original) ---
+    var int higherTFBars = 0
+    if _isNewTimeframeBar
+        higherTFBars += 1
+
+    barDeltaPercent = _sec_open1_cached != 0 ? (_sec_close1_cached - _sec_open1_cached) / _sec_open1_cached : 0
+    cumBarDelta = ta.cum(math.abs(_isNewTimeframeBar ? barDeltaPercent : 0))
+    avgBarDelta = fvg_threshold and higherTFBars > 0 ? cumBarDelta / higherTFBars : 0
+    threshold = avgBarDelta * 2
+
+    isBullishFVG = _isNewTimeframeBar and _sec_low0_cached > _sec_high2_cached and (_sec_low0_cached - _sec_high2_cached) > FVG_MIN_ATR_MULT * my_atr and (not fvg_threshold or barDeltaPercent > threshold)
+    isBearishFVG = _isNewTimeframeBar and _sec_high0_cached < _sec_low2_cached and (_sec_low2_cached - _sec_high0_cached) > FVG_MIN_ATR_MULT * my_atr and (not fvg_threshold or -barDeltaPercent > threshold)
+
+    if isBullishFVG
+        gapTop = _sec_low0_cached
+        gapBottom = _sec_high2_cached
+        box1 = f_fvg_drawBox(_sec_time1_cached, _sec_time0_cached, gapTop, math.avg(gapTop, gapBottom), fvg_bullColor)
+        box2 = f_fvg_drawBox(_sec_time1_cached, _sec_time0_cached, math.avg(gapTop, gapBottom), gapBottom, fvg_bullColor)
+        array.unshift(fairValueGapsArray, fairValueGap.new(gapTop, gapBottom, FVG_BULLISH, box1, box2))
+
+    if isBearishFVG
+        gapTop = _sec_high0_cached
+        gapBottom = _sec_low2_cached
+        box1 = f_fvg_drawBox(_sec_time1_cached, _sec_time0_cached, gapTop, math.avg(gapTop, gapBottom), fvg_bearColor)
+        box2 = f_fvg_drawBox(_sec_time1_cached, _sec_time0_cached, math.avg(gapTop, gapBottom), gapBottom, fvg_bearColor)
+        array.unshift(fairValueGapsArray, fairValueGap.new(gapTop, gapBottom, FVG_BEARISH, box1, box2))
+
+//---------------------------------------------------------------------------------------------------------------------
+// General & MA Functions
+//---------------------------------------------------------------------------------------------------------------------
+f_ma(source, length, type) =>
+    switch type
+        'SMA' => ta.sma(source, length)
+        'EMA' => ta.ema(source, length)
+        'SMMA (RMA)' => ta.rma(source, length)
+        'WMA' => ta.wma(source, length)
+        'VWMA' => ta.vwma(source, length)
+        => na
+
+f_smma_alligator(src, length) =>
+	smma =  0.0
+	smma := na(smma[1]) ? ta.sma(src, length) : (smma[1] * (length - 1) + src) / length
+	smma
+
+f_tb_movingAverage(source, length, maType) =>
+    switch maType
+        'SMA' => ta.sma(source, length)
+        'EMA' => ta.ema(source, length)
+        'HMA' => ta.hma(source, length)
+        'RMA' => ta.rma(source, length)
+        'WMA' => ta.wma(source, length)
+        'VWMA' => ta.vwma(source, length)
+
+f_tb_donchian(len) =>
+    math.avg(ta.lowest(len), ta.highest(len))
+
+f_tb_isBullishReversal() =>
+    close[2] < open[2] and low[1] < low[2] and high[1] < high[2] and close[1] < open[1] and close > open and high > high[2] 
+
+f_tb_isBearishReversal() =>
+    close[2] > open[2] and high[1] > high[2] and low[1] > low[2] and close[1] > open[1] and close < open and low < low[2] 
+
+//=====================================================================================================================
+// GLOBAL VARIABLES
+//=====================================================================================================================
+
+// --- Market Structure Variables ---
+var ms_os = 0
+var ms_top_crossed = false
+var ms_btm_crossed = false
+var float ms_max = na
+var float ms_min = na
+var int ms_max_x1 = na
+var int ms_min_x1 = na
+var float ms_topy = na
+var float ms_btmy = na
+var ms_stop_crossed = false
+var ms_sbtm_crossed = false
+
+// --- Fibonacci / Range Variables ---
+var line structureHighLine = na
+var line structureLowLine = na
+var array<line> fiboLines = array.new_line(0)
+var array<label> fiboLabels = array.new_label(0)
+
+// --- Order Block Variables ---
+const int maxDistanceToLastBar = 1750
+timeframe1Enabled = true
+timeframe1 = ''
+var timeframeInfos = array.new<timeframeInfo>()
+if barstate.isfirst
+    array.push(timeframeInfos, f_ob_newTimeframeInfo(1, timeframe1, timeframe1Enabled))
+var bullishOrderBlocksList = array.new<orderBlockInfo>(0)
+var bearishOrderBlocksList = array.new<orderBlockInfo>(0)
+var allOrderBlocksList = array.new<orderBlock>(0)
+
+// --- Fair Value Gap Variables ---
+var array<fairValueGap> fairValueGaps = array.new<fairValueGap>()
+
+// --- Three Bar Reversal Variables ---
+var int tb_dc_os = 0
+var line tb_lnAT = na
+var line tb_lnAB = na
+var line tb_lnAT2 = na
+var line tb_lnAB2 = na
+var label tb_lbAT = na
+var box tb_bxA = na
+var bool tb_bullProcess = false
+var bool tb_bullProcess2 = false
+var float tb_bullHigh = na
+
+var line tb_lnST = na
+var line tb_lnSB = na
+var line tb_lnST2 = na
+var line tb_lnSB2 = na
+var label tb_lbST = na
+var box tb_bxS = na
+var bool tb_bearProcess = false
+var bool tb_bearProcess2 = false
+var float tb_bearLow = na
+
+//=====================================================================================================================
+// MAIN LOGIC
+//=====================================================================================================================
+
+//---------------------------------------------------------------------------------------------------------------------
+// Market Structure Logic
+//---------------------------------------------------------------------------------------------------------------------
+// Swings
+[ms_top, ms_topx, ms_btm, ms_btmx] = f_ms_swings(ms_len, my_atr)
+[ms_stop, ms_stopx, ms_sbtm, ms_sbtmx] = f_ms_swings(ms_shortLen, my_atr)
+
+// CHoCH Detection
+if not na(ms_top)
+    ms_topy := ms_top
+    ms_top_crossed := false
+    ms_top_crossed
+if not na(ms_btm)
+    ms_btmy := ms_btm
+    ms_btm_crossed := false
+    ms_btm_crossed
+
+// Test for CHoCH
+if (isStructBodyCandleBreak ? close : high) > ms_topy and not ms_top_crossed
+    ms_os := 1
+    ms_top_crossed := true
+    ms_top_crossed
+if (isStructBodyCandleBreak ? close : low) < ms_btmy and not ms_btm_crossed
+    ms_os := 0
+    ms_btm_crossed := true
+    ms_btm_crossed
+
+// Display CHoCH
+if ms_os != ms_os[1]
+    ms_max := high
+    ms_min := low
+    ms_max_x1 := n
+    ms_min_x1 := n
+    ms_stop_crossed := false
+    ms_sbtm_crossed := false
+
+    if ms_os == 1 and ms_showChoch
+        line.new(ms_topx, ms_topy, n, ms_topy, color = ms_bullCss, style = getLineStyle(chochLineStyleOption), width = chochLineWidth)
+        label.new(int(math.avg(n, ms_topx)), ms_topy, 'CHoCH', color = color(na), style = label.style_label_down, textcolor = ms_bullCss, size = size.small)
+    else if ms_showChoch
+        line.new(ms_btmx, ms_btmy, n, ms_btmy, color = ms_bearCss, style = getLineStyle(chochLineStyleOption), width = chochLineWidth)
+        label.new(int(math.avg(n, ms_btmx)), ms_btmy, 'CHoCH', color = color(na), style = label.style_label_up, textcolor = ms_bearCss, size = size.small)
+
+ms_stopy = fixnan(ms_stop)
+ms_sbtmy = fixnan(ms_sbtm)
+
+// Bullish BOS
+if low < ms_sbtmy and not ms_sbtm_crossed and ms_os == 1 and ms_sbtmy != ms_btmy
+    if ms_showIdm
+        line.new(ms_sbtmx, ms_sbtmy, n, ms_sbtmy, color = ms_idmCss, style = line.style_dotted)
+        label.new(int(math.avg(n, ms_sbtmx)), ms_sbtmy, 'IDM', color = color(na), style = label.style_label_up, textcolor = ms_idmCss, size = size.small)
+    ms_sbtm_crossed := true
+    ms_sbtm_crossed
+
+if (isStructBodyCandleBreak ? close : high) > ms_max and ms_sbtm_crossed and ms_os == 1
+    if ms_showBos
+        line.new(ms_max_x1, ms_max, n, ms_max, color = ms_bullCss, style = getLineStyle(bosLineStyleOption), width = bosLineWidth)
+        label.new(int(math.avg(n, ms_max_x1)), ms_max, 'BoS', color = color(na), style = label.style_label_down, textcolor = ms_bullCss, size = size.small)
+    ms_sbtm_crossed := false
+    ms_sbtm_crossed
+
+// Bearish BOS
+if high > ms_stopy and not ms_stop_crossed and ms_os == 0 and ms_stopy != ms_topy
+    if ms_showIdm
+        line.new(ms_stopx, ms_stopy, n, ms_stopy, color = ms_idmCss, style = line.style_dotted)
+        label.new(int(math.avg(n, ms_stopx)), ms_stopy, 'IDM', color = color(na), style = label.style_label_down, textcolor = ms_idmCss, size = size.small)
+    ms_stop_crossed := true
+    ms_stop_crossed
+
+if (isStructBodyCandleBreak ? close : low) < ms_min and ms_stop_crossed and ms_os == 0
+    if ms_showBos
+        line.new(ms_min_x1, ms_min, n, ms_min, color = ms_bearCss, style = getLineStyle(bosLineStyleOption), width = bosLineWidth)
+        label.new(int(math.avg(n, ms_min_x1)), ms_min, 'BoS', color = color(na), style = label.style_label_up, textcolor = ms_bearCss, size = size.small)
+    ms_stop_crossed := false
+    ms_stop_crossed
+
+// Sweeps
+if high > ms_max and close < ms_max and ms_os == 1 and n - ms_max_x1 > 1 and ms_showSweeps
+    line.new(ms_max_x1, ms_max, n, ms_max, color = ms_sweepsCss, style = line.style_dotted)
+    label.new(int(math.avg(n, ms_max_x1)), ms_max, 'S', color = color(na), style = label.style_label_down, textcolor = ms_sweepsCss)
+
+if low < ms_min and close > ms_min and ms_os == 0 and n - ms_min_x1 > 1 and ms_showSweeps
+    line.new(ms_min_x1, ms_min, n, ms_min, color = ms_sweepsCss, style = line.style_dotted)
+    label.new(int(math.avg(n, ms_min_x1)), ms_min, 'S', color = color(na), style = label.style_label_up, textcolor = ms_sweepsCss)
+
+// Trailing max/min
+ms_max := math.max(high, nz(ms_max, high))
+ms_min := math.min(low, nz(ms_min, low))
+
+if ms_max > ms_max[1]
+    ms_max_x1 := n
+    ms_max_x1
+if ms_min < ms_min[1]
+    ms_min_x1 := n
+    ms_min_x1
+
+//---------------------------------------------------------------------------------------------------------------------
+// Fibonacci & Current Structure Visualization
+//---------------------------------------------------------------------------------------------------------------------
+// Wir nutzen die existierenden Variablen ms_os (Trend), ms_max (High im Bull-Run), ms_min (Low im Bear-Run)
+// sowie ms_btmy (letztes Swing Low) und ms_topy (letztes Swing High) um die Range zu definieren.
+
+float rangeHigh = na
+float rangeLow = na
+int rangeHighIndex = na
+int rangeLowIndex = na
+
+// Bestimme die aktuelle Trading Range basierend auf dem Marktstruktur-Status
+if ms_os == 1 // Bullish: Range ist vom letzten Swing Low bis zum aktuellen High (Trailing Max)
+    rangeLow := ms_btmy
+    rangeLowIndex := ms_btmx // Index des Swing Lows
+    rangeHigh := ms_max
+    rangeHighIndex := ms_max_x1 // Index des aktuellen Highs
+else // Bearish: Range ist vom letzten Swing High bis zum aktuellen Low (Trailing Min)
+    rangeHigh := ms_topy
+    rangeHighIndex := ms_topx
+    rangeLow := ms_min
+    rangeLowIndex := ms_min_x1
+
+// Funktion zum Zeichnen eines Fibo-Levels
+f_drawFibo(val, col, show, styleStr, widthVal) =>
+    if show
+        rangeDiff = rangeHigh - rangeLow
+        // Im Bull-Trend (ms_os=1): 0% ist High, 100% ist Low. Retracement wird vom High gemessen?
+        // Üblich: Bullish Retracement misst man von Low nach High. 
+        // SMC Indikator Logik: 
+        // Bullish (Direction 1): structureHigh - (Range * val). Das bedeutet 0.786 ist tief unten (nahe Low).
+        // Also: Low + Range * (1 - val) oder High - Range * val.
+        // Wir nutzen hier die SMC Logik:
+        price = ms_os == 1 ? rangeHigh - (rangeDiff * val) : rangeLow + (rangeDiff * val)
+        
+        // Startpunkt der Linie: Im SMC Indikator ist es der Start der Range.
+        lineStart = ms_os == 1 ? rangeLowIndex : rangeHighIndex
+        
+        ln = line.new(lineStart, price, n, price, xloc=xloc.bar_index, color=col, style=getLineStyle(styleStr), width=widthVal)
+        lbl = label.new(n + 5, price, text=str.tostring(val) + " (" + str.tostring(price, format.mintick) + ")", style=label.style_none, textcolor=col, size=size.small)
+        array.push(fiboLines, ln)
+        array.push(fiboLabels, lbl)
+
+if isCurrentStructToShow and not na(rangeHigh) and not na(rangeLow)
+    // Lösche alte Linien/Labels
+    line.delete(structureHighLine)
+    line.delete(structureLowLine)
+    while array.size(fiboLines) > 0
+        line.delete(array.pop(fiboLines))
+    while array.size(fiboLabels) > 0
+        label.delete(array.pop(fiboLabels))
+
+    // Zeichne High/Low Linien der aktuellen Range
+    structureHighLine := line.new(rangeHighIndex, rangeHigh, n, rangeHigh, xloc=xloc.bar_index, color=currentStructColor, style=getLineStyle(currentStructLineStyleOption), width=currentStructLineWidth)
+    structureLowLine := line.new(rangeLowIndex, rangeLow, n, rangeLow, xloc=xloc.bar_index, color=currentStructColor, style=getLineStyle(currentStructLineStyleOption), width=currentStructLineWidth)
+
+    f_drawFibo(fibo1Value, fibo1Color, isFibo1ToShow, fibo1StyleOption, fibo1LineWidth)
+    f_drawFibo(fibo2Value, fibo2Color, isFibo2ToShow, fibo2StyleOption, fibo2LineWidth)
+    f_drawFibo(fibo3Value, fibo3Color, isFibo3ToShow, fibo3StyleOption, fibo3LineWidth)
+    f_drawFibo(fibo4Value, fibo4Color, isFibo4ToShow, fibo4StyleOption, fibo4LineWidth)
+    f_drawFibo(fibo5Value, fibo5Color, isFibo5ToShow, fibo5StyleOption, fibo5LineWidth)
+    f_drawFibo(fibo6Value, fibo6Color, isFibo6ToShow, fibo6StyleOption, fibo6LineWidth)
+
+
+// Extensions for Market Structure
+var ms_ext_choch = line.new(na, na, na, na, style = line.style_dashed)
+var ms_ext_bos = line.new(na, na, na, na)
+var ms_ext_idm = line.new(na, na, na, na, style = line.style_dotted, color = ms_idmCss)
+var ms_ext_choch_lbl = label.new(na, na, 'CHoCH', color = color(na), size = size.small)
+var ms_ext_bos_lbl = label.new(na, na, 'BoS', color = color(na), size = size.small)
+var ms_ext_idm_lbl = label.new(na, na, 'IDM', color = color(na), size = size.small, textcolor = ms_idmCss)
+
+if barstate.islast
+    if ms_os == 1
+        if ms_showChoch
+            ms_ext_choch.set_xy1(ms_btmx, ms_btmy)
+            ms_ext_choch.set_xy2(n, ms_btmy)
+            ms_ext_choch.set_color(ms_bearCss)
+            ms_ext_choch_lbl.set_xy(n, ms_btmy)
+            ms_ext_choch_lbl.set_style(label.style_label_up)
+            ms_ext_choch_lbl.set_textcolor(ms_bearCss)
+        if ms_showBos
+            ms_ext_bos.set_xy1(ms_max_x1, ms_max)
+            ms_ext_bos.set_xy2(n, ms_max)
+            ms_ext_bos.set_color(ms_bullCss)
+            ms_ext_bos_lbl.set_xy(n, ms_max)
+            ms_ext_bos_lbl.set_style(label.style_label_down)
+            ms_ext_bos_lbl.set_textcolor(ms_bullCss)
+        if not ms_sbtm_crossed and ms_showIdm
+            ms_ext_idm.set_xy1(ms_sbtmx, ms_sbtmy)
+            ms_ext_idm.set_xy2(n + 15, ms_sbtmy)
+            ms_ext_idm_lbl.set_xy(n + 15, ms_sbtmy)
+            ms_ext_idm_lbl.set_style(label.style_label_up)
+            ms_ext_idm.set_color(ms_idmCss)
+            ms_ext_idm_lbl.set_textcolor(ms_idmCss)
+        else
+            ms_ext_idm.set_color(na)
+            ms_ext_idm_lbl.set_textcolor(na)
+    else
+        if ms_showChoch
+            ms_ext_choch.set_xy1(ms_topx, ms_topy)
+            ms_ext_choch.set_xy2(n, ms_topy)
+            ms_ext_choch.set_color(ms_bullCss)
+            ms_ext_choch_lbl.set_xy(n, ms_topy)
+            ms_ext_choch_lbl.set_style(label.style_label_down)
+            ms_ext_choch_lbl.set_textcolor(ms_bullCss)
+        if ms_showBos
+            ms_ext_bos.set_xy1(ms_min_x1, ms_min)
+            ms_ext_bos.set_xy2(n, ms_min)
+            ms_ext_bos.set_color(ms_bearCss)
+            ms_ext_bos_lbl.set_xy(n, ms_min)
+            ms_ext_bos_lbl.set_style(label.style_label_up)
+            ms_ext_bos_lbl.set_textcolor(ms_bearCss)
+        if not ms_stop_crossed and ms_showIdm
+            ms_ext_idm.set_xy1(ms_stopx, ms_stopy)
+            ms_ext_idm.set_xy2(n + 15, ms_stopy)
+            ms_ext_idm_lbl.set_xy(n + 15, ms_stopy)
+            ms_ext_idm_lbl.set_style(label.style_label_down)
+            ms_ext_idm.set_color(ms_idmCss)
+            ms_ext_idm_lbl.set_textcolor(ms_idmCss)
+        else
+            ms_ext_idm.set_color(na)
+            ms_ext_idm_lbl.set_textcolor(na)
+
+// Plots for Swings
+plot(ms_showCircles ? ms_top : na, 'Swing High', color.new(ms_bearCss, 50), 5, plot.style_circles, offset = -ms_len)
+plot(ms_showCircles ? ms_btm : na, 'Swing Low', color.new(ms_bullCss, 50), 5, plot.style_circles, offset = -ms_len)
+
+
+//---------------------------------------------------------------------------------------------------------------------
+// Hilfsfunktion: Filter zu kleine oder zu nahe OBs (global definiert)
+// Iteriert rückwärts, um Indexprobleme beim Entfernen zu vermeiden.
+// Entfernt Order Blocks, die zu klein sind (basierend auf ATR)
+// oder zu nahe an einem bereits verarbeiteten (d.h. einem später im Array liegenden) OB.
+removeSmallOrCloseOBs(list) =>
+    sz = array.size(list)
+    if sz < 1
+        na // Nichts zu tun
+    else
+        for i = sz - 1 to 0 by 1
+            ob = array.get(list, i)
+            obSize = math.abs(ob.top - ob.bottom)
+            
+            // Filter 1: Zu kleine OBs entfernen
+            if obSize < OB_MIN_ATR_MULT * ob_atr
+                array.remove(list, i)
+            // Filter 2: OBs entfernen, die zu nahe an einem bereits geprüften OB liegen
+            // (i+1 ist hier ein Element, das später im ursprünglichen Array lag und bereits verarbeitet wurde)
+            else if i + 1 < array.size(list) // Sicherstellen, dass i+1 noch existiert (da Elemente entfernt werden können)
+                prevOB = array.get(list, i + 1)
+                dist = math.abs(ob.top - prevOB.bottom)
+                if dist < OB_MIN_DIST_ATR_MULT * ob_atr
+                    array.remove(list, i)
+
+//---------------------------------------------------------------------------------------------------------------------
+// Order Block Logic - mit ATR/Volumen-Filter & Mindestabstand
+//---------------------------------------------------------------------------------------------------------------------
+f_ob_findOrderBlocks() =>
+    [top, btm] = f_ob_findOBSwings(ob_swingLength)
+    if bar_index > last_bar_index - maxDistanceToLastBar
+        max = high
+        min = low
+        // Bullish Order Blocks
+        if array.size(bullishOrderBlocksList) > 0
+            for i = array.size(bullishOrderBlocksList) - 1 to 0 by 1
+                currentOB = array.get(bullishOrderBlocksList, i)
+                if not currentOB.breaker
+                    currentOB.triggerAlert := false
+                    
+                    bool isRetest = false
+                    if ob_retestMethod == "Wick"
+                        isRetest := low <= currentOB.top
+                    else
+                        isRetest := close <= currentOB.top and close >= currentOB.bottom
+
+                    // Retest erst zählen, wenn der OB das Mindestalter erreicht hat
+                    if isRetest and bar_index >= currentOB.detectionIndex + ob_retestDelay
+                        currentOB.testCount += 1
+                        if not currentOB.retested
+                            currentOB.retested := true
+                            currentOB.triggerAlert := true
+                    if (ob_obEndMethod == 'Wick' ? low : math.min(open, close)) < currentOB.bottom
+                        currentOB.breaker := true
+                        currentOB.breakTime := time
+                        currentOB.bbVolume := volume
+                        currentOB.bbVolume
+                else if high > currentOB.top
+                    array.remove(bullishOrderBlocksList, i)
+        if not na(top.y) and close > top.y and not top.crossed
+            top.crossed := true
+            boxBtm = max[1]
+            boxTop = min[1]
+            boxLoc = time[1]
+            for i = 1 to bar_index - top.x - 1 by 1
+                boxBtm := math.min(min[i], boxBtm)
+                boxTop := boxBtm == min[i] ? max[i] : boxTop
+                boxLoc := boxBtm == min[i] ? time[i] : boxLoc
+                boxLoc
+            newOrderBlockInfo = orderBlockInfo.new(boxTop, boxBtm, volume + volume[1] + volume[2], 'Bull', boxLoc)
+            newOrderBlockInfo.obLowVolume := volume[2]
+            newOrderBlockInfo.obHighVolume := volume + volume[1]
+            newOrderBlockInfo.detectionIndex := bar_index
+
+            obSize = math.abs(newOrderBlockInfo.top - newOrderBlockInfo.bottom)
+            // --- Filter: Größe & Volumen ---
+            if obSize >= OB_MIN_ATR_MULT * ob_atr and newOrderBlockInfo.obVolume > OB_MIN_VOL_MULT * ob_avgVol
+                array.unshift(bullishOrderBlocksList, newOrderBlockInfo)
+            if array.size(bullishOrderBlocksList) > input_maxOrderBlocks
+                array.pop(bullishOrderBlocksList)
+            removeSmallOrCloseOBs(bullishOrderBlocksList)
+        // Bearish Order Blocks
+        if array.size(bearishOrderBlocksList) > 0
+            for i = array.size(bearishOrderBlocksList) - 1 to 0 by 1
+                currentOB = array.get(bearishOrderBlocksList, i)
+                if not currentOB.breaker
+                    currentOB.triggerAlert := false
+                    
+                    bool isRetest = false
+                    if ob_retestMethod == "Wick"
+                        isRetest := high >= currentOB.bottom
+                    else
+                        isRetest := close >= currentOB.bottom and close <= currentOB.top
+
+                    // Retest erst zählen, wenn der OB das Mindestalter erreicht hat
+                    if isRetest and bar_index >= currentOB.detectionIndex + ob_retestDelay
+                        currentOB.testCount += 1
+                        if not currentOB.retested
+                            currentOB.retested := true
+                            currentOB.triggerAlert := true
+                    if (ob_obEndMethod == 'Wick' ? high : math.max(open, close)) > currentOB.top
+                        currentOB.breaker := true
+                        currentOB.breakTime := time
+                        currentOB.bbVolume := volume
+                        currentOB.bbVolume
+                else if low < currentOB.bottom
+                    array.remove(bearishOrderBlocksList, i)
+        if not na(btm.y) and close < btm.y and not btm.crossed
+            btm.crossed := true
+            boxBtm = min[1]
+            boxTop = max[1]
+            boxLoc = time[1]
+            for i = 1 to bar_index - btm.x - 1 by 1
+                boxTop := math.max(max[i], boxTop)
+                boxBtm := boxTop == max[i] ? min[i] : boxBtm
+                boxLoc := boxTop == max[i] ? time[i] : boxLoc
+                boxLoc
+            newOrderBlockInfo = orderBlockInfo.new(boxTop, boxBtm, volume + volume[1] + volume[2], 'Bear', boxLoc)
+            newOrderBlockInfo.obLowVolume := volume + volume[1]
+            newOrderBlockInfo.obHighVolume := volume[2]
+            newOrderBlockInfo.detectionIndex := bar_index
+
+            obSize = math.abs(newOrderBlockInfo.top - newOrderBlockInfo.bottom)
+            // --- Filter: Größe & Volumen ---
+            if obSize >= OB_MIN_ATR_MULT * ob_atr and newOrderBlockInfo.obVolume > OB_MIN_VOL_MULT * ob_avgVol
+                array.unshift(bearishOrderBlocksList, newOrderBlockInfo)
+            if array.size(bearishOrderBlocksList) > input_maxOrderBlocks
+                array.pop(bearishOrderBlocksList)
+            removeSmallOrCloseOBs(bearishOrderBlocksList)
+    true
+
+f_ob_combineOBsFunc() =>
+    if array.size(allOrderBlocksList) > 0
+        lastCombinations = 999
+        while lastCombinations > 0
+            lastCombinations := 0
+            for i = 0 to array.size(allOrderBlocksList) - 1 by 1
+                curOB1 = array.get(allOrderBlocksList, i)
+                for j = 0 to array.size(allOrderBlocksList) - 1 by 1
+                    curOB2 = array.get(allOrderBlocksList, j)
+                    if i == j
+                        continue
+                    if not f_ob_isOBValid(curOB1.info) or not f_ob_isOBValid(curOB2.info)
+                        continue
+                    if curOB1.info.obType != curOB2.info.obType
+                        continue
+                    if f_ob_doOBsTouch(curOB1.info, curOB2.info)
+                        curOB1.info.disabled := true
+                        curOB2.info.disabled := true
+                        newOB = f_ob_createOrderBlock(orderBlockInfo.new(math.max(curOB1.info.top, curOB2.info.top), math.min(curOB1.info.bottom, curOB2.info.bottom), curOB1.info.obVolume + curOB2.info.obVolume, curOB1.info.obType))
+                        newOB.info.startTime := math.min(curOB1.info.startTime, curOB2.info.startTime)
+                        newOB.info.breakTime := math.max(nz(curOB1.info.breakTime), nz(curOB2.info.breakTime))
+                        newOB.info.breakTime := newOB.info.breakTime == 0 ? na : newOB.info.breakTime
+                        newOB.info.timeframeStr := curOB1.info.timeframeStr
+                        newOB.info.obVolume := curOB1.info.obVolume + curOB2.info.obVolume
+                        newOB.info.obLowVolume := curOB1.info.obLowVolume + curOB2.info.obLowVolume
+                        newOB.info.obHighVolume := curOB1.info.obHighVolume + curOB2.info.obHighVolume
+                        newOB.info.bbVolume := nz(curOB1.info.bbVolume, 0) + nz(curOB2.info.bbVolume, 0)
+                        newOB.info.breaker := curOB1.info.breaker or curOB2.info.breaker
+                        newOB.info.combined := true
+                        if timeframe.in_seconds(curOB1.info.timeframeStr) != timeframe.in_seconds(curOB2.info.timeframeStr)
+                            newOB.info.combinedTimeframesStr := (na(curOB1.info.combinedTimeframesStr) ? f_ob_formatTimeframeString(curOB1.info.timeframeStr) : curOB1.info.combinedTimeframesStr) + ' & ' + (na(curOB2.info.combinedTimeframesStr) ? f_ob_formatTimeframeString(curOB2.info.timeframeStr) : curOB2.info.combinedTimeframesStr)
+                            newOB.info.combinedTimeframesStr
+                        array.unshift(allOrderBlocksList, newOB)
+                        lastCombinations := lastCombinations + 1
+                        lastCombinations
+
+f_ob_handleTimeframeInfo(timeframeInfoF, bullishOrderBlocksListF, bearishOrderBlocksListF) =>
+    if not f_ob_isTimeframeLower(timeframeInfoF.timeframeStr, timeframe.period) and timeframeInfoF.isEnabled
+        timeframeInfoF.bullishOrderBlocksList := bullishOrderBlocksListF
+        timeframeInfoF.bearishOrderBlocksList := bearishOrderBlocksListF
+        timeframeInfoF.bearishOrderBlocksList
+
+f_ob_handleOrderBlocksFinal() =>
+    if array.size(allOrderBlocksList) > 0
+        for i = 0 to array.size(allOrderBlocksList) - 1 by 1
+            f_ob_safeDeleteOrderBlock(array.get(allOrderBlocksList, i))
+    array.clear(allOrderBlocksList)
+    for i = 0 to array.size(timeframeInfos) - 1 by 1
+        curTimeframe = array.get(timeframeInfos, i)
+        if not curTimeframe.isEnabled
+            continue
+        if array.size(curTimeframe.bullishOrderBlocksList) > 0
+            for j = 0 to math.min(array.size(curTimeframe.bullishOrderBlocksList) - 1, input_maxOrderBlocks - 1) by 1
+                orderBlockInfoF = array.get(curTimeframe.bullishOrderBlocksList, j)
+                orderBlockInfoF.timeframeStr := curTimeframe.timeframeStr
+                array.unshift(allOrderBlocksList, f_ob_createOrderBlock(orderBlockInfo.copy(orderBlockInfoF)))
+        if array.size(curTimeframe.bearishOrderBlocksList) > 0
+            for j = 0 to math.min(array.size(curTimeframe.bearishOrderBlocksList) - 1, input_maxOrderBlocks - 1) by 1
+                orderBlockInfoF = array.get(curTimeframe.bearishOrderBlocksList, j)
+                orderBlockInfoF.timeframeStr := curTimeframe.timeframeStr
+                array.unshift(allOrderBlocksList, f_ob_createOrderBlock(orderBlockInfo.copy(orderBlockInfoF)))
+    if ob_combineOBs
+        f_ob_combineOBsFunc()
+    if array.size(allOrderBlocksList) > 0
+        for i = 0 to array.size(allOrderBlocksList) - 1 by 1
+            curOB = array.get(allOrderBlocksList, i)
+            if f_ob_isOBValid(curOB.info)
+                f_ob_renderOrderBlock(curOB)
+                if curOB.info.triggerAlert
+                    alert((curOB.info.obType == 'Bull' ? 'Bullish' : 'Bearish') + " Order Block Retest detected", alert.freq_once_per_bar)
+
+//---------------------------------------------------------------------------------------------------------------------
+// EXECUTION
+//---------------------------------------------------------------------------------------------------------------------
+
+
+// --- Moving Average Execution ---
+// Defensive: MA-Werte nur berechnen, wenn Inputs sinnvoll UND der MA angezeigt wird
+var float ma1_val = na
+var float ma2_val = na
+var float ma3_val = na
+var float ma4_val = na
+var float ma5_val = na
+
+if ma1_show and ma1_len > 0
+    ma1_val := f_ma(ma1_src, ma1_len, ma1_type)
+if ma2_show and ma2_len > 0
+    ma2_val := f_ma(ma2_src, ma2_len, ma2_type)
+if ma3_show and ma3_len > 0
+    ma3_val := f_ma(ma3_src, ma3_len, ma3_type)
+if ma4_show and ma4_len > 0
+    ma4_val := f_ma(ma4_src, ma4_len, ma4_type)
+if ma5_show and ma5_len > 0
+    ma5_val := f_ma(ma5_src, ma5_len, ma5_type)
+
+plot(ma1_show ? ma1_val : na, 'MA 1', color = ma1_color, linewidth = 2)
+plot(ma2_show ? ma2_val : na, 'MA 2', color = ma2_color, linewidth = 2)
+plot(ma3_show ? ma3_val : na, 'MA 3', color = ma3_color, linewidth = 2)
+plot(ma4_show ? ma4_val : na, 'MA 4', color = ma4_color, linewidth = 2)
+plot(ma5_show ? ma5_val : na, 'MA 5', color = ma5_color, linewidth = 2)
+
+// --- Williams Alligator Execution ---
+var float jaw = na
+var float teeth = na
+var float lips = na
+if showAlligator
+    jaw := f_smma_alligator(hl2, jawLength)
+    teeth := f_smma_alligator(hl2, teethLength)
+    lips := f_smma_alligator(hl2, lipsLength)
+
+isAlligatorSolid = alligatorLineStyle == '─'
+plot(showAlligator ? jaw : na, "Jaw", offset = jawOffset, color=jawColor, display = isAlligatorSolid ? display.all : display.data_window)
+plot(showAlligator ? teeth : na, "Teeth", offset = teethOffset, color=teethColor, display = isAlligatorSolid ? display.all : display.data_window)
+plot(showAlligator ? lips : na, "Lips", offset = lipsOffset, color=lipsColor, display = isAlligatorSolid ? display.all : display.data_window)
+
+if showAlligator and not isAlligatorSolid and not na(jaw) and not na(jaw[1])
+    line.new(n - 1 + jawOffset, jaw[1], n + jawOffset, jaw, color=jawColor, style=getLineStyle(alligatorLineStyle))
+    line.new(n - 1 + teethOffset, teeth[1], n + teethOffset, teeth, color=teethColor, style=getLineStyle(alligatorLineStyle))
+    line.new(n - 1 + lipsOffset, lips[1], n + lipsOffset, lips, color=lipsColor, style=getLineStyle(alligatorLineStyle))
+
+
+// --- Order Block Execution ---
+f_ob_findOrderBlocks()
+if barstate.isconfirmed
+    // Sicherstellen, dass timeframeInfos existiert und mindestens ein Element enthält
+    if array.size(timeframeInfos) > 0
+        f_ob_handleTimeframeInfo(array.get(timeframeInfos, 0), bullishOrderBlocksList, bearishOrderBlocksList)
+    // Orderblock-Listen begrenzen (Performance)
+    while array.size(bullishOrderBlocksList) > input_maxOrderBlocks
+        array.pop(bullishOrderBlocksList)
+    while array.size(bearishOrderBlocksList) > input_maxOrderBlocks
+        array.pop(bearishOrderBlocksList)
+    f_ob_handleOrderBlocksFinal()
+
+// --- Fair Value Gap Execution ---
+if fvg_show and not na(fairValueGaps)
+    // Ersetze die alte Gap-Liste durch die neue, gefilterte Liste
+    fairValueGaps := f_fvg_manageGaps(fairValueGaps)
+    // FVG-Liste begrenzen (Performance)
+    while array.size(fairValueGaps) > input_maxFVGs
+        array.pop(fairValueGaps)
+// FVG-Boxen immer zeichnen, wie von PineScript empfohlen
+f_fvg_drawGaps(fairValueGaps)
+
+// --- Trendlines with Breaks Execution ---
+var tl_upper = 0.
+var tl_lower = 0.
+var tl_slope_ph = 0.
+var tl_slope_pl = 0.
+
+var tl_offset = tl_backpaint ? tl_length : 0
+
+tl_ph = ta.pivothigh(tl_length, tl_length)
+tl_pl = ta.pivotlow(tl_length, tl_length)
+
+//Slope Calculation Method
+tl_slope = switch tl_calcMethod
+    'Atr' => ta.atr(tl_length) / tl_length * tl_mult
+    'Stdev' => ta.stdev(close, tl_length) / tl_length * tl_mult
+    'Linreg' => math.abs(ta.sma(close * n, tl_length) - ta.sma(close, tl_length) * ta.sma(n, tl_length)) / ta.variance(n, tl_length) / 2 * tl_mult
+
+//Get slopes and calculate trendlines
+tl_slope_ph := not na(tl_ph) ? tl_slope : tl_slope_ph
+tl_slope_pl := not na(tl_pl) ? tl_slope : tl_slope_pl
+
+tl_upper := not na(tl_ph) ? tl_ph : tl_upper - tl_slope_ph
+tl_lower := not na(tl_pl) ? tl_pl : tl_lower + tl_slope_pl
+
+var tl_upos = 0
+var tl_dnos = 0
+tl_upos := not na(tl_ph) ? 0 : close > tl_upper - tl_slope_ph * tl_length ? 1 : tl_upos
+tl_dnos := not na(tl_pl) ? 0 : close < tl_lower + tl_slope_pl * tl_length ? 1 : tl_dnos
+
+//Extended Lines
+var tl_uptl = line.new(na, na, na, na, color = tl_upCss, style = line.style_dashed, extend = extend.right)
+var tl_dntl = line.new(na, na, na, na, color = tl_dnCss, style = line.style_dashed, extend = extend.right)
+
+if tl_show and tl_showExt
+    if not na(tl_ph)
+        tl_uptl.set_xy1(n - tl_offset, tl_backpaint ? tl_ph : tl_upper - tl_slope_ph * tl_length)
+        tl_uptl.set_xy2(n - tl_offset + 1, tl_backpaint ? tl_ph - tl_slope : tl_upper - tl_slope_ph * (tl_length + 1))
+
+    if not na(tl_pl)
+        tl_dntl.set_xy1(n - tl_offset, tl_backpaint ? tl_pl : tl_lower + tl_slope_pl * tl_length)
+        tl_dntl.set_xy2(n - tl_offset + 1, tl_backpaint ? tl_pl + tl_slope : tl_lower + tl_slope_pl * (tl_length + 1))
+
+plot(tl_show ? (tl_backpaint ? tl_upper : tl_upper - tl_slope_ph * tl_length) : na, 'Upper Trendline', color = not na(tl_ph) ? na : tl_upCss, offset = -tl_offset)
+plot(tl_show ? (tl_backpaint ? tl_lower : tl_lower + tl_slope_pl * tl_length) : na, 'Lower Trendline', color = not na(tl_pl) ? na : tl_dnCss, offset = -tl_offset)
+
+//Breakouts
+plotshape(tl_show and tl_upos > tl_upos[1] ? low : na, 'Upper Break', shape.labelup, location.absolute, tl_upCss, text = 'B', textcolor = color.white, size = size.tiny)
+plotshape(tl_show and tl_dnos > tl_dnos[1] ? high : na, 'Lower Break', shape.labeldown, location.absolute, tl_dnCss, text = 'B', textcolor = color.white, size = size.tiny)
+
+alertcondition(tl_upos > tl_upos[1], 'Trendline Breakout Up', 'Price broke the down-trendline upward')
+alertcondition(tl_dnos > tl_dnos[1], 'Trendline Breakout Down', 'Price broke the up-trendline downward')
+
+//---------------------------------------------------------------------------------------------------------------------
+//Candlesticks //
+//---------------------------------------------------------------------------------------------------------------------
+
+C_DownTrend = true
+C_UpTrend = true
+var trendRule1 = "SMA50"
+var trendRule2 = "SMA50, SMA200"
+var trendRule = input.string(trendRule2, "Detect Trend Based On", options=[trendRule1, trendRule2, "No detection"])
+
+if trendRule == trendRule1
+	priceAvg = ta.sma(close, 50)
+	C_DownTrend := close < priceAvg
+	C_UpTrend := close > priceAvg
+
+if trendRule == trendRule2
+	sma200 = ta.sma(close, 200)
+	sma50 = ta.sma(close, 50)
+	C_DownTrend := close < sma50 and sma50 < sma200
+	C_UpTrend := close > sma50 and sma50 > sma200
+C_Len = 14 // ta.ema depth for bodyAvg
+C_ShadowPercent = 5.0 // size of shadows
+C_ShadowEqualsPercent = 100.0
+C_DojiBodyPercent = 5.0
+C_Factor = 2.0 // shows the number of times the shadow dominates the candlestick body
+
+C_BodyHi = math.max(close, open)
+C_BodyLo = math.min(close, open)
+C_Body = C_BodyHi - C_BodyLo
+C_BodyAvg = ta.ema(C_Body, C_Len)
+C_SmallBody = C_Body < C_BodyAvg
+C_LongBody = C_Body > C_BodyAvg
+C_UpShadow = high - C_BodyHi
+C_DnShadow = C_BodyLo - low
+C_HasUpShadow = C_UpShadow > C_ShadowPercent / 100 * C_Body
+C_HasDnShadow = C_DnShadow > C_ShadowPercent / 100 * C_Body
+C_WhiteBody = open < close
+C_BlackBody = open > close
+C_Range = high-low
+C_IsInsideBar = C_BodyHi[1] > C_BodyHi and C_BodyLo[1] < C_BodyLo
+C_BodyMiddle = C_Body / 2 + C_BodyLo
+C_ShadowEquals = C_UpShadow == C_DnShadow or (math.abs(C_UpShadow - C_DnShadow) / C_DnShadow * 100) < C_ShadowEqualsPercent and (math.abs(C_DnShadow - C_UpShadow) / C_UpShadow * 100) < C_ShadowEqualsPercent
+C_IsDojiBody = C_Range > 0 and C_Body <= C_Range * C_DojiBodyPercent / 100
+C_Doji = C_IsDojiBody and C_ShadowEquals
+
+patternLabelPosLow = low - (ta.atr(30) * 2)
+patternLabelPosHigh = high + (ta.atr(30) * 2)
+label_color_bullish = input(color.rgb(13, 164, 154, 100), "Label Color Bullish")
+label_color_bearish = input(color.rgb(238, 72, 95, 100), "Label Color Bearish")
+label_color_neutral = input(color.rgb(156, 156, 156, 80), "Label Color Neutral")
+CandleType = input.string(title = "Pattern Type", defval="Both", options=["Bullish", "Bearish", "Both"])
+showPatternTooltips = input.bool(true, "Show Pattern Tooltips", tooltip = "Zeigt Beschreibungen zu den Candlestick-Mustern an, wenn man mit der Maus über das Label fährt.")
+
+DojiInput = input(title = "Doji" ,defval=false) 
+DojiStarInput = input(title = "Doji Star" ,defval=false) 
+DragonflyDojiInput = input(title = "Dragonfly Doji" ,defval=false) 
+EngulfingInput = input(title = "Engulfing" ,defval=true) 
+EveningDojiStarInput = input(title = "Evening Doji Star" ,defval=false) 
+EveningStarInput = input(title = "Evening Star" ,defval=true) 
+GravestoneDojiInput = input(title = "Gravestone Doji" ,defval=false) 
+HammerInput = input(title = "Hammer" ,defval=true) 
+HangingManInput = input(title = "Hanging Man" ,defval=true) 
+InvertedHammerInput = input(title = "Inverted Hammer" ,defval=true) 
+MorningDojiStarInput = input(title = "Morning Doji Star" ,defval=true) 
+MorningStarInput = input(title = "Morning Star" ,defval=true) 
+ShootingStarInput = input(title = "Shooting Star" ,defval=true) 
+TweezerBottomInput = input(title = "Tweezer Bottom" ,defval=true) 
+TweezerTopInput = input(title = "Tweezer Top" ,defval=true) 
+ThreeLineStrikeInput = input(title = "Three Line Strike", defval=true)
+ThreeLineStrikeVolFilter = input.bool(false, "Three Line Strike Vol Filter", tooltip="Nur Signale, wenn das Volumen der Strike-Kerze höher als der Durchschnitt (SMA) ist.")
+
+
+C_TweezerTopBearishNumberOfCandles = 2
+C_TweezerTopBearish = false
+if C_UpTrend[1] and (not C_IsDojiBody or (C_HasUpShadow and C_HasDnShadow)) and math.abs(high-high[1]) <= C_BodyAvg*0.05 and C_WhiteBody[1] and C_BlackBody and C_LongBody[1]
+	C_TweezerTopBearish := true
+// alertcondition(C_TweezerTopBearish, title = "Tweezer Top – Bearish", message = "New Tweezer Top – Bearish pattern detected")
+if C_TweezerTopBearish  and  TweezerTopInput and (("Bearish" == CandleType) or CandleType == "Both")
+
+    var ttBearishTweezerTop = "Tweezer Top\nTweezer Top is a two-candle pattern that signifies a potential bearish reversal. The pattern is found during an uptrend. The first candle is long and green, the second candle is red, and its high is nearly identical to the high of the previous candle. The virtually identical highs, together with the inverted directions, hint that bears might be taking over the market."
+    label.new(bar_index, patternLabelPosHigh, text="TT", style=label.style_label_down, color = label_color_bearish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBearishTweezerTop : "")
+C_TweezerBottomBullishNumberOfCandles = 2
+C_TweezerBottomBullish = false
+if C_DownTrend[1] and (not C_IsDojiBody or (C_HasUpShadow and C_HasDnShadow)) and math.abs(low-low[1]) <= C_BodyAvg*0.05 and C_BlackBody[1] and C_WhiteBody and C_LongBody[1]
+	C_TweezerBottomBullish := true
+//alertcondition(C_TweezerBottomBullish, title = "Tweezer Bottom – Bullish", message = "New Tweezer Bottom – Bullish pattern detected")
+if C_TweezerBottomBullish  and  TweezerBottomInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishTweezerBottom = "Tweezer Bottom\nTweezer Bottom is a two-candle pattern that signifies a potential bullish reversal. The pattern is found during a downtrend. The first candle is long and red, the second candle is green, its lows nearly identical to the low of the previous candle. The virtually identical lows together with the inverted directions hint that bulls might be taking over the market."
+    label.new(bar_index, patternLabelPosLow, text="TB", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishTweezerBottom : "")
+
+C_MorningDojiStarBullishNumberOfCandles = 3
+C_MorningDojiStarBullish = false
+if C_LongBody[2] and C_IsDojiBody[1] and C_LongBody and C_DownTrend and C_BlackBody[2] and C_BodyHi[1] < C_BodyLo[2] and C_WhiteBody and C_BodyHi >= C_BodyMiddle[2] and C_BodyHi < C_BodyHi[2] and C_BodyHi[1] < C_BodyLo
+	C_MorningDojiStarBullish := true
+//alertcondition(C_MorningDojiStarBullish, title = "Morning Doji Star – Bullish", message = "New Morning Doji Star – Bullish pattern detected")
+if C_MorningDojiStarBullish  and  MorningDojiStarInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishMorningDojiStar = "Morning Doji Star\nThis candlestick pattern is a variation of the Morning Star pattern. A three-day bullish reversal pattern, which consists of three candlesticks will look something like this: The first being a long-bodied red candle that extends the current downtrend. Next comes a Doji that gaps down on the open. After that comes a long-bodied green candle, which gaps up on the open and closes above the midpoint of the body of the first day. It is more bullish than the regular morning star pattern because of the existence of the Doji."
+    label.new(bar_index, patternLabelPosLow, text="MDS", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishMorningDojiStar : "")
+
+C_HammerBullishNumberOfCandles = 1
+C_HammerBullish = false
+if C_SmallBody and C_Body > 0 and C_BodyLo > hl2 and C_DnShadow >= C_Factor * C_Body and not C_HasUpShadow
+    if C_DownTrend
+        C_HammerBullish := true
+// alertcondition(C_HammerBullish, title = "Hammer – Bullish", message = "New Hammer – Bullish pattern detected")
+if C_HammerBullish  and  HammerInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishHammer = "Hammer\nHammer candlesticks form when a security moves lower after the open, but continues to rally into close above the intraday low. The candlestick that you are left with will look like a square attached to a long stick-like figure. This candlestick is called a Hammer if it happens to form during a decline."
+    label.new(bar_index, patternLabelPosLow, text="H", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishHammer : "")
+C_HangingManBearishNumberOfCandles = 1
+C_HangingManBearish = false
+if C_SmallBody and C_Body > 0 and C_BodyLo > hl2 and C_DnShadow >= C_Factor * C_Body and not C_HasUpShadow
+	if C_UpTrend
+	    C_HangingManBearish := true
+//alertcondition(C_HangingManBearish, title = "Hanging Man – Bearish", message = "New Hanging Man – Bearish pattern detected")
+if C_HangingManBearish  and  HangingManInput and (("Bearish" == CandleType) or CandleType == "Both")
+
+    var ttBearishHangingMan = "Hanging Man\nWhen a specified security notably moves lower after the open, but continues to rally to close above the intraday low, a Hanging Man candlestick will form. The candlestick will resemble a square, attached to a long stick-like figure. It is referred to as a Hanging Man if the candlestick forms during an advance."
+    label.new(bar_index, patternLabelPosHigh, text="HM", style=label.style_label_down, color = label_color_bearish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBearishHangingMan : "")
+C_ShootingStarBearishNumberOfCandles = 1
+C_ShootingStarBearish = false
+if C_SmallBody and C_Body > 0 and C_BodyHi < hl2 and C_UpShadow >= C_Factor * C_Body and not C_HasDnShadow
+	if C_UpTrend
+	    C_ShootingStarBearish := true
+//alertcondition(C_ShootingStarBearish, title = "Shooting Star – Bearish", message = "New Shooting Star – Bearish pattern detected")
+if C_ShootingStarBearish  and  ShootingStarInput and (("Bearish" == CandleType) or CandleType == "Both")
+
+    var ttBearishShootingStar = "Shooting Star\nThis single day pattern can appear during an uptrend and opens high, while it closes near its open. It trades much higher as well. It is bearish in nature, but looks like an Inverted Hammer."
+    label.new(bar_index, patternLabelPosHigh, text="SS", style=label.style_label_down, color = label_color_bearish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBearishShootingStar : "")
+C_InvertedHammerBullishNumberOfCandles = 1
+C_InvertedHammerBullish = false
+if C_SmallBody and C_Body > 0 and C_BodyHi < hl2 and C_UpShadow >= C_Factor * C_Body and not C_HasDnShadow
+    if C_DownTrend
+        C_InvertedHammerBullish := true
+//alertcondition(C_InvertedHammerBullish, title = "Inverted Hammer – Bullish", message = "New Inverted Hammer – Bullish pattern detected")
+if C_InvertedHammerBullish  and  InvertedHammerInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishInvertedHammer = "Inverted Hammer\nIf in a downtrend, then the open is lower. When it eventually trades higher, but closes near its open, it will look like an inverted version of the Hammer Candlestick. This is a one-day bullish reversal pattern."
+    label.new(bar_index, patternLabelPosLow, text="IH", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishInvertedHammer : "")
+C_MorningStarBullishNumberOfCandles = 3
+C_MorningStarBullish = false
+if C_LongBody[2] and C_SmallBody[1] and C_LongBody
+    if C_DownTrend and C_BlackBody[2] and C_BodyHi[1] < C_BodyLo[2] and C_WhiteBody and C_BodyHi >= C_BodyMiddle[2] and C_BodyHi < C_BodyHi[2] and C_BodyHi[1] < C_BodyLo
+        C_MorningStarBullish := true
+//alertcondition(C_MorningStarBullish, title = "Morning Star – Bullish", message = "New Morning Star – Bullish pattern detected")
+if C_MorningStarBullish  and  MorningStarInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishMorningStar = "Morning Star\nA three-day bullish reversal pattern, which consists of three candlesticks will look something like this: The first being a long-bodied red candle that extends the current downtrend. Next comes a short, middle candle that gaps down on the open. After comes a long-bodied green candle, which gaps up on the open and closes above the midpoint of the body of the first day."
+    label.new(bar_index, patternLabelPosLow, text="MS", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishMorningStar : "")
+C_EveningStarBearishNumberOfCandles = 3
+C_EveningStarBearish = false
+if C_LongBody[2] and C_SmallBody[1] and C_LongBody
+    if C_UpTrend and C_WhiteBody[2] and C_BodyLo[1] > C_BodyHi[2] and C_BlackBody and C_BodyLo <= C_BodyMiddle[2] and C_BodyLo > C_BodyLo[2] and C_BodyLo[1] > C_BodyHi
+        C_EveningStarBearish := true
+//alertcondition(C_EveningStarBearish, title = "Evening Star – Bearish", message = "New Evening Star – Bearish pattern detected")
+if C_EveningStarBearish  and  EveningStarInput and (("Bearish" == CandleType) or CandleType == "Both")
+
+    var ttBearishEveningStar = "Evening Star\nThis candlestick pattern is bearish and continues an uptrend with a long-bodied, green candle day. It is then followed by a gapped and small-bodied candle day, and concludes with a downward close. The close would be below the first day’s midpoint."
+    label.new(bar_index, patternLabelPosHigh, text="ES", style=label.style_label_down, color = label_color_bearish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBearishEveningStar : "")
+
+C_DojiNumberOfCandles = 1
+C_DragonflyDoji = C_IsDojiBody and C_UpShadow <= C_Body
+C_GravestoneDojiOne = C_IsDojiBody and C_DnShadow <= C_Body
+//alertcondition(C_Doji and not C_DragonflyDoji and not C_GravestoneDojiOne, title = "Doji", message = "New Doji pattern detected")
+if C_Doji and not C_DragonflyDoji and not C_GravestoneDojiOne and DojiInput
+    var ttDoji = "Doji\nWhen the open and close of a security are essentially equal to each other, a doji candle forms. The length of both upper and lower shadows may vary, causing the candlestick you are left with to either resemble a cross, an inverted cross, or a plus sign. Doji candles show the playout of buyer-seller indecision in a tug-of-war of sorts. As price moves either above or below the opening level during the session, the close is either at or near the opening level."
+    label.new(bar_index, patternLabelPosLow, text="D", style=label.style_label_up, color = label_color_neutral, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttDoji : "")
+C_GravestoneDojiBearishNumberOfCandles = 1
+C_GravestoneDojiBearish = C_IsDojiBody and C_DnShadow <= C_Body
+//alertcondition(C_GravestoneDojiBearish, title = "Gravestone Doji – Bearish", message = "New Gravestone Doji – Bearish pattern detected")
+if C_GravestoneDojiBearish  and  GravestoneDojiInput and (("Bearish" == CandleType) or CandleType == "Both")
+
+    var ttBearishGravestoneDoji = "Gravestone Doji\nWhen a doji is at or is close to the day’s low point, a doji line will develop."
+    label.new(bar_index, patternLabelPosHigh, text="GD", style=label.style_label_down, color = label_color_bearish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBearishGravestoneDoji : "")
+C_DragonflyDojiBullishNumberOfCandles = 1
+C_DragonflyDojiBullish = C_IsDojiBody and C_UpShadow <= C_Body
+//alertcondition(C_DragonflyDojiBullish, title = "Dragonfly Doji – Bullish", message = "New Dragonfly Doji – Bullish pattern detected")
+if C_DragonflyDojiBullish  and  DragonflyDojiInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishDragonflyDoji = "Dragonfly Doji\nSimilar to other Doji days, this particular Doji also regularly appears at pivotal market moments. This is a specific Doji where both the open and close price are at the high of a given day."
+    label.new(bar_index, patternLabelPosLow, text="DD", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishDragonflyDoji : "")
+
+C_EngulfingBullishNumberOfCandles = 2
+C_EngulfingBullish = C_DownTrend and C_WhiteBody and C_LongBody and C_BlackBody[1] and C_SmallBody[1] and close >= open[1] and open <= close[1] and ( close > open[1] or open < close[1] )
+//alertcondition(C_EngulfingBullish, title = "Engulfing – Bullish", message = "New Engulfing – Bullish pattern detected")
+if C_EngulfingBullish  and  EngulfingInput and (("Bullish" == CandleType) or CandleType == "Both")
+
+    var ttBullishEngulfing = "Engulfing\nAt the end of a given downward trend, there will most likely be a reversal pattern. To distinguish the first day, this candlestick pattern uses a small body, followed by a day where the candle body fully overtakes the body from the day before, and closes in the trend’s opposite direction. Although similar to the outside reversal chart pattern, it is not essential for this pattern to completely overtake the range (high to low), rather only the open and the close."
+    label.new(bar_index, patternLabelPosLow, text="BE", style=label.style_label_up, color = label_color_bullish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBullishEngulfing : "")
+C_EngulfingBearishNumberOfCandles = 2
+C_EngulfingBearish = C_UpTrend and C_BlackBody and C_LongBody and C_WhiteBody[1] and C_SmallBody[1] and close <= open[1] and open >= close[1] and ( close < open[1] or open > close[1] )
+//(C_EngulfingBearish, title = "Engulfing – Bearish", message = "New Engulfing – Bearish pattern detected")
+if C_EngulfingBearish  and  EngulfingInput and (("Bearish" == CandleType) or CandleType == "Both")
+
+    var ttBearishEngulfing = "Engulfing\nAt the end of a given uptrend, a reversal pattern will most likely appear. During the first day, this candlestick pattern uses a small body. It is then followed by a day where the candle body fully overtakes the body from the day before it and closes in the trend’s opposite direction. Although similar to the outside reversal chart pattern, it is not essential for this pattern to fully overtake the range (high to low), rather only the open and the close."
+    label.new(bar_index, patternLabelPosHigh, text="BE", style=label.style_label_down, color = label_color_bearish, textcolor=#ffffffc1, tooltip = showPatternTooltips ? ttBearishEngulfing : "")
+
+// --- Three Line Strike (integriert, mit Original-Darstellung) ---
+var float bullish_3ls_low_point = na
+var float bearish_3ls_high_point = na
+
+// Bullish Three Line Strike
+C_Bullish3LS_ThreeBear = C_BlackBody[1] and C_BlackBody[2] and C_BlackBody[3]
+C_Bullish3LS_Closes = close[3] > close[2] and close[2] > close[1]
+C_Bullish3LS = C_WhiteBody and close > open[3] and high > high[3] and C_Bullish3LS_ThreeBear and C_Bullish3LS_Closes
+alertcondition(C_Bullish3LS and ThreeLineStrikeInput and (not ThreeLineStrikeVolFilter or volume > ob_avgVol) and (("Bullish" == CandleType) or CandleType == "Both"), title = "Three Line Strike – Bullish", message = "New Three Line Strike – Bullish pattern detected")
+
+if C_Bullish3LS and ThreeLineStrikeInput and (not ThreeLineStrikeVolFilter or volume > ob_avgVol) and (("Bullish" == CandleType) or CandleType == "Both")
+    if barstate.isconfirmed
+        highest_3ls = math.max(high, high[1], high[2], high[3])
+        lowest_3ls = math.min(low, low[1], low[2], low[3])
+        bullish_3ls_low_point := lowest_3ls
+        box.new(bar_index[4], highest_3ls, bar_index + 1, lowest_3ls, bgcolor = color.new(label_color_bullish, 80), border_color = na)
+
+// Bearish Three Line Strike
+C_Bearish3LS_ThreeBull = C_WhiteBody[1] and C_WhiteBody[2] and C_WhiteBody[3]
+C_Bearish3LS_Closes = close[3] < close[2] and close[2] < close[1]
+C_Bearish3LS = C_BlackBody and close < open[3] and low < low[3] and C_Bearish3LS_ThreeBull and C_Bearish3LS_Closes
+alertcondition(C_Bearish3LS and ThreeLineStrikeInput and (not ThreeLineStrikeVolFilter or volume > ob_avgVol) and (("Bearish" == CandleType) or CandleType == "Both"), title = "Three Line Strike – Bearish", message = "New Three Line Strike – Bearish pattern detected")
+
+if C_Bearish3LS and ThreeLineStrikeInput and (not ThreeLineStrikeVolFilter or volume > ob_avgVol) and (("Bearish" == CandleType) or CandleType == "Both")
+    if barstate.isconfirmed
+        highest_3ls = math.max(high, high[1], high[2], high[3])
+        lowest_3ls = math.min(low, low[1], low[2], low[3])
+        bearish_3ls_high_point := highest_3ls
+        box.new(bar_index[4], highest_3ls, bar_index + 1, lowest_3ls, bgcolor = color.new(label_color_bearish, 80), border_color = na)
+
+// Plotshape für die Labels (getrennt von der Logik für saubere Darstellung)
+plotshape(C_Bullish3LS and ThreeLineStrikeInput and (not ThreeLineStrikeVolFilter or volume > ob_avgVol) and (("Bullish" == CandleType) or CandleType == "Both") ? bullish_3ls_low_point : na, size = size.small, style = shape.labelup, location = location.absolute, text = "3 Line Strike", textcolor = color.white, color = color.new(label_color_bullish, 20))
+
+plotshape(C_Bearish3LS and ThreeLineStrikeInput and (not ThreeLineStrikeVolFilter or volume > ob_avgVol) and (("Bearish" == CandleType) or CandleType == "Both") ? bearish_3ls_high_point : na, size = size.small, style = shape.labeldown, location = location.absolute, text = "3 Line Strike", textcolor = color.white, color = color.new(label_color_bearish, 20))
+
+//---------------------------------------------------------------------------------------------------------------------
+// Three Bar Reversal Pattern Logic
+//---------------------------------------------------------------------------------------------------------------------
+
+tb_maFast = f_tb_movingAverage(close, tb_maFLength, tb_maType)
+tb_maSlow = f_tb_movingAverage(close, tb_maSLength, tb_maType)
+
+// Trend Visuals using Lines to bypass 64 plot limit
+if barstate.isconfirmed
+    if tb_trendType == 'Moving Average Cloud' and not na(tb_maFast) and not na(tb_maSlow)
+        tb_maColor = tb_maFast > tb_maSlow ? tb_trendAC : tb_trendSC
+        l1 = line.new(bar_index[1], tb_maFast[1], bar_index, tb_maFast, color=color.new(tb_maColor, 81))
+        l2 = line.new(bar_index[1], tb_maSlow[1], bar_index, tb_maSlow, color=color.new(tb_maColor, 73))
+        linefill.new(l1, l2, color.new(tb_maColor, tb_maFast > tb_maSlow ? 85 : 95))
+
+[tb_supertrend, tb_direction] = ta.supertrend(tb_factor, tb_atrPeriod)
+tb_supertrend := barstate.isfirst ? na : tb_supertrend
+
+if barstate.isconfirmed and tb_trendType == 'Supertrend' and not na(tb_supertrend)
+    st_color = tb_direction < 0 ? tb_trendAC : tb_trendSC
+    l1 = line.new(bar_index[1], tb_supertrend[1], bar_index, tb_supertrend, color=color.new(st_color, 73), width=2)
+    l2 = line.new(bar_index[1], (open[1]+close[1])/2, bar_index, (open+close)/2, color=color.new(chart.bg_color, 100))
+    linefill.new(l1, l2, color.new(st_color, 81))
+
+tb_dc_upper = ta.highest(close, tb_length)
+tb_dc_lower = ta.lowest(close, tb_length)
+tb_dc_os := tb_dc_upper > tb_dc_upper[1] ? 1 : tb_dc_lower < tb_dc_lower[1] ? 0 : tb_dc_os
+
+if barstate.isconfirmed and tb_trendType == 'Donchian Channels' and not na(tb_dc_upper)
+    dc_color = tb_dc_os == 1 ? tb_trendAC : tb_trendSC
+    l1 = line.new(bar_index[1], tb_dc_upper[1], bar_index, tb_dc_upper, color=color.new(dc_color, 81))
+    l2 = line.new(bar_index[1], tb_dc_lower[1], bar_index, tb_dc_lower, color=color.new(dc_color, 81))
+    linefill.new(l1, l2, color.new(dc_color, 85))
+
+tb_C_DownTrend = true
+tb_C_UpTrend = true
+
+if tb_trendType == 'Moving Average Cloud'
+    if tb_trendFilt == 'Aligned'
+        tb_C_DownTrend := close < tb_maFast and tb_maFast < tb_maSlow
+        tb_C_UpTrend := close > tb_maFast and tb_maFast > tb_maSlow
+    else if tb_trendFilt == 'Opposite'
+        tb_C_DownTrend := close > tb_maFast and tb_maFast > tb_maSlow
+        tb_C_UpTrend := close < tb_maFast and tb_maFast < tb_maSlow
+
+if tb_trendType == 'Supertrend'
+    if tb_trendFilt == 'Aligned'
+        tb_C_DownTrend := tb_direction > 0
+        tb_C_UpTrend := tb_direction < 0
+    else if tb_trendFilt == 'Opposite'
+        tb_C_DownTrend := tb_direction < 0
+        tb_C_UpTrend := tb_direction > 0
+
+if tb_trendType == 'Donchian Channels'
+    if tb_trendFilt == 'Aligned'
+        tb_C_DownTrend := tb_dc_os == 0
+        tb_C_UpTrend := tb_dc_os == 1
+    else if tb_trendFilt == 'Opposite'
+        tb_C_DownTrend := tb_dc_os == 1
+        tb_C_UpTrend := tb_dc_os == 0
+
+tb_bullishReversal = f_tb_isBullishReversal() and tb_C_UpTrend
+tb_bearishReversal = f_tb_isBearishReversal() and tb_C_DownTrend
+
+if tb_bullishReversal and (tb_brpType == 'All' ? true : tb_brpType == 'Enhanced' ? close > high[2] ? true : false : tb_brpType == 'Normal' ? close < high[2] ? true : false : false)
+    tb_bullProcess := true
+    tb_lbAT := label.new(bar_index, low, '▲', color = color(na), textcolor = color.new(tb_brpAC, 07), style = label.style_label_up, size = size.small, tooltip = 'new bullish pattern detected' + (close > high[2] ? ' (enchanced)' : ' (normal)'))
+    tb_lnAT := line.new(bar_index[2], high[2], bar_index, high[2], color = color.new(tb_brpAC, 53))
+    tb_lnAB := line.new(bar_index[1], math.min(low[1], low), bar_index[0], math.min(low[1], low), color = color.new(tb_brpAC, 53))
+    linefill.new(tb_lnAT, tb_lnAB, color.new(tb_brpAC, 73))
+    tb_lnAT2 := line.new(bar_index[2], high[2], bar_index, high[2], color = color.new(tb_brpAC, 53))
+    tb_lnAB2 := line.new(bar_index[1], math.min(low[1], low), bar_index[0], math.min(low[1], low), color = color.new(tb_brpAC, 53))
+    tb_bullHigh := tb_brpSR == 'Zone' ? math.max(low[1], low) : math.min(low[1], low)
+
+if tb_bullProcess
+    if close[1] > tb_lnAT.get_price(bar_index)
+        if tb_bullProcess[1] and tb_bullProcess[1] != tb_bullProcess[2]
+            tb_lbAT.set_tooltip('enchanced pattern (confirmed at detection)\nprice activity above the pattern high')
+        else
+            tb_lbAT.set_tooltip('pattern confirmed ' + str.tostring(bar_index[1] - tb_lbAT.get_x()) + ' bars later')
+            label.new(bar_index[1], low[1], '⦁', color = color(na), textcolor = color.new(tb_brpAC, 07), style = label.style_label_up, size = size.small, tooltip = 'confirmation bar\nprice activity above the pattern high')
+        tb_bullProcess := false
+        tb_bxA := box.new(bar_index, tb_bullHigh, bar_index, tb_lnAB.get_price(bar_index), color.new(tb_brpAC, tb_brpSR == 'Zone' ? 73 : 53), bgcolor = color.new(tb_brpAC, 73))
+        tb_bullProcess2 := true
+
+    if close[1] < tb_lnAB.get_price(bar_index) or tb_bearishReversal
+        tb_lbAT.set_tooltip('pattern failed\nthe low of the pattern breached')
+        tb_bullProcess := false
+
+    if not tb_bullProcess
+        tb_lnAT2.set_x2(bar_index[1])
+        tb_lnAB2.set_x2(bar_index[1])
+    else
+        tb_lnAT2.set_x2(bar_index)
+        tb_lnAB2.set_x2(bar_index)
+
+if tb_bullProcess2 and tb_brpSR != 'None'
+    if close > tb_bxA.get_bottom()
+        tb_bxA.set_right(bar_index)
+    else
+        tb_bxA.set_right(bar_index)
+        tb_bullProcess2 := false
+
+if tb_bearishReversal and (tb_brpType == 'All' ? true : tb_brpType == 'Enhanced' ? close < low[2] ? true : false : tb_brpType == 'Normal' ? close > low[2] ? true : false : false)
+    tb_bearProcess := true
+    tb_lbST := label.new(bar_index, high, '▼', color = color(na), textcolor = color.new(tb_brpSC, 07), style = label.style_label_down, size = size.small, tooltip = 'new bearish pattern detected' + (close < low[2] ? ' (enchanced)' : ' (normal)'))
+    tb_lnSB := line.new(bar_index[2], low[2], bar_index, low[2], color = color.new(tb_brpSC, 53))
+    tb_lnST := line.new(bar_index[1], math.max(high[1], high), bar_index[0], math.max(high[1], high), color = color.new(tb_brpSC, 53))
+    linefill.new(tb_lnST, tb_lnSB, color.new(tb_brpSC, 73))
+    tb_lnSB2 := line.new(bar_index[2], low[2], bar_index, low[2], color = color.new(tb_brpSC, 53))
+    tb_lnST2 := line.new(bar_index[1], math.max(high[1], high), bar_index[0], math.max(high[1], high), color = color.new(tb_brpSC, 53))
+    tb_bearLow := tb_brpSR == 'Zone' ? math.min(high[1], high) : math.max(high[1], high)
+
+if tb_bearProcess
+    if close[1] > tb_lnST.get_price(bar_index) or tb_bullishReversal
+        tb_lbST.set_tooltip('pattern failed\nthe high of the pattern breached')
+        tb_bearProcess := false
+
+    if close[1] < tb_lnSB.get_price(bar_index)
+        if tb_bearProcess[1] and tb_bearProcess[1] != tb_bearProcess[2]
+            tb_lbST.set_tooltip('enchanced pattern (confirmed at detection)\nprice activity below the pattern low')
+        else
+            tb_lbST.set_tooltip('pattern confirmed ' + str.tostring(bar_index[1] - tb_lbST.get_x()) + ' bars later')
+            label.new(bar_index[1], high[1], '⦁', color = color(na), textcolor = color.new(tb_brpSC, 07), style = label.style_label_down, size = size.small, tooltip = 'confirmation bar\nprice activity blow the pattern low')
+        tb_bearProcess := false
+        tb_bxS := box.new(bar_index, tb_lnST.get_price(bar_index), bar_index, tb_bearLow, color.new(tb_brpSC, tb_brpSR == 'Zone' ? 73 : 53), bgcolor = color.new(tb_brpSC, 73))
+        tb_bearProcess2 := true
+
+    if not tb_bearProcess
+        tb_lnST2.set_x2(bar_index[1])
+        tb_lnSB2.set_x2(bar_index[1])
+    else
+        tb_lnST2.set_x2(bar_index)
+        tb_lnSB2.set_x2(bar_index)
+
+if tb_bearProcess2 and tb_brpSR != 'None'
+    if close < tb_bxS.get_top()
+        tb_bxS.set_right(bar_index)
+    else
+        tb_bxS.set_right(bar_index)
+        tb_bearProcess2 := false
