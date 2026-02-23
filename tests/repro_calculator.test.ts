@@ -21,7 +21,7 @@ import { getEmptyData } from '../src/services/technicalsTypes';
 import { Decimal } from 'decimal.js';
 
 describe('calculateAllIndicators Repro', () => {
-    it('should return 0 for EMA 200 when insufficient data (current behavior)', () => {
+    it('should NOT return EMA 200 when insufficient data (fixed behavior)', () => {
         // Create 100 klines
         const klines = Array.from({ length: 100 }, (_, i) => ({
             time: i * 60000,
@@ -43,9 +43,8 @@ describe('calculateAllIndicators Repro', () => {
 
         const result = calculateAllIndicators(klines, settings);
 
+        // EMA 200 should NOT be in the results because 100 < 200
         const ema200 = result.movingAverages.find(ma => ma.params === '200');
-        expect(ema200).toBeDefined();
-        // Das ist der Bug: Es ist 0, obwohl es NaN sein sollte
-        expect(ema200?.value).toBe(0);
+        expect(ema200).toBeUndefined();
     });
 });

@@ -612,8 +612,9 @@ export function calculateIndicatorsFromArrays(
     // Parabolic SAR
     if (shouldCalculate('parabolicSar')) {
         const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
+        const psarInc = (settings?.parabolicSar as any)?.increment || 0.02;
         const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
-        const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
+        const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarInc, psarMax);
         advancedInfo.parabolicSar = psarSeries[psarSeries.length - 1];
     }
 

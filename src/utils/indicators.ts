@@ -1165,12 +1165,12 @@ export const JSIndicators = {
     };
   },
 
-  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2): Float64Array {
+  psar(high: NumberArray, low: NumberArray, start: number, increment: number, max: number): Float64Array {
     const result = new Float64Array(high.length).fill(NaN);
     if (high.length < 2) return result;
 
     let isLong = true;
-    let af = accel;
+    let af = start;
     let ep = high[0]; // Extreme Point
     let sar = low[0];
 
@@ -1199,7 +1199,7 @@ export const JSIndicators = {
           reversed = true;
           nextSar = ep;
           ep = low[i];
-          af = accel;
+          af = start;
         }
       } else {
         if (high[i] > nextSar) {
@@ -1207,7 +1207,7 @@ export const JSIndicators = {
           reversed = true;
           nextSar = ep;
           ep = high[i];
-          af = accel;
+          af = start;
         }
       }
 
@@ -1216,12 +1216,12 @@ export const JSIndicators = {
         if (isLong) {
           if (high[i] > ep) {
             ep = high[i];
-            af = Math.min(af + accel, max);
+            af = Math.min(af + increment, max);
           }
         } else {
           if (low[i] < ep) {
             ep = low[i];
-            af = Math.min(af + accel, max);
+            af = Math.min(af + increment, max);
           }
         }
       }
@@ -2000,7 +2000,7 @@ export const indicators = {
     if (high.length < 2) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
-    const res = JSIndicators.psar(h, l, increment, max);
+    const res = JSIndicators.psar(h, l, start, increment, max);
     return new Decimal(res[res.length - 1]);
   },
 
