@@ -161,39 +161,19 @@ const workerManager = new TechnicalsWorkerManager();
 const settingsCache = new WeakMap<object, string>();
 const indicatorsCache = new WeakMap<object, string>();
 
-// Optimization: Extremely fast serializer that skips function generation overhead and quotes
-function fastSerialize(obj: any): string {
-  if (!obj) return "";
-  let res = "";
-  for (const k in obj) {
-      if (k === '_cachedJson') continue;
-      const v = obj[k];
-      if (typeof v === 'object' && v !== null) {
-          res += k + "{";
-          for (const subK in v) {
-              res += subK + ":" + v[subK] + ",";
-          }
-          res += "}";
-      } else {
-          res += k + ":" + v + ",";
-      }
-  }
-  return res;
-}
-
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any, enabledIndicators?: any): string {
   let sPart = settings?._cachedJson;
   if (!sPart) {
     sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : null;
     if (!sPart) {
-      sPart = fastSerialize(settings);
+      sPart = JSON.stringify(settings);
       if (settings && typeof settings === 'object') settingsCache.set(settings, sPart);
     }
   }
 
   let iPart = (enabledIndicators && typeof enabledIndicators === 'object') ? indicatorsCache.get(enabledIndicators) : null;
   if (!iPart) {
-    iPart = fastSerialize(enabledIndicators);
+    iPart = JSON.stringify(enabledIndicators);
     if (enabledIndicators && typeof enabledIndicators === 'object') indicatorsCache.set(enabledIndicators, iPart);
   }
 
@@ -252,8 +232,6 @@ export const technicalsService = {
     
     try {
       let finalResult: TechnicalsData | undefined;
-      let actualEngine = engine;
-      const startMs = performance.now();
       
       if (engine === 'wasm') {
         const { wasmCalculator } = await import("./wasmCalculator");
@@ -269,16 +247,11 @@ export const technicalsService = {
 
       if (!finalResult) {
           if (workerManager.isHealthy()) {
-            actualEngine = 'auto'; // Will use TS worker
             finalResult = await this.calculateWithWorker(klines, finalSettings, enabledIndicators);
           } else {
-            actualEngine = 'ts'; // Inline
             finalResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
           }
       }
-      
-      const duration = performance.now() - startMs;
-      calculationStrategy.recordMetrics(actualEngine === 'auto' ? 'ts' : actualEngine, duration, true, klines.length);
 
       // Cache storage
 
@@ -293,15 +266,7 @@ export const technicalsService = {
       return finalResult;
     } catch (e) {
       logger.warn('technicals', "Engine fallback triggered", e);
-      // Engine failed, record failure
-      calculationStrategy.recordMetrics(engine === 'auto' ? 'ts' : engine, 0, false, klines.length);
-      
-      const startFallback = performance.now();
-      const fallbackResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
-      const fallbackDuration = performance.now() - startFallback;
-      calculationStrategy.recordMetrics('ts', fallbackDuration, true, klines.length);
-      
-      return fallbackResult;
+      return this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
     }
   },
 
