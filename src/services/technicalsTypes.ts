@@ -174,6 +174,10 @@ export interface TechnicalsData {
       rows: { priceStart: number; priceEnd: number; volume: number }[];
     };
     volumeMa?: number;
+    marketStructure?: {
+        highs: { index: number; value: number; type: "HH" | "LH" }[];
+        lows: { index: number; value: number; type: "LL" | "HL" }[];
+    };
   };
   lastUpdated?: number;
 }

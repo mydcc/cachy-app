@@ -233,24 +233,12 @@ export function calculateIndicatorsFromArrays(
       kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK, kLine, pool);
 
       if (stochKSmooth > 1) {
-          // If smoothing, we might need another buffer or overwrite?
-          // JSIndicators.sma returns new/out.
-          // We can overwrite kLine if we don't need raw anymore.
-          // But sma needs input and output.
-          // If we pass kLine as input and output, SMA implementation needs to be safe for in-place.
-          // SMA is safe for in-place?
-          // sum = sum - data[i-period] + data[i]. If data is result, data[i] is overwritten before read?
-          // No, result[i] is written. data[i] is read. If result === data, then data[i] is effectively new value.
-          // Next iteration reads data[i].
-          // So SMA is NOT safe for in-place if period > 1.
-
           let smoothed: Float64Array | undefined;
           if (pool) {
               smoothed = pool.acquire(len);
               cleanupBuffers.push(smoothed);
           }
           kLine = JSIndicators.sma(kLine!, stochKSmooth, smoothed);
-          // Note: kLine now points to smoothed. The original kLine buffer is still in cleanupBuffers.
       }
 
       let dLine: Float64Array | undefined;
@@ -266,7 +254,6 @@ export function calculateIndicatorsFromArrays(
       const stochDVal = dLine[dLine.length - 1];
 
       let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      // Classic Stoch Strategy
       if (stochKVal < 20 && stochDVal < 20 && stochKVal > stochDVal)
         stochAction = "Buy";
       else if (stochKVal > 80 && stochDVal > 80 && stochKVal < stochDVal)
@@ -329,7 +316,7 @@ export function calculateIndicatorsFromArrays(
     // 4. ADX (Trend Strength)
     if (shouldCalculate('adx')) {
       const adxLen = settings?.adx?.adxSmoothing || 14;
-      const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
+      const adxDiLen = settings?.adx?.diLength || 14;
 
       let adxResults: Float64Array | undefined;
       if (pool) {
@@ -338,16 +325,11 @@ export function calculateIndicatorsFromArrays(
       }
 
       adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen, adxResults, pool);
-      // Note: JSIndicators.adx implementation might use a single length for both currently.
-      // If we want separate DI length, we'd need to update JSIndicators.adx signature.
-      // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
       const adxVal = adxResults[adxResults.length - 1];
       const adxThreshold = settings?.adx?.threshold || 25;
       indSeries["ADX"] = adxResults;
 
       let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      // ADX itself just means trend strength, direction comes from price or DMI (omitted for brevity here but could add)
-      // If strong trend, we assume continuation of current short term trend
       if (adxVal > adxThreshold) {
         const prevClose = closesNum[closesNum.length - 2];
         adxAction = currentPrice > prevClose ? "Buy" : "Sell";
@@ -411,7 +393,7 @@ export function calculateIndicatorsFromArrays(
       const macdVal = macdRes.macd[macdRes.macd.length - 1];
       const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
       const macdHist = macdVal - macdSignalVal;
-      indSeries["MACD"] = macdRes.macd; // Scan divergences on MACD line
+      indSeries["MACD"] = macdRes.macd;
 
       let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (macdVal > macdSignalVal) macdAction = "Buy";
@@ -427,13 +409,13 @@ export function calculateIndicatorsFromArrays(
       });
     }
 
-    // 7. StochRSI (NEW)
+    // 7. StochRSI
     if (shouldCalculate('stochrsi')) {
         const stochRsiK = settings?.stochRsi?.kPeriod || 3;
         const stochRsiD = settings?.stochRsi?.dPeriod || 3;
         const stochRsiLen = settings?.stochRsi?.length || 14;
         const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
-        const stochRsiSmooth = 1; // Not yet in settings, assume 1
+        const stochRsiSmooth = 1;
 
         let outK: Float64Array | undefined;
         let outD: Float64Array | undefined;
@@ -458,7 +440,6 @@ export function calculateIndicatorsFromArrays(
         const srD = srRes.d[srRes.d.length - 1];
 
         let srAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-        // StochRSI logic similar to Stoch but more sensitive
         if (srK < 20 && srD < 20 && srK > srD) srAction = "Buy";
         else if (srK > 80 && srD > 80 && srK < srD) srAction = "Sell";
 
@@ -471,12 +452,11 @@ export function calculateIndicatorsFromArrays(
         });
     }
 
-    // 8. Williams %R (NEW)
+    // 8. Williams %R
     if (shouldCalculate('williamsr')) {
         const wRLen = settings?.williamsR?.length || 14;
         const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
         const wRVal = wR[wR.length - 1];
-        // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
         let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
         if (wRVal < -80) wRAction = "Buy";
         else if (wRVal > -20) wRAction = "Sell";
@@ -496,8 +476,6 @@ export function calculateIndicatorsFromArrays(
 
   // --- Divergences Scan ---
   try {
-    // Scanners: RSI, MACD, CCI, StochK
-    // We only scan for what we calculated
     const scanList = [
       { name: "RSI", data: indSeries["RSI"] },
       { name: "MACD", data: indSeries["MACD"] },
@@ -506,7 +484,6 @@ export function calculateIndicatorsFromArrays(
       { name: "AO", data: indSeries["AO"] },
     ].filter(i => !!i.data);
 
-    // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)
     scanList.forEach((item) => {
       const results = DivergenceScanner.scan(
         highsNum,
@@ -537,7 +514,6 @@ export function calculateIndicatorsFromArrays(
   // --- Advanced / New Indicators ---
   let advancedInfo: TechnicalsData["advanced"] = {};
   try {
-    // Phase 5: Pro Indicators Calculations
     if (shouldCalculate('supertrend')) {
         const stResult = JSIndicators.superTrend(
         highsNum,
@@ -593,7 +569,6 @@ export function calculateIndicatorsFromArrays(
         }
     }
 
-    // VWAP
     if (shouldCalculate('vwap')) {
         const vwapSeries = JSIndicators.vwap(
         highsNum,
@@ -609,7 +584,6 @@ export function calculateIndicatorsFromArrays(
         advancedInfo.vwap = vwapSeries[vwapSeries.length - 1];
     }
 
-    // Parabolic SAR
     if (shouldCalculate('parabolicSar')) {
         const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
         const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
@@ -617,7 +591,6 @@ export function calculateIndicatorsFromArrays(
         advancedInfo.parabolicSar = psarSeries[psarSeries.length - 1];
     }
 
-    // MFI
     if (shouldCalculate('mfi')) {
         const mfiLen = settings?.mfi?.length || 14;
         const mfiVal = calculateMFI(
@@ -629,12 +602,11 @@ export function calculateIndicatorsFromArrays(
         );
         let mfiAction = "Neutral";
         if (mfiVal > 80)
-        mfiAction = "Sell"; // Overbought
-        else if (mfiVal < 20) mfiAction = "Buy"; // Oversold
+        mfiAction = "Sell";
+        else if (mfiVal < 20) mfiAction = "Buy";
         advancedInfo.mfi = { value: mfiVal, action: mfiAction };
     }
 
-    // Choppiness
     if (shouldCalculate('choppiness')) {
         const chopLen = settings?.choppiness?.length || 14;
         const chopSeries = JSIndicators.choppiness(
@@ -644,14 +616,12 @@ export function calculateIndicatorsFromArrays(
         chopLen,
         );
         const chopVal = chopSeries[chopSeries.length - 1];
-        // > 61.8 = Consolidation/Chop, < 38.2 = Trending
         advancedInfo.choppiness = {
         value: chopVal,
         state: chopVal > 61.8 ? "Range" : chopVal < 38.2 ? "Trend" : "Range",
         };
     }
 
-    // Ichimoku
     if (shouldCalculate('ichimoku')) {
         const ichiConv = settings?.ichimoku?.conversionPeriod || 9;
         const ichiBase = settings?.ichimoku?.basePeriod || 26;
@@ -672,8 +642,6 @@ export function calculateIndicatorsFromArrays(
         const spanA = ichi.spanA[idx] || 0;
         const spanB = ichi.spanB[idx] || 0;
 
-        // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
-        // Price < Cloud && Conv < Base = Sell
         let ichiAction = "Neutral";
         const cloudTop = spanA > spanB ? spanA : spanB;
         const cloudBottom = spanA < spanB ? spanA : spanB;
@@ -695,6 +663,38 @@ export function calculateIndicatorsFromArrays(
         action: ichiAction,
         };
     }
+
+    // --- Market Structure (New) ---
+    if (shouldCalculate('marketStructure')) {
+        const structPeriod = settings?.marketStructure?.period || 5;
+        const structRes = JSIndicators.marketStructure(highsNum, lowsNum, structPeriod);
+
+        advancedInfo.marketStructure = {
+            highs: structRes.highs,
+            lows: structRes.lows
+        };
+    }
+
+    // --- Volume MA (New) ---
+    if (shouldCalculate('volumeMa')) {
+        const vmaLen = settings?.volumeMa?.length || 20;
+        const vmaType = settings?.volumeMa?.maType || 'sma';
+
+        // Use generic EMA/SMA/WMA
+        let vmaRes: Float64Array;
+
+        // Note: We create new Float64Array here, could optimize with pool if critical
+        if (vmaType === 'ema') {
+            vmaRes = JSIndicators.ema(volumesNum, vmaLen);
+        } else if (vmaType === 'wma') {
+            vmaRes = JSIndicators.wma(volumesNum, vmaLen);
+        } else {
+            vmaRes = JSIndicators.sma(volumesNum, vmaLen);
+        }
+
+        advancedInfo.volumeMa = vmaRes[vmaRes.length - 1];
+    }
+
   } catch (e) {
     if (import.meta.env.DEV) {
       console.error("Advanced Indicators Error:", e);
@@ -714,7 +714,6 @@ export function calculateIndicatorsFromArrays(
         for (const period of emaPeriods) {
         const emaResults = JSIndicators.ema(emaSource, period);
         const rawVal = emaResults[emaResults.length - 1];
-        // Handle insufficient data (NaN) by skipping
         if (typeof rawVal === 'number' && !isNaN(rawVal)) {
             movingAverages.push({
                 name: "EMA",
@@ -736,7 +735,6 @@ export function calculateIndicatorsFromArrays(
   const prevIdx = closesNum.length - 2;
   let pivotData;
 
-  // Note: getEmptyData returns dummy pivots.
   if (prevIdx >= 0 && shouldCalculate('pivots')) {
     pivotData = calculatePivotsFromValues(
       highsNum[prevIdx],
@@ -746,7 +744,6 @@ export function calculateIndicatorsFromArrays(
       pivotType
     );
   } else {
-    // Return empty/placeholder if disabled or not enough data
     pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
   }
 
@@ -807,8 +804,6 @@ export function calculateIndicatorsFromArrays(
     }
   }
 
-
-
   // --- Summary & Confluence ---
   let buy = 0;
   let sell = 0;
@@ -824,7 +819,6 @@ export function calculateIndicatorsFromArrays(
   if (buy > sell && buy > neutral) summaryAction = "Buy";
   else if (sell > buy && sell > neutral) summaryAction = "Sell";
 
-  // Construct Partial result for Confluence Analysis
   const partialData: Partial<TechnicalsData> = {
     oscillators,
     movingAverages,
@@ -835,7 +829,6 @@ export function calculateIndicatorsFromArrays(
 
   const confluence = ConfluenceAnalyzer.analyze(partialData);
 
-  // Cleanup buffers if pool was used
   if (pool) {
       for (const buf of cleanupBuffers) {
           pool.release(buf);
