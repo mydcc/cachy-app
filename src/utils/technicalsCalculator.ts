@@ -254,6 +254,7 @@ export function calculateIndicatorsFromArrays(
       const stochDVal = dLine[dLine.length - 1];
 
       let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+      // Classic Stoch Strategy
       if (stochKVal < 20 && stochDVal < 20 && stochKVal > stochDVal)
         stochAction = "Buy";
       else if (stochKVal > 80 && stochDVal > 80 && stochKVal < stochDVal)
@@ -330,6 +331,8 @@ export function calculateIndicatorsFromArrays(
       indSeries["ADX"] = adxResults;
 
       let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+      // ADX itself just means trend strength, direction comes from price or DMI (omitted for brevity here but could add)
+      // If strong trend, we assume continuation of current short term trend
       if (adxVal > adxThreshold) {
         const prevClose = closesNum[closesNum.length - 2];
         adxAction = currentPrice > prevClose ? "Buy" : "Sell";
@@ -393,7 +396,7 @@ export function calculateIndicatorsFromArrays(
       const macdVal = macdRes.macd[macdRes.macd.length - 1];
       const macdSignalVal = macdRes.signal[macdRes.signal.length - 1];
       const macdHist = macdVal - macdSignalVal;
-      indSeries["MACD"] = macdRes.macd;
+      indSeries["MACD"] = macdRes.macd; // Scan divergences on MACD line
 
       let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (macdVal > macdSignalVal) macdAction = "Buy";
@@ -415,7 +418,7 @@ export function calculateIndicatorsFromArrays(
         const stochRsiD = settings?.stochRsi?.dPeriod || 3;
         const stochRsiLen = settings?.stochRsi?.length || 14;
         const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
-        const stochRsiSmooth = 1;
+        const stochRsiSmooth = 1; // Not yet in settings, assume 1
 
         let outK: Float64Array | undefined;
         let outD: Float64Array | undefined;
@@ -440,6 +443,7 @@ export function calculateIndicatorsFromArrays(
         const srD = srRes.d[srRes.d.length - 1];
 
         let srAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+        // StochRSI logic similar to Stoch but more sensitive
         if (srK < 20 && srD < 20 && srK > srD) srAction = "Buy";
         else if (srK > 80 && srD > 80 && srK < srD) srAction = "Sell";
 
@@ -457,6 +461,7 @@ export function calculateIndicatorsFromArrays(
         const wRLen = settings?.williamsR?.length || 14;
         const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
         const wRVal = wR[wR.length - 1];
+        // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
         let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
         if (wRVal < -80) wRAction = "Buy";
         else if (wRVal > -20) wRAction = "Sell";
@@ -468,6 +473,21 @@ export function calculateIndicatorsFromArrays(
         action: wRAction,
         });
     }
+
+    // 9. Momentum (NEW)
+    if (shouldCalculate('momentum')) {
+        const momLen = settings?.momentum?.length || 10;
+        const momSource = getSource(settings?.momentum?.source || "close");
+        const momRes = JSIndicators.mom(momSource, momLen);
+        const momVal = momRes[momRes.length - 1];
+        oscillators.push({
+            name: "Momentum",
+            value: momVal,
+            params: momLen.toString(),
+            action: momVal > 0 ? "Buy" : "Sell"
+        });
+    }
+
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error("Error calculating oscillators:", error);
@@ -476,6 +496,8 @@ export function calculateIndicatorsFromArrays(
 
   // --- Divergences Scan ---
   try {
+    // Scanners: RSI, MACD, CCI, StochK
+    // We only scan for what we calculated
     const scanList = [
       { name: "RSI", data: indSeries["RSI"] },
       { name: "MACD", data: indSeries["MACD"] },
@@ -484,6 +506,7 @@ export function calculateIndicatorsFromArrays(
       { name: "AO", data: indSeries["AO"] },
     ].filter(i => !!i.data);
 
+    // Only scan if scanner itself is allowed (implied by indicator presence usually, but we could add separate control)
     scanList.forEach((item) => {
       const results = DivergenceScanner.scan(
         highsNum,
@@ -514,6 +537,7 @@ export function calculateIndicatorsFromArrays(
   // --- Advanced / New Indicators ---
   let advancedInfo: TechnicalsData["advanced"] = {};
   try {
+    // Phase 5: Pro Indicators Calculations
     if (shouldCalculate('supertrend')) {
         const stResult = JSIndicators.superTrend(
         highsNum,
@@ -569,6 +593,7 @@ export function calculateIndicatorsFromArrays(
         }
     }
 
+    // VWAP
     if (shouldCalculate('vwap')) {
         const vwapSeries = JSIndicators.vwap(
         highsNum,
@@ -584,6 +609,7 @@ export function calculateIndicatorsFromArrays(
         advancedInfo.vwap = vwapSeries[vwapSeries.length - 1];
     }
 
+    // Parabolic SAR
     if (shouldCalculate('parabolicSar')) {
         const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
         const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
@@ -591,6 +617,7 @@ export function calculateIndicatorsFromArrays(
         advancedInfo.parabolicSar = psarSeries[psarSeries.length - 1];
     }
 
+    // MFI
     if (shouldCalculate('mfi')) {
         const mfiLen = settings?.mfi?.length || 14;
         const mfiVal = calculateMFI(
@@ -602,11 +629,12 @@ export function calculateIndicatorsFromArrays(
         );
         let mfiAction = "Neutral";
         if (mfiVal > 80)
-        mfiAction = "Sell";
-        else if (mfiVal < 20) mfiAction = "Buy";
+        mfiAction = "Sell"; // Overbought
+        else if (mfiVal < 20) mfiAction = "Buy"; // Oversold
         advancedInfo.mfi = { value: mfiVal, action: mfiAction };
     }
 
+    // Choppiness
     if (shouldCalculate('choppiness')) {
         const chopLen = settings?.choppiness?.length || 14;
         const chopSeries = JSIndicators.choppiness(
@@ -616,12 +644,14 @@ export function calculateIndicatorsFromArrays(
         chopLen,
         );
         const chopVal = chopSeries[chopSeries.length - 1];
+        // > 61.8 = Consolidation/Chop, < 38.2 = Trending
         advancedInfo.choppiness = {
         value: chopVal,
         state: chopVal > 61.8 ? "Range" : chopVal < 38.2 ? "Trend" : "Range",
         };
     }
 
+    // Ichimoku
     if (shouldCalculate('ichimoku')) {
         const ichiConv = settings?.ichimoku?.conversionPeriod || 9;
         const ichiBase = settings?.ichimoku?.basePeriod || 26;
@@ -642,6 +672,8 @@ export function calculateIndicatorsFromArrays(
         const spanA = ichi.spanA[idx] || 0;
         const spanB = ichi.spanB[idx] || 0;
 
+        // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
+        // Price < Cloud && Conv < Base = Sell
         let ichiAction = "Neutral";
         const cloudTop = spanA > spanB ? spanA : spanB;
         const cloudBottom = spanA < spanB ? spanA : spanB;
@@ -714,6 +746,7 @@ export function calculateIndicatorsFromArrays(
         for (const period of emaPeriods) {
         const emaResults = JSIndicators.ema(emaSource, period);
         const rawVal = emaResults[emaResults.length - 1];
+        // Handle insufficient data (NaN) by skipping
         if (typeof rawVal === 'number' && !isNaN(rawVal)) {
             movingAverages.push({
                 name: "EMA",
@@ -724,6 +757,37 @@ export function calculateIndicatorsFromArrays(
         }
         }
     }
+
+    if (shouldCalculate('sma')) {
+        const periods = [settings?.sma?.sma1?.length || 9, settings?.sma?.sma2?.length || 21, settings?.sma?.sma3?.length || 50];
+        for (const p of periods) {
+            const res = JSIndicators.sma(closesNum, p);
+            const val = res[res.length - 1];
+            if (!isNaN(val)) movingAverages.push({ name: "SMA", params: `${p}`, value: val, action: currentPrice > val ? "Buy" : "Sell" });
+        }
+    }
+
+    if (shouldCalculate('wma')) {
+        const p = settings?.wma?.length || 14;
+        const res = JSIndicators.wma(closesNum, p);
+        const val = res[res.length - 1];
+        if (!isNaN(val)) movingAverages.push({ name: "WMA", params: `${p}`, value: val, action: currentPrice > val ? "Buy" : "Sell" });
+    }
+
+    if (shouldCalculate('vwma')) {
+        const p = settings?.vwma?.length || 20;
+        const res = JSIndicators.vwma(closesNum, volumesNum, p);
+        const val = res[res.length - 1];
+        if (!isNaN(val)) movingAverages.push({ name: "VWMA", params: `${p}`, value: val, action: currentPrice > val ? "Buy" : "Sell" });
+    }
+
+    if (shouldCalculate('hma')) {
+        const p = settings?.hma?.length || 9;
+        const res = JSIndicators.hma(closesNum, p);
+        const val = res[res.length - 1];
+        if (!isNaN(val)) movingAverages.push({ name: "HMA", params: `${p}`, value: val, action: currentPrice > val ? "Buy" : "Sell" });
+    }
+
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error("Error calculating moving averages:", error);
@@ -735,6 +799,7 @@ export function calculateIndicatorsFromArrays(
   const prevIdx = closesNum.length - 2;
   let pivotData;
 
+  // Note: getEmptyData returns dummy pivots.
   if (prevIdx >= 0 && shouldCalculate('pivots')) {
     pivotData = calculatePivotsFromValues(
       highsNum[prevIdx],
@@ -744,6 +809,7 @@ export function calculateIndicatorsFromArrays(
       pivotType
     );
   } else {
+    // Return empty/placeholder if disabled or not enough data
     pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
   }
 
@@ -804,6 +870,8 @@ export function calculateIndicatorsFromArrays(
     }
   }
 
+
+
   // --- Summary & Confluence ---
   let buy = 0;
   let sell = 0;
@@ -819,6 +887,7 @@ export function calculateIndicatorsFromArrays(
   if (buy > sell && buy > neutral) summaryAction = "Buy";
   else if (sell > buy && sell > neutral) summaryAction = "Sell";
 
+  // Construct Partial result for Confluence Analysis
   const partialData: Partial<TechnicalsData> = {
     oscillators,
     movingAverages,
@@ -829,6 +898,7 @@ export function calculateIndicatorsFromArrays(
 
   const confluence = ConfluenceAnalyzer.analyze(partialData);
 
+  // Cleanup buffers if pool was used
   if (pool) {
       for (const buf of cleanupBuffers) {
           pool.release(buf);
