@@ -18,27 +18,38 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { z } from "zod";
 
 interface ApiError extends Error {
   status?: number;
 }
 
-export const GET: RequestHandler = async ({ url }) => {
-  const symbol = url.searchParams.get("symbol");
-  const interval = url.searchParams.get("interval") || "1d";
-  const limitParam = url.searchParams.get("limit");
-  const startParam =
-    url.searchParams.get("startTime") || url.searchParams.get("start");
-  const endParam =
-    url.searchParams.get("endTime") || url.searchParams.get("end");
-  const provider = url.searchParams.get("provider") || "bitunix";
-  const limit = limitParam ? parseInt(limitParam) : 50;
-  const start = startParam ? parseInt(startParam) : undefined;
-  const end = endParam ? parseInt(endParam) : undefined;
+const QuerySchema = z.object({
+  symbol: z.string().min(1),
+  interval: z.string().default("1d"),
+  limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 50).pipe(z.number().int().positive().max(1000)),
+  start: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined).pipe(z.number().int().positive().optional()),
+  end: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined).pipe(z.number().int().positive().optional()),
+  provider: z.enum(["bitunix", "bitget"]).default("bitunix")
+});
 
-  if (!symbol) {
-    return json({ error: "Symbol is required" }, { status: 400 });
+export const GET: RequestHandler = async ({ url }) => {
+  const rawParams = {
+    symbol: url.searchParams.get("symbol") || undefined,
+    interval: url.searchParams.get("interval") || undefined,
+    limit: url.searchParams.get("limit") || undefined,
+    start: url.searchParams.get("startTime") || url.searchParams.get("start") || undefined,
+    end: url.searchParams.get("endTime") || url.searchParams.get("end") || undefined,
+    provider: url.searchParams.get("provider") || undefined,
+  };
+
+  const validation = QuerySchema.safeParse(rawParams);
+
+  if (!validation.success) {
+    return json({ error: "Invalid parameters", details: validation.error.format() }, { status: 400 });
   }
+
+  const { symbol, interval, limit, start, end, provider } = validation.data;
 
   try {
     let klines;

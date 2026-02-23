@@ -33,6 +33,7 @@
   import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
   import { Decimal } from "decimal.js";
+  import { parseLocaleNumber } from "../../utils/numberParsing";
 
   const dispatch = createEventDispatcher();
 
@@ -244,25 +245,7 @@
   // Helper to safely treat input as string, ensuring it's valid numeric format
   function parseInputVal(val: string): string | null | undefined {
     if (val === "") return null;
-
-    // Normalize dots and commas
-    const normalized = val.replace(",", ".");
-
-    // Strict validation:
-    // 1. Must be a valid number
-    // 2. Must not end with a dot (incomplete decimal)
-    // 3. Must not start with a dot without a leading zero (though parseFloat handles .123, APIs might not like it)
-
-    // Regex for complete, valid decimal number:
-    // ^\d+(\.\d+)?$  -> Matches "123", "123.45"
-    // Does NOT match "123.", ".45", "12.3.4"
-    if (/^\d+(\.\d+)?$/.test(normalized)) {
-        return normalized;
-    }
-
-    // Allow partial typing in local state (handled by bind:value), but return undefined for store update
-    // This prevents "123." from being sent to store until "123.4" is typed.
-    return undefined;
+    return parseLocaleNumber(val);
   }
 
   function handleEntryPriceInput(e: Event) {

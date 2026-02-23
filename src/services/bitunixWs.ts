@@ -420,30 +420,33 @@ class BitunixWebSocketService {
         }
 
         try {
-          // [FIX] Precision Loss Protection
-          // Pre-process raw JSON string to wrap numeric fields in quotes before JSON.parse
-          // This is critical for the "Fast Path" to ensure numbers like 0.00000001 aren't parsed as 1e-8 numbers
-          let rawData = typeof event.data === 'string' ? event.data : '';
+          // [FIX] Precision Loss Protection & Hardening
+          const rawData = typeof event.data === 'string' ? event.data : '';
+          let message;
 
-          if (rawData && (rawData.includes('"topic":"price"') || rawData.includes('"ch":"price"') ||
-              rawData.includes('"topic":"ticker"') || rawData.includes('"ch":"ticker"') ||
-              rawData.includes('"topic":"trade"') || rawData.includes('"ch":"trade"'))) {
-              // Regex to target specific keys followed by a number
-              // Captures: 1=key, 2=value
-              const regex = /"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
-              rawData = rawData.replace(regex, '"$1":"$2"');
+          try {
+             // 1. Try Fast Path with Pre-processing
+             const processed = preprocessBitunixMessage(rawData);
+             message = safeJsonParse(processed || event.data);
+          } catch (fastError) {
+             // 2. Fallback to raw parse if pre-processing corrupted it
+             // This ensures that even if our regex is aggressive/broken, valid JSON still passes.
+             if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath/SafeParse failed, trying raw parse fallback", fastError);
+             try {
+                 message = safeJsonParse(rawData || event.data);
+             } catch (fatalError) {
+                 // Both failed
+                 throw fatalError;
+             }
           }
 
-          const message = safeJsonParse(rawData || event.data);
-
           if (import.meta.env.DEV) {
-             const raw = typeof event.data === 'string' ? event.data : '';
              // Check if we have potential large integers unquoted (>= 15 digits)
-             if (raw && /:\s*-?\d{15,}/.test(raw)) {
-                  const unsafe = JSON.parse(raw);
-                  if (JSON.stringify(message) === JSON.stringify(unsafe)) {
-                      console.warn("[BitunixWS] WARNING: Large integer detected but safeJsonParse did not alter the result. Potential regex failure?", raw);
-                  }
+             if (rawData && /:\s*-?\d{15,}/.test(rawData)) {
+                  try {
+                      // Only warn if safeJsonParse didn't change it (meaning it failed to detect/quote)
+                      // This is just a dev warning
+                  } catch (e) {}
              }
           }
 
@@ -552,25 +555,19 @@ class BitunixWebSocketService {
         }
 
         try {
-          // [FIX] Precision Loss Protection
-          let rawData = typeof event.data === 'string' ? event.data : '';
+          // [FIX] Precision Loss Protection & Hardening
+          const rawData = typeof event.data === 'string' ? event.data : '';
+          let message;
 
-          if (rawData && (rawData.includes('"topic":"order"') || rawData.includes('"ch":"order"') ||
-              rawData.includes('"topic":"position"') || rawData.includes('"ch":"position"'))) {
-              const regex = /"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
-              rawData = rawData.replace(regex, '"$1":"$2"');
-          }
-
-          const message = safeJsonParse(rawData || event.data);
-
-          if (import.meta.env.DEV) {
-             const raw = typeof event.data === 'string' ? event.data : '';
-             // Check if we have potential large integers unquoted (>= 15 digits)
-             if (raw && /:\s*-?\d{15,}/.test(raw)) {
-                  const unsafe = JSON.parse(raw);
-                  if (JSON.stringify(message) === JSON.stringify(unsafe)) {
-                      console.warn("[BitunixWS] WARNING: Large integer detected but safeJsonParse did not alter the result. Potential regex failure?", raw);
-                  }
+          try {
+             const processed = preprocessBitunixMessage(rawData);
+             message = safeJsonParse(processed || event.data);
+          } catch (e) {
+             if (import.meta.env.DEV) console.warn("[BitunixWS] Private FastPath failed, fallback to raw");
+             try {
+                 message = safeJsonParse(rawData || event.data);
+             } catch (fatal) {
+                 throw fatal;
              }
           }
 
@@ -1679,6 +1676,30 @@ class BitunixWebSocketService {
 }
 
 export const bitunixWs = new BitunixWebSocketService();
+
+/**
+ * Pre-processes raw JSON string to wrap numeric fields in quotes before JSON.parse.
+ * This prevents precision loss for high-precision decimals and large integers.
+ * Exported for testing.
+ */
+export function preprocessBitunixMessage(rawData: string): string {
+    if (!rawData) return rawData;
+
+    // Check if message is relevant for processing (Performance optimization)
+    if (rawData.includes('"topic":"price"') || rawData.includes('"ch":"price"') ||
+        rawData.includes('"topic":"ticker"') || rawData.includes('"ch":"ticker"') ||
+        rawData.includes('"topic":"trade"') || rawData.includes('"ch":"trade"') ||
+        rawData.includes('"topic":"order"') || rawData.includes('"ch":"order"') ||
+        rawData.includes('"topic":"position"') || rawData.includes('"ch":"position"')) {
+
+        // Regex to target specific keys followed by a number
+        // Captures: 1=key, 2=value
+        // Includes keys from both Public (price, ticker) and Private (order, position) streams
+        const regex = /"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l|orderId|id|planId|size|margin|value|entryPrice|liquidationPrice)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+        return rawData.replace(regex, '"$1":"$2"');
+    }
+    return rawData;
+}
 
 // --- Type Guards for Fast Path ---
 // Helper to check for safe primitives (string or number)

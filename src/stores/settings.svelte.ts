@@ -12,6 +12,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
+import { z } from "zod";
 
 const SENSITIVE_KEYS: (keyof Settings)[] = [
   "openaiApiKey",
@@ -546,7 +547,22 @@ const defaultSettings: Settings = {
   dockingPosition: "top",
 };
 
+// Validation Schema
+const ApiKeysSchema = z.object({
+    key: z.string().optional(),
+    secret: z.string().optional(),
+    passphrase: z.string().optional()
+});
 
+const SettingsSchema = z.object({
+    apiProvider: z.enum(["bitunix", "bitget"]).catch("bitunix"),
+    marketAnalysisInterval: z.number().nonnegative().optional(),
+    favoriteSymbols: z.array(z.string()).optional(),
+    apiKeys: z.object({
+        bitunix: ApiKeysSchema.optional(),
+        bitget: ApiKeysSchema.optional()
+    }).optional()
+}).passthrough();
 
 export class SettingsManager {
   tradeFlowSettings = $state<TradeFlowSettings>(defaultSettings.tradeFlowSettings);
@@ -1068,7 +1084,18 @@ export class SettingsManager {
         return;
       }
 
-      const parsed = JSON.parse(d);
+      const rawParsed = JSON.parse(d);
+
+      // Validate critical fields
+      const validation = SettingsSchema.safeParse(rawParsed);
+      if (!validation.success && import.meta.env.DEV) {
+          console.warn("[Settings] Schema validation warning:", validation.error);
+      }
+
+      // Use validated data where possible, falling back to raw for unknown fields (passthrough)
+      // If validation failed completely (e.g. not an object), fall back to defaults (via empty object or similar logic if needed)
+      // But safeParse returns success:false if it fails.
+      const parsed = validation.success ? validation.data : rawParsed;
 
       // Deep merge apiKeys
       const mergedApiKeys = {
