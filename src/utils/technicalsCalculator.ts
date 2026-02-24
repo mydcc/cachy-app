@@ -363,7 +363,8 @@ export function calculateIndicatorsFromArrays(
 
       if (shouldCalculate('adx')) {
           const per = settings?.adx?.diLength || 14;
-          const res = calculateADXSeries(highsNum, lowsNum, closesNum, per);
+          const smooth = settings?.adx?.adxSmoothing || 14;
+          const res = calculateADXSeries(highsNum, lowsNum, closesNum, per, smooth);
 
           const idx = res.adx.length - 1;
           const val = res.adx[idx];

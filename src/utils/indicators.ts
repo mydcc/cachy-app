@@ -1735,7 +1735,7 @@ export const indicators = {
     high: (number | string | Decimal)[],
     low: (number | string | Decimal)[],
     close: (number | string | Decimal)[],
-    period: number = 14,
+    period: number, smoothingPeriod: number = 14,
   ): Decimal | null {
     if (close.length < period * 2) return null;
     const h = high.map(toNumFast);
@@ -1979,7 +1979,7 @@ export function calculateADXSeries(
   high: NumberArray,
   low: NumberArray,
   close: NumberArray,
-  period: number
+  period: number, smoothingPeriod: number = 14
 ): { adx: Float64Array; pdi: Float64Array; mdi: Float64Array } {
   const len = close.length;
   const adx = new Float64Array(len);
@@ -2025,7 +2025,7 @@ export function calculateADXSeries(
     dx[i] = sum === 0 ? 0 : (Math.abs(pVal - mVal) / sum) * 100;
   }
 
-  JSIndicators.smma(dx, period, adx);
+  JSIndicators.smma(dx, smoothingPeriod || period, adx);
 
   return { adx, pdi, mdi };
 }
