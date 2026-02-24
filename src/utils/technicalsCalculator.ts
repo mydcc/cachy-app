@@ -26,6 +26,7 @@ import {
   calculateAwesomeOscillator,
   calculateMFI,
   calculateCCISeries,
+  calculateADXSeries,
   calculatePivotsFromValues,
   getRsiAction,
   type Kline,
@@ -362,20 +363,12 @@ export function calculateIndicatorsFromArrays(
 
       if (shouldCalculate('adx')) {
           const per = settings?.adx?.diLength || 14;
-          const res = JSIndicators.adx(highsNum, lowsNum, closesNum, per) as unknown as { adx: Float64Array, pdi: Float64Array, mdi: Float64Array } | Float64Array;
+          const res = calculateADXSeries(highsNum, lowsNum, closesNum, per);
 
-          let val = 0, pdi = 0, mdi = 0;
-
-          if ('adx' in (res as any)) {
-             const r = res as { adx: Float64Array, pdi: Float64Array, mdi: Float64Array };
-             const idx = r.adx.length - 1;
-             val = r.adx[idx];
-             pdi = r.pdi[idx];
-             mdi = r.mdi[idx];
-          } else {
-             const r = res as Float64Array;
-             val = r[r.length - 1];
-          }
+          const idx = res.adx.length - 1;
+          const val = res.adx[idx];
+          const pdi = res.pdi[idx];
+          const mdi = res.mdi[idx];
 
           const trend = val > 25 ? "Strong Trend" : "Weak Trend";
           const dir = pdi > mdi ? "Bullish" : "Bearish";

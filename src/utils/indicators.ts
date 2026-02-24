@@ -1974,3 +1974,58 @@ export const indicators = {
     };
   },
 };
+
+export function calculateADXSeries(
+  high: NumberArray,
+  low: NumberArray,
+  close: NumberArray,
+  period: number
+): { adx: Float64Array; pdi: Float64Array; mdi: Float64Array } {
+  const len = close.length;
+  const adx = new Float64Array(len);
+  const pdi = new Float64Array(len);
+  const mdi = new Float64Array(len);
+
+  if (len < period * 2) return { adx, pdi, mdi };
+
+  const upMove = new Float64Array(len);
+  const downMove = new Float64Array(len);
+  const tr = new Float64Array(len);
+
+  const plusDM_S = new Float64Array(len);
+  const minusDM_S = new Float64Array(len);
+  const tr_S = new Float64Array(len);
+  const dx = new Float64Array(len);
+
+  for (let i = 1; i < len; i++) {
+    const up = high[i] - high[i - 1];
+    const down = low[i - 1] - low[i];
+    upMove[i] = up > down && up > 0 ? up : 0;
+    downMove[i] = down > up && down > 0 ? down : 0;
+
+    tr[i] = Math.max(
+      high[i] - low[i],
+      Math.abs(high[i] - close[i - 1]),
+      Math.abs(low[i] - close[i - 1]),
+    );
+  }
+
+  JSIndicators.smma(upMove, period, plusDM_S);
+  JSIndicators.smma(downMove, period, minusDM_S);
+  JSIndicators.smma(tr, period, tr_S);
+
+  for (let i = 0; i < len; i++) {
+    const trVal = tr_S[i] || 1;
+    const pVal = (plusDM_S[i] / trVal) * 100;
+    const mVal = (minusDM_S[i] / trVal) * 100;
+    pdi[i] = pVal;
+    mdi[i] = mVal;
+
+    const sum = pVal + mVal;
+    dx[i] = sum === 0 ? 0 : (Math.abs(pVal - mVal) / sum) * 100;
+  }
+
+  JSIndicators.smma(dx, period, adx);
+
+  return { adx, pdi, mdi };
+}
