@@ -1741,8 +1741,8 @@ export const indicators = {
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
     const c = close.map(toNumFast);
-    const res = JSIndicators.adx(h, l, c, period);
-    return new Decimal(res[res.length - 1]);
+    const res = calculateADXSeries(h, l, c, period, smoothingPeriod);
+    return new Decimal(res.adx[res.adx.length - 1]);
   },
 
   calculateAO(

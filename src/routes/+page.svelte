@@ -252,28 +252,8 @@ import { indicatorState } from "../stores/indicator.svelte";
       : "w-56",
   );
 
-  // Technicals Logic
-  let effectiveRsiTimeframe = $derived(
-    settingsState.syncRsiTimeframe
-      ? tradeState.atrTimeframe || indicatorState.rsi.defaultTimeframe || "1d"
-      : indicatorState.rsi.defaultTimeframe || "1d",
-  );
 
-  let technicalsData = $derived(
-    marketState.data[tradeState.symbol]?.technicals?.[effectiveRsiTimeframe] || null,
-  );
 
-  // Register with ActiveTechnicalsManager
-  $effect(() => {
-    const shouldCalc = settingsState.showTechnicals && (isTechnicalsVisible || isTechnicalsDocked);
-
-    if (shouldCalc && tradeState.symbol && effectiveRsiTimeframe) {
-       activeTechnicalsManager.register(tradeState.symbol, effectiveRsiTimeframe);
-       return () => {
-         activeTechnicalsManager.unregister(tradeState.symbol, effectiveRsiTimeframe);
-       };
-    }
-  });
 
 </script>
 
