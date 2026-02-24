@@ -126,7 +126,7 @@ export function calculateIndicatorsFromArrays(
   const currentPrice = closesNum[closesNum.length - 1];
   const oscillators: IndicatorResult[] = [];
   const divergences: DivergenceItem[] = [];
-  const advancedInfo: any = {};
+  const advancedInfo: any = { marketStructure: { highs: [], lows: [] } };
 
   const shouldCalculate = (key: keyof IndicatorSettings): boolean => {
     // If allowedList is provided (worker context usually), check it first
@@ -536,7 +536,6 @@ export function calculateIndicatorsFromArrays(
 
           advancedInfo.volumeMa = res[res.length - 1];
           // Stub Market Structure
-          advancedInfo.marketStructure = { highs: [], lows: [] };
       }
 
   } catch (e) {
