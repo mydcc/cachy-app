@@ -9,11 +9,10 @@
         <span class="title">{title}</span>
         <Toggle bind:checked={enabled} />
     </div>
-    {#if enabled}
-        <div class="card-body">
-            {@render children()}
-        </div>
-    {/if}
+    <!-- ALWAYS show body now, as requested -->
+    <div class="card-body" class:disabled={!enabled}>
+        {@render children()}
+    </div>
 </div>
 
 <style>
@@ -39,5 +38,10 @@
     }
     .card-body {
         padding: 1rem;
+        transition: opacity 0.3s;
+    }
+    .card-body.disabled {
+        opacity: 0.5; /* Visual cue that it is disabled */
+        pointer-events: none; /* Prevent interaction if desired, or remove to allow editing while disabled */
     }
 </style>

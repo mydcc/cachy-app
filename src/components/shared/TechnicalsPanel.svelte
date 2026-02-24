@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { stopPropagation } from "svelte/legacy";
-
   import { untrack } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -18,10 +16,9 @@
   interface Props {
     isVisible?: boolean;
     fluidWidth?: boolean;
-    data?: TechnicalsData | null; // Added to match previous interface usage, even if not fully used by this implementation which pulls from store
   }
 
-  let { isVisible = false, fluidWidth = false, data: propData = null }: Props = $props();
+  let { isVisible = false, fluidWidth = false }: Props = $props();
 
   // Local UI state
   let showTimeframePopup = $state(false);
@@ -36,9 +33,7 @@
 
   // Data comes strictly from MarketState (pushed by ActiveTechnicalsManager)
   let wsData = $derived(symbol ? marketState.data[symbol] : null);
-
-  // Prefer propData if provided (legacy/direct usage), otherwise store data
-  let data: TechnicalsData | null = $derived(propData || (wsData?.technicals?.[timeframe] ?? null));
+  let data: TechnicalsData | null = $derived(wsData?.technicals?.[timeframe] ?? null);
 
   // We can infer "loading" if we have a symbol but no data yet
   let loading = $derived(showPanel && symbol && !data);
@@ -305,6 +300,7 @@
 
             <!-- Volatility -->
             {#if settingsState.showTechnicalsVolatility && data.volatility}
+              {#if data.volatility.atr}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
@@ -319,6 +315,7 @@
                   )}</span
                 >
               </div>
+              {/if}
               {#if data.volatility.bb}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
@@ -462,6 +459,21 @@
                 </div>
               {/if}
 
+              <!-- Volume MA (New) -->
+              {#if data.advanced.volumeMa}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Vol MA</span>
+                  <span class="font-mono"
+                    >{TechnicalsPresenter.formatVal(
+                      data.advanced.volumeMa,
+                      0
+                    )}</span
+                  >
+                </div>
+              {/if}
+
               <!-- MFI -->
               {#if data.advanced.mfi}
                 <div
@@ -583,6 +595,24 @@
                 {$_("settings.workspace.signals")}
               </div>
 
+              <!-- Market Structure (New) -->
+              {#if data.advanced?.marketStructure}
+                {#if data.advanced.marketStructure.highs.length > 0}
+                  {@const lastHigh = data.advanced.marketStructure.highs[data.advanced.marketStructure.highs.length - 1]}
+                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <span>Market Structure High</span>
+                    <span class="font-mono">{lastHigh.type} @ {TechnicalsPresenter.formatVal(lastHigh.value, indicatorSettings?.precision)}</span>
+                  </div>
+                {/if}
+                {#if data.advanced.marketStructure.lows.length > 0}
+                  {@const lastLow = data.advanced.marketStructure.lows[data.advanced.marketStructure.lows.length - 1]}
+                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <span>Market Structure Low</span>
+                    <span class="font-mono">{lastLow.type} @ {TechnicalsPresenter.formatVal(lastLow.value, indicatorSettings?.precision)}</span>
+                  </div>
+                {/if}
+              {/if}
+
               {#if data.divergences && data.divergences.length > 0}
                 {#each data.divergences as div}
                   <div
@@ -620,7 +650,7 @@
                     </div>
                   </div>
                 {/each}
-              {:else}
+              {:else if (!data.advanced?.marketStructure?.highs.length && !data.advanced?.marketStructure?.lows.length)}
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >

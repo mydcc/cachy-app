@@ -729,7 +729,7 @@ import { indicatorState } from "../stores/indicator.svelte";
         {/if}
 
         {#if settingsState.showTechnicals && isTechnicalsVisible}
-          <TechnicalsPanel data={technicalsData} isVisible={isTechnicalsVisible} fluidWidth={true} />
+          <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
         {/if}
 
         {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
@@ -760,7 +760,7 @@ import { indicatorState } from "../stores/indicator.svelte";
           {isTechnicalsVisible}
         />
       {:else if isTechnicalsDocked}
-        <TechnicalsPanel data={technicalsData} isVisible={isTechnicalsVisible} fluidWidth={true} />
+        <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
       {/if}
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
@@ -772,7 +772,7 @@ import { indicatorState } from "../stores/indicator.svelte";
           class:opacity-0={!isTechnicalsVisible}
           class:opacity-100={isTechnicalsVisible}
         >
-          <TechnicalsPanel data={technicalsData} isVisible={isTechnicalsVisible} />
+          <TechnicalsPanel  isVisible={isTechnicalsVisible} />
         </div>
       {/if}
 

@@ -527,6 +527,8 @@ export function calculateIndicatorsFromArrays(
           const len = settings?.volumeMa?.length || 20;
           const res = JSIndicators.sma(volumesNum, len);
           advancedInfo.volumeMa = res[res.length - 1];
+          // Stub Market Structure
+          advancedInfo.marketStructure = { highs: [], lows: [] };
       }
 
   } catch (e) {

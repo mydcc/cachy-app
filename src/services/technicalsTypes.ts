@@ -176,6 +176,7 @@ export interface TechnicalsData {
     };
     volumeMa?: number;
     adx?: { value: number; pdi: number; mdi: number; trend: string; dir: string };
+    marketStructure?: { highs: { value: number; type: string }[]; lows: { value: number; type: string }[]; };
   };
   lastUpdated?: number;
 }
