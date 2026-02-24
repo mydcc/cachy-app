@@ -16,7 +16,7 @@
  */
 
 import init, { TechnicalsEngine } from "cachy-technicals-wasm";
-import { settingsState } from "../stores/settings.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
 import type { IndicatorSettings } from "../types/indicators";
 import type { Kline, TechnicalsData, PivotLevels } from "./technicalsTypes";
 import { getEmptyData } from "./technicalsTypes";
@@ -46,7 +46,7 @@ export class WasmCalculator {
 
   calculate(
     klines: Kline[],
-    settings: IndicatorSettings = settingsState.toJSON(),
+    settings: IndicatorSettings = indicatorState.toJSON(),
     enabledIndicators?: Partial<Record<string, boolean>>
   ): TechnicalsData {
     if (!this.wasmModule) {
