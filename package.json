@@ -21,10 +21,10 @@
     "@vitest/ui": "^4.0.18",
     "@webgpu/types": "^0.1.69",
     "happy-dom": "^20.3.9",
-    "puppeteer": "^24.36.1",
-    "vitest": "^4.0.18"
+    "puppeteer": "^24.36.1"
   },
   "dependencies": {
+    "vitest": "^4.0.18",
     "@anthropic-ai/sdk": "^0.74.0",
     "@floating-ui/dom": "^1.7.4",
     "@google/generative-ai": "^0.24.1",
