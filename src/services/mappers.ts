@@ -72,9 +72,10 @@ export function mapToOMSOrder(data: any): OMSOrder {
     // Note: This check happens AFTER JSON.parse, so 19-digit numbers might already be corrupted.
     // However, it catches smaller unsafe integers or accidental numeric casts.
     if (typeof data.orderId === 'number') {
+        logger.warn("market", `[Mapper] PRECISION RISK: orderId received as number: ${data.orderId}. Ensure strict string parsing.`);
         // Safe limit is 2^53 - 1
         if (data.orderId > Number.MAX_SAFE_INTEGER) {
-            logger.warn("market", `[Mapper] CRITICAL: Precision Loss detected for orderId: ${data.orderId}. Ensure safeJsonParse is used upstream.`);
+            logger.warn("market", `[Mapper] CRITICAL: Precision Loss CONFIRMED for orderId: ${data.orderId}. Ensure safeJsonParse is used upstream.`);
         }
     }
 
