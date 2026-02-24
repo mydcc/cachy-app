@@ -322,6 +322,9 @@ export interface Settings {
     parabolicSar: boolean;
     divergences: boolean;
     marketStructure: boolean;
+    obv: boolean;
+    choppiness: boolean;
+    atrTrailingStop: boolean;
   };
   // Window Docking
   enableDockingCentered: boolean;
@@ -545,6 +548,9 @@ const defaultSettings: Settings = {
     parabolicSar: false,
     divergences: false,
     marketStructure: false,
+    obv: false,
+    choppiness: false,
+    atrTrailingStop: false,
   },
   autoTrading: false,
   multiAccount: false,
