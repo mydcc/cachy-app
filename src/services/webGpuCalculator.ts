@@ -330,7 +330,7 @@ export class WebGpuCalculator {
 
     // Run Base CPU Calc
     const result = calculateIndicatorsFromArrays(
-        times, opens, highs, lows, closes, volumes,
+        highs, lows, closes, opens, volumes, times,
         settings, cpuEnabled
     );
 
