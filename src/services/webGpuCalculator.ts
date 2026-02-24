@@ -493,13 +493,13 @@ export class WebGpuCalculator {
             }
             
             // Bollinger Bands
-            if (enabledIndicators.bb !== false) {
-                const middle = await this.calculateSma(closes32, settings.bb.length) as Float32Array;
-                const stddev = await this.calculateStdDev(closes32, settings.bb.length) as Float32Array;
+            if (enabledIndicators.bollingerBands !== false) {
+                const middle = await this.calculateSma(closes32, settings.bollingerBands.length) as Float32Array;
+                const stddev = await this.calculateStdDev(closes32, settings.bollingerBands.length) as Float32Array;
                 
                 const upper = new Float32Array(len);
                 const lower = new Float32Array(len);
-                const mult = settings.bb.stdDev;
+                const mult = settings.bollingerBands.stdDev;
                 
                 for(let i=0; i<len; i++) {
                     upper[i] = middle[i] + (stddev[i] * mult);

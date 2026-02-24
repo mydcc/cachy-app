@@ -97,10 +97,6 @@ const defaultSettings: IndicatorSettings = {
   atr: {
     length: 14,
   },
-  bb: {
-    length: 20,
-    stdDev: 2,
-  },
   choppiness: {
     length: 14,
   },
@@ -177,7 +173,6 @@ class IndicatorManager {
 
   // Volatility
   atr = $state(defaultSettings.atr);
-  bb = $state(defaultSettings.bb);
   choppiness = $state(defaultSettings.choppiness);
 
   // Volume & Misc
@@ -213,7 +208,6 @@ class IndicatorManager {
     ema: $state.snapshot(this.ema),
     pivots: $state.snapshot(this.pivots),
     atr: $state.snapshot(this.atr),
-    bb: $state.snapshot(this.bb),
     superTrend: $state.snapshot(this.superTrend),
     atrTrailingStop: $state.snapshot(this.atrTrailingStop),
     obv: $state.snapshot(this.obv),
@@ -311,7 +305,9 @@ class IndicatorManager {
       this.marketStructure = { ...defaultSettings.marketStructure, ...parsed.marketStructure };
 
       this.atr = { ...defaultSettings.atr, ...parsed.atr };
-      this.bb = { ...defaultSettings.bb, ...parsed.bb };
+      if (parsed.bb && !parsed.bollingerBands) {
+        this.bollingerBands = { ...defaultSettings.bollingerBands, ...parsed.bb };
+      }
       this.bollingerBands = { ...defaultSettings.bollingerBands, ...parsed.bollingerBands };
 
       this.ema = parsed.ema
@@ -394,7 +390,6 @@ class IndicatorManager {
     this.ema = next.ema;
     this.pivots = next.pivots;
     this.atr = next.atr;
-    this.bb = next.bb;
     this.superTrend = next.superTrend;
     this.atrTrailingStop = next.atrTrailingStop;
     this.obv = next.obv;
@@ -432,7 +427,6 @@ class IndicatorManager {
     this.ema = d.ema;
     this.pivots = d.pivots;
     this.atr = d.atr;
-    this.bb = d.bb;
     this.superTrend = d.superTrend;
     this.atrTrailingStop = d.atrTrailingStop;
     this.obv = d.obv;

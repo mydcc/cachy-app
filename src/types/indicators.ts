@@ -111,7 +111,6 @@ export interface IndicatorSettings {
     viewMode: "integrated" | "separated" | "abstract";
   };
   atr: { length: number; };
-  bb: { length: number; stdDev: number; };
   choppiness: { length: number; };
   superTrend: { factor: number; period: number; };
   atrTrailingStop: { period: number; multiplier: number; };
