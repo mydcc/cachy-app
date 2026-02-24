@@ -7,9 +7,6 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
-import { untrack } from "svelte";
-import type { IndicatorSettings } from "../types/indicators";
 
 const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
@@ -26,14 +23,12 @@ const defaultSettings: IndicatorSettings = {
     overbought: 70,
     oversold: 30,
     defaultTimeframe: "1d",
-  },
   stochRsi: {
     length: 14,
     rsiLength: 14,
     kPeriod: 3,
     dPeriod: 3,
     source: "close",
-  },
   macd: {
     fastLength: 12,
     slowLength: 26,
@@ -41,104 +36,71 @@ const defaultSettings: IndicatorSettings = {
     source: "close",
     oscillatorMaType: "ema",
     signalMaType: "ema",
-  },
   stochastic: {
     kPeriod: 14,
     kSmoothing: 3,
     dPeriod: 3,
-  },
   williamsR: {
     length: 14,
-  },
   cci: {
     length: 20,
     source: "close",
     threshold: 100,
     smoothingType: "sma",
     smoothingLength: 5,
-  },
   adx: {
     adxSmoothing: 14,
     diLength: 14,
     threshold: 25,
-  },
   ao: {
     fastLength: 5,
     slowLength: 34,
-  },
   momentum: {
     length: 10,
     source: "close",
-  },
   ema: {
-    ema1: { length: 21, offset: 0, smoothingType: "sma", smoothingLength: 14 },
-    ema2: { length: 50, offset: 0, smoothingType: "sma", smoothingLength: 14 },
-    ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     source: "close",
-  },
   sma: {
-    sma1: { length: 9 },
-    sma2: { length: 21 },
-    sma3: { length: 50 },
-  },
-  wma: { length: 14 },
-  vwma: { length: 20 },
-  hma: { length: 9 },
   ichimoku: {
     conversionPeriod: 9,
     basePeriod: 26,
     spanBPeriod: 52,
     displacement: 26,
-  },
   pivots: {
     type: "classic",
     viewMode: "integrated",
-  },
   atr: {
     length: 14,
-  },
   choppiness: {
     length: 14,
-  },
   superTrend: {
     factor: 3,
     period: 10,
-  },
   atrTrailingStop: {
     period: 14,
     multiplier: 3.5,
-  },
   obv: {
     smoothingLength: 0,
-  },
   mfi: {
     length: 14,
-  },
   vwap: {
     length: 0,
     anchor: "session",
-  },
   parabolicSar: {
     start: 0.02,
     increment: 0.02,
     max: 0.2,
-  },
   volumeMa: {
     length: 20,
     maType: "sma",
-  },
   volumeProfile: {
     rows: 24,
-  },
   bollingerBands: {
     length: 20,
     stdDev: 2,
     source: "close",
-  },
   marketStructure: {
     period: 5,
-  },
-};
 
 const STORE_KEY = "cachy_indicator_settings";
 
@@ -225,7 +187,6 @@ class IndicatorManager {
     wma: $state.snapshot(this.wma),
     vwma: $state.snapshot(this.vwma),
     hma: $state.snapshot(this.hma),
-  });
 
   _cachedJson = $derived(JSON.stringify(this._snapshot));
 
@@ -241,17 +202,10 @@ class IndicatorManager {
             if (this.saveTimer) clearTimeout(this.saveTimer);
             this.saveTimer = setTimeout(() => {
               this.save();
-            }, 500);
 
             if (this.notifyTimer) clearTimeout(this.notifyTimer);
             this.notifyTimer = setTimeout(() => {
               this.notifyListeners();
-            }, 50);
-          });
-        });
-      });
-    }
-  }
 
   private load() {
     const stored = localStorage.getItem(STORE_KEY);
@@ -261,14 +215,12 @@ class IndicatorManager {
       const parsed = JSON.parse(stored);
 
       // Migration for ADX
-      let adxParsed = { ...defaultSettings.adx, ...(parsed.adx || {}) };
       if (
         parsed.adx &&
         parsed.adx.length !== undefined &&
         parsed.adx.adxSmoothing === undefined
       ) {
         adxParsed.adxSmoothing = parsed.adx.length;
-      }
 
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
       this.precision = parsed.precision ?? defaultSettings.precision;
@@ -276,98 +228,51 @@ class IndicatorManager {
       this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
       this.performanceMode = parsed.performanceMode || defaultSettings.performanceMode;
 
-      this.rsi = { ...defaultSettings.rsi, ...parsed.rsi };
-      this.stochRsi = { ...defaultSettings.stochRsi, ...parsed.stochRsi };
-      this.macd = { ...defaultSettings.macd, ...parsed.macd };
-      this.stochastic = { ...defaultSettings.stochastic, ...parsed.stochastic };
-      this.williamsR = { ...defaultSettings.williamsR, ...parsed.williamsR };
-      this.cci = { ...defaultSettings.cci, ...parsed.cci };
       this.adx = adxParsed;
-      this.ao = { ...defaultSettings.ao, ...parsed.ao };
-      this.momentum = { ...defaultSettings.momentum, ...parsed.momentum };
-      this.pivots = { ...defaultSettings.pivots, ...parsed.pivots };
-      this.superTrend = { ...defaultSettings.superTrend, ...parsed.superTrend };
-      this.atrTrailingStop = {
-        ...defaultSettings.atrTrailingStop,
-        ...parsed.atrTrailingStop,
-      };
-      this.obv = { ...defaultSettings.obv, ...parsed.obv };
-      this.mfi = { ...defaultSettings.mfi, ...parsed.mfi };
-      this.vwap = { ...defaultSettings.vwap, ...parsed.vwap };
-      this.parabolicSar = { ...defaultSettings.parabolicSar, ...parsed.parabolicSar };
-      this.ichimoku = { ...defaultSettings.ichimoku, ...parsed.ichimoku };
-      this.choppiness = { ...defaultSettings.choppiness, ...parsed.choppiness };
-      this.volumeProfile = {
-        ...defaultSettings.volumeProfile,
-        ...parsed.volumeProfile,
-      };
+      this.atrTrailingStop = { ...defaultSettings.atrTrailingStop, ...parsed.atrTrailingStop };
+      this.volumeProfile = { ...defaultSettings.volumeProfile, ...parsed.volumeProfile };
       this.volumeMa = { ...defaultSettings.volumeMa, ...parsed.volumeMa };
       this.marketStructure = { ...defaultSettings.marketStructure, ...parsed.marketStructure };
 
       this.atr = { ...defaultSettings.atr, ...parsed.atr };
-      if (parsed.bb && !parsed.bollingerBands) {
-        this.bollingerBands = { ...defaultSettings.bollingerBands, ...parsed.bb };
-      }
-      this.bollingerBands = { ...defaultSettings.bollingerBands, ...parsed.bollingerBands };
+      this.bollingerBands = parsed.bollingerBands ? { ...defaultSettings.bollingerBands, ...parsed.bollingerBands } : (parsed.bb ? { ...defaultSettings.bollingerBands, ...parsed.bb } : defaultSettings.bollingerBands);
+
 
       this.ema = parsed.ema
         ? {
           ema1: {
             ...defaultSettings.ema.ema1,
-            ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
-          },
           ema2: {
             ...defaultSettings.ema.ema2,
-            ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
-          },
           ema3: {
             ...defaultSettings.ema.ema3,
-            ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
-          },
           source: parsed.ema.source || defaultSettings.ema.source,
-        }
         : defaultSettings.ema;
 
-      this.sma = parsed.sma ? { ...defaultSettings.sma, ...parsed.sma } : defaultSettings.sma;
-      this.wma = parsed.wma ? { ...defaultSettings.wma, ...parsed.wma } : defaultSettings.wma;
-      this.vwma = parsed.vwma ? { ...defaultSettings.vwma, ...parsed.vwma } : defaultSettings.vwma;
-      this.hma = parsed.hma ? { ...defaultSettings.hma, ...parsed.hma } : defaultSettings.hma;
-    } catch (e) {
       console.error("IndicatorManager: Failed to load from localStorage", e);
-    }
-  }
 
   private notifyListeners() {
     const value = this.toJSON();
     this.listeners.forEach((fn) => fn(value));
-  }
 
   notify() {
     this.notifyListeners();
-  }
 
   private save() {
     if (!browser) return;
     try {
       const data = this.toJSON();
       localStorage.setItem(STORE_KEY, JSON.stringify(data));
-    } catch (e) {
       console.error("Save error", e);
-    }
-  }
 
   toJSON(): IndicatorSettings {
     // Return a fresh clone of the cached snapshot
-    return { ...structuredClone(this._snapshot), _cachedJson: this._cachedJson };
-  }
 
   subscribe(fn: (value: IndicatorSettings) => void): () => void {
     fn(this.toJSON());
     this.listeners.add(fn);
     return () => {
       this.listeners.delete(fn);
-    };
-  }
 
   update(fn: (s: IndicatorSettings) => IndicatorSettings) {
     const current = this.toJSON();
@@ -406,7 +311,6 @@ class IndicatorManager {
     this.vwma = next.vwma;
     this.hma = next.hma;
     this.bollingerBands = next.bollingerBands;
-  }
 
   reset() {
     const d = defaultSettings;
@@ -443,7 +347,5 @@ class IndicatorManager {
     this.vwma = d.vwma;
     this.hma = d.hma;
     this.bollingerBands = d.bollingerBands;
-  }
-}
 
 export const indicatorState = new IndicatorManager();
