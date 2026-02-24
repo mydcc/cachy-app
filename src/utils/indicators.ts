@@ -15,37 +15,56 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * Copyright (C) 2026 MYDCT
- *
- * Shared Technical Indicators Logic.
- * Can be used by both Main Thread and WebWorkers.
- *
- * Contains:
- * 1. JSIndicators: Fast, array-based pure math implementations (number[] -> Float64Array).
- * 2. indicators: Decimal-based wrappers for UI/Chart precision.
- * 3. Helpers: Pivots, AO, etc.
- */
-
 import { Decimal } from "decimal.js";
-import { slidingWindowMax, slidingWindowMin } from "./slidingWindow";
-import { toNumFast } from "./fastConversion";
-import type { BufferPool } from "./bufferPool";
+import { BufferPool } from "./bufferPool";
+import type { Kline, PivotLevels } from "../services/technicalsTypes";
 
-// --- Types ---
+export type { Kline };
 
-export interface Kline {
-  time: number;
-  open: Decimal;
-  high: Decimal;
-  low: Decimal;
-  close: Decimal;
-  volume: Decimal;
-}
-
+// Use native Number or Decimal for input
+// Internal calc uses number[] or Float64Array for speed.
 export type NumberArray = number[] | Float64Array;
 
-// --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
+function toNumFast(v: number | string | Decimal): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return parseFloat(v);
+  return v.toNumber();
+}
+
+function slidingWindowMax(
+  data: NumberArray,
+  period: number,
+  out: Float64Array,
+) {
+  const len = data.length;
+  // Simple O(N*K) implementation for robustness.
+  // Optimization: Monotonic Queue O(N)
+  for (let i = period - 1; i < len; i++) {
+    let maxVal = -Infinity;
+    for (let j = 0; j < period; j++) {
+      const val = data[i - j];
+      if (val > maxVal) maxVal = val;
+    }
+    out[i] = maxVal;
+  }
+}
+
+function slidingWindowMin(
+  data: NumberArray,
+  period: number,
+  out: Float64Array,
+) {
+  const len = data.length;
+  for (let i = period - 1; i < len; i++) {
+    let minVal = Infinity;
+    for (let j = 0; j < period; j++) {
+      const val = data[i - j];
+      if (val < minVal) minVal = val;
+    }
+    out[i] = minVal;
+  }
+}
+
 export const JSIndicators = {
   sma(
     data: NumberArray,
@@ -141,6 +160,11 @@ export const JSIndicators = {
     return result;
   },
 
+  updateEma(prevEma: number, price: number, period: number): number {
+      const k = 2 / (period + 1);
+      return (price - prevEma) * k + prevEma;
+  },
+
   smma(
     data: NumberArray,
     period: number,
@@ -232,8 +256,6 @@ export const JSIndicators = {
     return this.wma(combined, sqrtPeriod, result);
   },
 
-
-
   rsi(
     data: NumberArray,
     period: number,
@@ -274,6 +296,16 @@ export const JSIndicators = {
     return result;
   },
 
+  updateRsi(prevAvgGain: number, prevAvgLoss: number, price: number, prevPrice: number, period: number) {
+      const diff = price - prevPrice;
+      const gain = diff >= 0 ? diff : 0;
+      const loss = diff < 0 ? -diff : 0;
+      const avgGain = (prevAvgGain * (period - 1) + gain) / period;
+      const avgLoss = (prevAvgLoss * (period - 1) + loss) / period;
+      const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+      return { rsi, avgGain, avgLoss };
+  },
+
   stoch(
     high: NumberArray,
     low: NumberArray,
@@ -308,11 +340,6 @@ export const JSIndicators = {
       const lookbackHigh = highestHighs[i];
       const lookbackLow = lowestLows[i];
       const range = lookbackHigh - lookbackLow;
-
-      // If close[i] is NaN, result is NaN.
-      // If lookbackHigh/Low are NaN (because inputs were NaN), result is NaN.
-      // This is implicit, no special handling needed if inputs are clean.
-      // But if inputs have leading NaNs, slidingWindowMax/Min might return NaN initially.
 
       result[i] = range === 0 ? 50 : ((close[i] - lookbackLow) / range) * 100;
     }
@@ -371,342 +398,371 @@ export const JSIndicators = {
   },
 
   mom(data: NumberArray, period: number): Float64Array {
-    const result = new Float64Array(data.length).fill(NaN);
-    for (let i = period; i < data.length; i++) {
-      result[i] = data[i] - data[i - period];
-    }
-    return result;
+      const len = data.length;
+      const res = new Float64Array(len).fill(NaN);
+      for (let i = period; i < len; i++) {
+          res[i] = data[i] - data[i - period];
+      }
+      return res;
   },
 
-  cci(
-    data: NumberArray,
-    period: number,
-    out?: Float64Array,
-  ): Float64Array {
-    const result = (out && out.length === data.length) ? out : new Float64Array(data.length);
-    result.fill(NaN);
-
-    if (data.length < period) return result;
-
-    for (let i = period - 1; i < data.length; i++) {
-      // Optimization: Manual loop instead of slice
-      const start = i - period + 1;
-      const end = i + 1;
-
-      let sum = 0;
-      for (let j = start; j < end; j++) {
-        sum += data[j];
+  williamsR(high: NumberArray, low: NumberArray, close: NumberArray, period: number): Float64Array {
+      const len = close.length;
+      const res = new Float64Array(len).fill(NaN);
+      for (let i = period - 1; i < len; i++) {
+          let maxH = -Infinity;
+          let minL = Infinity;
+          for (let j = 0; j < period; j++) {
+              maxH = Math.max(maxH, high[i - j]);
+              minL = Math.min(minL, low[i - j]);
+          }
+          res[i] = ((maxH - close[i]) / (maxH - minL)) * -100;
       }
-      const sma = sum / period;
-
-      let sumAbsDiff = 0;
-      for (let j = start; j < end; j++) {
-        sumAbsDiff += Math.abs(data[j] - sma);
-      }
-      const meanDev = sumAbsDiff / period;
-
-      if (meanDev === 0) {
-        result[i] = 0;
-      } else {
-        const diff = data[i] - sma;
-        result[i] = diff / (0.015 * meanDev);
-      }
-    }
-    return result;
+      return res;
   },
 
-  adx(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    period: number,
-    out?: Float64Array,
-    pool?: BufferPool,
-  ): Float64Array {
-    const len = close.length;
-    const result = (out && out.length === len) ? out : new Float64Array(len);
-    result.fill(NaN);
+  adx(high: NumberArray, low: NumberArray, close: NumberArray, period: number, out?: Float64Array, pool?: BufferPool): Float64Array {
+      const len = close.length;
+      const tr = new Float64Array(len);
+      const dmPlus = new Float64Array(len);
+      const dmMinus = new Float64Array(len);
 
-    if (len < period * 2) return result;
+      for(let i=1; i<len; i++) {
+          const h = high[i];
+          const l = low[i];
+          const cPrev = close[i-1];
 
-    let upMove: Float64Array;
-    let downMove: Float64Array;
-    let tr: Float64Array;
-    let plusDI_S: Float64Array;
-    let minusDI_S: Float64Array;
-    let tr_S: Float64Array;
-    let dx: Float64Array;
-    let pooled = false;
+          tr[i] = Math.max(h - l, Math.abs(h - cPrev), Math.abs(l - cPrev));
 
-    if (pool) {
-      upMove = pool.acquire(len);
-      downMove = pool.acquire(len);
-      tr = pool.acquire(len);
-      // We can reuse buffers sequentially if we are careful, but adx needs parallel vectors
-      // plusDI_S, minusDI_S, tr_S needed simultaneously for DX calc.
-      // So we need separate buffers.
-      plusDI_S = pool.acquire(len);
-      minusDI_S = pool.acquire(len);
-      tr_S = pool.acquire(len);
-      dx = pool.acquire(len);
-      pooled = true;
-    } else {
-      upMove = new Float64Array(len);
-      downMove = new Float64Array(len);
-      tr = new Float64Array(len);
-      plusDI_S = new Float64Array(len); // Allocated by smma if not passed? No, we pass logic.
-      minusDI_S = new Float64Array(len);
-      tr_S = new Float64Array(len);
-      dx = new Float64Array(len);
-    }
+          const up = high[i] - high[i-1];
+          const down = low[i-1] - low[i];
 
-    // Fill with 0 (since acquire might be dirty)
-    upMove.fill(0);
-    downMove.fill(0);
-    tr.fill(0);
-    // Others are filled by their producers (smma) or calc loops
-
-    for (let i = 1; i < len; i++) {
-      const up = high[i] - high[i - 1];
-      const down = low[i - 1] - low[i];
-      upMove[i] = up > down && up > 0 ? up : 0;
-      downMove[i] = down > up && down > 0 ? down : 0;
-
-      tr[i] = Math.max(
-        high[i] - low[i],
-        Math.abs(high[i] - close[i - 1]),
-        Math.abs(low[i] - close[i - 1]),
-      );
-    }
-
-    this.smma(upMove, period, plusDI_S);
-    this.smma(downMove, period, minusDI_S);
-    this.smma(tr, period, tr_S);
-
-    // dx
-    for (let i = 0; i < len; i++) {
-      const pDI = (plusDI_S[i] / (tr_S[i] || 1)) * 100;
-      const mDI = (minusDI_S[i] / (tr_S[i] || 1)) * 100;
-      const sum = pDI + mDI;
-      dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
-    }
-
-    const res = this.smma(dx, period, result);
-
-    if (pooled && pool) {
-        pool.release(upMove);
-        pool.release(downMove);
-        pool.release(tr);
-        pool.release(plusDI_S);
-        pool.release(minusDI_S);
-        pool.release(tr_S);
-        pool.release(dx);
-    }
-
-    return res;
-  },
-
-  atr(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    period: number,
-    out?: Float64Array,
-    pool?: BufferPool,
-  ): Float64Array {
-    const len = close.length;
-    // We can assume out is passed for result, but we need TR buffer
-    const result = (out && out.length === len) ? out : new Float64Array(len);
-
-    if (len < period) {
-        result.fill(NaN);
-        return result;
-    }
-
-    let tr: Float64Array;
-    let pooled = false;
-
-    if (pool) {
-        tr = pool.acquire(len);
-        pooled = true;
-    } else {
-        tr = new Float64Array(len);
-    }
-    tr.fill(0);
-
-    for (let i = 1; i < len; i++) {
-      tr[i] = Math.max(
-        high[i] - low[i],
-        Math.abs(high[i] - close[i - 1]),
-        Math.abs(low[i] - close[i - 1]),
-      );
-    }
-    // ATR is usually a smoothed moving average of TR
-    // Write directly to result
-    this.smma(tr, period, result);
-
-    if (pooled && pool) {
-        pool.release(tr);
-    }
-    return result;
-  },
-
-  bb(
-    data: NumberArray,
-    period: number,
-    stdDev: number = 2,
-    outMiddle?: Float64Array,
-    outUpper?: Float64Array,
-    outLower?: Float64Array,
-  ) {
-    const len = data.length;
-    const sma = this.sma(data, period, outMiddle);
-    const upper = (outUpper && outUpper.length === len) ? outUpper : new Float64Array(len);
-    upper.fill(NaN);
-    const lower = (outLower && outLower.length === len) ? outLower : new Float64Array(len);
-    lower.fill(NaN);
-
-    if (len < period) return { middle: sma, upper, lower };
-
-    // Standard Deviation Calculation
-    // We use a 2-pass approach (calculate SMA, then calculate variance loop)
-    // to avoid catastrophic cancellation errors with high-value assets (e.g. BTC > 100k).
-    // The naive method (E[x^2] - (E[x])^2) is O(N) but imprecise.
-    // This loop method is O(N*P) which is fine for small P (typically 20).
-
-    for (let i = period - 1; i < len; i++) {
-      const avg = sma[i];
-      let sumSqDiff = 0;
-
-      // Iterate over the window
-      for (let j = 0; j < period; j++) {
-        const val = data[i - j];
-        const diff = val - avg;
-        sumSqDiff += diff * diff;
+          dmPlus[i] = (up > down && up > 0) ? up : 0;
+          dmMinus[i] = (down > up && down > 0) ? down : 0;
       }
 
-      const standardDev = Math.sqrt(sumSqDiff / period);
-      upper[i] = avg + standardDev * stdDev;
-      lower[i] = avg - standardDev * stdDev;
-    }
-    return { middle: sma, upper, lower };
-  },
+      const trSmooth = this.smma(tr, period);
+      const plusSmooth = this.smma(dmPlus, period);
+      const minusSmooth = this.smma(dmMinus, period);
 
-  // --- Advanced Indicators ---
-
-  vwap(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    volume: NumberArray,
-    time?: NumberArray,
-    anchor?: { mode: "session" | "fixed"; anchorPoint?: number },
-  ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    let cumVol = 0;
-    let cumVolPrice = 0;
-    let lastDay = -1;
-
-    for (let i = 0; i < close.length; i++) {
-      // Reset Logic
-      if (anchor?.mode === "session" && time && time[i]) {
-        const date = new Date(time[i]);
-        const currentDay = date.getUTCDate();
-
-        // If initialized and day changed, reset
-        if (lastDay !== -1 && currentDay !== lastDay) {
-          cumVol = 0;
-          cumVolPrice = 0;
-        }
-        lastDay = currentDay;
+      const dx = new Float64Array(len).fill(NaN);
+      for(let i=period*2; i<len; i++) {
+          const diPlus = (plusSmooth[i] / trSmooth[i]) * 100;
+          const diMinus = (minusSmooth[i] / trSmooth[i]) * 100;
+          const sum = diPlus + diMinus;
+          dx[i] = sum === 0 ? 0 : (Math.abs(diPlus - diMinus) / sum) * 100;
       }
 
-      const typicalPrice = (high[i] + low[i] + close[i]) / 3;
-      const vol = volume[i];
-      cumVol += vol;
-      cumVolPrice += typicalPrice * vol;
-      result[i] = cumVol === 0 ? NaN : cumVolPrice / cumVol;
-    }
-    return result;
+      return this.smma(dx, period, out);
   },
 
-  mfi(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    volume: NumberArray,
-    period: number,
-    typicalPrices?: NumberArray,
-  ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    if (close.length < period + 1) return result;
+  atr(high: NumberArray, low: NumberArray, close: NumberArray, period: number): Float64Array {
+      const len = close.length;
+      const tr = new Float64Array(len);
+      tr[0] = high[0] - low[0];
 
-    // Use map to create typical prices - map returns Float64Array if inputs are Float64Array
-    // But map on NumberArray (if Union) isn't guaranteed to return Float64Array unless cast
-    // Safe way:
-    let tp: NumberArray;
-    if (typicalPrices) {
-        tp = typicalPrices;
-    } else {
-        tp = new Float64Array(close.length);
-        for(let i=0; i<close.length; i++) {
-            tp[i] = (high[i] + low[i] + close[i]) / 3;
-        }
-    }
-
-    const moneyFlow = new Float64Array(close.length);
-    for (let i = 0; i < close.length; i++) moneyFlow[i] = tp[i] * volume[i];
-
-    const posFlow = new Float64Array(close.length).fill(0);
-    const negFlow = new Float64Array(close.length).fill(0);
-
-    // 1. Calculate Flows
-    for (let i = 1; i < close.length; i++) {
-      if (tp[i] > tp[i - 1]) {
-        posFlow[i] = moneyFlow[i];
-      } else if (tp[i] < tp[i - 1]) {
-        negFlow[i] = moneyFlow[i];
+      for(let i=1; i<len; i++) {
+          tr[i] = Math.max(high[i] - low[i], Math.abs(high[i] - close[i-1]), Math.abs(low[i] - close[i-1]));
       }
-    }
+      return this.smma(tr, period);
+  },
 
-    // 2. Sum over period (Sliding Window Optimization)
-    // Initialize first window sums (indices 1 to period)
-    let sumPos = 0;
-    let sumNeg = 0;
-    for (let i = 1; i <= period; i++) {
-        sumPos += posFlow[i];
-        sumNeg += negFlow[i];
-    }
+  bb(data: NumberArray, period: number, stdDev: number, outMiddle?: Float64Array, outUpper?: Float64Array, outLower?: Float64Array) {
+      const middle = this.sma(data, period, outMiddle);
+      const len = data.length;
+      const upper = (outUpper && outUpper.length === len) ? outUpper : new Float64Array(len);
+      const lower = (outLower && outLower.length === len) ? outLower : new Float64Array(len);
 
-    // Set first point
-    if (close.length > period) {
-        if (sumPos + sumNeg === 0) {
-            result[period] = 50;
-        } else if (sumNeg === 0) {
-            result[period] = 100;
-        } else {
-            const mfr = sumPos / sumNeg;
-            result[period] = 100 - 100 / (1 + mfr);
-        }
-    }
+      for(let i=period-1; i<len; i++) {
+          let sumSq = 0;
+          for(let j=0; j<period; j++) {
+              const diff = data[i-j] - middle[i];
+              sumSq += diff * diff;
+          }
+          const std = Math.sqrt(sumSq / period);
+          upper[i] = middle[i] + std * stdDev;
+          lower[i] = middle[i] - std * stdDev;
+      }
 
-    // Sliding window
-    for (let i = period + 1; i < close.length; i++) {
-        // Add new, remove old
-        sumPos = sumPos + posFlow[i] - posFlow[i - period];
-        sumNeg = sumNeg + negFlow[i] - negFlow[i - period];
+      return { middle, upper, lower };
+  },
 
-        if (sumPos + sumNeg === 0) {
-            result[i] = 50;
-        } else if (sumNeg === 0) {
-            result[i] = 100;
-        } else {
-            const mfr = sumPos / sumNeg;
-            result[i] = 100 - 100 / (1 + mfr);
-        }
-    }
+  superTrend(high: NumberArray, low: NumberArray, close: NumberArray, period: number, factor: number) {
+      const len = close.length;
+      const atr = this.atr(high, low, close, period);
+      const upperBand = new Float64Array(len);
+      const lowerBand = new Float64Array(len);
+      const superTrend = new Float64Array(len);
+      const trend = new Int8Array(len); // 1 = bull, -1 = bear
 
-    return result;
+      for (let i = period; i < len; i++) {
+          const hl2 = (high[i] + low[i]) / 2;
+          const matr = factor * atr[i];
+
+          let ub = hl2 + matr;
+          let lb = hl2 - matr;
+
+          if (i > 0) {
+              if (close[i-1] > lowerBand[i-1]) lb = Math.max(lb, lowerBand[i-1]);
+              else lb = lb;
+
+              if (close[i-1] < upperBand[i-1]) ub = Math.min(ub, upperBand[i-1]);
+              else ub = ub;
+          }
+
+          lowerBand[i] = lb;
+          upperBand[i] = ub;
+
+          let dir = 1;
+          if (i > 0) {
+              dir = trend[i-1];
+              if (dir === 1 && close[i] < lowerBand[i-1]) dir = -1;
+              else if (dir === -1 && close[i] > upperBand[i-1]) dir = 1;
+          }
+
+          trend[i] = dir;
+          superTrend[i] = dir === 1 ? lowerBand[i] : upperBand[i];
+      }
+
+      return { value: superTrend, trend };
+  },
+
+  atrTrailingStop(high: NumberArray, low: NumberArray, close: NumberArray, period: number, multiplier: number) {
+      const st = this.superTrend(high, low, close, period, multiplier);
+      const buyStop = new Float64Array(st.value.length);
+      const sellStop = new Float64Array(st.value.length);
+      for(let i=0; i<st.value.length; i++) {
+          if (st.trend[i] === 1) buyStop[i] = st.value[i];
+          else sellStop[i] = st.value[i];
+      }
+      return { buyStop, sellStop };
+  },
+
+  obv(close: NumberArray, volume: NumberArray): Float64Array {
+      const len = close.length;
+      const res = new Float64Array(len);
+      let currentObv = 0;
+      res[0] = 0;
+      for(let i=1; i<len; i++) {
+          if (close[i] > close[i-1]) currentObv += volume[i];
+          else if (close[i] < close[i-1]) currentObv -= volume[i];
+          res[i] = currentObv;
+      }
+      return res;
+  },
+
+  volumeProfile(high: NumberArray, low: NumberArray, close: NumberArray, volume: NumberArray, rowCount: number) {
+      let min = Infinity, max = -Infinity;
+      for(let i=0; i<high.length; i++) {
+          if (high[i] > max) max = high[i];
+          if (low[i] < min) min = low[i];
+      }
+      if (min === Infinity) return null;
+
+      const range = max - min;
+      const rowSize = range / rowCount;
+      const rows = new Array(rowCount).fill(0).map((_, i) => ({
+          priceStart: min + i * rowSize,
+          priceEnd: min + (i + 1) * rowSize,
+          volume: 0
+      }));
+
+      let totalVol = 0;
+      for(let i=0; i<close.length; i++) {
+          const avg = (high[i] + low[i] + close[i]) / 3;
+          const rowIdx = Math.min(Math.floor((avg - min) / rowSize), rowCount - 1);
+          if (rowIdx >= 0) {
+              rows[rowIdx].volume += volume[i];
+              totalVol += volume[i];
+          }
+      }
+
+      let maxVol = 0;
+      let pocIdx = 0;
+      rows.forEach((r, i) => {
+          if (r.volume > maxVol) {
+              maxVol = r.volume;
+              pocIdx = i;
+          }
+      });
+
+      const poc = (rows[pocIdx].priceStart + rows[pocIdx].priceEnd) / 2;
+
+      const threshold = totalVol * 0.7;
+      let currentVol = maxVol;
+      let upIdx = pocIdx;
+      let downIdx = pocIdx;
+
+      while (currentVol < threshold && (upIdx < rowCount - 1 || downIdx > 0)) {
+          const upVol = upIdx < rowCount - 1 ? rows[upIdx + 1].volume : 0;
+          const downVol = downIdx > 0 ? rows[downIdx - 1].volume : 0;
+
+          if (upVol > downVol) {
+              upIdx++;
+              currentVol += upVol;
+          } else {
+              downIdx--;
+              currentVol += downVol;
+          }
+      }
+
+      return {
+          poc,
+          vaHigh: rows[upIdx].priceEnd,
+          vaLow: rows[downIdx].priceStart,
+          rows
+      };
+  },
+
+  vwap(high: NumberArray, low: NumberArray, close: NumberArray, volume: NumberArray, times: NumberArray | undefined, anchor: { mode: "session" | "fixed" | string; anchorPoint?: number }) {
+      const len = close.length;
+      const res = new Float64Array(len);
+      let sumPv = 0;
+      let sumV = 0;
+      let currentDay = -1;
+
+      for(let i=0; i<len; i++) {
+          if (times && anchor.mode === 'session') {
+              const date = new Date(times[i]);
+              const day = date.getUTCDate();
+              if (day !== currentDay) {
+                  sumPv = 0;
+                  sumV = 0;
+                  currentDay = day;
+              }
+          }
+
+          const avg = (high[i] + low[i] + close[i]) / 3;
+          sumPv += avg * volume[i];
+          sumV += volume[i];
+          res[i] = sumV === 0 ? avg : sumPv / sumV;
+      }
+      return res;
+  },
+
+  psar(high: NumberArray, low: NumberArray, start: number, increment: number, max: number): Float64Array {
+      const len = high.length;
+      const res = new Float64Array(len);
+      let isRising = true;
+      let sar = low[0];
+      let ep = high[0];
+      let af = start;
+
+      res[0] = sar;
+
+      for(let i=1; i<len; i++) {
+          sar = sar + af * (ep - sar);
+
+          if (isRising) {
+              if (high[i] > ep) {
+                  ep = high[i];
+                  af = Math.min(af + increment, max);
+              }
+              if (low[i] < sar) {
+                  isRising = false;
+                  sar = ep;
+                  ep = low[i];
+                  af = start;
+              }
+          } else {
+              if (low[i] < ep) {
+                  ep = low[i];
+                  af = Math.min(af + increment, max);
+              }
+              if (high[i] > sar) {
+                  isRising = true;
+                  sar = ep;
+                  ep = high[i];
+                  af = start;
+              }
+          }
+          res[i] = sar;
+      }
+      return res;
+  },
+
+  choppiness(high: NumberArray, low: NumberArray, close: NumberArray, period: number): Float64Array {
+      const len = close.length;
+      const res = new Float64Array(len);
+      const tr = this.atr(high, low, close, 1);
+
+      for(let i=period; i<len; i++) {
+          let sumTr = 0;
+          let maxH = -Infinity;
+          let minL = Infinity;
+          for(let j=0; j<period; j++) {
+              sumTr += tr[i-j];
+              maxH = Math.max(maxH, high[i-j]);
+              minL = Math.min(minL, low[i-j]);
+          }
+          const range = maxH - minL;
+          if (range === 0) res[i] = 0;
+          else {
+              res[i] = 100 * Math.log10(sumTr / range) / Math.log10(period);
+          }
+      }
+      return res;
+  },
+
+  ichimoku(high: NumberArray, low: NumberArray, conversionPeriod: number, basePeriod: number, spanBPeriod: number, displacement: number) {
+      const len = high.length;
+      const conversion = new Float64Array(len);
+      const base = new Float64Array(len);
+      const spanA = new Float64Array(len);
+      const spanB = new Float64Array(len);
+
+      const donchian = (p: number, idx: number) => {
+          let h = -Infinity;
+          let l = Infinity;
+          for(let i=0; i<p; i++) {
+              if (idx-i >= 0) {
+                  h = Math.max(h, high[idx-i]);
+                  l = Math.min(l, low[idx-i]);
+              }
+          }
+          return (h+l)/2;
+      };
+
+      for(let i=0; i<len; i++) {
+          conversion[i] = donchian(conversionPeriod, i);
+          base[i] = donchian(basePeriod, i);
+
+          if (i >= displacement) {
+              spanA[i] = (conversion[i-displacement] + base[i-displacement]) / 2;
+              const spanBVal = donchian(spanBPeriod, i-displacement);
+              spanB[i] = spanBVal;
+          } else {
+              spanA[i] = NaN;
+              spanB[i] = NaN;
+          }
+      }
+
+      return { conversion, base, spanA, spanB };
+  },
+
+  marketStructure(high: NumberArray, low: NumberArray, period: number) {
+      const len = high.length;
+      const highs: { index: number, value: number, type: "HH" | "LH" }[] = [];
+      const lows: { index: number, value: number, type: "LL" | "HL" }[] = [];
+
+      for(let i=period; i<len-period; i++) {
+          let isHigh = true;
+          let isLow = true;
+          for(let j=1; j<=period; j++) {
+              if (high[i-j] > high[i] || high[i+j] > high[i]) isHigh = false;
+              if (low[i-j] < low[i] || low[i+j] < low[i]) isLow = false;
+          }
+
+          if (isHigh) {
+              const type = (highs.length > 0 && high[i] > highs[highs.length-1].value) ? "HH" : "LH";
+              highs.push({ index: i, value: high[i], type });
+          }
+          if (isLow) {
+              const type = (lows.length > 0 && low[i] < lows[lows.length-1].value) ? "LL" : "HL";
+              lows.push({ index: i, value: low[i], type });
+          }
+      }
+      return { highs, lows };
   },
 
   stochRsi(
@@ -717,822 +773,100 @@ export const JSIndicators = {
     smoothK: number,
     outK?: Float64Array,
     outD?: Float64Array,
-    pool?: BufferPool,
+    pool?: BufferPool
   ) {
-    const len = data.length;
-    let rsiRaw: Float64Array;
-    let pooledRsi = false;
-    let minArr: Float64Array;
-    let maxArr: Float64Array;
-    let pooledMinMax = false;
+      const rsiVal = this.rsi(data, period);
+      return {
+          k: this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool),
+          d: this.sma(this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool), dPeriod, outD)
+      };
+  },
 
-    // Acquire RSI buffer
-    if (pool) {
-      rsiRaw = pool.acquire(len);
-      pooledRsi = true;
-    } else {
-      rsiRaw = new Float64Array(len);
-    }
+  // CCI with single source input
+  cci(data: NumberArray, period: number, out?: Float64Array): Float64Array {
+      const len = data.length;
+      const result = (out && out.length === len) ? out : new Float64Array(len);
+      result.fill(NaN);
 
-    // Acquire Min/Max buffers
-    if (pool) {
-        minArr = pool.acquire(len);
-        maxArr = pool.acquire(len);
-        pooledMinMax = true;
-    } else {
-        minArr = new Float64Array(len);
-        maxArr = new Float64Array(len);
-    }
+      if (len < period) return result;
 
-    // Calculate RSI
-    this.rsi(data, period, rsiRaw);
+      const sma = this.sma(data, period);
 
-    // Calculate Stoch of RSI (Raw K)
-    // We need a destination for Raw K.
-    // If smoothK > 1, we can't write directly to outK if we plan to smooth it into outK later (in-place SMA unsafe).
-    // So we need a temporary buffer if smoothK > 1.
-    // If smoothK == 1, we can write directly to outK.
-
-    let rawK: Float64Array;
-    let pooledRawK = false;
-
-    if (smoothK > 1) {
-        if (pool) {
-            rawK = pool.acquire(len);
-            pooledRawK = true;
-        } else {
-            rawK = new Float64Array(len);
+      for (let i = period - 1; i < len; i++) {
+        let meanDev = 0;
+        const avg = sma[i];
+        for (let j = 0; j < period; j++) {
+          meanDev += Math.abs(data[i - j] - avg);
         }
-    } else {
-        // Direct write
-        rawK = (outK && outK.length === len) ? outK : (pool ? pool.acquire(len) : new Float64Array(len));
-        // If we acquired it (and didn't use outK), it's conceptually "pooled" but we will return it/assign it.
-        // If we created new, we return it.
-    }
-    rawK.fill(NaN); // Safety
+        meanDev /= period;
 
-    // Inline Stoch logic for performance and pool usage
-    slidingWindowMin(rsiRaw, kPeriod, minArr);
-    slidingWindowMax(rsiRaw, kPeriod, maxArr);
-
-    for (let i = kPeriod - 1; i < len; i++) {
-        const min = minArr[i];
-        const max = maxArr[i];
-        const range = max - min;
-        rawK[i] = range === 0 ? 50 : ((rsiRaw[i] - min) / range) * 100;
-    }
-
-    // Release Min/Max/RSI
-    if (pooledMinMax && pool) {
-        pool.release(minArr);
-        pool.release(maxArr);
-    }
-    if (pooledRsi && pool) {
-        pool.release(rsiRaw);
-    }
-
-    // Smoothing K
-    let kPoints: Float64Array;
-    if (smoothK > 1) {
-        // Smooth rawK into kPoints (destination)
-        kPoints = (outK && outK.length === len) ? outK : (pool ? pool.acquire(len) : new Float64Array(len));
-        this.sma(rawK, smoothK, kPoints);
-
-        // Release rawK if it was temporary
-        if (pooledRawK && pool) {
-            pool.release(rawK);
-        }
-    } else {
-        kPoints = rawK;
-    }
-
-    // Calculate D (SMA of K)
-    const dPoints = (outD && outD.length === len) ? outD : (pool ? pool.acquire(len) : new Float64Array(len));
-    this.sma(kPoints, dPeriod, dPoints);
-
-    return { k: kPoints, d: dPoints };
-  },
-
-  williamsR(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    period: number,
-  ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    if (close.length < period) return result;
-
-    const highestHighs = slidingWindowMax(high, period);
-    const lowestLows = slidingWindowMin(low, period);
-
-    for (let i = period - 1; i < close.length; i++) {
-      const highestHigh = highestHighs[i];
-      const lowestLow = lowestLows[i];
-      const range = highestHigh - lowestLow;
-      result[i] = range === 0 ? 0 : ((highestHigh - close[i]) / range) * -100;
-    }
-    return result;
-  },
-
-  choppiness(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    period: number,
-  ): Float64Array {
-    const result = new Float64Array(close.length).fill(NaN);
-    if (close.length < period) return result;
-    // CI = 100 * LOG10( SUM(ATR(1), n) / ( MaxHi(n) - MinLo(n) ) ) / LOG10(n)
-
-    // First calculate TR for each candle
-    const tr = new Float64Array(close.length).fill(0);
-    for (let i = 1; i < close.length; i++) {
-      tr[i] = Math.max(
-        high[i] - low[i],
-        Math.abs(high[i] - close[i - 1]),
-        Math.abs(low[i] - close[i - 1]),
-      );
-    }
-
-    const log10n = Math.log10(period);
-
-    const maxHighs = slidingWindowMax(high, period);
-    const minLows = slidingWindowMin(low, period);
-
-    let sumTr = 0;
-    for (let i = 0; i < period; i++) sumTr += tr[i];
-
-    for (let i = period; i < close.length; i++) {
-      sumTr = sumTr - tr[i - period] + tr[i];
-      const maxHigh = maxHighs[i];
-      const minLow = minLows[i];
-      const range = maxHigh - minLow;
-
-      if (range === 0) result[i] = 0;
-      else {
-        result[i] = (100 * Math.log10(sumTr / range)) / log10n;
+        result[i] = meanDev === 0 ? 0 : (data[i] - avg) / (0.015 * meanDev);
       }
-    }
-    return result;
-  },
-
-  ichimoku(
-    high: NumberArray,
-    low: NumberArray,
-    conversionPeriod: number,
-    basePeriod: number,
-    spanBPeriod: number,
-    laggingSpan2: number,
-  ) {
-    const len = high.length;
-
-    const convHigh = slidingWindowMax(high, conversionPeriod);
-    const convLow = slidingWindowMin(low, conversionPeriod);
-
-    const baseHigh = slidingWindowMax(high, basePeriod);
-    const baseLow = slidingWindowMin(low, basePeriod);
-
-    const spanBHigh = slidingWindowMax(high, spanBPeriod);
-    const spanBLow = slidingWindowMin(low, spanBPeriod);
-
-    const conversion = new Float64Array(len).fill(NaN);
-    const base = new Float64Array(len).fill(NaN);
-    const spanA = new Float64Array(len).fill(NaN);
-    const spanB = new Float64Array(len).fill(NaN);
-
-    for (let i = 0; i < len; i++) {
-      if (i >= conversionPeriod - 1) {
-        conversion[i] = (convHigh[i] + convLow[i]) / 2;
-      } else {
-        conversion[i] = 0;
-      }
-
-      if (i >= basePeriod - 1) {
-        base[i] = (baseHigh[i] + baseLow[i]) / 2;
-      } else {
-        base[i] = 0;
-      }
-
-      spanA[i] = (conversion[i] + base[i]) / 2;
-
-      if (i >= spanBPeriod - 1) {
-        spanB[i] = (spanBHigh[i] + spanBLow[i]) / 2;
-      } else {
-        spanB[i] = 0;
-      }
-    }
-
-    const displacement = basePeriod;
-
-    const currentSpanA = new Float64Array(len).fill(NaN);
-    const currentSpanB = new Float64Array(len).fill(NaN);
-
-    for (let i = displacement; i < len; i++) {
-      currentSpanA[i] = spanA[i - displacement];
-      currentSpanB[i] = spanB[i - displacement];
-    }
-
-    return {
-      conversion,
-      base,
-      spanA: currentSpanA,
-      spanB: currentSpanB,
-      lagging: new Float64Array(0),
-    };
-  },
-
-  // --- Pro Indicators ---
-
-  superTrend(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    period: number = 10,
-    multiplier: number = 3,
-  ) {
-    // 1. ATR
-    const atr = this.atr(high, low, close, period);
-    const len = close.length;
-    const basicUpper = new Float64Array(len).fill(NaN);
-    const basicLower = new Float64Array(len).fill(NaN);
-    const finalUpper = new Float64Array(len).fill(NaN);
-    const finalLower = new Float64Array(len).fill(NaN);
-    const trend = new Int8Array(len).fill(0); // 1 = Bull, -1 = Bear
-    // Initialize trend
-    trend[0] = 1;
-
-    // Calculation loop
-    for (let i = 1; i < len; i++) {
-      const hl2 = (high[i] + low[i]) / 2;
-      basicUpper[i] = hl2 + multiplier * atr[i];
-      basicLower[i] = hl2 - multiplier * atr[i];
-
-      if (
-        basicUpper[i] < finalUpper[i - 1] ||
-        close[i - 1] > finalUpper[i - 1]
-      ) {
-        finalUpper[i] = basicUpper[i];
-      } else {
-        finalUpper[i] = finalUpper[i - 1];
-      }
-
-      if (
-        basicLower[i] > finalLower[i - 1] ||
-        close[i - 1] < finalLower[i - 1]
-      ) {
-        finalLower[i] = basicLower[i];
-      } else {
-        finalLower[i] = finalLower[i - 1];
-      }
-
-      // Trend Rule
-      let currentTrend = trend[i - 1];
-      if (currentTrend === 1) {
-        if (close[i] < finalLower[i - 1]) currentTrend = -1;
-      } else {
-        if (close[i] > finalUpper[i - 1]) currentTrend = 1;
-      }
-      trend[i] = currentTrend;
-    }
-
-    // Convert trend back to float for consistent API, or just map active line
-    // Map trend to active line value
-    const value = new Float64Array(len);
-    for(let i=0; i<len; i++) {
-        value[i] = trend[i] === 1 ? finalLower[i] : finalUpper[i];
-    }
-
-    return {
-      trend,
-      value
-    };
-  },
-
-  atrTrailingStop(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    period: number = 22,
-    multiplier: number = 3,
-  ) {
-    const atr = this.atr(high, low, close, period);
-    const len = close.length;
-    const buyStop = new Float64Array(len).fill(NaN);
-    const sellStop = new Float64Array(len).fill(NaN);
-
-    const highestHighs = slidingWindowMax(high, period);
-    const lowestLows = slidingWindowMin(low, period);
-
-    for (let i = period; i < len; i++) {
-      const highestHigh = highestHighs[i];
-      const lowestLow = lowestLows[i];
-
-      buyStop[i] = highestHigh - atr[i] * multiplier;
-      sellStop[i] = lowestLow + atr[i] * multiplier;
-    }
-    return { buyStop, sellStop };
-  },
-
-  obv(close: NumberArray, volume: NumberArray): Float64Array {
-    const result = new Float64Array(close.length).fill(0);
-    let cumVol = 0;
-    result[0] = cumVol;
-
-    for (let i = 1; i < close.length; i++) {
-      if (close[i] > close[i - 1]) {
-        cumVol += volume[i];
-      } else if (close[i] < close[i - 1]) {
-        cumVol -= volume[i];
-      }
-      result[i] = cumVol;
-    }
-    return result;
-  },
-
-  volumeProfile(
-    high: NumberArray,
-    low: NumberArray,
-    close: NumberArray,
-    volume: NumberArray,
-    rowCount: number = 24,
-  ) {
-    if (close.length === 0) return null;
-
-    // 1. Find Range
-    // Math.min(...low) can stack overflow for very large arrays.
-    // Optimization: Manual loop
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
-    for(let i=0; i<high.length; i++) {
-        if(low[i] < minPrice) minPrice = low[i];
-        if(high[i] > maxPrice) maxPrice = high[i];
-    }
-
-    if (minPrice === maxPrice) return null;
-
-    const range = maxPrice - minPrice;
-    const rowSize = range / rowCount;
-
-    // Initialize Buckets
-    const rows = new Array(rowCount).fill(0).map((_, i) => ({
-      priceStart: minPrice + i * rowSize,
-      priceEnd: minPrice + (i + 1) * rowSize,
-      volume: 0,
-    }));
-
-    // 2. Distribute Volume
-    for (let i = 0; i < close.length; i++) {
-      const cHigh = high[i];
-      const cLow = low[i];
-      const cVol = volume[i];
-
-      if (cHigh === cLow) {
-        // Single point, easier
-        const rowIdx = Math.min(
-          Math.floor((cHigh - minPrice) / rowSize),
-          rowCount - 1,
-        );
-        if (rowIdx >= 0) rows[rowIdx].volume += cVol;
-      } else {
-        // Distribute across overlapped rows
-        const startRowIdx = Math.max(
-          0,
-          Math.floor((cLow - minPrice) / rowSize),
-        );
-        const endRowIdx = Math.min(
-          rowCount - 1,
-          Math.floor((cHigh - minPrice) / rowSize),
-        );
-
-        const candleRange = cHigh - cLow;
-
-        for (let r = startRowIdx; r <= endRowIdx; r++) {
-          const rStart = rows[r].priceStart;
-          const rEnd = rows[r].priceEnd;
-          const overlapStart = Math.max(cLow, rStart);
-          const overlapEnd = Math.min(cHigh, rEnd);
-          const overlap = Math.max(0, overlapEnd - overlapStart);
-
-          const share = overlap / candleRange;
-          rows[r].volume += cVol * share;
-        }
-      }
-    }
-
-    // 3. Find POC
-    let maxVol = -1;
-    let pocRowIdx = -1;
-    let totalVol = 0;
-
-    rows.forEach((r, i) => {
-      totalVol += r.volume;
-      if (r.volume > maxVol) {
-        maxVol = r.volume;
-        pocRowIdx = i;
-      }
-    });
-
-    // 4. Value Area (70%)
-    const targetVaVol = totalVol * 0.7;
-    let currentVaVol = maxVol;
-    let upIdx = pocRowIdx;
-    let downIdx = pocRowIdx;
-    const vaRows = new Set<number>();
-    vaRows.add(pocRowIdx);
-
-    while (currentVaVol < targetVaVol) {
-      const upVol = upIdx < rowCount - 1 ? rows[upIdx + 1].volume : 0;
-      const downVol = downIdx > 0 ? rows[downIdx - 1].volume : 0;
-
-      if (upVol === 0 && downVol === 0) break;
-
-      if (upVol >= downVol) {
-        currentVaVol += upVol;
-        upIdx++;
-        vaRows.add(upIdx);
-      } else {
-        currentVaVol += downVol;
-        downIdx--;
-        vaRows.add(downIdx);
-      }
-    }
-
-    return {
-      rows,
-      poc: (rows[pocRowIdx].priceStart + rows[pocRowIdx].priceEnd) / 2,
-      vaHigh: rows[Math.max(...vaRows)].priceEnd,
-      vaLow: rows[Math.min(...vaRows)].priceStart,
-    };
-  },
-
-  psar(high: NumberArray, low: NumberArray, start: number, increment: number, max: number): Float64Array {
-    const result = new Float64Array(high.length).fill(NaN);
-    if (high.length < 2) return result;
-
-    let isLong = true;
-    let af = start;
-    let ep = high[0]; // Extreme Point
-    let sar = low[0];
-
-    // Initial guess setup
-    result[0] = sar;
-
-    for (let i = 1; i < high.length; i++) {
-      // Apply SAR Logic
-      // Next SAR = Prior SAR + Prior AF * (Prior EP - Prior SAR)
-      let nextSar = sar + af * (ep - sar);
-
-      // Constraint: SAR cannot be within previous day's range
-      if (isLong) {
-        if (i > 0 && nextSar > low[i - 1]) nextSar = low[i - 1];
-        if (i > 1 && nextSar > low[i - 2]) nextSar = low[i - 2];
-      } else {
-        if (i > 0 && nextSar < high[i - 1]) nextSar = high[i - 1];
-        if (i > 1 && nextSar < high[i - 2]) nextSar = high[i - 2];
-      }
-
-      // Check for Reversal
-      let reversed = false;
-      if (isLong) {
-        if (low[i] < nextSar) {
-          isLong = false;
-          reversed = true;
-          nextSar = ep;
-          ep = low[i];
-          af = start;
-        }
-      } else {
-        if (high[i] > nextSar) {
-          isLong = true;
-          reversed = true;
-          nextSar = ep;
-          ep = high[i];
-          af = start;
-        }
-      }
-
-      if (!reversed) {
-        // Update AF and EP
-        if (isLong) {
-          if (high[i] > ep) {
-            ep = high[i];
-            af = Math.min(af + increment, max);
-          }
-        } else {
-          if (low[i] < ep) {
-            ep = low[i];
-            af = Math.min(af + increment, max);
-          }
-        }
-      }
-      sar = nextSar;
-      result[i] = sar;
-    }
-
-    return result;
-  },
-
-  // --- Incremental Helpers (O(1) Updates) ---
-
-  updateEma(prev: number, val: number, period: number): number {
-    const k = 2 / (period + 1);
-    return (val - prev) * k + prev;
-  },
-
-  updateSma(prevSma: number, newVal: number, oldVal: number, period: number): number {
-    return prevSma + (newVal - oldVal) / period;
-  },
-
-  updateSmma(prev: number, val: number, period: number): number {
-    // (Prior * (n-1) + Current) / n
-    return (prev * (period - 1) + val) / period;
-  },
-
-  updateRsi(
-    prevAvgGain: number,
-    prevAvgLoss: number,
-    currentPrice: number,
-    prevPrice: number,
-    period: number,
-  ) {
-    const diff = currentPrice - prevPrice;
-    const gain = diff > 0 ? diff : 0;
-    const loss = diff < 0 ? -diff : 0;
-
-    const avgGain = (prevAvgGain * (period - 1) + gain) / period;
-    const avgLoss = (prevAvgLoss * (period - 1) + loss) / period;
-
-    const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-    return { rsi, avgGain, avgLoss };
-  },
-
-  marketStructure(
-    high: NumberArray,
-    low: NumberArray,
-    period: number = 5,
-  ): { highs: { index: number; value: number; type: "HH" | "LH" }[]; lows: { index: number; value: number; type: "LL" | "HL" }[] } {
-    const len = high.length;
-    const pivotHighs: { index: number; value: number; type: "HH" | "LH" }[] = [];
-    const pivotLows: { index: number; value: number; type: "LL" | "HL" }[] = [];
-
-    if (len < period * 2 + 1) return { highs: pivotHighs, lows: pivotLows };
-
-    // Find Pivots
-    for (let i = period; i < len - period; i++) {
-      const currentHigh = high[i];
-      const currentLow = low[i];
-
-      // Check Pivot High
-      let isHigh = true;
-      for (let j = 1; j <= period; j++) {
-        if (high[i - j] > currentHigh || high[i + j] > currentHigh) {
-          isHigh = false;
-          break;
-        }
-      }
-
-      if (isHigh) {
-        // Classify HH/LH
-        let type: "HH" | "LH" = "HH";
-        if (pivotHighs.length > 0) {
-          const prev = pivotHighs[pivotHighs.length - 1];
-          type = currentHigh >= prev.value ? "HH" : "LH";
-        }
-        pivotHighs.push({ index: i, value: currentHigh, type });
-      }
-
-      // Check Pivot Low
-      let isLow = true;
-      for (let j = 1; j <= period; j++) {
-        if (low[i - j] < currentLow || low[i + j] < currentLow) {
-          isLow = false;
-          break;
-        }
-      }
-
-      if (isLow) {
-        // Classify LL/HL
-        let type: "LL" | "HL" = "LL";
-        if (pivotLows.length > 0) {
-          const prev = pivotLows[pivotLows.length - 1];
-          type = currentLow <= prev.value ? "LL" : "HL";
-        }
-        pivotLows.push({ index: i, value: currentLow, type });
-      }
-    }
-
-    return { highs: pivotHighs, lows: pivotLows };
+      return result;
   },
 };
-
-// --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---
-
-export function calculateAwesomeOscillator(
-  high: NumberArray,
-  low: NumberArray,
-  fastPeriod: number,
-  slowPeriod: number,
-  out?: Float64Array,
-): Float64Array {
-  const len = high.length;
-  const result = out && out.length === len ? out : new Float64Array(len);
-
-  // We need running sums for SMAs
-  let fastSum = 0;
-  let slowSum = 0;
-
-  for (let i = 0; i < len; i++) {
-    const hl2 = (high[i] + low[i]) / 2;
-
-    fastSum += hl2;
-    slowSum += hl2;
-
-    if (i >= fastPeriod) {
-      const oldFast = (high[i - fastPeriod] + low[i - fastPeriod]) / 2;
-      fastSum -= oldFast;
-    }
-
-    if (i >= slowPeriod) {
-      const oldSlow = (high[i - slowPeriod] + low[i - slowPeriod]) / 2;
-      slowSum -= oldSlow;
-    }
-
-    let fastSMA = 0;
-    let slowSMA = 0;
-
-    if (i >= fastPeriod - 1) {
-      fastSMA = fastSum / fastPeriod;
-    }
-
-    if (i >= slowPeriod - 1) {
-      slowSMA = slowSum / slowPeriod;
-    }
-
-    // Usually we only care if the slow SMA is valid
-    if (i >= slowPeriod - 1) {
-      result[i] = fastSMA - slowSMA;
-    } else {
-      result[i] = 0;
-    }
-  }
-
-  return result;
-}
-
-export function calculateMFI(
-  high: NumberArray,
-  low: NumberArray,
-  close: NumberArray,
-  vol: NumberArray,
-  period: number
-): number {
-  const len = close.length;
-  if (len < period + 1) return 0;
-
-  // We need to look at the last 'period' changes.
-  // Changes are defined between i-1 and i.
-  // So we need indices from len - period to len - 1.
-  // And for each i, we compare with i-1.
-  // So we need data starting from len - period - 1.
-
-  let posFlow = 0;
-  let negFlow = 0;
-
-  const start = len - period;
-
-  // Calculate TP for previous day (start - 1)
-  let prevTP = (high[start - 1] + low[start - 1] + close[start - 1]) / 3;
-
-  for (let i = start; i < len; i++) {
-    const tp = (high[i] + low[i] + close[i]) / 3;
-    const rawFlow = tp * vol[i];
-
-    if (tp > prevTP) {
-      posFlow += rawFlow;
-    } else if (tp < prevTP) {
-      negFlow += rawFlow;
-    }
-    // if tp == prevTP, flow is discarded (typical MFI behavior)
-
-    prevTP = tp;
-  }
-
-  if (negFlow === 0) return 100; // Avoid div by zero, max value
-
-  const mfr = posFlow / negFlow;
-  return 100 - (100 / (1 + mfr));
-}
-
-export function calculateCCI(
-  high: NumberArray,
-  low: NumberArray,
-  close: NumberArray,
-  period: number
-): number {
-  const len = close.length;
-  if (len < period) return 0;
-
-  // 1. Compute TPs for the window
-  // We need to store them to calculate MeanDev later
-  // Avoiding generic array alloc? We can use a small stack buffer if period is small,
-  // but standard JS array is fine for small period (20).
-  const tps = new Float64Array(period);
-  let sum = 0;
-
-  const start = len - period;
-  for (let i = 0; i < period; i++) {
-    const idx = start + i;
-    const tp = (high[idx] + low[idx] + close[idx]) / 3;
-    tps[i] = tp;
-    sum += tp;
-  }
-
-  const sma = sum / period;
-
-  let sumAbsDiff = 0;
-  for (let i = 0; i < period; i++) {
-    sumAbsDiff += Math.abs(tps[i] - sma);
-  }
-
-  const meanDev = sumAbsDiff / period;
-
-  if (meanDev === 0) return 0;
-  return (tps[period - 1] - sma) / (0.015 * meanDev);
-}
 
 export function calculateCCISeries(
   high: NumberArray,
   low: NumberArray,
   close: NumberArray,
   period: number,
-  out?: Float64Array
+  out?: Float64Array,
 ): Float64Array {
   const len = close.length;
-  const result = (out && out.length === len) ? out : new Float64Array(len);
-  result.fill(NaN);
-
-  if (len < period) return result;
-
-  const tpBuf = new Float64Array(period);
-  let sum = 0;
-  let ptr = 0;
-
-  // Initialize first window
-  for (let i = 0; i < period; i++) {
-      const tp = (high[i] + low[i] + close[i]) / 3;
-      tpBuf[i] = tp;
-      sum += tp;
+  const tp = new Float64Array(len);
+  for (let i = 0; i < len; i++) {
+    tp[i] = (high[i] + low[i] + close[i]) / 3;
   }
-
-  // Calculate first point (at index period-1)
-  let sma = sum / period;
-  let sumAbsDiff = 0;
-  for (let j = 0; j < period; j++) {
-      sumAbsDiff += Math.abs(tpBuf[j] - sma);
-  }
-  let meanDev = sumAbsDiff / period;
-  // Last added TP was at index period-1
-  result[period - 1] = meanDev === 0 ? 0 : (tpBuf[period - 1] - sma) / (0.015 * meanDev);
-
-  // Iterate the rest
-  for (let i = period; i < len; i++) {
-      const tp = (high[i] + low[i] + close[i]) / 3;
-
-      const oldTP = tpBuf[ptr];
-      sum = sum - oldTP + tp;
-
-      tpBuf[ptr] = tp;
-
-      // Calculate results
-      sma = sum / period;
-
-      sumAbsDiff = 0;
-      for (let j = 0; j < period; j++) {
-          sumAbsDiff += Math.abs(tpBuf[j] - sma);
-      }
-      meanDev = sumAbsDiff / period;
-
-      result[i] = meanDev === 0 ? 0 : (tp - sma) / (0.015 * meanDev);
-
-      ptr = (ptr + 1) % period;
-  }
-
-  return result;
+  return JSIndicators.cci(tp, period, out);
 }
 
+export function calculateMFI(
+  high: NumberArray,
+  low: NumberArray,
+  close: NumberArray,
+  volume: NumberArray,
+  period: number,
+): number {
+  const len = close.length;
+  if (len < period + 1) return 50;
 
+  let posFlow = 0;
+  let negFlow = 0;
 
+  for (let i = len - period; i < len; i++) {
+    const tp = (high[i] + low[i] + close[i]) / 3;
+    const tpPrev = (high[i - 1] + low[i - 1] + close[i - 1]) / 3;
+    const rawFlow = tp * volume[i];
 
-export function calculatePivots(klines: Kline[], type: string) {
-  if (klines.length < 2) return getEmptyPivots();
-  const prev = klines[klines.length - 2];
-  return calculatePivotsFromValues(
-    prev.high.toNumber(),
-    prev.low.toNumber(),
-    prev.close.toNumber(),
-    prev.open.toNumber(),
-    type
-  );
+    if (tp > tpPrev) posFlow += rawFlow;
+    else if (tp < tpPrev) negFlow += rawFlow;
+  }
+
+  if (negFlow === 0) return 100;
+  const mfr = posFlow / negFlow;
+  return 100 - 100 / (1 + mfr);
+}
+
+export function calculateAwesomeOscillator(
+  high: NumberArray,
+  low: NumberArray,
+  fast: number,
+  slow: number,
+  out?: Float64Array,
+): Float64Array {
+  const len = high.length;
+  const hl2 = new Float64Array(len);
+  for (let i = 0; i < len; i++) hl2[i] = (high[i] + low[i]) / 2;
+
+  const smaFast = JSIndicators.sma(hl2, fast);
+  const smaSlow = JSIndicators.sma(hl2, slow);
+
+  const result = (out && out.length === len) ? out : new Float64Array(len);
+  for (let i = 0; i < len; i++) {
+    result[i] = smaFast[i] - smaSlow[i];
+  }
+  return result;
 }
 
 export function calculatePivotsFromValues(
@@ -1555,6 +889,8 @@ export function calculatePivotsFromValues(
   let s1 = 0,
     s2 = 0,
     s3 = 0;
+  let r4: number | undefined;
+  let s4: number | undefined;
 
   if (type === "woodie") {
     p = (high + low + close * 2) / 4;
@@ -1566,6 +902,7 @@ export function calculatePivotsFromValues(
     s3 = low - (high - p) * 2;
   } else if (type === "camarilla") {
     const range = high - low;
+    r4 = close + (range * 1.1) / 2;
     r3 = close + (range * 1.1) / 4;
     r2 = close + (range * 1.1) / 6;
     r1 = close + (range * 1.1) / 12;
@@ -1573,6 +910,7 @@ export function calculatePivotsFromValues(
     s1 = close - (range * 1.1) / 12;
     s2 = close - (range * 1.1) / 6;
     s3 = close - (range * 1.1) / 4;
+    s4 = close - (range * 1.1) / 2;
   } else if (type === "fibonacci") {
     p = (high + low + close) / 3;
     const range = high - low;
@@ -1583,6 +921,7 @@ export function calculatePivotsFromValues(
     s2 = p - range * 0.618;
     s3 = p - range * 1.0;
   } else {
+    // Classic
     p = (high + low + close) / 3;
     r1 = p * 2 - low;
     s1 = p * 2 - high;
@@ -1592,18 +931,16 @@ export function calculatePivotsFromValues(
     s3 = low - (high - p) * 2;
   }
 
+  const pivotData = { p, r1, r2, r3, s1, s2, s3, r4, s4 };
+
+  const result: any = { pivots: {} };
+  if (type === "woodie") result.pivots.woodie = pivotData;
+  else if (type === "camarilla") result.pivots.camarilla = pivotData;
+  else if (type === "fibonacci") result.pivots.fibonacci = pivotData;
+  else result.pivots.classic = pivotData;
+
   return {
-    pivots: {
-      classic: {
-        p,
-        r1,
-        r2,
-        r3,
-        s1,
-        s2,
-        s3,
-      },
-    },
+    ...result,
     basis: {
       high,
       low,
@@ -1613,25 +950,25 @@ export function calculatePivotsFromValues(
   };
 }
 
+export function calculatePivots(klines: Kline[], type: string = "classic") {
+  if (klines.length < 2) return getEmptyPivots();
+  // Use previous candle for pivots
+  const k = klines[klines.length - 2];
+  return calculatePivotsFromValues(
+    k.high.toNumber(),
+    k.low.toNumber(),
+    k.close.toNumber(),
+    k.open.toNumber(),
+    type
+  );
+}
+
 function getEmptyPivots() {
   return {
     pivots: {
-      classic: {
-        p: 0,
-        r1: 0,
-        r2: 0,
-        r3: 0,
-        s1: 0,
-        s2: 0,
-        s3: 0,
-      },
+      classic: { p: 0, r1: 0, r2: 0, r3: 0, s1: 0, s2: 0, s3: 0 },
     },
-    basis: {
-      high: 0,
-      low: 0,
-      close: 0,
-      open: 0,
-    },
+    basis: { high: 0, low: 0, close: 0, open: 0 },
   };
 }
 

@@ -93,10 +93,25 @@ export class TechnicalsPresenter {
      * Prepares Pivot Points for iteration
      */
     static getPivotsArray(pivots: any): PivotDisplay[] {
-        if (!pivots || !pivots.classic) return [];
+        if (!pivots) return [];
 
-        const p = pivots.classic;
-        return [
+        // Check for active pivot type
+        let p = pivots.classic || pivots.woodie || pivots.camarilla || pivots.fibonacci;
+
+        // Prioritize specific types if multiple exist (unlikely but safe)
+        if (pivots.woodie) p = pivots.woodie;
+        else if (pivots.camarilla) p = pivots.camarilla;
+        else if (pivots.fibonacci) p = pivots.fibonacci;
+        else if (pivots.classic) p = pivots.classic;
+
+        if (!p) return [];
+
+        const levels: PivotDisplay[] = [];
+
+        // Add R4 (Camarilla)
+        if (p.r4 !== undefined) levels.push({ label: "R4", val: p.r4, color: "text-[var(--danger-color)]" });
+
+        levels.push(
             { label: "R3", val: p.r3, color: "text-[var(--danger-color)]" },
             { label: "R2", val: p.r2, color: "text-[var(--danger-color)]" },
             { label: "R1", val: p.r1, color: "text-[var(--danger-color)]" },
@@ -104,7 +119,12 @@ export class TechnicalsPresenter {
             { label: "S1", val: p.s1, color: "text-[var(--success-color)]" },
             { label: "S2", val: p.s2, color: "text-[var(--success-color)]" },
             { label: "S3", val: p.s3, color: "text-[var(--success-color)]" }
-        ];
+        );
+
+        // Add S4 (Camarilla)
+        if (p.s4 !== undefined) levels.push({ label: "S4", val: p.s4, color: "text-[var(--success-color)]" });
+
+        return levels;
     }
 
     static getSuperTrendColor(trend: string): string {
