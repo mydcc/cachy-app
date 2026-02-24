@@ -71,18 +71,8 @@ export class IncrementalCache {
    * Generate hash from settings
    */
   private hashSettings(settings: IndicatorSettings): string {
-    // Simple hash - stringify and hash relevant fields
-    const relevant = {
-      ema: settings.ema,
-      rsi: settings.rsi,
-      macd: settings.macd,
-      bollingerBands: settings.bollingerBands,
-      stochastic: settings.stochastic,
-      stochRsi: settings.stochRsi,
-      // Add other indicators as needed
-    };
-    
-    return JSON.stringify(relevant);
+    // Hash the entire settings object to catch all indicator changes
+    return JSON.stringify(settings);
   }
   
   /**
