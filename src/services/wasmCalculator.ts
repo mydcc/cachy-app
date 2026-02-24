@@ -15,150 +15,136 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * Copyright (C) 2026 MYDCT
- *
- * WebAssembly Bridge for Technicals Calculation
- * Hardened version using static assets.
- */
+import init, { TechnicalsEngine } from "cachy-technicals-wasm";
+import { settingsState } from "../stores/settings.svelte";
+import type { IndicatorSettings } from "../types/indicators";
+import type { Kline, TechnicalsData, PivotLevels } from "./technicalsTypes";
+import { getEmptyData } from "./technicalsTypes";
 
-import type { TechnicalsData, IndicatorSettings, IndicatorResult } from './technicalsTypes';
-import { getEmptyData } from './technicalsTypes';
-import { toNumFast } from '../utils/fastConversion';
+export class WasmCalculator {
+  private wasmModule: TechnicalsEngine | null = null;
+  private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
 
-class WasmCalculator {
-  private wasmModule: any = null;
-  private instance: any = null;
-  private loadingPromise: Promise<void> | null = null;
-  
-  async ensureLoaded(): Promise<void> {
-    if (this.wasmModule) return;
-    if (this.loadingPromise) return this.loadingPromise;
-    
-    this.loadingPromise = (async () => {
-        let lastError: Error | null = null;
-        const maxRetries = 3;
-        
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                // Import the glue code from the static directory
-                // Note: We use a relative path from the current file to the static asset via Vite's resolution
-                const wasmJsPath = '/wasm/technicals_wasm.js';
-                const wasmBinaryPath = '/wasm/technicals_wasm_bg.wasm';
+  async init() {
+    if (this.isInitialized) return;
+    if (this.initPromise) return this.initPromise;
 
-                // We use dynamic import on the static URL. 
-                // In SvelteKit/Vite, /static/ maps to / at runtime.
-                const mod = await import(/* @vite-ignore */ wasmJsPath);
-                
-                // Initialize with the explicit path to the binary
-                await mod.default(wasmBinaryPath);
-                
-                this.wasmModule = mod;
-                if (import.meta.env.DEV) {
-                    console.log(`[WASM] Engine initialized successfully (Attempt ${attempt}).`);
-                }
-                return; // Success!
-            } catch (error: any) {
-                lastError = error;
-                console.warn(`[WASM] Load attempt ${attempt}/${maxRetries} failed:`, error.message);
-                
-                // Classify error
-                const isNetworkError = error.message.includes('fetch') || error.message.includes('network') || error.name === 'TypeError';
-                const isCompileError = error.message.includes('LinkError') || error.message.includes('CompileError');
-                
-                // If it's a compile error, retrying won't help.
-                if (isCompileError) throw error;
-                
-                // If expected retry, wait with backoff
-                if (attempt < maxRetries) {
-                    const delay = 200 * Math.pow(2, attempt - 1); // 200, 400, 800
-                    await new Promise(r => setTimeout(r, delay));
-                }
-            }
-        }
-        
-        // If we get here, all retries failed
-        console.error(`[WASM] Failed to initialize after ${maxRetries} attempts.`);
-        this.loadingPromise = null;
-        throw lastError || new Error('WASM module failed to load');
+    this.initPromise = (async () => {
+      try {
+        await init();
+        this.wasmModule = new TechnicalsEngine();
+        this.isInitialized = true;
+      } catch (e) {
+        console.error("Failed to initialize WASM calculator:", e);
+        throw e;
+      }
     })();
-    
-    return this.loadingPromise;
+
+    return this.initPromise;
   }
 
-  async calculate(klines: any[], settings: IndicatorSettings, enabledIndicators: any): Promise<TechnicalsData> {
-    await this.ensureLoaded();
-    if (!this.wasmModule) throw new Error('WASM unavailable');
-    
-    if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
-    
-    const len = klines.length;
-    const closes = new Float64Array(len);
-    const highs = new Float64Array(len);
-    const lows = new Float64Array(len);
-    const volumes = new Float64Array(len);
-    const times = new Float64Array(len);
-    
-    for (let i = 0; i < len; i++) {
-      const k = klines[i];
-      closes[i] = toNumFast(k.close);
-      highs[i] = toNumFast(k.high);
-      lows[i] = toNumFast(k.low);
-      volumes[i] = toNumFast(k.volume || 0);
-      times[i] = k.time;
+  calculate(
+    klines: Kline[],
+    settings: IndicatorSettings = settingsState.toJSON(),
+    enabledIndicators?: Partial<Record<string, boolean>>
+  ): TechnicalsData {
+    if (!this.wasmModule) {
+      if (import.meta.env.DEV) {
+        console.warn("WASM calculator not initialized, returning empty data");
+      }
+      return getEmptyData();
     }
-    
-    // Settings conversion for WASM module (matches Rust IndicatorSettings struct)
-    const wasmSettings = {
-        // Trend
-        ema: [settings.ema.ema1, settings.ema.ema2, settings.ema.ema3].filter(s => s.length > 0).map(s => ({ length: s.length })),
-        sma: [settings.sma.sma1, settings.sma.sma2, settings.sma.sma3].filter(s => s.length > 0).map(s => ({ length: s.length })),
-        wma: settings.wma.length > 0 ? [{ length: settings.wma.length }] : [],
-        vwma: settings.vwma.length > 0 ? [{ length: settings.vwma.length }] : [],
-        hma: settings.hma.length > 0 ? [{ length: settings.hma.length }] : [],
-        supertrend: settings.superTrend.period > 0 ? [{ length: settings.superTrend.period, multiplier: settings.superTrend.factor }] : [],
-        psar: settings.parabolicSar ? [{ start: settings.parabolicSar.start, increment: settings.parabolicSar.increment, max: settings.parabolicSar.max }] : [],
-        
-        // Oscillators
-        rsi: settings.rsi.length > 0 ? [{ length: settings.rsi.length }] : [],
-        macd: settings.macd.fastLength > 0 ? [{ fast: settings.macd.fastLength, slow: settings.macd.slowLength, signal: settings.macd.signalLength }] : [],
-        stoch: settings.stochastic.kPeriod > 0 ? [{ k: settings.stochastic.kPeriod, d: settings.stochastic.dPeriod, smooth: settings.stochastic.kSmoothing }] : [],
-        cci: settings.cci.length > 0 ? [{ length: settings.cci.length }] : [],
-        adx: settings.adx ? [{ length: settings.adx.adxSmoothing }] : [], // Note: check mappings. adxSmoothing seems to be length in Rust context? Rust has 'length'. 
-        mom: settings.momentum.length > 0 ? [{ length: settings.momentum.length }] : [],
-        wr: settings.williamsR.length > 0 ? [{ length: settings.williamsR.length }] : [],
-        mfi: settings.mfi.length > 0 ? [{ length: settings.mfi.length }] : [],
 
-        // Volatility
-        bb: settings.bollingerBands.length > 0 ? [{ length: settings.bollingerBands.length, std_dev: settings.bollingerBands.stdDev }] : [],
-        atr: settings.atr.length > 0 ? [{ length: settings.atr.length }] : [],
-        chop: settings.choppiness.length > 0 ? [{ length: settings.choppiness.length }] : [],
+    try {
+      // Convert klines to flat Float64Arrays for WASM (SoA layout)
+      const len = klines.length;
+      const times = new Float64Array(len);
+      const opens = new Float64Array(len);
+      const highs = new Float64Array(len);
+      const lows = new Float64Array(len);
+      const closes = new Float64Array(len);
+      const volumes = new Float64Array(len);
 
-        // Volume & Other
-        volma: settings.volumeMa.length > 0 ? [{ length: settings.volumeMa.length }] : [],
-        vwap: settings.vwap ? [{ anchor: settings.vwap.anchor }] : [],
-        pivots: settings.pivots ? [{ type_: settings.pivots.type }] : []
-    };
+      for (let i = 0; i < len; i++) {
+        const k = klines[i];
+        times[i] = k.time;
+        opens[i] = k.open.toNumber();
+        highs[i] = k.high.toNumber();
+        lows[i] = k.low.toNumber();
+        closes[i] = k.close.toNumber();
+        volumes[i] = k.volume.toNumber();
+      }
 
-    this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(wasmSettings));
-    
-    const last = klines[len - 1];
-    const resultJson = this.instance.update(toNumFast(last.open), highs[len-1], lows[len-1], closes[len-1], volumes[len-1], last.time);
-    
-    return this.convertResult(JSON.parse(resultJson), klines, settings);
+      // Convert settings to plain object
+      // The WASM engine expects camelCase
+      const engineSettings = {
+        rsiLength: settings.rsi.length,
+        stochK: settings.stochastic.kPeriod,
+        stochD: settings.stochastic.dPeriod,
+        stochSmooth: settings.stochastic.kSmoothing,
+        macdFast: settings.macd.fastLength,
+        macdSlow: settings.macd.slowLength,
+        macdSignal: settings.macd.signalLength,
+        bbLength: settings.bollingerBands.length,
+        bbStdDev: settings.bollingerBands.stdDev,
+        atrLength: settings.atr.length,
+
+        // Pivot settings
+        pivotType: settings.pivots.type,
+
+        // Include new indicators if WASM supports them
+        emaPeriods: [
+            settings.ema.ema1.length,
+            settings.ema.ema2.length,
+            settings.ema.ema3.length
+        ],
+        smaPeriods: [
+            settings.sma.sma1.length,
+            settings.sma.sma2.length,
+            settings.sma.sma3.length
+        ],
+        wmaLength: settings.wma.length,
+        vwmaLength: settings.vwma.length,
+        hmaLength: settings.hma.length,
+
+        volumeMaLength: settings.volumeMa.length,
+        volumeMaType: settings.volumeMa.maType,
+
+        superTrendPeriod: settings.superTrend.period,
+        superTrendFactor: settings.superTrend.factor,
+
+        // Filter map
+        enabled: enabledIndicators || {}
+      };
+
+      // Call WASM
+      // The engine.calculate returns a raw JSON string or object
+      // We assume it returns an object matching our needs
+      const resultJson = this.wasmModule.calculate_all(
+        times, opens, highs, lows, closes, volumes,
+        JSON.stringify(engineSettings)
+      );
+
+      const rawResult = JSON.parse(resultJson);
+
+      return this.convertResult(rawResult, settings, closes[len - 1]);
+
+    } catch (e) {
+      console.error("WASM Calculation Error:", e);
+      return getEmptyData();
+    }
   }
-  
-  private convertResult(raw: any, klines: any[], settings: IndicatorSettings): TechnicalsData {
+
+  private convertResult(raw: any, settings: IndicatorSettings, lastPrice: number): TechnicalsData {
     const data = getEmptyData();
-    const lastPrice = toNumFast(klines[klines.length - 1].close);
-    
+
     // 1. Moving Averages
     if (raw.movingAverages) {
         data.movingAverages = [];
         for (const [key, value] of Object.entries(raw.movingAverages)) {
             const val = value as number;
-            
-            // Standard MAs
+            // WASM returns keys like "EMA9", "SMA20", "WMA14"
             data.movingAverages.push({
                 name: key.replace(/\d+/, ''), // Extract "EMA" from "EMA9"
                 params: key.replace(/\D+/, ''), // Extract "9"
@@ -353,35 +339,41 @@ class WasmCalculator {
 
     // 4. Pivots
     if (raw.pivots) {
-        // raw.pivots has "P", "R1", "S1", "R2", "S2", "R3", "S3"
         // TechnicalsData.pivots structure:
         /*
           pivots: {
-            classic: { ... }
+            classic: { ... },
+            woodie?: { ... },
+            camarilla?: { ... },
+            fibonacci?: { ... }
           }
         */
-        // The WASM output is flat map of the specific type requested.
-        const type = settings.pivots.type as "classic"; // Cast or 'classic' | 'woodie' ...
+        const type = settings.pivots.type; // 'classic' | 'woodie' | 'camarilla' | 'fibonacci'
         
-        // Ensure the type exists in the object
-        // Note: TechnicalsData only defines 'classic' strictly in the interface shown in viewed file?
-        // Wait, the viewed file showed: pivots: { classic: { ... } };
-        // If user selects woodie, does TS allow it?
-        // Let's assume we map to 'classic' slot or try to match dynamic key if allowed (it wasn't in the interface).
-        // If the interface ONLY has 'classic', we might have a problem if we want to store 'woodie'.
-        // Checking technicalsTypes.ts again... lines 103-113: classic object.
-        // It seems strictly typed to 'classic'. 
-        
-        if (type === 'classic') {
-             data.pivots.classic = {
-                 p: raw.pivots.P || 0,
-                 r1: raw.pivots.R1 || 0,
-                 r2: raw.pivots.R2 || 0,
-                 r3: raw.pivots.R3 || 0,
-                 s1: raw.pivots.S1 || 0,
-                 s2: raw.pivots.S2 || 0,
-                 s3: raw.pivots.S3 || 0,
-             };
+        // Map raw pivots to the correct type structure
+        const pivotData: PivotLevels = {
+             p: raw.pivots.P || 0,
+             r1: raw.pivots.R1 || 0,
+             r2: raw.pivots.R2 || 0,
+             r3: raw.pivots.R3 || 0,
+             s1: raw.pivots.S1 || 0,
+             s2: raw.pivots.S2 || 0,
+             s3: raw.pivots.S3 || 0,
+             // Optional R4/S4 for Camarilla
+             r4: raw.pivots.R4,
+             s4: raw.pivots.S4,
+        };
+
+        // Populate the correct key based on type
+        if (type === 'woodie') {
+            data.pivots.woodie = pivotData;
+        } else if (type === 'camarilla') {
+            data.pivots.camarilla = pivotData;
+        } else if (type === 'fibonacci') {
+            data.pivots.fibonacci = pivotData;
+        } else {
+            // Default to classic
+            data.pivots.classic = pivotData;
         }
     }
 

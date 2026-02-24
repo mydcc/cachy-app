@@ -111,19 +111,26 @@ export interface ConfluenceData {
   contributing: string[]; // Reasons
 }
 
+export interface PivotLevels {
+  p: number;
+  r1: number;
+  r2: number;
+  r3: number;
+  r4?: number; // Camarilla
+  s1: number;
+  s2: number;
+  s3: number;
+  s4?: number; // Camarilla
+}
+
 export interface TechnicalsData {
   oscillators: IndicatorResult[];
   movingAverages: IndicatorResult[];
   pivots: {
-    classic: {
-      r3: number;
-      r2: number;
-      r1: number;
-      p: number;
-      s1: number;
-      s2: number;
-      s3: number;
-    };
+    classic: PivotLevels;
+    woodie?: PivotLevels;
+    camarilla?: PivotLevels;
+    fibonacci?: PivotLevels;
   };
   pivotBasis?: {
     high: number;
