@@ -30,6 +30,9 @@
   import { resultsState } from "../stores/results.svelte";
   import { presetState } from "../stores/preset.svelte";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
+import { activeTechnicalsManager } from "../services/activeTechnicalsManager.svelte";
+import { marketState } from "../stores/market.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { windowManager } from "../lib/windows/WindowManager.svelte";
   import { favoritesState } from "../stores/favorites.svelte";
@@ -248,6 +251,30 @@
         : "w-72"
       : "w-56",
   );
+
+  // Technicals Logic
+  let effectiveRsiTimeframe = $derived(
+    settingsState.syncRsiTimeframe
+      ? tradeState.atrTimeframe || indicatorState.rsi.defaultTimeframe || "1d"
+      : indicatorState.rsi.defaultTimeframe || "1d",
+  );
+
+  let technicalsData = $derived(
+    marketState.data[tradeState.symbol]?.technicals?.[effectiveRsiTimeframe] || null,
+  );
+
+  // Register with ActiveTechnicalsManager
+  $effect(() => {
+    const shouldCalc = settingsState.showTechnicals && (isTechnicalsVisible || isTechnicalsDocked);
+
+    if (shouldCalc && tradeState.symbol && effectiveRsiTimeframe) {
+       activeTechnicalsManager.register(tradeState.symbol, effectiveRsiTimeframe);
+       return () => {
+         activeTechnicalsManager.unregister(tradeState.symbol, effectiveRsiTimeframe);
+       };
+    }
+  });
+
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -702,7 +729,7 @@
         {/if}
 
         {#if settingsState.showTechnicals && isTechnicalsVisible}
-          <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
+          <TechnicalsPanel data={technicalsData} isVisible={isTechnicalsVisible} fluidWidth={true} />
         {/if}
 
         {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
@@ -733,7 +760,7 @@
           {isTechnicalsVisible}
         />
       {:else if isTechnicalsDocked}
-        <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
+        <TechnicalsPanel data={technicalsData} isVisible={isTechnicalsVisible} fluidWidth={true} />
       {/if}
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
@@ -745,7 +772,7 @@
           class:opacity-0={!isTechnicalsVisible}
           class:opacity-100={isTechnicalsVisible}
         >
-          <TechnicalsPanel isVisible={isTechnicalsVisible} />
+          <TechnicalsPanel data={technicalsData} isVisible={isTechnicalsVisible} />
         </div>
       {/if}
 
