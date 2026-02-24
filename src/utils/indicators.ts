@@ -597,6 +597,8 @@ export const JSIndicators = {
           const upVol = upIdx < rowCount - 1 ? rows[upIdx + 1].volume : 0;
           const downVol = downIdx > 0 ? rows[downIdx - 1].volume : 0;
 
+          if (upVol === 0 && downVol === 0) break;
+
           if (upVol > downVol) {
               upIdx++;
               currentVol += upVol;
