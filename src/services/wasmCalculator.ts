@@ -37,6 +37,7 @@ export class WasmCalculator {
         this.isInitialized = true;
       } catch (e) {
         console.error("Failed to initialize WASM calculator:", e);
+        this.initPromise = null;
         throw e;
       }
     })();
