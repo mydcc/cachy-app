@@ -432,9 +432,11 @@ export function calculateIndicatorsFromArrays(
 
       if (shouldCalculate('parabolicSar')) {
           const start = settings?.parabolicSar?.start || 0.02;
+          const increment = settings?.parabolicSar?.increment || 0.02;
           const max = settings?.parabolicSar?.max || 0.2;
-          const res = JSIndicators.psar(highsNum, lowsNum, start, max);
+          const res = JSIndicators.psar(highsNum, lowsNum, increment, max);
           advancedInfo.parabolicSar = res[res.length - 1];
+      }
       }
 
   } catch (e) {
