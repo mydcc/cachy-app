@@ -312,6 +312,7 @@ class IndicatorManager {
 
       this.atr = { ...defaultSettings.atr, ...parsed.atr };
       this.bb = { ...defaultSettings.bb, ...parsed.bb };
+      this.bollingerBands = { ...defaultSettings.bollingerBands, ...parsed.bollingerBands };
 
       this.ema = parsed.ema
         ? {
