@@ -60,12 +60,12 @@
     <!-- Status Indicator (Compact) -->
     <div class="flex items-center gap-2 text-xs" title="Connection Status">
       <div class="w-2 h-2 rounded-full"
-           class:bg-success-paired={isConnected}
-           class:bg-warning-paired={isReconnecting}
-           class:bg-danger-paired={isDisconnected}
+           class:bg-green-500={isConnected}
+           class:bg-yellow-500={isReconnecting}
+           class:bg-red-500={isDisconnected}
       ></div>
       <span class="text-[var(--text-secondary)] uppercase font-mono">
-        {$_(`connection.${status}`) || status}
+        {status}
       </span>
     </div>
   </div>

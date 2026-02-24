@@ -88,7 +88,6 @@ export class MarketManager {
     cacheHitRate: 100
   });
 
-  private pendingTelemetry: Partial<typeof this.telemetry> = {};
   private cacheMetadata = new Map<string, CacheMetadata>();
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
@@ -250,12 +249,6 @@ export class MarketManager {
   }
 
   private flushUpdates() {
-    // Flush Telemetry (throttled by the flush loop interval)
-    // Use Object.assign to mutate the existing $state proxy instead of replacing it
-    if (Object.keys(this.pendingTelemetry).length > 0) {
-      Object.assign(this.telemetry, this.pendingTelemetry);
-      this.pendingTelemetry = {};
-    }
 
     if (this.pendingUpdates.size === 0 && this.pendingKlineUpdates.size === 0) return;
 
@@ -404,12 +397,11 @@ export class MarketManager {
   }
 
   updateTelemetry(partial: Partial<typeof this.telemetry>) {
-    Object.assign(this.pendingTelemetry, partial);
+    this.telemetry = { ...this.telemetry, ...partial };
   }
 
   recordApiCall() {
-    const current = this.pendingTelemetry.apiCallsLastMinute ?? this.telemetry.apiCallsLastMinute;
-    this.pendingTelemetry.apiCallsLastMinute = current + 1;
+    this.telemetry.apiCallsLastMinute++;
   }
 
   updateSymbolKlines(
