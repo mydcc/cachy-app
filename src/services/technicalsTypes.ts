@@ -155,7 +155,7 @@ export interface TechnicalsData {
     mfi?: { value: number; action: string };
     stochRsi?: { k: number; d: number; action: string };
     williamsR?: { value: number; action: string };
-    choppiness?: { value: number; state: "Trend" | "Range" };
+    choppiness?: { value: number; state: "Trend" | "Range" | "Neutral" };
     ichimoku?: {
       conversion: number;
       base: number;

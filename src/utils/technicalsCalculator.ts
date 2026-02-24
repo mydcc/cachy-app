@@ -479,7 +479,7 @@ export function calculateIndicatorsFromArrays(
               const val = res[res.length - 1];
               advancedInfo.choppiness = {
                   value: val,
-                  state: val > 61.8 ? "Range" : val < 38.2 ? "Trend" : "Range"
+                  state: val > 61.8 ? "Range" : val < 38.2 ? "Trend" : "Neutral"
               };
           }
       }
@@ -527,7 +527,13 @@ export function calculateIndicatorsFromArrays(
 
       if (shouldCalculate('volumeMa')) {
           const len = settings?.volumeMa?.length || 20;
-          const res = JSIndicators.sma(volumesNum, len);
+          const type = settings?.volumeMa?.maType || "sma";
+          let res: Float64Array;
+
+          if (type === "ema") res = JSIndicators.ema(volumesNum, len);
+          else if (type === "wma") res = JSIndicators.wma(volumesNum, len);
+          else res = JSIndicators.sma(volumesNum, len);
+
           advancedInfo.volumeMa = res[res.length - 1];
           // Stub Market Structure
           advancedInfo.marketStructure = { highs: [], lows: [] };
