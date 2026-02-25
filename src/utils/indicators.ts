@@ -893,61 +893,52 @@ export function calculatePivotsFromValues(
   const close = c;
   const open = o;
 
-  let p = 0;
-  let r1 = 0,
-    r2 = 0,
-    r3 = 0;
-  let s1 = 0,
-    s2 = 0,
-    s3 = 0;
-  let r4: number | undefined;
-  let s4: number | undefined;
+  // 1. Always Calculate Classic Pivots
+  let cp = (high + low + close) / 3;
+  let cr1 = cp * 2 - low;
+  let cs1 = cp * 2 - high;
+  let cr2 = cp + (high - low);
+  let cs2 = cp - (high - low);
+  let cr3 = high + (cp - low) * 2;
+  let cs3 = low - (high - cp) * 2;
 
+  const classicPivots = { p: cp, r1: cr1, r2: cr2, r3: cr3, s1: cs1, s2: cs2, s3: cs3 };
+
+  const result: any = { pivots: { classic: classicPivots } };
+
+  // 2. Calculate requested type if different
   if (type === "woodie") {
-    p = (high + low + close * 2) / 4;
-    r1 = p * 2 - low;
-    r2 = p + high - low;
-    s1 = p * 2 - high;
-    s2 = p - high + low;
-    r3 = high + (p - low) * 2;
-    s3 = low - (high - p) * 2;
+    let p = (high + low + close * 2) / 4;
+    let r1 = p * 2 - low;
+    let r2 = p + high - low;
+    let s1 = p * 2 - high;
+    let s2 = p - high + low;
+    let r3 = high + (p - low) * 2;
+    let s3 = low - (high - p) * 2;
+    result.pivots.woodie = { p, r1, r2, r3, s1, s2, s3 };
   } else if (type === "camarilla") {
     const range = high - low;
-    r4 = close + (range * 1.1) / 2;
-    r3 = close + (range * 1.1) / 4;
-    r2 = close + (range * 1.1) / 6;
-    r1 = close + (range * 1.1) / 12;
-    p = close;
-    s1 = close - (range * 1.1) / 12;
-    s2 = close - (range * 1.1) / 6;
-    s3 = close - (range * 1.1) / 4;
-    s4 = close - (range * 1.1) / 2;
+    let r4 = close + (range * 1.1) / 2;
+    let r3 = close + (range * 1.1) / 4;
+    let r2 = close + (range * 1.1) / 6;
+    let r1 = close + (range * 1.1) / 12;
+    let p = close;
+    let s1 = close - (range * 1.1) / 12;
+    let s2 = close - (range * 1.1) / 6;
+    let s3 = close - (range * 1.1) / 4;
+    let s4 = close - (range * 1.1) / 2;
+    result.pivots.camarilla = { p, r1, r2, r3, s1, s2, s3, r4, s4 };
   } else if (type === "fibonacci") {
-    p = (high + low + close) / 3;
+    let p = (high + low + close) / 3;
     const range = high - low;
-    r1 = p + range * 0.382;
-    r2 = p + range * 0.618;
-    r3 = p + range * 1.0;
-    s1 = p - range * 0.382;
-    s2 = p - range * 0.618;
-    s3 = p - range * 1.0;
-  } else {
-    // Classic
-    p = (high + low + close) / 3;
-    r1 = p * 2 - low;
-    s1 = p * 2 - high;
-    r2 = p + (high - low);
-    s2 = p - (high - low);
-    r3 = high + (p - low) * 2;
-    s3 = low - (high - p) * 2;
+    let r1 = p + range * 0.382;
+    let r2 = p + range * 0.618;
+    let r3 = p + range * 1.0;
+    let s1 = p - range * 0.382;
+    let s2 = p - range * 0.618;
+    let s3 = p - range * 1.0;
+    result.pivots.fibonacci = { p, r1, r2, r3, s1, s2, s3 };
   }
-
-  const pivotData = { p, r1, r2, r3, s1, s2, s3, r4, s4 };
-
-  const result: any = { pivots: { classic: pivotData } };
-  if (type === "woodie") result.pivots.woodie = pivotData;
-  else if (type === "camarilla") result.pivots.camarilla = pivotData;
-  else if (type === "fibonacci") result.pivots.fibonacci = pivotData;
 
   return {
     ...result,
