@@ -1019,13 +1019,6 @@
         "period": "Period"
       },
       "summary": "Summary",
-      "tabs": {
-        "general": "General",
-        "oscillators": "Oscillators",
-        "trend": "Trend & Direction",
-        "volatility": "Volatility",
-        "volume": "Volume & Signals"
-      },
       "context": {
         "buy": "Buy",
         "sell": "Sell",
