@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { _ } from "svelte-i18n";
+    import { _ } from "../../../locales/i18n";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
@@ -115,7 +115,7 @@
                             <div class="flex flex-col gap-2 mt-2">
                                 <span class="text-xs text-[var(--text-secondary)]">PnL Display Mode</span>
                                 <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
-                                    {#each [{ value: "absolute", label: "Value" }, { value: "percent", label: "%" }] as mode}
+                                    {#each [{ value: "value", label: "Value" }, { value: "percent", label: "%" }, { value: "bar", label: "Bar" }] as mode}
                                         <button
                                             class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-white' : 'text-[var(--text-secondary)]'}"
                                             onclick={() => (settingsState.pnlViewMode = mode.value as any)}

@@ -950,6 +950,7 @@
       }
     },
     "technicals": {
+      "tabs": { "general": "Allgemein", "oscillators": "Oszillatoren", "trend": "Trend", "volatility": "Volatilität", "volume": "Volumen" },
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
