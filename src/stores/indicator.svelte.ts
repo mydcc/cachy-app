@@ -18,12 +18,16 @@ const defaultSettings: IndicatorSettings = {
   preferredEngine: 'auto',
   performanceMode: 'balanced',
 
-  panelSections: {
-    summary: true,
-    oscillators: true,
-    movingAverages: true,
-    pivots: true,
-  },
+    panelSections: {
+      summary: true,
+      oscillators: true,
+      movingAverages: true,
+      pivots: true,
+      advanced: true,
+      signals: true,
+      volatility: true,
+      confluence: true,
+    },
 
   rsi: {
     enabled: true,

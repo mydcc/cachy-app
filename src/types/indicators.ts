@@ -22,9 +22,13 @@ export interface IndicatorSettings {
   // Panel Configuration
   panelSections: {
     summary: boolean;
+    confluence: boolean;
+    volatility: boolean;
     oscillators: boolean;
     movingAverages: boolean;
     pivots: boolean;
+    advanced: boolean;
+    signals: boolean;
   };
 
   rsi: {

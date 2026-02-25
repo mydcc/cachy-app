@@ -119,13 +119,32 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         if (!hist) throw new Error(`Worker state not found for ${id}`);
 
         const k = payload.kline; // Single serialized kline
+        const settings = payload.settings;
+
+        // Memory Protection: Trim History if needed
+        const limit = settings?.historyLimit || 750;
+        // Allow some headroom to avoid shifting every tick
+        const bufferLimit = limit + 50;
+
+        if (hist.length > bufferLimit) {
+            // Shift data: keep last 'limit' candles
+            const shift = hist.length - limit;
+
+            // Efficient in-place shift using copyWithin
+            hist.times.copyWithin(0, shift, hist.length);
+            hist.opens.copyWithin(0, shift, hist.length);
+            hist.highs.copyWithin(0, shift, hist.length);
+            hist.lows.copyWithin(0, shift, hist.length);
+            hist.closes.copyWithin(0, shift, hist.length);
+            hist.volumes.copyWithin(0, shift, hist.length);
+
+            hist.length = limit;
+        }
 
         // Check if we need to resize
         if (hist.length >= hist.capacity) {
-            // Simple resize strategy: new array, copy
-            // For now, let's just shift if full? Or throw?
             // Proper resize:
-            const newCap = hist.capacity * 2;
+            const newCap = Math.max(hist.capacity * 2, hist.length + 100);
             const resize = (arr: Float64Array) => {
                 const n = new Float64Array(newCap);
                 n.set(arr);

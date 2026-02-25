@@ -229,7 +229,7 @@
           <!-- DASHBOARD SECTION (Minimalist List) -->
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
-            {#if settingsState.showTechnicalsSummary}
+            {#if indicatorSettings.panelSections.summary}
               <div
                 class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)]"
               >
@@ -253,7 +253,7 @@
             {/if}
 
             <!-- Market Confluence (Gauge) -->
-            {#if settingsState.showTechnicalsConfluence && data.confluence}
+            {#if indicatorSettings.panelSections.confluence && data.confluence}
               <div
                 class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)] px-1"
               >
@@ -299,7 +299,7 @@
             {/if}
 
             <!-- Volatility -->
-            {#if settingsState.showTechnicalsVolatility && data.volatility}
+            {#if indicatorSettings.panelSections.volatility && data.volatility}
               {#if data.volatility.atr}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
@@ -340,7 +340,7 @@
           </div>
 
           <!-- Oscillators -->
-          {#if settingsState.showTechnicalsOscillators}
+          {#if indicatorSettings.panelSections.oscillators}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -378,7 +378,7 @@
           {/if}
 
           <!-- Moving Averages -->
-          {#if settingsState.showTechnicalsMAs}
+          {#if indicatorSettings.panelSections.movingAverages}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -410,7 +410,7 @@
           {/if}
 
           <!-- Pivot Points -->
-          {#if settingsState.showTechnicalsPivots && data.pivots}
+          {#if indicatorSettings.panelSections.pivots && data.pivots}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -436,7 +436,7 @@
           {/if}
 
           <!-- Advanced / Pro -->
-          {#if settingsState.showTechnicalsAdvanced && data.advanced}
+          {#if indicatorSettings.panelSections.advanced && data.advanced}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -661,7 +661,7 @@
           {/if}
 
           <!-- SIGNALS SECTION (Restyled) -->
-          {#if settingsState.showTechnicalsSignals}
+          {#if indicatorSettings.panelSections.signals}
             <div
               class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
             >
