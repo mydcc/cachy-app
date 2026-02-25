@@ -533,12 +533,29 @@ export const JSIndicators = {
   },
 
   atrTrailingStop(high: NumberArray, low: NumberArray, close: NumberArray, period: number, multiplier: number) {
-      const st = this.superTrend(high, low, close, period, multiplier);
-      const buyStop = new Float64Array(st.value.length);
-      const sellStop = new Float64Array(st.value.length);
-      for(let i=0; i<st.value.length; i++) {
-          if (st.trend[i] === 1) buyStop[i] = st.value[i];
-          else sellStop[i] = st.value[i];
+      const len = close.length;
+      const atr = this.atr(high, low, close, period);
+      const buyStop = new Float64Array(len);
+      const sellStop = new Float64Array(len);
+      const highestHighs = new Float64Array(len);
+      const lowestLows = new Float64Array(len);
+
+      slidingWindowMax(high, period, highestHighs);
+      slidingWindowMin(low, period, lowestLows);
+
+      for(let i=0; i<len; i++) {
+          const loss = atr[i] * multiplier;
+          // Chandelier Exit Logic:
+          // Buy Stop = HH - ATR * mult
+          // Sell Stop = LL + ATR * mult
+
+          if (isNaN(atr[i]) || isNaN(highestHighs[i])) {
+              buyStop[i] = NaN;
+              sellStop[i] = NaN;
+          } else {
+              buyStop[i] = highestHighs[i] - loss;
+              sellStop[i] = lowestLows[i] + loss;
+          }
       }
       return { buyStop, sellStop };
   },
