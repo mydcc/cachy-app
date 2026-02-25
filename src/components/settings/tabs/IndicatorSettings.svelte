@@ -114,6 +114,25 @@
                                 <span class="text-sm">Auto Optimize</span>
                                 <Toggle bind:checked={indicatorState.autoOptimize} />
                             </div>
+                            <!-- Performance -->
+                            <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)] mt-2">
+                                <Select
+                                    id="perf-engine"
+                                    label="Engine"
+                                    bind:value={indicatorState.preferredEngine}
+                                    options={["auto", "ts", "wasm", "gpu"]}
+                                />
+                                <Select
+                                    id="perf-mode"
+                                    label="Mode"
+                                    bind:value={indicatorState.performanceMode}
+                                    options={["balanced", "quality", "speed"]}
+                                />
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-[var(--border-color)] mt-2">
+                                <span class="text-sm">Sync RSI Timeframe</span>
+                                <Toggle bind:checked={settingsState.syncRsiTimeframe} />
+                            </div>
                         </div>
                     </div>
 
