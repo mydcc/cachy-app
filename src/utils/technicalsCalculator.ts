@@ -182,6 +182,9 @@ export function calculateIndicatorsFromArrays(
         // Correct order: data, period (RSI), kPeriod (Stoch Length), dPeriod (D Smooth), smoothK (K Smooth)
         const stochRsiRes = JSIndicators.stochRsi(closesNum, srsiRsiLen, srsiLen, srsiD, srsiK) as unknown as { k: Float64Array, d: Float64Array };
         const kVal = stochRsiRes.k[stochRsiRes.k.length - 1];
+
+        // Divergence Scan: StochRSI (using K line)
+        divergences.push(...DivergenceScanner.scan(highsNum, lowsNum, stochRsiRes.k, "StochRSI"));
         const dVal = stochRsiRes.d[stochRsiRes.d.length - 1];
 
         oscillators.push({
@@ -212,6 +215,7 @@ export function calculateIndicatorsFromArrays(
 
         const kVal = kLine[kLine.length - 1];
 
+        divergences.push(...DivergenceScanner.scan(highsNum, lowsNum, kLine, "Stoch"));
         oscillators.push({
             name: "Stoch.K",
             value: kVal,
@@ -242,11 +246,13 @@ export function calculateIndicatorsFromArrays(
         if (cciSourceType === "hlc3") {
             // Optimized Standard CCI (TP based)
             const cciRes = calculateCCISeries(highsNum, lowsNum, closesNum, cciLen);
+            divergences.push(...DivergenceScanner.scan(highsNum, lowsNum, cciRes, "CCI"));
             cciVal = cciRes[cciRes.length - 1];
         } else {
             // Generic CCI (Source based)
             const cciSource = getSourceArray(cciSourceType, opensNum, highsNum, lowsNum, closesNum);
             const cciRes = JSIndicators.cci(cciSource, cciLen);
+            divergences.push(...DivergenceScanner.scan(highsNum, lowsNum, cciRes, "CCI"));
             cciVal = cciRes[cciRes.length - 1];
         }
 
@@ -276,6 +282,7 @@ export function calculateIndicatorsFromArrays(
         const fast = settings?.ao?.fastLength || 5;
         const slow = settings?.ao?.slowLength || 34;
         const aoRes = calculateAwesomeOscillator(highsNum, lowsNum, fast, slow);
+        divergences.push(...DivergenceScanner.scan(highsNum, lowsNum, aoRes, "AO"));
         const aoVal = aoRes[aoRes.length - 1];
 
         oscillators.push({
@@ -348,6 +355,10 @@ export function calculateIndicatorsFromArrays(
           const macdRes = JSIndicators.macd(src, fast, slow, sig) as unknown as { macd: Float64Array, signal: Float64Array, histogram?: Float64Array };
           const idx = macdRes.macd.length - 1;
 
+
+          // Divergence Scan: MACD (using MACD line, or Histogram? Usually MACD line or Hist)
+          // Old code used 'MACD' data. Let's use macd line.
+          divergences.push(...DivergenceScanner.scan(highsNum, lowsNum, macdRes.macd, "MACD"));
           const macdVal = macdRes.macd[idx];
           const sigVal = macdRes.signal[idx];
           const histVal = macdRes.histogram ? macdRes.histogram[idx] : (macdVal - sigVal);
