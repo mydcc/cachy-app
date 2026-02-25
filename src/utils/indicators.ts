@@ -416,7 +416,12 @@ export const JSIndicators = {
               maxH = Math.max(maxH, high[i - j]);
               minL = Math.min(minL, low[i - j]);
           }
-          res[i] = ((maxH - close[i]) / (maxH - minL)) * -100;
+          // Bug Fix: Guard against division by zero (maxH === minL)
+          if (maxH === minL) {
+              res[i] = 0; // or NaN, but 0 is safer for plotting (-0? typically range is 0 to -100)
+          } else {
+              res[i] = ((maxH - close[i]) / (maxH - minL)) * -100;
+          }
       }
       return res;
   },
@@ -654,6 +659,22 @@ export const JSIndicators = {
       res[0] = sar;
 
       for(let i=1; i<len; i++) {
+          // Bug Fix: Clamping logic
+          // SAR cannot be within previous day's range
+          if (isRising) {
+              if (sar > low[i - 1]) sar = low[i - 1];
+              if (i > 1 && sar > low[i - 2]) sar = low[i - 2];
+          } else {
+              if (sar < high[i - 1]) sar = high[i - 1];
+              if (i > 1 && sar < high[i - 2]) sar = high[i - 2];
+          }
+
+          // Calculate next SAR
+          // Note: Standard PSAR calculates for NEXT period based on CURRENT.
+          // Our loop calculates res[i] based on state from i-1 and price[i-1]?
+          // Usually: SAR[i] = SAR[i-1] + AF * (EP - SAR[i-1])
+          // And we clamp SAR[i]
+
           sar = sar + af * (ep - sar);
 
           if (isRising) {
@@ -781,8 +802,17 @@ export const JSIndicators = {
       const rsiVal = this.rsi(data, period);
       let kLine = this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool);
 
+      // Bug Fix: Apply smoothing if requested, avoiding in-place corruption
       if (smoothK > 1) {
-          kLine = this.sma(kLine, smoothK, outK);
+          // sma allocates new array if 3rd arg is undefined
+          const smoothed = this.sma(kLine, smoothK);
+          // If we want to return the buffer provided in outK, we should copy it back
+          if (outK && kLine === outK) {
+              outK.set(smoothed);
+              kLine = outK;
+          } else {
+              kLine = smoothed;
+          }
       }
 
       const dLine = this.sma(kLine, dPeriod, outD);

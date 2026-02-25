@@ -129,7 +129,7 @@ export function calculateIndicatorsFromArrays(
   // Helper to check if indicator should be calculated
   const shouldCalculate = (name: string) => {
     if (!enabledIndicators) return true;
-    const key = name.toLowerCase();
+    const key = name.toLowerCase().replace(/[_\-\.]/g, "");
     if (hasAllowList) {
       return normalizedEnabled[key] === true;
     }
