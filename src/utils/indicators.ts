@@ -562,7 +562,7 @@ export const JSIndicators = {
 
   obv(close: NumberArray, volume: NumberArray): Float64Array {
       const len = close.length;
-      const res = new Float64Array(len);
+      const res = new Float64Array(len).fill(NaN);
       let currentObv = 0;
       res[0] = 0;
       for(let i=1; i<len; i++) {
@@ -640,7 +640,7 @@ export const JSIndicators = {
 
   vwap(high: NumberArray, low: NumberArray, close: NumberArray, volume: NumberArray, times: NumberArray | undefined, anchor: { mode: "session" | "fixed" | string; anchorPoint?: number }) {
       const len = close.length;
-      const res = new Float64Array(len);
+      const res = new Float64Array(len).fill(NaN);
       let sumPv = 0;
       let sumV = 0;
       let currentDay = -1;
@@ -666,7 +666,7 @@ export const JSIndicators = {
 
   psar(high: NumberArray, low: NumberArray, start: number, increment: number, max: number): Float64Array {
       const len = high.length;
-      const res = new Float64Array(len);
+      const res = new Float64Array(len).fill(NaN);
       let isRising = true;
       let sar = low[0];
       let ep = high[0];
@@ -728,7 +728,7 @@ export const JSIndicators = {
 
   choppiness(high: NumberArray, low: NumberArray, close: NumberArray, period: number): Float64Array {
       const len = close.length;
-      const res = new Float64Array(len);
+      const res = new Float64Array(len).fill(NaN);
       const tr = this.atr(high, low, close, 1);
 
       for(let i=period; i<len; i++) {
