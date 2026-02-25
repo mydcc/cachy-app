@@ -295,6 +295,7 @@ export class WebGpuCalculator {
     const highs32 = new Float32Array(len);
     const lows32 = new Float32Array(len);
     const volumes32 = new Float32Array(len);
+    const opens32 = new Float32Array(len);
     
     const times = new Float64Array(len);
     const opens = new Float64Array(len);
@@ -313,6 +314,7 @@ export class WebGpuCalculator {
         
         times[i] = k.time;
         opens[i] = o;
+        opens32[i] = o;
         highs[i] = h;    highs32[i] = h;
         lows[i] = l;     lows32[i] = l;
         closes[i] = c;   closes32[i] = c;
@@ -494,8 +496,24 @@ export class WebGpuCalculator {
             
             // Bollinger Bands
             if (enabledIndicators.bollingerBands !== false) {
-                const middle = await this.calculateSma(closes32, settings.bollingerBands.length) as Float32Array;
-                const stddev = await this.calculateStdDev(closes32, settings.bollingerBands.length) as Float32Array;
+                // Determine source buffer
+                let bbSource = closes32;
+                const src = settings.bollingerBands.source;
+                if (src === 'open') bbSource = opens32;
+                else if (src === 'high') bbSource = highs32;
+                else if (src === 'low') bbSource = lows32;
+                else if (src === 'hl2') {
+                    const buf = new Float32Array(len);
+                    for(let i=0; i<len; i++) buf[i] = (highs32[i] + lows32[i]) / 2;
+                    bbSource = buf;
+                } else if (src === 'hlc3') {
+                    const buf = new Float32Array(len);
+                    for(let i=0; i<len; i++) buf[i] = (highs32[i] + lows32[i] + closes32[i]) / 3;
+                    bbSource = buf;
+                }
+
+                const middle = await this.calculateSma(bbSource, settings.bollingerBands.length) as Float32Array;
+                const stddev = await this.calculateStdDev(bbSource, settings.bollingerBands.length) as Float32Array;
                 
                 const upper = new Float32Array(len);
                 const lower = new Float32Array(len);

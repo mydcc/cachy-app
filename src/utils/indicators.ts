@@ -416,9 +416,8 @@ export const JSIndicators = {
               maxH = Math.max(maxH, high[i - j]);
               minL = Math.min(minL, low[i - j]);
           }
-          // Bug Fix: Guard against division by zero (maxH === minL)
           if (maxH === minL) {
-              res[i] = 0; // or NaN, but 0 is safer for plotting (-0? typically range is 0 to -100)
+              res[i] = 0;
           } else {
               res[i] = ((maxH - close[i]) / (maxH - minL)) * -100;
           }
@@ -659,8 +658,10 @@ export const JSIndicators = {
       res[0] = sar;
 
       for(let i=1; i<len; i++) {
-          // Bug Fix: Clamping logic
-          // SAR cannot be within previous day's range
+          // SAR Update
+          sar = sar + af * (ep - sar);
+
+          // Clamping logic
           if (isRising) {
               if (sar > low[i - 1]) sar = low[i - 1];
               if (i > 1 && sar > low[i - 2]) sar = low[i - 2];
@@ -669,37 +670,40 @@ export const JSIndicators = {
               if (i > 1 && sar < high[i - 2]) sar = high[i - 2];
           }
 
-          // Calculate next SAR
-          // Note: Standard PSAR calculates for NEXT period based on CURRENT.
-          // Our loop calculates res[i] based on state from i-1 and price[i-1]?
-          // Usually: SAR[i] = SAR[i-1] + AF * (EP - SAR[i-1])
-          // And we clamp SAR[i]
-
-          sar = sar + af * (ep - sar);
-
+          // Reversal Logic
+          let reverse = false;
           if (isRising) {
-              if (high[i] > ep) {
-                  ep = high[i];
-                  af = Math.min(af + increment, max);
-              }
               if (low[i] < sar) {
                   isRising = false;
+                  reverse = true;
                   sar = ep;
                   ep = low[i];
                   af = start;
               }
           } else {
-              if (low[i] < ep) {
-                  ep = low[i];
-                  af = Math.min(af + increment, max);
-              }
               if (high[i] > sar) {
                   isRising = true;
+                  reverse = true;
                   sar = ep;
                   ep = high[i];
                   af = start;
               }
           }
+
+          if (!reverse) {
+              if (isRising) {
+                  if (high[i] > ep) {
+                      ep = high[i];
+                      af = Math.min(af + increment, max);
+                  }
+              } else {
+                  if (low[i] < ep) {
+                      ep = low[i];
+                      af = Math.min(af + increment, max);
+                  }
+              }
+          }
+
           res[i] = sar;
       }
       return res;
@@ -802,11 +806,8 @@ export const JSIndicators = {
       const rsiVal = this.rsi(data, period);
       let kLine = this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool);
 
-      // Bug Fix: Apply smoothing if requested, avoiding in-place corruption
       if (smoothK > 1) {
-          // sma allocates new array if 3rd arg is undefined
           const smoothed = this.sma(kLine, smoothK);
-          // If we want to return the buffer provided in outK, we should copy it back
           if (outK && kLine === outK) {
               outK.set(smoothed);
               kLine = outK;
