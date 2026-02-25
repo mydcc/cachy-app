@@ -71,8 +71,21 @@ export class IncrementalCache {
    * Generate hash from settings
    */
   private hashSettings(settings: IndicatorSettings): string {
-    // Hash the entire settings object to catch all indicator changes
-    return JSON.stringify(settings);
+    // Clone and remove non-calculation fields to prevent unnecessary cache invalidation
+    // Display settings (precision, historyLimit, etc) should not trigger recalculation
+    const clean: any = { ...settings };
+
+    // Explicitly delete known non-calculation keys
+    delete clean.historyLimit;
+    delete clean.precision;
+    delete clean.autoOptimize;
+    delete clean.preferredEngine;
+    delete clean.performanceMode;
+    delete clean._cachedJson;
+
+    // We can also dig deeper if needed (e.g., pivots.viewMode), but top-level is most critical
+
+    return JSON.stringify(clean);
   }
   
   /**
