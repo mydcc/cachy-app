@@ -292,6 +292,28 @@
                     </div>
                 </div>
 
+
+                <!-- Momentum -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">MOMENTUM</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.momentum} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="mom-len" label="Length" type="number" bind:value={indicatorState.momentum.length} />
+                        <Select id="mom-src" label="Source" bind:value={indicatorState.momentum.source} options={["close", "open", "high", "low", "hl2", "hlc3"]} />
+                    </div>
+                </div>
+                <!-- MFI -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">MFI</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.mfi} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="mfi-len" label="Length" type="number" bind:value={indicatorState.mfi.length} />
+                    </div>
+                </div>
                 <!-- Awesome Osc -->
                 <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
                     <div class="flex justify-between items-center mb-2">
@@ -342,6 +364,28 @@
                     </div>
                 </div>
 
+
+                <!-- VWAP -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">VWAP</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.vwap} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Select id="vwap-anchor" label="Anchor" bind:value={indicatorState.vwap.anchor} options={["session", "fixed"]} />
+                    </div>
+                </div>
+                <!-- ATR Trailing Stop -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">ATR Trailing Stop</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.atrTrailingStop} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="atrts-per" label="Period" type="number" bind:value={indicatorState.atrTrailingStop.period} />
+                        <Field id="atrts-mult" label="Multiplier" type="number" step={0.1} bind:value={indicatorState.atrTrailingStop.multiplier} />
+                    </div>
+                </div>
                 <!-- Parabolic SAR -->
                 <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
                     <div class="flex justify-between items-center mb-2">
@@ -477,8 +521,7 @@
                 <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
                     <div class="flex justify-between items-center mb-2">
                         <h4 class="text-xs font-bold uppercase">Choppiness Index</h4>
-                        <!-- No toggle for choppiness in basic enabledIndicators? Assuming always active or bundled -->
-                        <!-- Actually it is just calculated if in Advanced section usually. Adding toggle if it exists. -->
+                        <Toggle bind:checked={settingsState.enabledIndicators.choppiness} />
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <Field id="chop-len" label="Length" type="number" bind:value={indicatorState.choppiness.length} />
@@ -499,6 +542,17 @@
                     </div>
                 </div>
 
+
+                <!-- OBV -->
+                <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold uppercase">OBV</h4>
+                        <Toggle bind:checked={settingsState.enabledIndicators.obv} />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Field id="obv-sm" label="Smoothing" type="number" bind:value={indicatorState.obv.smoothingLength} />
+                    </div>
+                </div>
                 <!-- Volume Profile -->
                 <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
                     <div class="flex justify-between items-center mb-2">

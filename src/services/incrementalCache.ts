@@ -83,7 +83,15 @@ export class IncrementalCache {
     delete clean.performanceMode;
     delete clean._cachedJson;
 
-    // We can also dig deeper if needed (e.g., pivots.viewMode), but top-level is most critical
+    // Remove nested display-only fields to further optimize cache hits
+    if (clean.pivots) {
+        clean.pivots = { ...clean.pivots };
+        delete clean.pivots.viewMode;
+    }
+    if (clean.rsi) {
+        clean.rsi = { ...clean.rsi };
+        delete clean.rsi.defaultTimeframe;
+    }
 
     return JSON.stringify(clean);
   }
