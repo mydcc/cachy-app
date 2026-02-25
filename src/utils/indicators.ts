@@ -493,7 +493,8 @@ export const JSIndicators = {
       const upperBand = new Float64Array(len);
       const lowerBand = new Float64Array(len);
       const superTrend = new Float64Array(len);
-      const trend = new Int8Array(len); // 1 = bull, -1 = bear
+      const trend = new Int8Array(len);
+      trend.fill(1); // Default to bull (1)
 
       for (let i = period; i < len; i++) {
           const hl2 = (high[i] + low[i]) / 2;
@@ -778,9 +779,17 @@ export const JSIndicators = {
     pool?: BufferPool
   ) {
       const rsiVal = this.rsi(data, period);
+      let kLine = this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool);
+
+      if (smoothK > 1) {
+          kLine = this.sma(kLine, smoothK, outK);
+      }
+
+      const dLine = this.sma(kLine, dPeriod, outD);
+
       return {
-          k: this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool),
-          d: this.sma(this.stoch(rsiVal, rsiVal, rsiVal, kPeriod, outK, pool), dPeriod, outD)
+          k: kLine,
+          d: dLine
       };
   },
 
@@ -935,11 +944,10 @@ export function calculatePivotsFromValues(
 
   const pivotData = { p, r1, r2, r3, s1, s2, s3, r4, s4 };
 
-  const result: any = { pivots: {} };
+  const result: any = { pivots: { classic: pivotData } };
   if (type === "woodie") result.pivots.woodie = pivotData;
   else if (type === "camarilla") result.pivots.camarilla = pivotData;
   else if (type === "fibonacci") result.pivots.fibonacci = pivotData;
-  else result.pivots.classic = pivotData;
 
   return {
     ...result,
