@@ -20,6 +20,7 @@ import { indicatorState } from "../stores/indicator.svelte";
 import type { IndicatorSettings } from "../types/indicators";
 import type { Kline, TechnicalsData, PivotLevels } from "./technicalsTypes";
 import { getEmptyData } from "./technicalsTypes";
+import { calculatePivots } from "../utils/indicators";
 
 export class WasmCalculator {
   private wasmModule: TechnicalsEngine | null = null;
@@ -129,7 +130,11 @@ export class WasmCalculator {
 
       const rawResult = JSON.parse(resultJson);
 
-      return this.convertResult(rawResult, settings, closes[len - 1]);
+      const finalResult = this.convertResult(rawResult, settings, closes[len - 1]);
+      // Calculate classic pivots in JS to ensure classic key always has correct classic values
+      const classicPivots = calculatePivots(klines, "classic");
+      finalResult.pivots.classic = classicPivots.pivots.classic;
+      return finalResult;
 
     } catch (e) {
       console.error("WASM Calculation Error:", e);
