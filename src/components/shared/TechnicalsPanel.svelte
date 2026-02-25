@@ -530,6 +530,62 @@
                 </div>
               {/if}
 
+              <!-- ADX -->
+              {#if data.advanced.adx}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>ADX ({data.advanced.adx.trend})</span>
+                  <div class="flex gap-2">
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.adx.value,
+                        1,
+                      )}</span
+                    >
+                    <span class="text-[var(--text-secondary)] text-[10px]">
+                        DI+: {TechnicalsPresenter.formatVal(data.advanced.adx.pdi, 1)} DI-: {TechnicalsPresenter.formatVal(data.advanced.adx.mdi, 1)}
+                    </span>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Choppiness -->
+              {#if data.advanced.choppiness}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Choppiness</span>
+                  <div class="flex gap-2">
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.choppiness.value,
+                        1,
+                      )}</span
+                    >
+                    <span
+                      class="font-bold {data.advanced.choppiness.state === 'Trend' ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}"
+                      >{data.advanced.choppiness.state}</span
+                    >
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Parabolic SAR -->
+              {#if data.advanced.parabolicSar}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Parabolic SAR</span>
+                  <span class="font-mono"
+                    >{TechnicalsPresenter.formatVal(
+                      data.advanced.parabolicSar,
+                      indicatorSettings?.precision,
+                    )}</span
+                  >
+                </div>
+              {/if}
+
               <!-- ATR Trailing Stop (New) -->
               {#if data.advanced.atrTrailingStop}
                 <div
@@ -565,6 +621,26 @@
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(data.advanced.obv, 0)}</span
                   >
+                </div>
+              {/if}
+
+              <!-- Volume Profile -->
+              {#if data.advanced.volumeProfile}
+                <div
+                  class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <div class="flex justify-between">
+                    <span>VP (POC)</span>
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(data.advanced.volumeProfile.poc, indicatorSettings?.precision)}</span
+                    >
+                  </div>
+                  <div class="flex justify-between text-[10px] text-[var(--text-secondary)]">
+                    <span>VA High/Low</span>
+                    <span class="font-mono">
+                        {TechnicalsPresenter.formatVal(data.advanced.volumeProfile.vaHigh, indicatorSettings?.precision)} / {TechnicalsPresenter.formatVal(data.advanced.volumeProfile.vaLow, indicatorSettings?.precision)}
+                    </span>
+                  </div>
                 </div>
               {/if}
 
