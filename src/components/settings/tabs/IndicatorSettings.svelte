@@ -79,6 +79,22 @@
                             <span class="text-sm">Pivots</span>
                             <Toggle bind:checked={indicatorState.panelSections.pivots} />
                         </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Confluence</span>
+                            <Toggle bind:checked={indicatorState.panelSections.confluence} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Volatility</span>
+                            <Toggle bind:checked={indicatorState.panelSections.volatility} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Advanced</span>
+                            <Toggle bind:checked={indicatorState.panelSections.advanced} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Signals</span>
+                            <Toggle bind:checked={indicatorState.panelSections.signals} />
+                        </div>
                     </div>
                 </div>
 
