@@ -49,7 +49,7 @@ export function calculateAllIndicators(
   settings?: IndicatorSettings,
   allowedList?: string[] | Partial<Record<string, boolean>> // Support both legacy array and new map
 ): TechnicalsData {
-  if (!klines || klines.length === 0) return getEmptyData();
+  if (!klines || klines.length < 2) return getEmptyData();
 
   const len = klines.length;
   const pool = settings?.performanceMode === "speed" ? bufferPool : null;
@@ -121,7 +121,7 @@ export function calculateIndicatorsFromArrays(
     allowedList?: string[] | Partial<Record<string, boolean>>
 ): TechnicalsData {
 
-  if (!closesNum || closesNum.length === 0) return getEmptyData();
+  if (!closesNum || closesNum.length < 2) return getEmptyData();
 
   const currentPrice = closesNum[closesNum.length - 1];
   const oscillators: IndicatorResult[] = [];

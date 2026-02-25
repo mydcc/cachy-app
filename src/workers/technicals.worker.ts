@@ -186,6 +186,8 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         }
 
         // Recalculate
+        // Note: Full recalculation of the trimmed history (max 750) is fast enough (sub-ms).
+        // True stateful incremental updates would require significant complexity.
         const result = calculateIndicatorsFromArrays(
             hist.highs.subarray(0, hist.length),
             hist.lows.subarray(0, hist.length),
