@@ -39,20 +39,6 @@ export default defineConfig({
     format: 'es',
     plugins: () => [tailwindcss()]
   },
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      'tests/e2e/**',
-      '**/*.spec.ts',
-      '**/.{idea,git,cache,output,temp}/**'
-    ],
-    env: {
-      APP_ACCESS_TOKEN: 'test-token-123'
-    }
-  },
   build: {
     rollupOptions: {
       external: ["openai"], 
