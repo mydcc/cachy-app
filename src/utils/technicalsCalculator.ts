@@ -178,8 +178,8 @@ export function calculateIndicatorsFromArrays(
         const srsiK = settings?.stochRsi?.kPeriod || 3;
         const srsiD = settings?.stochRsi?.dPeriod || 3;
 
-        // JSIndicators.stochRsi returns { k, d } (object)
-        // Correct order: data, period (RSI), kPeriod (Stoch), dPeriod, smoothK
+        // Settings Map: length -> Stoch Length, kPeriod -> K Smoothing
+        // Correct order: data, period (RSI), kPeriod (Stoch Length), dPeriod (D Smooth), smoothK (K Smooth)
         const stochRsiRes = JSIndicators.stochRsi(closesNum, srsiRsiLen, srsiLen, srsiD, srsiK) as unknown as { k: Float64Array, d: Float64Array };
         const kVal = stochRsiRes.k[stochRsiRes.k.length - 1];
         const dVal = stochRsiRes.d[stochRsiRes.d.length - 1];
