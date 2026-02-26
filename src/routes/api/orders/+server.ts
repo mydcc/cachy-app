@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const passphrase = creds.passphrase || payload.passphrase;
 
   if (!apiKey || !apiSecret) {
-      return json({ error: "Missing API Credentials" }, { status: 401 });
+      return json({ error: "apiErrors.missingCredentials" }, { status: 401 });
   }
 
   // 2. Key Validation (Additional Check)
@@ -142,7 +142,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         const promises = toCancel.map(order =>
              cancelBitunixOrder(apiKey, apiSecret, order.symbol, order.id)
-                .catch(err => ({ status: 'rejected', error: err, id: order.id }))
+                .catch(err => ({ status: 'rejected', error: err instanceof Error ? err.message : String(err), id: order.id }))
         );
 
         await Promise.all(promises);

@@ -758,9 +758,11 @@ class MarketWatcher {
             this.requestStartTimes.delete(lockKey);
 
             // Check if this request was already pruned as a zombie
+            // Use strict deduplication to prevent race conditions
             if (this.prunedRequestIds.has(lockKey)) {
                 this.prunedRequestIds.delete(lockKey);
-                // Do NOT decrement inFlight, as it was already decremented by pruneZombieRequests
+                // CRITICAL: Do NOT decrement inFlight here.
+                // It was already decremented in 'pruneZombieRequests' when the timeout occurred.
             } else {
                 this.inFlight = Math.max(0, this.inFlight - 1);
             }

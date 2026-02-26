@@ -71,11 +71,15 @@ export function mapToOMSOrder(data: any): OMSOrder {
     // Hardening: Detect numeric IDs which imply precision loss
     // Note: This check happens AFTER JSON.parse, so 19-digit numbers might already be corrupted.
     // However, it catches smaller unsafe integers or accidental numeric casts.
-    if (typeof data.orderId === 'number') {
+    let orderId = data.orderId;
+    if (typeof orderId === 'number') {
         // Safe limit is 2^53 - 1
-        if (data.orderId > Number.MAX_SAFE_INTEGER) {
-            logger.warn("market", `[Mapper] CRITICAL: Precision Loss detected for orderId: ${data.orderId}. Ensure safeJsonParse is used upstream.`);
+        if (orderId > Number.MAX_SAFE_INTEGER) {
+            logger.warn("market", `[Mapper] CRITICAL: Precision Loss detected for orderId: ${orderId}. Ensure safeJsonParse is used upstream.`);
         }
+        orderId = String(orderId);
+    } else {
+        orderId = String(orderId || "");
     }
 
     const statusMap: Record<string, OMSOrderStatus> = {
@@ -96,7 +100,7 @@ export function mapToOMSOrder(data: any): OMSOrder {
     const side: OMSOrderSide = (rawSide.includes("sell") || rawSide.includes("short")) ? "sell" : "buy";
 
     return {
-        id: String(data.orderId || ""),
+        id: orderId,
         symbol: data.symbol || "",
         side,
         type: (data.type || "").toLowerCase() as "limit" | "market",

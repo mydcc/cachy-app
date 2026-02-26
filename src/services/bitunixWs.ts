@@ -427,10 +427,16 @@ class BitunixWebSocketService {
 
           if (rawData && (rawData.includes('"topic":"price"') || rawData.includes('"ch":"price"') ||
               rawData.includes('"topic":"ticker"') || rawData.includes('"ch":"ticker"') ||
-              rawData.includes('"topic":"trade"') || rawData.includes('"ch":"trade"'))) {
+              rawData.includes('"topic":"trade"') || rawData.includes('"ch":"trade"') ||
+              rawData.includes('"topic":"order"') || rawData.includes('"ch":"order"'))) {
               // Regex to target specific keys followed by a number
               // Captures: 1=key, 2=value
-              const regex = /"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              // Updated to support:
+              // - Scientific notation (1.23e-8, 1.23E+8)
+              // - Negative numbers
+              // - Integers and Decimals
+              // - Large integers (orderId)
+              const regex = /"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l|orderId|id|planId)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
               rawData = rawData.replace(regex, '"$1":"$2"');
           }
 
@@ -557,7 +563,7 @@ class BitunixWebSocketService {
 
           if (rawData && (rawData.includes('"topic":"order"') || rawData.includes('"ch":"order"') ||
               rawData.includes('"topic":"position"') || rawData.includes('"ch":"position"'))) {
-              const regex = /"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
+              const regex = /"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice|averagePrice|avgOpenPrice|unrealizedPNL|realizedPNL|fee|dealAmount)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
               rawData = rawData.replace(regex, '"$1":"$2"');
           }
 

@@ -155,8 +155,10 @@ class AccountManager {
   }
 
   updateOrderFromWs(data: any) {
+    // Ensure orderId is string
+    const safeId = String(data.orderId || "");
     const index = this.openOrders.findIndex(
-      (o) => String(o.orderId) === String(data.orderId),
+      (o) => o.orderId === safeId,
     );
 
     const isClosed = ["FILLED", "CANCELED", "PART_FILLED_CANCELED"].includes(
@@ -175,7 +177,7 @@ class AccountManager {
 
       if (existing) {
         const newOrder: OpenOrder = {
-          orderId: data.orderId,
+          orderId: safeId,
           symbol: data.symbol,
           side: data.side ? data.side.toLowerCase() : existing.side,
           type: data.type ? data.type.toLowerCase() : existing.type,
@@ -188,7 +190,7 @@ class AccountManager {
         this.openOrders[index] = newOrder;
       } else {
         const newOrder: OpenOrder = {
-          orderId: data.orderId,
+          orderId: safeId,
           symbol: data.symbol,
           side: data.side ? data.side.toLowerCase() : "buy",
           type: data.type ? data.type.toLowerCase() : "limit",
