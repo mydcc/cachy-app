@@ -19,6 +19,7 @@
   import { _ } from "../../locales/i18n";
   import { marketState } from "../../stores/market.svelte";
   import { fade } from "svelte/transition";
+  import type { TranslationKey } from "../../locales/i18n";
 
   // Derived state for connection status
   let status = $derived(marketState.connectionStatus);
@@ -65,7 +66,7 @@
            class:bg-red-500={isDisconnected}
       ></div>
       <span class="text-[var(--text-secondary)] uppercase font-mono">
-        {$_(`connection.status.${status}`) || status}
+        {$_(`connection.status.${status}` as TranslationKey) || status}
       </span>
     </div>
   </div>

@@ -33,6 +33,7 @@
   import { normalizeTimeframeInput } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/i18n";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 
@@ -91,9 +92,9 @@
     if (techTrans && techTrans !== techKey) return techTrans;
 
     // Fallback to common actions
-    if (key.includes("buy")) return $_("common.buy");
-    if (key.includes("sell")) return $_("common.sell");
-    if (key.includes("neutral")) return $_("common.neutral");
+    if (key.includes("buy")) return $_("common.buy" as TranslationKey);
+    if (key.includes("sell")) return $_("common.sell" as TranslationKey);
+    if (key.includes("neutral")) return $_("common.neutral" as TranslationKey);
 
     return action;
   }

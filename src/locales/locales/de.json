@@ -603,8 +603,6 @@
           "percent": "(%)",
           "trades": "Trades"
         }
-      },
-      "assets": "Assets"
     },
     "days": {
       "mon": "Mo",
@@ -1484,7 +1482,10 @@
     "copy": "Inhalt kopieren",
     "ignore": "Ignorieren",
     "send": "Nachricht senden",
-    "analyzing": "Analysiere..."
+    "analyzing": "Analysiere...",
+    "buy": "Kaufen",
+    "sell": "Verkaufen",
+    "neutral": "Neutral"
   },
   "analyst": {
     "trend": {
@@ -1608,7 +1609,14 @@
     "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
     "disconnected": "✗ Warte auf Verbindung...",
     "error": "✗ Verbindungsfehler",
-    "offline": "OFFLINE - VERBINDUNG PRÜFEN"
+    "offline": "OFFLINE - VERBINDUNG PRÜFEN",
+    "status": {
+        "error": "Fehler",
+        "disconnected": "Getrennt",
+        "connecting": "Verbinde",
+        "connected": "Verbunden",
+        "reconnecting": "Reconnect"
+    }
   },
   "errors": {
     "unknown": "Unbekannter Fehler",

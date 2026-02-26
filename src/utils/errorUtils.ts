@@ -46,3 +46,15 @@ export function getLocalizedErrorKey(codeOrMsg: string | number): string {
 
     return "error.generic";
 }
+
+// Aliases for compatibility with different contexts
+export const getBitunixErrorKey = getLocalizedErrorKey;
+export const getErrorMessage = (e: unknown) => {
+    if (e instanceof Error) return e.message;
+    return String(e);
+};
+export const mapApiErrorToLabel = (e: unknown) => {
+    const msg = getErrorMessage(e);
+    const key = getLocalizedErrorKey(msg);
+    return key !== "error.generic" ? key : null;
+};
