@@ -211,21 +211,35 @@ class MarketWatcher {
   }
 
   // Zombie Request Pruning (Self-Correction)
+  // Generation counter to identify stale requests
+  private requestGenerations = new Map<string, number>();
+
   private pruneZombieRequests() {
     const now = Date.now();
     const timeout = 20000; // 20s hard limit for HTTP requests
-    this.requestStartTimes.forEach((start, key) => {
+
+    // We iterate a copy of keys to avoid modification during iteration issues
+    const keys = Array.from(this.requestStartTimes.keys());
+
+    for (const key of keys) {
+        const start = this.requestStartTimes.get(key) || 0;
         if (now - start > timeout) {
             logger.warn("market", `[MarketWatcher] Detected zombie request for ${key}. Removing lock.`);
             this.pendingRequests.delete(key);
             this.requestStartTimes.delete(key);
+
+            // Critical fix: Increment generation to invalidate the old request
+            // If the old request eventually returns, it will check the generation and abort
+            const gen = this.requestGenerations.get(key) || 0;
+            this.requestGenerations.set(key, gen + 1);
+
             // Decrease inFlight count if it was counted
-            // Since we don't know for sure if it finished or hung, we decrement carefully
             this.inFlight = Math.max(0, this.inFlight - 1);
+
             // Mark as pruned so the finally block doesn't decrement again
             this.prunedRequestIds.add(key);
         }
-    });
+    }
   }
 
   public startPolling() {
@@ -704,6 +718,10 @@ class MarketWatcher {
 
     this.inFlight++;
 
+    // Track generation for this request
+    const currentGen = (this.requestGenerations.get(lockKey) || 0) + 1;
+    this.requestGenerations.set(lockKey, currentGen);
+
     // Create the Promise wrapper
     const requestPromise = (async () => {
         try {
@@ -753,17 +771,25 @@ class MarketWatcher {
                 this.lastErrorLog = now;
             }
         } finally {
-            // Release lock immediately
-            this.pendingRequests.delete(lockKey);
-            this.requestStartTimes.delete(lockKey);
+            // Check generation to prevent zombie race condition
+            // If generation has changed, it means this request was already pruned/superceded
+            const latestGen = this.requestGenerations.get(lockKey) || 0;
 
-            // Check if this request was already pruned as a zombie
-            if (this.prunedRequestIds.has(lockKey)) {
-                this.prunedRequestIds.delete(lockKey);
-                // Do NOT decrement inFlight, as it was already decremented by pruneZombieRequests
-            } else {
+            if (latestGen === currentGen) {
+                // This is still the active request
+                this.pendingRequests.delete(lockKey);
+                this.requestStartTimes.delete(lockKey);
                 this.inFlight = Math.max(0, this.inFlight - 1);
+            } else {
+                // This request was marked as zombie/pruned. Do NOT decrement inFlight.
+                // Log debug if needed
+                if (import.meta.env.DEV) {
+                    console.debug(`[MarketWatcher] Zombie request finished late for ${lockKey} (Gen ${currentGen} vs ${latestGen}). Ignored.`);
+                }
             }
+
+            // Cleanup pruned ID if present (legacy check, but generation check covers it)
+            this.prunedRequestIds.delete(lockKey);
         }
     })();
 

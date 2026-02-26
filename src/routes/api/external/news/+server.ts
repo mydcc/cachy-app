@@ -12,6 +12,7 @@ import type { RequestHandler } from "./$types";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
+import { safeJsonParse } from "../../../../utils/safeJson";
 
 // In-Memory Cache for News Proxy
 interface CachedResponse {
@@ -41,7 +42,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
   let cacheKey = "";
 
   try {
-    const body = await request.json();
+    const text = await request.text();
+    const body = safeJsonParse(text);
     const { source, params, plan } = body;
 
     // Extract API Key from Header (primary) or Body (fallback)
@@ -96,7 +98,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
           try {
             const response = await fetch(url);
             if (response.ok) {
-              const rawData = await response.json();
+              const text = await response.text();
+              const rawData = safeJsonParse(text);
               // Validate Schema
               const validation = CryptoPanicResponseSchema.safeParse(rawData);
               if (!validation.success) {
@@ -144,7 +147,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
           const errorText = await response.text();
           throw new Error(`Upstream error (NewsAPI): ${response.status} - ${errorText}`);
         }
-        const rawData = await response.json();
+        const text = await response.text();
+        const rawData = safeJsonParse(text);
         const validation = NewsApiResponseSchema.safeParse(rawData);
         if (!validation.success) {
              console.warn("[NewsProxy] NewsAPI Schema Validation Warning:", validation.error);

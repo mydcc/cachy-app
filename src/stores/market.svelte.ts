@@ -100,6 +100,7 @@ export class MarketManager {
   private telemetryIntervalId: any = null;
   private notifyTimer: any = null;
   private statusNotifyTimer: any = null;
+  private flushErrorCount = 0; // Circuit breaker for flush loops
 
   constructor() {
     if (browser) {
@@ -259,6 +260,7 @@ export class MarketManager {
           try {
             this.applyUpdate(symbol, partial);
           } catch (e) {
+            this.flushErrorCount++;
             if (import.meta.env.DEV) console.error(`[Market] Error flushing update for ${symbol}`, e);
           }
         });
@@ -274,6 +276,7 @@ export class MarketManager {
               // Process the batch
               this.applySymbolKlines(symbol, timeframe, rawKlines, "ws", true);
             } catch (e) {
+              this.flushErrorCount++;
               if (import.meta.env.DEV) console.error(`[Market] Error flushing klines for ${key}`, e);
             }
           }
@@ -281,6 +284,17 @@ export class MarketManager {
         this.pendingKlineUpdates.clear();
       }
     });
+
+    // FAIL-SAFE: If errors persist, reset state to prevent leak
+    if (this.flushErrorCount > 10) {
+        if (import.meta.env.DEV) console.error("[Market] Critical: Flush error threshold reached. Clearing all pending updates.");
+        this.pendingUpdates.clear();
+        this.pendingKlineUpdates.clear();
+        this.flushErrorCount = 0;
+    } else if (this.flushErrorCount > 0) {
+        // Decay error count
+        this.flushErrorCount--;
+    }
 
     this.enforceCacheLimit();
   }

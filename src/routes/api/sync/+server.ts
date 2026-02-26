@@ -23,6 +23,7 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 // Define Validation Schema
 const SyncRequestSchema = z.object({
@@ -44,7 +45,8 @@ export const POST: RequestHandler = async ({ request }) => {
   if (authError) return authError;
 
   try {
-    const body = await request.json();
+    const text = await request.text();
+    const body = safeJsonParse(text);
 
     // 1. Zod Validation
     const validation = SyncRequestSchema.safeParse(body);
@@ -121,7 +123,8 @@ async function fetchBitunixHistory(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const text = await response.text();
+  const data = safeJsonParse(text);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

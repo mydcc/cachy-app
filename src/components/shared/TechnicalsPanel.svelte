@@ -82,19 +82,20 @@
 
   function translateAction(action: string | undefined): string {
     if (!action) return "-";
-    // First try exact key
+    // Normalize key: Strong Buy -> strongbuy
     const key = action.toLowerCase().replace(/\s+/g, "");
-    const translation = $_(`settings.technicals.${key}` as any);
 
-    // If not found, try generic Buy/Sell
-    if (!translation || translation.includes("settings.technicals")) {
-      if (action.includes("Buy")) return $_("common.buy" as any) || action;
-      if (action.includes("Sell")) return $_("common.sell" as any) || action;
-      if (action.includes("Neutral"))
-        return $_("common.neutral" as any) || action;
-      return action;
-    }
-    return translation;
+    // Attempt specific technical translation first
+    const techKey = `settings.technicals.actions.${key}`;
+    const techTrans = $_(techKey as any);
+    if (techTrans && techTrans !== techKey) return techTrans;
+
+    // Fallback to common actions
+    if (key.includes("buy")) return $_("common.buy");
+    if (key.includes("sell")) return $_("common.sell");
+    if (key.includes("neutral")) return $_("common.neutral");
+
+    return action;
   }
 
   function translateContext(context: string): string {
@@ -260,9 +261,7 @@
                   <span
                     class="text-[var(--text-secondary)] uppercase font-medium"
                   >
-                    {typeof $_ === "function"
-                      ? $_("settings.technicals.summaryAction")
-                      : "Summary"}
+                    {$_("settings.technicals.summaryAction")}
                   </span>
                   <span
                     class="font-bold {TechnicalsPresenter.getActionColor(
@@ -284,9 +283,7 @@
                   <span
                     class="text-[var(--text-secondary)] uppercase font-medium"
                   >
-                    {typeof $_ === "function"
-                      ? $_("settings.technicals.marketConfluence")
-                      : "Confluence"}
+                    {$_("settings.technicals.marketConfluence")}
                   </span>
                   <span
                     class="font-bold {TechnicalsPresenter.getActionColor(
@@ -366,7 +363,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.oscillatorsTitle") || "Oscillators"}
+                {$_("settings.technicals.oscillatorsTitle")}
               </div>
               {#each data.oscillators as osc}
                 <div
@@ -404,8 +401,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.movingAveragesTitle") ||
-                  "Moving Averages"}
+                {$_("settings.technicals.movingAveragesTitle")}
               </div>
               {#each data.movingAverages as ma}
                 <div
@@ -436,7 +432,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.pivotsTitle") || "Pivot Points"}
+                {$_("settings.technicals.pivotsTitle")}
               </div>
               <div class="grid grid-cols-1 gap-y-0.5">
                 {#each TechnicalsPresenter.getPivotsArray(data.pivots) as pivot}
@@ -462,7 +458,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                {$_("settings.technicals.advancedTitle") || "Advanced"}
+                {$_("settings.technicals.advancedTitle")}
               </div>
 
               <!-- VWAP -->

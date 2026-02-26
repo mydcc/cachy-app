@@ -2,47 +2,47 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
-export function getErrorMessage(e: unknown): string {
-    if (e instanceof Error) return e.message;
-    if (typeof e === 'string') return e;
-    if (e && typeof e === 'object' && 'message' in e) return String((e as any).message);
-    return String(e);
-}
+export const ERROR_CODE_MAP: Record<string | number, string> = {
+    // Generic
+    "400": "error.badRequest",
+    "401": "error.unauthorized",
+    "403": "error.forbidden",
+    "404": "error.notFound",
+    "429": "error.tooManyRequests",
+    "500": "error.internalError",
+    "502": "error.badGateway",
 
-export function getBitunixErrorKey(code: number | string): string {
-    // Map Bitunix error codes to translation keys
-    const codeStr = String(code);
-    return `bitunixErrors.${codeStr}`;
-}
+    // Bitunix / Exchange Specific
+    "20002": "error.insufficientBalance",
+    "20003": "error.orderNotFound",
+    "20004": "error.symbolNotFound",
+    "20005": "error.invalidOrderType",
+    "20006": "error.positionNotFound",
+    "20007": "error.leverageError",
 
-export function mapApiErrorToLabel(error: unknown): string {
-    const msg = getErrorMessage(error);
-    const lowerMsg = msg.toLowerCase();
+    // System
+    "SKIP_FRESH": "analyst.skipFresh",
+    "MIN_DATA_REQUIRED": "analyst.insufficientData"
+};
 
-    // Map common authentication errors
-    if (lowerMsg.includes("key") && (lowerMsg.includes("invalid") || lowerMsg.includes("incorrect"))) {
-        return "settings.errors.invalidApiKey";
+/**
+ * Maps an API error code or message to a localized key.
+ * Falls back to the original message if no mapping exists.
+ */
+export function getLocalizedErrorKey(codeOrMsg: string | number): string {
+    const key = String(codeOrMsg);
+    // 1. Direct match
+    if (ERROR_CODE_MAP[key]) return ERROR_CODE_MAP[key];
+
+    // 2. Contains Check (e.g. "Error 20002: ...")
+    for (const [code, i18nKey] of Object.entries(ERROR_CODE_MAP)) {
+        if (key.includes(code)) return i18nKey;
     }
 
-    if (lowerMsg.includes("ip") && (lowerMsg.includes("allow") || lowerMsg.includes("whitelist"))) {
-        return "settings.errors.ipNotAllowed";
-    }
-
-    // Simple mapping for now, can be expanded
-    if (msg.includes("429")) return "apiErrors.tooManyRequests";
-    if (msg.includes("401")) return "apiErrors.unauthorized";
-    return msg;
+    return "error.generic";
 }

@@ -34,6 +34,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import { getLocalizedErrorKey } from "../utils/errorUtils";
 
 export interface TpSlOrder {
     orderId: string;
@@ -326,10 +327,19 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`Flash Close Failed: ${msg}`);
+
+            // Map to friendly error if possible
+            const friendlyMsg = getLocalizedErrorKey(msg);
+            // If friendlyMsg is a key (contains dot), we let the UI translate it later,
+            // but toastService currently expects a string.
+            // Ideally we'd use $_() here but we are in a service.
+            // We pass the raw code if mapped, or original msg.
+            const displayMsg = friendlyMsg !== "error.generic" ? friendlyMsg : msg;
+
+            toastService.error(`Flash Close Failed: ${displayMsg}`);
 
             // Return failure object instead of throwing
-            return { success: false, error: msg };
+            return { success: false, error: displayMsg };
         }
     }
 

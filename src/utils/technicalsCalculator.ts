@@ -67,11 +67,39 @@ export function calculateAllIndicators(
     // Optimization: Single loop extraction into pre-allocated Float64Arrays
     for (let i = 0; i < len; i++) {
       const k = klines[i];
-      highsNum[i] = parseFloat(k.high.toString());
-      lowsNum[i] = parseFloat(k.low.toString());
-      closesNum[i] = parseFloat(k.close.toString());
-      opensNum[i] = parseFloat(k.open.toString());
-      volumesNum[i] = parseFloat(k.volume.toString());
+
+      const h = parseFloat(k.high.toString());
+      const l = parseFloat(k.low.toString());
+      const c = parseFloat(k.close.toString());
+      const o = parseFloat(k.open.toString());
+      const v = parseFloat(k.volume.toString());
+
+      // HARDENING: Strict NaN/Infinity checks
+      // If data is corrupt, fallback to previous or 0 to prevent cascading NaN in indicators
+      if (!isFinite(h) || !isFinite(l) || !isFinite(c) || !isFinite(o)) {
+          // If it's the first candle, we must zero it.
+          // If it's later, copy previous.
+          if (i > 0) {
+              highsNum[i] = highsNum[i-1];
+              lowsNum[i] = lowsNum[i-1];
+              closesNum[i] = closesNum[i-1];
+              opensNum[i] = opensNum[i-1];
+              volumesNum[i] = 0;
+          } else {
+              highsNum[i] = 0;
+              lowsNum[i] = 0;
+              closesNum[i] = 0;
+              opensNum[i] = 0;
+              volumesNum[i] = 0;
+          }
+      } else {
+          highsNum[i] = h;
+          lowsNum[i] = l;
+          closesNum[i] = c;
+          opensNum[i] = o;
+          volumesNum[i] = isFinite(v) ? v : 0;
+      }
+
       timesNum[i] = k.time;
     }
 

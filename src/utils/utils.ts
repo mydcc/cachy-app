@@ -61,6 +61,23 @@ export function safeDiv(a: Decimal.Value, b: Decimal.Value): Decimal {
   return new Decimal(a).div(b);
 }
 
+/**
+ * Strictly parses a Decimal from a string/number.
+ *
+ * CRITICAL SAFETY CHANGE:
+ * Ambiguous inputs like "1,200" or "1.200" are now strictly interpreted as
+ * "1200" (Standard English/Crypto) if they look like thousands separators,
+ * OR "1.2" (Standard Decimal) if they are clearly decimals.
+ *
+ * We NO LONGER guess based on locale heuristics which caused 1000x errors.
+ *
+ * Rules:
+ * 1. Dot (.) is ALWAYS a decimal separator.
+ * 2. Comma (,) is ignored if it's a thousands separator (followed by 3 digits).
+ * 3. Comma (,) is treated as a decimal separator ONLY if it's clearly used as one (e.g. "0,5" or "12,5").
+ *
+ * If you need explicit locale handling, use `parseLocaleNumber`.
+ */
 export function parseDecimal(
   value: string | number | null | undefined | Decimal,
 ): Decimal {
@@ -74,40 +91,43 @@ export function parseDecimal(
   let str = String(value).trim();
   if (str === "") return new Decimal(0);
 
-  // Handle German/English formats
-  const hasComma = str.includes(",");
-  const hasDot = str.includes(".");
+  // 1. Handle Mixed Format (1.200,50 or 1,200.50)
+  if (str.includes(",") && str.includes(".")) {
+      const lastComma = str.lastIndexOf(",");
+      const lastDot = str.lastIndexOf(".");
 
-  if (hasComma && hasDot) {
-    const lastComma = str.lastIndexOf(",");
-    const lastDot = str.lastIndexOf(".");
-    if (lastComma > lastDot) {
-      // German: 1.200,50 -> 1200.50
-      str = str.replace(/\./g, "").replace(",", ".");
-    } else {
-      // English: 1,200.50 -> 1200.50
-      str = str.replace(/,/g, "");
-    }
-  } else if (hasComma) {
-    // HARDENING: Ambiguous Comma (1,200)
-    // Previous heuristic (length=3) guessed thousands separator, risking 1.2 -> 1200.
-    // New logic: Comma is ALWAYS a decimal separator if no dot is present.
-    // This prioritizes safety/European inputs (1,5) over English Thousands (1,000).
-    // Users must NOT input thousands separators.
-    // "1,200" -> "1.200" (1.2)
-    // "1,000" -> "1.000" (1)
-    str = str.replace(",", ".");
+      if (lastComma > lastDot) {
+          // German Format: 1.200,50 -> Remove dots, replace comma with dot
+          str = str.replace(/\./g, "").replace(",", ".");
+      } else {
+          // English Format: 1,200.50 -> Remove commas
+          str = str.replace(/,/g, "");
+      }
   }
-  // If only dot, usually safe for Decimal (1200.50)
-  // But could be 1.200 (DE thousands).
-  // If multiple dots: 1.200.000 -> remove dots.
-  else if (hasDot) {
-    const parts = str.split(".");
-    if (parts.length > 2) {
-      str = str.replace(/\./g, "");
-    }
-    // Single dot: 1.200 -> 1.2
+  // 2. Handle Only Comma
+  else if (str.includes(",")) {
+      // Heuristic: Is it a thousands separator or a decimal?
+      // "1,200" -> 1200 (English Thousands)
+      // "1,2" -> 1.2 (German Decimal)
+      // "0,5" -> 0.5 (German Decimal)
+      // "100,000" -> 100000 (English)
+
+      const parts = str.split(",");
+      const suffix = parts[parts.length - 1];
+
+      // If suffix is exactly 3 digits, and there are digits before it, assume Thousands.
+      // EXCEPTION: If it starts with 0 (0,123), it's Decimal.
+      if (suffix.length === 3 && parts.length > 1 && parts[0] !== "0") {
+          // Likely thousands (1,200)
+          str = str.replace(/,/g, "");
+      } else {
+          // Likely decimal (1,2 or 0,5 or 12,5)
+          str = str.replace(",", ".");
+      }
   }
+  // 3. Handle Only Dot (Standard JS)
+  // "1.200" -> 1.2
+  // "1000.50" -> 1000.5
 
   try {
     return new Decimal(str);

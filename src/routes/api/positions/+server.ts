@@ -1,4 +1,3 @@
-import { extractApiCredentials } from "../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -129,7 +128,12 @@ async function fetchBitunixPositions(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const text = await response.text();
+  const data = safeJsonParse(text);
+
+  if (!data) {
+      throw new Error(`Bitunix API error: Empty or invalid JSON response`);
+  }
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
@@ -211,7 +215,8 @@ async function fetchBitgetPositions(
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
-    const res = await response.json();
+    const text = await response.text();
+    const res = safeJsonParse(text);
     if (res.code !== "00000") throw new Error(res.msg);
 
     const data = res.data || [];
@@ -233,3 +238,5 @@ async function fetchBitgetPositions(
             };
         });
 }
+
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
