@@ -443,7 +443,7 @@ export class WebGpuCalculator {
             }
 
             // Stoch
-            if (enabledIndicators.stoch !== false) {
+            if (enabledIndicators.stochastic !== false) {
                  const k_raw = await this.calculateStochRaw(highs32, lows32, closes32, settings.stochastic.kPeriod);
                  const k_smooth = await this.calculateSma(k_raw as Float32Array, settings.stochastic.kSmoothing) as Float32Array;
                  const d_line = await this.calculateSma(k_smooth, settings.stochastic.dPeriod) as Float32Array;
