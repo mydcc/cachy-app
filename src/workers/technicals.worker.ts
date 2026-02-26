@@ -97,7 +97,7 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
             hist.volumes[i] = parseFloat(k.volume);
         }
 
-        historyCache.set(id, hist);
+        historyCache.set(payload.cacheKey || id, hist);
 
         // Perform initial calculation
         const result = calculateIndicatorsFromArrays(
@@ -115,8 +115,8 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
     }
     else if (type === "UPDATE") {
         if (!id) throw new Error("UPDATE requires an ID");
-        const hist = historyCache.get(id);
-        if (!hist) throw new Error(`Worker state not found for ${id}`);
+        const hist = historyCache.get(payload.cacheKey || id);
+        if (!hist) throw new Error(`Worker state not found for ${payload.cacheKey || id}`);
 
         const k = payload.kline; // Single serialized kline
         const settings = payload.settings;
@@ -202,14 +202,15 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         ctx.postMessage({ type: "RESULT", id, payload: result });
     }
     else if (type === "CLEANUP") {
-        if (id) {
-            historyCache.delete(id);
+        const key = payload?.cacheKey || id;
+        if (key) {
+            historyCache.delete(key);
         }
         // Always acknowledge cleanup
         ctx.postMessage({ type: "RESULT", id, payload: { cleaned: true } });
     }
 
-  } catch (err: any) {
+    } catch (err: any) {
     console.error("Technicals Worker Error:", err);
     ctx.postMessage({
       type: "ERROR",

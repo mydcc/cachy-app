@@ -457,7 +457,7 @@ export function calculateIndicatorsFromArrays(
   // --- Volatility ---
   let volatility: any = undefined;
   try {
-      if (shouldCalculate('atr') || shouldCalculate('bollingerBands') || shouldCalculate('choppiness')) {
+      if (shouldCalculate('atr') || shouldCalculate('bollingerBands')) {
           volatility = {};
 
           if (shouldCalculate('atr')) {
@@ -484,6 +484,8 @@ export function calculateIndicatorsFromArrays(
              };
           }
 
+      }
+
           if (shouldCalculate('choppiness')) {
               const len = settings?.choppiness?.length || 14;
               const res = JSIndicators.choppiness(highsNum, lowsNum, closesNum, len);
@@ -493,7 +495,6 @@ export function calculateIndicatorsFromArrays(
                   state: val > 61.8 ? "Range" : val < 38.2 ? "Trend" : "Neutral"
               };
           }
-      }
   } catch (e) {
       if (import.meta.env.DEV) console.error("Volatility calculation error:", e);
   }
