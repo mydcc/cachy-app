@@ -239,7 +239,7 @@ export function calculateIndicatorsFromArrays(
     // CCI
     if (shouldCalculate('cci')) {
         const cciLen = settings?.cci?.length || 20;
-        const cciSourceType = settings?.cci?.source || "close";
+        const cciSourceType = settings?.cci?.source || "hlc3";
 
         let cciVal: number;
 

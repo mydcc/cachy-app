@@ -70,7 +70,7 @@ const defaultSettings: IndicatorSettings = {
   cci: {
     enabled: true,
     length: 20,
-    source: "close",
+    source: "hlc3",
     threshold: 100,
     smoothingType: "sma",
     smoothingLength: 5,
