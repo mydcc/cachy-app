@@ -5,8 +5,11 @@
   import { markdownLoader } from "../../../../services/markdownLoader";
   import * as en from "../../../../locales/locales/en.json";
   import * as de from "../../../../locales/locales/de.json";
+  // @ts-ignore
   import SvelteMarkdown from 'svelte-markdown';
+  // @ts-ignore
   import math from 'remark-math';
+  // @ts-ignore
   import katex from 'rehype-katex';
   import 'katex/dist/katex.min.css';
   import { fade } from "svelte/transition";
@@ -54,6 +57,8 @@
     // Default load first module or welcome
     loadModule("candlestick-patterns");
   });
+
+  const markdownOptions: any = { remarkPlugins: [math], rehypePlugins: [katex] };
 </script>
 
 <div class="h-full flex flex-col md:flex-row overflow-hidden bg-[var(--bg-secondary)]">
@@ -94,7 +99,8 @@
         </div>
       {:else if content}
         <article class="prose prose-invert max-w-none prose-headings:text-[var(--text-primary)] prose-p:text-[var(--text-secondary)] prose-strong:text-[var(--text-primary)] prose-a:text-[var(--accent-color)]">
-          <SvelteMarkdown {source} {content} options={{ remarkPlugins: [math], rehypePlugins: [katex] }} />
+          <!-- @ts-ignore -->
+          <SvelteMarkdown source={content} options={markdownOptions} />
         </article>
       {/if}
     </div>

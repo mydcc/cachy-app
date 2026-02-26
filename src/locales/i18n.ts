@@ -31,6 +31,9 @@ import { settingsState } from "../stores/settings.svelte";
 import * as en from "./locales/en.json";
 import * as de from "./locales/de.json";
 
+// Export the TranslationKey type
+export type { TranslationKey };
+
 // List of keys that should always be English if "Force English Technical Terms" is enabled.
 // We use dot notation strings which we will resolve against the English dictionary.
 const TECHNICAL_KEYS = [

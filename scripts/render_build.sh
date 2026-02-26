@@ -39,12 +39,14 @@ fi
 echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
-echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
+echo "Installing Node dependencies (forcing devDependencies)..."
+# Render sets NODE_ENV=production by default, which prunes devDependencies
+# We need devDependencies for build (svelte-kit, vite, etc.)
+# We also use npm install instead of npm ci if lockfile is flaky, but trying ci first with NODE_ENV=development override
 if [ -f "package-lock.json" ]; then
-    npm ci
+    NODE_ENV=development npm ci
 else
-    npm install
+    NODE_ENV=development npm install
 fi
 
 echo "Building..."

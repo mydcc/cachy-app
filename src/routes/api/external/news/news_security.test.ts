@@ -32,18 +32,22 @@ describe('News Service Security', () => {
     const headers = new Map([['x-app-access-token', 'test-token-123']]);
 
     it('should not serve cached data to a different API key', async () => {
+        const mockResponse1 = { status: 'ok', totalResults: 1, articles: [{ title: 'News 1', url: 'http://news.com/1' }] };
         fetchMock.mockResolvedValue({
             ok: true,
-            json: async () => ({ status: 'ok', totalResults: 1, articles: [{ title: 'News 1', url: 'http://news.com/1' }] }) // Full NewsAPI format
+            text: async () => JSON.stringify(mockResponse1),
+            json: async () => mockResponse1 // Full NewsAPI format
         });
 
         // 1. First Request (User A)
+        const body1 = {
+            source: 'newsapi',
+            params: { q: 'btc' },
+            apiKey: 'user-key-A'
+        };
         const req1 = {
-            json: async () => ({
-                source: 'newsapi',
-                params: { q: 'btc' },
-                apiKey: 'user-key-A'
-            }),
+            json: async () => body1,
+            text: async () => JSON.stringify(body1),
             headers
         } as any;
 
@@ -64,15 +68,18 @@ describe('News Service Security', () => {
         fetchMock.mockClear();
         fetchMock.mockResolvedValue({
             ok: true,
+            text: async () => JSON.stringify({ status: 'ok', totalResults: 1, articles: [{ title: 'News 2', url: 'http://news.com/2' }] }),
             json: async () => ({ status: 'ok', totalResults: 1, articles: [{ title: 'News 2', url: 'http://news.com/2' }] })
         });
 
+        const body2 = {
+            source: 'newsapi',
+            params: { q: 'btc' },
+            apiKey: 'user-key-B'
+        };
         const req2 = {
-            json: async () => ({
-                source: 'newsapi',
-                params: { q: 'btc' },
-                apiKey: 'user-key-B'
-            }),
+            json: async () => body2,
+            text: async () => JSON.stringify(body2),
             headers
         } as any;
 

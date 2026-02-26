@@ -33,8 +33,10 @@ describe('POST /api/sync', () => {
   const headers = new Map([['x-app-access-token', 'test-token-123']]);
 
   it('should return 400 if apiKey is missing', async () => {
+    const requestBody = { apiSecret: 'secret123' };
     const request = {
-      json: async () => ({ apiSecret: 'secret123' }),
+      json: async () => requestBody,
+      text: async () => JSON.stringify(requestBody),
       headers
     } as any;
 
@@ -45,8 +47,10 @@ describe('POST /api/sync', () => {
   });
 
   it('should return 400 if apiSecret is missing', async () => {
+    const body = { apiKey: 'key123' };
     const request = {
-      json: async () => ({ apiKey: 'key123' }),
+      json: async () => body,
+      text: async () => JSON.stringify(body),
       headers
     } as any;
 
@@ -55,8 +59,10 @@ describe('POST /api/sync', () => {
   });
 
   it('should return 400 if apiKey is too short (security hardening)', async () => {
+    const body = { apiKey: '123', apiSecret: 'secret123' };
     const request = {
-      json: async () => ({ apiKey: '123', apiSecret: 'secret123' }),
+      json: async () => body,
+      text: async () => JSON.stringify(body),
       headers
     } as any;
 
@@ -71,11 +77,14 @@ describe('POST /api/sync', () => {
   it('should return 200 and call fetch with correct headers for valid input', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
+      text: async () => JSON.stringify({ code: 0, data: { tradeList: [] } }),
       json: async () => ({ code: 0, data: { tradeList: [] } }),
     });
 
+    const body = { apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 };
     const request = {
-      json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
+      json: async () => body,
+      text: async () => JSON.stringify(body),
       headers
     } as any;
 
