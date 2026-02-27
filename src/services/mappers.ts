@@ -74,7 +74,9 @@ export function mapToOMSOrder(data: any): OMSOrder {
     if (typeof data.orderId === 'number') {
         // Safe limit is 2^53 - 1
         if (data.orderId > Number.MAX_SAFE_INTEGER) {
-            logger.warn("market", `[Mapper] CRITICAL: Precision Loss detected for orderId: ${data.orderId}. Ensure safeJsonParse is used upstream.`);
+            logger.error("market", `[Mapper] CRITICAL: Precision Loss detected for orderId: ${data.orderId}. Ensure safeJsonParse is used upstream.`);
+        } else {
+            logger.warn("market", `[Mapper] PRECISION RISK: orderId is number type: ${data.orderId}. Ensure strict string usage.`);
         }
     }
 
