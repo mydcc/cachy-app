@@ -21,12 +21,17 @@
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
         overflow: hidden;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .indicator-card:hover {
+        border-color: color-mix(in srgb, var(--border-color) 70%, var(--accent-color));
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* very subtle */
     }
     .card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem 1rem;
+        padding: 0.6rem 0.8rem; /* slightly tighter */
         background-color: var(--bg-tertiary);
         border-bottom: 1px solid var(--border-color);
     }

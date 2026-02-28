@@ -446,10 +446,16 @@ export class CalculatorService {
           : values.entryPrice.plus(values.atrValue.times(values.atrMultiplier));
 
       newResults.showAtrFormulaDisplay = true;
-      newResults.atrFormulaText = `SL = ${values.entryPrice.toFixed(
+      newResults.atrFormulaText = `SL = ${formatDynamicDecimal(
+        values.entryPrice,
         4,
-      )} ${operator} (${values.atrValue} × ${values.atrMultiplier
-        }) = ${values.stopLossPrice.toFixed(4)}`;
+      )} ${operator} (${formatDynamicDecimal(
+        values.atrValue,
+        4,
+      )} × ${formatDynamicDecimal(
+        values.atrMultiplier,
+        2,
+      )}) = ${formatDynamicDecimal(values.stopLossPrice, 4)}`;
     } else if (values.atrValue.gt(0) && values.atrMultiplier.gt(0)) {
       return { status: CONSTANTS.STATUS_INCOMPLETE };
     }

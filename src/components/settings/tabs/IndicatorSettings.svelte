@@ -34,19 +34,18 @@
 
 <div class="flex flex-col h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
     <!-- Tabs -->
-    <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar">
+    <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar bg-[var(--bg-tertiary)] pt-1 px-2">
         {#each tabs as tab}
             <button
-                class="px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors relative {activeCategory ===
-                tab.id
+                class="px-5 py-3 text-sm font-semibold whitespace-nowrap transition-all duration-200 relative {activeCategory === tab.id
                     ? 'text-[var(--accent-color)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-t-lg'}"
                 onclick={() => (activeCategory = tab.id)}
             >
                 {tab.label}
                 {#if activeCategory === tab.id}
                     <div
-                        class="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-color)]"
+                        class="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-color)] shadow-[0_-1px_4px_var(--accent-color)]"
                     ></div>
                 {/if}
             </button>
@@ -56,11 +55,12 @@
     <!-- Content -->
     <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {#if activeCategory === "general"}
-            <section class="space-y-6">
+            <div class="space-y-6 max-w-5xl mx-auto">
                 <!-- Panel Sections Visibility -->
-                <div class="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
-                    <h4 class="text-xs font-bold uppercase text-[var(--text-secondary)] mb-3">
-                        Panel Sections
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)] flex items-center justify-between">
+                        <span>Panel Configuration</span>
+                        <span class="text-xs font-normal text-[var(--text-secondary)]">Toggle visibility</span>
                     </h4>
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
@@ -96,12 +96,14 @@
                             <Toggle bind:checked={indicatorState.panelSections.signals} />
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- Global Settings -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
-                        <h4 class="text-xs font-bold uppercase mb-2">Calculation</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <section class="p-5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] shadow-sm">
+                        <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                            Calculation Engine
+                        </h4>
                         <div class="space-y-2">
                              <Field
                                 id="hist-limit"
@@ -134,10 +136,12 @@
                                 <Toggle bind:checked={settingsState.syncRsiTimeframe} />
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
-                         <h4 class="text-xs font-bold uppercase mb-2">Display</h4>
+                    <section class="p-5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] shadow-sm">
+                         <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                            Display Preferences
+                        </h4>
                          <div class="space-y-2">
                             <Field
                                 id="precision"
@@ -152,7 +156,7 @@
                                 <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
                                     {#each [{ value: "value", label: "Value" }, { value: "percent", label: "%" }, { value: "bar", label: "Bar" }] as mode}
                                         <button
-                                            class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-white' : 'text-[var(--text-secondary)]'}"
+                                            class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'text-[var(--text-secondary)]'}"
                                             onclick={() => (settingsState.pnlViewMode = mode.value as any)}
                                         >
                                             {mode.label}
@@ -161,21 +165,23 @@
                                 </div>
                             </div>
                          </div>
-                    </div>
+                    </section>
                 </div>
 
                 <!-- Timeframes -->
-                <div class="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
-                    <h4 class="text-xs font-bold uppercase mb-2">Favorite Timeframes</h4>
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                        Favorite Timeframes
+                    </h4>
                     <TimeframeSelector
                         bind:selected={settingsState.favoriteTimeframes}
                         options={availableTimeframes}
                     />
-                </div>
-            </section>
+                </section>
+            </div>
 
         {:else if activeCategory === "oscillators"}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
                 <IndicatorCard title="RSI" bind:enabled={indicatorState.rsi.enabled}>
                     <div class="grid grid-cols-2 gap-2">
                         <Field id="rsi-len" label="Length" type="number" bind:value={indicatorState.rsi.length} min={2} />
@@ -237,7 +243,7 @@
             </div>
 
         {:else if activeCategory === "trend"}
-             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
                 <IndicatorCard title="MACD" bind:enabled={indicatorState.macd.enabled}>
                     <div class="grid grid-cols-3 gap-2">
                         <Field id="macd-fast" label="Fast" type="number" bind:value={indicatorState.macd.fastLength} />
@@ -284,7 +290,7 @@
                         <div class="grid grid-cols-2 gap-2">
                             {#each pivotTypes as pType}
                                 <button
-                                    class="text-xs py-1.5 rounded border border-[var(--border-color)] transition-colors {indicatorState.pivots.type === pType.value ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)]'}"
+                                    class="text-xs py-1.5 rounded border border-[var(--border-color)] transition-colors {indicatorState.pivots.type === pType.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)]'}"
                                     onclick={() => indicatorState.pivots.type = pType.value as any}
                                 >
                                     {pType.label}
@@ -325,7 +331,7 @@
             </div>
 
         {:else if activeCategory === "volatility"}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
                 <IndicatorCard title="Bollinger Bands" bind:enabled={indicatorState.bollingerBands.enabled}>
                     <div class="grid grid-cols-2 gap-2">
                         <Field id="bb-len" label="Length" type="number" bind:value={indicatorState.bollingerBands.length} />
@@ -350,7 +356,7 @@
             </div>
 
         {:else if activeCategory === "volume"}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
                 <IndicatorCard title="Volume MA" bind:enabled={indicatorState.volumeMa.enabled}>
                      <div class="grid grid-cols-2 gap-2">
                         <Field id="vma-len" label="Length" type="number" bind:value={indicatorState.volumeMa.length} />
