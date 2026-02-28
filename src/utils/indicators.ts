@@ -1165,12 +1165,12 @@ export const JSIndicators = {
     };
   },
 
-  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2): Float64Array {
+  psar(high: NumberArray, low: NumberArray, start: number = 0.02, increment: number = 0.02, max: number = 0.2): Float64Array {
     const result = new Float64Array(high.length).fill(NaN);
     if (high.length < 2) return result;
 
     let isLong = true;
-    let af = accel;
+    let af = start;
     let ep = high[0]; // Extreme Point
     let sar = low[0];
 
@@ -1199,7 +1199,7 @@ export const JSIndicators = {
           reversed = true;
           nextSar = ep;
           ep = low[i];
-          af = accel;
+          af = start;
         }
       } else {
         if (high[i] > nextSar) {
@@ -1207,7 +1207,7 @@ export const JSIndicators = {
           reversed = true;
           nextSar = ep;
           ep = high[i];
-          af = accel;
+          af = start;
         }
       }
 
@@ -1216,12 +1216,12 @@ export const JSIndicators = {
         if (isLong) {
           if (high[i] > ep) {
             ep = high[i];
-            af = Math.min(af + accel, max);
+            af = Math.min(af + increment, max);
           }
         } else {
           if (low[i] < ep) {
             ep = low[i];
-            af = Math.min(af + accel, max);
+            af = Math.min(af + increment, max);
           }
         }
       }
@@ -1735,14 +1735,14 @@ export const indicators = {
     high: (number | string | Decimal)[],
     low: (number | string | Decimal)[],
     close: (number | string | Decimal)[],
-    period: number = 14,
+    period: number, smoothingPeriod: number = 14,
   ): Decimal | null {
     if (close.length < period * 2) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
     const c = close.map(toNumFast);
-    const res = JSIndicators.adx(h, l, c, period);
-    return new Decimal(res[res.length - 1]);
+    const res = calculateADXSeries(h, l, c, period, smoothingPeriod);
+    return new Decimal(res.adx[res.adx.length - 1]);
   },
 
   calculateAO(
@@ -1942,7 +1942,7 @@ export const indicators = {
     if (high.length < 2) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
-    const res = JSIndicators.psar(h, l, increment, max);
+    const res = JSIndicators.psar(h, l, start, increment, max);
     return new Decimal(res[res.length - 1]);
   },
 
@@ -1974,3 +1974,58 @@ export const indicators = {
     };
   },
 };
+
+export function calculateADXSeries(
+  high: NumberArray,
+  low: NumberArray,
+  close: NumberArray,
+  period: number, smoothingPeriod: number = 14
+): { adx: Float64Array; pdi: Float64Array; mdi: Float64Array } {
+  const len = close.length;
+  const adx = new Float64Array(len);
+  const pdi = new Float64Array(len);
+  const mdi = new Float64Array(len);
+
+  if (len < period * 2) return { adx, pdi, mdi };
+
+  const upMove = new Float64Array(len);
+  const downMove = new Float64Array(len);
+  const tr = new Float64Array(len);
+
+  const plusDM_S = new Float64Array(len);
+  const minusDM_S = new Float64Array(len);
+  const tr_S = new Float64Array(len);
+  const dx = new Float64Array(len);
+
+  for (let i = 1; i < len; i++) {
+    const up = high[i] - high[i - 1];
+    const down = low[i - 1] - low[i];
+    upMove[i] = up > down && up > 0 ? up : 0;
+    downMove[i] = down > up && down > 0 ? down : 0;
+
+    tr[i] = Math.max(
+      high[i] - low[i],
+      Math.abs(high[i] - close[i - 1]),
+      Math.abs(low[i] - close[i - 1]),
+    );
+  }
+
+  JSIndicators.smma(upMove, period, plusDM_S);
+  JSIndicators.smma(downMove, period, minusDM_S);
+  JSIndicators.smma(tr, period, tr_S);
+
+  for (let i = 0; i < len; i++) {
+    const trVal = tr_S[i] || 1;
+    const pVal = (plusDM_S[i] / trVal) * 100;
+    const mVal = (minusDM_S[i] / trVal) * 100;
+    pdi[i] = pVal;
+    mdi[i] = mVal;
+
+    const sum = pVal + mVal;
+    dx[i] = sum === 0 ? 0 : (Math.abs(pVal - mVal) / sum) * 100;
+  }
+
+  JSIndicators.smma(dx, smoothingPeriod || period, adx);
+
+  return { adx, pdi, mdi };
+}

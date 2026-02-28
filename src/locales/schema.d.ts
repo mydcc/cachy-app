@@ -1752,4 +1752,9 @@ export type TranslationKey =
   | "common.close"
   | "common.analyzing"
   | "dashboard.triggerPulse"
+  | "settings.technicals.tabs.volume"
+  | "settings.technicals.tabs.volatility"
+  | "settings.technicals.tabs.trend"
+  | "settings.technicals.tabs.oscillators"
+  | "settings.technicals.tabs.general"
   | "dashboard.favorites";

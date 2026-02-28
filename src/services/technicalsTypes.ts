@@ -91,6 +91,7 @@ export interface IndicatorResult {
   signal?: number; // For MACD signal line, etc.
   histogram?: number; // For MACD histogram
   action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
+  extra?: string; // Optional extra info string (e.g., "D: 80")
 }
 
 export interface DivergenceItem {
@@ -138,7 +139,7 @@ export interface TechnicalsData {
     action: "Buy" | "Sell" | "Neutral";
   };
   volatility?: {
-    atr: number;
+    atr?: number;
     bb?: {
       upper: number;
       middle: number;
@@ -154,7 +155,7 @@ export interface TechnicalsData {
     mfi?: { value: number; action: string };
     stochRsi?: { k: number; d: number; action: string };
     williamsR?: { value: number; action: string };
-    choppiness?: { value: number; state: "Trend" | "Range" };
+    choppiness?: { value: number; state: "Trend" | "Range" | "Neutral" };
     ichimoku?: {
       conversion: number;
       base: number;
@@ -174,6 +175,8 @@ export interface TechnicalsData {
       rows: { priceStart: number; priceEnd: number; volume: number }[];
     };
     volumeMa?: number;
+    adx?: { value: number; pdi: number; mdi: number; trend: string; dir: string };
+    marketStructure?: { highs: { value: number; type: string }[]; lows: { value: number; type: string }[]; };
   };
   lastUpdated?: number;
 }

@@ -342,7 +342,7 @@ export const technicalsService = {
         const { data: result } = await workerManager.postMessage({
             type: "INITIALIZE",
             payload: {
-                symbol, timeframe,
+                symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
                 klines: klines.map(k => ({ ...k, open: k.open.toString(), high: k.high.toString(), low: k.low.toString(), close: k.close.toString(), volume: k.volume?.toString() || "0" })),
                 settings, enabledIndicators
             }
@@ -353,7 +353,7 @@ export const technicalsService = {
     }
   },
 
-  async updateTechnicals(symbol: string, timeframe: string, kline: any): Promise<TechnicalsData> {
+  async updateTechnicals(symbol: string, timeframe: string, kline: any, settings?: any, enabledIndicators?: any): Promise<TechnicalsData> {
     if (!workerManager.isHealthy()) {
         // Cannot update incrementally without worker. Throw to force re-init/fallback in manager.
         throw new Error("Worker unavailable for update"); 
@@ -363,8 +363,9 @@ export const technicalsService = {
         const { data: result } = await workerManager.postMessage({
             type: "UPDATE",
             payload: {
-                symbol, timeframe,
+                symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
                 kline: { ...kline, open: kline.open.toString(), high: kline.high.toString(), low: kline.low.toString(), close: kline.close.toString(), volume: kline.volume?.toString() || "0" }
+                , settings, enabledIndicators
             }
         });
         return result;
@@ -379,7 +380,7 @@ export const technicalsService = {
       try {
           await workerManager.postMessage({
               type: "CLEANUP",
-              payload: { symbol, timeframe }
+              payload: { symbol, timeframe, cacheKey: `${symbol}:${timeframe}` }
           });
           logger.debug('technicals', `Cleaned up worker state for ${symbol}:${timeframe}`);
       } catch (e) {
