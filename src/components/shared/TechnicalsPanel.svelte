@@ -592,7 +592,7 @@
                   class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <div class="flex justify-between">
-                    <span>{$_("settings.technicals.atrStop.title")}</span>
+                    <span>ATR Stop (Sell)</span>
                     <span class="font-mono text-[var(--danger-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.sell,
@@ -601,7 +601,7 @@
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span>{$_("settings.technicals.atrStop.title").replace("(L)", "(S)")}</span>
+                    <span>ATR Stop (Buy)</span>
                     <span class="font-mono text-[var(--success-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.buy,
