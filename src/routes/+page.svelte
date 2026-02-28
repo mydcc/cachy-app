@@ -30,6 +30,9 @@
   import { resultsState } from "../stores/results.svelte";
   import { presetState } from "../stores/preset.svelte";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
+import { activeTechnicalsManager } from "../services/activeTechnicalsManager.svelte";
+import { marketState } from "../stores/market.svelte";
+import { indicatorState } from "../stores/indicator.svelte";
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { windowManager } from "../lib/windows/WindowManager.svelte";
   import { favoritesState } from "../stores/favorites.svelte";
@@ -248,6 +251,10 @@
         : "w-72"
       : "w-56",
   );
+
+
+
+
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -702,7 +709,7 @@
         {/if}
 
         {#if settingsState.showTechnicals && isTechnicalsVisible}
-          <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
+          <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
         {/if}
 
         {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
@@ -733,7 +740,7 @@
           {isTechnicalsVisible}
         />
       {:else if isTechnicalsDocked}
-        <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
+        <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
       {/if}
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
@@ -745,7 +752,7 @@
           class:opacity-0={!isTechnicalsVisible}
           class:opacity-100={isTechnicalsVisible}
         >
-          <TechnicalsPanel isVisible={isTechnicalsVisible} />
+          <TechnicalsPanel  isVisible={isTechnicalsVisible} />
         </div>
       {/if}
 

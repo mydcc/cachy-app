@@ -17,7 +17,20 @@ const defaultSettings: IndicatorSettings = {
   autoOptimize: true,
   preferredEngine: 'auto',
   performanceMode: 'balanced',
+
+    panelSections: {
+      summary: true,
+      oscillators: true,
+      movingAverages: true,
+      pivots: true,
+      advanced: true,
+      signals: true,
+      volatility: true,
+      confluence: true,
+    },
+
   rsi: {
+    enabled: true,
     length: 14,
     source: "close",
     showSignal: true,
@@ -28,6 +41,7 @@ const defaultSettings: IndicatorSettings = {
     defaultTimeframe: "1d",
   },
   stochRsi: {
+    enabled: true,
     length: 14,
     rsiLength: 14,
     kPeriod: 3,
@@ -35,6 +49,7 @@ const defaultSettings: IndicatorSettings = {
     source: "close",
   },
   macd: {
+    enabled: true,
     fastLength: 12,
     slowLength: 26,
     signalLength: 9,
@@ -43,98 +58,120 @@ const defaultSettings: IndicatorSettings = {
     signalMaType: "ema",
   },
   stochastic: {
+    enabled: false,
     kPeriod: 14,
     kSmoothing: 3,
     dPeriod: 3,
   },
   williamsR: {
+    enabled: false,
     length: 14,
   },
   cci: {
+    enabled: true,
     length: 20,
-    source: "close",
+    source: "hlc3",
     threshold: 100,
     smoothingType: "sma",
     smoothingLength: 5,
   },
   adx: {
+    enabled: false,
     adxSmoothing: 14,
     diLength: 14,
     threshold: 25,
   },
   ao: {
+    enabled: false,
     fastLength: 5,
     slowLength: 34,
   },
   momentum: {
+    enabled: false,
     length: 10,
     source: "close",
   },
   ema: {
+    enabled: true,
     ema1: { length: 21, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     ema2: { length: 50, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     source: "close",
   },
   sma: {
+    enabled: false,
     sma1: { length: 9 },
     sma2: { length: 21 },
     sma3: { length: 50 },
   },
-  wma: { length: 14 },
-  vwma: { length: 20 },
-  hma: { length: 9 },
+  wma: { enabled: false, length: 14 },
+  vwma: { enabled: false, length: 20 },
+  hma: { enabled: false, length: 9 },
   ichimoku: {
+    enabled: false,
     conversionPeriod: 9,
     basePeriod: 26,
     spanBPeriod: 52,
     displacement: 26,
   },
   pivots: {
+    enabled: true,
     type: "classic",
     viewMode: "integrated",
   },
   atr: {
+    enabled: false,
     length: 14,
   },
   bb: {
+    enabled: false,
     length: 20,
     stdDev: 2,
   },
   choppiness: {
+    enabled: false,
     length: 14,
   },
   superTrend: {
+    enabled: true,
     factor: 3,
     period: 10,
   },
   atrTrailingStop: {
+    enabled: false,
     period: 14,
     multiplier: 3.5,
   },
   obv: {
+    enabled: false,
     smoothingLength: 0,
   },
   mfi: {
+    enabled: false,
     length: 14,
   },
   vwap: {
+    enabled: true,
     length: 0,
     anchor: "session",
   },
   parabolicSar: {
+    enabled: false,
     start: 0.02,
     increment: 0.02,
     max: 0.2,
   },
   volumeMa: {
+    enabled: false,
     length: 20,
     maType: "sma",
   },
   volumeProfile: {
+    enabled: false,
     rows: 24,
   },
   bollingerBands: {
+    enabled: true,
     length: 20,
     stdDev: 2,
     source: "close",
@@ -149,6 +186,8 @@ class IndicatorManager {
   autoOptimize = $state(defaultSettings.autoOptimize);
   preferredEngine = $state(defaultSettings.preferredEngine);
   performanceMode = $state(defaultSettings.performanceMode);
+
+  panelSections = $state(defaultSettings.panelSections);
 
   // Oscillators
   rsi = $state(defaultSettings.rsi);
@@ -180,7 +219,7 @@ class IndicatorManager {
   // Volume & Misc
   obv = $state(defaultSettings.obv);
   vwap = $state(defaultSettings.vwap);
-  parabolicSar = $state(defaultSettings.parabolicSar); // Add state
+  parabolicSar = $state(defaultSettings.parabolicSar);
   volumeProfile = $state(defaultSettings.volumeProfile);
   volumeMa = $state(defaultSettings.volumeMa);
   bollingerBands = $state(defaultSettings.bollingerBands);
@@ -197,6 +236,7 @@ class IndicatorManager {
     autoOptimize: this.autoOptimize,
     preferredEngine: this.preferredEngine,
     performanceMode: this.performanceMode,
+    panelSections: $state.snapshot(this.panelSections),
     rsi: $state.snapshot(this.rsi),
     stochRsi: $state.snapshot(this.stochRsi),
     macd: $state.snapshot(this.macd),
@@ -270,6 +310,15 @@ class IndicatorManager {
       ) {
         adxParsed.adxSmoothing = parsed.adx.length;
       }
+      // Migration for enabled flags (if missing)
+      const merge = (key: keyof IndicatorSettings, fallback: any) => {
+          const val = parsed[key] || {};
+          // Ensure enabled key exists
+          if (val.enabled === undefined && fallback.enabled !== undefined) {
+             val.enabled = fallback.enabled;
+          }
+          return { ...fallback, ...val };
+      }
 
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
       this.precision = parsed.precision ?? defaultSettings.precision;
@@ -277,37 +326,39 @@ class IndicatorManager {
       this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
       this.performanceMode = parsed.performanceMode || defaultSettings.performanceMode;
 
-      this.rsi = { ...defaultSettings.rsi, ...parsed.rsi };
-      this.stochRsi = { ...defaultSettings.stochRsi, ...parsed.stochRsi };
-      this.macd = { ...defaultSettings.macd, ...parsed.macd };
-      this.stochastic = { ...defaultSettings.stochastic, ...parsed.stochastic };
-      this.williamsR = { ...defaultSettings.williamsR, ...parsed.williamsR };
-      this.cci = { ...defaultSettings.cci, ...parsed.cci };
-      this.adx = adxParsed;
-      this.ao = { ...defaultSettings.ao, ...parsed.ao };
-      this.momentum = { ...defaultSettings.momentum, ...parsed.momentum };
-      this.pivots = { ...defaultSettings.pivots, ...parsed.pivots };
-      this.superTrend = { ...defaultSettings.superTrend, ...parsed.superTrend };
-      this.atrTrailingStop = {
-        ...defaultSettings.atrTrailingStop,
-        ...parsed.atrTrailingStop,
-      };
-      this.obv = { ...defaultSettings.obv, ...parsed.obv };
-      this.mfi = { ...defaultSettings.mfi, ...parsed.mfi };
-      this.vwap = { ...defaultSettings.vwap, ...parsed.vwap };
-      this.parabolicSar = { ...defaultSettings.parabolicSar, ...parsed.parabolicSar };
-      this.ichimoku = { ...defaultSettings.ichimoku, ...parsed.ichimoku };
-      this.choppiness = { ...defaultSettings.choppiness, ...parsed.choppiness };
-      this.volumeProfile = {
-        ...defaultSettings.volumeProfile,
-        ...parsed.volumeProfile,
-      };
+      this.panelSections = { ...defaultSettings.panelSections, ...parsed.panelSections };
 
-      this.atr = { ...defaultSettings.atr, ...parsed.atr };
-      this.bb = { ...defaultSettings.bb, ...parsed.bb };
+      this.rsi = merge('rsi', defaultSettings.rsi);
+      this.stochRsi = merge('stochRsi', defaultSettings.stochRsi);
+      this.macd = merge('macd', defaultSettings.macd);
+      this.stochastic = merge('stochastic', defaultSettings.stochastic);
+      this.williamsR = merge('williamsR', defaultSettings.williamsR);
+      this.cci = merge('cci', defaultSettings.cci);
+      this.adx = adxParsed; // Assuming adx is special case handled above, but missing enabled?
+      // Fix ADX enabled:
+      if (this.adx.enabled === undefined) this.adx.enabled = defaultSettings.adx.enabled;
+
+      this.ao = merge('ao', defaultSettings.ao);
+      this.momentum = merge('momentum', defaultSettings.momentum);
+      this.pivots = merge('pivots', defaultSettings.pivots);
+      this.superTrend = merge('superTrend', defaultSettings.superTrend);
+      this.atrTrailingStop = merge('atrTrailingStop', defaultSettings.atrTrailingStop);
+      this.obv = merge('obv', defaultSettings.obv);
+      this.mfi = merge('mfi', defaultSettings.mfi);
+      this.vwap = merge('vwap', defaultSettings.vwap);
+      this.parabolicSar = merge('parabolicSar', defaultSettings.parabolicSar);
+      this.ichimoku = merge('ichimoku', defaultSettings.ichimoku);
+      this.choppiness = merge('choppiness', defaultSettings.choppiness);
+      this.volumeProfile = merge('volumeProfile', defaultSettings.volumeProfile);
+
+      this.atr = merge('atr', defaultSettings.atr);
+      this.bb = merge('bb', defaultSettings.bb);
+      this.bollingerBands = merge('bollingerBands', defaultSettings.bollingerBands);
+      this.volumeMa = merge('volumeMa', defaultSettings.volumeMa);
 
       this.ema = parsed.ema
         ? {
+          enabled: parsed.ema.enabled !== undefined ? parsed.ema.enabled : defaultSettings.ema.enabled,
           ema1: {
             ...defaultSettings.ema.ema1,
             ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
@@ -324,10 +375,10 @@ class IndicatorManager {
         }
         : defaultSettings.ema;
 
-      this.sma = parsed.sma ? { ...defaultSettings.sma, ...parsed.sma } : defaultSettings.sma;
-      this.wma = parsed.wma ? { ...defaultSettings.wma, ...parsed.wma } : defaultSettings.wma;
-      this.vwma = parsed.vwma ? { ...defaultSettings.vwma, ...parsed.vwma } : defaultSettings.vwma;
-      this.hma = parsed.hma ? { ...defaultSettings.hma, ...parsed.hma } : defaultSettings.hma;
+      this.sma = merge('sma', defaultSettings.sma);
+      this.wma = merge('wma', defaultSettings.wma);
+      this.vwma = merge('vwma', defaultSettings.vwma);
+      this.hma = merge('hma', defaultSettings.hma);
     } catch (e) {
       console.error("IndicatorManager: Failed to load from localStorage", e);
     }
@@ -374,6 +425,7 @@ class IndicatorManager {
     this.autoOptimize = next.autoOptimize;
     this.preferredEngine = next.preferredEngine;
     this.performanceMode = next.performanceMode;
+    this.panelSections = next.panelSections;
     this.rsi = next.rsi;
     this.stochRsi = next.stochRsi;
     this.macd = next.macd;
@@ -396,6 +448,12 @@ class IndicatorManager {
     this.ichimoku = next.ichimoku;
     this.choppiness = next.choppiness;
     this.volumeProfile = next.volumeProfile;
+    this.bollingerBands = next.bollingerBands;
+    this.volumeMa = next.volumeMa;
+    this.sma = next.sma;
+    this.wma = next.wma;
+    this.vwma = next.vwma;
+    this.hma = next.hma;
   }
 
   reset() {
@@ -405,6 +463,7 @@ class IndicatorManager {
     this.autoOptimize = d.autoOptimize;
     this.preferredEngine = d.preferredEngine;
     this.performanceMode = d.performanceMode;
+    this.panelSections = d.panelSections;
     this.rsi = d.rsi;
     this.stochRsi = d.stochRsi;
     this.macd = d.macd;
@@ -427,6 +486,12 @@ class IndicatorManager {
     this.ichimoku = d.ichimoku;
     this.choppiness = d.choppiness;
     this.volumeProfile = d.volumeProfile;
+    this.bollingerBands = d.bollingerBands;
+    this.volumeMa = d.volumeMa;
+    this.sma = d.sma;
+    this.wma = d.wma;
+    this.vwma = d.vwma;
+    this.hma = d.hma;
   }
 }
 

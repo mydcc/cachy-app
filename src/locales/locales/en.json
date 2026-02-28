@@ -58,7 +58,7 @@
     "refresh": "Refresh",
     "launchApp": "Launch App",
     "academy": "Academy",
-    "deepwiki": "Deepwiki"
+    "deepwiki": "DeepWiki"
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -922,6 +922,7 @@
       }
     },
     "technicals": {
+      "tabs": { "general": "General", "oscillators": "Oscillators", "trend": "Trend", "volatility": "Volatility", "volume": "Volume" },
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
       "title": "Technicals Analysis",
@@ -930,7 +931,7 @@
       "oscillatorsTitle": "Oscillators",
       "movingAveragesTitle": "Moving Averages",
       "pivotsTitle": "Pivot Points",
-      "advancedTitle": "Advanced Analysis",
+      "advancedTitle": "Advanced",
       "oscillators": "Oscillators",
       "movingAverages": "Moving Averages",
       "pivots": "Pivots",
@@ -988,8 +989,8 @@
       },
       "stochRsi": {
         "title": "Stoch RSI",
-        "len": "Len",
-        "rsiLen": "RSI Len"
+        "len": "Length",
+        "rsiLen": "RSI Length"
       },
       "macd": {
         "title": "MACD"
@@ -1005,7 +1006,7 @@
         "title": "Volume MA"
       },
       "atrStop": {
-        "title": "ATR Stop (L)"
+        "title": "ATR Trailing Stop"
       },
       "labels": {
         "length": "Length",
@@ -1016,6 +1017,16 @@
         "signal": "Signal",
         "factor": "Factor",
         "period": "Period"
+      },
+      "summary": "Summary",
+      "context": {
+        "buy": "Buy",
+        "sell": "Sell",
+        "neutral": "Neutral",
+        "strong buy": "Strong Buy",
+        "strong sell": "Strong Sell",
+        "overbought": "Overbought",
+        "oversold": "Oversold"
       }
     },
     "candlestickPatterns": {

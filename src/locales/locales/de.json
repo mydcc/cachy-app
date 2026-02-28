@@ -10,7 +10,7 @@
     "title": "Cachy",
     "journalButton": "Journal",
     "journalButtonTitle": "Trade Journal öffnen",
-    "changelogTitle": "Changelog",
+    "changelogTitle": "Änderungsprotokoll",
     "closeChangelogAriaLabel": "Changelog schließen",
     "guideButton": "Anleitung",
     "guideTitle": "Anleitung",
@@ -56,9 +56,9 @@
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
     "refresh": "Aktualisieren",
-    "launchApp": "App starten",
-    "academy": "Academy",
-    "deepwiki": "Deepwiki"
+    "launchApp": "App Starten",
+    "academy": "Akademie",
+    "deepwiki": "DeepWiki"
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -950,6 +950,7 @@
       }
     },
     "technicals": {
+      "tabs": { "general": "Allgemein", "oscillators": "Oszillatoren", "trend": "Trend", "volatility": "Volatilität", "volume": "Volumen" },
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
@@ -975,8 +976,8 @@
       "marketConfluence": "Markt Konfluenz",
       "oscillatorsTitle": "Oszillatoren",
       "movingAveragesTitle": "Gleitende Durchschnitte",
-      "pivotsTitle": "Pivot Punkte",
-      "advancedTitle": "Erweiterte Analyse",
+      "pivotsTitle": "Pivot-Punkte",
+      "advancedTitle": "Erweitert",
       "oscillators": "Oszillatoren",
       "movingAverages": "Gleitende Durchschnitte",
       "pivots": "Pivots",
@@ -1000,7 +1001,7 @@
       "syncRsi": "RSI-Timeframe synchronisieren",
       "syncRsiDesc": "RSI nutzt Chart-Timeframe",
       "pnlMode": "PnL Anzeigemodus",
-      "favorites": "Favorisierte Timeframes",
+      "favorites": "Favorisierte Zeitrahmen",
       "pnlModes": {
         "absolute": "Absolut",
         "percent": "Prozent %",
@@ -1012,8 +1013,8 @@
       },
       "stochRsi": {
         "title": "Stoch RSI",
-        "len": "Len",
-        "rsiLen": "RSI Len"
+        "len": "Länge",
+        "rsiLen": "RSI Länge"
       },
       "macd": {
         "title": "MACD"
@@ -1029,7 +1030,7 @@
         "title": "Volumen MA"
       },
       "atrStop": {
-        "title": "ATR Stopp (L)"
+        "title": "ATR Trailing Stop"
       },
       "obv": "OBV",
       "ichimoku": "Ichimoku",
@@ -1044,6 +1045,16 @@
         "signal": "Signal",
         "factor": "Faktor",
         "period": "Periode"
+      },
+      "summary": "Zusammenfassung",
+      "context": {
+        "buy": "Kaufen",
+        "sell": "Verkaufen",
+        "neutral": "Neutral",
+        "strong buy": "Stark Kaufen",
+        "strong sell": "Stark Verkaufen",
+        "overbought": "Überkauft",
+        "oversold": "Überverkauft"
       }
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",

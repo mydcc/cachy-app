@@ -1,27 +1,4 @@
-<!--
-  Copyright (C) 2026 MYDCT
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <https://www.gnu.org/licenses/>.
--->
-
-<!--
-  Copyright (C) 2026 MYDCT
--->
-
 <script lang="ts">
-  import { stopPropagation } from "svelte/legacy";
-
   import { untrack } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -252,7 +229,7 @@
           <!-- DASHBOARD SECTION (Minimalist List) -->
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
-            {#if settingsState.showTechnicalsSummary}
+            {#if indicatorSettings.panelSections.summary}
               <div
                 class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)]"
               >
@@ -276,7 +253,7 @@
             {/if}
 
             <!-- Market Confluence (Gauge) -->
-            {#if settingsState.showTechnicalsConfluence && data.confluence}
+            {#if indicatorSettings.panelSections.confluence && data.confluence}
               <div
                 class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)] px-1"
               >
@@ -322,7 +299,8 @@
             {/if}
 
             <!-- Volatility -->
-            {#if settingsState.showTechnicalsVolatility && data.volatility}
+            {#if indicatorSettings.panelSections.volatility && data.volatility}
+              {#if data.volatility.atr}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
@@ -337,6 +315,7 @@
                   )}</span
                 >
               </div>
+              {/if}
               {#if data.volatility.bb}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
@@ -361,7 +340,7 @@
           </div>
 
           <!-- Oscillators -->
-          {#if settingsState.showTechnicalsOscillators}
+          {#if indicatorSettings.panelSections.oscillators}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -399,7 +378,7 @@
           {/if}
 
           <!-- Moving Averages -->
-          {#if settingsState.showTechnicalsMAs}
+          {#if indicatorSettings.panelSections.movingAverages}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -431,7 +410,7 @@
           {/if}
 
           <!-- Pivot Points -->
-          {#if settingsState.showTechnicalsPivots && data.pivots}
+          {#if indicatorSettings.panelSections.pivots && data.pivots}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -457,7 +436,7 @@
           {/if}
 
           <!-- Advanced / Pro -->
-          {#if settingsState.showTechnicalsAdvanced && data.advanced}
+          {#if indicatorSettings.panelSections.advanced && data.advanced}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -475,6 +454,21 @@
                     >{TechnicalsPresenter.formatVal(
                       data.advanced.vwap,
                       indicatorSettings?.precision,
+                    )}</span
+                  >
+                </div>
+              {/if}
+
+              <!-- Volume MA (New) -->
+              {#if data.advanced.volumeMa}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Vol MA</span>
+                  <span class="font-mono"
+                    >{TechnicalsPresenter.formatVal(
+                      data.advanced.volumeMa,
+                      0
                     )}</span
                   >
                 </div>
@@ -536,13 +530,69 @@
                 </div>
               {/if}
 
+              <!-- ADX -->
+              {#if data.advanced.adx}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>ADX ({data.advanced.adx.trend})</span>
+                  <div class="flex gap-2">
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.adx.value,
+                        1,
+                      )}</span
+                    >
+                    <span class="text-[var(--text-secondary)] text-[10px]">
+                        DI+: {TechnicalsPresenter.formatVal(data.advanced.adx.pdi, 1)} DI-: {TechnicalsPresenter.formatVal(data.advanced.adx.mdi, 1)}
+                    </span>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Choppiness -->
+              {#if data.advanced.choppiness}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Choppiness</span>
+                  <div class="flex gap-2">
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.choppiness.value,
+                        1,
+                      )}</span
+                    >
+                    <span
+                      class="font-bold {data.advanced.choppiness.state === 'Trend' ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}"
+                      >{data.advanced.choppiness.state}</span
+                    >
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Parabolic SAR -->
+              {#if data.advanced.parabolicSar}
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Parabolic SAR</span>
+                  <span class="font-mono"
+                    >{TechnicalsPresenter.formatVal(
+                      data.advanced.parabolicSar,
+                      indicatorSettings?.precision,
+                    )}</span
+                  >
+                </div>
+              {/if}
+
               <!-- ATR Trailing Stop (New) -->
               {#if data.advanced.atrTrailingStop}
                 <div
                   class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <div class="flex justify-between">
-                    <span>{$_("settings.technicals.atrStop.title")}</span>
+                    <span>ATR Stop (Sell)</span>
                     <span class="font-mono text-[var(--danger-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.sell,
@@ -551,7 +601,7 @@
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span>{$_("settings.technicals.atrStop.title").replace("(L)", "(S)")}</span>
+                    <span>ATR Stop (Buy)</span>
                     <span class="font-mono text-[var(--success-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.buy,
@@ -574,6 +624,26 @@
                 </div>
               {/if}
 
+              <!-- Volume Profile -->
+              {#if data.advanced.volumeProfile}
+                <div
+                  class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <div class="flex justify-between">
+                    <span>VP (POC)</span>
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(data.advanced.volumeProfile.poc, indicatorSettings?.precision)}</span
+                    >
+                  </div>
+                  <div class="flex justify-between text-[10px] text-[var(--text-secondary)]">
+                    <span>VA High/Low</span>
+                    <span class="font-mono">
+                        {TechnicalsPresenter.formatVal(data.advanced.volumeProfile.vaHigh, indicatorSettings?.precision)} / {TechnicalsPresenter.formatVal(data.advanced.volumeProfile.vaLow, indicatorSettings?.precision)}
+                    </span>
+                  </div>
+                </div>
+              {/if}
+
               <!-- Ichimoku (Restyled) -->
               {#if data.advanced.ichimoku}
                 <div
@@ -591,7 +661,7 @@
           {/if}
 
           <!-- SIGNALS SECTION (Restyled) -->
-          {#if settingsState.showTechnicalsSignals}
+          {#if indicatorSettings.panelSections.signals}
             <div
               class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
             >
@@ -600,6 +670,24 @@
               >
                 {$_("settings.workspace.signals")}
               </div>
+
+              <!-- Market Structure (New) -->
+              {#if data.advanced?.marketStructure}
+                {#if data.advanced.marketStructure.highs.length > 0}
+                  {@const lastHigh = data.advanced.marketStructure.highs[data.advanced.marketStructure.highs.length - 1]}
+                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <span>Market Structure High</span>
+                    <span class="font-mono">{lastHigh.type} @ {TechnicalsPresenter.formatVal(lastHigh.value, indicatorSettings?.precision)}</span>
+                  </div>
+                {/if}
+                {#if data.advanced.marketStructure.lows.length > 0}
+                  {@const lastLow = data.advanced.marketStructure.lows[data.advanced.marketStructure.lows.length - 1]}
+                  <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <span>Market Structure Low</span>
+                    <span class="font-mono">{lastLow.type} @ {TechnicalsPresenter.formatVal(lastLow.value, indicatorSettings?.precision)}</span>
+                  </div>
+                {/if}
+              {/if}
 
               {#if data.divergences && data.divergences.length > 0}
                 {#each data.divergences as div}
@@ -638,7 +726,7 @@
                     </div>
                   </div>
                 {/each}
-              {:else}
+              {:else if (!data.advanced?.marketStructure?.highs.length && !data.advanced?.marketStructure?.lows.length)}
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >

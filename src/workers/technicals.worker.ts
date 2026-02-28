@@ -1,104 +1,221 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-/*
- * Copyright (C) 2026 MYDCT
- *
- * WebWorker for Technical Indicators - CONSOLIDATED ACE VERSION
- * Bundled into a single file by Vite for maximum COEP compatibility.
+ * Technicals Calculation Worker
+ * Offloads heavy indicator math to a background thread.
  */
 
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators, calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 import { BufferPool } from "../utils/bufferPool";
-import { StatefulTechnicalsCalculator } from "../utils/statefulTechnicalsCalculator";
-import { WasmTechnicalsCalculator } from "../utils/WasmTechnicalsCalculator";
-import { loadWasm, WASM_SUPPORTED_INDICATORS } from "../utils/wasmTechnicals";
+import type { WorkerMessage, WorkerCalculatePayload, WorkerCalculatePayloadSoA, KlineBuffers } from "../services/technicalsTypes";
 
 const ctx: Worker = self as any;
-const pool = new BufferPool();
-const calculators = new Map<string, any>();
-let wasmModule: any = null;
+const bufferPool = new BufferPool();
 
-// Hardened WASM load
-loadWasm().then(mod => {
-    if (mod) {
-        console.log("[Worker] WASM Engine ready.");
-        wasmModule = mod;
-    }
-}).catch(() => {
-    console.warn("[Worker] WASM not available, using JS fallback.");
-});
-
-ctx.onmessage = async (e: MessageEvent<any>) => {
-    const { type, payload, id } = e.data;
-
-    try {
-        if (type === "CALCULATE") {
-            const result = payload.times 
-                ? calculateIndicatorsFromArrays(
-                    payload.times, payload.opens, payload.highs, payload.lows, payload.closes, payload.volumes,
-                    payload.settings, payload.enabledIndicators, pool
-                  )
-                : calculateAllIndicators(
-                    convertToDecimalKlines(payload.klines), 
-                    payload.settings, payload.enabledIndicators
-                  );
-            
-            ctx.postMessage({ type: "RESULT", payload: result, id });
-        } 
-        else if (type === "INITIALIZE") {
-            const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
-            const key = `${symbol}:${timeframe}`;
-            
-            const calc = new StatefulTechnicalsCalculator();
-            const result = calc.initialize(convertToDecimalKlines(klines), settings, enabledIndicators);
-            
-            calculators.set(key, calc);
-            ctx.postMessage({ type: "RESULT", payload: result, id });
-        }
-        else if (type === "UPDATE") {
-            const { symbol, timeframe, kline } = payload;
-            const key = `${symbol}:${timeframe}`;
-            const calc = calculators.get(key);
-            if (calc) {
-                const tick = {
-                    time: kline.time,
-                    open: new Decimal(kline.open),
-                    high: new Decimal(kline.high),
-                    low: new Decimal(kline.low),
-                    close: new Decimal(kline.close),
-                    volume: new Decimal(kline.volume),
-                };
-                ctx.postMessage({ type: "RESULT", payload: calc.update(tick), id });
-            }
-        }
-    } catch (err: any) {
-        ctx.postMessage({ type: "ERROR", error: err.message, id });
-    }
-};
-
-function convertToDecimalKlines(klines: any[]): any[] {
-    return klines.map((k) => ({
-      time: k.time,
-      open: new Decimal(k.open),
-      high: new Decimal(k.high),
-      low: new Decimal(k.low),
-      close: new Decimal(k.close),
-      volume: new Decimal(k.volume),
-    }));
+// Stateful Cache for "INITIALIZE" / "UPDATE"
+// Keyed by request ID (symbol:timeframe)
+interface WorkerHistory {
+    times: Float64Array;
+    opens: Float64Array;
+    highs: Float64Array;
+    lows: Float64Array;
+    closes: Float64Array;
+    volumes: Float64Array;
+    length: number; // Actual used length
+    capacity: number;
 }
+
+const historyCache = new Map<string, WorkerHistory>();
+
+ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
+  const { type, payload, id } = e.data;
+
+  try {
+    if (type === "CALCULATE") {
+      // Stateless calculation
+      let result;
+      const useSoA = payload.times instanceof Float64Array || payload.times instanceof Array;
+
+      if (useSoA) {
+          result = calculateIndicatorsFromArrays(
+             payload.highs,
+             payload.lows,
+             payload.closes,
+             payload.opens,
+             payload.volumes,
+             payload.times,
+             payload.settings,
+             payload.enabledIndicators
+          );
+      } else {
+          // Legacy Path
+          const klines = payload.klines.map((k: any) => ({
+              time: k.time,
+              open: new Decimal(k.open),
+              high: new Decimal(k.high),
+              low: new Decimal(k.low),
+              close: new Decimal(k.close),
+              volume: new Decimal(k.volume),
+          }));
+
+          result = calculateAllIndicators(klines, payload.settings, payload.enabledIndicators);
+      }
+
+      ctx.postMessage({
+        type: "RESULT",
+        id,
+        payload: result
+      });
+    }
+    else if (type === "INITIALIZE") {
+        if (!id) throw new Error("INITIALIZE requires an ID");
+        // Payload contains full history (usually AoS)
+        const klines = payload.klines;
+        const len = klines.length;
+
+        // Allocate buffers with some headroom
+        const capacity = Math.max(len + 100, 1000);
+        const hist: WorkerHistory = {
+            times: new Float64Array(capacity),
+            opens: new Float64Array(capacity),
+            highs: new Float64Array(capacity),
+            lows: new Float64Array(capacity),
+            closes: new Float64Array(capacity),
+            volumes: new Float64Array(capacity),
+            length: len,
+            capacity: capacity
+        };
+
+        for(let i=0; i<len; i++) {
+            const k = klines[i];
+            hist.times[i] = k.time;
+            hist.opens[i] = parseFloat(k.open);
+            hist.highs[i] = parseFloat(k.high);
+            hist.lows[i] = parseFloat(k.low);
+            hist.closes[i] = parseFloat(k.close);
+            hist.volumes[i] = parseFloat(k.volume);
+        }
+
+        historyCache.set(payload.cacheKey || id, hist);
+
+        // Perform initial calculation
+        const result = calculateIndicatorsFromArrays(
+            hist.highs.subarray(0, len),
+            hist.lows.subarray(0, len),
+            hist.closes.subarray(0, len),
+            hist.opens.subarray(0, len),
+            hist.volumes.subarray(0, len),
+            hist.times.subarray(0, len),
+            payload.settings,
+            payload.enabledIndicators
+        );
+
+        ctx.postMessage({ type: "RESULT", id, payload: result });
+    }
+    else if (type === "UPDATE") {
+        if (!id) throw new Error("UPDATE requires an ID");
+        const hist = historyCache.get(payload.cacheKey || id);
+        if (!hist) throw new Error(`Worker state not found for ${payload.cacheKey || id}`);
+
+        const k = payload.kline; // Single serialized kline
+        const settings = payload.settings;
+
+        // Memory Protection: Trim History if needed
+        const limit = settings?.historyLimit || 750;
+        // Allow some headroom to avoid shifting every tick
+        const bufferLimit = limit + 50;
+
+        if (hist.length > bufferLimit) {
+            // Shift data: keep last 'limit' candles
+            const shift = hist.length - limit;
+
+            // Efficient in-place shift using copyWithin
+            hist.times.copyWithin(0, shift, hist.length);
+            hist.opens.copyWithin(0, shift, hist.length);
+            hist.highs.copyWithin(0, shift, hist.length);
+            hist.lows.copyWithin(0, shift, hist.length);
+            hist.closes.copyWithin(0, shift, hist.length);
+            hist.volumes.copyWithin(0, shift, hist.length);
+
+            hist.length = limit;
+        }
+
+        // Check if we need to resize
+        if (hist.length >= hist.capacity) {
+            // Proper resize:
+            const newCap = Math.max(hist.capacity * 2, hist.length + 100);
+            const resize = (arr: Float64Array) => {
+                const n = new Float64Array(newCap);
+                n.set(arr);
+                return n;
+            }
+            hist.times = resize(hist.times);
+            hist.opens = resize(hist.opens);
+            hist.highs = resize(hist.highs);
+            hist.lows = resize(hist.lows);
+            hist.closes = resize(hist.closes);
+            hist.volumes = resize(hist.volumes);
+            hist.capacity = newCap;
+        }
+
+        // Logic: Is this an update to the last candle or a new candle?
+        // Service logic usually sends "UPDATE" for realtime tick.
+        // Assuming append or replace based on time.
+        const time = k.time;
+        const lastTime = hist.times[hist.length - 1];
+
+        if (time === lastTime) {
+            // Replace last
+            const i = hist.length - 1;
+            hist.opens[i] = parseFloat(k.open);
+            hist.highs[i] = parseFloat(k.high);
+            hist.lows[i] = parseFloat(k.low);
+            hist.closes[i] = parseFloat(k.close);
+            hist.volumes[i] = parseFloat(k.volume);
+        } else if (time > lastTime) {
+            // Append
+            const i = hist.length;
+            hist.times[i] = time;
+            hist.opens[i] = parseFloat(k.open);
+            hist.highs[i] = parseFloat(k.high);
+            hist.lows[i] = parseFloat(k.low);
+            hist.closes[i] = parseFloat(k.close);
+            hist.volumes[i] = parseFloat(k.volume);
+            hist.length++;
+        }
+
+        // Recalculate
+        // Note: Full recalculation of the trimmed history (max 750) is fast enough (sub-ms).
+        // True stateful incremental updates would require significant complexity.
+        const result = calculateIndicatorsFromArrays(
+            hist.highs.subarray(0, hist.length),
+            hist.lows.subarray(0, hist.length),
+            hist.closes.subarray(0, hist.length),
+            hist.opens.subarray(0, hist.length),
+            hist.volumes.subarray(0, hist.length),
+            hist.times.subarray(0, hist.length),
+            payload.settings,
+            payload.enabledIndicators
+        );
+
+        ctx.postMessage({ type: "RESULT", id, payload: result });
+    }
+    else if (type === "CLEANUP") {
+        const key = payload?.cacheKey || id;
+        if (key) {
+            historyCache.delete(key);
+        }
+        // Always acknowledge cleanup
+        ctx.postMessage({ type: "RESULT", id, payload: { cleaned: true } });
+    }
+
+    } catch (err: any) {
+    console.error("Technicals Worker Error:", err);
+    ctx.postMessage({
+      type: "ERROR",
+      id,
+      error: err.message || "Unknown worker error"
+    });
+  }
+};
