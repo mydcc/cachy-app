@@ -218,7 +218,7 @@
 >
     <!-- Sidebar Navigation -->
     <div
-        class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-2"
+        class="flex flex-col w-64 border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-2"
         role="tablist"
     >
         {#each tabs as tab}

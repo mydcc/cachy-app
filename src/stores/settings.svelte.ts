@@ -423,7 +423,7 @@ const defaultSettings: Settings = {
   glassOpacity: 0.7,
   backgroundType: "none",
   backgroundUrl: null,
-  backgroundOpacity: 0.3,
+  backgroundOpacity: 1.0,
   backgroundBlur: 5,
   backgroundAnimationPreset: "none",
   backgroundAnimationIntensity: "medium",

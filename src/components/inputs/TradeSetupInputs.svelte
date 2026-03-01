@@ -777,7 +777,7 @@
         {@const formula = atrFormulaDisplay.substring(0, lastEq + 1)}
         {@const result = atrFormulaDisplay.substring(lastEq + 1)}
         <div
-          class="text-center text-xs mt-2"
+          class="text-center text-xs mt-2 whitespace-nowrap"
           style="color: var(--text-primary);"
         >
           <span>{formula}</span>

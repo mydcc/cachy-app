@@ -42,7 +42,7 @@
     }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-1 flex-1">
+<div class="flex flex-col gap-1 flex-1 items-start">
     <label for={id} class="text-xs text-[var(--text-secondary)]">
         {label}
     </label>
@@ -53,7 +53,36 @@
         {min}
         {max}
         {step}
-        class="input-field rounded settings-number-input text-xs w-full"
+        class="input-field rounded-md settings-number-input text-xs outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all bg-[var(--bg-secondary)] border border-[var(--border-color)] px-2.5 py-1.5"
         use:enhancedInput={{ min, max }}
     />
 </div>
+
+<style>
+    /* Harmonize number input arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        opacity: 0;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    input[type="number"]:hover::-webkit-inner-spin-button {
+        opacity: 0.5;
+    }
+
+    input[type="number"]:focus::-webkit-inner-spin-button {
+        opacity: 0.8;
+    }
+
+    /* Professional look for inputs */
+    .input-field {
+        color: var(--text-primary);
+        font-family: inherit;
+    }
+
+    .input-field::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.5;
+    }
+</style>

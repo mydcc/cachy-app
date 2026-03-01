@@ -459,87 +459,58 @@ class MarketWatcher {
                 logger.log("market", `[History] ensureHistory ${symbol}:${tf} fetched ${currentLen} initial candles.`);
             }
 
-            // Sequential Backfill (Hardened for Bitunix 200-candle limit)
+            // Parallel Backfill (Hardened for Bitunix 200-candle limit)
             if (currentLen < limit) {
-                const batchSize = 200; 
+                const batchSize = 200;
+                const intervalMs = safeTfToMs(tf);
+                const MAX_PARALLEL = 30; 
+
                 // Source of truth: store count
                 let currentTotal = marketState.data[symbol]?.klines[tf]?.length || klines1.length;
-                let lastOldestTime = klines1[0].time;
-                
-                // BACKFILL OPTIMIZATION: Batch store updates to prevent technicals-restart-spam
-                let backfillBuffer: Kline[] = []; // Typed for Decimal
-                const storeUpdateThreshold = 10; // Update store every 10 batches (2000 candles)
-                let batchesSubSinceUpdate = 0;
+                let lastOldestTime = marketState.data[symbol]?.klines[tf]?.[0]?.time || klines1[0].time;
 
-                const storeCount = marketState.data[symbol]?.klines[tf]?.length || 0;
-                logger.log("market", `[History] Starting sequential backfill for ${symbol}:${tf}. Target: ${limit}. Store: ${storeCount}.`);
+                logger.log("market", `[History] Starting parallel backfill for ${symbol}:${tf}. Target: ${limit}. Current: ${currentTotal}.`);
 
-                for (let i = 0; i < 250; i++) { // Max 250 batches
-                    if (currentTotal >= limit) {
-                        this.exhaustedHistory.add(exhaustKey);
-                        break;
+                while (currentTotal < limit) {
+                    const batchesNeeded = Math.ceil((limit - currentTotal) / batchSize);
+                    const batchCount = Math.min(MAX_PARALLEL, batchesNeeded);
+                    
+                    const promises = [];
+                    for (let i = 0; i < batchCount; i++) {
+                        // Predict end time for each batch based on expected density
+                        const batchEndTime = lastOldestTime - 1 - (i * batchSize * intervalMs);
+                        promises.push(apiService.fetchBitunixKlines(symbol, tf, batchSize, 1, batchEndTime));
                     }
-                    // Sequential backfill is independent of price polling
 
-                    const batchEndTime = lastOldestTime - 1;
-                    let batch: Kline[] = [];
-                    let retryCount = 0;
-                    const maxRetries = 2;
+                    const results = await Promise.all(promises);
+                    const allNewKlines: Kline[] = [];
+                    let reachedEnd = false;
 
-                    while (retryCount <= maxRetries) {
-                        try {
-                            // Backfill should use startTime=1 to ensure data is returned for the requested range
-                            batch = await apiService.fetchBitunixKlines(symbol, tf, batchSize, 1, batchEndTime);
-                            break; 
-                        } catch (e) {
-                            retryCount++;
-                            if (retryCount > maxRetries) {
-                                logger.warn("market", `[History] Backfill batch ${i} permanently failed for ${symbol}:${tf}`);
-                                break;
-                            }
-                            const delay = 1000 * retryCount;
-                            await new Promise(r => setTimeout(r, delay));
+                    for (const batch of results) {
+                        if (!batch || batch.length === 0) {
+                            reachedEnd = true;
+                            continue;
                         }
+                        allNewKlines.push(...batch);
                     }
 
-                    if (!batch || batch.length === 0) {
-                        logger.log("market", `[History] Backfill reached end of history for ${symbol}:${tf} at Iter ${i} (${currentTotal}/${limit} candles).`);
+                    if (allNewKlines.length > 0) {
+                        const filled = this.fillGaps(allNewKlines, intervalMs);
+                        marketState.updateSymbolKlines(symbol, tf, filled, "rest");
+                        
+                        // Re-evaluate state after merge
+                        const updatedHistory = marketState.data[symbol]?.klines[tf] || [];
+                        currentTotal = updatedHistory.length;
+                        if (updatedHistory.length > 0) lastOldestTime = updatedHistory[0].time;
+                    }
+
+                    if (reachedEnd || allNewKlines.length === 0) {
+                        logger.log("market", `[History] Backfill reached end of history for ${symbol}:${tf} at ${currentTotal}/${limit}.`);
                         this.exhaustedHistory.add(exhaustKey);
                         break;
                     }
-                    
-                    if (import.meta.env.DEV && (tf === '1h')) {
-                        logger.debug("market", `[History] Iter ${i} success. Got ${batch.length} candles. Newest: ${batch[batch.length-1].time}, Oldest: ${batch[0].time}`);
-                    }
-
-                    // Success: Buffer for batch update
-                    // Apply fillGaps to the batch before pushing to buffer
-                    const filledBatch = this.fillGaps(batch, safeTfToMs(tf));
-                    backfillBuffer.push(...filledBatch);
-                    batchesSubSinceUpdate++;
-                    
-                    // Update counters for next iteration
-                    currentTotal += batch.length;
-                    lastOldestTime = batch[0].time;
-
-                    // Periodically flush buffer to store
-                    if (batchesSubSinceUpdate >= storeUpdateThreshold) {
-                        const countBefore = marketState.data[symbol]?.klines[tf]?.length || 0;
-                        marketState.updateSymbolKlines(symbol, tf, backfillBuffer, "rest");
-                        const countAfter = marketState.data[symbol]?.klines[tf]?.length || 0;
-                        
-                        logger.log("market", `[History] Backfill Flush: Added ${backfillBuffer.length} raw. Store: ${countBefore} -> ${countAfter}. Iter ${i}/${limit}.`);
-                        
-                        backfillBuffer = [];
-                        batchesSubSinceUpdate = 0;
-                    }
                 }
 
-                // Final flush
-                if (backfillBuffer.length > 0) {
-                    marketState.updateSymbolKlines(symbol, tf, backfillBuffer, "rest");
-                }
-                
                 // FORCE FINAL CALCULATION
                 activeTechnicalsManager.forceRefresh(symbol, tf);
             }
