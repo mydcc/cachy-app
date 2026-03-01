@@ -34,10 +34,17 @@ vi.mock('../stores/market.svelte', () => ({
     marketState: {
         data: {},
         updateSymbolKlines: vi.fn((sym, tf, klines, src) => {
-             if (!marketState.data[sym]) marketState.data[sym] = { klines: {} };
-             const existing = marketState.data[sym].klines[tf] || [];
+             if (!marketState.data[sym]) marketState.data[sym] = {
+                 symbol: sym,
+                 lastPrice: null,
+                 indexPrice: null,
+                 fundingRate: null,
+                 nextFundingTime: null,
+                 klines: {}
+             };
+             const existing = (marketState.data[sym] as any).klines[tf] || [];
              // Simulate simple append for mock
-             marketState.data[sym].klines[tf] = existing.concat(klines);
+             (marketState.data[sym] as any).klines[tf] = existing.concat(klines);
         }),
     }
 }));
@@ -60,7 +67,7 @@ describe('MarketWatcher Backfill Performance', () => {
     it('measures sequential backfill', async () => {
         const LATENCY = 50;
 
-        vi.spyOn(apiService, 'fetchBitunixKlines').mockImplementation(async (sym, tf, limit, start, end) => {
+        vi.spyOn(apiService, 'fetchBitunixKlines').mockImplementation(async (sym, tf, limit = 0, start, end) => {
             await new Promise(r => setTimeout(r, LATENCY));
 
             const res = [];
@@ -91,7 +98,7 @@ describe('MarketWatcher Backfill Performance', () => {
 
         // Calculate total items pushed
         let totalItems = 0;
-        calls.forEach(c => totalItems += c[2].length);
+        calls.forEach((c: any[]) => totalItems += c[2].length);
 
         // Should be at least 5000 
         expect(totalItems).toBeGreaterThanOrEqual(5000);

@@ -90,6 +90,11 @@
     background-color: var(--btn-accent-text);
   }
 
+  input:focus-visible + label {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-color);
+  }
+
   .disabled {
     opacity: 0.5;
     pointer-events: none;

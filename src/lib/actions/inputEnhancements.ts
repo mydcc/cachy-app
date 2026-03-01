@@ -55,7 +55,16 @@ export function enhancedInput(
     wrapper = document.createElement("div");
     wrapper.className = "input-wrapper";
     wrapper.style.position = "relative";
-    wrapper.style.display = "inline-flex";
+    wrapper.style.display = "flex";
+    wrapper.style.alignItems = "center";
+    
+    // Copy width and flex classes from the input to the wrapper
+    const sizingClasses = Array.from(node.classList).filter(c => 
+      c.startsWith('w-') || c === 'flex-1'
+    );
+    if (sizingClasses.length > 0) {
+      wrapper.classList.add(...sizingClasses);
+    }
 
     // Position the wrapper in the DOM
     if (node.parentNode) {

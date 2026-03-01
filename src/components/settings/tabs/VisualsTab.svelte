@@ -639,11 +639,16 @@
                                 ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                 : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                             onclick={() => {
-                                if (type.v === "image")
+                                if (type.v === "image") {
                                     settingsState.backgroundType = "image";
-                                else
-                                    settingsState.backgroundType =
-                                        type.v as any;
+                                } else {
+                                    settingsState.backgroundType = type.v as any;
+                                    
+                                    // Auto-adjust opacity for 3D backgrounds if they are too faint
+                                    if ((type.v === "threejs" || type.v === "tradeflow" || type.v === "animation") && settingsState.backgroundOpacity <= 0.3) {
+                                        settingsState.backgroundOpacity = 1.0;
+                                    }
+                                }
                             }}
                         >
                             {type.l}

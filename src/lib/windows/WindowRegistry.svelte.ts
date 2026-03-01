@@ -207,11 +207,11 @@ class WindowRegistry {
             flags: {
                 ...baseFlags,
                 isDraggable: true,
-                allowMaximize: false,
+                allowMaximize: true,
                 allowMinimize: false,
                 centerByDefault: true,
                 showIcon: false,
-                isResizable: false as boolean,
+                isResizable: false,
                 closeOnBlur: true,
                 isResponsive: true,
                 edgeToEdgeBreakpoint: 768,
