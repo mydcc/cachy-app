@@ -211,7 +211,7 @@ class WindowRegistry {
                 allowMinimize: false,
                 centerByDefault: true,
                 showIcon: false,
-                isResizable: true,
+                isResizable: false,
                 closeOnBlur: true,
                 isResponsive: true,
                 edgeToEdgeBreakpoint: 768,

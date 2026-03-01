@@ -42,7 +42,7 @@
     }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-1 flex-1">
+<div class="flex flex-col gap-1 flex-1 items-start">
     <label for={id} class="text-xs text-[var(--text-secondary)]">
         {label}
     </label>
@@ -53,7 +53,7 @@
         {min}
         {max}
         {step}
-        class="input-field rounded-md settings-number-input text-xs w-full outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all bg-[var(--bg-secondary)] border border-[var(--border-color)] px-2.5 py-1.5"
+        class="input-field rounded-md settings-number-input text-xs outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all bg-[var(--bg-secondary)] border border-[var(--border-color)] px-2.5 py-1.5"
         use:enhancedInput={{ min, max }}
     />
 </div>
