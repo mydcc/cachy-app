@@ -15,6 +15,12 @@
     "test:e2e": "playwright test tests/e2e",
     "benchmark:technicals": "vitest bench"
   },
+  "overrides": {
+    "isomorphic-dompurify": {
+      "jsdom": "26.1.0"
+    },
+    "jsdom": "26.1.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/jsdom": "^27.0.0",
@@ -47,7 +53,7 @@
     "interactjs": "^1.10.27",
     "intl-messageformat": "^11.1.1",
     "isomorphic-dompurify": "^2.36.0",
-    "jsdom": "^27.4.0",
+    "jsdom": "26.1.0",
     "katex": "^0.16.28",
     "lightweight-charts": "^5.1.0",
     "lightweight-charts-indicators": "^0.1.0",
