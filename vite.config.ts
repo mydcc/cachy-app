@@ -29,6 +29,10 @@ export default defineConfig({
       "@formatjs/fast-memoize",
       "svelte-i18n",
     ],
+    external: [
+      "isomorphic-dompurify",
+      "jsdom"
+    ],
   },
   server: {
     fs: {
