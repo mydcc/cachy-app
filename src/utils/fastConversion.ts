@@ -36,9 +36,9 @@ export const toNumFast = (val: any): number => {
     }
 
     if (val && typeof val === 'object') {
-        // Optimization: Decimal.js toString()+parseFloat is significantly faster than .toNumber()
+        // Optimization: .toNumber() should be used directly for safety over parseFloat(toString())
         if (val instanceof Decimal) {
-             return parseFloat(val.toString());
+             return val.toNumber();
         }
 
         // Fast path for Decimal or objects with .toNumber()
@@ -48,7 +48,7 @@ export const toNumFast = (val: any): number => {
 
         // Fallback for serialized Decimal (state only, no methods)
         // e.g. from JSON.parse()
-        if ((val as any).s !== undefined && (val as any).e !== undefined) {
+        if ("s" in val && "e" in val) {
              const d = new Decimal(0);
              Object.assign(d, val);
              return d.toNumber();

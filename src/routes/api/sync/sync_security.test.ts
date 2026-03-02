@@ -34,7 +34,7 @@ describe('POST /api/sync', () => {
 
   it('should return 400 if apiKey is missing', async () => {
     const request = {
-      json: async () => ({ apiSecret: 'secret123' }),
+      text: async () => JSON.stringify({ apiSecret: 'secret123' }),
       headers
     } as any;
 
@@ -46,7 +46,7 @@ describe('POST /api/sync', () => {
 
   it('should return 400 if apiSecret is missing', async () => {
     const request = {
-      json: async () => ({ apiKey: 'key123' }),
+      text: async () => JSON.stringify({ apiKey: 'key123' }),
       headers
     } as any;
 
@@ -56,7 +56,7 @@ describe('POST /api/sync', () => {
 
   it('should return 400 if apiKey is too short (security hardening)', async () => {
     const request = {
-      json: async () => ({ apiKey: '123', apiSecret: 'secret123' }),
+      text: async () => JSON.stringify({ apiKey: '123', apiSecret: 'secret123' }),
       headers
     } as any;
 
@@ -75,7 +75,7 @@ describe('POST /api/sync', () => {
     });
 
     const request = {
-      json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
+      text: async () => JSON.stringify({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
       headers
     } as any;
 

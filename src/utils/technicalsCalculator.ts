@@ -160,6 +160,7 @@ export function calculateIndicatorsFromArrays(
 
         oscillators.push({
             name: "RSI",
+            params: `${rsiLen}`,
             value: rsiVal,
             action: getRsiAction(rsiVal, settings?.rsi?.overbought || 70, settings?.rsi?.oversold || 30),
         });
@@ -378,14 +379,22 @@ export function calculateIndicatorsFromArrays(
           const res = calculateADXSeries(highsNum, lowsNum, closesNum, per, smooth);
 
           const idx = res.adx.length - 1;
-          const val = res.adx[idx];
-          const pdi = res.pdi[idx];
-          const mdi = res.mdi[idx];
+          const val = res.adx[idx] || 0;
+          const pdi = res.pdi[idx] || 0;
+          const mdi = res.mdi[idx] || 0;
 
           const trend = val > 25 ? "Strong Trend" : "Weak Trend";
           const dir = pdi > mdi ? "Bullish" : "Bearish";
 
           advancedInfo.adx = { value: val, pdi, mdi, trend, dir };
+
+          oscillators.push({
+              name: "ADX",
+              params: `${per}, ${smooth}`,
+              value: val,
+              action: dir === "Bullish" ? "Buy" : "Sell",
+              extra: trend
+          });
       }
 
       if (shouldCalculate('superTrend')) {

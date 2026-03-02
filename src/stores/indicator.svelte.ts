@@ -76,7 +76,7 @@ const defaultSettings: IndicatorSettings = {
     smoothingLength: 5,
   },
   adx: {
-    enabled: false,
+    enabled: true,
     adxSmoothing: 14,
     diLength: 14,
     threshold: 25,

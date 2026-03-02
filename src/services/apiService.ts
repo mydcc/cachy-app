@@ -45,6 +45,15 @@ export interface Ticker24h {
   quoteVolume?: Decimal;
 }
 
+export class ApiError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 // --- Rate Limiter (Token Bucket) ---
 export class RateLimiter {
   private tokens: number;
@@ -254,7 +263,7 @@ class RequestManager {
                 const errorMsg =
                   e instanceof Error ? e.message.toLowerCase() : "";
                 const is404 =
-                  errorMsg.includes("404") || (e as any).status === 404;
+                  errorMsg.includes("404") || (typeof e === "object" && e !== null && "status" in e && (e as any).status === 404);
                 const isSystemError = errorMsg.includes("system error");
 
                 // DON'T retry on 404 (Not Found) or "System error" (invalid symbol for Bitunix)
@@ -428,9 +437,7 @@ export const apiService = {
             signal,
           });
           if (response.status === 404) {
-            const error = new Error("apiErrors.symbolNotFound");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiError("apiErrors.symbolNotFound", 404);
           }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const res = await apiService.safeJson(response);
@@ -449,15 +456,11 @@ export const apiService = {
           const validatedRes = validation.data;
 
           if (validatedRes.code !== undefined && validatedRes.code !== 0) {
-            const error = new Error(getBitunixErrorKey(validatedRes.code));
-            if (validatedRes.code === 2 || validatedRes.code === "2")
-              (error as any).status = 404;
-            throw error;
+            const isSymbolNotFound = validatedRes.code === 2 || validatedRes.code === "2";
+            throw new ApiError(getBitunixErrorKey(validatedRes.code), isSymbolNotFound ? 404 : undefined);
           }
           if (!validatedRes.data || validatedRes.data.length === 0) {
-            const error = new Error("apiErrors.invalidResponse");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiError("apiErrors.invalidResponse", 404);
           }
           const data = validatedRes.data[0];
           return data.lastPrice;
@@ -614,9 +617,7 @@ export const apiService = {
             signal,
           });
           if (response.status === 404) {
-            const error = new Error("apiErrors.symbolNotFound");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiError("apiErrors.symbolNotFound", 404);
           }
           if (!response.ok) {
             // Try to parse error details
@@ -633,9 +634,7 @@ export const apiService = {
                 lowerErr.includes("symbol not found") ||
                 lowerErr.includes("system error")
               ) {
-                const error = new Error("apiErrors.symbolNotFound");
-                (error as any).status = 404;
-                throw error;
+                throw new ApiError("apiErrors.symbolNotFound", 404);
               }
 
               // Log to proper logger
@@ -839,9 +838,7 @@ export const apiService = {
           });
 
           if (response.status === 404) {
-            const error = new Error("apiErrors.symbolNotFound");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiError("apiErrors.symbolNotFound", 404);
           }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const data = await apiService.safeJson(response);

@@ -376,7 +376,8 @@ class BitgetWebSocketService {
       // I might need to adjust schema for event messages vs data messages.
     }
     // Check event response
-    if ((msg as any).event === "login" && (msg as any).code === "00000") {
+    const msgObj = msg as { event?: string, code?: string, action?: string };
+    if (msgObj.event === "login" && msgObj.code === "00000") {
       this.isAuthenticated = true;
       if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
       this.subscribePrivate();

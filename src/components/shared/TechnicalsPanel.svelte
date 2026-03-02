@@ -176,7 +176,7 @@
               >
                 <input
                   bind:value={customTimeframeInput}
-                  placeholder="e.g. 3m, 1W"
+                  placeholder={$_("settings.technicals.timeframePlaceholder") || "e.g. 3m, 1W"}
                   class="w-full text-xs p-1 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
                   onkeydown={(e) =>
                     e.key === "Enter" && handleCustomTimeframeSubmit()}

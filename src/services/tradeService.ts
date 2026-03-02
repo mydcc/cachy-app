@@ -291,10 +291,8 @@ class TradeService {
                         e.message.includes("400") ||
                         e.message.includes("401") ||
                         e.message.includes("403") ||
-                        (e as any).code === "VALIDATION_ERROR" ||
-                        (e as any).status === 400 ||
-                        (e as any).status === 401 ||
-                        (e as any).status === 403
+                        ("code" in e && e.code === "VALIDATION_ERROR") ||
+                        ("status" in e && (e.status === 400 || e.status === 401 || e.status === 403))
                     ));
 
                 if (isTerminalError) {

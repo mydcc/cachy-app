@@ -985,7 +985,7 @@ class BitunixWebSocketService {
                 // Klines (dynamic channel names)
                 if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
                     try {
-                        const d = data as any;
+                        const d = data as { close?: string | number, c?: string | number, open?: string | number, o?: string | number, [key: string]: unknown };
                         if (d && (d.close || d.c || d.open || d.o)) {
                           let timeframe = "1h";
                           if (channel === "mark_kline_1day") timeframe = "1d";
@@ -1102,7 +1102,7 @@ class BitunixWebSocketService {
                                                   volume: vol
                                               };
                                               
-                                              marketState.updateSymbolKlines(symbol, subTf, [synthKline as any], "ws");
+                                              marketState.updateSymbolKlines(symbol, subTf, [synthKline], "ws");
                                           }
                                       }
                                   }
