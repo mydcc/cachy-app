@@ -32,6 +32,8 @@ import {
   sanitizeErrorMessage,
 } from "../types/apiSchemas";
 import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
+import { getOptimalTimeframe, safeTfToMs } from "../utils/timeUtils";
+import { BROKER_CAPABILITIES } from "../config/brokerCapabilities";
 export type { Kline };
 
 export interface Ticker24h {
@@ -576,9 +578,6 @@ export const apiService = {
     let resolution = { base: interval, intervalMs: 0, isSynthetic: false, multiplier: 1 };
     
     try {
-        const { getOptimalTimeframe, safeTfToMs } = await import("../utils/timeUtils");
-        const { BROKER_CAPABILITIES } = await import("../config/brokerCapabilities");
-        
         const bitunixNatives = BROKER_CAPABILITIES["bitunix"]?.nativeTimeframes || ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"];
         resolution = getOptimalTimeframe(interval, bitunixNatives);
         
