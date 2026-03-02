@@ -950,6 +950,7 @@
       }
     },
     "technicals": {
+      "timeframePlaceholder": "z.B. 3m, 1W",
       "tabs": { "general": "Allgemein", "oscillators": "Oszillatoren", "trend": "Trend", "volatility": "Volatilität", "volume": "Volumen" },
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
@@ -1182,6 +1183,7 @@
       "exchanges": "Börsen",
       "serverSecurity": "Server Sicherheit",
       "appAccessToken": "App Zugangstoken (Server Sicherheit)",
+      "tokenPlaceholder": "Auf dem Server konfigurierten Token eingeben...",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
       "passphrase": "Passphrase",

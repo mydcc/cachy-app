@@ -922,6 +922,7 @@
       }
     },
     "technicals": {
+      "timeframePlaceholder": "e.g. 3m, 1W",
       "tabs": { "general": "General", "oscillators": "Oscillators", "trend": "Trend", "volatility": "Volatility", "volume": "Volume" },
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
@@ -1247,6 +1248,7 @@
     "connections": {
       "serverSecurity": "Server Security",
       "appAccessToken": "App Access Token (Server Security)",
+      "tokenPlaceholder": "Enter token configured on server...",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
