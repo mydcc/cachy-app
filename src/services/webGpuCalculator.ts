@@ -284,8 +284,7 @@ export class WebGpuCalculator {
    */
   async calculate(
     klines: any[],
-    settings: IndicatorSettings,
-    enabledIndicators: Partial<Record<string, boolean>> = {}
+    settings: IndicatorSettings
   ): Promise<TechnicalsData> {
     await this.init();
 
@@ -320,18 +319,13 @@ export class WebGpuCalculator {
     }
 
     // 2. Identify what runs on GPU vs CPU
-    const useGpuForSma = enabledIndicators.sma !== false;
+    const useGpuForSma = settings.sma.enabled !== false;
     
     // 3. Run CPU Calculation (excluding GPU parts if possible, or just overwrite)
-    const cpuEnabled = { ...enabledIndicators };
-    if (useGpuForSma) {
-        cpuEnabled.sma = false;
-    }
-
-    // Run Base CPU Calc
+    // Run Base CPU Calc (settings handles enables)
     const result = calculateIndicatorsFromArrays(
         times, opens, highs, lows, closes, volumes,
-        settings, cpuEnabled
+        settings
     );
 
     // 4. Run GPU Calculation
@@ -352,7 +346,7 @@ export class WebGpuCalculator {
             }
 
             // EMA
-            if (enabledIndicators.ema !== false) {
+            if (settings.ema.enabled !== false) {
                  if (settings.ema.ema1.length > 0) {
                     const val = await this.calculateEma(closes32, settings.ema.ema1.length);
                     this.injectResult(result, `EMA${settings.ema.ema1.length}`, val as Float32Array, closes, 'movingAverages');
@@ -368,19 +362,19 @@ export class WebGpuCalculator {
             }
             
             // WMA
-            if (enabledIndicators.wma !== false && settings.wma.length > 0) {
+            if (settings.wma.enabled !== false && settings.wma.length > 0) {
                 const val = await this.calculateWma(closes32, settings.wma.length);
                 this.injectResult(result, `WMA${settings.wma.length}`, val as Float32Array, closes, 'movingAverages');
             }
             
             // VWMA
-            if (enabledIndicators.vwma !== false && settings.vwma.length > 0) {
+            if (settings.vwma.enabled !== false && settings.vwma.length > 0) {
                  const val = await this.calculateVwma(closes32, volumes32, settings.vwma.length);
                  this.injectResult(result, `VWMA${settings.vwma.length}`, val as Float32Array, closes, 'movingAverages');
             }
             
             // HMA
-            if (enabledIndicators.hma !== false && settings.hma.length > 0) {
+            if (settings.hma.enabled !== false && settings.hma.length > 0) {
                 const length = settings.hma.length;
                 const halfLength = Math.floor(length / 2);
                 const sqrtLength = Math.round(Math.sqrt(length));
@@ -398,7 +392,7 @@ export class WebGpuCalculator {
             }
             
             // Volume MA
-            if (enabledIndicators.volumeMa !== false && settings.volumeMa.length > 0) {
+            if (settings.volumeMa.enabled !== false && settings.volumeMa.length > 0) {
                 let val: Float32Array | null = null;
                 
                 if (settings.volumeMa.maType === 'sma') {
@@ -417,7 +411,7 @@ export class WebGpuCalculator {
             }
             
             // MACD
-            if (enabledIndicators.macd !== false) {
+            if (settings.macd.enabled !== false) {
                  const fast = await this.calculateEma(closes32, settings.macd.fastLength) as Float32Array;
                  const slow = await this.calculateEma(closes32, settings.macd.slowLength) as Float32Array;
                  
@@ -435,13 +429,13 @@ export class WebGpuCalculator {
             }
             
             // RSI
-            if (enabledIndicators.rsi !== false) {
+            if (settings.rsi.enabled !== false) {
                  const val = await this.calculateRsi(closes32, settings.rsi.length);
                  this.injectResult(result, `RSI${settings.rsi.length}`, val as Float32Array, closes, 'oscillators');
             }
 
             // Stoch
-            if (enabledIndicators.stoch !== false) {
+            if (settings.stochastic.enabled !== false) {
                  const k_raw = await this.calculateStochRaw(highs32, lows32, closes32, settings.stochastic.kPeriod);
                  const k_smooth = await this.calculateSma(k_raw as Float32Array, settings.stochastic.kSmoothing) as Float32Array;
                  const d_line = await this.calculateSma(k_smooth, settings.stochastic.dPeriod) as Float32Array;
@@ -450,19 +444,19 @@ export class WebGpuCalculator {
             }
             
             // CCI
-            if (enabledIndicators.cci !== false) {
+            if (settings.cci.enabled !== false) {
                  const val = await this.calculateCci(highs32, lows32, closes32, settings.cci.length);
                  this.injectResult(result, `CCI`, val as Float32Array, closes, 'oscillators');
             }
             
             // ADX
-            if (enabledIndicators.adx !== false) {
+            if (settings.adx.enabled !== false) {
                 const val = await this.calculateAdx(highs32, lows32, closes32, settings.adx.adxSmoothing);
                  this.injectResult(result, `ADX`, val as Float32Array, closes, 'oscillators');
             }
             
             // MFI
-            if (enabledIndicators.mfi !== false) {
+            if (settings.mfi.enabled !== false) {
                 const val = await this.calculateMfi(highs32, lows32, closes32, volumes32, settings.mfi.length) as Float32Array;
                 if (!result.advanced) result.advanced = {};
                 const lastVal = val[val.length-1];
@@ -474,32 +468,32 @@ export class WebGpuCalculator {
             }
 
             // Williams %R
-            if (enabledIndicators.williamsR !== false && settings.williamsR.length > 0) {
+            if (settings.williamsR.enabled !== false && settings.williamsR.length > 0) {
                 const wr = await this.calculateWilliamsR(highs32, lows32, closes32, settings.williamsR.length);
                 this.injectResult(result, 'Williams %R', wr as Float32Array, closes, 'oscillators');
             }
             
             // Momentum
-            if (enabledIndicators.momentum !== false && settings.momentum.length > 0) {
+            if (settings.momentum.enabled !== false && settings.momentum.length > 0) {
                 const mom = await this.calculateMomentum(closes32, settings.momentum.length);
                 this.injectResult(result, 'Momentum', mom as Float32Array, closes, 'oscillators');
             }
             
             // ATR
-            if (enabledIndicators.atr !== false) {
+            if (settings.atr.enabled !== false) {
                  const val = await this.calculateAtr(highs32, lows32, closes32, settings.atr.length) as Float32Array;
                  if (!result.volatility) result.volatility = { atr: 0, bb: { upper:0, middle:0, lower:0, percentP:0 } };
                  result.volatility.atr = val[val.length - 1];
             }
             
             // Bollinger Bands
-            if (enabledIndicators.bb !== false) {
-                const middle = await this.calculateSma(closes32, settings.bb.length) as Float32Array;
-                const stddev = await this.calculateStdDev(closes32, settings.bb.length) as Float32Array;
+            if (settings.bollingerBands.enabled !== false) {
+                const middle = await this.calculateSma(closes32, settings.bollingerBands.length) as Float32Array;
+                const stddev = await this.calculateStdDev(closes32, settings.bollingerBands.length) as Float32Array;
                 
                 const upper = new Float32Array(len);
                 const lower = new Float32Array(len);
-                const mult = settings.bb.stdDev;
+                const mult = settings.bollingerBands.stdDev;
                 
                 for(let i=0; i<len; i++) {
                     upper[i] = middle[i] + (stddev[i] * mult);
@@ -520,7 +514,7 @@ export class WebGpuCalculator {
             }
             
             // SuperTrend
-            if (enabledIndicators.superTrend !== false) {
+            if (settings.superTrend.enabled !== false) {
                 const atr = await this.calculateAtr(highs32, lows32, closes32, settings.superTrend.period) as Float32Array;
                 const st = await this.calculateSuperTrend(highs32, lows32, closes32, atr, settings.superTrend.factor, len);
                 
@@ -533,13 +527,13 @@ export class WebGpuCalculator {
             }
 
             // Choppiness Index
-            if (enabledIndicators.choppiness !== false && settings.choppiness.length > 0) {
+            if (settings.choppiness.enabled !== false && settings.choppiness.length > 0) {
                 const chop = await this.calculateChoppiness(highs32, lows32, closes32, settings.choppiness.length);
                 this.injectResult(result, 'CHOP', chop as Float32Array, closes, 'volatility');
             }
             
             // VWAP
-            if (enabledIndicators.vwap !== false) {
+            if (settings.vwap.enabled !== false) {
                 const isNewSession = new Uint32Array(len);
                 isNewSession[0] = 1;
                 for(let i=1; i<len; i++) {

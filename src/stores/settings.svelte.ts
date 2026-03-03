@@ -295,31 +295,7 @@ export interface Settings {
   repairTimeframe: string; // Timeframe used for ATR/MFE/MAE repair (default: 15m)
 
   // Individual Indicator Toggles
-  enabledIndicators: {
-    rsi: boolean;
-    stochRsi: boolean;
-    macd: boolean;
-    stochastic: boolean;
-    williamsR: boolean;
-    cci: boolean;
-    adx: boolean;
-    ao: boolean;
-    momentum: boolean;
-    mfi: boolean;
-    ema: boolean;
-    sma: boolean;
-    bollingerBands: boolean;
-    atr: boolean;
-    vwap: boolean;
-    volumeMa: boolean;
-    volumeProfile: boolean;
-    pivots: boolean;
-    superTrend: boolean;
-    ichimoku: boolean;
-    parabolicSar: boolean;
-    divergences: boolean;
-    marketStructure: boolean;
-  };
+  // Removed enabledIndicators (handled via indicatorState instead)
   // Window Docking
   enableDockingCentered: boolean;
   dockingPosition: "top" | "bottom";
@@ -515,31 +491,7 @@ const defaultSettings: Settings = {
   repairTimeframe: "15m",
 
   // Core indicators enabled by default
-  enabledIndicators: {
-    rsi: true,
-    macd: true,
-    ema: true,
-    bollingerBands: true,
-    atr: true,
-    vwap: true,
-    pivots: true,
-    stochRsi: false,
-    stochastic: false,
-    williamsR: false,
-    cci: false,
-    adx: false,
-    ao: false,
-    momentum: false,
-    mfi: false,
-    sma: false,
-    volumeMa: false,
-    volumeProfile: false,
-    superTrend: false,
-    ichimoku: false,
-    parabolicSar: false,
-    divergences: false,
-    marketStructure: false,
-  },
+  // Removed enabledIndicators (handled via indicatorState instead)
   autoTrading: false,
   multiAccount: false,
   enableDockingCentered: true,
@@ -822,7 +774,6 @@ export class SettingsManager {
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
   autoTrading = $state<boolean>(defaultSettings.autoTrading);
   multiAccount = $state<boolean>(defaultSettings.multiAccount);
-  enabledIndicators = $state(defaultSettings.enabledIndicators);
 
   enableDockingCentered = $state<boolean>(defaultSettings.enableDockingCentered);
   dockingPosition = $state<"top" | "bottom">(defaultSettings.dockingPosition);
@@ -1583,7 +1534,6 @@ export class SettingsManager {
       enableIndicatorOptimization: this.enableIndicatorOptimization,
       chartHistoryLimit: this.chartHistoryLimit,
       repairTimeframe: this.repairTimeframe,
-      enabledIndicators: $state.snapshot(this.enabledIndicators),
       enableDockingCentered: this.enableDockingCentered,
       dockingPosition: this.dockingPosition,
     };

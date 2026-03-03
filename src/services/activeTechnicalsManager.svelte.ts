@@ -56,7 +56,7 @@ class ActiveTechnicalsManager {
     private lastActiveSymbol = "";
 
     // State Tracking for Worker Initialization
-    private workerState = new Map<string, { initialized: boolean, lastTime: number }>();
+    private workerState = new Map<string, { initialized: boolean, lastTime: number, settingsHash?: string }>();
 
     // Memory Management: Reuse buffers to prevent GC spikes
     private pool = new BufferPool();
@@ -224,8 +224,11 @@ class ActiveTechnicalsManager {
                 // Also track price for real-time updates (formation of current candle)
                 const currentPrice = data.lastPrice;
 
+                // Track indicator settings changes
+                const settingsHash = indicatorState._cachedJson;
+
                 untrack(() => {
-                    if (klineData || currentPrice) {
+                    if (klineData || currentPrice || settingsHash) {
                         this.scheduleCalculation(symbol, timeframe);
                     }
                 });
@@ -472,8 +475,6 @@ class ActiveTechnicalsManager {
         }
 
         const settings = indicatorState.toJSON();
-        const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
-
         // Fallback: Legacy Object Path
         // Get history immediately from MarketState
         let history = (marketData.klines && marketData.klines[timeframe]) ? [...marketData.klines[timeframe]] : [];
@@ -502,8 +503,9 @@ class ActiveTechnicalsManager {
         // Check if history shifted (new candle)
         // history includes the phantom/realtime candle if we injected it.
         const currentLastTime = history[history.length - 1].time;
+        const currentSettingsHash = indicatorState._cachedJson;
 
-        const needsInit = !state || !state.initialized || state.lastTime !== currentLastTime;
+        const needsInit = !state || !state.initialized || state.lastTime !== currentLastTime || state.settingsHash !== currentSettingsHash;
 
         // Wait, if lastTime changed (new candle), we treat it as "needsInit" for Phase 1 simplicity.
         // Or if we are in the SAME candle (lastTime == state.lastTime), we update.
@@ -527,10 +529,10 @@ class ActiveTechnicalsManager {
                 // We need a new `technicalsService.initializeTechnicals`.
 
                 result = await technicalsService.initializeTechnicals(
-                    symbol, timeframe, history, settings, enabledIndicators
+                    symbol, timeframe, history, settings
                 );
 
-                this.workerState.set(key, { initialized: true, lastTime: currentLastTime });
+                this.workerState.set(key, { initialized: true, lastTime: currentLastTime, settingsHash: currentSettingsHash });
             } else {
                 // UPDATE (Single Tick)
                 const lastK = history[history.length - 1];

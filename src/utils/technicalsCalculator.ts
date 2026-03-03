@@ -46,8 +46,7 @@ const bufferPool = new BufferPool();
 
 export function calculateAllIndicators(
   klines: Kline[],
-  settings?: IndicatorSettings,
-  allowedList?: string[] | Partial<Record<string, boolean>> // Support both legacy array and new map
+  settings?: IndicatorSettings
 ): TechnicalsData {
   if (!klines || klines.length < 2) return getEmptyData();
 
@@ -98,7 +97,7 @@ export function calculateAllIndicators(
   }
 
   const result = calculateIndicatorsFromArrays(
-      highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings, allowedList
+      highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings
   );
 
   if (pool) {
@@ -117,8 +116,7 @@ export function calculateIndicatorsFromArrays(
     opensNum: Float64Array,
     volumesNum: Float64Array,
     timesNum: number[] | Float64Array, // Support both
-    settings?: IndicatorSettings,
-    allowedList?: string[] | Partial<Record<string, boolean>>
+    settings?: IndicatorSettings
 ): TechnicalsData {
 
   if (!closesNum || closesNum.length < 2) return getEmptyData();
@@ -129,18 +127,6 @@ export function calculateIndicatorsFromArrays(
   const advancedInfo: any = { marketStructure: { highs: [], lows: [] } };
 
   const shouldCalculate = (key: keyof IndicatorSettings): boolean => {
-    // If allowedList is provided (worker context usually), check it first
-    if (allowedList) {
-        if (Array.isArray(allowedList)) {
-            // Legacy array support
-            if (allowedList.length > 0 && !allowedList.includes(key)) return false;
-        } else {
-            // Map support
-            if (allowedList[key] === false) return false;
-            // If explicit true, continue. If undefined, check settings.
-        }
-    }
-
     if (!settings) return true;
     const config = settings[key];
     if (config && typeof config === 'object' && 'enabled' in config) {
@@ -555,7 +541,7 @@ export function calculateIndicatorsFromArrays(
   }
 
   const pivotType = settings?.pivots?.type || "classic";
-  let pivotData;
+  let pivotData: any;
   const prevIdx = closesNum.length - 2;
 
   if (prevIdx >= 0 && shouldCalculate('pivots')) {
@@ -567,7 +553,8 @@ export function calculateIndicatorsFromArrays(
       pivotType
     );
   } else {
-    pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
+    // When Pivots are disabled, return undefined so UI won't render '0.000'
+    pivotData = { pivots: undefined, basis: undefined };
   }
 
   let buy = 0;

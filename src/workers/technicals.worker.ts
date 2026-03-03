@@ -45,8 +45,7 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
              payload.opens,
              payload.volumes,
              payload.times,
-             payload.settings,
-             payload.enabledIndicators
+             payload.settings
           );
       } else {
           // Legacy Path
@@ -59,7 +58,7 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
               volume: new Decimal(k.volume),
           }));
 
-          result = calculateAllIndicators(klines, payload.settings, payload.enabledIndicators);
+          result = calculateAllIndicators(klines, payload.settings);
       }
 
       ctx.postMessage({
@@ -107,8 +106,7 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
             hist.opens.subarray(0, len),
             hist.volumes.subarray(0, len),
             hist.times.subarray(0, len),
-            payload.settings,
-            payload.enabledIndicators
+            payload.settings
         );
 
         ctx.postMessage({ type: "RESULT", id, payload: result });
@@ -195,8 +193,7 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
             hist.opens.subarray(0, hist.length),
             hist.volumes.subarray(0, hist.length),
             hist.times.subarray(0, hist.length),
-            payload.settings,
-            payload.enabledIndicators
+            payload.settings
         );
 
         ctx.postMessage({ type: "RESULT", id, payload: result });

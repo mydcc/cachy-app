@@ -666,7 +666,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 value: Number(Number(m.value).toFixed(4)),
                 action: m.action,
               })),
-              pivots: {
+              pivots: data.pivots?.classic ? {
                 type: indicatorState.pivots.type,
                 classic: Object.fromEntries(
                   Object.entries(data.pivots.classic).map(([k, v]) => [
@@ -674,7 +674,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     Number(v).toFixed(4),
                   ]),
                 ),
-              },
+              } : undefined,
               volatility: data.volatility
                 ? {
                   atr: Number(Number(data.volatility.atr ?? 0).toFixed(4)),

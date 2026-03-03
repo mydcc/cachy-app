@@ -328,7 +328,7 @@
 
         const currentTF = timeframe;
         const settings = indicatorState.ema;
-        const indicatorsEnabled = settingsState.enabledIndicators.ema;
+        const indicatorsEnabled = settings.enabled !== false;
 
         if (klines) {
             if (klines.length > 0) {

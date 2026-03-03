@@ -38,7 +38,6 @@ let klineBuffer: Kline[] = [];
 interface WorkerState {
     klines: Kline[];
     settings: any;
-    enabledIndicators: any;
     lastAccessed: number;
 }
 const stateMap = new Map<string, WorkerState>();
@@ -99,7 +98,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
                 k.volume = new Decimal(data.volumes[i]);
             }
 
-            const result = calculateAllIndicators(klineBuffer.slice(0, len), data.settings, data.enabledIndicators);
+            const result = calculateAllIndicators(klineBuffer.slice(0, len), data.settings);
 
             const buffers: KlineBuffers = {
                 times: data.times,
@@ -128,7 +127,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
             ]);
 
         } else if (type === "INITIALIZE") {
-             const { symbol, timeframe, klines, settings, enabledIndicators } = payload;
+             const { symbol, timeframe, klines, settings } = payload;
              const key = getKey(symbol, timeframe);
 
              // Enforce LRU limit before adding new state
@@ -146,11 +145,10 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              stateMap.set(key, {
                  klines: parsedKlines,
                  settings,
-                 enabledIndicators,
                  lastAccessed: Date.now()
              });
 
-             const result = calculateAllIndicators(parsedKlines, settings, enabledIndicators);
+             const result = calculateAllIndicators(parsedKlines, settings);
 
              self.postMessage({ type: "RESULT", id, payload: result });
 
@@ -184,7 +182,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
                  if (history.length > 1500) history.shift(); // Keep buffer limited
              }
 
-             const result = calculateAllIndicators(history, state.settings, state.enabledIndicators);
+             const result = calculateAllIndicators(history, state.settings);
 
              self.postMessage({ type: "RESULT", id, payload: result });
 

@@ -173,7 +173,7 @@ class MarketAnalystService {
                 const klines = klinesMap[tf];
                 if (!klines || klines.length < 20) return Promise.resolve(null);
 
-                return technicalsService.calculateTechnicals(klines, settings, requiredIndicators);
+                return technicalsService.calculateTechnicals(klines, settings);
             });
 
             const techResults = await Promise.all(techPromises);

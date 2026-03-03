@@ -86,7 +86,7 @@ class WasmCalculator {
     return this.loadingPromise;
   }
 
-  async calculate(klines: any[], settings: IndicatorSettings, enabledIndicators: any): Promise<TechnicalsData> {
+  async calculate(klines: any[], settings: IndicatorSettings): Promise<TechnicalsData> {
     await this.ensureLoaded();
     if (!this.wasmModule) throw new Error('WASM unavailable');
     
@@ -111,33 +111,33 @@ class WasmCalculator {
     // Settings conversion for WASM module (matches Rust IndicatorSettings struct)
     const wasmSettings = {
         // Trend
-        ema: [settings.ema.ema1, settings.ema.ema2, settings.ema.ema3].filter(s => s.length > 0).map(s => ({ length: s.length })),
-        sma: [settings.sma.sma1, settings.sma.sma2, settings.sma.sma3].filter(s => s.length > 0).map(s => ({ length: s.length })),
-        wma: settings.wma.length > 0 ? [{ length: settings.wma.length }] : [],
-        vwma: settings.vwma.length > 0 ? [{ length: settings.vwma.length }] : [],
-        hma: settings.hma.length > 0 ? [{ length: settings.hma.length }] : [],
-        supertrend: settings.superTrend.period > 0 ? [{ length: settings.superTrend.period, multiplier: settings.superTrend.factor }] : [],
-        psar: settings.parabolicSar ? [{ start: settings.parabolicSar.start, increment: settings.parabolicSar.increment, max: settings.parabolicSar.max }] : [],
+        ema: settings.ema?.enabled !== false ? [settings.ema.ema1, settings.ema.ema2, settings.ema.ema3].filter(s => s.length > 0).map(s => ({ length: s.length })) : [],
+        sma: settings.sma?.enabled !== false ? [settings.sma.sma1, settings.sma.sma2, settings.sma.sma3].filter(s => s.length > 0).map(s => ({ length: s.length })) : [],
+        wma: settings.wma?.enabled !== false && settings.wma.length > 0 ? [{ length: settings.wma.length }] : [],
+        vwma: settings.vwma?.enabled !== false && settings.vwma.length > 0 ? [{ length: settings.vwma.length }] : [],
+        hma: settings.hma?.enabled !== false && settings.hma.length > 0 ? [{ length: settings.hma.length }] : [],
+        supertrend: settings.superTrend?.enabled !== false && settings.superTrend.period > 0 ? [{ length: settings.superTrend.period, multiplier: settings.superTrend.factor }] : [],
+        psar: settings.parabolicSar?.enabled !== false ? [{ start: settings.parabolicSar.start, increment: settings.parabolicSar.increment, max: settings.parabolicSar.max }] : [],
         
         // Oscillators
-        rsi: settings.rsi.length > 0 ? [{ length: settings.rsi.length }] : [],
-        macd: settings.macd.fastLength > 0 ? [{ fast: settings.macd.fastLength, slow: settings.macd.slowLength, signal: settings.macd.signalLength }] : [],
-        stoch: settings.stochastic.kPeriod > 0 ? [{ k: settings.stochastic.kPeriod, d: settings.stochastic.dPeriod, smooth: settings.stochastic.kSmoothing }] : [],
-        cci: settings.cci.length > 0 ? [{ length: settings.cci.length }] : [],
-        adx: settings.adx ? [{ length: settings.adx.adxSmoothing }] : [], // Note: check mappings. adxSmoothing seems to be length in Rust context? Rust has 'length'. 
-        mom: settings.momentum.length > 0 ? [{ length: settings.momentum.length }] : [],
-        wr: settings.williamsR.length > 0 ? [{ length: settings.williamsR.length }] : [],
-        mfi: settings.mfi.length > 0 ? [{ length: settings.mfi.length }] : [],
+        rsi: settings.rsi?.enabled !== false && settings.rsi.length > 0 ? [{ length: settings.rsi.length }] : [],
+        macd: settings.macd?.enabled !== false && settings.macd.fastLength > 0 ? [{ fast: settings.macd.fastLength, slow: settings.macd.slowLength, signal: settings.macd.signalLength }] : [],
+        stoch: settings.stochastic?.enabled !== false && settings.stochastic.kPeriod > 0 ? [{ k: settings.stochastic.kPeriod, d: settings.stochastic.dPeriod, smooth: settings.stochastic.kSmoothing }] : [],
+        cci: settings.cci?.enabled !== false && settings.cci.length > 0 ? [{ length: settings.cci.length }] : [],
+        adx: settings.adx?.enabled !== false ? [{ length: settings.adx.adxSmoothing }] : [], 
+        mom: settings.momentum?.enabled !== false && settings.momentum.length > 0 ? [{ length: settings.momentum.length }] : [],
+        wr: settings.williamsR?.enabled !== false && settings.williamsR.length > 0 ? [{ length: settings.williamsR.length }] : [],
+        mfi: settings.mfi?.enabled !== false && settings.mfi.length > 0 ? [{ length: settings.mfi.length }] : [],
 
         // Volatility
-        bb: settings.bb.length > 0 ? [{ length: settings.bb.length, std_dev: settings.bb.stdDev }] : [],
-        atr: settings.atr.length > 0 ? [{ length: settings.atr.length }] : [],
-        chop: settings.choppiness.length > 0 ? [{ length: settings.choppiness.length }] : [],
+        bb: settings.bb?.enabled !== false && settings.bb.length > 0 ? [{ length: settings.bb.length, std_dev: settings.bb.stdDev }] : [],
+        atr: settings.atr?.enabled !== false && settings.atr.length > 0 ? [{ length: settings.atr.length }] : [],
+        chop: settings.choppiness?.enabled !== false && settings.choppiness.length > 0 ? [{ length: settings.choppiness.length }] : [],
 
         // Volume & Other
-        volma: settings.volumeMa.length > 0 ? [{ length: settings.volumeMa.length }] : [],
-        vwap: settings.vwap ? [{ anchor: settings.vwap.anchor }] : [],
-        pivots: settings.pivots ? [{ type_: settings.pivots.type }] : []
+        volma: settings.volumeMa?.enabled !== false && settings.volumeMa.length > 0 ? [{ length: settings.volumeMa.length }] : [],
+        vwap: settings.vwap?.enabled !== false ? [{ anchor: settings.vwap.anchor }] : [],
+        pivots: settings.pivots?.enabled !== false ? [{ type_: settings.pivots.type }] : []
     };
 
     this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(wasmSettings));
@@ -373,7 +373,8 @@ class WasmCalculator {
         // It seems strictly typed to 'classic'. 
         
         if (type === 'classic') {
-             data.pivots.classic = {
+             const pivotsObj: any = data.pivots || {};
+             pivotsObj.classic = {
                  p: raw.pivots.P || 0,
                  r1: raw.pivots.R1 || 0,
                  r2: raw.pivots.R2 || 0,
@@ -382,6 +383,7 @@ class WasmCalculator {
                  s2: raw.pivots.S2 || 0,
                  s3: raw.pivots.S3 || 0,
              };
+             data.pivots = pivotsObj;
         }
     }
 

@@ -47,13 +47,11 @@ export class StatefulTechnicalsCalculator {
   public initialize(
     history: Kline[],
     settings: any,
-    enabledIndicators?: Partial<Record<string, boolean>>
   ): TechnicalsData {
     this.settings = settings;
-    this.enabledIndicators = enabledIndicators;
 
     // 1. Run full calculation to get the baseline
-    const result = calculateAllIndicators(history, settings, enabledIndicators);
+    const result = calculateAllIndicators(history, settings);
     this.state.lastResult = result;
     this.state.lastCandle = history[history.length - 1];
 

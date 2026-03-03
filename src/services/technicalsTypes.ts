@@ -115,7 +115,7 @@ export interface ConfluenceData {
 export interface TechnicalsData {
   oscillators: IndicatorResult[];
   movingAverages: IndicatorResult[];
-  pivots: {
+  pivots?: {
     classic: {
       r3: number;
       r2: number;
@@ -222,7 +222,6 @@ export interface WorkerCalculatePayload {
     volume: string;
   }[];
   settings: any; // IndicatorSettings
-  enabledIndicators?: Partial<Record<string, boolean>>; // Indicator filter
 }
 
 export interface WorkerCalculatePayloadSoA {
@@ -233,7 +232,6 @@ export interface WorkerCalculatePayloadSoA {
   closes: Float64Array;
   volumes: Float64Array;
   settings: any;
-  enabledIndicators?: Partial<Record<string, boolean>>;
 }
 
 export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE" | "SHIFT" | "CLEANUP";

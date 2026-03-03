@@ -161,7 +161,7 @@ const workerManager = new TechnicalsWorkerManager();
 const settingsCache = new WeakMap<object, string>();
 const indicatorsCache = new WeakMap<object, string>();
 
-function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any, enabledIndicators?: any): string {
+function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any): string {
   let sPart = settings?._cachedJson;
   if (!sPart) {
     sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : null;
@@ -171,13 +171,7 @@ function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, f
     }
   }
 
-  let iPart = (enabledIndicators && typeof enabledIndicators === 'object') ? indicatorsCache.get(enabledIndicators) : null;
-  if (!iPart) {
-    iPart = JSON.stringify(enabledIndicators);
-    if (enabledIndicators && typeof enabledIndicators === 'object') indicatorsCache.set(enabledIndicators, iPart);
-  }
-
-  return `${lastTime}_${lastPriceStr}_${len}_${firstTime}_${sPart}_${iPart}`;
+  return `${lastTime}_${lastPriceStr}_${len}_${firstTime}_${sPart}`;
 }
 
 // Feature Check (Outcome of Step 7)
@@ -211,7 +205,7 @@ async function notifyCapabilityStatus() {
 }
 
 export const technicalsService = {
-  async calculateTechnicals(klinesInput: any[], settings?: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+  async calculateTechnicals(klinesInput: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
     const finalSettings = settings || indicatorState.toJSON();
     let klines = klinesInput;
     const limit = Math.max(finalSettings.historyLimit || 750, 1);
@@ -220,7 +214,7 @@ export const technicalsService = {
     
     cleanupStaleCache();
     const lastKline = klines[klines.length - 1];
-    const cacheKey = generateCacheKey(lastKline.time, lastKline.close?.toString() || "0", klines.length, klines[0].time, finalSettings, enabledIndicators);
+    const cacheKey = generateCacheKey(lastKline.time, lastKline.close?.toString() || "0", klines.length, klines[0].time, finalSettings);
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
@@ -236,20 +230,20 @@ export const technicalsService = {
       if (engine === 'wasm') {
         const { wasmCalculator } = await import("./wasmCalculator");
         if (wasmCalculator.isAvailable()) {
-            finalResult = await wasmCalculator.calculate(klines, finalSettings, enabledIndicators || {});
+            finalResult = await wasmCalculator.calculate(klines, finalSettings);
         }
       } else if (engine === 'gpu') {
         const { webGpuCalculator, WebGpuCalculator } = await import("./webGpuCalculator");
         if (await WebGpuCalculator.isSupported()) {
-            finalResult = await webGpuCalculator.calculate(klines, finalSettings, enabledIndicators || {});
+            finalResult = await webGpuCalculator.calculate(klines, finalSettings);
         }
       }
 
       if (!finalResult) {
           if (workerManager.isHealthy()) {
-            finalResult = await this.calculateWithWorker(klines, finalSettings, enabledIndicators);
+            finalResult = await this.calculateWithWorker(klines, finalSettings);
           } else {
-            finalResult = this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
+            finalResult = this.calculateTechnicalsInline(klines, finalSettings);
           }
       }
 
@@ -266,11 +260,11 @@ export const technicalsService = {
       return finalResult;
     } catch (e) {
       logger.warn('technicals', "Engine fallback triggered", e);
-      return this.calculateTechnicalsInline(klines, finalSettings, enabledIndicators);
+      return this.calculateTechnicalsInline(klines, finalSettings);
     }
   },
 
-  async calculateWithWorker(klines: any[], settings: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+  async calculateWithWorker(klines: any[], settings: IndicatorSettings): Promise<TechnicalsData> {
     const len = klines.length;
     const times = new Float64Array(len);
     const opens = new Float64Array(len);
@@ -291,16 +285,16 @@ export const technicalsService = {
 
     const { data: result } = await workerManager.postMessage({
       type: "CALCULATE",
-      payload: { times, opens, highs, lows, closes, volumes, settings, enabledIndicators }
+      payload: { times, opens, highs, lows, closes, volumes, settings }
     }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
 
     return result;
   },
 
-  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): Promise<TechnicalsData> {
+  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
     notifyCapabilityStatus();
     if (!workerManager.isHealthy()) {
-        return this.calculateTechnicalsInline(klines, settings, enabledIndicators);
+        return this.calculateTechnicalsInline(klines, settings);
     }
 
     try {
@@ -309,16 +303,16 @@ export const technicalsService = {
             payload: {
                 symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
                 klines: klines.map(k => ({ ...k, open: k.open.toString(), high: k.high.toString(), low: k.low.toString(), close: k.close.toString(), volume: k.volume?.toString() || "0" })),
-                settings, enabledIndicators
+                settings
             }
         });
         return result;
     } catch (e) {
-        return this.calculateTechnicalsInline(klines, settings, enabledIndicators);
+        return this.calculateTechnicalsInline(klines, settings);
     }
   },
 
-  async updateTechnicals(symbol: string, timeframe: string, kline: any, settings?: any, enabledIndicators?: any): Promise<TechnicalsData> {
+  async updateTechnicals(symbol: string, timeframe: string, kline: any, settings?: any): Promise<TechnicalsData> {
     if (!workerManager.isHealthy()) {
         // Cannot update incrementally without worker. Throw to force re-init/fallback in manager.
         throw new Error("Worker unavailable for update"); 
@@ -330,7 +324,7 @@ export const technicalsService = {
             payload: {
                 symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
                 kline: { ...kline, open: kline.open.toString(), high: kline.high.toString(), low: kline.low.toString(), close: kline.close.toString(), volume: kline.volume?.toString() || "0" }
-                , settings, enabledIndicators
+                , settings
             }
         });
         return result;
@@ -353,11 +347,11 @@ export const technicalsService = {
       }
   },
 
-  calculateTechnicalsInline(klines: any[], settings?: IndicatorSettings, enabledIndicators?: any): TechnicalsData {
+  calculateTechnicalsInline(klines: any[], settings?: IndicatorSettings): TechnicalsData {
     const finalSettings = settings || indicatorState.toJSON();
     const klinesDec = klines.map((k) => ({
       time: k.time, open: new Decimal(k.open), high: new Decimal(k.high), low: new Decimal(k.low), close: new Decimal(k.close), volume: new Decimal(k.volume || 0),
     }));
-    return calculateAllIndicators(klinesDec, finalSettings, enabledIndicators);
+    return calculateAllIndicators(klinesDec, finalSettings);
   },
 };

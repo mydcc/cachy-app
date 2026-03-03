@@ -112,14 +112,14 @@ async function benchmarkEngine(
       } else if (engine === 'wasm') {
         const { wasmCalculator } = await import('./wasmCalculator');
         if (wasmCalculator.isAvailable()) {
-             await wasmCalculator.calculate(klines, settings, {});
+             await wasmCalculator.calculate(klines, settings);
         } else {
              return [];
         }
       } else if (engine === 'gpu') {
         const { webGpuCalculator, WebGpuCalculator } = await import('./webGpuCalculator');
         if (await WebGpuCalculator.isSupported()) {
-             await webGpuCalculator.calculate(klines, settings, {});
+             await webGpuCalculator.calculate(klines, settings);
         } else {
              return [];
         }

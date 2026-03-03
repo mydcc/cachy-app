@@ -455,8 +455,6 @@
                                     onchange={(e) => {
                                         const val = e.currentTarget.checked;
                                         settingsState.showTechnicalsPivots = val;
-                                        // Sync with calculation engine to ensure data exists
-                                        settingsState.enabledIndicators.pivots = val;
                                     }}
                                 />
                                 <span class="text-xs">
