@@ -136,7 +136,11 @@
     const amount = parseFloat(vStr);
     
     if (isNaN(price) || isNaN(amount)) return;
-    if (amount < settingsState.tradeFlowSettings.minVolume) return;
+    
+    // Calculate actual trade volume in quote currency (usually USD)
+    const tradeVolumeUSD = price * amount;
+    
+    if (tradeVolumeUSD < settingsState.tradeFlowSettings.minVolume) return;
 
     // Update History
     tradeHistory.push(side);
