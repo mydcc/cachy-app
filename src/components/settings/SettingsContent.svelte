@@ -214,19 +214,19 @@
 </script>
 
 <div
-    class="flex flex-col md:flex-row flex-1 min-h-[500px] overflow-hidden bg-[var(--bg-primary)]"
+    class="flex flex-col md:flex-row flex-1 w-full h-full overflow-hidden bg-[var(--bg-primary)]"
 >
     <!-- Sidebar Navigation -->
     <div
-        class="flex flex-col w-64 border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-2"
+        class="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:overflow-y-auto w-full md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-0 md:py-2 custom-scrollbar"
         role="tablist"
     >
         {#each tabs as tab}
             <button
-                class="flex items-center gap-3 px-6 py-3.5 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group
+                class="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-3.5 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group
                {activeTab === tab.id
-                    ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-l-2 border-[var(--accent-color)] shadow-inner'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50 border-l-2 border-transparent'}"
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)] shadow-inner'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50 border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
                 onclick={() => selectTab(tab.id)}
                 role="tab"
                 aria-selected={activeTab === tab.id}

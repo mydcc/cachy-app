@@ -69,9 +69,9 @@
     >
         {#each subTabs as tab}
             <button
-                class="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all {activeSubTab ===
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
                 tab.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg scale-105 z-10'
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}"
                 onclick={() => (uiState.settingsTradingSubTab = tab.id)}
             >
