@@ -7,6 +7,7 @@
   "dir": "ltr",
   "start_url": "/?pwa=true",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "portrait",
@@ -61,14 +62,14 @@
       "short_name": "Journal",
       "description": "View your trading history and performance",
       "url": "/?action=journal",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Settings",
       "short_name": "Settings",
       "description": "Configure Cachy app settings",
       "url": "/?action=settings",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
