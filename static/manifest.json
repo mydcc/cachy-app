@@ -29,28 +29,28 @@
   "screenshots": [
     {
       "src": "/screenshots/dashboard.png",
-      "sizes": "1920x1080",
+      "sizes": "1920x1066",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Cachy Trading Dashboard"
     },
     {
       "src": "/screenshots/journal.png",
-      "sizes": "1920x1080",
+      "sizes": "1920x1066",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Trade Journal & Performance Analysis"
     },
     {
       "src": "/screenshots/mobile-dashboard.png",
-      "sizes": "1024x1024",
+      "sizes": "640x640",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Cachy Mobile Dashboard"
     },
     {
       "src": "/screenshots/mobile-journal.png",
-      "sizes": "1024x1024",
+      "sizes": "640x640",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Cachy Mobile Journal"
