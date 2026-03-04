@@ -18,11 +18,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, _newsCache } from './+server';
 
-vi.mock('../../../lib/server/auth', () => ({
-  checkAppAuth: () => null
-}));
-
-
 describe('News Service Security', () => {
     beforeEach(() => {
         _newsCache.clear();

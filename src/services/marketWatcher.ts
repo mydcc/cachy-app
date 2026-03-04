@@ -528,17 +528,11 @@ class MarketWatcher {
   private fillGaps(klines: Kline[], intervalMs: number): Kline[] {
       if (!klines || klines.length < 2) return klines || [];
 
-      // Validating Decimal presence strictly, avoiding instance mixing
-      if (klines.length > 0 && !(klines[0].open instanceof Decimal)) {
+      // Validating Decimal presence
+      if (klines[0] && !(klines[0].open instanceof Decimal)) {
           // Fallback if somehow not Decimal, though types suggest it is.
-          return klines.map(k => ({
-              open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
-              high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
-              low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
-              close: k.close instanceof Decimal ? k.close : new Decimal(k.close),
-              volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
-              time: k.time
-          }));
+          // In strict TS, this check might not be needed if typed correctly, but for runtime safety:
+          return klines;
       }
 
       // Optimization: Fast scan for gaps to avoid allocation in happy path (99% of cases)
@@ -546,6 +540,7 @@ class MarketWatcher {
       const threshold = intervalMs * 1.1;
 
       for (let i = 1; i < klines.length; i++) {
+          // Simple subtraction check is much cheaper than object allocation
           if (klines[i].time - klines[i-1].time > threshold) {
               hasGaps = true;
               break;
@@ -556,7 +551,12 @@ class MarketWatcher {
           return klines;
       }
 
+      // Optimized single-pass gap filling
       const result: Kline[] = [];
+      // Heuristic: Pre-allocate a bit more space if gaps are expected?
+      // V8 handles array growth well, but we can avoid resizing for small gaps.
+      // However, we do not know total size without a pass. Just use standard push.
+
       let prev = klines[0];
       result.push(prev);
 
@@ -566,10 +566,12 @@ class MarketWatcher {
           const curr = klines[i];
 
           // Hardening: Basic structural check for current item
-          if (!curr || typeof curr.time !== "number" || isNaN(curr.time)) continue;
+          if (!curr || typeof curr.time !== "number") continue;
 
           const diff = curr.time - prev.time;
           if (diff > threshold) {
+               // Calculate missing candles
+               // Example: T=0, T=3. Diff=3. Interval=1. 3/1 - 1 = 2 missing (T+1, T+2).
                const gapCount = Math.floor(diff / intervalMs) - 1;
 
                if (gapCount > 0) {

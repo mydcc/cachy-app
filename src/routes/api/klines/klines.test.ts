@@ -17,11 +17,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './+server';
-
-vi.mock('../../../lib/server/auth', () => ({
-  checkAppAuth: () => null
-}));
-
 // Mock fetch
 global.fetch = vi.fn();
 describe('GET /api/klines', () => {

@@ -496,16 +496,16 @@ class TradeService {
                               if (sym) params.symbol = sym;
 
                               const data = await this.signedRequest<any>("POST", "/api/tpsl", {
-                                      action: view,
-                                      params
-                                  }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                                  action: view,
+                                  params
+                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
 
-                                  if (data && typeof data === 'object' && 'error' in data) {
-                                      if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                          logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
-                                      }
-                                      return [];
+                              if (data.error) {
+                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
+                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
                                   }
+                                  return [];
+                              }
                               return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);

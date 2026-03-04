@@ -74,7 +74,7 @@ export function parseDecimal(
   let str = String(value).trim();
   if (str === "") return new Decimal(0);
 
-  // Deterministisches Parsing ohne Heuristik
+  // Handle German/English formats
   const hasComma = str.includes(",");
   const hasDot = str.includes(".");
 
@@ -89,15 +89,24 @@ export function parseDecimal(
       str = str.replace(/,/g, "");
     }
   } else if (hasComma) {
-    // HARDENING: Strikte Umwandlung. Ein Komma ohne Punkt ist immer ein Dezimaltrennzeichen
-    // Verhindert Mehrdeutigkeiten bei 1,000 (US) vs 1,000 (DE).
-    // Tausendertrennzeichen ohne Dezimalpunkt sind nicht erlaubt/sicher erkennbar.
+    // HARDENING: Ambiguous Comma (1,200)
+    // Previous heuristic (length=3) guessed thousands separator, risking 1.2 -> 1200.
+    // New logic: Comma is ALWAYS a decimal separator if no dot is present.
+    // This prioritizes safety/European inputs (1,5) over English Thousands (1,000).
+    // Users must NOT input thousands separators.
+    // "1,200" -> "1.200" (1.2)
+    // "1,000" -> "1.000" (1)
     str = str.replace(",", ".");
-  } else if (hasDot) {
+  }
+  // If only dot, usually safe for Decimal (1200.50)
+  // But could be 1.200 (DE thousands).
+  // If multiple dots: 1.200.000 -> remove dots.
+  else if (hasDot) {
     const parts = str.split(".");
     if (parts.length > 2) {
       str = str.replace(/\./g, "");
     }
+    // Single dot: 1.200 -> 1.2
   }
 
   try {
@@ -123,19 +132,17 @@ export function safeDecimal(value: string | number | Decimal | null | undefined)
 
 /**
  * Formats a number for API payloads, ensuring no scientific notation (e.g. 1e-7) is used.
- * Avoids precision loss caused by native .toFixed(20).
+ * Uses high precision (20 decimals) and trims trailing zeros.
  */
 export function formatApiNum(
   val: string | number | undefined | null | Decimal,
 ): string | undefined {
   if (val === undefined || val === null) return undefined;
   try {
+    // Use Decimal to ensure we get a full string representation (no 1e-7)
+    // toFixed(20) ensures high precision, then we strip trailing zeros
     const d = val instanceof Decimal ? val : new Decimal(val);
-
-    // Fallback on toString to prevent arbitrary zero padding and keep exact precision
-    // Decimal.js toString() defaults to non-scientific notation depending on config,
-    // but .toFixed() without arguments returns a string in normal notation avoiding scientific.
-    return d.toFixed();
+    return d.toFixed(20).replace(/\.?0+$/, "");
   } catch (e) {
     return String(val);
   }
@@ -456,6 +463,13 @@ export function escapeHtml(unsafe: string | null | undefined): string {
 
 /**
  * Smart parsing of AI-generated number strings, handling international formats (DE/EN).
+ *
+ * Scenarios:
+ * - "1,200.50" (EN) -> 1200.5
+ * - "1.200,50" (DE) -> 1200.5
+ * - "50k" -> 50000
+ * - "1.5m" -> 1500000
+ * - "100" -> 100
  */
 export function parseAiValue(value: string | number | boolean): Decimal {
   if (typeof value === "number") return new Decimal(value);
@@ -479,6 +493,7 @@ export function parseAiValue(value: string | number | boolean): Decimal {
   const hasDot = str.includes(".");
 
   if (hasComma && hasDot) {
+    // Both present. The last one is the decimal separator.
     const lastComma = str.lastIndexOf(",");
     const lastDot = str.lastIndexOf(".");
 
@@ -490,18 +505,45 @@ export function parseAiValue(value: string | number | boolean): Decimal {
       str = str.replace(/,/g, "");
     }
   } else if (hasComma) {
+    // Only comma. Could be 1,200 (EN) or 1,5 (DE).
+    // Heuristic: If there are exactly 3 digits after comma, and more digits before, it MIGHT be thousands.
+    // But "1,200" is ambiguous (1.200 DE vs 1200 EN).
+    // AI context usually implies standard English format for large numbers, or German if explicitly prompted.
+    // However, safest assumption for "X,Y" where Y is 1-2 digits is Decimal.
+    // "1,200" -> Assume 1200 (EN) if it looks like thousands sep.
+    // "50,5" -> Assume 50.5 (DE).
+
     const parts = str.split(",");
+    // If multiple commas "1,000,000", definitely EN thousands.
     if (parts.length > 2) {
       str = str.replace(/,/g, "");
     } else if (parts.length === 2) {
-      // Strikte Regelung: Einziges Komma ohne Punkt ist Dezimaltrennzeichen
-      str = str.replace(",", ".");
+      // One comma. "1,200" (EN) vs "50,5" (DE) vs "0,005" (DE).
+      const suffix = parts[1];
+
+      // Special case: "0,..." is always decimal in DE context (English would be "0....")
+      if (str.startsWith("0,")) {
+        str = str.replace(",", ".");
+      }
+      // "1,200" -> 3 digits -> Assume Thousands (EN)
+      else if (suffix.length === 3) {
+        str = str.replace(/,/g, "");
+      }
+      // "50,5" or "50,50" -> Assume Decimal (DE)
+      else {
+        str = str.replace(",", ".");
+      }
     }
-  } else if (hasDot) {
+  }
+  // If only dot, usually standard float (1200.50) or German thousands (1.200).
+  // AI outputting "1.200" is ambiguous. We assume standard float unless it has multiple dots "1.000.000".
+  else if (hasDot) {
     const parts = str.split(".");
     if (parts.length > 2) {
+      // "1.000.000" -> German thousands
       str = str.replace(/\./g, "");
     }
+    // "1.200" -> treated as 1.2 in standard JS.
   }
 
   try {

@@ -19,11 +19,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './+server';
 import crypto from 'node:crypto';
 
-vi.mock('../../../lib/server/auth', () => ({
-  checkAppAuth: () => null
-}));
-
-
 // Mock dependencies
 vi.mock('$lib/server/logger', () => ({
   logger: {

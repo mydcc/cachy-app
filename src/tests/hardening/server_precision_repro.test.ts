@@ -18,11 +18,6 @@
 import { describe, it, expect } from 'vitest';
 import { safeJsonParse } from '../../utils/safeJson';
 
-vi.mock('../../../lib/server/auth', () => ({
-  checkAppAuth: () => null
-}));
-
-
 describe('Server-Side Precision Loss Reproduction', () => {
     // A typical Bitunix Order ID (19 digits)
     // 1234567890123456789

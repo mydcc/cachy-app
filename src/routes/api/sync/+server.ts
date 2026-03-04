@@ -18,7 +18,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { z } from "zod";
-import { safeJsonParse } from "../../../utils/safeJson";
 import { checkAppAuth } from "../../../lib/server/auth";
 import {
   generateBitunixSignature,
@@ -45,8 +44,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (authError) return authError;
 
   try {
-    const text = await request.text();
-    const body = safeJsonParse(text);
+    const body = await request.json();
 
     // 1. Zod Validation
     const validation = SyncRequestSchema.safeParse(body);

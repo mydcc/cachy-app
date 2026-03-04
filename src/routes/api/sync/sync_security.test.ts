@@ -18,11 +18,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 
-vi.mock('../../../lib/server/auth', () => ({
-  checkAppAuth: () => null
-}));
-
-
 // Mock fetch globally
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
@@ -34,7 +29,7 @@ describe('POST /api/sync', () => {
 
   it('should return 400 if apiKey is missing', async () => {
     const request = {
-      text: async () => JSON.stringify({ apiSecret: 'secret123' }),
+      json: async () => ({ apiSecret: 'secret123' }),
     } as Request;
 
     const response = await POST({ request } as any);
@@ -45,7 +40,7 @@ describe('POST /api/sync', () => {
 
   it('should return 400 if apiSecret is missing', async () => {
     const request = {
-      text: async () => JSON.stringify({ apiKey: 'key123' }),
+      json: async () => ({ apiKey: 'key123' }),
     } as Request;
 
     const response = await POST({ request } as any);
@@ -54,7 +49,7 @@ describe('POST /api/sync', () => {
 
   it('should return 400 if apiKey is too short (security hardening)', async () => {
     const request = {
-      text: async () => JSON.stringify({ apiKey: '123', apiSecret: 'secret123' }),
+      json: async () => ({ apiKey: '123', apiSecret: 'secret123' }),
     } as Request;
 
     const response = await POST({ request } as any);
@@ -70,11 +65,11 @@ describe('POST /api/sync', () => {
   it('should return 200 and call fetch with correct headers for valid input', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      text: async () => JSON.stringify({ code: 0, data: { tradeList: [] } }),
+      json: async () => ({ code: 0, data: { tradeList: [] } }),
     });
 
     const request = {
-      text: async () => JSON.stringify({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
+      json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
     } as Request;
 
     const response = await POST({ request } as any);
