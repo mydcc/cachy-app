@@ -47,7 +47,7 @@ export class IframeWindow extends WindowBase {
         return {
             url: this.url,
             sandbox: "allow-scripts allow-same-origin allow-forms allow-popups",
-            allow: "fullscreen"
+            allow: "xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
         };
     }
 }
