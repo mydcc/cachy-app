@@ -42,16 +42,28 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  const createRequest = (urlStr: string, token?: string) => {
+  const createEvent = (urlStr: string, token?: string, useCookie = false) => {
     const headers = new Headers();
-    if (token) {
+    const cookies = {
+      get: vi.fn((name) => {
+        if (useCookie && name === "log_stream_token") return token;
+        return undefined;
+      })
+    };
+    if (token && !useCookie) {
       headers.set("Authorization", `Bearer ${token}`);
     }
-    return {
+    const request = {
       url: new URL(urlStr, "http://localhost"),
       signal: new AbortController().signal,
       headers
     } as unknown as Request;
+
+    return {
+      request,
+      url: new URL(urlStr, "http://localhost"),
+      cookies
+    } as any;
   };
 
   it("should deny access in development mode without token", async () => {
@@ -59,7 +71,7 @@ describe("GET /api/stream-logs Security", () => {
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
     // Simulate Request
-    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = createEvent("http://localhost/api/stream-logs");
 
     const response = await GET(event);
 
@@ -70,7 +82,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "development";
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs", "dev-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = createEvent("http://localhost/api/stream-logs", "dev-secret");
 
     const response = await GET(event);
 
@@ -82,7 +94,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = undefined;
 
-    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = createEvent("http://localhost/api/stream-logs");
     const response = await GET(event);
 
     expect(response.status).toBe(403);
@@ -93,7 +105,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = createEvent("http://localhost/api/stream-logs");
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -103,7 +115,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs", "wrong"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = createEvent("http://localhost/api/stream-logs", "wrong");
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -113,10 +125,22 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs", "super-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = createEvent("http://localhost/api/stream-logs", "super-secret");
     const response = await GET(event);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
+  });
+
+  it("should allow access with correct token in cookie", async () => {
+    process.env.NODE_ENV = "production";
+    mockEnv.LOG_STREAM_KEY = "super-secret";
+
+    const event = createEvent("http://localhost/api/stream-logs", "super-secret", true);
+    const response = await GET(event);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/event-stream");
+    expect(event.cookies.get).toHaveBeenCalledWith("log_stream_token");
   });
 });

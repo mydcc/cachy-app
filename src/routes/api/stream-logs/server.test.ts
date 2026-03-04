@@ -45,8 +45,9 @@ describe('GET /api/stream-logs', () => {
 
     const request = new Request('http://localhost/api/stream-logs');
     const url = new URL('http://localhost/api/stream-logs');
+    const cookies = { get: vi.fn() };
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(403);
     expect(await response.text()).toContain('Log streaming is disabled');
@@ -62,8 +63,9 @@ describe('GET /api/stream-logs', () => {
         'Authorization': 'Bearer wrong-token'
       })
     });
+    const cookies = { get: vi.fn() };
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(401);
     expect(await response.text()).toBe('Unauthorized');
@@ -79,6 +81,7 @@ describe('GET /api/stream-logs', () => {
         'Authorization': 'Bearer secret-key'
       })
     });
+    const cookies = { get: vi.fn() };
 
     // Mock signal to avoid issues if environment doesn't support it fully
     Object.defineProperty(request, 'signal', {
@@ -90,10 +93,40 @@ describe('GET /api/stream-logs', () => {
         writable: true,
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+  });
+
+  it('should return 200 and stream if token is in cookie', async () => {
+    const envModule = await import('$env/dynamic/private');
+    envModule.env.LOG_STREAM_KEY = 'secret-key';
+
+    const url = new URL('http://localhost/api/stream-logs');
+    const request = new Request(url);
+    const cookies = {
+      get: vi.fn().mockImplementation((name) => {
+        if (name === 'log_stream_token') return 'secret-key';
+        return null;
+      })
+    };
+
+    // Mock signal to avoid issues if environment doesn't support it fully
+    Object.defineProperty(request, 'signal', {
+        value: {
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            aborted: false,
+        },
+        writable: true,
+    });
+
+    const response = await GET({ request, cookies, url } as any);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+    expect(cookies.get).toHaveBeenCalledWith('log_stream_token');
   });
 
   it('should use timingSafeEqual for token comparison', async () => {
@@ -108,8 +141,9 @@ describe('GET /api/stream-logs', () => {
         'Authorization': 'Bearer wrong-key1'
       })
     });
+    const cookies = { get: vi.fn() };
 
-    await GET({ request, url } as any);
+    await GET({ request, cookies, url } as any);
 
     expect(timingSafeEqualSpy).toHaveBeenCalled();
   });

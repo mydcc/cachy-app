@@ -20,11 +20,15 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";
 
-export const GET: RequestHandler = ({ request, url }) => {
+export const GET: RequestHandler = ({ request, cookies, url }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
   const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  let token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (!token) {
+    token = cookies.get("log_stream_token") || null;
+  }
 
   if (!secret) {
     return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
