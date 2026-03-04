@@ -31,7 +31,7 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
     cookies.set("log_stream_token", env.LOG_STREAM_KEY, {
       path: "/api/stream-logs",
       httpOnly: true,
-      secure: true,
+      secure: !env.LOG_STREAM_KEY || process.env.NODE_ENV === 'production',
       sameSite: "strict",
       maxAge: 60 * 60 * 24 * 7 // 1 week
     });
