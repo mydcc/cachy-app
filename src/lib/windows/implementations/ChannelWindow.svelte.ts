@@ -76,7 +76,11 @@ export class ChannelWindow extends WindowBase {
 
     /** Mapping of logic parameters to component props. */
     get componentProps() {
-        return { url: this.url };
+        return {
+            url: this.url,
+            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock",
+            allow: "xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
+        };
     }
 
     public serialize(): any {
