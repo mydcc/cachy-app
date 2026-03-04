@@ -59,6 +59,16 @@ export class ChannelWindow extends WindowBase {
      * aspect ratio to match the required content dimensions.
      */
     private handleUnityMessage = (event: MessageEvent) => {
+        try {
+            const expectedOrigin = new URL(this.url).origin;
+            if (event.origin !== expectedOrigin) {
+                return;
+            }
+        } catch (e) {
+            // Invalid URL or local file, fail safe
+            return;
+        }
+
         if (event.data && event.data.type === 'unity-info') {
             const { width, height } = event.data;
             if (width && height) {
@@ -68,14 +78,6 @@ export class ChannelWindow extends WindowBase {
             }
         }
     };
-
-    /** Clean up the global message listener to prevent leaks. */
-    override destroy() {
-        if (typeof window !== 'undefined') {
-            window.removeEventListener('message', this.handleUnityMessage);
-        }
-        super.destroy();
-    }
 
     /** The UI component used to display the iframe. */
     get component() {
