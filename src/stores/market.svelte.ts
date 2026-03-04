@@ -19,6 +19,7 @@ import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
+import { tradeState } from "./trade.svelte";
 import { BufferPool } from "../utils/bufferPool";
 import type { Kline, KlineBuffers } from "../services/technicalsTypes";
 
@@ -211,10 +212,18 @@ export class MarketManager {
       const toEvict = this.evictLRU();
       if (!toEvict) {
         // Fallback: If metadata is out of sync, delete arbitrary key
-        const key = Object.keys(this.data)[0];
-        if (key) {
-          this.releaseSymbolBackingBuffers(key);
-          delete this.data[key];
+        // HARDENING: Protect the currently active trading symbol
+        const activeSymbol = tradeState.symbol || "";
+        const keys = Object.keys(this.data);
+
+        let keyToDrop = keys[0];
+        if (keyToDrop === activeSymbol && keys.length > 1) {
+            keyToDrop = keys[1];
+        }
+
+        if (keyToDrop) {
+          this.releaseSymbolBackingBuffers(keyToDrop);
+          delete this.data[keyToDrop];
         }
         break;
       }
@@ -408,6 +417,19 @@ export class MarketManager {
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
+    // 0. Hardening: Ensure strict structural validity to prevent NaN poisoning
+    const validKlines = [];
+    for (const k of klines) {
+        if (!k || typeof k.time !== "number" || isNaN(k.time)) continue;
+
+        // Ensure values are numbers/strings/Decimals before adding
+        if (k.open == null || k.high == null || k.low == null || k.close == null || k.volume == null) continue;
+
+        validKlines.push(k);
+    }
+
+    if (validKlines.length === 0) return;
+
     if (source === "ws") {
       // Buffer high-frequency WS updates
       const key = `${symbol}:${timeframe}`;
@@ -426,18 +448,15 @@ export class MarketManager {
       }
 
       // Optimization: Just append. Logic to merge is handled in flush.
-      // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
-      for (const k of klines) pending.push(k);
+      for (const k of validKlines) pending.push(k);
 
-      // Safety check: force flush if too many SYMBOLS are pending updates
-      // Klines need more buffer space (10x cache size)
       const limit = (settingsState.marketCacheSize || 20) * 10;
       if (this.pendingKlineUpdates.size > limit) {
         this.flushUpdates();
       }
     } else {
       // REST updates (historical data load) should be applied immediately
-      this.applySymbolKlines(symbol, timeframe, klines, source, enforceLimit);
+      this.applySymbolKlines(symbol, timeframe, validKlines, source, enforceLimit);
     }
   }
 
@@ -452,8 +471,8 @@ export class MarketManager {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
-    // [OPTIMIZATION] Deduplicate raw updates
-    if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
+    // [OPTIMIZATION] Deduplicate raw updates safely
+    if (klines.length > 1) {
         klines.sort((a, b) => a.time - b.time);
         const dedupedRaw: any[] = [];
         let lastTime = -1;

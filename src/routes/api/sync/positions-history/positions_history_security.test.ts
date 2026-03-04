@@ -18,6 +18,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 
+vi.mock('../../../../lib/server/auth', () => ({
+  checkAppAuth: () => null
+}));
+
+
 // Mock fetch globally
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
