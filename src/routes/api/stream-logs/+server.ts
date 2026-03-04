@@ -23,7 +23,8 @@ import crypto from "node:crypto";
 export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
-  const token = url.searchParams.get("token");
+  const authHeader = request.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!secret) {
     return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
