@@ -48,6 +48,7 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { tradeCalculator } from "./tradeCalculator.svelte";
 import { marketAnalyst } from "./marketAnalyst";
 import { serializationService } from "./serializationService";
+import { logger } from "./logger";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -507,10 +508,12 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
     try {
+      logger.debug("api", `[handleFetchPrice] Fetching price for ${symbol} via ${settingsState.apiProvider}`);
       const ticker = await apiService.fetchTicker24h(
         symbol,
         settingsState.apiProvider,
       );
+      logger.debug("api", `[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
       app.currentMarketPrice = priceVal;
