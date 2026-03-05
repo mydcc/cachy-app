@@ -46,7 +46,7 @@ export class IframeWindow extends WindowBase {
     get componentProps() {
         return {
             url: this.url,
-            sandbox: "allow-scripts allow-forms allow-popups",
+            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-modals",
             allow: "fullscreen"
         };
     }

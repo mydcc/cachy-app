@@ -97,7 +97,7 @@ export class ChannelWindow extends WindowBase {
     get componentProps() {
         return {
             url: this.url,
-            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock",
+            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock",
             allow: "xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
         };
     }
