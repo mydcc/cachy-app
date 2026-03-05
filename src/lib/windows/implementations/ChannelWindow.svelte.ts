@@ -79,6 +79,14 @@ export class ChannelWindow extends WindowBase {
         }
     };
 
+    /** Clean up event listeners when the window is closed. */
+    public destroy() {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('message', this.handleUnityMessage);
+        }
+        super.destroy();
+    }
+
     /** The UI component used to display the iframe. */
     get component() {
         return IframeView;
