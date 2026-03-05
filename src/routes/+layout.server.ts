@@ -19,23 +19,11 @@ import type { LayoutServerLoad } from "./$types";
 import { CONSTANTS } from "../lib/constants";
 import { INITIAL_TRADE_STATE } from "../stores/trade.svelte"; // Import initialTradeState
 
+export const prerender = true;
 export const ssr = false; // Disable SSR to prevent hydration mismatch with theme
-
-import { env } from "$env/dynamic/private";
 
 export const load: LayoutServerLoad = async ({ cookies }) => {
   const theme = cookies.get(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark"; // Default to dark if no cookie
-
-  // Set the log stream token cookie for EventSource authentication if the secret is available
-  if (env.LOG_STREAM_KEY) {
-    cookies.set("log_stream_token", env.LOG_STREAM_KEY, {
-      path: "/api/stream-logs",
-      httpOnly: true,
-      secure: !env.LOG_STREAM_KEY || process.env.NODE_ENV === 'production',
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7 // 1 week
-    });
-  }
 
   return {
     theme,
