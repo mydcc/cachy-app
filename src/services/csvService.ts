@@ -339,7 +339,7 @@ export const csvService = {
           // Handle large IDs / precision loss
           // HARDENING: Replaced djb2 hash with random integer fallback to avoid collisions
           const originalIdAsString = entry.ID;
-          let internalId: number;
+          let internalId: string | number;
 
           // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
           const isTooLarge = originalIdAsString.length >= 16;
@@ -354,7 +354,7 @@ export const csvService = {
           } else {
             // Generate a safe unique internal ID (Timestamp + Random)
             // This ensures uniqueness during the import session better than a hash
-            internalId = Date.now() + Math.floor(Math.random() * 1000000);
+            internalId = crypto.randomUUID();
           }
 
           const importedTrade: JournalEntry = {
