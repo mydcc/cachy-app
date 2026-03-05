@@ -39,6 +39,7 @@ export class ChannelWindow extends WindowBase {
         super({
             title,
             windowType: 'channel',
+            id: id ?? options.id,
             ...options
         });
 
