@@ -27,7 +27,7 @@ export default defineConfig({
       "@formatjs/icu-messageformat-parser",
       "@formatjs/icu-skeleton-parser",
       "@formatjs/fast-memoize",
-      "svelte-i18n",
+      "svelte-i18n"
     ],
   },
   server: {
