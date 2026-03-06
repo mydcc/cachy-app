@@ -352,9 +352,9 @@ export const csvService = {
           if (isSafe) {
             internalId = parsedId;
           } else {
-            // Generate a safe unique internal ID (Timestamp + Random)
-            // This ensures uniqueness during the import session better than a hash
-            internalId = Date.now() + Math.floor(Math.random() * 1000000);
+            // Generate a safe unique internal ID
+            // crypto.randomUUID provides cryptographic guarantees over Date.now() + Math.random()
+            internalId = crypto.randomUUID();
           }
 
           const importedTrade: JournalEntry = {

@@ -516,8 +516,8 @@
               class:hover:text-green-300={isTerminal}
               onclick={exportChat}
               ondblclick={(e) => e.stopPropagation()}
-              title={$_("sidePanel.exportChat") || "Export Chat"}
-              aria-label={$_("sidePanel.exportChat") || "Export Chat"}
+              title={$_("sidePanel.exportChat")}
+              aria-label={$_("sidePanel.exportChat")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -540,11 +540,11 @@
               onclick={toggleExpand}
               ondblclick={(e) => e.stopPropagation()}
               title={settingsState.panelIsExpanded
-                ? ($_("sidePanel.collapse") || "Collapse Panel")
-                : ($_("sidePanel.expand") || "Expand Panel")}
+                ? ($_("sidePanel.collapse"))
+                : ($_("sidePanel.expand"))}
               aria-label={settingsState.panelIsExpanded
-                ? ($_("sidePanel.collapse") || "Collapse Panel")
-                : ($_("sidePanel.expand") || "Expand Panel")}
+                ? ($_("sidePanel.collapse"))
+                : ($_("sidePanel.expand"))}
             >
               {#if settingsState.panelIsExpanded}
                 <svg
@@ -598,7 +598,7 @@
                 };
 
                 if (confirmClear) {
-                  if (confirm($_("sidePanel.clearConfirm") || "Clear history?")) {
+                  if (confirm($_("sidePanel.clearConfirm"))) {
                     clearFn();
                   }
                 } else {
@@ -606,8 +606,8 @@
                 }
               }}
               ondblclick={(e) => e.stopPropagation()}
-              title={$_("sidePanel.clearHistory") || "Clear History"}
-              aria-label={$_("sidePanel.clearHistory") || "Clear History"}
+              title={$_("sidePanel.clearHistory")}
+              aria-label={$_("sidePanel.clearHistory")}
             >
               <!-- TRASH ICON -->
               <svg
@@ -628,8 +628,8 @@
               class:text-[var(--text-secondary)]={!isTerminal}
               class:hover:text-[var(--text-primary)]={!isTerminal}
               class:hover:text-green-300={isTerminal}
-              aria-label={$_("common.close") || "Close"}
-              title={$_("common.close") || "Close"}
+              aria-label={$_("common.close")}
+              title={$_("common.close")}
               onclick={toggle}
               ondblclick={(e) => e.stopPropagation()}
             >

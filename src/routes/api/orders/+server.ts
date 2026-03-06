@@ -100,7 +100,9 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit));
+        const limit = typeof payload.limit === "string" ? parseInt(payload.limit, 10) : payload.limit;
+        const validLimit = !isNaN(limit as number) ? limit : 20;
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, validLimit as number);
         result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -161,8 +163,10 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-         const orders = await fetchBitgetHistoryOrders(apiKey, apiSecret, passphrase, Number(payload.limit));
-         result = { orders };
+        const limit = typeof payload.limit === "string" ? parseInt(payload.limit, 10) : payload.limit;
+        const validLimit = !isNaN(limit as number) ? limit : 20;
+        const orders = await fetchBitgetHistoryOrders(apiKey, apiSecret, passphrase, validLimit as number);
+        result = { orders };
       }
       else if (payload.type === "place-order") {
          const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
@@ -202,8 +206,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
-    const errorCode = (e as any).code;
-    const details = (e as any).details;
+    const errorCode = typeof e === "object" && e !== null && "code" in e ? (e as any).code : undefined;
+    const details = typeof e === "object" && e !== null && "details" in e ? (e as any).details : undefined;
 
     // Enhanced Logging (automatically redacted by logger)
     logger.error(`[API] Order failed: ${(body as any)?.type}`, {
@@ -459,7 +463,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     fee: formatApiNum(o.fee) || "0",
     status: o.status || "UNKNOWN",
     // Hardening: Explicitly validate time, default to 0 only if missing/invalid
-    time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+    time: (o.ctime && !isNaN(parseInt(String(o.ctime), 10))) ? parseInt(String(o.ctime), 10) : 0,
   }));
 }
 

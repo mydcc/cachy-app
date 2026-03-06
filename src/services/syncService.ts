@@ -242,7 +242,7 @@ export const syncService = {
         const fee = new Decimal(0); // Fees usually not final for open pos
 
         newEntries.push({
-          id: Date.now() + Math.random(),
+          id: crypto.randomUUID(),
           tradeId: uniqueId,
           date: new Date(parseTimestamp(p.ctime)).toISOString(),
           symbol: p.symbol,
@@ -403,7 +403,7 @@ export const syncService = {
           addedCount++;
 
           return {
-            id: Date.now() + Math.random(),
+            id: crypto.randomUUID(),
             tradeId: uniqueId,
             date: new Date(closeTime).toISOString(),
             entryDate:

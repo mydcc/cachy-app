@@ -52,13 +52,13 @@
         {
             id: "market",
             label:
-                $_("settings.trading.executionTitle") || "Market & Execution",
+                $_("settings.trading.executionTitle"),
         },
         {
             id: "chart",
-            label: $_("settings.trading.chartTitle") || "Chart & Technicals",
+            label: $_("settings.trading.chartTitle"),
         },
-        { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
+        { id: "hotkeys", label: $_("settings.tabs.hotkeys") },
     ];
 </script>
 
@@ -204,7 +204,7 @@
             <section class="settings-section animate-fade-in">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="section-title mb-0">
-                        {$_("settings.trading.chartTitle") || "Chart & Data"}
+                        {$_("settings.trading.chartTitle")}
                     </h3>
                     <button
                         class="text-xs text-[var(--accent-color)] hover:underline flex items-center gap-1"
@@ -421,7 +421,7 @@
                                     bind:checked={settingsState.showTechnicalsSummary}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.summaryAction") || "Summary"}
+                                    {$_("settings.technicals.summaryAction")}
                                 </span>
                             </label>
 
@@ -432,7 +432,7 @@
                                     bind:checked={settingsState.showTechnicalsOscillators}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.oscillators") || "Oscillators"}
+                                    {$_("settings.technicals.oscillators")}
                                 </span>
                             </label>
 
@@ -443,7 +443,7 @@
                                     bind:checked={settingsState.showTechnicalsMAs}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.movingAverages") || "Moving Avgs"}
+                                    {$_("settings.technicals.movingAverages")}
                                 </span>
                             </label>
 
@@ -458,7 +458,7 @@
                                     }}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.pivots") || "Pivots"}
+                                    {$_("settings.technicals.pivots")}
                                 </span>
                             </label>
                         </div>
@@ -467,7 +467,7 @@
                     <!-- Automation & Advanced -->
                     <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4">
                         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-                             {$_("settings.trading.automationTitle") || "Automation & Advanced"}
+                             {$_("settings.trading.automationTitle")}
                         </h4>
 
                         <label class="toggle-card mb-4">

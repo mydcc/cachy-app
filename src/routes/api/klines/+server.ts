@@ -170,7 +170,9 @@ async function fetchBitunixKlines(
   }));
 
   // Optimization: Bitunix usually returns data in descending order.
-  if (mapped.length > 1 && Number(mapped[0].timestamp) > Number(mapped[mapped.length - 1].timestamp)) {
+  const t0 = typeof mapped[0].timestamp === "string" ? parseInt(mapped[0].timestamp, 10) : mapped[0].timestamp;
+  const tn = typeof mapped[mapped.length - 1].timestamp === "string" ? parseInt(mapped[mapped.length - 1].timestamp, 10) : mapped[mapped.length - 1].timestamp;
+  if (mapped.length > 1 && (t0 as number) > (tn as number)) {
     mapped.reverse();
   }
 

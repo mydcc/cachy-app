@@ -169,10 +169,10 @@ async function fetchAllPages(
       lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
     if (timeField !== undefined && timeField !== null) {
-      const parsedTime = Number(timeField);
+      const parsedTime = typeof timeField === "string" ? parseInt(timeField, 10) : timeField;
 
-      if (!isNaN(parsedTime) && parsedTime > 0) {
-        currentEndTime = parsedTime - 1;
+      if (!isNaN(parsedTime as number) && (parsedTime as number) > 0) {
+        currentEndTime = (parsedTime as number) - 1;
       } else {
         break;
       }

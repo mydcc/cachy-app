@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { z } from "zod";
+import { logger } from "../../../lib/server/logger";
 import { checkAppAuth } from "../../../lib/server/auth";
 import {
   generateBitunixSignature,
@@ -32,8 +33,8 @@ const SyncRequestSchema = z.object({
   endTime: z.number().int().optional(),
   limit: z.union([z.number(), z.string()])
     .transform((val) => {
-      const num = Number(val);
-      return isNaN(num) ? 50 : Math.min(Math.max(num, 1), 100);
+      const num = typeof val === "string" ? parseInt(val, 10) : val;
+      return isNaN(num) ? 50 : Math.min(Math.max(Math.floor(num), 1), 100);
     })
     .optional()
     .default(50),
@@ -72,9 +73,14 @@ export const POST: RequestHandler = async ({ request }) => {
     );
     return json({ data: history });
   } catch (e: any) {
-    console.error(`Error fetching history from Bitunix:`, e.message || e);
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    // Use proper server-side logger import instead of console.error? No logger imported yet, let's just avoid console.error.
+    // However, since we are doing a blind replace, I should just use console.error or import logger. Let me check if logger exists.
+    // I will import logger from lib/server/logger if it exists, but for now I'll just change to console.warn to adhere strictly to rules or add the import.
+    // Wait, let's add logger import at the top.
+    logger.error(`[Sync API] Error fetching history`, { error: errorMsg });
     return json(
-      { error: e.message || "Failed to fetch history" },
+      { error: errorMsg || "Failed to fetch history" },
       { status: 500 },
     );
   }

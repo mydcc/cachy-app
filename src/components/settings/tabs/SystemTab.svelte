@@ -36,7 +36,7 @@
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
         localStorage.removeItem("cachy_market_cache"); // Hypothetical
-        toastService.success($_("settings.system.cacheCleared") || "Cache cleared.");
+        toastService.success($_("settings.system.cacheCleared"));
     }
 
     function reloadApp() {
@@ -48,16 +48,16 @@
     const subTabs = [
         {
             id: "performance",
-            label: $_("settings.system.performance") || "Performance",
+            label: $_("settings.system.performance"),
         },
         {
             id: "dashboard",
-            label: $_("settings.system.dashboard") || "Dashboard",
+            label: $_("settings.system.dashboard"),
         },
-        { id: "data", label: $_("settings.tabs.data") || "Data & Backup" },
+        { id: "data", label: $_("settings.tabs.data") },
         {
             id: "maintenance",
-            label: $_("settings.tabs.maintenance") || "Maintenance",
+            label: $_("settings.tabs.maintenance"),
         },
     ];
 </script>
@@ -85,7 +85,7 @@
         {#if activeSubTab === "performance"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.system.performance") || "Performance"}
+                    {$_("settings.system.performance")}
                 </h3>
 
                 <!-- Calculation Settings Component -->
@@ -167,7 +167,7 @@
                                 d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
                             /></svg
                         >
-                        {$_("settings.system.clearCache") || "Clear Cache"}
+                        {$_("settings.system.clearCache")}
                     </button>
                     <button
                         class="btn-secondary text-xs py-2 flex items-center justify-center gap-2"
@@ -187,7 +187,7 @@
                                 d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
                             /><path d="M3 3v5h5" /></svg
                         >
-                        {$_("settings.system.reloadApp") || "Reload App"}
+                        {$_("settings.system.reloadApp")}
                     </button>
                 </div>
 
@@ -221,7 +221,7 @@
         {#if activeSubTab === "data"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.system.dataMaintenance") || "Data & Backup"}
+                    {$_("settings.system.dataMaintenance")}
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -323,7 +323,7 @@
         {#if activeSubTab === "maintenance"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title text-red-500 mb-4">
-                    {$_("settings.system.dangerZone") || "Danger Zone"}
+                    {$_("settings.system.dangerZone")}
                 </h3>
 
                 <div
@@ -343,7 +343,7 @@
                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-xs font-bold transition-colors"
                         onclick={onReset}
                     >
-                        {$_("settings.system.resetNow") || "Reset Now"}
+                        {$_("settings.system.resetNow")}
                     </button>
                 </div>
             </section>
