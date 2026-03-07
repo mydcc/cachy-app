@@ -44,7 +44,7 @@
      * These are rendered within the flexbox docking bar.
      */
     let minimizedWindows = $derived(
-        windowManager.windows.filter((w) => w.isMinimized),
+        windowManager.windows.filter((w) => w.isMinimized && w.canMinimizeToPanel),
     );
 
     // Configuration from global application settings
