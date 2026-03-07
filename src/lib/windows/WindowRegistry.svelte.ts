@@ -226,7 +226,7 @@ class WindowRegistry {
 
         // --- DOCUMENTATION & INFORMATION ---
 
-        const markdownTypes: WindowType[] = ['journal', 'guide', 'changelog', 'privacy', 'whitepaper'];
+        const markdownTypes: WindowType[] = ['guide', 'changelog', 'privacy', 'whitepaper'];
         markdownTypes.forEach(t => {
             this.configs.set(t, {
                 type: t,
@@ -239,8 +239,8 @@ class WindowRegistry {
                     allowZoom: false,
                     allowFontSize: true,
                     centerByDefault: true,
-                    showHeaderIndicators: t === 'journal',
-                    allowFeedDuck: t !== 'journal'
+                    showHeaderIndicators: false,
+                    allowFeedDuck: true
                 },
                 layout: {
                     ...baseLayout,
@@ -248,6 +248,30 @@ class WindowRegistry {
                     height: 800
                 }
             });
+        });
+
+        // Journal Window overrides
+        this.configs.set('journal', {
+            type: 'journal',
+            flags: {
+                ...baseFlags,
+                isResizable: true,
+                allowMaximize: true,
+                showMaximizeButton: true,
+                showMinimizeButton: true,
+                allowMinimize: true,
+                allowZoom: false,
+                allowFontSize: false, // We set this false per instructions
+                centerByDefault: true,
+                showHeaderIndicators: true,
+                allowFeedDuck: false,
+                canMinimizeToPanel: true // Ensure it minimizes to the sidebar dock if applicable
+            },
+            layout: {
+                ...baseLayout,
+                width: 1000,
+                height: 800
+            }
         });
 
         /** Hybrid AI assistant / Side-chat window. */
