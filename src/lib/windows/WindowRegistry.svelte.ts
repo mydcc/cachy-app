@@ -265,7 +265,7 @@ class WindowRegistry {
                 centerByDefault: true,
                 showHeaderIndicators: true,
                 allowFeedDuck: false,
-                canMinimizeToPanel: true // Ensure it minimizes to the sidebar dock if applicable
+                canMinimizeToPanel: false // Minimize to LeftControlPanel instead of top dock
             },
             layout: {
                 ...baseLayout,
