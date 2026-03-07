@@ -42,27 +42,25 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  const createEvent = (urlStr: string, token?: string, useCookie = false) => {
+  const createEvent = (urlStr: string, opts?: { token?: string; sameOrigin?: boolean }) => {
     const headers = new Headers();
-    const cookies = {
-      get: vi.fn((name) => {
-        if (useCookie && name === "log_stream_token") return token;
-        return undefined;
-      })
-    };
-    if (token && !useCookie) {
-      headers.set("Authorization", `Bearer ${token}`);
+    const parsedUrl = new URL(urlStr, "http://localhost");
+    if (opts?.token) {
+      headers.set("Authorization", `Bearer ${opts.token}`);
+    }
+    if (opts?.sameOrigin) {
+      headers.set("Origin", parsedUrl.origin);
+      headers.set("Host", parsedUrl.host);
     }
     const request = {
-      url: new URL(urlStr, "http://localhost"),
+      url: parsedUrl,
       signal: new AbortController().signal,
       headers
     } as unknown as Request;
 
     return {
       request,
-      url: new URL(urlStr, "http://localhost"),
-      cookies
+      url: parsedUrl
     } as any;
   };
 
@@ -82,7 +80,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "development";
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", "dev-secret");
+    const event = createEvent("http://localhost/api/stream-logs", { token: "dev-secret" });
 
     const response = await GET(event);
 
@@ -115,7 +113,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", "wrong");
+    const event = createEvent("http://localhost/api/stream-logs", { token: "wrong" });
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -125,22 +123,34 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", "super-secret");
+    const event = createEvent("http://localhost/api/stream-logs", { token: "super-secret" });
     const response = await GET(event);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
   });
 
-  it("should allow access with correct token in cookie", async () => {
+  it("should allow access for same-origin requests", async () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", "super-secret", true);
+    const event = createEvent("http://localhost/api/stream-logs", { sameOrigin: true });
     const response = await GET(event);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
-    expect(event.cookies.get).toHaveBeenCalledWith("log_stream_token");
+  });
+
+  it("should deny access for cross-origin requests without token", async () => {
+    process.env.NODE_ENV = "production";
+    mockEnv.LOG_STREAM_KEY = "super-secret";
+
+    const event = createEvent("http://localhost/api/stream-logs");
+    // Simulate cross-origin: set Origin to a different host
+    event.request.headers.set("Origin", "http://evil.com");
+    event.request.headers.set("Host", "localhost");
+    const response = await GET(event);
+
+    expect(response.status).toBe(401);
   });
 });

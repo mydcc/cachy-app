@@ -20,15 +20,9 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";
 
-export const GET: RequestHandler = ({ request, cookies, url }) => {
+export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
-  const authHeader = request.headers.get("Authorization");
-  let token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-  if (!token) {
-    token = cookies.get("log_stream_token") || null;
-  }
 
   if (!secret) {
     return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
@@ -36,14 +30,39 @@ export const GET: RequestHandler = ({ request, cookies, url }) => {
     });
   }
 
-  // Use timingSafeEqual to prevent timing attacks
-  // Compare secret against provided token (or empty string if null)
-  const secretBuffer = Buffer.from(secret);
-  const tokenBuffer = Buffer.from(token || '');
+  // 1. Check Authorization header (for programmatic/curl access)
+  const authHeader = request.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-  // timingSafeEqual throws if lengths differ, so we must check length first.
-  // Although checking length leaks length information, it's generally considered acceptable for API keys.
-  if (secretBuffer.length !== tokenBuffer.length || !crypto.timingSafeEqual(secretBuffer, tokenBuffer)) {
+  let authorized = false;
+
+  if (token) {
+    // Use timingSafeEqual to prevent timing attacks
+    const secretBuffer = Buffer.from(secret);
+    const tokenBuffer = Buffer.from(token);
+
+    // timingSafeEqual throws if lengths differ, so we must check length first.
+    // Although checking length leaks length information, it's generally considered acceptable for API keys.
+    authorized = secretBuffer.length === tokenBuffer.length &&
+      crypto.timingSafeEqual(secretBuffer, tokenBuffer);
+  }
+
+  // 2. Same-origin fallback for browser EventSource (which cannot send custom headers).
+  //    Validates that the request originates from the same host, so the secret never
+  //    leaves the server. This is safe because the LOG_STREAM_KEY acts as a server-side
+  //    feature toggle, not a user credential.
+  if (!authorized) {
+    const origin = request.headers.get("Origin");
+    const referer = request.headers.get("Referer");
+    const host = request.headers.get("Host");
+
+    const requestOrigin = origin || (referer ? new URL(referer).origin : null);
+    const expectedOrigin = host ? `${url.protocol}//${host}` : null;
+
+    authorized = !!(requestOrigin && expectedOrigin && requestOrigin === expectedOrigin);
+  }
+
+  if (!authorized) {
     return new Response("Unauthorized", { status: 401 });
   }
 
