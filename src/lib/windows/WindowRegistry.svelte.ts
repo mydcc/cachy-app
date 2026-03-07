@@ -278,7 +278,8 @@ class WindowRegistry {
         this.configs.set('channel', {
             type: 'channel', // Requires type update in types.ts if STRICT (but mostly likely string union)
             flags: {
-                ...baseFlags
+                ...baseFlags,
+                allowMultipleInstances: true
             },
             layout: {
                 ...baseLayout,
