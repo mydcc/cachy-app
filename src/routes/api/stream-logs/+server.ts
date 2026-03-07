@@ -68,9 +68,8 @@ export const GET: RequestHandler = ({ request, url }) => {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
         } catch (err) {
-          console.error("Error sending log to stream:", err);
           cleanup();
-          controller.close();
+          try { controller.close(); } catch { /* already closed */ }
         }
       };
 
