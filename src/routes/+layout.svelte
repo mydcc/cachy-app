@@ -72,87 +72,102 @@ import { afterNavigate } from "$app/navigation";
       abortController = new AbortController();
 
       const connectStream = async () => {
-        try {
-          const adminToken = localStorage.getItem("cachy_admin_token") || "";
+        let retryDelay = 1000; // Start with 1s, mimics EventSource default
+        const maxRetryDelay = 30000;
 
-          const response = await fetch("/api/stream-logs", {
-            headers: {
-              "Authorization": `Bearer ${adminToken}` // i18n-ignore
-            },
-            signal: abortController?.signal
-          });
+        while (!abortController?.signal.aborted) {
+          try {
+            const adminToken = localStorage.getItem("cachy_admin_token") || "";
 
-          if (!response.ok || !response.body) {
-            // Silently fail if not authorized, as this is an admin-only feature
-            return;
-          }
+            const response = await fetch("/api/stream-logs", {
+              headers: {
+                "Authorization": `Bearer ${adminToken}` // i18n-ignore
+              },
+              signal: abortController?.signal
+            });
 
-          const reader = response.body!.getReader();
-          const decoder = new TextDecoder();
-          let buffer = "";
+            if (!response.ok || !response.body) {
+              // Auth failures (401/403) won't resolve by retrying
+              return;
+            }
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            // Connection succeeded — reset backoff
+            retryDelay = 1000;
 
-            buffer += decoder.decode(value, { stream: true });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
 
-            const lines = buffer.split("\n\n");
-            buffer = lines.pop() || ""; // Keep the last incomplete chunk in the buffer
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6);
-                if (!data) continue;
+              buffer += decoder.decode(value, { stream: true });
 
-                try {
-                  const logEntry = JSON.parse(data);
-                  const now = new Date();
-                  const timeStr =
-                    now.toLocaleTimeString([], {
-                      hour12: false,
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    }) +
-                    "." +
-                    now.getMilliseconds().toString().padStart(3, "0");
+              const lines = buffer.split("\n\n");
+              buffer = lines.pop() || ""; // Keep the last incomplete chunk in the buffer
 
-                  // Styling for console
-                  const clStyle =
-                    "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
-                  const timeStyle =
-                    "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
-                  const levelStyle =
-                    logEntry.level === "error"
-                      ? "color: #ff4444; font-weight: bold;"
-                      : logEntry.level === "warn"
-                        ? "color: #ffbb33; font-weight: bold;"
-                        : "color: #88ccff;";
+              for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                  const data = line.slice(6);
+                  if (!data) continue;
 
-                  // "CL | 22:10:24.572 [LEVEL] Message"
-                  console.log(
-                    `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
-                    clStyle,
-                    timeStyle,
-                    levelStyle,
-                    logEntry.data ? logEntry.data : "",
-                  );
-                } catch (e) {
-                  console.log(
-                    "%cCL:%c [RAW]",
-                    "background: #333; color: #00ff9d;",
-                    "",
-                    data,
-                  );
+                  try {
+                    const logEntry = JSON.parse(data);
+                    const now = new Date();
+                    const timeStr =
+                      now.toLocaleTimeString([], {
+                        hour12: false,
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      }) +
+                      "." +
+                      now.getMilliseconds().toString().padStart(3, "0");
+
+                    // Styling for console
+                    const clStyle =
+                      "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
+                    const timeStyle =
+                      "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
+                    const levelStyle =
+                      logEntry.level === "error"
+                        ? "color: #ff4444; font-weight: bold;"
+                        : logEntry.level === "warn"
+                          ? "color: #ffbb33; font-weight: bold;"
+                          : "color: #88ccff;";
+
+                    // "CL | 22:10:24.572 [LEVEL] Message"
+                    console.log(
+                      `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
+                      clStyle,
+                      timeStyle,
+                      levelStyle,
+                      logEntry.data ? logEntry.data : "",
+                    );
+                  } catch (e) {
+                    console.log(
+                      "%cCL:%c [RAW]",
+                      "background: #333; color: #00ff9d;",
+                      "",
+                      data,
+                    );
+                  }
                 }
               }
             }
+
+            // Stream ended (server closed connection) — fall through to retry
+          } catch (e: any) {
+            if (e.name === 'AbortError') return; // Cleanup requested, stop entirely
+            if (import.meta.env.DEV) {
+              console.error("CL: Failed to consume log stream", e);
+            }
           }
-        } catch (e: any) {
-          if (e.name !== 'AbortError' && import.meta.env.DEV) {
-            console.error("CL: Failed to consume log stream", e);
-          }
+
+          // Reconnect after delay (exponential backoff, capped at 30s)
+          await new Promise((r) => setTimeout(r, retryDelay));
+          retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
         }
       };
 
