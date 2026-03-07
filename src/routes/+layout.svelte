@@ -90,7 +90,7 @@ import { afterNavigate } from "$app/navigation";
               // For auth errors (4xx), stop retrying — admin-only feature
               if (response.status >= 400 && response.status < 500) return;
               // For transient server errors (5xx), allow retry with backoff
-              continue;
+              // Fall through to the backoff delay below
             }
 
             // Reset delay on successful connection
