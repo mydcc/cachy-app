@@ -50,15 +50,26 @@ export const GET: RequestHandler = ({ request, url }) => {
     Connection: "keep-alive",
   };
 
+  // Hoist onLog so both start() and cancel() can access it for cleanup
+  let onLog: ((logEntry: LogEntry) => void) | null = null;
+
+  const cleanup = () => {
+    if (onLog) {
+      logger.off("log", onLog);
+      onLog = null;
+    }
+  };
+
   const stream = new ReadableStream({
     start(controller) {
       // Callback function to handle new logs
-      const onLog = (logEntry: LogEntry) => {
+      onLog = (logEntry: LogEntry) => {
         try {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
         } catch (err) {
           console.error("Error sending log to stream:", err);
+          cleanup();
           controller.close();
         }
       };
@@ -75,13 +86,10 @@ export const GET: RequestHandler = ({ request, url }) => {
       controller.enqueue(`data: ${initMsg}\n\n`);
 
       // Cleanup when the connection closes
-      request.signal.addEventListener("abort", () => {
-        logger.off("log", onLog);
-      });
+      request.signal.addEventListener("abort", cleanup);
     },
     cancel() {
-      // Fallback cancel logic handled in abort listener usually,
-      // but strict cleanup here is good practice if supported environment.
+      cleanup();
     },
   });
 
