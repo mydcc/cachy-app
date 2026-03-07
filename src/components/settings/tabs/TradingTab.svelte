@@ -22,6 +22,12 @@
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
+    import {
+        HOTKEY_ACTIONS,
+        MODE1_MAP,
+        MODE2_MAP,
+        type HotkeyAction,
+    } from "../../../services/hotkeyService";
 
     const intervals = [
         {
@@ -60,6 +66,24 @@
         },
         { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
+
+    const groupedActions: Record<string, HotkeyAction[]> = {};
+    HOTKEY_ACTIONS.forEach((action) => {
+        if (!groupedActions[action.category]) {
+            groupedActions[action.category] = [];
+        }
+        groupedActions[action.category].push(action);
+    });
+    const categories = Object.keys(groupedActions);
+
+    function getPresetKey(action: HotkeyAction, mode: string): string {
+        if (mode === "mode1") {
+            return MODE1_MAP[action.id] || action.defaultKey;
+        } else if (mode === "mode2") {
+            return MODE2_MAP[action.id] || action.defaultKey;
+        }
+        return action.defaultKey;
+    }
 </script>
 
 <div class="trading-tab h-full flex flex-col" role="tabpanel" id="tab-trading">
@@ -532,20 +556,39 @@
                     </div>
                 {:else}
                     <div
-                        class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
+                        class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] flex flex-col gap-4"
                     >
-                        <p class="text-xs text-[var(--text-secondary)] mb-2">
+                        <p class="text-xs text-[var(--text-secondary)]">
                             <strong>{$_("settings.hotkeys.activePreset")}</strong>
                             {settingsState.hotkeyMode === "mode1"
                                 ? $_("settings.hotkeys.mode1Desc")
                                 : $_("settings.hotkeys.mode2Desc")}
+                            <button
+                                class="text-[var(--accent-color)] underline ml-2"
+                                onclick={() =>
+                                    (settingsState.hotkeyMode = "custom")}
+                                >{$_("settings.hotkeys.switchToCustom")}</button
+                            >
                         </p>
-                        <button
-                            class="text-xs text-[var(--accent-color)] underline"
-                            onclick={() =>
-                                (settingsState.hotkeyMode = "custom")}
-                            >{$_("settings.hotkeys.switchToCustom")}</button
-                        >
+                        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-6">
+                            {#each categories as category}
+                                <div class="flex flex-col gap-2">
+                                    <h4 class="text-sm font-bold text-[var(--accent-color)] border-b border-[var(--border-color)] pb-1 mb-1">
+                                        {category}
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {#each groupedActions[category] as action}
+                                            <div class="flex justify-between items-center p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                                <span class="text-sm">{action.label}</span>
+                                                <span class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)]">
+                                                    {getPresetKey(action, settingsState.hotkeyMode)}
+                                                </span>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
                     </div>
                 {/if}
             </section>

@@ -666,10 +666,12 @@
                             type="text"
                             bind:value={settingsState.backgroundUrl}
                             oninput={(e) => {
-                                const val = e.currentTarget.value;
-                                if (val.endsWith(".mp4"))
+                                const val = e.currentTarget.value.trim().toLowerCase();
+                                if (val.endsWith(".mp4") || val.endsWith(".webm") || val.endsWith(".ogg")) {
                                     settingsState.backgroundType = "video";
-                                else settingsState.backgroundType = "image";
+                                } else {
+                                    settingsState.backgroundType = "image";
+                                }
                             }}
                             class="input-field"
                             placeholder={$_(
