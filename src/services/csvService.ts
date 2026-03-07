@@ -339,7 +339,7 @@ export const csvService = {
           // Handle large IDs / precision loss
           // HARDENING: Replaced djb2 hash with random integer fallback to avoid collisions
           const originalIdAsString = entry.ID;
-          let internalId: number;
+          let internalId: number | string;
 
           // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
           const isTooLarge = originalIdAsString.length >= 16;
