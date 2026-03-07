@@ -767,7 +767,7 @@
         display: flex;
         align-items: center;
         overflow: hidden;
-        flex: 0 1 auto;
+        flex: 1; /* Take up remaining space so header-indicators is pushed to right */
     }
     .title-wrapper {
         display: flex;

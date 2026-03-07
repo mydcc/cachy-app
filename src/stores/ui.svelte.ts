@@ -291,6 +291,7 @@ class UiManager {
           windowType: "journal",
           width: 1200,
           height: 800,
+          allowZoom: false,
         });
         return win;
       });
