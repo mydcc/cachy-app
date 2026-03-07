@@ -19,6 +19,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './+server';
 import crypto from 'node:crypto';
 
+function computeHmac(secret: string): string {
+  return crypto.createHmac("sha256", secret).update("log_stream_auth").digest("hex");
+}
+
 // Mock dependencies
 vi.mock('$lib/server/logger', () => ({
   logger: {
@@ -45,8 +49,9 @@ describe('GET /api/stream-logs', () => {
 
     const request = new Request('http://localhost/api/stream-logs');
     const url = new URL('http://localhost/api/stream-logs');
+    const cookies = { get: vi.fn() };
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(403);
     expect(await response.text()).toContain('Log streaming is disabled');
@@ -62,8 +67,9 @@ describe('GET /api/stream-logs', () => {
         'Authorization': 'Bearer wrong-token'
       })
     });
+    const cookies = { get: vi.fn() };
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(401);
     expect(await response.text()).toBe('Unauthorized');
@@ -79,6 +85,7 @@ describe('GET /api/stream-logs', () => {
         'Authorization': 'Bearer secret-key'
       })
     });
+    const cookies = { get: vi.fn() };
 
     // Mock signal to avoid issues if environment doesn't support it fully
     Object.defineProperty(request, 'signal', {
@@ -90,23 +97,25 @@ describe('GET /api/stream-logs', () => {
         writable: true,
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
   });
 
-  it('should return 200 and stream for same-origin requests', async () => {
+  it('should return 200 and stream if HMAC cookie is correct', async () => {
     const envModule = await import('$env/dynamic/private');
     envModule.env.LOG_STREAM_KEY = 'secret-key';
 
     const url = new URL('http://localhost/api/stream-logs');
-    const request = new Request(url, {
-      headers: new Headers({
-        'Origin': 'http://localhost',
-        'Host': 'localhost'
+    const request = new Request(url);
+    const hmac = computeHmac('secret-key');
+    const cookies = {
+      get: vi.fn().mockImplementation((name: string) => {
+        if (name === 'log_stream_token') return hmac;
+        return null;
       })
-    });
+    };
 
     // Mock signal to avoid issues if environment doesn't support it fully
     Object.defineProperty(request, 'signal', {
@@ -118,25 +127,27 @@ describe('GET /api/stream-logs', () => {
         writable: true,
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+    expect(cookies.get).toHaveBeenCalledWith('log_stream_token');
   });
 
-  it('should return 401 for cross-origin requests without token', async () => {
+  it('should return 401 if HMAC cookie is invalid', async () => {
     const envModule = await import('$env/dynamic/private');
     envModule.env.LOG_STREAM_KEY = 'secret-key';
 
     const url = new URL('http://localhost/api/stream-logs');
-    const request = new Request(url, {
-      headers: new Headers({
-        'Origin': 'http://evil.com',
-        'Host': 'localhost'
+    const request = new Request(url);
+    const cookies = {
+      get: vi.fn().mockImplementation((name: string) => {
+        if (name === 'log_stream_token') return 'forged-cookie-value';
+        return null;
       })
-    });
+    };
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, cookies, url } as any);
 
     expect(response.status).toBe(401);
   });
@@ -153,8 +164,9 @@ describe('GET /api/stream-logs', () => {
         'Authorization': 'Bearer wrong-key1'
       })
     });
+    const cookies = { get: vi.fn() };
 
-    await GET({ request, url } as any);
+    await GET({ request, cookies, url } as any);
 
     expect(timingSafeEqualSpy).toHaveBeenCalled();
   });

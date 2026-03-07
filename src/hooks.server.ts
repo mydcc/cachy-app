@@ -20,6 +20,8 @@ import type { Handle } from "@sveltejs/kit";
 import { building } from "$app/environment";
 import { CONSTANTS } from "./lib/constants";
 import { logger } from "$lib/server/logger";
+import { env } from "$env/dynamic/private";
+import crypto from "node:crypto";
 
 // --- Global Console Interceptor for CachyLog ---
 // Redirects all server-side console logs to the centralized logger and SSE stream
@@ -137,4 +139,22 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-export const handle = sequence(loggingHandler, headersHandler, themeHandler);
+const logStreamCookieHandler: Handle = async ({ event, resolve }) => {
+  // Set an HMAC-derived cookie for EventSource authentication.
+  // The raw LOG_STREAM_KEY never leaves the server — only a signature is sent.
+  if (!building && env.LOG_STREAM_KEY && !event.url.pathname.startsWith('/api/')) {
+    const hmac = crypto.createHmac("sha256", env.LOG_STREAM_KEY)
+      .update("log_stream_auth")
+      .digest("hex");
+    event.cookies.set("log_stream_token", hmac, {
+      path: "/api/stream-logs",
+      httpOnly: true,
+      secure: event.url.protocol === 'https:',
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24 * 7 // 1 week
+    });
+  }
+  return resolve(event);
+};
+
+export const handle = sequence(loggingHandler, headersHandler, themeHandler, logStreamCookieHandler);

@@ -20,7 +20,7 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";
 
-export const GET: RequestHandler = ({ request, url }) => {
+export const GET: RequestHandler = ({ request, cookies }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
 
@@ -47,19 +47,21 @@ export const GET: RequestHandler = ({ request, url }) => {
       crypto.timingSafeEqual(secretBuffer, tokenBuffer);
   }
 
-  // 2. Same-origin fallback for browser EventSource (which cannot send custom headers).
-  //    Validates that the request originates from the same host, so the secret never
-  //    leaves the server. This is safe because the LOG_STREAM_KEY acts as a server-side
-  //    feature toggle, not a user credential.
+  // 2. HMAC cookie fallback for browser EventSource (which cannot send custom headers).
+  //    The cookie contains an HMAC derived from LOG_STREAM_KEY — the raw secret never
+  //    leaves the server. The cookie is set by logStreamCookieHandler in hooks.server.ts.
   if (!authorized) {
-    const origin = request.headers.get("Origin");
-    const referer = request.headers.get("Referer");
-    const host = request.headers.get("Host");
+    const cookieToken = cookies.get("log_stream_token");
+    if (cookieToken) {
+      const expectedHmac = crypto.createHmac("sha256", secret)
+        .update("log_stream_auth")
+        .digest("hex");
+      const cookieBuffer = Buffer.from(cookieToken);
+      const expectedBuffer = Buffer.from(expectedHmac);
 
-    const requestOrigin = origin || (referer ? new URL(referer).origin : null);
-    const expectedOrigin = host ? `${url.protocol}//${host}` : null;
-
-    authorized = !!(requestOrigin && expectedOrigin && requestOrigin === expectedOrigin);
+      authorized = cookieBuffer.length === expectedBuffer.length &&
+        crypto.timingSafeEqual(cookieBuffer, expectedBuffer);
+    }
   }
 
   if (!authorized) {

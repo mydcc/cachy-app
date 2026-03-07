@@ -16,6 +16,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import crypto from "node:crypto";
+
+function computeHmac(secret: string): string {
+  return crypto.createHmac("sha256", secret).update("log_stream_auth").digest("hex");
+}
 
 // Mutable mock env using vi.hoisted
 const mockEnv = vi.hoisted(() => ({
@@ -42,16 +47,18 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  const createEvent = (urlStr: string, opts?: { token?: string; sameOrigin?: boolean }) => {
+  const createEvent = (urlStr: string, opts?: { token?: string; cookieHmac?: string }) => {
     const headers = new Headers();
     const parsedUrl = new URL(urlStr, "http://localhost");
     if (opts?.token) {
       headers.set("Authorization", `Bearer ${opts.token}`);
     }
-    if (opts?.sameOrigin) {
-      headers.set("Origin", parsedUrl.origin);
-      headers.set("Host", parsedUrl.host);
-    }
+    const cookies = {
+      get: vi.fn((name: string) => {
+        if (opts?.cookieHmac && name === "log_stream_token") return opts.cookieHmac;
+        return undefined;
+      })
+    };
     const request = {
       url: parsedUrl,
       signal: new AbortController().signal,
@@ -60,7 +67,8 @@ describe("GET /api/stream-logs Security", () => {
 
     return {
       request,
-      url: parsedUrl
+      url: parsedUrl,
+      cookies
     } as any;
   };
 
@@ -130,25 +138,24 @@ describe("GET /api/stream-logs Security", () => {
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
   });
 
-  it("should allow access for same-origin requests", async () => {
+  it("should allow access with valid HMAC cookie", async () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", { sameOrigin: true });
+    const hmac = computeHmac("super-secret");
+    const event = createEvent("http://localhost/api/stream-logs", { cookieHmac: hmac });
     const response = await GET(event);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
+    expect(event.cookies.get).toHaveBeenCalledWith("log_stream_token");
   });
 
-  it("should deny access for cross-origin requests without token", async () => {
+  it("should deny access with forged cookie", async () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs");
-    // Simulate cross-origin: set Origin to a different host
-    event.request.headers.set("Origin", "http://evil.com");
-    event.request.headers.set("Host", "localhost");
+    const event = createEvent("http://localhost/api/stream-logs", { cookieHmac: "forged-value" });
     const response = await GET(event);
 
     expect(response.status).toBe(401);
