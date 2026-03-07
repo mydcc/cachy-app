@@ -50,4 +50,11 @@ export class IframeWindow extends WindowBase {
             allow: "fullscreen"
         };
     }
+
+    public serialize(): any {
+        return {
+            ...super.serialize(),
+            url: this.url
+        };
+    }
 }
