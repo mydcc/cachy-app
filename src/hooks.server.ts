@@ -144,7 +144,7 @@ const authHandler: Handle = async ({ event, resolve }) => {
     event.cookies.set("log_stream_token", env.LOG_STREAM_KEY, {
       path: "/api/stream-logs",
       httpOnly: true,
-      secure: true,
+      secure: event.url.protocol === 'https:',
       sameSite: "strict",
       maxAge: 60 * 60 * 24 * 7 // 1 week
     });
