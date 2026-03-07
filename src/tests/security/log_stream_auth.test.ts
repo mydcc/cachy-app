@@ -16,11 +16,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import crypto from "node:crypto";
-
-function computeHmac(secret: string): string {
-  return crypto.createHmac("sha256", secret).update("log_stream_auth").digest("hex");
-}
 
 // Mutable mock env using vi.hoisted
 const mockEnv = vi.hoisted(() => ({
@@ -47,29 +42,16 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  const createEvent = (urlStr: string, opts?: { token?: string; cookieHmac?: string }) => {
+  const createRequest = (urlStr: string, token?: string) => {
     const headers = new Headers();
-    const parsedUrl = new URL(urlStr, "http://localhost");
-    if (opts?.token) {
-      headers.set("Authorization", `Bearer ${opts.token}`);
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
     }
-    const cookies = {
-      get: vi.fn((name: string) => {
-        if (opts?.cookieHmac && name === "log_stream_token") return opts.cookieHmac;
-        return undefined;
-      })
-    };
-    const request = {
-      url: parsedUrl,
+    return {
+      url: new URL(urlStr, "http://localhost"),
       signal: new AbortController().signal,
       headers
     } as unknown as Request;
-
-    return {
-      request,
-      url: parsedUrl,
-      cookies
-    } as any;
   };
 
   it("should deny access in development mode without token", async () => {
@@ -77,7 +59,7 @@ describe("GET /api/stream-logs Security", () => {
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
     // Simulate Request
-    const event = createEvent("http://localhost/api/stream-logs");
+    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
 
     const response = await GET(event);
 
@@ -88,7 +70,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "development";
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", { token: "dev-secret" });
+    const event = { request: createRequest("http://localhost/api/stream-logs", "dev-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
 
     const response = await GET(event);
 
@@ -100,7 +82,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = undefined;
 
-    const event = createEvent("http://localhost/api/stream-logs");
+    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
     const response = await GET(event);
 
     expect(response.status).toBe(403);
@@ -111,7 +93,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs");
+    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -121,7 +103,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", { token: "wrong" });
+    const event = { request: createRequest("http://localhost/api/stream-logs", "wrong"), url: new URL("http://localhost/api/stream-logs") } as any;
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -131,33 +113,10 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = createEvent("http://localhost/api/stream-logs", { token: "super-secret" });
+    const event = { request: createRequest("http://localhost/api/stream-logs", "super-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
     const response = await GET(event);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
-  });
-
-  it("should allow access with valid HMAC cookie", async () => {
-    process.env.NODE_ENV = "production";
-    mockEnv.LOG_STREAM_KEY = "super-secret";
-
-    const hmac = computeHmac("super-secret");
-    const event = createEvent("http://localhost/api/stream-logs", { cookieHmac: hmac });
-    const response = await GET(event);
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("text/event-stream");
-    expect(event.cookies.get).toHaveBeenCalledWith("log_stream_token");
-  });
-
-  it("should deny access with forged cookie", async () => {
-    process.env.NODE_ENV = "production";
-    mockEnv.LOG_STREAM_KEY = "super-secret";
-
-    const event = createEvent("http://localhost/api/stream-logs", { cookieHmac: "forged-value" });
-    const response = await GET(event);
-
-    expect(response.status).toBe(401);
   });
 });

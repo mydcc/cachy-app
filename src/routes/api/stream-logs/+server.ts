@@ -20,9 +20,11 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";
 
-export const GET: RequestHandler = ({ request, cookies }) => {
+export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
+  const authHeader = request.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!secret) {
     return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
@@ -30,41 +32,14 @@ export const GET: RequestHandler = ({ request, cookies }) => {
     });
   }
 
-  // 1. Check Authorization header (for programmatic/curl access)
-  const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  // Use timingSafeEqual to prevent timing attacks
+  // Compare secret against provided token (or empty string if null)
+  const secretBuffer = Buffer.from(secret);
+  const tokenBuffer = Buffer.from(token || '');
 
-  let authorized = false;
-
-  if (token) {
-    // Use timingSafeEqual to prevent timing attacks
-    const secretBuffer = Buffer.from(secret);
-    const tokenBuffer = Buffer.from(token);
-
-    // timingSafeEqual throws if lengths differ, so we must check length first.
-    // Although checking length leaks length information, it's generally considered acceptable for API keys.
-    authorized = secretBuffer.length === tokenBuffer.length &&
-      crypto.timingSafeEqual(secretBuffer, tokenBuffer);
-  }
-
-  // 2. HMAC cookie fallback for browser EventSource (which cannot send custom headers).
-  //    The cookie contains an HMAC derived from LOG_STREAM_KEY — the raw secret never
-  //    leaves the server. The cookie is set by logStreamCookieHandler in hooks.server.ts.
-  if (!authorized) {
-    const cookieToken = cookies.get("log_stream_token");
-    if (cookieToken) {
-      const expectedHmac = crypto.createHmac("sha256", secret)
-        .update("log_stream_auth")
-        .digest("hex");
-      const cookieBuffer = Buffer.from(cookieToken);
-      const expectedBuffer = Buffer.from(expectedHmac);
-
-      authorized = cookieBuffer.length === expectedBuffer.length &&
-        crypto.timingSafeEqual(cookieBuffer, expectedBuffer);
-    }
-  }
-
-  if (!authorized) {
+  // timingSafeEqual throws if lengths differ, so we must check length first.
+  // Although checking length leaks length information, it's generally considered acceptable for API keys.
+  if (secretBuffer.length !== tokenBuffer.length || !crypto.timingSafeEqual(secretBuffer, tokenBuffer)) {
     return new Response("Unauthorized", { status: 401 });
   }
 
