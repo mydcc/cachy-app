@@ -87,8 +87,10 @@ import { afterNavigate } from "$app/navigation";
             });
 
             if (!response.ok || !response.body) {
-              // Silently fail if not authorized, as this is an admin-only feature
-              return;
+              // For auth errors (4xx), stop retrying — admin-only feature
+              if (response.status >= 400 && response.status < 500) return;
+              // For transient server errors (5xx), allow retry with backoff
+              continue;
             }
 
             // Reset delay on successful connection
