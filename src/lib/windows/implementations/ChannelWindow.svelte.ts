@@ -37,10 +37,10 @@ export class ChannelWindow extends WindowBase {
 
     constructor(url: string, title = "Galaxy Chat", id?: string, options: any = {}) {
         super({
+            ...options,
             title,
             windowType: 'channel',
             id: id ?? options.id,
-            ...options
         });
 
         // Stabilize ID for context-specific channels.
