@@ -77,7 +77,7 @@ import { afterNavigate } from "$app/navigation";
 
           const response = await fetch("/api/stream-logs", {
             headers: {
-              "Authorization": `Bearer ${adminToken}`
+              "Authorization": `Bearer ${adminToken}` // i18n-ignore
             },
             signal: abortController?.signal
           });
