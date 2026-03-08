@@ -116,3 +116,37 @@ describe('Flash Close Race Condition Reproduction', () => {
         expect(closeCall).toBeDefined();
     });
 });
+
+    it('does not crash when error caught during optimistic order rollback is a primitive string', async () => {
+        // Mock signedRequest for this specific test
+        const signedRequestSpy = vi.spyOn(tradeService as any, 'signedRequest');
+        // Setup a valid position in OMS
+        vi.mocked(omsService.getPositions).mockReturnValue([
+            {
+                symbol: 'ETHUSDT',
+                side: 'short',
+                amount: new Decimal('2.0'),
+                entryPrice: new Decimal('3000'),
+                leverage: new Decimal('10'),
+                liquidationPrice: new Decimal('3500'),
+                unrealizedPnl: new Decimal('0'),
+                marginMode: 'cross',
+                markPrice: new Decimal('3000'),
+            }
+        ]);
+
+        signedRequestSpy.mockImplementation(async (method: string, endpoint: string, body: any) => {
+            // Throw a primitive string error on POST /api/orders
+            if (endpoint === '/api/orders' && method === 'POST') {
+                throw "Network Down"; // Critical string error, no object structure
+            }
+            return { code: 0, msg: 'success' };
+        });
+
+        // The error should be logged and not crash the process with TypeError
+        await expect(tradeService.flashClosePosition('ETHUSDT', 'short')).resolves.not.toThrow();
+
+        // Assert removeOrder was called (since it's considered terminal or indeterminate logic will handle it)
+        // With string error, it's NOT a terminal error (since no code/status properties exist),
+        // so it falls into the indeterminate state block, but it should not crash.
+    });

@@ -132,6 +132,14 @@ export class MarketManager {
       clearInterval(this.telemetryIntervalId);
       this.telemetryIntervalId = null;
     }
+    if (this.notifyTimer) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
+    }
+    if (this.statusNotifyTimer) {
+      clearTimeout(this.statusNotifyTimer);
+      this.statusNotifyTimer = null;
+    }
     this.cacheMetadata.clear();
     this.pendingUpdates.clear();
     this.backingBuffers.clear();
