@@ -468,7 +468,10 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => { };
+      ws.onerror = (err) => {
+        // W-1: Log WS errors instead of silently swallowing them
+        this.handleInternalError("public", err);
+      };
     } catch (e) {
       this.scheduleReconnect("public");
     }
@@ -594,9 +597,9 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {
-          // [HYBRID FIX] Quietly handle connection errors
-          // logger.warn("network", "[BitunixWS] Private connection error", error);
+      ws.onerror = (err) => {
+          // W-1: Log WS errors instead of silently swallowing them
+          this.handleInternalError("private", err);
       };
     } catch (e) {
       // Catch synchronous errors (e.g. invalid URL or browser blocking)
