@@ -15,12 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { JSDOM } from 'jsdom';
-import DOMPurify from 'dompurify';
-
-const window = new JSDOM('').window;
-// Cast to any to bypass strict type mismatch between JSDOM Window and DOMPurify WindowLike
-const purify = DOMPurify(window as unknown as any);
+import sanitizeHtml from 'sanitize-html';
 
 /**
  * Sanitizes user input for storage.
@@ -32,11 +27,13 @@ const purify = DOMPurify(window as unknown as any);
 export function sanitizeChatInput(text: string): string {
     if (!text) return "";
 
-    return purify.sanitize(text, {
-        ALLOWED_TAGS: [], // Disallow all HTML tags
-        KEEP_CONTENT: true, // Keep text content of stripped tags (except script/style)
-        WHOLE_DOCUMENT: false,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false
+    return sanitizeHtml(text, {
+        allowedTags: [], // Disallow all HTML tags
+        allowedAttributes: {}, // Disallow all attributes
+        textFilter: function(text, tagName) {
+            // By default sanitizeHtml drops the content of <script> and <style> automatically when allowedTags is empty,
+            // but preserves content of formatting tags.
+            return text;
+        }
     });
 }
