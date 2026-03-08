@@ -115,7 +115,6 @@ describe('Flash Close Race Condition Reproduction', () => {
         const closeCall = calls.find((call: any) => call[1] === '/api/orders' && call[2] && call[2].side === 'SELL');
         expect(closeCall).toBeDefined();
     });
-});
 
     it('does not crash when error caught during optimistic order rollback is a primitive string', async () => {
         // Mock signedRequest for this specific test
@@ -150,3 +149,4 @@ describe('Flash Close Race Condition Reproduction', () => {
         // With string error, it's NOT a terminal error (since no code/status properties exist),
         // so it falls into the indeterminate state block, but it should not crash.
     });
+});
