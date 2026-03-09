@@ -13,7 +13,6 @@
   import { uiState } from "../../stores/ui.svelte";
   import { newsStore } from "../../stores/news.svelte";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
-  import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import CachyIcon from "./CachyIcon.svelte";
@@ -81,9 +80,9 @@
     newsStore.refresh(symbol, true);
   }
 
-  function handleArticleClick(e: MouseEvent, url: string, title: string) {
+  function handleArticleClick(e: MouseEvent, url: string, _title: string) {
     e.preventDefault();
-    windowManager.open(new IframeWindow(url, title));
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 </script>
 
