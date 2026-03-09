@@ -253,6 +253,10 @@ export const newsService = {
             try {
               res = await fetch("/api/external/news", {
                 method: "POST",
+                headers: {
+                  "x-app-access-token": settingsState.appAccessToken || "",
+                  "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                   source: "cryptopanic",
                   apiKey: cryptoPanicApiKey,
@@ -307,6 +311,10 @@ export const newsService = {
             try {
               res = await fetch("/api/external/news", {
                 method: "POST",
+                headers: {
+                  "x-app-access-token": settingsState.appAccessToken || "",
+                  "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                   source: "newsapi",
                   apiKey: newsApiKey,
