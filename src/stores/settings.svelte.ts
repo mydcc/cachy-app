@@ -947,10 +947,14 @@ export class SettingsManager {
         for (const [key, blob] of Object.entries(this.encryptedSecrets)) {
            if (SENSITIVE_KEYS.includes(key as any)) {
              tasks.push((async () => {
-               const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
-               if (aborted) return;
-               // @ts-ignore
-               this[key] = decrypted;
+               try {
+                 const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
+                 if (aborted) return;
+                 // @ts-ignore
+                 this[key] = decrypted;
+               } catch (e) {
+                 console.error("[Settings] Failed to decrypt secret " + key, e);
+               }
              })());
            }
         }
