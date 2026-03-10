@@ -656,9 +656,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                   }))
                   : [],
               oscillators: Object.fromEntries(
-                Object.entries(data.oscillators).map(([k, v]) => [
-                  k,
-                  Number(Number(v).toFixed(2)),
+                data.oscillators.map((v) => [
+                  v.name,
+                  new Decimal(v.value || 0).toFixed(2),
                 ]),
               ),
               movingAverages: data.movingAverages.map((m) => ({
@@ -701,7 +701,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 timeframe: trendTimeframe,
                 summary: trendData.summary, // e.g. "STRONG_BUY"
                 ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
-                rsi: Number((trendData.oscillators as any)["RSI"]?.toFixed(2)) || "N/A"
+                rsi: trendData.oscillators.find(o => o.name === "RSI")?.value?.toFixed(2) ?? "N/A"
               };
             }
           }
