@@ -658,7 +658,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               oscillators: Object.fromEntries(
                 Object.entries(data.oscillators).map(([k, v]) => [
                   k,
-                  typeof v === 'number' ? new Decimal(v).toFixed(2) : new Decimal((v as any).value || 0).toFixed(2),
+                  typeof v === 'object' && v !== null && 'name' in v ? [(v as any).name, new Decimal((v as any).value || 0).toFixed(2)] : [k, new Decimal(typeof v === 'number' ? v : 0).toFixed(2)],
                 ]),
               ),
               movingAverages: data.movingAverages.map((m) => ({
