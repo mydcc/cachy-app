@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Window } from 'happy-dom';
+import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
 
-const window = new Window();
-// Cast to any to bypass strict type mismatch between HappyDOM Window and DOMPurify WindowLike
+const window = new JSDOM('').window;
+// Cast to any to bypass strict type mismatch between JSDOM Window and DOMPurify WindowLike
 const purify = DOMPurify(window as unknown as any);
 
 /**

@@ -337,25 +337,24 @@ export const csvService = {
           }
 
           // Handle large IDs / precision loss
-          // HARDENING: Replaced djb2 hash with UUID fallback to avoid collisions and precision loss
+          // HARDENING: Replaced djb2 hash with random integer fallback to avoid collisions
           const originalIdAsString = entry.ID;
-          let internalId: string | number;
+          let internalId: number;
 
-          // HARDENING: Avoid parseFloat entirely to prevent precision loss.
-          // Check if string contains only digits and is within SafeInteger bounds
-          if (/^\d+$/.test(originalIdAsString) && originalIdAsString.length < 16) {
-              const parsedInt = parseInt(originalIdAsString, 10);
-              if (Number.isSafeInteger(parsedInt)) {
-                  internalId = parsedInt;
-              } else {
-                  internalId = crypto.randomUUID();
-              }
-          } else if (typeof originalIdAsString === "string" && originalIdAsString.length > 0) {
-              // If it's a UUID or non-numeric string ID from an exchange, just use it
-              internalId = originalIdAsString;
+          // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
+          const isTooLarge = originalIdAsString.length >= 16;
+          const parsedId = isTooLarge ? NaN : parseFloat(originalIdAsString);
+
+          const isSafe = !isTooLarge &&
+                         !isNaN(parsedId) &&
+                         Number.isSafeInteger(parsedId);
+
+          if (isSafe) {
+            internalId = parsedId;
           } else {
-              // Generate a safe unique internal UUID
-              internalId = crypto.randomUUID();
+            // Generate a safe unique internal ID (Timestamp + Random)
+            // This ensures uniqueness during the import session better than a hash
+            internalId = Date.now() + Math.floor(Math.random() * 1000000);
           }
 
           const importedTrade: JournalEntry = {

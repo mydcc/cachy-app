@@ -581,7 +581,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     // Calculate Portfolio Stats
     const totalTrades = journal.length;
     const wins = journal.filter(
-      (t: JournalEntry) => new Decimal(t.totalNetProfit || 0).gt(0),
+      (t: JournalEntry) => new Decimal(new Decimal(t.totalNetProfit || 0)).toNumber() > 0,
     ).length;
     const winrate =
       totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + "%" : "0%";
@@ -607,13 +607,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
     const recentTrades = Array.isArray(journal)
       ? journal.slice(0, limit).map((t: JournalEntry) => {
-        const pnlDecimal = new Decimal(t.totalNetProfit || 0);
+        const pnlNum = new Decimal(new Decimal(t.totalNetProfit || 0)).toNumber();
         return {
           symbol: t.symbol,
           entry: t.entryDate,
           exit: t.exitDate,
-          pnl: pnlDecimal.toFixed(4), // Provide formatted string to AI
-          won: pnlDecimal.gt(0),
+          pnl: pnlNum,
+          won: pnlNum > 0,
         };
       })
       : [];
@@ -640,7 +640,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               summary: data.summary,
               confluence: data.confluence
                 ? {
-                  score: new Decimal(data.confluence.score).toFixed(2),
+                  score: Number(data.confluence.score.toFixed(2)),
                   level: data.confluence.level,
                   contributing: data.confluence.contributing,
                 }
@@ -651,19 +651,19 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     type: d.type,
                     indicator: d.indicator,
                     side: d.side,
-                    priceStart: new Decimal(d.priceStart).toFixed(4),
-                    priceEnd: new Decimal(d.priceEnd).toFixed(4),
+                    priceStart: Number(d.priceStart).toFixed(4),
+                    priceEnd: Number(d.priceEnd).toFixed(4),
                   }))
                   : [],
               oscillators: Object.fromEntries(
                 Object.entries(data.oscillators).map(([k, v]) => [
                   k,
-                  new Decimal(v as number).toFixed(2),
+                  typeof v === 'number' ? new Decimal(v).toFixed(2) : new Decimal((v as any).value || 0).toFixed(2),
                 ]),
               ),
               movingAverages: data.movingAverages.map((m) => ({
                 name: m.name,
-                value: new Decimal(m.value).toFixed(4),
+                value: Number(Number(m.value).toFixed(4)),
                 action: m.action,
               })),
               pivots: data.pivots?.classic ? {
@@ -671,16 +671,16 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 classic: Object.fromEntries(
                   Object.entries(data.pivots.classic).map(([k, v]) => [
                     k,
-                    new Decimal(v).toFixed(4),
+                    Number(v).toFixed(4),
                   ]),
                 ),
               } : undefined,
               volatility: data.volatility
                 ? {
-                  atr: new Decimal(data.volatility.atr ?? 0).toFixed(4),
+                  atr: Number(Number(data.volatility.atr ?? 0).toFixed(4)),
                   bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
-                    ? new Decimal(data.volatility.bb.percentP).toFixed(2)
-                    : "0.00",
+                    ? Number(Number(data.volatility.bb.percentP).toFixed(2))
+                    : 0,
                 }
                 : "N/A",
             };
@@ -701,7 +701,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 timeframe: trendTimeframe,
                 summary: trendData.summary, // e.g. "STRONG_BUY"
                 ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
-                rsi: (trendData.oscillators as any)["RSI"] ? new Decimal((trendData.oscillators as any)["RSI"]).toFixed(2) : "N/A"
+                rsi: Number((trendData.oscillators as any)["RSI"]?.toFixed(2)) || "N/A"
               };
             }
           }
@@ -751,7 +751,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         const totalVol = totalBidVol.plus(totalAskVol);
         const bidRatio = totalVol.isZero() ? new Decimal(0.5) : totalBidVol.div(totalVol);
 
-        imbalance = bidRatio.times(100).toFixed(1) + "% Bids";
+        imbalance = (bidRatio.times(100).toNumber()).toFixed(1) + "% Bids";
 
         if (bidRatio.gt(0.8)) imbalanceStatus = "Extreme Buy Pressure (Snapshot)";
         else if (bidRatio.gt(0.6)) imbalanceStatus = "Bullish Skew (Snapshot)";
@@ -772,7 +772,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           ? marketData.lowPrice.toString()
           : undefined,
         volume24h: marketData.volume
-          ? new Decimal(marketData.volume).round().toNumber().toLocaleString()
+          ? Math.round(Number(marketData.volume)).toLocaleString()
           : undefined,
         fundingRate: marketData.fundingRate
           ? marketData.fundingRate.times(100).toFixed(4) + "%"
@@ -788,10 +788,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             spreadStatus,
             topBids: marketData.depth.bids
               .slice(0, 3)
-              .map((b: any) => new Decimal(b[0]).toString()),
+              .map((b: any) => Number(b[0])),
             topAsks: marketData.depth.asks
               .slice(0, 3)
-              .map((a: any) => new Decimal(a[0]).toString()),
+              .map((a: any) => Number(a[0])),
           }
           : null,
       };
@@ -803,7 +803,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       activeSymbol: symbol,
       REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
       priceChange24h: marketData?.priceChangePercent
-        ? new Decimal(marketData.priceChangePercent).toFixed(2) + "%"
+        ? Number(marketData.priceChangePercent).toFixed(2) + "%"
         : "Unknown",
       marketDetails,
       technicals: technicalsContext,

@@ -41,9 +41,10 @@ ${largeId},2023-01-01,12:00,BTCUSDT,Long,CLOSED,50000,49000`;
         const result = csvService.parseCSVContent(csvContent);
         const trade = result[0];
 
-        // Internal ID should be preserved as string (UUID or original large ID) to prevent precision loss
-        expect(typeof trade.id).toBe('string');
-        expect(trade.id).toBe(largeId); // Should exactly match the original large ID as string
+        // Internal ID should be a safe number (generated timestamp+random)
+        expect(typeof trade.id).toBe('number');
+        expect(Number.isSafeInteger(trade.id)).toBe(true);
+        expect(trade.id).not.toBe(parseFloat(largeId)); // Should NOT match the unsafe float parse
 
         // External ID should be preserved exactly as string
         expect(trade.tradeId).toBe(largeId);
