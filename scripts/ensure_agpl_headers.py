@@ -18,6 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>."""
 EXTENSIONS = {
     '.ts': 'block',
     '.js': 'block',
+    '.cjs': 'block',
+    '.mjs': 'block',
     '.css': 'block',
     '.scss': 'block',
     '.svelte': 'html',
