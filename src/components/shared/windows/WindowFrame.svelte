@@ -373,7 +373,7 @@
                         win.toggleMaximize();
                     } else if (win.doubleClickBehavior === "pin") {
                         win.togglePin();
-                    } else if (win.allowMinimize && win.doubleClickBehavior === "minimize") {
+                    } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
                         win.minimize();
                     }
                 }
