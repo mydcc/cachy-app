@@ -238,7 +238,20 @@ export const syncService = {
           (e) => String(e.tradeId) === uniqueId,
         );
         if (existingEntry) {
-          pendingEntries.push(existingEntry);
+          // Refresh live fields from the fresh API payload while
+          // preserving user-editable fields (notes, tags, screenshot)
+          const funding = new Decimal(p.funding || 0);
+          const fee = new Decimal(0);
+          const refreshed: JournalEntry = {
+            ...existingEntry,
+            entryPrice: new Decimal(p.entryPrice || 0),
+            leverage: new Decimal(p.leverage || 0),
+            totalNetProfit: new Decimal(p.unrealizedPNL || 0),
+            positionSize: new Decimal(p.qty || p.size || 0),
+            totalFees: fee.abs().plus(funding.abs()),
+            fundingFee: funding,
+          };
+          pendingEntries.push(refreshed);
           continue;
         }
 
