@@ -234,10 +234,13 @@ export const syncService = {
       for (const p of pendingPositions) {
         const uniqueId = String(p.positionId || `OPEN-${p.symbol}-${p.ctime}`);
 
-        const exists = journalState.entries.some(
+        const existingEntry = journalState.entries.find(
           (e) => String(e.tradeId) === uniqueId,
         );
-        if (exists) continue;
+        if (existingEntry) {
+          pendingEntries.push(existingEntry);
+          continue;
+        }
 
         const funding = new Decimal(p.funding || 0);
         const fee = new Decimal(0); // Fees usually not final for open pos
