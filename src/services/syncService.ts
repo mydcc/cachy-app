@@ -284,7 +284,10 @@ export const syncService = {
 
       const filteredHistory = historyPositions.filter((p: any) => {
         const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
-        return !existingHistoryIds.has(uniqueId);
+        if (existingHistoryIds.has(uniqueId)) return false;
+        // Track ID to deduplicate within the API response itself
+        existingHistoryIds.add(uniqueId);
+        return true;
       });
 
       const totalItems = filteredHistory.length;
