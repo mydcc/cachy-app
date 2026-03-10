@@ -66,7 +66,7 @@ In an era of data breaches, Cachy takes a radical stance: **We don't want your d
 Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 
 - **Frontend**: A rich Single Page Application (SPA) powered by SvelteKit. It handles 95% of the logic, including data processing, chart rendering, and state management.
-- **Backend (Serverless/Node)**: A lightweight API Proxy layer hosted within SvelteKit (`src/routes/api/`). Its primary purpose is to sign requests for exchanges (Bitunix/Binance) securely without exposing API Secrets to the client, and to handle AI-driven diagnostics.
+- **Backend (Serverless/Node)**: A lightweight API Proxy layer hosted within SvelteKit (`src/routes/api/`). Its primary purpose is to sign requests for exchanges (Bitunix/Bitget) securely without exposing API Secrets to the client, and to handle AI-driven diagnostics.
 
 ### Technology Stack
 
@@ -424,7 +424,7 @@ _Component: `app.ts` (Sync Logic)_
 
 ## 5. External Integrations & Data Feeds
 
-Cachy aims to be exchange-agnostic but currently optimizes for **Bitunix** (primary) and **Binance** (secondary).
+Cachy aims to be exchange-agnostic but currently optimizes for **Bitunix** (primary) and **Bitget** (secondary).
 
 ### Exchange Connectivity
 
@@ -432,7 +432,7 @@ Connectivity is handled via the `src/services/apiService.ts` abstraction layer. 
 
 **Normalization Strategy**:
 
-- Exchanges format data differently (e.g., Bitunix uses `lastPrice`, Binance uses `price`).
+- Exchanges format data differently (e.g., Bitunix uses `lastPrice`, Bitget uses `price`).
 - The Service layer normalizes all responses into a standard `Ticker24h` or `Kline` interface before passing data to the UI.
 - _Specific Handling_: Bitunix Futures symbols often end in `.P` or `USDTP`. The normalizer strictly strips these suffixes to maintain clean UI symbols (e.g., `BTCUSDT`).
 

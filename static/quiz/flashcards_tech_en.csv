@@ -1,7 +1,7 @@
 What is the primary purpose of the web application Cachy?,"Precise calculation of position sizes, risk management, and maintaining a trading journal for crypto traders."
 Based on which three factors does Cachy automatically calculate the optimal position size?,"Account size, Risk in $\%$, and Stop-Loss."
 Explain the 'Dual Locking System' in Cachy's trading calculator.,It allows locking the position size (to adjust risk) or the risk amount (to adjust position size).
-What is the ATR (Average True Range) integration in Cachy primarily used for?,To dynamically calculate Stop-Loss values based on market data from Binance or Bitunix.
+What is the ATR (Average True Range) integration in Cachy primarily used for?,To dynamically calculate Stop-Loss values based on market data from Bitget or Bitunix.
 "Where does Cachy store sensitive data like API keys, settings, and journal entries?",Exclusively locally in the user's browser (`localStorage`).
 How many Take-Profit targets can be defined for a trade in Cachy at most?,Up to 5 Take-Profit targets can be set.
 "What happens to the percentage distribution of Take-Profit targets when adjustments are made?","It automatically balances itself to always sum up to exactly $100\%$."
@@ -14,7 +14,7 @@ Which timeframes are available for automatic ATR retrieval?,"5m, 15m, 1h, 4h, an
 How many favorite symbols can be stored in the sidebar for quick access?,Maximum 4 symbols.
 Which status options can be assigned to a trade in the integrated journal?,"Open, Won, and Lost."
 In which format can journal data be exported for use in Excel?,In CSV format.
-Which two major crypto exchanges are supported as data sources for real-time prices?,Bitunix (Standard) and Binance.
+Which two major crypto exchanges are supported as data sources for real-time prices?,Bitunix (Standard) and Bitget.
 What is the advantage of 'Presets' in Cachy settings?,Frequently used setups (e.g., for scalping strategies) can be saved for quick access.
 Which keyboard shortcut opens the journal in Cachy?,Alt+J
 With which key can modals (dialog windows) be quickly closed in the application?,With the Escape key.

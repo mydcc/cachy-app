@@ -1,7 +1,7 @@
 Was ist der primäre Zweck der Web-Anwendung Cachy?,"Die präzise Berechnung von Positionsgrößen, Risikomanagement und das Führen eines Handelstagebuchs für Krypto-Trader."
 Auf welchen drei Faktoren basiert die automatische Berechnung der optimalen Positionsgröße in Cachy?,"Kontogröße, Risiko in $\%$ und Stop-Loss."
 Erkläre das 'Dual Locking System' im Trading-Rechner von Cachy.,Es erlaubt das Sperren der Positionsgröße (um das Risiko anzupassen) oder des Risikobetrags (um die Positionsgröße anzupassen).
-Wofür wird die ATR-Integration (Average True Range) in Cachy primär genutzt?,Zur dynamischen Berechnung von Stop-Loss-Werten basierend auf Marktdaten von Binance oder Bitunix.
+Wofür wird die ATR-Integration (Average True Range) in Cachy primär genutzt?,Zur dynamischen Berechnung von Stop-Loss-Werten basierend auf Marktdaten von Bitget oder Bitunix.
 "Wo speichert Cachy sensible Daten wie API-Schlüssel, Einstellungen und Journal-Einträge?",Ausschließlich lokal im Browser des Nutzers (`localStorage`).
 Wie viele Take-Profit-Ziele können in Cachy maximal für einen Trade definiert werden?,Es können bis zu 5 Take-Profit-Ziele festgelegt werden.
 "Was geschieht mit der prozentualen Verteilung der Take-Profit-Ziele, wenn Anpassungen vorgenommen werden?","Sie gleicht sich automatisch aus, um in der Summe immer genau $100\%$ zu ergeben."
@@ -14,7 +14,7 @@ Welche Zeitrahmen (Timeframes) stehen für den automatischen ATR-Abruf zur Verf�
 Wie viele Favoriten-Symbole können für den Schnellzugriff in der Sidebar gespeichert werden?,Maximal 4 Symbole.
 Welche Status-Optionen können einem Trade im integrierten Journal zugewiesen werden?,"Offen (Open), Gewonnen (Won) und Verloren (Lost)."
 In welchem Format können Journal-Daten für die Nutzung in Excel exportiert werden?,Im CSV-Format.
-Welche zwei großen Krypto-Börsen werden als Datenquellen für Echtzeitpreise unterstützt?,Bitunix (Standard) und Binance.
+Welche zwei großen Krypto-Börsen werden als Datenquellen für Echtzeitpreise unterstützt?,Bitunix (Standard) und Bitget.
 Was ist der Vorteil von 'Presets' in den Cachy-Einstellungen?,Häufig genutzte Setups (z. B. für Scalping-Strategien) können für den schnellen Zugriff gespeichert werden.
 Welche Tastenkombination öffnet in Cachy das Journal?,Alt+J
 Mit welcher Taste können Modals (Dialogfenster) in der Anwendung schnell geschlossen werden?,Mit der Escape-Taste.
