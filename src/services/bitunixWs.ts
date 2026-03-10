@@ -906,9 +906,9 @@ class BitunixWebSocketService {
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
-                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
-                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
-                          nextFundingTime: data.nft ? String(data.nft) : undefined
+                          indexPrice: ip !== undefined && ip !== null && ip !== "" ? new Decimal(ip) : undefined,
+                          fundingRate: fr !== undefined && fr !== null && fr !== "" ? new Decimal(fr) : undefined,
+                          nextFundingTime: nft !== undefined && nft !== null && nft !== "" ? String(nft) : undefined
                         });
                     }
                     return;
@@ -1227,9 +1227,9 @@ class BitunixWebSocketService {
           const d = priceData.data;
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: d.ip ? String(d.ip) : undefined,
-            fundingRate: d.fr ? String(d.fr) : undefined,
-            nextFundingTime: d.nft ? String(d.nft) : undefined
+            indexPrice: d.ip !== undefined && d.ip !== null && d.ip !== "" ? String(d.ip) : undefined,
+            fundingRate: d.fr !== undefined && d.fr !== null && d.fr !== "" ? String(d.fr) : undefined,
+            nextFundingTime: d.nft !== undefined && d.nft !== null && d.nft !== "" ? String(d.nft) : undefined
           });
         }
       } else if (validatedChannel === "ticker") {
