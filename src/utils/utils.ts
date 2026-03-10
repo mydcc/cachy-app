@@ -366,7 +366,7 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
   if (!trade || typeof trade !== "object") {
     // Return a minimal valid dummy if completely malformed
     return {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       date: new Date().toISOString(),
       symbol: "UNKNOWN",
       tradeType: "long",
