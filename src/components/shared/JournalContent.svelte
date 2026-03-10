@@ -336,7 +336,7 @@
         }
     }
 
-    function confirmDeleteTrade(tradeId: number) {
+    function confirmDeleteTrade(tradeId: string | number) {
         if (confirm($_("journal.confirmDelete"))) {
             app.deleteTrade(tradeId);
         }
@@ -383,7 +383,7 @@
         avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
     });
 
-    async function handleScreenshotUpload(id: number, file: File) {
+    async function handleScreenshotUpload(id: string | number, file: File) {
         try {
             uiState.isLoading = true;
             uiState.loadingMessage = $_("journal.messages.uploading");

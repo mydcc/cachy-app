@@ -340,7 +340,7 @@ export const app = {
       ...currentAppState.currentTradeData,
       notes: currentAppState.tradeNotes,
       tags: currentAppState.tags || [],
-      id: Date.now(),
+      id: crypto.randomUUID(),
       date: new Date().toISOString(),
       entryDate: new Date().toISOString(),
     } as JournalEntry;
@@ -351,9 +351,9 @@ export const app = {
     uiState.showFeedback("save");
   },
 
-  updateTradeStatus: async (id: number, newStatus: string) => {
+  updateTradeStatus: async (id: string | number, newStatus: string) => {
     const journalData = app.getJournal();
-    const tradeIndex = journalData.findIndex((t) => t.id == id);
+    const tradeIndex = journalData.findIndex((t) => t.id === id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex].status = newStatus;
       await app.saveJournal(journalData);
@@ -361,9 +361,9 @@ export const app = {
     }
   },
 
-  updateTrade: async (id: number, updates: Partial<JournalEntry>) => {
+  updateTrade: async (id: string | number, updates: Partial<JournalEntry>) => {
     const journalData = app.getJournal();
-    const tradeIndex = journalData.findIndex((t) => t.id == id);
+    const tradeIndex = journalData.findIndex((t) => t.id === id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex] = { ...journalData[tradeIndex], ...updates };
       await app.saveJournal(journalData);
@@ -371,8 +371,8 @@ export const app = {
     }
   },
 
-  deleteTrade: async (id: number) => {
-    const d = app.getJournal().filter((t) => t.id != id);
+  deleteTrade: async (id: string | number) => {
+    const d = app.getJournal().filter((t) => t.id !== id);
     await app.saveJournal(d);
     journalState.set(d);
   },
