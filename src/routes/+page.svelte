@@ -36,7 +36,6 @@ import { indicatorState } from "../stores/indicator.svelte";
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { windowManager } from "../lib/windows/WindowManager.svelte";
   import { favoritesState } from "../stores/favorites.svelte";
-  import { modalState } from "../stores/modal.svelte";
   import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
   import { get } from "svelte/store"; // Import get

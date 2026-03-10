@@ -20,7 +20,6 @@
     import * as THREE from "three";
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
-    import { modalState } from "../../stores/modal.svelte";
     import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
     import { browser } from "$app/environment";
@@ -52,7 +51,9 @@
             windowManager.isOpen("guide") ||
             windowManager.isOpen("privacy") ||
             windowManager.isOpen("whitepaper") ||
-            windowManager.isOpen("changelog");
+            windowManager.isOpen("changelog") ||
+            windowManager.isOpen("dialog") ||
+            windowManager.isOpen("symbolpicker");
         // Note: Academy and MarketDashboard flags are checked from stores if needed,
         // but it seems they might also be windows now. For safety, we remove legacy uiState checks
         // that caused errors. If they are in windowManager, isOpen will catch them if we knew IDs.
