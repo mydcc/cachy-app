@@ -378,7 +378,7 @@ export function clearApiCache() {
 }
 
 export const apiService = {
-  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget"): string {
+  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget" | string): string {
     return normalizeSymbol(symbol, provider);
   },
 

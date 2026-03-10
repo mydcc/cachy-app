@@ -468,7 +468,7 @@ describe("app service - ATR and Locking Logic", () => {
       isPro: true,
       apiKeys: {
         bitunix: { key: "k", secret: "s" },
-        binance: { key: "", secret: "" },
+        bitget: { key: "", secret: "", passphrase: "" },
       },
     });
     journalState.set([]); // Clear journal
