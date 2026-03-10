@@ -146,7 +146,7 @@ export interface CurrentTradeData
 }
 
 export interface JournalEntry {
-  id: number;
+  id: number | string;
   date: string;
   entryDate?: string; // For duration calculation
   exitDate?: string; // New field for duration calculation

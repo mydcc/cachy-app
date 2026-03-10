@@ -352,7 +352,7 @@ export const app = {
     uiState.showFeedback("save");
   },
 
-  updateTradeStatus: async (id: number, newStatus: string) => {
+  updateTradeStatus: async (id: number | string, newStatus: string) => {
     const journalData = app.getJournal();
     const tradeIndex = journalData.findIndex((t) => t.id == id);
     if (tradeIndex !== -1) {
@@ -362,7 +362,7 @@ export const app = {
     }
   },
 
-  updateTrade: async (id: number, updates: Partial<JournalEntry>) => {
+  updateTrade: async (id: number | string, updates: Partial<JournalEntry>) => {
     const journalData = app.getJournal();
     const tradeIndex = journalData.findIndex((t) => t.id == id);
     if (tradeIndex !== -1) {
@@ -372,7 +372,7 @@ export const app = {
     }
   },
 
-  deleteTrade: async (id: number) => {
+  deleteTrade: async (id: number | string) => {
     const d = app.getJournal().filter((t) => t.id != id);
     await app.saveJournal(d);
     journalState.set(d);
