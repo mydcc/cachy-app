@@ -285,6 +285,12 @@ export const syncService = {
         currentJournal.map((j) => String(j.tradeId || j.id)),
       );
 
+      // Also exclude positions already tracked as pending to avoid duplicates
+      // when the same positionId appears in both pending and history responses
+      for (const pe of pendingEntries) {
+        if (pe.tradeId) existingHistoryIds.add(String(pe.tradeId));
+      }
+
       const filteredHistory = historyPositions.filter((p: any) => {
         const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
         if (existingHistoryIds.has(uniqueId)) return false;
