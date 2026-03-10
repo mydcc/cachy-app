@@ -42,10 +42,15 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  const createRequest = (urlStr: string) => {
+  const createRequest = (urlStr: string, token?: string) => {
+    const headers = new Headers();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
     return {
       url: new URL(urlStr, "http://localhost"),
-      signal: new AbortController().signal
+      signal: new AbortController().signal,
+      headers
     } as unknown as Request;
   };
 
@@ -65,7 +70,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "development";
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs?token=dev-secret"), url: new URL("http://localhost/api/stream-logs?token=dev-secret") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs", "dev-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
 
     const response = await GET(event);
 
@@ -98,7 +103,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs?token=wrong"), url: new URL("http://localhost/api/stream-logs?token=wrong") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs", "wrong"), url: new URL("http://localhost/api/stream-logs") } as any;
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -108,7 +113,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs?token=super-secret"), url: new URL("http://localhost/api/stream-logs?token=super-secret") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs", "super-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
     const response = await GET(event);
 
     expect(response.status).toBe(200);

@@ -43,7 +43,8 @@ const MAX_CACHE_SIZE = 100;
 // Security: Allowlist for RSS sources (SSRF Protection)
 const ALLOWED_DOMAINS = [
   "cointelegraph.com", "coindesk.com", "decrypt.co", "theblock.co",
-  "rss.app", "polymarket.com", "medium.com"
+  "rss.app", "polymarket.com", "medium.com", "bitcoinmagazine.com",
+  "feeds.feedburner.com"
 ];
 
 function isUrlAllowed(urlStr: string): boolean {

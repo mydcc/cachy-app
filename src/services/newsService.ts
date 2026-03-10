@@ -253,6 +253,10 @@ export const newsService = {
             try {
               res = await fetch("/api/external/news", {
                 method: "POST",
+                headers: {
+                  "x-app-access-token": settingsState.appAccessToken || "",
+                  "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                   source: "cryptopanic",
                   apiKey: cryptoPanicApiKey,
@@ -268,7 +272,7 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              newsItems = data.results.map((item: any) => ({
+              newsItems = (Array.isArray(data?.results) ? data.results : []).map((item: any) => ({
                 title: item.title,
                 url: item.url,
                 source: item.source?.title || "Unknown",
@@ -307,6 +311,10 @@ export const newsService = {
             try {
               res = await fetch("/api/external/news", {
                 method: "POST",
+                headers: {
+                  "x-app-access-token": settingsState.appAccessToken || "",
+                  "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                   source: "newsapi",
                   apiKey: newsApiKey,
@@ -324,7 +332,7 @@ export const newsService = {
               const mapped = data.articles.map((item: any) => ({
                 title: item.title,
                 url: item.url,
-                source: item.source.name,
+                source: item.source?.name ?? "Unknown",
                 published_at: item.publishedAt,
                 currencies: [],
                 id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
@@ -429,7 +437,9 @@ export const newsService = {
 
   async analyzeSentiment(news: NewsItem[]): Promise<SentimentAnalysis | null> {
     if (news.length === 0) return null;
-    const newsHash = news[0].title;
+    const newsHash = CryptoJS.SHA256(
+        news.slice(0, 10).map(n => `${n.published_at}|${n.title}`).join('||')
+    ).toString();
 
     if (pendingSentimentFetches.has(newsHash)) {
       return pendingSentimentFetches.get(newsHash)!;
