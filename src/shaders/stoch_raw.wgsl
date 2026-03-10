@@ -6,8 +6,6 @@
 
 struct Params {
     k_len: u32,
-    k_smooth: u32,
-    d_len: u32,
     data_len: u32,
 };
 
