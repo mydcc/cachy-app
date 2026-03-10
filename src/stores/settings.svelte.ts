@@ -1459,8 +1459,8 @@ export class SettingsManager {
       apiKeys: this.isEncrypted ?
         { bitunix: { key: "", secret: "" }, bitget: { key: "", secret: "", passphrase: "" } } :
         $state.snapshot(this.apiKeys),
-      encryptedApiKeys: this.encryptedApiKeys,
-      encryptedSecrets: this.encryptedSecrets,
+      encryptedApiKeys: this.encryptedApiKeys ? $state.snapshot(this.encryptedApiKeys) : undefined,
+      encryptedSecrets: this.encryptedSecrets ? $state.snapshot(this.encryptedSecrets) : undefined,
       isEncrypted: this.isEncrypted,
       customHotkeys: $state.snapshot(this.customHotkeys),
       favoriteTimeframes: $state.snapshot(this.favoriteTimeframes),
