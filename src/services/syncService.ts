@@ -229,7 +229,8 @@ export const syncService = {
         symbolSlMap[k].sort((a, b) => a.ctime - b.ctime);
       });
 
-      // Process Pending (Open) Positions - No Changes Here
+      // Process Pending (Open) Positions
+      const pendingEntries: JournalEntry[] = [];
       for (const p of pendingPositions) {
         const uniqueId = String(p.positionId || `OPEN-${p.symbol}-${p.ctime}`);
 
@@ -241,7 +242,7 @@ export const syncService = {
         const funding = new Decimal(p.funding || 0);
         const fee = new Decimal(0); // Fees usually not final for open pos
 
-        newEntries.push({
+        const pendingEntry: JournalEntry = {
           id: crypto.randomUUID(),
           tradeId: uniqueId,
           date: new Date(parseTimestamp(p.ctime)).toISOString(),
@@ -269,7 +270,9 @@ export const syncService = {
           calculatedTpDetails: [],
           tags: [],
           fundingFee: funding,
-        });
+        };
+        pendingEntries.push(pendingEntry);
+        newEntries.push(pendingEntry);
         addedCount++;
       }
 
@@ -466,6 +469,24 @@ export const syncService = {
         }
 
         processedItems += batch.length;
+      }
+
+      // Persist pending (open) positions after all history batches are done.
+      // The history batch loop filters out stale synced open positions
+      // (isManual === false && status === "Open") before each save, so
+      // freshly-fetched pending entries must be re-added here.
+      if (pendingEntries.length > 0) {
+        const currentJournalState = journalState.entries;
+        const keptJournal = currentJournalState.filter(
+          (j) => !(j.isManual === false && j.status === "Open"),
+        );
+        const updatedJournal = [...keptJournal, ...pendingEntries];
+        updatedJournal.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
+
+        journalState.set(updatedJournal);
+        await syncService.saveJournal(updatedJournal);
       }
 
       // Final feedback - trades already added incrementally
