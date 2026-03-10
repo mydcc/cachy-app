@@ -436,16 +436,7 @@ class BitunixWebSocketService {
 
           const message = safeJsonParse(rawData || event.data);
 
-          if (import.meta.env.DEV) {
-             const raw = typeof event.data === 'string' ? event.data : '';
-             // Check if we have potential large integers unquoted (>= 15 digits)
-             if (raw && /:\s*-?\d{15,}/.test(raw)) {
-                  const unsafe = JSON.parse(raw);
-                  if (JSON.stringify(message) === JSON.stringify(unsafe)) {
-                      console.warn("[BitunixWS] WARNING: Large integer detected but safeJsonParse did not alter the result. Potential regex failure?", raw);
-                  }
-             }
-          }
+
 
           this.handleMessage(message, "public");
         } catch (e) {
@@ -566,16 +557,7 @@ class BitunixWebSocketService {
 
           const message = safeJsonParse(rawData || event.data);
 
-          if (import.meta.env.DEV) {
-             const raw = typeof event.data === 'string' ? event.data : '';
-             // Check if we have potential large integers unquoted (>= 15 digits)
-             if (raw && /:\s*-?\d{15,}/.test(raw)) {
-                  const unsafe = JSON.parse(raw);
-                  if (JSON.stringify(message) === JSON.stringify(unsafe)) {
-                      console.warn("[BitunixWS] WARNING: Large integer detected but safeJsonParse did not alter the result. Potential regex failure?", raw);
-                  }
-             }
-          }
+
 
           this.handleMessage(message, "private");
         } catch (e) {
