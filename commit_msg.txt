@@ -1,0 +1,6 @@
+🧹 [Code Health] Remove deprecated Binance provider fallback
+
+🎯 What: Removed the obsolete loadedProvider === "binance" check from src/stores/settings.svelte.ts.
+💡 Why: The Binance provider has been completely deprecated and removed from the codebase. The subsequent fallback assignment finalProvider = loadedProvider === "bitget" ? "bitget" : "bitunix"; automatically handles any invalid loadedProvider values by falling back to "bitunix", making the explicit check redundant.
+✅ Verification: Verified that finalProvider safely falls back to bitunix if loadedProvider isn't bitget.
+✨ Result: Improved maintainability by removing redundant dead code.

@@ -38,7 +38,7 @@ describe('marketWatcher fillGaps', () => {
         });
 
         // Fixed pattern: Every 20 candles, introduce a gap of 5 candles
-        if ((i + 1) % 20 === 0) {
+        if (i % 20 === 19) {
             // Gap of 5 minutes
             currentTime += (5 + 1) * intervalMs;
         } else {

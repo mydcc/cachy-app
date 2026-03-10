@@ -56,13 +56,11 @@ export const DATA_REQUIREMENTS = {
 export const REQUIREMENT_TO_CHANNELS: Record<string, string[]> = {
   // Public channels
   'ticker': ['ticker'],
-  'price': ['price'],
   'depth': ['depth_book5'],
   
   // Private channels
   'positions': ['positions'],
   'orders': ['orders'],
-  
   
   // Kline channels are handled separately (timeframe-specific)
   // e.g., 'kline_1h', 'kline_5m', etc.

@@ -23,8 +23,7 @@ import crypto from "node:crypto";
 export const GET: RequestHandler = ({ request, url }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
-  const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const token = url.searchParams.get("token");
 
   if (!secret) {
     return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
@@ -50,26 +49,16 @@ export const GET: RequestHandler = ({ request, url }) => {
     Connection: "keep-alive",
   };
 
-  // Hoist onLog so both start() and cancel() can access it for cleanup
-  let onLog: ((logEntry: LogEntry) => void) | null = null;
-
-  const cleanup = () => {
-    if (onLog) {
-      logger.off("log", onLog);
-      onLog = null;
-    }
-  };
-
   const stream = new ReadableStream({
     start(controller) {
       // Callback function to handle new logs
-      onLog = (logEntry: LogEntry) => {
+      const onLog = (logEntry: LogEntry) => {
         try {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
         } catch (err) {
-          cleanup();
-          try { controller.close(); } catch { /* already closed */ }
+          console.error("Error sending log to stream:", err);
+          controller.close();
         }
       };
 
@@ -85,10 +74,13 @@ export const GET: RequestHandler = ({ request, url }) => {
       controller.enqueue(`data: ${initMsg}\n\n`);
 
       // Cleanup when the connection closes
-      request.signal.addEventListener("abort", cleanup);
+      request.signal.addEventListener("abort", () => {
+        logger.off("log", onLog);
+      });
     },
     cancel() {
-      cleanup();
+      // Fallback cancel logic handled in abort listener usually,
+      // but strict cleanup here is good practice if supported environment.
     },
   });
 

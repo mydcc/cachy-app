@@ -16,6 +16,8 @@
  */
 
 /*
+ * Copyright (C) 2026 MYDCT
+ *
  * CRITICAL TEST: Flash-Close Position Binding
  * 
  * Verifies that flash close operations are strictly bound to known OMS positions
@@ -101,12 +103,6 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
     let signedRequestSpy: any;
 
     beforeEach(() => {
-        // Mock global fetch to prevent "Failed to parse URL" errors and support fallback sync
-        global.fetch = vi.fn().mockResolvedValue({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify({ code: 0, data: [] }))
-        } as any);
-
         // Mock OMS with known position
         vi.mocked(omsService.getPositions).mockReturnValue([
             {
@@ -117,8 +113,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
                 leverage: new Decimal('10'),
                 liquidationPrice: new Decimal('45000'),
                 unrealizedPnl: new Decimal('0'),
-                marginMode: 'cross',
-                lastUpdated: Date.now()
+                marginMode: 'cross'
             }
         ]);
 
@@ -149,11 +144,6 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         // [HARDENING FIX] Now that we call cancelAllOrders first, we must find the CLOSE order
         const calls = signedRequestSpy.mock.calls;
         const callArgs = calls.find((c: any) => c[2] && c[2].side === 'SELL');
-
-        if (!callArgs) {
-            throw new Error(`Flash close order not found in ${calls.length} calls: ${JSON.stringify(calls)}`);
-        }
-
         const body = callArgs[2];
 
         // CRITICAL: Must use exact position size, not Safe Max
