@@ -1146,19 +1146,23 @@ export class SettingsManager {
            // We need to trigger this async but load is sync.
            // We'll launch a background decryption.
            (async () => {
-             const deviceKey = await this.getDeviceKey();
-             const entries = Object.entries(this.encryptedSecrets || {});
-             await Promise.all(entries.map(async ([key, blob]) => {
-               try {
-                 const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
-                 if (SENSITIVE_KEYS.includes(key as any)) {
-                   // @ts-ignore
-                   this[key] = decrypted;
+             try {
+               const deviceKey = await this.getDeviceKey();
+               const entries = Object.entries(this.encryptedSecrets || {});
+               await Promise.all(entries.map(async ([key, blob]) => {
+                 try {
+                   const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
+                   if (SENSITIVE_KEYS.includes(key as any)) {
+                     // @ts-ignore
+                     this[key] = decrypted;
+                   }
+                 } catch (e) {
+                   console.error("[Settings] Failed to decrypt secret " + key, e);
                  }
-               } catch (e) {
-                 console.error("[Settings] Failed to decrypt secret " + key, e);
-               }
-             }));
+               }));
+             } catch (e) {
+               console.error("[Settings] Failed to initialize background decryption", e);
+             }
            })();
         }
       }
