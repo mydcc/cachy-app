@@ -170,7 +170,14 @@ class CryptoServiceImpl {
         }
       } else if (this.sessionBaseKey && !password) {
         salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
-        key = await this.getSessionKeyForSalt(salt, ["encrypt"]);
+        // Derive key directly without caching — fresh random salts are never reused
+        key = await window.crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+          this.sessionBaseKey,
+          { name: "AES-GCM", length: KEY_SIZE },
+          false,
+          ["encrypt", "decrypt"]
+        );
       } else if (typeof password === 'string' && password) {
         salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
         key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
