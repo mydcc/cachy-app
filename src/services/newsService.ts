@@ -14,6 +14,7 @@ import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
 import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 import { dbService } from "./dbService";
+import { RequestDeduplicator } from "../utils/requestDeduplicator";
 import { z } from "zod";
 import CryptoJS from "crypto-js";
 import { safeJsonParse } from "../utils/safeJson";
@@ -119,11 +120,8 @@ interface NewsCacheEntry {
 }
 
 // Deduplication trackers
-const pendingNewsFetches = new Map<string, Promise<NewsItem[]>>();
-const pendingSentimentFetches = new Map<
-  string,
-  Promise<SentimentAnalysis | null>
->();
+const pendingNewsFetches = new RequestDeduplicator<NewsItem[]>();
+const pendingSentimentFetches = new RequestDeduplicator<SentimentAnalysis | null>();
 
 const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 mins
 
@@ -191,11 +189,7 @@ export const newsService = {
     const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
 
     // Check if a request for this symbol is already in progress
-    if (pendingNewsFetches.has(symbolKey)) {
-      return pendingNewsFetches.get(symbolKey)!;
-    }
-
-    const fetchPromise = (async (): Promise<NewsItem[]> => {
+    return pendingNewsFetches.execute(symbolKey, async (): Promise<NewsItem[]> => {
       try {
         // 1. Cache-Validierung (ASYNC with IDB)
         const cached = await dbService.get<NewsCacheEntry>("news", cacheKey);
@@ -427,12 +421,9 @@ export const newsService = {
 
         return newsItems;
       } finally {
-        pendingNewsFetches.delete(symbolKey);
+        // RequestDeduplicator automatically removes the promise
       }
-    })();
-
-    pendingNewsFetches.set(symbolKey, fetchPromise);
-    return fetchPromise;
+    });
   },
 
   async analyzeSentiment(news: NewsItem[]): Promise<SentimentAnalysis | null> {
@@ -441,12 +432,8 @@ export const newsService = {
         news.slice(0, 10).map(n => `${n.published_at}|${n.title}`).join('||')
     ).toString();
 
-    if (pendingSentimentFetches.has(newsHash)) {
-      return pendingSentimentFetches.get(newsHash)!;
-    }
-
     // Immer serverseitig, kein allowClientSideAi mehr
-    const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
+    return pendingSentimentFetches.execute(newsHash, async (): Promise<SentimentAnalysis | null> => {
       try {
         // IDB Read
         const cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
@@ -518,11 +505,8 @@ export const newsService = {
           keyFactors: [],
         };
       } finally {
-        pendingSentimentFetches.delete(newsHash);
+        // RequestDeduplicator automatically removes the promise
       }
-    })();
-
-    pendingSentimentFetches.set(newsHash, analysisPromise);
-    return analysisPromise;
+    });
   },
 };
