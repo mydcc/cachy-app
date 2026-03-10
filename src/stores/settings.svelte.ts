@@ -920,15 +920,22 @@ export class SettingsManager {
     if (!success) return false;
 
     try {
+      const tasks: Promise<void>[] = [];
+
       // 1. Decrypt Exchange Keys
       if (this.encryptedApiKeys) {
-        if (this.encryptedApiKeys.bitunix) {
-          const json = await cryptoService.decrypt(this.encryptedApiKeys.bitunix);
-          this.apiKeys.bitunix = JSON.parse(json);
+        const eak = this.encryptedApiKeys;
+        if (eak.bitunix) {
+          tasks.push((async () => {
+            const json = await cryptoService.decrypt(eak.bitunix!);
+            this.apiKeys.bitunix = JSON.parse(json);
+          })());
         }
-        if (this.encryptedApiKeys.bitget) {
-          const json = await cryptoService.decrypt(this.encryptedApiKeys.bitget);
-          this.apiKeys.bitget = JSON.parse(json);
+        if (eak.bitget) {
+          tasks.push((async () => {
+            const json = await cryptoService.decrypt(eak.bitget!);
+            this.apiKeys.bitget = JSON.parse(json);
+          })());
         }
       }
 
@@ -936,16 +943,20 @@ export class SettingsManager {
       if (this.encryptedSecrets) {
         for (const [key, blob] of Object.entries(this.encryptedSecrets)) {
            if (SENSITIVE_KEYS.includes(key as any)) {
-             try {
-               const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
-               // @ts-ignore
-               this[key] = decrypted;
-             } catch (e) {
-               console.error("[Settings] Failed to decrypt secret " + key, e);
-             }
+             tasks.push((async () => {
+               try {
+                 const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
+                 // @ts-ignore
+                 this[key] = decrypted;
+               } catch (e) {
+                 console.error("[Settings] Failed to decrypt secret " + key, e);
+               }
+             })());
            }
         }
       }
+
+      await Promise.all(tasks);
 
       this.isLocked = false;
       return true;
@@ -978,14 +989,20 @@ export class SettingsManager {
     if (!browser) return;
     await cryptoService.unlockSession(password);
 
-    // 1. Encrypt Exchange Keys
-    const bitunixBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
-    const bitgetBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
+    const tasks: Promise<void>[] = [];
 
-    this.encryptedApiKeys = {
-      bitunix: bitunixBlob,
-      bitget: bitgetBlob
-    };
+    // 1. Encrypt Exchange Keys
+    tasks.push((async () => {
+      const blob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
+      if (!this.encryptedApiKeys) this.encryptedApiKeys = {};
+      this.encryptedApiKeys.bitunix = blob;
+    })());
+
+    tasks.push((async () => {
+      const blob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
+      if (!this.encryptedApiKeys) this.encryptedApiKeys = {};
+      this.encryptedApiKeys.bitget = blob;
+    })());
 
     // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
     // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
@@ -995,15 +1012,19 @@ export class SettingsManager {
       // @ts-ignore
       const value = this[key];
       if (typeof value === 'string' && value.length > 0) {
-         try {
-           // Encrypt with Session Key (implied)
-           const blob = await cryptoService.encrypt(value);
-           this.encryptedSecrets[key] = blob;
-         } catch (e) {
-           console.error("Failed to re-encrypt " + key, e);
-         }
+         tasks.push((async () => {
+           try {
+             // Encrypt with Session Key (implied)
+             const blob = await cryptoService.encrypt(value);
+             this.encryptedSecrets![key] = blob;
+           } catch (e) {
+             console.error("Failed to re-encrypt " + key, e);
+           }
+         })());
       }
     }
+
+    await Promise.all(tasks);
 
     this.isEncrypted = true;
     this.isLocked = false;
@@ -1116,7 +1137,8 @@ export class SettingsManager {
            // We'll launch a background decryption.
            (async () => {
              const deviceKey = await this.getDeviceKey();
-             for (const [key, blob] of Object.entries(this.encryptedSecrets || {})) {
+             const entries = Object.entries(this.encryptedSecrets || {});
+             await Promise.all(entries.map(async ([key, blob]) => {
                try {
                  const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
                  if (SENSITIVE_KEYS.includes(key as any)) {
@@ -1126,7 +1148,7 @@ export class SettingsManager {
                } catch (e) {
                  console.error("[Settings] Failed to decrypt secret " + key, e);
                }
-             }
+             }));
            })();
         }
       }
@@ -1342,7 +1364,7 @@ export class SettingsManager {
       }
 
       if (canEncrypt) {
-        for (const key of SENSITIVE_KEYS) {
+        const encryptionTasks = SENSITIVE_KEYS.map(async (key) => {
           // @ts-ignore
           const value = data[key];
 
@@ -1351,7 +1373,7 @@ export class SettingsManager {
             try {
               // Encrypt
               const blob = await cryptoService.encrypt(value, encryptionPassword);
-              data.encryptedSecrets[key] = blob;
+              data.encryptedSecrets![key] = blob;
 
               // Redact plain text from saved object
               // @ts-ignore
@@ -1365,7 +1387,8 @@ export class SettingsManager {
               data[key] = "";
             }
           }
-        }
+        });
+        await Promise.all(encryptionTasks);
       } else {
         // Locked mode: Ensure plain text fields are empty
         for (const key of SENSITIVE_KEYS) {
