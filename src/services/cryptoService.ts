@@ -44,18 +44,22 @@ const SECURE_STORE_NAME = "keys";
 const DEVICE_KEY_ALIAS = "device_key";
 
 class CryptoServiceImpl {
-  private sessionKey: CryptoKey | null = null;
-  private sessionSalt: Uint8Array | null = null; // To verify if salt matches
+  private sessionPassword: string | null = null;
+  // Cache derived keys by salt to avoid redundant PBKDF2 derivations
+  private sessionKeyCache: Map<string, CryptoKey> = new Map();
 
   /**
-   * Unlocks the session by deriving and caching the key.
-   * Returns true if successful (simple check).
+   * Unlocks the session by caching the password for key derivation.
+   * Keys are derived on-demand per salt during encrypt/decrypt.
+   * Returns true if successful.
    */
   async unlockSession(password: string): Promise<boolean> {
     try {
-      const salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
-      this.sessionKey = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
-      this.sessionSalt = salt;
+      // Verify the password can be used for key derivation
+      const testSalt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
+      await this.deriveKeyFromPassword(password, testSalt, STRONG_ITERATIONS, "SHA-256");
+      this.sessionPassword = password;
+      this.sessionKeyCache.clear();
       return true;
     } catch (e) {
       console.error("Failed to unlock session", e);
@@ -64,12 +68,27 @@ class CryptoServiceImpl {
   }
 
   lockSession() {
-    this.sessionKey = null;
-    this.sessionSalt = null;
+    this.sessionPassword = null;
+    this.sessionKeyCache.clear();
   }
 
   isUnlocked(): boolean {
-    return this.sessionKey !== null;
+    return this.sessionPassword !== null;
+  }
+
+  /**
+   * Derives (or retrieves from cache) a key for the given salt using the session password.
+   */
+  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[]): Promise<CryptoKey> {
+    if (!this.sessionPassword) {
+      throw new Error("Session locked and no password provided");
+    }
+    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer);
+    const cached = this.sessionKeyCache.get(saltKey);
+    if (cached) return cached;
+    const key = await this.deriveKeyFromPassword(this.sessionPassword, salt, STRONG_ITERATIONS, "SHA-256");
+    this.sessionKeyCache.set(saltKey, key);
+    return key;
   }
 
   // --- Core Crypto Operations ---
@@ -131,9 +150,9 @@ class CryptoServiceImpl {
           key = password;
           salt = new Uint8Array(SALT_SIZE); // Dummy salt for blob consistency
         }
-      } else if (this.sessionKey && !password) {
-        key = this.sessionKey;
-        salt = this.sessionSalt!;
+      } else if (this.sessionPassword && !password) {
+        salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
+        key = await this.getSessionKeyForSalt(salt, ["encrypt"]);
       } else if (typeof password === 'string' && password) {
         salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
         key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
@@ -185,13 +204,9 @@ class CryptoServiceImpl {
         } else {
           key = password;
         }
-      } else if (this.sessionKey && !password) {
-        // Verify salt matches session
-        if (this.sessionSalt && this.arraysEqual(salt, this.sessionSalt)) {
-          key = this.sessionKey;
-        } else {
-          throw new Error("Data salt does not match session salt. Verification required.");
-        }
+      } else if (this.sessionPassword && !password) {
+        // Re-derive key from session password + blob's salt
+        key = await this.getSessionKeyForSalt(salt, ["decrypt"]);
       } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
         if (blob.method === "AES-GCM") {
@@ -312,12 +327,6 @@ class CryptoServiceImpl {
     });
   }
 
-  // Helper
-  private arraysEqual(a: Uint8Array, b: Uint8Array) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-    return true;
-  }
 }
 
 // Internal Utils
