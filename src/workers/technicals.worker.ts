@@ -69,9 +69,8 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
     }
     else if (type === "INITIALIZE") {
         if (!id) throw new Error("INITIALIZE requires an ID");
-        // Payload contains full history (usually AoS)
-        const klines = payload.klines;
-        const len = klines.length;
+        // Payload contains SOA transferred arrays
+        const len = payload.times.length;
 
         // Allocate buffers with some headroom
         const capacity = Math.max(len + 100, 1000);
@@ -86,15 +85,12 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
             capacity: capacity
         };
 
-        for(let i=0; i<len; i++) {
-            const k = klines[i];
-            hist.times[i] = k.time;
-            hist.opens[i] = parseFloat(k.open);
-            hist.highs[i] = parseFloat(k.high);
-            hist.lows[i] = parseFloat(k.low);
-            hist.closes[i] = parseFloat(k.close);
-            hist.volumes[i] = parseFloat(k.volume);
-        }
+        hist.times.set(payload.times);
+        hist.opens.set(payload.opens);
+        hist.highs.set(payload.highs);
+        hist.lows.set(payload.lows);
+        hist.closes.set(payload.closes);
+        hist.volumes.set(payload.volumes);
 
         historyCache.set(payload.cacheKey || id, hist);
 
@@ -166,20 +162,20 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         if (time === lastTime) {
             // Replace last
             const i = hist.length - 1;
-            hist.opens[i] = parseFloat(k.open);
-            hist.highs[i] = parseFloat(k.high);
-            hist.lows[i] = parseFloat(k.low);
-            hist.closes[i] = parseFloat(k.close);
-            hist.volumes[i] = parseFloat(k.volume);
+            hist.opens[i] = k.open;
+            hist.highs[i] = k.high;
+            hist.lows[i] = k.low;
+            hist.closes[i] = k.close;
+            hist.volumes[i] = k.volume;
         } else if (time > lastTime) {
             // Append
             const i = hist.length;
             hist.times[i] = time;
-            hist.opens[i] = parseFloat(k.open);
-            hist.highs[i] = parseFloat(k.high);
-            hist.lows[i] = parseFloat(k.low);
-            hist.closes[i] = parseFloat(k.close);
-            hist.volumes[i] = parseFloat(k.volume);
+            hist.opens[i] = k.open;
+            hist.highs[i] = k.high;
+            hist.lows[i] = k.low;
+            hist.closes[i] = k.close;
+            hist.volumes[i] = k.volume;
             hist.length++;
         }
 
