@@ -50,6 +50,19 @@ ${largeId},2023-01-01,12:00,BTCUSDT,Long,CLOSED,50000,49000`;
         expect(trade.tradeId).toBe(largeId);
     });
 
+    it('should preserve UUID IDs during CSV round-trip (re-import)', () => {
+        const uuid = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+        const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss
+${uuid},2023-01-01,12:00,BTCUSDT,Long,CLOSED,50000,49000`;
+
+        const result = csvService.parseCSVContent(csvContent);
+        const trade = result[0];
+
+        // UUID should be preserved exactly as-is for deduplication
+        expect(trade.id).toBe(uuid);
+        expect(typeof trade.id).toBe('string');
+    });
+
     it('should handle standard safe IDs correctly', () => {
         const safeId = "12345";
         const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss
