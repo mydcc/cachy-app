@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sanitizeHtml } from './sanitizer';
+import { sanitizeChatInput as sanitizeHtml } from './sanitizer';
 
 let browserValue = true;
 
