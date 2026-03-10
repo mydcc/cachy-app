@@ -44,21 +44,33 @@ const SECURE_STORE_NAME = "keys";
 const DEVICE_KEY_ALIAS = "device_key";
 
 class CryptoServiceImpl {
-  private sessionPassword: string | null = null;
-  // Cache derived keys by salt to avoid redundant PBKDF2 derivations
+  // Non-extractable PBKDF2 base key derived from the user's password.
+  // The raw password is never stored — only this opaque CryptoKey handle,
+  // which the Web Crypto API protects from JavaScript read access.
+  private sessionBaseKey: CryptoKey | null = null;
+  // Cache derived AES keys by salt to avoid redundant PBKDF2 derivations
   private sessionKeyCache: Map<string, CryptoKey> = new Map();
 
   /**
-   * Unlocks the session by caching the password for key derivation.
-   * Keys are derived on-demand per salt during encrypt/decrypt.
+   * Unlocks the session by importing the password as a non-extractable PBKDF2 CryptoKey.
+   * The raw password is discarded after import — only the opaque key handle is retained.
+   * AES keys are derived on-demand per salt during encrypt/decrypt.
    * Returns true if successful.
    */
   async unlockSession(password: string): Promise<boolean> {
     try {
-      // Verify the password can be used for key derivation
+      // Import the password as a non-extractable PBKDF2 base key
+      const baseKey = await this.getPasswordKey(password);
+      // Verify the key can be used for derivation
       const testSalt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
-      await this.deriveKeyFromPassword(password, testSalt, STRONG_ITERATIONS, "SHA-256");
-      this.sessionPassword = password;
+      await window.crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: testSalt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+        baseKey,
+        { name: "AES-GCM", length: KEY_SIZE },
+        false,
+        ["encrypt", "decrypt"]
+      );
+      this.sessionBaseKey = baseKey;
       this.sessionKeyCache.clear();
       return true;
     } catch (e) {
@@ -68,25 +80,31 @@ class CryptoServiceImpl {
   }
 
   lockSession() {
-    this.sessionPassword = null;
+    this.sessionBaseKey = null;
     this.sessionKeyCache.clear();
   }
 
   isUnlocked(): boolean {
-    return this.sessionPassword !== null;
+    return this.sessionBaseKey !== null;
   }
 
   /**
-   * Derives (or retrieves from cache) a key for the given salt using the session password.
+   * Derives (or retrieves from cache) an AES key for the given salt using the session base key.
    */
   private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[]): Promise<CryptoKey> {
-    if (!this.sessionPassword) {
+    if (!this.sessionBaseKey) {
       throw new Error("Session locked and no password provided");
     }
     const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer);
     const cached = this.sessionKeyCache.get(saltKey);
     if (cached) return cached;
-    const key = await this.deriveKeyFromPassword(this.sessionPassword, salt, STRONG_ITERATIONS, "SHA-256");
+    const key = await window.crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+      this.sessionBaseKey,
+      { name: "AES-GCM", length: KEY_SIZE },
+      false,
+      ["encrypt", "decrypt"]
+    );
     this.sessionKeyCache.set(saltKey, key);
     return key;
   }
@@ -150,7 +168,7 @@ class CryptoServiceImpl {
           key = password;
           salt = new Uint8Array(SALT_SIZE); // Dummy salt for blob consistency
         }
-      } else if (this.sessionPassword && !password) {
+      } else if (this.sessionBaseKey && !password) {
         salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
         key = await this.getSessionKeyForSalt(salt, ["encrypt"]);
       } else if (typeof password === 'string' && password) {
@@ -204,8 +222,8 @@ class CryptoServiceImpl {
         } else {
           key = password;
         }
-      } else if (this.sessionPassword && !password) {
-        // Re-derive key from session password + blob's salt
+      } else if (this.sessionBaseKey && !password) {
+        // Derive key from session base key + blob's salt
         key = await this.getSessionKeyForSalt(salt, ["decrypt"]);
       } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
