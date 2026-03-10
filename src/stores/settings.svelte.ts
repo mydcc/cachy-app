@@ -919,6 +919,7 @@ export class SettingsManager {
     const success = await cryptoService.unlockSession(password);
     if (!success) return false;
 
+    let aborted = false;
     try {
       const tasks: Promise<void>[] = [];
 
@@ -928,12 +929,14 @@ export class SettingsManager {
         if (eak.bitunix) {
           tasks.push((async () => {
             const json = await cryptoService.decrypt(eak.bitunix!);
+            if (aborted) return;
             this.apiKeys.bitunix = JSON.parse(json);
           })());
         }
         if (eak.bitget) {
           tasks.push((async () => {
             const json = await cryptoService.decrypt(eak.bitget!);
+            if (aborted) return;
             this.apiKeys.bitget = JSON.parse(json);
           })());
         }
@@ -944,13 +947,10 @@ export class SettingsManager {
         for (const [key, blob] of Object.entries(this.encryptedSecrets)) {
            if (SENSITIVE_KEYS.includes(key as any)) {
              tasks.push((async () => {
-               try {
-                 const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
-                 // @ts-ignore
-                 this[key] = decrypted;
-               } catch (e) {
-                 console.error("[Settings] Failed to decrypt secret " + key, e);
-               }
+               const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
+               if (aborted) return;
+               // @ts-ignore
+               this[key] = decrypted;
              })());
            }
         }
@@ -961,6 +961,7 @@ export class SettingsManager {
       this.isLocked = false;
       return true;
     } catch (e) {
+      aborted = true;
       console.error("Unlock failed", e);
       this.lock();
       return false;
@@ -992,16 +993,16 @@ export class SettingsManager {
     const tasks: Promise<void>[] = [];
 
     // 1. Encrypt Exchange Keys
+    if (!this.encryptedApiKeys) this.encryptedApiKeys = {};
+
     tasks.push((async () => {
       const blob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
-      if (!this.encryptedApiKeys) this.encryptedApiKeys = {};
-      this.encryptedApiKeys.bitunix = blob;
+      this.encryptedApiKeys!.bitunix = blob;
     })());
 
     tasks.push((async () => {
       const blob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
-      if (!this.encryptedApiKeys) this.encryptedApiKeys = {};
-      this.encryptedApiKeys.bitget = blob;
+      this.encryptedApiKeys!.bitget = blob;
     })());
 
     // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
