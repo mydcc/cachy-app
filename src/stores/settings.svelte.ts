@@ -992,7 +992,8 @@ export class SettingsManager {
 
   async setMasterPassword(password: string) {
     if (!browser) return;
-    await cryptoService.unlockSession(password);
+    const success = await cryptoService.unlockSession(password);
+    if (!success) throw new Error("Failed to unlock session with provided password");
 
     try {
       // 1. Encrypt Exchange Keys into temp variables
