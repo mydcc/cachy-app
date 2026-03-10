@@ -47,7 +47,6 @@
         // Check if ANY modal is open (even if it doesn't have a burning border)
         // This prevents background tiles/windows from burning through transparent modal overlays
         const isAnyModalOpen =
-            modalState.state.isOpen ||
             windowManager.isOpen("journal") ||
             windowManager.isOpen("settings") ||
             windowManager.isOpen("guide") ||

@@ -208,7 +208,6 @@ import { indicatorState } from "../stores/indicator.svelte";
       if (windowManager.isOpen("changelog"))
         uiState.toggleChangelogModal(false);
       if (windowManager.isOpen("academy")) uiState.toggleAcademyModal(false);
-      if (modalState.state.isOpen) modalState.handleModalConfirm(false);
       return;
     }
 
