@@ -23,6 +23,7 @@ import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
+import { RequestDeduplicator } from "../utils/requestDeduplicator";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { activeTechnicalsManager } from "./activeTechnicalsManager.svelte";
@@ -46,7 +47,7 @@ class MarketWatcher {
   private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
 
   // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
-  private pendingRequests = new Map<string, Promise<void>>();
+  private pendingRequests = new RequestDeduplicator<void>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
   
@@ -645,15 +646,9 @@ class MarketWatcher {
     if (!settingsState.capabilities.marketData) return;
     const lockKey = `${symbol}:${channel}`;
 
-    // Request Deduplication
-    if (this.pendingRequests.has(lockKey)) {
-        return this.pendingRequests.get(lockKey);
-    }
-
-    this.inFlight++;
-
-    // Create the Promise wrapper
-    const requestPromise = (async () => {
+    // Request Deduplication using RequestDeduplicator
+    return this.pendingRequests.execute(lockKey, async () => {
+        this.inFlight++;
         try {
             this.requestStartTimes.set(lockKey, Date.now());
             // Determine priority: high for the main trading symbol, normal for the rest
@@ -701,8 +696,7 @@ class MarketWatcher {
                 this.lastErrorLog = now;
             }
         } finally {
-            // Release lock immediately
-            this.pendingRequests.delete(lockKey);
+            // Lock is released by RequestDeduplicator, but we still clean up metadata
             this.requestStartTimes.delete(lockKey);
 
             // Check if this request was already pruned as a zombie
@@ -713,11 +707,7 @@ class MarketWatcher {
                 this.inFlight = Math.max(0, this.inFlight - 1);
             }
         }
-    })();
-
-    // Store the promise
-    this.pendingRequests.set(lockKey, requestPromise);
-    return requestPromise;
+    });
   }
 
   public refreshActiveHistory() {

@@ -114,9 +114,11 @@ export class RateLimiter {
   }
 }
 
+import { RequestDeduplicator } from "../utils/requestDeduplicator";
+
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
-  private pending = new Map<string, Promise<unknown>>();
+  private pending = new RequestDeduplicator();
   private cache = new Map<string, { data: unknown; timestamp: number }>();
 
   // Two queues for Priority handling
@@ -211,14 +213,9 @@ class RequestManager {
       return Promise.resolve(cached.data as T);
     }
 
-    // 1. Deduplication: If already fetching this key, return existing promise
-    if (this.pending.has(key)) {
-      logger.debug("network", `[Dedupe] Joined: ${key}`);
-      return this.pending.get(key) as Promise<T>;
-    }
-
-    // 2. Wrap in queue logic
-    const promise = new Promise<T>((resolve, reject) => {
+    // 1. & 2. Deduplication and Wrap in queue logic
+    return (this.pending.execute(key, async () => {
+      return new Promise<T>((resolve, reject) => {
       const run = async () => {
         this.activeCount++;
 
@@ -323,7 +320,6 @@ class RequestManager {
           reject(e);
         } finally {
           this.activeCount--;
-          this.pending.delete(key);
           this.next();
         }
       };
@@ -339,9 +335,9 @@ class RequestManager {
         }
       }
     });
-
-    this.pending.set(key, promise);
-    return promise;
+    }, (k) => {
+      logger.debug("network", `[Dedupe] Joined: ${k}`);
+    }) as Promise<unknown>) as Promise<T>;
   }
 
   private next() {
