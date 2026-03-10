@@ -245,7 +245,7 @@ class TradeService {
             const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
 
             // OPTIMISTIC UPDATE
-            clientOrderId = "opt-" + crypto.randomUUID();
+            clientOrderId = "opt-" + crypto.randomUUID().replace(/-/g, "").slice(0, 28);
             omsService.addOptimisticOrder({
                 id: clientOrderId,
                 clientOrderId,
