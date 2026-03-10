@@ -34,11 +34,11 @@
         // Event Props
         onSort?: (field: string) => void;
         onPageChange?: (page: number) => void;
-        onDeleteTrade?: (id: string | number) => void;
-        onStatusChange?: (id: string | number, status: string) => void;
+        onDeleteTrade?: (id: string) => void;
+        onStatusChange?: (id: string, status: string) => void;
         onItemsPerPageChange?: (itemsPerPage: number) => void;
-        onUpdateTrade?: (id: string | number, data: any) => void;
-        onUploadScreenshot?: (id: string | number, file: File) => void;
+        onUpdateTrade?: (id: string, data: any) => void;
+        onUploadScreenshot?: (id: string, file: File) => void;
     }
 
     let {
@@ -193,7 +193,7 @@
         expandedGroups = newGroups;
     }
 
-    function addTag(tradeId: string | number, tag: string, currentTags: string[] = []) {
+    function addTag(tradeId: string, tag: string, currentTags: string[] = []) {
         if (!tag || tag.trim() === "") return;
         const trimmedTag = tag.trim();
         if (currentTags.includes(trimmedTag)) return;
@@ -203,7 +203,7 @@
     }
 
     function removeTag(
-        tradeId: string | number,
+        tradeId: string,
         tagToRemove: string,
         currentTags: string[],
     ) {
@@ -211,7 +211,7 @@
         onUpdateTrade?.(tradeId, { tags: newTags });
     }
 
-    let tagInputValues: Record<string | number, string> = $state({});
+    let tagInputValues: Record<string, string> = $state({});
 
     function formatDuration(minutes: number) {
         if (minutes < 0) return "-";
@@ -240,7 +240,7 @@
         return "";
     }
 
-    function triggerFileUpload(id: string | number) {
+    function triggerFileUpload(id: string) {
         (
             document.getElementById(
                 `file-upload-${id}`,

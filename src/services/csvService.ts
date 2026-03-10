@@ -339,7 +339,7 @@ export const csvService = {
           // Handle large IDs / precision loss
           // HARDENING: Replaced djb2 hash with random integer fallback to avoid collisions
           const originalIdAsString = entry.ID;
-          let internalId: string | number;
+          let internalId: string;
 
           // UUID v4 pattern: xxxxxxxx-xxxx-4xxx-[89ab]xxx-xxxxxxxxxxxx
           const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -357,7 +357,7 @@ export const csvService = {
                            Number.isSafeInteger(parsedId);
 
             if (isSafe) {
-              internalId = parsedId;
+              internalId = String(parsedId);
             } else {
               // Generate a safe unique internal ID (UUID)
               // This ensures uniqueness during the import session better than a hash or predictable random

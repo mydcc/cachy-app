@@ -71,8 +71,8 @@ ${safeId},2023-01-01,12:00,BTCUSDT,Long,CLOSED,50000,49000`;
         const result = csvService.parseCSVContent(csvContent);
         const trade = result[0];
 
-        // Internal ID should match input
-        expect(trade.id).toBe(12345);
+        // Internal ID should match input (coerced to string by normalizeJournalEntry)
+        expect(trade.id).toBe("12345");
         expect(trade.tradeId).toBe("12345");
     });
 });

@@ -376,6 +376,11 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
   }
   const newTrade = { ...trade };
 
+  // Normalize ID to string for consistent comparisons
+  if (newTrade.id !== undefined && newTrade.id !== null) {
+    newTrade.id = String(newTrade.id);
+  }
+
   // Numerical fields that must be Decimal
   const decimalFields = [
     "accountSize",
