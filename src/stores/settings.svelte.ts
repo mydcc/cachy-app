@@ -994,43 +994,40 @@ export class SettingsManager {
     if (!browser) return;
     await cryptoService.unlockSession(password);
 
+    // 1. Encrypt Exchange Keys into temp variables
+    let bitunixBlob: EncryptedBlob | undefined;
+    let bitgetBlob: EncryptedBlob | undefined;
+    const newSecrets: Record<string, EncryptedBlob> = {};
+
     const tasks: Promise<void>[] = [];
 
-    // 1. Encrypt Exchange Keys
-    if (!this.encryptedApiKeys) this.encryptedApiKeys = {};
-
     tasks.push((async () => {
-      const blob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
-      this.encryptedApiKeys!.bitunix = blob;
+      bitunixBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
     })());
 
     tasks.push((async () => {
-      const blob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
-      this.encryptedApiKeys!.bitget = blob;
+      bitgetBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
     })());
 
     // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
     // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
-    if (!this.encryptedSecrets) this.encryptedSecrets = {};
-
     for (const key of SENSITIVE_KEYS) {
       // @ts-ignore
       const value = this[key];
       if (typeof value === 'string' && value.length > 0) {
          tasks.push((async () => {
-           try {
-             // Encrypt with Session Key (implied)
-             const blob = await cryptoService.encrypt(value);
-             this.encryptedSecrets![key] = blob;
-           } catch (e) {
-             console.error("Failed to re-encrypt " + key, e);
-           }
+           // Encrypt with Session Key (implied)
+           const blob = await cryptoService.encrypt(value);
+           newSecrets[key] = blob;
          })());
       }
     }
 
+    // Only commit state after all encryptions succeed (atomic update)
     await Promise.all(tasks);
 
+    this.encryptedApiKeys = { bitunix: bitunixBlob, bitget: bitgetBlob };
+    this.encryptedSecrets = { ...(this.encryptedSecrets || {}), ...newSecrets };
     this.isEncrypted = true;
     this.isLocked = false;
     await this.save();
