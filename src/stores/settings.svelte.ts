@@ -1029,7 +1029,7 @@ export class SettingsManager {
       await Promise.all(tasks);
 
       this.encryptedApiKeys = { bitunix: bitunixBlob, bitget: bitgetBlob };
-      this.encryptedSecrets = { ...(this.encryptedSecrets || {}), ...newSecrets };
+      this.encryptedSecrets = newSecrets;
       this.isEncrypted = true;
       this.isLocked = false;
       await this.save();
