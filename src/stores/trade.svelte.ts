@@ -342,7 +342,7 @@ class TradeManager {
 
   setSymbol(
     symbol: string,
-    provider: "bitunix" | "bitget" | string = "bitunix",
+    provider: "bitunix" | "binance" = "bitunix",
   ): boolean {
     if (!symbol) {
       this.symbol = "";

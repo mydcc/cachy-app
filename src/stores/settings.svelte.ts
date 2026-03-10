@@ -1052,6 +1052,15 @@ export class SettingsManager {
         localStorage.setItem(migrationKey, "true");
       }
 
+      // If user had Binance before, fallback to Bitget or Bitunix?
+      // Since Binance is gone, if provider was "binance", set to "bitunix" or "bitget".
+      if (loadedProvider === "binance") {
+        if (import.meta.env.DEV) {
+          console.warn("[Settings] Binance provider found (deprecated). Resetting to Bitunix.");
+        }
+        loadedProvider = "bitunix";
+      }
+
       const finalProvider = loadedProvider === "bitget" ? "bitget" : "bitunix";
 
       // Set the private field directly during load to avoid dual logging

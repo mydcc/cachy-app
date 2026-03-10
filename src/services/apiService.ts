@@ -378,7 +378,7 @@ export function clearApiCache() {
 }
 
 export const apiService = {
-  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget" | string): string {
+  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget"): string {
     return normalizeSymbol(symbol, provider);
   },
 
@@ -722,11 +722,11 @@ export const apiService = {
                    aggregated.push({
                        time: start,
                        open: first.open,
-                       high: high,
+                       high: high.toString(),
                        low: low,
                        close: last.close,
                        volume: vol
-                   });
+                   } as any);
                }
                return aggregated;
            }

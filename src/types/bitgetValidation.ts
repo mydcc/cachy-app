@@ -44,8 +44,6 @@ export const BitgetWSTickerSchema = z.object({
   usdtVolume: z.string().optional(), // alias
   open24h: z.string().optional(),
   ts: z.union([z.string(), z.number()]).optional(),
-  fundingRate: z.union([z.string(), z.number()]).optional(),
-  nextFundingTime: z.union([z.string(), z.number()]).optional(),
 });
 
 /**

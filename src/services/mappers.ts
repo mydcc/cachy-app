@@ -57,16 +57,9 @@ export function mapToOMSPosition(data: any): OMSPosition {
         leverage: lev,
         marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
         liquidationPrice: liq,
-        // Hardening: Extract real values from API instead of using Decimal(0) placeholder.
-        // Use undefined when the field is absent — consumers already handle optional fields.
-        margin: (data.margin || data.isolatedMargin || data.crossMargin)
-            ? new Decimal(data.margin || data.isolatedMargin || data.crossMargin)
-            : undefined,
-        markPrice: data.markPrice
-            ? new Decimal(data.markPrice)
-            : undefined,
-        size: amount,
-        lastUpdated: Date.now()
+        margin: new Decimal(0), // Placeholder as raw data often lacks this explicitly
+        markPrice: new Decimal(0), // Placeholder
+        size: amount
     };
 }
 
