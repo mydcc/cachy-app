@@ -1301,6 +1301,8 @@ class BitunixWebSocketService {
 
              if (listeners) {
                  for (const item of items) {
+                     // [FIX] Validate each item individually to reject malformed entries
+                     if (!isTradeData(item)) continue;
                      // [FIX] Normalize Trade Data for Type Safety
                      const safeTrade: TradeData = {
                          p: String(item.p ?? item.lastPrice ?? item.price ?? "0"),
