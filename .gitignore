@@ -2,6 +2,8 @@
 logs/
 backups/
 *.log
+*.orig
+*.rej
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
