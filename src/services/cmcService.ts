@@ -140,42 +140,50 @@ class CmcService {
       return this.coinPromises.get(rawSymbol)!;
     }
 
-    const promise = (async () => {
-      try {
-        const result = await this.fetchFromProxy(
-          "/v1/cryptocurrency/quotes/latest",
-          {
-            symbol: rawSymbol,
-          },
-        );
+    this.coinPromises.set(
+      rawSymbol,
+      (async () => {
+        try {
+          const result = await this.fetchFromProxy(
+            "/v1/cryptocurrency/quotes/latest",
+            {
+              symbol: rawSymbol,
+            },
+          );
 
-        // Result structure: { data: { "BTC": { ... } } }
-        if (result.data && result.data[rawSymbol]) {
-          const coin = result.data[rawSymbol];
-          const parsed: CmcCoinMetadata = {
-            id: coin.id,
-            name: coin.name,
-            symbol: coin.symbol,
-            slug: coin.slug,
-            date_added: coin.date_added,
-            tags: coin.tags || [],
-            platform: coin.platform,
-            category: "coin", // Default, CMC field 'category' exists but often 'coin' or 'token'
-          };
+          // Result structure: { data: { "BTC": { ... } } }
+          if (result.data && result.data[rawSymbol]) {
+            const coin = result.data[rawSymbol];
+            const parsed: CmcCoinMetadata = {
+              id: coin.id,
+              name: coin.name,
+              symbol: coin.symbol,
+              slug: coin.slug,
+              date_added: coin.date_added,
+              tags: coin.tags || [],
+              platform: coin.platform,
+              category: "coin", // Default, CMC field 'category' exists but often 'coin' or 'token'
+            };
 
-          this.coinCache.set(rawSymbol, { data: parsed, timestamp: Date.now() });
-          return parsed;
+            this.coinCache.set(rawSymbol, {
+              data: parsed,
+              timestamp: Date.now(),
+            });
+            return parsed;
+          }
+        } catch (e) {
+          console.warn(
+            `[CmcService] Metadata fetch failed for ${rawSymbol}:`,
+            e,
+          );
+        } finally {
+          this.coinPromises.delete(rawSymbol);
         }
-      } catch (e) {
-        console.warn(`[CmcService] Metadata fetch failed for ${rawSymbol}:`, e);
-      } finally {
-        this.coinPromises.delete(rawSymbol);
-      }
-      return null;
-    })();
+        return null;
+      })(),
+    );
 
-    this.coinPromises.set(rawSymbol, promise);
-    return promise;
+    return this.coinPromises.get(rawSymbol)!;
   }
 }
 

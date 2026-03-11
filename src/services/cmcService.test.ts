@@ -75,6 +75,33 @@ describe("CmcService", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("serves from TTL cache after promise resolves without new fetch", async () => {
+    fetchMock.mockImplementation(() => new Promise(resolve => {
+      setTimeout(() => resolve({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          data: {
+            btc_dominance: 50,
+            eth_dominance: 20,
+            active_cryptocurrencies: 10000,
+            last_updated: new Date().toISOString(),
+            quote: { USD: { total_market_cap: 1000, total_volume_24h: 100 } }
+          }
+        })
+      }), 50);
+    }));
+
+    // First call triggers the fetch
+    const first = await cmcService.getGlobalMetrics();
+    expect(first).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Second call after promise resolved should hit TTL cache, not fetch again
+    const second = await cmcService.getGlobalMetrics();
+    expect(second).toEqual(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("caches concurrent coin metadata requests", async () => {
     fetchMock.mockImplementation(() => new Promise(resolve => {
       setTimeout(() => resolve({
