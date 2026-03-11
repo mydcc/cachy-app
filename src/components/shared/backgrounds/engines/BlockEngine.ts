@@ -195,15 +195,14 @@ export class BlockEngine extends BaseEngine {
              activeMax = this.smoothMax * 0.99 + 0.1;
         }
 
-        let range = activeMax - activeMin;
-        if (range < 0.1) range = 0.1;
-        
         // Smooth camera/bound movement
         this.smoothMin = this.smoothMin + (activeMin - this.smoothMin) * 0.05;
         this.smoothMax = this.smoothMax + (activeMax - this.smoothMax) * 0.05;
         
         const worldHeight = 60.0;
-        const heightScale = worldHeight / (this.smoothMax - this.smoothMin);
+        let range = this.smoothMax - this.smoothMin;
+        if (range < 0.1) range = 0.1;
+        const heightScale = worldHeight / range;
         const sizeBase = (s.size || 0.08) * 28.0; // Boosted
         const slabH = sizeBase * 0.15;
         const ageAttr = this.blockMesh.geometry.getAttribute('aAge') as THREE.BufferAttribute;
@@ -323,6 +322,16 @@ export class BlockEngine extends BaseEngine {
 
     private cleanupResources() {
         this.isFirstTrade = true;
+        this.smoothMin = 0;
+        this.smoothMax = 100;
+        this.nextBlockIdx = 0;
+        this.blockPrices.fill(0);
+        this.blockTimestamps.fill(0);
+        this.blockX.fill(0);
+        this.blockZ.fill(0);
+        this.blockRot.fill(0);
+        this.blockScales.fill(0);
+        this.blockTypes.fill(0);
          if (this.blockMesh) {
             this.blockMesh.geometry.dispose();
             (this.blockMesh.material as THREE.Material).dispose();
