@@ -944,20 +944,19 @@ export class SettingsManager {
 
       // 2. Decrypt Generic Secrets
       if (this.encryptedSecrets) {
-        for (const [key, blob] of Object.entries(this.encryptedSecrets)) {
-           if (SENSITIVE_KEYS.includes(key as any)) {
-             tasks.push((async () => {
-               try {
-                 const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
-                 if (aborted) return;
-                 // @ts-ignore
-                 this[key] = decrypted;
-               } catch (e) {
-                 console.error("[Settings] Failed to decrypt secret " + key, e);
-               }
-             })());
-           }
-        }
+        const decryptTasks = Object.entries(this.encryptedSecrets)
+          .filter(([key]) => SENSITIVE_KEYS.includes(key as any))
+          .map(async ([key, blob]) => {
+            try {
+              const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
+              if (aborted) return;
+              // @ts-ignore
+              this[key] = decrypted;
+            } catch (e) {
+              console.error("[Settings] Failed to decrypt secret " + key, e);
+            }
+          });
+        tasks.push(...decryptTasks);
       }
 
       await Promise.all(tasks);
@@ -1013,17 +1012,16 @@ export class SettingsManager {
 
       // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
       // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
-      for (const key of SENSITIVE_KEYS) {
+      const genericEncryptionTasks = SENSITIVE_KEYS.map(async (key) => {
         // @ts-ignore
         const value = this[key];
         if (typeof value === 'string' && value.length > 0) {
-           tasks.push((async () => {
-             // Encrypt with Session Key (implied)
-             const blob = await cryptoService.encrypt(value);
-             newSecrets[key] = blob;
-           })());
+          // Encrypt with Session Key (implied)
+          const blob = await cryptoService.encrypt(value);
+          newSecrets[key] = blob;
         }
-      }
+      });
+      tasks.push(...genericEncryptionTasks);
 
       // Only commit state after all encryptions succeed (atomic update)
       await Promise.all(tasks);
