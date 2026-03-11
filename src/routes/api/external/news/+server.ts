@@ -64,21 +64,30 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    // Rate Limit Check
-    // Use IP as fallback if apiKey is not provided (though apiKey is required above, it might be an empty string depending on extraction)
-    const clientIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
-    const rateLimitKey = apiKey || clientIp;
+    // Cache key needs apiKey to isolate user quotas/plans
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
+    const now = Date.now();
+
+    // Check Cache (before rate limiting so cached responses don't consume quota)
+    const cached = _newsCache.get(cacheKey);
+    if (cached && (now - cached.timestamp < CACHE_TTL)) {
+      _newsCache.delete(cacheKey);
+      _newsCache.set(cacheKey, cached);
+      return json(cached.data);
+    }
+
+    // Rate Limit Check (only for requests that will hit upstream)
+    const rateLimitKey = apiKey;
 
     const nowLimit = Date.now();
-    const userLimit = _rateLimits.get(rateLimitKey);
 
     // Memory Limit Check
     if (_rateLimits.size > 1000) {
-      // Evict oldest entries
-      const oldestKeys = Array.from(_rateLimits.entries())
+      // Evict expired entries
+      const expiredKeys = Array.from(_rateLimits.entries())
         .filter(([_, info]) => nowLimit > info.resetTime)
         .map(([k]) => k);
-      oldestKeys.forEach(k => _rateLimits.delete(k));
+      expiredKeys.forEach(k => _rateLimits.delete(k));
 
       // If still too large, forcefully clear
       if (_rateLimits.size > 1000) {
@@ -87,6 +96,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       }
     }
 
+    // Re-read after potential eviction to avoid stale references
+    const userLimit = _rateLimits.get(rateLimitKey);
+
     if (!userLimit || nowLimit > userLimit.resetTime) {
       _rateLimits.set(rateLimitKey, { count: 1, resetTime: nowLimit + RATE_LIMIT_WINDOW });
     } else {
@@ -94,18 +106,6 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
         return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
       }
       userLimit.count++;
-    }
-
-    // Cache key still needs apiKey to isolate user quotas/plans
-    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}:${apiKey}`;
-    const now = Date.now();
-
-    // Check Cache
-    const cached = _newsCache.get(cacheKey);
-    if (cached && (now - cached.timestamp < CACHE_TTL)) {
-      _newsCache.delete(cacheKey);
-      _newsCache.set(cacheKey, cached);
-      return json(cached.data);
     }
 
     if (pendingRequests.has(cacheKey)) {

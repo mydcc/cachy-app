@@ -93,17 +93,24 @@ describe('News Service Security', () => {
             text: async () => "",
         });
         const apiKey = 'rate-limit-key';
-        const requestMock = {
-            headers: new Headers({ 'x-api-key': apiKey }),
-            json: async () => ({ source: 'newsapi', apiKey, params: { q: 'bitcoin' } }),
-            url: 'http://localhost/api/news'
-        } as any;
 
+        // Each request uses a unique query to avoid cache hits, ensuring every
+        // request reaches the rate limiter.
         for (let i = 0; i < 10; i++) {
+            const requestMock = {
+                headers: new Headers({ 'x-api-key': apiKey }),
+                json: async () => ({ source: 'newsapi', apiKey, params: { q: `query-${i}` } }),
+                url: 'http://localhost/api/news'
+            } as any;
             const res = await POST({ request: requestMock, fetch: fetchMock } as any);
             expect(res.status).not.toBe(429);
         }
 
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'newsapi', apiKey, params: { q: 'query-final' } }),
+            url: 'http://localhost/api/news'
+        } as any;
         const res = await POST({ request: requestMock, fetch: fetchMock } as any);
         expect(res.status).toBe(429);
         const body = await res.json();

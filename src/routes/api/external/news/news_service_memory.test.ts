@@ -36,7 +36,7 @@ describe('News Service Cache Memory', () => {
 
         // Insert 100 items
         for (let i = 0; i < 100; i++) {
-            _rateLimits.clear();
+            _rateLimits.clear(); // Reset rate limit to allow all requests through for cache size testing
             const request = {
                 headers: new Headers({ 'x-api-key': 'test-key' }),
                 json: async () => ({
