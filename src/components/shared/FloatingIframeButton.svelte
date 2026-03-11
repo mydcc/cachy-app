@@ -18,8 +18,7 @@
 <script lang="ts">
     import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
-    import { _ } from "../../locales/i18n";
-    import { fade, scale } from "svelte/transition";
+    import { scale } from "svelte/transition";
 
     // Derived state to check if main window ("genesis") is open
     let isGenesisOpen = $derived(
