@@ -22,11 +22,10 @@ import fs from 'fs/promises';
 
 vi.mock('fs/promises', () => ({
   default: {
-
-  readFile: vi.fn(),
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  mkdir: vi.fn().mockResolvedValue(undefined),
-  rename: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn(),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    rename: vi.fn().mockResolvedValue(undefined),
   }
 }));
 
