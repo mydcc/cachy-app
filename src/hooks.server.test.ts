@@ -35,7 +35,7 @@ vi.mock('@sveltejs/kit/hooks', () => ({
         const handler = handlers[currentIndex++];
         return handler({
           event: currentEvent,
-          resolve: async (e, opts) => next(e || currentEvent, opts || currentOptions)
+          resolve: async (e, opts) => next(e ?? currentEvent, opts)
         });
       };
 
@@ -103,10 +103,6 @@ describe('headersHandler (Server Hook)', () => {
 describe('handle sequence (Integration)', () => {
   it('should execute loggingHandler, headersHandler, and themeHandler in sequence', async () => {
     // Arrange
-
-    // Import all the handlers
-    const { default: hooks } = await import('./hooks.server');
-
     const mockRequest = new Request('http://localhost/test-path', {
       method: 'GET'
     });
