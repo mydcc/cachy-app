@@ -125,6 +125,7 @@
         tooltipEl,
         {
           placement: "top",
+          strategy: "fixed",
           middleware: [
             offset(10),
             flip(),
@@ -272,7 +273,7 @@
   <div
     bind:this={tooltipEl}
     class="floating-tooltip"
-    style="position: absolute; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.2s ease-in-out; background-color: var(--bg-tertiary, #1e293b); color: var(--text-primary, #f1f5f9); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid var(--border-color, #334155); line-height: 1.4; max-width: 300px; width: max-content;"
+    style="position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.2s ease-in-out; background-color: var(--bg-tertiary, #1e293b); color: var(--text-primary, #f1f5f9); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid var(--border-color, #334155); line-height: 1.4; max-width: 300px; width: max-content;"
   >
     {#if hoveredEntry}
       <div class="text-left">
