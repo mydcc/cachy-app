@@ -69,6 +69,7 @@ class CloudService {
         .build();
     } catch (e) {
       logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
+      throw e;
     }
 
     // Handle row updates with robustness
@@ -96,7 +97,7 @@ class CloudService {
       return;
     }
     // The reducers object is exported from the generated code and handles calling the server
-    (reducers as any).sendMessage(text);
+    (reducers as any).sendMessage({ text });
   }
 
   subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {

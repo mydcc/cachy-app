@@ -37,8 +37,8 @@
     try {
       await cloudService.connect(undefined, undefined, token);
       connected = true;
-    } catch (e: any) {
-      errorMsg = e.message || $_("cloud.connectionFailed");
+    } catch (e) {
+      errorMsg = e instanceof Error ? e.message : $_("cloud.connectionFailed");
     }
   }
 
