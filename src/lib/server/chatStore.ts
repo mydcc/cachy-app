@@ -16,10 +16,39 @@
  */
 
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 import { z } from "zod";
 
-const DB_FILE = "db/chat_messages.json";
+function resolveDbFile(): string {
+  const raw = process.env.CHAT_DB_PATH || "db/chat_messages.json";
+  const resolved = path.resolve(raw);
+  const cwd = process.cwd();
+  if (!resolved.startsWith(cwd + path.sep) && resolved !== cwd) {
+    throw new Error(
+      `CHAT_DB_PATH must resolve to a path within the project directory. Got: ${raw}`
+    );
+  }
+  // Defense-in-depth: if the parent directory already exists, resolve symlinks
+  // to ensure the real filesystem path is also within the project directory.
+  const dir = path.dirname(resolved);
+  try {
+    const realDir = fsSync.realpathSync(dir);
+    const realCwd = fsSync.realpathSync(cwd);
+    if (!realDir.startsWith(realCwd + path.sep) && realDir !== realCwd) {
+      throw new Error(
+        `CHAT_DB_PATH parent directory resolves outside the project directory via symlink. Got: ${raw}`
+      );
+    }
+  } catch (e: any) {
+    // ENOENT means the directory doesn't exist yet — that's fine, the lexical
+    // check above is sufficient since symlinks can't exist in a missing dir.
+    if (e.code !== "ENOENT") throw e;
+  }
+  return resolved;
+}
+
+export const DB_FILE = resolveDbFile();
 const MAX_HISTORY = 1000;
 const SAVE_DEBOUNCE_MS = 1000;
 const SHUTDOWN_TIMEOUT_MS = 5000;
