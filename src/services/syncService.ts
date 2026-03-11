@@ -207,6 +207,7 @@ export const syncService = {
 
       let newEntries: JournalEntry[] = [];
       let addedCount = 0;
+      let refreshedCount = 0;
       const symbolSlMap: Record<string, any[]> = {};
 
       // Build SL Map
@@ -252,6 +253,7 @@ export const syncService = {
             fundingFee: funding,
           };
           pendingEntries.push(refreshed);
+          refreshedCount++;
           continue;
         }
 
@@ -515,7 +517,7 @@ export const syncService = {
       }
 
       // Final feedback - trades already added incrementally
-      if (addedCount > 0) {
+      if (addedCount > 0 || refreshedCount > 0) {
         trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
         if (isPartialSync) uiState.showError(get(_)("apiErrors.syncIncomplete"));
         else uiState.showFeedback("save", 2000);
