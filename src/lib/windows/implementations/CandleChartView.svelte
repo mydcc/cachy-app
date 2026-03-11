@@ -402,8 +402,7 @@
                             unique.length > 0
                                 ? unique[unique.length - 1].time
                                 : null;
-                        lastRenderedCount = unique.length;
-
+                        lastRenderedCount = klines.length;
 
                         // Update Indicators if enabled
                         if (
