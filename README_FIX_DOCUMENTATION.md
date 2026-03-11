@@ -1,1 +1,0 @@
-No code changes required as the 'Decimal' import does not exist in src/components/inputs/GeneralInputs.svelte. Static checks (npm run check) and tests (npm run test) confirm that there are no unused imports of this type in the specified file.
