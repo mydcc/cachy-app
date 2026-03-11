@@ -103,10 +103,14 @@ describe("NewsStore", () => {
     expect(mockFetchNews).toHaveBeenCalledTimes(1);
 
     // Force call, should bypass cooldown
+    mockFetchNews.mockResolvedValueOnce([{ title: "Test News 2", url: "http://test2.com", source: "Test", published_at: "2023-01-02" }]);
+    mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.6, regime: "NEUTRAL", summary: "Ok", keyFactors: [] });
     await newsStore.refresh("BTC", true);
     expect(mockFetchNews).toHaveBeenCalledTimes(2);
 
     // Call with different symbol, should fetch
+    mockFetchNews.mockResolvedValueOnce([{ title: "ETH News", url: "http://eth.com", source: "Test", published_at: "2023-01-03" }]);
+    mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.5, regime: "NEUTRAL", summary: "Neutral", keyFactors: [] });
     await newsStore.refresh("ETH");
     expect(mockFetchNews).toHaveBeenCalledTimes(3);
   });
@@ -126,7 +130,7 @@ describe("NewsStore", () => {
       // Pass cooldown
       vi.advanceTimersByTime(35000); // 35s
 
-      // Should fetch again since cooldown passed and force is true implicitly when recent is false but no data
+      // Should fetch again since cooldown has expired (65s > 60s), so isRecent is false and the early return is not triggered
       await newsStore.refresh("XRP");
       expect(mockFetchNews).toHaveBeenCalledTimes(2);
   });
@@ -149,6 +153,7 @@ describe("NewsStore", () => {
             setTimeout(() => resolve([{ title: "Slow News", url: "http://slow.com", source: "Test", published_at: "2023-01-01" }]), 50)
           )
       );
+      mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.5, regime: "NEUTRAL", summary: "Ok", keyFactors: [] });
 
       const req1 = newsStore.refresh("XRP");
       const req2 = newsStore.refresh("XRP"); // Should be skipped
