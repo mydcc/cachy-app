@@ -23,7 +23,21 @@
   import type {
     PatternDefinition,
     CandleData,
+    KeyFeature,
   } from "../../services/candlestickPatterns";
+
+  interface DrawFeatureParams {
+    ctx: CanvasRenderingContext2D;
+    getX: (idx: number) => number;
+    getY: (val: number) => number;
+    getCandle: (idx: number) => CandleData;
+    feature: KeyFeature;
+    resolveColor: (varName: string, fallback?: string) => string;
+    accentColor: string;
+    accentBgManual: string;
+    successBg: string;
+    dangerBg: string;
+  }
 
   interface Props {
     pattern: PatternDefinition;
@@ -63,32 +77,6 @@
       return fallback;
     }
   };
-
-  // Helper to add opacity to a color string
-  function addOpacity(color: string, opacity: number): string {
-      if (!color) return `rgba(0,0,0,${opacity})`;
-
-      // Handle RGB(A)
-      if (color.startsWith('rgb')) {
-          // If rgba, we can't easily increase opacity without parsing, but usually we get rgb from computed style
-          if (color.startsWith('rgba')) return color;
-          return color.replace('rgb', 'rgba').replace(')', `, ${opacity})`);
-      }
-
-      // Handle Hex
-      if (color.startsWith('#')) {
-          let hex = color.substring(1);
-          if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-          const bigint = parseInt(hex, 16);
-          const r = (bigint >> 16) & 255;
-          const g = (bigint >> 8) & 255;
-          const b = bigint & 255;
-          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-      }
-
-      // Fallback for named colors or others, return as is (no opacity added)
-      return color;
-  }
 
   function prepareChartData(candles: CandleData[]) {
     // Dynamic Spacing Logic
@@ -142,6 +130,255 @@
     };
   }
 
+
+  function drawBodyFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor, accentBgManual } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+    const yTop = getY(Math.max(candle.open, candle.close));
+    const yBottom = getY(Math.min(candle.open, candle.close));
+    const width = 32;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentBgManual;
+    ctx.strokeStyle = feature.borderColor
+      ? resolveColor(feature.borderColor, feature.borderColor)
+      : accentColor;
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
+    ctx.fill();
+    if (feature.borderColor) ctx.stroke();
+  }
+
+  function drawGapFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, successBg } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    const x1 = getX(feature.candleIndex1);
+    const x2 = getX(feature.candleIndex2);
+    const c1 = getCandle(feature.candleIndex1);
+    const c2 = getCandle(feature.candleIndex2);
+
+    let yHigh, yLow;
+    if (feature.direction === "up") {
+      yHigh = getY(c2.low);
+      yLow = getY(c1.high);
+    } else {
+      yHigh = getY(c1.low);
+      yLow = getY(c2.high);
+    }
+
+    const top = Math.min(yHigh, yLow);
+    const height = Math.abs(yHigh - yLow);
+    const x = (x1 + x2) / 2;
+
+    if (height > 2) {
+      ctx.fillStyle = feature.color
+        ? resolveColor(feature.color, feature.color)
+        : successBg;
+      ctx.strokeStyle = feature.color
+        ? resolveColor(feature.color, feature.color).replace("0.2", "0.8")
+        : successBg.replace("0.2", "0.8");
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x - 12, top, 24, height, 4);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  function drawLineFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    const x1 = getX(feature.candleIndex1);
+    const x2 = getX(feature.candleIndex2);
+    // @ts-ignore
+    const val1 = getCandle(feature.candleIndex1)[
+      feature.yValue1Property || "close"
+    ];
+    // @ts-ignore
+    const val2 = getCandle(feature.candleIndex2)[
+      feature.yValue2Property || "close"
+    ];
+
+    const y1 = getY(val1);
+    const y2 = getY(val2);
+
+    ctx.strokeStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentColor;
+    ctx.lineWidth = feature.lineWidth || 2;
+    if (feature.dashed) ctx.setLineDash([4, 4]);
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawShadowFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex === undefined) return;
+    const x = getX(feature.candleIndex);
+    const candle = getCandle(feature.candleIndex);
+
+    let yStart, yEnd;
+    if (feature.shadowType === "upper") {
+      yStart = getY(Math.max(candle.open, candle.close));
+      yEnd = getY(candle.high);
+    } else {
+      yStart = getY(Math.min(candle.open, candle.close));
+      yEnd = getY(candle.low);
+    }
+
+    ctx.strokeStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x + 5, yStart);
+    ctx.lineTo(x + 5, yEnd);
+    ctx.stroke();
+  }
+
+  function drawEngulfFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    // Engulfing box
+    const x2 = getX(feature.candleIndex2);
+    const c2 = getCandle(feature.candleIndex2);
+    const yTop = getY(Math.max(c2.open, c2.close));
+    const yBottom = getY(Math.min(c2.open, c2.close));
+    const width = 36;
+
+    ctx.strokeStyle = feature.borderColor
+      ? resolveColor(feature.borderColor, feature.borderColor)
+      : accentColor;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.roundRect(x2 - width / 2, yTop - 4, width, yBottom - yTop + 8, 6);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawBodyInsideBodyFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentBgManual } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    const c2 = getCandle(feature.candleIndex2);
+    const x2 = getX(feature.candleIndex2);
+
+    // The inner candle (c2) body is inside the outer candle (c1) body
+    const yTop = getY(Math.max(c2.open, c2.close));
+    const yBottom = getY(Math.min(c2.open, c2.close));
+    const width = 32;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentBgManual;
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    ctx.roundRect(x2 - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
+    ctx.fill();
+  }
+
+  function drawBodyRangeFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentBgManual } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+
+    const yTop = getY(Math.max(candle.open, candle.close));
+    const yBottom = getY(Math.min(candle.open, candle.close));
+    const width = 48;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentBgManual;
+
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
+    ctx.fill();
+  }
+
+  function drawHighPointFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+    const y = getY(candle.high);
+    const radius = feature.radius || 5;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentColor;
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawLowPointFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+    const y = getY(candle.low);
+    const radius = feature.radius || 5;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentColor;
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawPenetrationFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, dangerBg } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    const c1 = getCandle(feature.candleIndex1);
+    const c2 = getCandle(feature.candleIndex2);
+    const x2 = getX(feature.candleIndex2);
+
+    // The penetration zone is the overlap of c2's close into c1's body
+    const c1BodyTop = Math.max(c1.open, c1.close);
+    const c1BodyBottom = Math.min(c1.open, c1.close);
+    const c2Close = c2.close;
+
+    // Use candle direction to distinguish bullish vs bearish penetration
+    const isBullish = c2.close > c2.open;
+
+    let top, bottom;
+    if (isBullish && c2Close > c1BodyBottom && c2Close <= c1BodyTop) {
+      // Bullish penetration (piercing line): c2 closes up into c1's body
+      top = getY(c2Close);
+      bottom = getY(c1BodyBottom);
+    } else if (!isBullish && c2Close < c1BodyTop && c2Close >= c1BodyBottom) {
+      // Bearish penetration (dark cloud): c2 closes down into c1's body
+      top = getY(c1BodyTop);
+      bottom = getY(c2Close);
+    } else {
+      return;
+    }
+
+    const width = 28;
+    const height = Math.abs(bottom - top);
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : dangerBg;
+    ctx.beginPath();
+    ctx.roundRect(x2 - width / 2, top, width, height, 4);
+    ctx.fill();
+  }
+
   const annotationPlugin: Plugin = {
     id: "patternHighlights",
     afterDraw(chart) {
@@ -152,10 +389,6 @@
       const yAxis = chart.scales.y;
 
       const accentColor = resolveColor("--color-accent", "#FACC15");
-      const accentBg = resolveColor(
-        "--color-accent-transparent",
-        "rgba(250, 204, 21, 0.2)",
-      );
       // Manually making transparency if variable not available
       const accentRgbMatch = accentColor.match(/\d+, \d+, \d+/);
       const accentRgb = accentRgbMatch ? accentRgbMatch[0] : "250, 204, 21";
@@ -172,136 +405,50 @@
         const getY = (val: number) => yAxis.getPixelForValue(val);
         const getCandle = (idx: number) => pattern.candles[idx];
 
-        if (feature.type === "body" && feature.candleIndex !== undefined) {
-          const candle = getCandle(feature.candleIndex);
-          const x = getX(feature.candleIndex);
-          const yTop = getY(Math.max(candle.open, candle.close));
-          const yBottom = getY(Math.min(candle.open, candle.close));
-          const width = 32;
+        const params: DrawFeatureParams = {
+          ctx,
+          getX,
+          getY,
+          getCandle,
+          feature,
+          resolveColor,
+          accentColor,
+          accentBgManual,
+          successBg,
+          dangerBg
+        };
 
-          ctx.fillStyle = feature.color
-            ? resolveColor(feature.color, feature.color)
-            : accentBgManual;
-          ctx.strokeStyle = feature.borderColor
-            ? resolveColor(feature.borderColor, feature.borderColor)
-            : accentColor;
-          ctx.lineWidth = 1.5;
-
-          ctx.beginPath();
-          ctx.roundRect(x - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
-          ctx.fill();
-          if (feature.borderColor) ctx.stroke();
-        } else if (
-          feature.type === "gap" &&
-          feature.candleIndex1 !== undefined &&
-          feature.candleIndex2 !== undefined
-        ) {
-          const x1 = getX(feature.candleIndex1);
-          const x2 = getX(feature.candleIndex2);
-          const c1 = getCandle(feature.candleIndex1);
-          const c2 = getCandle(feature.candleIndex2);
-
-          let yHigh, yLow;
-          if (feature.direction === "up") {
-            yHigh = getY(c2.low);
-            yLow = getY(c1.high);
-          } else {
-            yHigh = getY(c1.low);
-            yLow = getY(c2.high);
-          }
-
-          const top = Math.min(yHigh, yLow);
-          const height = Math.abs(yHigh - yLow);
-          const x = (x1 + x2) / 2;
-
-          if (height > 2) {
-            ctx.fillStyle = feature.color
-              ? resolveColor(feature.color, feature.color)
-              : successBg;
-            ctx.strokeStyle = feature.color
-              ? resolveColor(feature.color, feature.color).replace("0.2", "0.8")
-              : successBg.replace("0.2", "0.8");
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.roundRect(x - 12, top, 24, height, 4);
-            ctx.fill();
-            ctx.stroke();
-          }
-        } else if (
-          feature.type === "line" &&
-          feature.candleIndex1 !== undefined &&
-          feature.candleIndex2 !== undefined
-        ) {
-          const x1 = getX(feature.candleIndex1);
-          const x2 = getX(feature.candleIndex2);
-          // @ts-ignore
-          const val1 = getCandle(feature.candleIndex1)[
-            feature.yValue1Property || "close"
-          ];
-          // @ts-ignore
-          const val2 = getCandle(feature.candleIndex2)[
-            feature.yValue2Property || "close"
-          ];
-
-          const y1 = getY(val1);
-          const y2 = getY(val2);
-
-          ctx.strokeStyle = feature.color
-            ? resolveColor(feature.color, feature.color)
-            : accentColor;
-          ctx.lineWidth = feature.lineWidth || 2;
-          if (feature.dashed) ctx.setLineDash([4, 4]);
-
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        } else if (
-          feature.type === "shadow" &&
-          feature.candleIndex !== undefined
-        ) {
-          const x = getX(feature.candleIndex);
-          const candle = getCandle(feature.candleIndex);
-
-          let yStart, yEnd;
-          if (feature.shadowType === "upper") {
-            yStart = getY(Math.max(candle.open, candle.close));
-            yEnd = getY(candle.high);
-          } else {
-            yStart = getY(Math.min(candle.open, candle.close));
-            yEnd = getY(candle.low);
-          }
-
-          ctx.strokeStyle = feature.color
-            ? resolveColor(feature.color, feature.color)
-            : accentColor;
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(x + 5, yStart);
-          ctx.lineTo(x + 5, yEnd);
-          ctx.stroke();
-        } else if (
-          feature.type === "engulf" &&
-          feature.candleIndex1 !== undefined &&
-          feature.candleIndex2 !== undefined
-        ) {
-          // Engulfing box
-          const x2 = getX(feature.candleIndex2);
-          const c2 = getCandle(feature.candleIndex2);
-          const yTop = getY(Math.max(c2.open, c2.close));
-          const yBottom = getY(Math.min(c2.open, c2.close));
-          const width = 36;
-
-          ctx.strokeStyle = feature.borderColor
-            ? resolveColor(feature.borderColor, feature.borderColor)
-            : accentColor;
-          ctx.lineWidth = 2;
-          ctx.setLineDash([2, 2]);
-          ctx.beginPath();
-          ctx.roundRect(x2 - width / 2, yTop - 4, width, yBottom - yTop + 8, 6);
-          ctx.stroke();
-          ctx.setLineDash([]);
+        switch (feature.type) {
+          case "body":
+            drawBodyFeature(params);
+            break;
+          case "gap":
+            drawGapFeature(params);
+            break;
+          case "line":
+            drawLineFeature(params);
+            break;
+          case "shadow":
+            drawShadowFeature(params);
+            break;
+          case "engulf":
+            drawEngulfFeature(params);
+            break;
+          case "body_inside_body":
+            drawBodyInsideBodyFeature(params);
+            break;
+          case "body_range":
+            drawBodyRangeFeature(params);
+            break;
+          case "high_point":
+            drawHighPointFeature(params);
+            break;
+          case "low_point":
+            drawLowPointFeature(params);
+            break;
+          case "penetration":
+            drawPenetrationFeature(params);
+            break;
         }
 
         ctx.restore();
