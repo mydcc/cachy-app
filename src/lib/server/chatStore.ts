@@ -28,7 +28,7 @@ function resolveDbFile(): string {
       `CHAT_DB_PATH must resolve to a path within the project directory. Got: ${raw}`
     );
   }
-  return raw;
+  return resolved;
 }
 
 export const DB_FILE = resolveDbFile();
