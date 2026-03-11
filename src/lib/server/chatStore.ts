@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { promises as fs } from "fs";
+import fs from "fs/promises";
 import path from "path";
 import { z } from "zod";
 
