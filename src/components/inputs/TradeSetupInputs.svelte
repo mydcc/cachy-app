@@ -18,7 +18,7 @@
 <script lang="ts">
   import { icons } from "../../lib/constants";
   import { debounce } from "../../utils/utils";
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
@@ -116,12 +116,19 @@
   // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
   // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
   $effect(() => {
-    // Only update local from props if:
-    // 1. User is NOT focused
-    // 2. OR user is focused, but prop changed AND it's not just a result of clearing
-    if (!isSymbolFocused && symbol !== localSymbol) {
-      localSymbol = symbol || "";
-    }
+    const currentSymbol = symbol;
+    const currentFocused = isSymbolFocused;
+
+    untrack(() => {
+      // Only update local from props if:
+      // 1. User is NOT focused
+      // 2. OR user is focused, but prop changed AND it's not just a result of clearing
+      if (!currentFocused && currentSymbol !== localSymbol) {
+        localSymbol = currentSymbol || "";
+      } else if (currentFocused && currentSymbol !== localSymbol && localSymbol !== "") {
+        localSymbol = currentSymbol || "";
+      }
+    });
   });
 
   // Sync Numeric Inputs from Props to Local (One-way sync when NOT focused)
