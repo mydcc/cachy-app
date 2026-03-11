@@ -63,6 +63,7 @@ const originalError = console.error;
 
 // Import after mocks are set up (vi.mock calls are hoisted automatically)
 import { headersHandler, handle } from './hooks.server';
+import { CONSTANTS } from '$lib/constants';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -113,7 +114,7 @@ describe('handle sequence (Integration)', () => {
 
     const mockCookies = {
       get: vi.fn().mockImplementation((key) => {
-        if (key === 'cachy_theme') return 'light'; // Simulating a light theme
+        if (key === CONSTANTS.LOCAL_STORAGE_THEME_KEY) return 'light'; // Simulating a light theme
         return null;
       })
     };
