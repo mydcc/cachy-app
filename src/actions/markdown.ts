@@ -27,7 +27,13 @@ export function markdown(node: HTMLElement, content: string) {
             node.innerHTML = "";
             return;
         }
-        node.innerHTML = renderSafeMarkdown(newContent);
+
+        const rendered = renderSafeMarkdown(newContent);
+        if (typeof rendered === 'string') {
+            node.innerHTML = rendered; // Only safe because we know SSR/error returns ""
+        } else {
+            node.replaceChildren(rendered);
+        }
     };
 
     update(content);
