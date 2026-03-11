@@ -94,19 +94,21 @@ export function calculateAllIndicators(
       }
   }
 
-  const result = calculateIndicatorsFromArrays(
-      highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings
-  );
+  try {
+      const result = calculateIndicatorsFromArrays(
+          highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings
+      );
 
-  if (pool) {
-      pool.release(highsNum);
-      pool.release(lowsNum);
-      pool.release(closesNum);
-      pool.release(opensNum);
-      pool.release(volumesNum);
+      return result;
+  } finally {
+      if (pool) {
+          pool.release(highsNum);
+          pool.release(lowsNum);
+          pool.release(closesNum);
+          pool.release(opensNum);
+          pool.release(volumesNum);
+      }
   }
-
-  return result;
 }
 
 export function calculateIndicatorsFromArrays(
