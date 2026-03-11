@@ -13,12 +13,15 @@ import { flushSync } from 'svelte';
 
 describe('PresetManager', () => {
     beforeEach(() => {
+        vi.useFakeTimers();
         // Reset state before each test
         presetState.availablePresets = [];
         presetState.selectedPreset = '';
     });
 
     afterEach(() => {
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
         vi.restoreAllMocks();
     });
 
@@ -50,7 +53,7 @@ describe('PresetManager', () => {
         unsubscribe();
     });
 
-    it('should debounce state changes and notify subscribers after 20ms', async () => {
+    it('should debounce state changes and notify subscribers after 20ms', () => {
         const subscriber = vi.fn();
         const unsubscribe = presetState.subscribe(subscriber);
 
@@ -65,8 +68,8 @@ describe('PresetManager', () => {
         presetState.availablePresets = ['p1', 'p2'];
         flushSync();
 
-        // Let the internal setTimeout(20ms) finish
-        await new Promise(r => setTimeout(r, 50));
+        // Advance past the 20ms debounce window
+        vi.advanceTimersByTime(25);
 
         // Should be called exactly once more with the final state
         expect(subscriber).toHaveBeenCalledTimes(2);
@@ -78,7 +81,7 @@ describe('PresetManager', () => {
         unsubscribe();
     });
 
-    it('should not notify subscribers after unsubscribing', async () => {
+    it('should not notify subscribers after unsubscribing', () => {
         const subscriber = vi.fn();
         const unsubscribe = presetState.subscribe(subscriber);
 
@@ -90,9 +93,29 @@ describe('PresetManager', () => {
         presetState.availablePresets = ['p1'];
         flushSync();
 
-        await new Promise(r => setTimeout(r, 50));
+        vi.advanceTimersByTime(25);
 
         // Should still be 1
+        expect(subscriber).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not notify subscribers when unsubscribing with a pending timer', () => {
+        const subscriber = vi.fn();
+        const unsubscribe = presetState.subscribe(subscriber);
+
+        expect(subscriber).toHaveBeenCalledTimes(1);
+
+        // Mutate state to schedule a debounced notification
+        presetState.availablePresets = ['p1'];
+        flushSync();
+
+        // Unsubscribe while the timer is still pending
+        unsubscribe();
+
+        // Advance past the debounce window
+        vi.advanceTimersByTime(25);
+
+        // Should still be 1 — the pending timer must have been cleared
         expect(subscriber).toHaveBeenCalledTimes(1);
     });
 });
