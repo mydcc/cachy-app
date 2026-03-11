@@ -19,7 +19,19 @@ import fs from "fs/promises";
 import path from "path";
 import { z } from "zod";
 
-const DB_FILE = process.env.CHAT_DB_PATH || "db/chat_messages.json";
+function resolveDbFile(): string {
+  const raw = process.env.CHAT_DB_PATH || "db/chat_messages.json";
+  const resolved = path.resolve(raw);
+  const cwd = process.cwd();
+  if (!resolved.startsWith(cwd + path.sep) && resolved !== cwd) {
+    throw new Error(
+      `CHAT_DB_PATH must resolve to a path within the project directory. Got: ${raw}`
+    );
+  }
+  return raw;
+}
+
+export const DB_FILE = resolveDbFile();
 const MAX_HISTORY = 1000;
 const SAVE_DEBOUNCE_MS = 1000;
 const SHUTDOWN_TIMEOUT_MS = 5000;
