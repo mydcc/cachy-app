@@ -33,6 +33,10 @@ describe('BROKER_CAPABILITIES', () => {
             capabilities.nativeTimeframes.forEach(tf => {
                 expect(typeof tf).toBe('string');
             });
+            // Validate timeframe format matches /^\d+[smhdwM]$/
+            capabilities.nativeTimeframes.forEach(tf => {
+                expect(tf).toMatch(/^\d+[smhdwM]$/);
+            });
         }
     });
 
@@ -40,6 +44,13 @@ describe('BROKER_CAPABILITIES', () => {
         expect(BROKER_CAPABILITIES.bitunix).toBeDefined();
         expect(BROKER_CAPABILITIES.bitunix.nativeTimeframes).toEqual([
             "1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"
+        ]);
+    });
+
+    it('should have correct nativeTimeframes for bitget', () => {
+        expect(BROKER_CAPABILITIES.bitget).toBeDefined();
+        expect(BROKER_CAPABILITIES.bitget.nativeTimeframes).toEqual([
+            "1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"
         ]);
     });
 });
