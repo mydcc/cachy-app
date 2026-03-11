@@ -181,7 +181,6 @@ class MarketWatcher {
     const intended = new Map<string, { symbol: string; channel: string }>();
     this.requests.forEach((channels, symbol) => {
       channels.forEach((reqs, ch) => {
-        // Map requirement channels to WebSocket channels (e.g. "depth" -> "depth_book5")
         const wsChannels = getChannelsForRequirement(ch);
         wsChannels.forEach(bitunixChannel => {
           const key = `${bitunixChannel}:${symbol}`;
