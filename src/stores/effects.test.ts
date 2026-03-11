@@ -50,6 +50,11 @@ describe('EffectsState', () => {
         expect(effectsState.projectileOrigin).toBeNull();
     });
 
+    it('should handle triggerSmash with null element', () => {
+        effectsState.triggerSmash(null as unknown as HTMLElement, 'some-id');
+        expect(effectsState.smashTarget).toBeNull();
+    });
+
     it('should trigger and consume smash event correctly', () => {
         const mockRect = { x: 30, y: 40, width: 50, height: 50 } as DOMRect;
         const mockElement = {
