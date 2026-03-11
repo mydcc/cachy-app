@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
     import { dataRepairService } from "../../services/dataRepairService";
     import { settingsState } from "../../stores/settings.svelte";
     import { _ } from "../../locales/i18n";
