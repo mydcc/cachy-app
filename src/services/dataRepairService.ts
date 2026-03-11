@@ -139,8 +139,11 @@ async function fetchSmartKlines(
   );
 
   // Helper to log a single failure if it's not a simple 404/not-found.
+  // Track already-logged results to avoid duplicate warnings.
+  const logged = new Set<Settled>();
   const logFailure = (r: Settled) => {
-    if (r.status === "rejected") {
+    if (r.status === "rejected" && !logged.has(r)) {
+      logged.add(r);
       const err = r.reason;
       const isNotFound =
         err?.message === "apiErrors.symbolNotFound" || err?.status === 404;
