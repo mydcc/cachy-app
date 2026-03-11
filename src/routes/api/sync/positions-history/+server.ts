@@ -60,9 +60,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const rawMsg = e instanceof Error ? e.message : String(e);
     // Mask sensitive data (SECURITY FIX)
-    let safeMsg = sanitizeErrorMessage(rawMsg, 1000);
+    // Mask keys before truncating so partial keys at the boundary are not left unmasked
+    let safeMsg = rawMsg;
     if (apiKey && apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
     if (apiSecret && apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
+    safeMsg = sanitizeErrorMessage(safeMsg, 1000);
 
     console.error(`Error fetching history positions from Bitunix:`, safeMsg);
 
