@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { computePosition, flip, shift, offset, arrow } from "@floating-ui/dom";
+  import { computePosition, flip, shift, offset, arrow, autoUpdate } from "@floating-ui/dom";
 
   interface Props {
     data?: {
@@ -108,11 +108,14 @@
     dispatch("click", { date: dateStr });
   }
 
-  let hoveredEntry = $state<any>(null);
+  type DataEntry = NonNullable<Props["data"]>[number];
+
+  let hoveredEntry = $state<DataEntry | null>(null);
   let hoveredDateStr = $state<string>("");
   let tooltipVisible = $state(false);
   let tooltipEl = $state<HTMLElement>();
   let arrowEl = $state<HTMLElement>();
+  let cleanupAutoUpdate: (() => void) | null = null;
 
   async function updateTooltipPosition(triggerEl: HTMLElement) {
     if (!triggerEl || !tooltipEl || !arrowEl) return;
@@ -156,49 +159,47 @@
         });
 
         arrowEl.style.transform = `rotate(45deg)`;
-        if (placement.startsWith("top")) {
-          arrowEl.style.borderRight = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderBottom = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderLeft = "none";
-          arrowEl.style.borderTop = "none";
-        } else if (placement.startsWith("bottom")) {
-          arrowEl.style.borderTop = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderLeft = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderRight = "none";
-          arrowEl.style.borderBottom = "none";
-        } else if (placement.startsWith("left")) {
-          arrowEl.style.borderTop = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderRight = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderLeft = "none";
-          arrowEl.style.borderBottom = "none";
-        } else if (placement.startsWith("right")) {
-          arrowEl.style.borderBottom = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderLeft = "1px solid var(--border-color, #334155)";
-          arrowEl.style.borderRight = "none";
-          arrowEl.style.borderTop = "none";
+        const border = "1px solid var(--border-color, #334155)";
+        const arrowBorders: Record<string, Record<string, string>> = {
+          top: { borderRight: border, borderBottom: border, borderLeft: "none", borderTop: "none" },
+          bottom: { borderTop: border, borderLeft: border, borderRight: "none", borderBottom: "none" },
+          left: { borderTop: border, borderRight: border, borderLeft: "none", borderBottom: "none" },
+          right: { borderBottom: border, borderLeft: border, borderRight: "none", borderTop: "none" },
+        };
+        const borders = arrowBorders[side];
+        if (borders) {
+          Object.assign(arrowEl.style, borders);
         }
       }
       tooltipEl.style.opacity = "1";
     } catch (e) {
-      // ignore
+      console.error("Failed to update tooltip position:", e);
     }
   }
 
-  function handleMouseEnter(event: MouseEvent, entry: any, dateStr: string) {
-    hoveredEntry = entry;
+  function handleMouseEnter(event: MouseEvent, entry: DataEntry | undefined, dateStr: string) {
+    hoveredEntry = entry ?? null;
     hoveredDateStr = dateStr;
     tooltipVisible = true;
     requestAnimationFrame(() => {
-      updateTooltipPosition(event.target as HTMLElement);
+      const triggerEl = event.target as HTMLElement;
+      updateTooltipPosition(triggerEl);
+      if (cleanupAutoUpdate) cleanupAutoUpdate();
+      if (tooltipEl) {
+        cleanupAutoUpdate = autoUpdate(triggerEl, tooltipEl, () => {
+          updateTooltipPosition(triggerEl);
+        });
+      }
     });
   }
 
   function handleMouseLeave() {
+    if (cleanupAutoUpdate) {
+      cleanupAutoUpdate();
+      cleanupAutoUpdate = null;
+    }
     tooltipVisible = false;
   }
-
-
-
 </script>
 
 <div
@@ -270,7 +271,6 @@
   <div
     bind:this={tooltipEl}
     class="floating-tooltip"
-    style="position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.2s ease-in-out; background-color: var(--bg-tertiary, #1e293b); color: var(--text-primary, #f1f5f9); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid var(--border-color, #334155); line-height: 1.4; max-width: 300px; width: max-content;"
   >
     {#if hoveredEntry}
       <div class="text-left">
@@ -301,7 +301,6 @@
     <div
       bind:this={arrowEl}
       class="floating-arrow"
-      style="position: absolute; width: 8px; height: 8px; background-color: inherit; border-right: 1px solid var(--border-color, #334155); border-bottom: 1px solid var(--border-color, #334155); z-index: -1;"
     ></div>
   </div>
 {/if}
@@ -315,5 +314,35 @@
     transform: scale(1.2);
     z-index: 10;
     border: 1px solid var(--text-primary);
+  }
+  .floating-tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    background-color: var(--bg-tertiary, #1e293b);
+    color: var(--text-primary, #f1f5f9);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--border-color, #334155);
+    line-height: 1.4;
+    max-width: 300px;
+    width: max-content;
+  }
+  .floating-arrow {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: inherit;
+    border-right: 1px solid var(--border-color, #334155);
+    border-bottom: 1px solid var(--border-color, #334155);
+    z-index: -1;
   }
 </style>
