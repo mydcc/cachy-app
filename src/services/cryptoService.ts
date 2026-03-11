@@ -287,6 +287,7 @@ class CryptoServiceImpl {
     }
 
     // Legacy AES-GCM blobs without kdfHash were always encrypted with SHA-256.
+    // New blobs always include kdfHash and are handled by the early return above.
     // Try SHA-256 first, fall back to SHA-512 only if needed (future-proofing).
     try {
       return await this.attemptDecrypt(blob, password, "SHA-256");
