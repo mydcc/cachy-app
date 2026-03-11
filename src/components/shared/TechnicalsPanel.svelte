@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { untrack } from "svelte";
+
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
