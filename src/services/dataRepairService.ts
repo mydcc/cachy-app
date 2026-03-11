@@ -22,6 +22,7 @@ import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
+import pLimit from "p-limit";
 
 export interface RepairError {
   tradeId: string | number;
@@ -142,14 +143,9 @@ export const dataRepairService = {
     // Use configured timeframe
     const interval = settingsState.repairTimeframe || "15m";
 
-    for (const trade of targets) {
-      processed++;
-      onProgress(
-        processed,
-        total,
-        `Repariere ${trade.symbol} (${trade.date})...`,
-      );
+    const limit = pLimit(5); // Concurrency limit
 
+    const promises = targets.map((trade) => limit(async () => {
       try {
         const timeStr = trade.entryDate || trade.date;
         const timestamp = new Date(timeStr).getTime();
@@ -160,32 +156,31 @@ export const dataRepairService = {
             `[DataRepair] Invalid date for trade ${trade.id}, skipping.`,
           );
           failed++;
-          continue;
-        }
+        } else {
+          const result = await fetchSmartKlines(
+            trade.symbol,
+            interval,
+            25,
+            undefined,
+            timestamp,
+            trade.provider,
+          );
 
-        const result = await fetchSmartKlines(
-          trade.symbol,
-          interval,
-          25,
-          undefined,
-          timestamp,
-          trade.provider,
-        );
+          if (result && result.klines.length >= 14) {
+            const atr = calculator.calculateATR(result.klines, 14);
 
-        if (result && result.klines.length >= 14) {
-          const atr = calculator.calculateATR(result.klines, 14);
-
-          if (atr && !atr.isNaN()) {
-            journalState.updateEntry({
-              ...trade,
-              atrValue: atr,
-              provider: result.provider, // Update provider for future ref
-            });
+            if (atr && !atr.isNaN()) {
+              journalState.updateEntry({
+                ...trade,
+                atrValue: atr,
+                provider: result.provider, // Update provider for future ref
+              });
+            } else {
+              failed++;
+            }
           } else {
             failed++;
           }
-        } else {
-          failed++;
         }
       } catch (e: any) {
         logger.error(
@@ -194,10 +189,17 @@ export const dataRepairService = {
           e,
         );
         failed++;
+      } finally {
+        processed++;
+        onProgress(
+          processed,
+          total,
+          `Repariere ${trade.symbol} (${trade.date})...`,
+        );
       }
+    }));
 
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    await Promise.all(promises);
 
     const successCount = total - failed;
     onProgress(
@@ -251,69 +253,64 @@ export const dataRepairService = {
 
     // Use configured timeframe (requested by user to be configurable)
     // Default to 5m for MFE/MAE if not set, or use the repairTimeframe
-    // User asked "Timeframe soll konfigurierbar sein" for ATR values, but mentioned maintenance code generally.
-    // I'll use the same setting.
     const interval = settingsState.repairTimeframe || "5m";
 
-    for (const trade of targets) {
-      processed++;
-      onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
+    const limit = pLimit(5); // Concurrency limit
 
+    const promises = targets.map((trade) => limit(async () => {
       try {
         if (!trade.entryDate || !trade.exitDate) {
           failed++;
-          continue;
-        }
-
-        const startTs = new Date(trade.entryDate).getTime();
-        const endTs = new Date(trade.exitDate).getTime();
-
-        if (isNaN(startTs) || isNaN(endTs) || endTs <= startTs) {
-          failed++;
-          continue;
-        }
-
-        const result = await fetchSmartKlines(
-          trade.symbol,
-          interval,
-          1000,
-          startTs,
-          endTs,
-          trade.provider,
-        );
-
-        if (result && result.klines.length > 0) {
-          let highest = new Decimal(0);
-          let lowest = new Decimal(result.klines[0].low);
-
-          for (const k of result.klines) {
-            const h = new Decimal(k.high);
-            const l = new Decimal(k.low);
-            if (h.gt(highest)) highest = h;
-            if (l.lt(lowest)) lowest = l;
-            if (new Decimal(lowest).eq(0)) lowest = l;
-          }
-
-          const entryPrice = new Decimal(trade.entryPrice);
-          let mfe = new Decimal(0);
-          let mae = new Decimal(0);
-
-          if (trade.tradeType === "Long") {
-            mfe = highest.minus(entryPrice);
-            mae = entryPrice.minus(lowest);
-          } else {
-            mfe = entryPrice.minus(lowest);
-            mae = highest.minus(entryPrice);
-          }
-
-          journalState.updateEntry({
-            ...trade,
-            mfe: mfe,
-            mae: mae,
-            provider: result.provider,
-          });
         } else {
-          failed++;
+          const startTs = new Date(trade.entryDate).getTime();
+          const endTs = new Date(trade.exitDate).getTime();
+
+          if (isNaN(startTs) || isNaN(endTs) || endTs <= startTs) {
+            failed++;
+          } else {
+            const result = await fetchSmartKlines(
+              trade.symbol,
+              interval,
+              1000,
+              startTs,
+              endTs,
+              trade.provider,
+            );
+
+            if (result && result.klines.length > 0) {
+              let highest = new Decimal(0);
+              let lowest = new Decimal(result.klines[0].low);
+
+              for (const k of result.klines) {
+                const h = new Decimal(k.high);
+                const l = new Decimal(k.low);
+                if (h.gt(highest)) highest = h;
+                if (l.lt(lowest)) lowest = l;
+                if (new Decimal(lowest).eq(0)) lowest = l;
+              }
+
+              const entryPrice = new Decimal(trade.entryPrice);
+              let mfe = new Decimal(0);
+              let mae = new Decimal(0);
+
+              if (trade.tradeType === "Long") {
+                mfe = highest.minus(entryPrice);
+                mae = entryPrice.minus(lowest);
+              } else {
+                mfe = entryPrice.minus(lowest);
+                mae = highest.minus(entryPrice);
+              }
+
+              journalState.updateEntry({
+                ...trade,
+                mfe: mfe,
+                mae: mae,
+                provider: result.provider,
+              });
+            } else {
+              failed++;
+            }
+          }
         }
       } catch (e: any) {
         if (e.message !== "apiErrors.symbolNotFound") {
@@ -324,10 +321,13 @@ export const dataRepairService = {
           );
         }
         failed++;
+      } finally {
+        processed++;
+        onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
       }
+    }));
 
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    await Promise.all(promises);
 
     const successCount = total - failed;
     onProgress(
