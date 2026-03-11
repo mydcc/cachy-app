@@ -58,6 +58,11 @@ class CloudService {
         if (!settled) {
           settled = true;
           this.connecting = false;
+          // Clean up the stale connection to prevent late callbacks from corrupting state
+          if (this.conn) {
+            try { (this.conn as any).disconnect?.(); } catch (_) { /* ignore */ }
+            this.conn = null;
+          }
           logger.error('network', 'SpacetimeDB connection timed out after 15s');
           reject(new Error('Connection timed out'));
         }
@@ -82,6 +87,7 @@ class CloudService {
           .withModuleName(dbName)
           .withToken(token) // Enforce token
           .onConnect((ctx) => {
+            if (settled) return; // Ignore late callback after timeout
             logger.log('network', 'Connected to SpacetimeDB!', ctx);
             this.connected = true;
             this.connecting = false;
@@ -99,6 +105,7 @@ class CloudService {
             settleResolve();
           })
           .onDisconnect((ctx) => {
+            if (settled && !this.connected) return; // Ignore disconnect from timed-out connection
             logger.log('network', 'Disconnected from SpacetimeDB', ctx);
             this.connected = false;
             this.connecting = false;
