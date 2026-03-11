@@ -29,8 +29,6 @@ type GlobalMessage = Infer<typeof GlobalMessageType>;
 class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
-  private connecting = false;
-  private tableListenersRegistered = false;
   private messages: GlobalMessage[] = [];
 
   // Callback for Svelte to update UI
@@ -38,126 +36,58 @@ class CloudService {
 
   constructor() { }
 
-  // Callback for Svelte to update UI on connection status changes
-  private onConnectionStatusCallback: ((connected: boolean) => void) | null = null;
-
   async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
     }
-    if (this.connected || this.connecting) return;
-    this.connecting = true;
+    if (this.connected) return;
 
     logger.log('network', 'Connecting to SpacetimeDB...', host);
 
-    const CONNECTION_TIMEOUT_MS = 15_000;
+    try {
+      this.conn = DbConnection.builder()
+        .withUri(host)
+        .withModuleName(dbName)
+        .withToken(token) // Enforce token
+        .onConnect((ctx) => {
+          logger.log('network', 'Connected to SpacetimeDB!', ctx);
+          this.connected = true;
 
-    return new Promise<void>((resolve, reject) => {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          this.connecting = false;
-          // Clean up the stale connection to prevent late callbacks from corrupting state
-          if (this.conn) {
-            try { (this.conn as any).disconnect?.(); } catch (_) { /* ignore */ }
-            this.conn = null;
+          // Subscribe to queries
+          const sub = this.conn?.subscriptionBuilder();
+          if (sub) {
+            sub.onApplied((ctx) => {
+              logger.debug('network', 'Subscription applied', ctx);
+            })
+              .subscribeToAllTables();
           }
-          logger.error('network', 'SpacetimeDB connection timed out after 15s');
-          reject(new Error('Connection timed out'));
-        }
-      }, CONNECTION_TIMEOUT_MS);
+        })
+        .onDisconnect((ctx) => {
+          logger.log('network', 'Disconnected from SpacetimeDB', ctx);
+          this.connected = false;
+        })
+        .build();
+    } catch (e) {
+      logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
+    }
 
-      const settleResolve = () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        resolve();
-      };
-      const settleReject = (err: unknown) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        reject(err);
-      };
+    // Handle row updates with robustness
+    try {
+      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
+      const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
 
-      // Capture reference so callbacks can detect if they belong to a stale connection
-      let connForThisAttempt: DbConnection | null = null;
-
-      try {
-        connForThisAttempt = DbConnection.builder()
-          .withUri(host)
-          .withModuleName(dbName)
-          .withToken(token) // Enforce token
-          .onConnect((ctx) => {
-            if (settled) return; // Ignore late callback after timeout
-            logger.log('network', 'Connected to SpacetimeDB!', ctx);
-            this.connected = true;
-            this.connecting = false;
-            if (this.onConnectionStatusCallback) this.onConnectionStatusCallback(true);
-
-            // Subscribe to queries
-            const sub = this.conn?.subscriptionBuilder();
-            if (sub) {
-              sub.onApplied((ctx) => {
-                logger.debug('network', 'Subscription applied', ctx);
-              })
-                .subscribeToAllTables();
-            }
-
-            settleResolve();
-          })
-          .onDisconnect((ctx) => {
-            // Ignore if this callback belongs to a stale connection (e.g. timed-out then replaced)
-            if (this.conn !== connForThisAttempt) return;
-            logger.log('network', 'Disconnected from SpacetimeDB', ctx);
-            this.connected = false;
-            this.connecting = false;
-            if (this.onConnectionStatusCallback) this.onConnectionStatusCallback(false);
-          })
-          .onConnectError((_ctx, err) => {
-            logger.error('network', 'SpacetimeDB connection error:', err);
-            this.connecting = false;
-            if (this.conn === connForThisAttempt) {
-              try { (this.conn as any).disconnect?.(); } catch (_) { /* ignore */ }
-              this.conn = null;
-            }
-            settleReject(err instanceof Error ? err : new Error(String(err)));
-          .build();
-        this.conn = connForThisAttempt;
-      } catch (e) {
-        logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
-        this.connecting = false;
-        settleReject(e);
-        return;
+      if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+        globalMessageTable.onInsert((ctx: any, row: any) => {
+          logger.debug('network', 'New Message Received:', row);
+          this.messages = [...this.messages, row];
+          if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
+        });
+      } else {
+        logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
       }
-
-      // Handle row updates with robustness — register only once on the singleton table handle
-      if (!this.tableListenersRegistered) {
-        try {
-          // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
-          const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
-
-          if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
-            globalMessageTable.onInsert((ctx: any, row: any) => {
-              logger.debug('network', 'New Message Received:', row);
-              this.messages = [...this.messages, row];
-              if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
-            });
-            this.tableListenersRegistered = true;
-          } else {
-            logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
-          }
-        } catch (e) {
-          logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
-        }
-      }
-    });
-  }
-
-  subscribeConnectionStatus(cb: (connected: boolean) => void) {
-    this.onConnectionStatusCallback = cb;
-    cb(this.connected);
+    } catch (e) {
+      logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
+    }
   }
 
   sendMessage(text: string) {
@@ -166,7 +96,7 @@ class CloudService {
       return;
     }
     // The reducers object is exported from the generated code and handles calling the server
-    (reducers as any).sendMessage({ text });
+    (reducers as any).sendMessage(text);
   }
 
   subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {

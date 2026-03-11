@@ -30,17 +30,15 @@
     cloudService.subscribeMessages((msgs) => {
         messages = msgs;
     });
-    cloudService.subscribeConnectionStatus((status) => {
-        connected = status;
-    });
   });
 
   async function connect() {
     errorMsg = "";
     try {
       await cloudService.connect(undefined, undefined, token);
-    } catch (e) {
-      errorMsg = e instanceof Error ? e.message : $_("cloud.connectionFailed");
+      connected = true;
+    } catch (e: any) {
+      errorMsg = e.message || $_("cloud.connectionFailed");
     }
   }
 
