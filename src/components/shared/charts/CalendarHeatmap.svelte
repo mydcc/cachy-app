@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onDestroy } from "svelte";
   import { computePosition, flip, shift, offset, arrow, autoUpdate } from "@floating-ui/dom";
 
   interface Props {
@@ -116,6 +116,7 @@
   let tooltipEl = $state<HTMLElement>();
   let arrowEl = $state<HTMLElement>();
   let cleanupAutoUpdate: (() => void) | null = null;
+  let rAFId: number | null = null;
 
   async function updateTooltipPosition(triggerEl: HTMLElement) {
     if (!triggerEl || !tooltipEl || !arrowEl) return;
@@ -181,7 +182,9 @@
     hoveredEntry = entry ?? null;
     hoveredDateStr = dateStr;
     tooltipVisible = true;
-    requestAnimationFrame(() => {
+    if (rAFId !== null) cancelAnimationFrame(rAFId);
+    rAFId = requestAnimationFrame(() => {
+      rAFId = null;
       const triggerEl = event.target as HTMLElement;
       updateTooltipPosition(triggerEl);
       if (cleanupAutoUpdate) cleanupAutoUpdate();
@@ -194,12 +197,21 @@
   }
 
   function handleMouseLeave() {
+    if (rAFId !== null) {
+      cancelAnimationFrame(rAFId);
+      rAFId = null;
+    }
     if (cleanupAutoUpdate) {
       cleanupAutoUpdate();
       cleanupAutoUpdate = null;
     }
     tooltipVisible = false;
   }
+
+  onDestroy(() => {
+    if (rAFId !== null) cancelAnimationFrame(rAFId);
+    if (cleanupAutoUpdate) cleanupAutoUpdate();
+  });
 </script>
 
 <div
