@@ -38,6 +38,42 @@ export interface RepairResult {
   errors: RepairError[];
 }
 
+// Wraps a raw kline fetch promise with shared result-checking and error-logging.
+function wrapKlineFetch(
+  fetchPromise: Promise<Kline[]>,
+  provider: "bitunix" | "bitget",
+  symbol: string,
+): Promise<{ klines: Kline[]; provider: "bitunix" | "bitget" }> {
+  return fetchPromise
+    .then((klines) => {
+      if (klines && klines.length > 0) {
+        return { klines, provider };
+      }
+      throw new Error("apiErrors.symbolNotFound");
+    })
+    .catch((e: any) => {
+      const isNotFound =
+        e.message === "apiErrors.symbolNotFound" || e.status === 404;
+      if (!isNotFound) {
+        logger.warn(
+          "journal",
+          `[DataRepair] ${provider} fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
+        );
+      }
+      throw e;
+    });
+}
+
+const fetcherMap: Record<
+  "bitunix" | "bitget",
+  (symbol: string, interval: string, limit: number, start?: number, end?: number) => Promise<Kline[]>
+> = {
+  bitunix: (symbol, interval, limit, start, end) =>
+    apiService.fetchBitunixKlines(normalizeSymbol(symbol, "bitunix"), interval, limit, start, end, "normal"),
+  bitget: (symbol, interval, limit, start, end) =>
+    apiService.fetchBitgetKlines(normalizeSymbol(symbol, "bitget"), interval, limit, start, end, "normal"),
+};
+
 // Helper to try multiple providers
 async function fetchSmartKlines(
   symbol: string,
@@ -61,65 +97,9 @@ async function fetchSmartKlines(
   try {
     const promises: Promise<{ klines: Kline[]; provider: "bitunix" | "bitget" }>[] = [];
 
-    if (candidates.includes("bitunix")) {
+    for (const p of candidates) {
       promises.push(
-        apiService
-          .fetchBitunixKlines(
-            normalizeSymbol(symbol, "bitunix"),
-            interval,
-            limit,
-            start,
-            end,
-            "normal",
-          )
-          .then((klines) => {
-            if (klines && klines.length > 0) {
-              return { klines, provider: "bitunix" as const };
-            }
-            throw new Error("apiErrors.symbolNotFound");
-          })
-          .catch((e: any) => {
-            const isNotFound =
-              e.message === "apiErrors.symbolNotFound" || e.status === 404;
-            if (!isNotFound) {
-              logger.warn(
-                "journal",
-                `[DataRepair] bitunix fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
-              );
-            }
-            throw e;
-          }),
-      );
-    }
-
-    if (candidates.includes("bitget")) {
-      promises.push(
-        apiService
-          .fetchBitgetKlines(
-            normalizeSymbol(symbol, "bitget"),
-            interval,
-            limit,
-            start,
-            end,
-            "normal",
-          )
-          .then((klines) => {
-            if (klines && klines.length > 0) {
-              return { klines, provider: "bitget" as const };
-            }
-            throw new Error("apiErrors.symbolNotFound");
-          })
-          .catch((e: any) => {
-            const isNotFound =
-              e.message === "apiErrors.symbolNotFound" || e.status === 404;
-            if (!isNotFound) {
-              logger.warn(
-                "journal",
-                `[DataRepair] bitget fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
-              );
-            }
-            throw e;
-          }),
+        wrapKlineFetch(fetcherMap[p](symbol, interval, limit, start, end), p, symbol),
       );
     }
 
@@ -309,15 +289,14 @@ export const dataRepairService = {
             );
 
             if (result && result.klines.length > 0) {
-              let highest = new Decimal(0);
+              let highest = new Decimal(result.klines[0].high);
               let lowest = new Decimal(result.klines[0].low);
 
               for (const k of result.klines) {
                 const h = new Decimal(k.high);
                 const l = new Decimal(k.low);
                 if (h.gt(highest)) highest = h;
-                if (l.lt(lowest)) lowest = l;
-                if (new Decimal(lowest).eq(0)) lowest = l;
+                if (l.gt(0) && l.lt(lowest)) lowest = l;
               }
 
               const entryPrice = new Decimal(trade.entryPrice);
