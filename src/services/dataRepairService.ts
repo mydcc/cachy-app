@@ -57,63 +57,125 @@ async function fetchSmartKlines(
   // But legacy data is likely Bitunix.
   // If we don't know, checking Bitunix first is safer for legacy data.
 
-  // Fire all candidates concurrently but respect priority order:
-  // use Promise.allSettled so we can pick the first successful candidate
-  // by priority (candidates[0] preferred over candidates[1]).
-  const results = await Promise.allSettled(
-    candidates.map(async (p) => {
-      let klines: Kline[] = [];
-      if (p === "bitunix") {
-        klines = await apiService.fetchBitunixKlines(
-          normalizeSymbol(symbol, "bitunix"),
-          interval,
-          limit,
-          start,
-          end,
-          "normal",
-        );
-      } else {
-        klines = await apiService.fetchBitgetKlines(
-          normalizeSymbol(symbol, "bitget"),
-          interval,
-          limit,
-          start,
-          end,
-          "normal",
-        );
-      }
+  // Fire all candidates concurrently.  We want:
+  //  1. Priority – prefer candidates[0] over candidates[1] when both succeed.
+  //  2. Speed   – don't block on a slow/timing-out provider when the other
+  //               already succeeded.
+  //  3. Logging – always log non-404 failures, even when another provider won.
+  //
+  // Approach: wrap each fetch in a promise that stores its result, then race
+  // them.  Once any promise settles we check whether we can return early
+  // (the priority candidate succeeded, or the only remaining candidate
+  // settled).  A background "settled" promise handles deferred error logging.
 
-      if (klines && klines.length > 0) {
-        return { klines, provider: p };
-      }
+  const fetchOne = async (
+    p: "bitunix" | "bitget",
+  ): Promise<{ klines: Kline[]; provider: "bitunix" | "bitget" }> => {
+    let klines: Kline[] = [];
+    if (p === "bitunix") {
+      klines = await apiService.fetchBitunixKlines(
+        normalizeSymbol(symbol, "bitunix"),
+        interval,
+        limit,
+        start,
+        end,
+        "normal",
+      );
+    } else {
+      klines = await apiService.fetchBitgetKlines(
+        normalizeSymbol(symbol, "bitget"),
+        interval,
+        limit,
+        start,
+        end,
+        "normal",
+      );
+    }
 
-      throw new Error("apiErrors.symbolNotFound");
-    }),
-  );
+    if (klines && klines.length > 0) {
+      return { klines, provider: p };
+    }
 
-  // Log errors for all failed providers (preserves observability
-  // even when another provider succeeded).
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (r.status === "rejected") {
-      const err = r.reason;
-      const p = candidates[i];
+    throw new Error("apiErrors.symbolNotFound");
+  };
+
+  // Single candidate – no racing needed.
+  if (candidates.length === 1) {
+    try {
+      return await fetchOne(candidates[0]);
+    } catch (e: any) {
       const isNotFound =
-        err.message === "apiErrors.symbolNotFound" || err.status === 404;
+        e.message === "apiErrors.symbolNotFound" || e.status === 404;
       if (!isNotFound) {
         logger.warn(
           "journal",
-          `[DataRepair] ${p} fetch failed for ${symbol}: ${err.message}`,
+          `[DataRepair] ${candidates[0]} fetch failed for ${symbol}: ${e.message}`,
         );
       }
+      return null;
     }
   }
 
-  // Return the first successful result in candidate priority order.
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
+  // Multiple candidates – race them, but respect priority.
+  const promises = candidates.map((p) =>
+    fetchOne(p).then(
+      (value) => ({ status: "fulfilled" as const, value, provider: p }),
+      (reason) => ({ status: "rejected" as const, reason, provider: p }),
+    ),
+  );
+
+  // Wait for the priority (first) candidate to settle.
+  const first = await promises[0];
+
+  if (first.status === "fulfilled") {
+    // Priority provider succeeded – return immediately.
+    // Log failures from other providers asynchronously.
+    Promise.allSettled(promises.slice(1)).then((rest) => {
+      for (let i = 0; i < rest.length; i++) {
+        const r = rest[i];
+        if (r.status === "fulfilled" && r.value.status === "rejected") {
+          const err = r.value.reason;
+          const p = candidates[i + 1];
+          const isNotFound =
+            err.message === "apiErrors.symbolNotFound" || err.status === 404;
+          if (!isNotFound) {
+            logger.warn(
+              "journal",
+              `[DataRepair] ${p} fetch failed for ${symbol}: ${err?.message ?? String(err)}`,
+            );
+          }
+        }
+      }
+    });
+    return first.value;
+  }
+
+  // Priority provider failed – log its error, then wait for fallbacks.
+  const firstErr = first.reason;
+  const isNotFound =
+    firstErr.message === "apiErrors.symbolNotFound" || firstErr.status === 404;
+  if (!isNotFound) {
+    logger.warn(
+      "journal",
+      `[DataRepair] ${candidates[0]} fetch failed for ${symbol}: ${firstErr?.message ?? String(firstErr)}`,
+    );
+  }
+
+  // Wait only for the remaining candidates.
+  const rest = await Promise.all(promises.slice(1));
+  for (const r of rest) {
     if (r.status === "fulfilled") {
       return r.value;
+    }
+    // Log the fallback failure too.
+    const err = r.reason;
+    const isFallbackNotFound =
+      err.message === "apiErrors.symbolNotFound" || err.status === 404;
+    if (!isFallbackNotFound) {
+      logger.warn(
+        "journal",
+        `[DataRepair] ${r.provider} fetch failed for ${symbol}: ${err?.message ?? String(err)}`,
+      );
     }
   }
 
