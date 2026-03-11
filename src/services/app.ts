@@ -506,6 +506,17 @@ export const app = {
   handleFetchPrice: async (isAuto = false) => {
     const symbol = tradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) return;
+
+    const cachedMarketData = marketState.data[normalizeSymbol(symbol, settingsState.apiProvider)];
+    if (isAuto && cachedMarketData?.lastPrice) {
+      logger.debug("api", `[handleFetchPrice] Using cached price for ${symbol}`);
+      const priceVal = cachedMarketData.lastPrice;
+      app.currentMarketPrice = priceVal;
+      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
+      app.calculateAndDisplay();
+      return;
+    }
+
     if (!isAuto) uiState.isPriceFetching = true;
     try {
       logger.debug("api", `[handleFetchPrice] Fetching price for ${symbol} via ${settingsState.apiProvider}`);
