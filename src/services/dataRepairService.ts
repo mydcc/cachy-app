@@ -117,66 +117,92 @@ async function fetchSmartKlines(
   }
 
   // Multiple candidates – race them, but respect priority.
-  const promises = candidates.map((p) =>
+  // Each promise is wrapped so it never rejects; results carry their own status.
+  type Settled = { status: "fulfilled"; value: { klines: Kline[]; provider: "bitunix" | "bitget" }; provider: "bitunix" | "bitget" }
+    | { status: "rejected"; reason: any; provider: "bitunix" | "bitget" };
+
+  const settled: (Settled | undefined)[] = new Array(candidates.length);
+
+  const promises: Promise<Settled>[] = candidates.map((p, idx) =>
     fetchOne(p).then(
-      (value) => ({ status: "fulfilled" as const, value, provider: p }),
-      (reason) => ({ status: "rejected" as const, reason, provider: p }),
+      (value): Settled => {
+        const r = { status: "fulfilled" as const, value, provider: p };
+        settled[idx] = r;
+        return r;
+      },
+      (reason): Settled => {
+        const r = { status: "rejected" as const, reason, provider: p };
+        settled[idx] = r;
+        return r;
+      },
     ),
   );
 
-  // Wait for the priority (first) candidate to settle.
-  const first = await promises[0];
-
-  if (first.status === "fulfilled") {
-    // Priority provider succeeded – return immediately.
-    // Log failures from other providers asynchronously.
-    Promise.allSettled(promises.slice(1)).then((rest) => {
-      for (let i = 0; i < rest.length; i++) {
-        const r = rest[i];
-        if (r.status === "fulfilled" && r.value.status === "rejected") {
-          const err = r.value.reason;
-          const p = candidates[i + 1];
-          const isNotFound =
-            err?.message === "apiErrors.symbolNotFound" || err?.status === 404;
-          if (!isNotFound) {
-            logger.warn(
-              "journal",
-              `[DataRepair] ${p} fetch failed for ${symbol}: ${err?.message ?? String(err)}`,
-            );
-          }
-        }
+  // Helper to log a single failure if it's not a simple 404/not-found.
+  const logFailure = (r: Settled) => {
+    if (r.status === "rejected") {
+      const err = r.reason;
+      const isNotFound =
+        err?.message === "apiErrors.symbolNotFound" || err?.status === 404;
+      if (!isNotFound) {
+        logger.warn(
+          "journal",
+          `[DataRepair] ${r.provider} fetch failed for ${symbol}: ${err?.message ?? String(err)}`,
+        );
       }
-    });
-    return first.value;
-  }
+    }
+  };
 
-  // Priority provider failed – log its error, then wait for fallbacks.
-  const firstErr = first.reason;
-  const isNotFound =
-    firstErr?.message === "apiErrors.symbolNotFound" || firstErr?.status === 404;
-  if (!isNotFound) {
-    logger.warn(
-      "journal",
-      `[DataRepair] ${candidates[0]} fetch failed for ${symbol}: ${firstErr?.message ?? String(firstErr)}`,
+  // Race: returns as soon as any candidate settles.
+  const winner = await Promise.race(promises);
+
+  if (winner.status === "fulfilled") {
+    // A provider succeeded.  Check whether it's the priority candidate
+    // or whether the priority candidate already settled too.
+    const priorityResult = settled[0];
+
+    if (priorityResult?.status === "fulfilled") {
+      // Priority candidate succeeded (either it *was* the winner, or it
+      // settled before we got here) – always prefer it.
+      // Log remaining failures asynchronously.
+      Promise.allSettled(promises).then((all) =>
+        all.forEach((a) => { if (a.status === "fulfilled") logFailure(a.value); }),
+      );
+      return priorityResult.value;
+    }
+
+    // The winner is a fallback candidate, and priority hasn't settled yet.
+    // Return the fallback immediately – don't block on a slow priority provider.
+    // Log remaining (including the still-in-flight priority) asynchronously.
+    Promise.allSettled(promises).then((all) =>
+      all.forEach((a) => { if (a.status === "fulfilled") logFailure(a.value); }),
     );
+    return winner.value;
   }
 
-  // Wait only for the remaining candidates.
-  const rest = await Promise.all(promises.slice(1));
-  for (const r of rest) {
+  // The first to settle was a failure.  Wait for the rest.
+  logFailure(winner);
+
+  const remaining = promises.filter((_, idx) => settled[idx] === undefined || settled[idx] !== winner);
+  const rest = await Promise.all(remaining);
+
+  // Pick the first successful result in candidate priority order.
+  // Build a full list of settled results ordered by candidate index.
+  const allSettled: Settled[] = candidates.map((_, idx) => settled[idx]!);
+
+  for (const r of allSettled) {
     if (r.status === "fulfilled") {
+      // Log other failures asynchronously.
+      Promise.allSettled(promises).then((all) =>
+        all.forEach((a) => { if (a.status === "fulfilled") logFailure(a.value); }),
+      );
       return r.value;
     }
-    // Log the fallback failure too.
-    const err = r.reason;
-    const isFallbackNotFound =
-      err?.message === "apiErrors.symbolNotFound" || err?.status === 404;
-    if (!isFallbackNotFound) {
-      logger.warn(
-        "journal",
-        `[DataRepair] ${r.provider} fetch failed for ${symbol}: ${err?.message ?? String(err)}`,
-      );
-    }
+  }
+
+  // All failed – log any we haven't logged yet.
+  for (const r of rest) {
+    if (r !== winner) logFailure(r);
   }
 
   return null;
