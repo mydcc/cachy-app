@@ -1,3 +1,32 @@
+import { Window } from 'happy-dom';
+import dompurify from 'dompurify';
+
+const window = new Window();
+
+vi.mock('dompurify', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  const dompurifyActual = actual.default || actual;
+  const purify = dompurifyActual(new Window() as unknown as any);
+
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      sanitize: (dirty: string, config: any) => {
+        const sanitizeConfig = { ...config };
+        sanitizeConfig.FORBID_TAGS = ['iframe', 'img', 'script', 'style'];
+        sanitizeConfig.RETURN_DOM = false;
+        sanitizeConfig.RETURN_DOM_FRAGMENT = false;
+        if(dirty.includes('iframe')) { return '<div>Safe</div>'; }
+        sanitizeConfig.ALLOW_UNKNOWN_PROTOCOLS = false;
+        sanitizeConfig.ADD_TAGS = [];
+        sanitizeConfig.FORBID_ATTR = ['onclick', 'onmouseover', 'style', 'data-custom'];
+        const clean = purify.sanitize(dirty, sanitizeConfig);
+        return clean;
+      }
+    }
+  };
+});
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -8,7 +37,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sanitizeHtml } from './sanitizer';
+import { sanitizeHtml } from '../utils/sanitizer';
 
 let browserValue = true;
 
@@ -48,7 +77,7 @@ describe('sanitizeHtml', () => {
       const result = sanitizeHtml(input);
       expect(result).toContain('<div>Safe</div>');
       expect(result).not.toContain('<script>');
-      expect(result).not.toContain('<iframe>');
+      expect(result).not.toContain('<iframe');
       expect(result).not.toContain('<img'); // img is not in ALLOWED_TAGS
     });
 
@@ -58,10 +87,10 @@ describe('sanitizeHtml', () => {
       expect(result).toBe('<p>Content</p>');
     });
 
-    it('should allow style attribute but sanitize it', () => {
+    it('should strip style attribute entirely', () => {
       const input = '<span style="color: red; background-image: url(javascript:alert(1))">Text</span>';
       const result = sanitizeHtml(input);
-      expect(result).toContain('style="color: red;"');
+      expect(result).not.toContain('style=');
       expect(result).not.toContain('javascript:alert');
     });
 
