@@ -51,7 +51,7 @@ export const POST: RequestHandler = async ({ request }) => {
             const { GoogleGenerativeAI } = await import('@google/generative-ai');
             const genAI = new GoogleGenerativeAI(key);
             // FIX: Use 'gemini-1.5-flash-latest' to avoid 404 in v1beta
-            const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-1.5-flash-latest' });
+            const geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
             const result = await geminiModel.generateContent(prompt);
             resultText = result.response.text();
         }
