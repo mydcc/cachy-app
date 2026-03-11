@@ -22,6 +22,7 @@ import { z } from "zod";
 const DB_FILE = "db/chat_messages.json";
 const MAX_HISTORY = 1000;
 const SAVE_DEBOUNCE_MS = 1000;
+const SHUTDOWN_TIMEOUT_MS = 5000;
 
 export interface ChatMessage {
   id: string;
@@ -183,9 +184,16 @@ let shuttingDown = false;
 function handleShutdown(signal: NodeJS.Signals) {
   if (shuttingDown) return;
   shuttingDown = true;
+  // Force-terminate if flush stalls (e.g. disk I/O hang)
+  const deadline = setTimeout(() => {
+    console.error("Shutdown flush timed out, forcing exit");
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  deadline.unref();
   chatStore.forceSave().catch((err) => {
     console.error("Failed to flush chat store on shutdown:", err);
   }).finally(() => {
+    clearTimeout(deadline);
     // Re-raise the original signal so process managers see the correct exit code
     process.kill(process.pid, signal);
   });
