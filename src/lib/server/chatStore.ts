@@ -56,7 +56,13 @@ class ChatStore {
         // Try to read the file
         // In a real server environment, ensure 'db' folder exists
         const data = await fs.readFile(DB_FILE, "utf-8");
-        const parsed = JSON.parse(data);
+        let parsed;
+        try {
+          parsed = JSON.parse(data);
+        } catch (e) {
+          console.error("Failed to parse chat db:", e);
+          parsed = [];
+        }
         if (Array.isArray(parsed)) {
           this.messages = parsed.reduce<ChatMessage[]>((acc, item, index) => {
             const result = chatMessageSchema.safeParse(item);
