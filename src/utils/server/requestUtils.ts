@@ -28,9 +28,9 @@ export function extractApiCredentials(request: Request, body?: any): ApiCredenti
     const headers = request.headers;
 
     // 1. Try Headers (Case-insensitive get)
-    let apiKey = headers.get("x-api-key") || undefined;
-    let apiSecret = headers.get("x-api-secret") || undefined;
-    let passphrase = headers.get("x-api-passphrase") || undefined;
+    let apiKey = (typeof headers.get === "function" ? headers.get("x-api-key") : headers.get?.("x-api-key") || headers["x-api-key"]) || undefined;
+    let apiSecret = (typeof headers.get === "function" ? headers.get("x-api-secret") : headers.get?.("x-api-secret") || headers["x-api-secret"]) || undefined;
+    let passphrase = (typeof headers.get === "function" ? headers.get("x-api-passphrase") : headers.get?.("x-api-passphrase") || headers["x-api-passphrase"]) || undefined;
 
     // 2. Fallback to Body (if provided)
     if (!apiKey && body && typeof body === 'object') {

@@ -17,8 +17,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, _newsCache } from './+server';
+import * as auth from '../../../../lib/server/auth';
 
 describe('News Service Security', () => {
+    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     beforeEach(() => {
         _newsCache.clear();
         vi.clearAllMocks();
@@ -28,11 +30,11 @@ describe('News Service Security', () => {
         const validKey = 'key-A';
         const invalidKey = 'key-B';
         const params = { q: 'bitcoin' };
-        const responseData = { articles: ['secure-data'] };
+        const responseData = { status: "ok", articles: [{ title: 'secure-data' }] };
 
         // Mock fetch
-        const fetchMock = vi.fn().mockImplementation(async (url) => {
-            if (url.includes(validKey)) {
+        const fetchMock = vi.fn().mockImplementation(async (url, options) => {
+            if (url.includes(validKey) || options?.headers?.["X-Api-Key"] === validKey || options?.headers?.["x-api-key"] === validKey) {
                 return {
                     ok: true,
                     json: async () => responseData,
@@ -49,6 +51,7 @@ describe('News Service Security', () => {
 
         // 1. Request with Valid Key
         const req1 = {
+            headers: new Map([['x-api-key', validKey]]),
             json: async () => ({
                 source: 'newsapi',
                 apiKey: validKey,
@@ -63,6 +66,7 @@ describe('News Service Security', () => {
 
         // 2. Request with Invalid Key
         const req2 = {
+            headers: new Map([['x-api-key', invalidKey]]),
             json: async () => ({
                 source: 'newsapi',
                 apiKey: invalidKey, // Different key
