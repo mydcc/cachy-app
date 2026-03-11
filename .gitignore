@@ -2,8 +2,6 @@
 logs/
 backups/
 *.log
-*.orig
-*.rej
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -66,9 +64,6 @@ web_modules/
 # Svelte files
 .svelte-kit/
 build/
-
-# Editor / merge artifacts
-*.orig
 
 # Fuse-Box cache
 .fusebox/

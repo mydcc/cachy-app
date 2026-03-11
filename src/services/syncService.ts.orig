@@ -1,9 +1,0 @@
-/*
- * NOTE:
- * This file was accidentally committed as a merge-conflict / editor backup artifact.
- * It is intentionally kept empty to avoid duplicated logic/build output.
- *
- * The real implementation lives in: src/services/syncService.ts
- */
-
-export {};
