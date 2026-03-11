@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-    import { uiState } from "../../stores/ui.svelte";
     import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
     import { _ } from "../../locales/i18n";
