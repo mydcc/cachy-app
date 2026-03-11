@@ -94,9 +94,6 @@ export class WebGpuCalculator {
     this.pipelines.set('williamsR', await this.createComputePipeline(wrShader));
     this.pipelines.set('momentum', await this.createComputePipeline(momShader));
 
-    if (import.meta.env.DEV) {
-      console.log('[WebGPU] Initialized pipelines');
-    }
   }
 
   private async createComputePipeline(shaderCode: string): Promise<GPUComputePipeline> {
