@@ -62,7 +62,7 @@ export const POST: RequestHandler = async ({ request }) => {
       sender: "user",
       timestamp: Date.now(),
       profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
-      clientId: clientId || undefined,
+      clientId: typeof clientId === "string" && clientId ? clientId : undefined,
     };
 
     await chatStore.addMessage(newMessage);
