@@ -67,6 +67,9 @@ web_modules/
 .svelte-kit/
 build/
 
+# Editor / merge artifacts
+*.orig
+
 # Fuse-Box cache
 .fusebox/
 
