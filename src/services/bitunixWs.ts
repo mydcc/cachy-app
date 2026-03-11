@@ -1681,8 +1681,6 @@ export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   // Strict Safety Checks
   const p = d.p ?? d.lastPrice ?? d.price;
   const v = d.v ?? d.volume ?? d.amount;
-  // Side can be anything truthy usually, but safer to check existence
-  // const s = d.s ?? d.side; // Unused but good to know it exists
 
   if (p === undefined || !isSafe(p)) return false;
   if (v === undefined || !isSafe(v)) return false;
