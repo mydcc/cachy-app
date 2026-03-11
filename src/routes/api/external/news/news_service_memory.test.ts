@@ -17,23 +17,26 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, _newsCache } from './+server';
+import * as auth from '../../../../lib/server/auth';
 
 describe('News Service Cache Memory', () => {
     beforeEach(() => {
         _newsCache.clear();
         vi.clearAllMocks();
+        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     });
 
     it('should limit cache size to 50 items (optimization)', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ articles: [] }),
+            json: async () => ({ status: "ok", articles: [] }),
             text: async () => "",
         });
 
         // Insert 100 items
         for (let i = 0; i < 100; i++) {
             const request = {
+                headers: new Headers({ 'x-api-key': 'test-key' }),
                 json: async () => ({
                     source: 'newsapi',
                     apiKey: 'test-key',

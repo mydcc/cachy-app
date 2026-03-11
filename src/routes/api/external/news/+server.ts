@@ -12,6 +12,7 @@ import type { RequestHandler } from "./$types";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
+import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 
 // In-Memory Cache for News Proxy
 interface CachedResponse {
@@ -39,6 +40,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
   if (authError) return authError;
 
   let cacheKey = "";
+  let apiKey = "";
 
   try {
     const body = await request.json();
@@ -46,7 +48,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
     // Extract API Key from Header (primary) or Body (fallback)
     const creds = extractApiCredentials(request, body);
-    const apiKey = creds.apiKey || body.apiKey;
+    apiKey = creds.apiKey || body.apiKey;
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 400 });
@@ -122,8 +124,14 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             const errorText = await response.text();
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
           } catch (e: any) {
-            const msg = e.message || String(e);
-            if (msg.includes("429")) throw e;
+            let msg = e.message || String(e);
+            if (apiKey && apiKey.length > 4) {
+              msg = msg.split(apiKey).join("***");
+            }
+            const is429 = msg.includes("429");
+            msg = sanitizeErrorMessage(msg);
+
+            if (is429) throw new Error(msg);
             console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
             lastError = msg;
             continue;
@@ -169,13 +177,19 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     }
 
   } catch (err: any) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
+    let errorMsg = err instanceof Error ? err.message : String(err);
+    if (apiKey && apiKey.length > 4) {
+      errorMsg = errorMsg.split(apiKey).join("***");
+    }
+    const isQuotaError = errorMsg.includes("429") || errorMsg.includes("quota");
+    errorMsg = sanitizeErrorMessage(errorMsg);
+
     // Safe logging: Don't log full URL if it has keys
     console.error(`[NewsProxy] Error processing request for ${request.url}:`, errorMsg);
 
     if (err.cause) console.error("[NewsProxy] Cause:", err.cause);
 
-    if (errorMsg.includes("429") || errorMsg.includes("quota")) {
+    if (isQuotaError) {
       const staleCache = _newsCache.get(cacheKey);
       if (staleCache) {
         console.warn("[NewsProxy] Using stale cache due to quota exhaustion");

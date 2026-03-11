@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
+import * as auth from '../../../lib/server/auth';
 
 // Mock fetch globally
 const fetchMock = vi.fn();
@@ -25,6 +26,7 @@ vi.stubGlobal('fetch', fetchMock);
 describe('POST /api/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
   });
 
   it('should return 400 if apiKey is missing', async () => {
