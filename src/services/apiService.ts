@@ -703,23 +703,20 @@ export const apiService = {
                    
                    const first = bucket[0];
                    const last = bucket[bucket.length - 1];
-                   let highNum = Number(first.high);
-                   let lowNum = Number(first.low);
-                   let highRef = first.high;
-                   let lowRef = first.low;
+                   let high = new Decimal(first.high);
+                   let low = new Decimal(first.low);
                    let vol = new Decimal(0);
 
                    for (let i = 0, len = bucket.length; i < len; i++) {
                        const c = bucket[i];
-                       const h = Number(c.high);
-                       const l = Number(c.low);
-                       if (h > highNum) {
-                           highNum = h;
-                           highRef = c.high;
+                       // We use .lt() and .gt() on the existing Decimal instances,
+                       // passing the raw values. We only allocate a new Decimal
+                       // when a new extreme is found.
+                       if (high.lt(c.high)) {
+                           high = new Decimal(c.high);
                        }
-                       if (l < lowNum) {
-                           lowNum = l;
-                           lowRef = c.low;
+                       if (low.gt(c.low)) {
+                           low = new Decimal(c.low);
                        }
                        vol = vol.plus(c.volume);
                    }
@@ -727,8 +724,8 @@ export const apiService = {
                    aggregated.push({
                        time: start,
                        open: first.open,
-                       high: new Decimal(highRef),
-                       low: new Decimal(lowRef),
+                       high: high,
+                       low: low,
                        close: last.close,
                        volume: vol
                    });
