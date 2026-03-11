@@ -24,16 +24,12 @@ import { renderSafeMarkdown } from "../utils/markdownUtils";
 export function markdown(node: HTMLElement, content: string) {
     const update = (newContent: string) => {
         if (!newContent) {
-            node.innerHTML = "";
+            node.replaceChildren();
             return;
         }
 
         const rendered = renderSafeMarkdown(newContent);
-        if (typeof rendered === 'string') {
-            node.innerHTML = rendered; // Only safe because we know SSR/error returns ""
-        } else {
-            node.replaceChildren(rendered);
-        }
+        node.replaceChildren(rendered); // Works for both string (SSR fallback) and DocumentFragment
     };
 
     update(content);
