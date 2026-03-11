@@ -32,8 +32,8 @@ vi.mock('../stores/settings.svelte', () => ({
     }
 }));
 
-describe('tradeService benchmark (Unoptimized)', () => {
-    bench('closeAllPositions without pre-fetch', async () => {
+describe('tradeService benchmark (Optimized)', () => {
+    bench('closeAllPositions with pre-fetch', async () => {
         const origFetch = (tradeService as any)._doFetchOpenPositionsFromApi;
         (tradeService as any)._doFetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
             await new Promise(resolve => setTimeout(resolve, 50));
