@@ -300,7 +300,6 @@ export class MarketManager {
 
           // HARDENING: Reject NaN strictly
           if (typeof val === 'number' && isNaN(val)) {
-              // if (import.meta.env.DEV) console.warn("[Market] Rejected NaN value in update");
               return undefined;
           }
 
