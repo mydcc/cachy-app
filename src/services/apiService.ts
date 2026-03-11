@@ -705,7 +705,7 @@ export const apiService = {
                    const last = bucket[bucket.length - 1];
                    let high = first.high;
                    let low = first.low;
-                   let volNum = 0;
+                   let vol = new Decimal(0);
 
                    for (let i = 0, len = bucket.length; i < len; i++) {
                        const c = bucket[i];
@@ -718,8 +718,7 @@ export const apiService = {
                        if (low.gt(c.low)) {
                            low = c.low;
                        }
-                       // Convert to primitive number to avoid allocating thousands of new Decimal objects
-                       volNum += +c.volume;
+                       vol = vol.plus(c.volume);
                    }
 
                    aggregated.push({
@@ -728,7 +727,7 @@ export const apiService = {
                        high: high,
                        low: low,
                        close: last.close,
-                       volume: new Decimal(volNum)
+                       volume: vol
                    });
                }
                return aggregated;
