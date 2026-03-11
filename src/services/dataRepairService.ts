@@ -59,44 +59,69 @@ async function fetchSmartKlines(
   // If we don't know, checking Bitunix first is safer for legacy data.
 
   try {
-    const promises = candidates.map(async (p) => {
-      try {
-        let klines: Kline[] = [];
-        if (p === "bitunix") {
-          klines = await apiService.fetchBitunixKlines(
+    const promises: Promise<{ klines: Kline[]; provider: "bitunix" | "bitget" }>[] = [];
+
+    if (candidates.includes("bitunix")) {
+      promises.push(
+        apiService
+          .fetchBitunixKlines(
             normalizeSymbol(symbol, "bitunix"),
             interval,
             limit,
             start,
             end,
             "normal",
-          );
-        } else {
-          klines = await apiService.fetchBitgetKlines(
+          )
+          .then((klines) => {
+            if (klines && klines.length > 0) {
+              return { klines, provider: "bitunix" as const };
+            }
+            throw new Error("apiErrors.symbolNotFound");
+          })
+          .catch((e: any) => {
+            const isNotFound =
+              e.message === "apiErrors.symbolNotFound" || e.status === 404;
+            if (!isNotFound) {
+              logger.warn(
+                "journal",
+                `[DataRepair] bitunix fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
+              );
+            }
+            throw e;
+          }),
+      );
+    }
+
+    if (candidates.includes("bitget")) {
+      promises.push(
+        apiService
+          .fetchBitgetKlines(
             normalizeSymbol(symbol, "bitget"),
             interval,
             limit,
             start,
             end,
             "normal",
-          );
-        }
-
-        if (klines && klines.length > 0) {
-          return { klines, provider: p };
-        }
-        throw new Error("apiErrors.symbolNotFound");
-      } catch (e: any) {
-        const isNotFound = e.message === "apiErrors.symbolNotFound" || e.status === 404;
-        if (!isNotFound) {
-          logger.warn(
-            "journal",
-            `[DataRepair] ${p} fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
-          );
-        }
-        throw e;
-      }
-    });
+          )
+          .then((klines) => {
+            if (klines && klines.length > 0) {
+              return { klines, provider: "bitget" as const };
+            }
+            throw new Error("apiErrors.symbolNotFound");
+          })
+          .catch((e: any) => {
+            const isNotFound =
+              e.message === "apiErrors.symbolNotFound" || e.status === 404;
+            if (!isNotFound) {
+              logger.warn(
+                "journal",
+                `[DataRepair] bitget fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
+              );
+            }
+            throw e;
+          }),
+      );
+    }
 
     return await Promise.any(promises);
   } catch (_e) {
