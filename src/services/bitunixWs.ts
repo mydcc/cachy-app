@@ -1301,8 +1301,6 @@ class BitunixWebSocketService {
 
              if (listeners) {
                  for (const item of items) {
-                     // [FIX] Validate each item individually to reject malformed entries
-                     if (!isTradeData(item)) continue;
                      // [FIX] Normalize Trade Data for Type Safety
                      const safeTrade: TradeData = {
                          p: String(item.p ?? item.lastPrice ?? item.price ?? "0"),
@@ -1675,7 +1673,7 @@ const isSafe = (v: any) => {
   return false;
 };
 
-export function isTradeData(d: any): d is { p: any; v: any; s?: any; t?: any; } {
+export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
   // OR { lastPrice, volume, side } fallbacks
