@@ -458,6 +458,14 @@ class TradeService {
     }
 
     public async closeAllPositions() {
+        // Pre-fetch all open positions once before looping to avoid triggering
+        // concurrent stale data fetches (and network overhead) within the ensurePositionFreshness loop below.
+        try {
+            await this.fetchOpenPositionsFromApi();
+        } catch (e) {
+            logger.error("market", "[CloseAll] Pre-fetch of positions failed", e);
+            // Continue with potentially stale OMS data rather than aborting entirely
+        }
         const positions = omsService.getPositions();
         const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side, forceFullClose: true }));
         const results = await Promise.allSettled(promises);
