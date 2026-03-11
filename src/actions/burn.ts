@@ -161,6 +161,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     let lastIntensity = 1.0;
     let lastMode = "";
     let lastLayer = "";
+    let lastSymbol = "";
 
 
 
@@ -209,7 +210,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                 intensity !== lastIntensity ||
                 currentMode !== lastMode ||
                 currentLayer !== lastLayer ||
-                currentSymbol !== (currentOptions.symbol ?? ""); // Redundant but for clarity
+                currentSymbol !== lastSymbol;
 
             // 3. Size Guard
             if (rect.width === 0 || rect.height === 0) {
@@ -236,6 +237,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                 lastIntensity = intensity;
                 lastMode = currentMode;
                 lastLayer = currentLayer;
+                lastSymbol = currentSymbol;
             }
         });
     };
@@ -293,7 +295,6 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
         destroy() {
             resizeObserver.disconnect();
             visibilityObserver.disconnect();
-            themeObserver?.disconnect();
             cancelAnimationFrame(resizeFrame);
             cancelAnimationFrame(loopFrame);
             fireStore.removeElement(id);
