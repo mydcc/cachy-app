@@ -417,6 +417,9 @@ class BitgetWebSocketService {
           }
         }
 
+        if (t.fundingRate !== undefined) update.fundingRate = t.fundingRate;
+        if (t.nextFundingTime !== undefined) update.nextFundingTime = t.nextFundingTime;
+
         if (!this.shouldThrottle(`${instId}:ticker`)) {
           marketState.updateTicker(instId, update);
         }

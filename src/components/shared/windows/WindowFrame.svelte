@@ -350,6 +350,8 @@
                     win.toggleMaximize();
                 } else if (win.doubleClickBehavior === "pin") {
                     win.togglePin();
+                } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
+                    win.minimize();
                 }
             }
         }}
@@ -357,13 +359,23 @@
         <div
             class="header-content"
             ondblclick={(e) => {
-                // Symbol/Logo/Title area double-click: Minimize/Restore
+                // Symbol/Logo/Title area double-click: Maximize/Restore/Pin
                 e.stopPropagation();
                 if (win.isMinimized) {
                     win.restore();
                     windowManager.bringToFront(win.id);
-                } else if (win.allowMinimize) {
-                    win.minimize();
+                } else {
+                    // Respect doubleClickBehavior flag instead of blindly minimizing
+                    if (
+                        win.doubleClickBehavior === "maximize" &&
+                        win.allowMaximize
+                    ) {
+                        win.toggleMaximize();
+                    } else if (win.doubleClickBehavior === "pin") {
+                        win.togglePin();
+                    } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
+                        win.minimize();
+                    }
                 }
             }}
         >
@@ -767,7 +779,7 @@
         display: flex;
         align-items: center;
         overflow: hidden;
-        flex: 0 1 auto;
+        flex: 1; /* Take up remaining space so header-indicators is pushed to right */
     }
     .title-wrapper {
         display: flex;

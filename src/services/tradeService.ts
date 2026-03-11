@@ -181,8 +181,8 @@ class TradeService {
         const MAX_POS_AGE_MS = 200;
         const now = Date.now();
 
-        if (position && position.lastUpdated && (now - position.lastUpdated > MAX_POS_AGE_MS)) {
-             logger.warn("market", `[Freshness] Position stale (${now - position.lastUpdated}ms). Forcing refresh.`);
+        if (position && (now - (position.lastUpdated ?? 0) > MAX_POS_AGE_MS)) {
+             logger.warn("market", `[Freshness] Position stale (${now - (position.lastUpdated ?? 0)}ms). Forcing refresh.`);
              try {
                 await this.fetchOpenPositionsFromApi();
                 positions = omsService.getPositions();
@@ -337,14 +337,18 @@ class TradeService {
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 
         try {
-            // Re-use the sync endpoint which wraps the signed API call
+            // W-6: Use generalized provider key lookup instead of hardcoding 'bitunix'
+            const provider = settingsState.apiProvider;
+            const keys = settingsState.apiKeys[provider];
+            if (!keys?.key || !keys?.secret) return;
+
             const pendingResponse = await fetch("/api/sync/positions-pending", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}),
-                    "X-Api-Key": settingsState.apiKeys.bitunix.key,
-                    "X-Api-Secret": settingsState.apiKeys.bitunix.secret
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret
                 },
                 body: JSON.stringify({}),
             });
@@ -460,8 +464,10 @@ class TradeService {
 
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
-            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
+            const failedSymbols = failures.map((_, i) => positions[i]?.symbol ?? `position[${i}]`).join(", ");
+            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
+            toastService.error(`Flash Close Failed for: ${failedSymbols}`);
+            throw new Error("trade.closeAllFailed");
         }
 
         return results;

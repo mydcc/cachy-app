@@ -21,7 +21,7 @@ Sie haben die Möglichkeit, Backups Ihrer Daten zu erstellen. Dabei handelt es s
 
 Um Marktdaten und Funktionen bereitzustellen, interagiert die App mit folgenden externen Diensten:
 
-- **Bitunix & Binance:** Wir rufen Echtzeit-Marktdaten (Preise, Finanzierungsraten usw.) von diesen Börsen ab. Obwohl einige Anfragen über unsere Server geleitet werden (Proxy), speichern wir Ihre API-Schlüssel nicht auf unseren Servern. In den Einstellungen hinterlegte API-Schlüssel werden ausschließlich im Local Storage Ihres Browsers gespeichert.
+- **Bitunix & Bitget:** Wir rufen Echtzeit-Marktdaten (Preise, Finanzierungsraten usw.) von diesen Börsen ab. Obwohl einige Anfragen über unsere Server geleitet werden (Proxy), speichern wir Ihre API-Schlüssel nicht auf unseren Servern. In den Einstellungen hinterlegte API-Schlüssel werden ausschließlich im Local Storage Ihres Browsers gespeichert.
 - **ImgBB:** Wenn Sie Screenshots für Ihre Journaleinträge hochladen, werden diese Bilder an ImgBB gesendet. Bitte beachten Sie hierzu die Datenschutzbestimmungen von ImgBB.
 
 ## 4. Tracking & Analyse

@@ -48,6 +48,7 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { tradeCalculator } from "./tradeCalculator.svelte";
 import { marketAnalyst } from "./marketAnalyst";
 import { serializationService } from "./serializationService";
+import { logger } from "./logger";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -351,7 +352,7 @@ export const app = {
     uiState.showFeedback("save");
   },
 
-  updateTradeStatus: async (id: string, newStatus: string) => {
+  updateTradeStatus: async (id: number | string, newStatus: string) => {
     const journalData = app.getJournal();
     const tradeIndex = journalData.findIndex((t) => t.id === id);
     if (tradeIndex !== -1) {
@@ -361,7 +362,7 @@ export const app = {
     }
   },
 
-  updateTrade: async (id: string, updates: Partial<JournalEntry>) => {
+  updateTrade: async (id: number | string, updates: Partial<JournalEntry>) => {
     const journalData = app.getJournal();
     const tradeIndex = journalData.findIndex((t) => t.id === id);
     if (tradeIndex !== -1) {
@@ -371,8 +372,8 @@ export const app = {
     }
   },
 
-  deleteTrade: async (id: string) => {
-    const d = app.getJournal().filter((t) => t.id !== id);
+  deleteTrade: async (id: number | string) => {
+    const d = app.getJournal().filter((t) => t.id != id);
     await app.saveJournal(d);
     journalState.set(d);
   },
@@ -507,10 +508,12 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
     try {
+      logger.debug("api", `[handleFetchPrice] Fetching price for ${symbol} via ${settingsState.apiProvider}`);
       const ticker = await apiService.fetchTicker24h(
         symbol,
         settingsState.apiProvider,
       );
+      logger.debug("api", `[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
       app.currentMarketPrice = priceVal;

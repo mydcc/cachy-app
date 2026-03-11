@@ -291,7 +291,7 @@ export function normalizeTimeframeInput(input: string): string {
     if (unit.startsWith("w")) unit = "w";
 
     // Uppercase 'M' for Month if needed, but usually we use lowercase m for minutes.
-    // Bitunix/Binance use '1M' for month, '1m' for minute.
+    // Bitunix/Bitget use '1M' for month, '1m' for minute.
     // If user typed '1M' (uppercase), we might assume Month if it's explicitly uppercase?
     // But prompt says "1d, 1D" -> acceptable.
     // Let's assume standard crypto notation: m=minute, h=hour, d=day, w=week, M=month.

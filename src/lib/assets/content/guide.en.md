@@ -157,7 +157,7 @@ Access settings via the Gear icon.
 ### API Provider
 
 - **Bitunix (Recommended):** Supports full Websocket integration (real-time data), position syncing, and order management.
-- **Binance:** Supports market data and basic account balance fetching.
+- **Bitget:** Supports market data and basic account balance fetching.
 
 ### Data Backup
 

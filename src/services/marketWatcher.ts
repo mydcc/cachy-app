@@ -23,6 +23,7 @@ import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
+import { RequestDeduplicator } from "../utils/requestDeduplicator";
 import { logger } from "./logger";
 import { storageService } from "./storageService";
 import { activeTechnicalsManager } from "./activeTechnicalsManager.svelte";
@@ -46,7 +47,7 @@ class MarketWatcher {
   private startTimeout: ReturnType<typeof setTimeout> | null = null; // Track startup delay
 
   // Phase 3 Hardening: Replaced Boolean Set locks with Promise Map for deduplication
-  private pendingRequests = new Map<string, Promise<void>>();
+  private pendingRequests = new RequestDeduplicator<void>();
   // Track start times for zombie detection
   private requestStartTimes = new Map<string, number>();
   
@@ -66,6 +67,7 @@ class MarketWatcher {
   private inFlight = 0;
   private lastErrorLog = 0;
   private readonly errorLogIntervalMs = 30000;
+  private maintenanceCycles = 0; // W-5: Reliable cycle counter for maintenance tasks
 
   constructor() {
     if (browser) {
@@ -153,11 +155,8 @@ class MarketWatcher {
              wsChannels.forEach(ch => {
                bitunixWs.subscribe(symbol, ch);
              });
-             
-             // Legacy
-             if (channel === "price") bitunixWs.subscribe(symbol, "price");
-             else if (channel === "ticker") bitunixWs.subscribe(symbol, "ticker");
-             else if (channel.startsWith("kline_")) bitunixWs.subscribe(symbol, channel);
+             // Note: Legacy explicit subscription block removed (W-4).
+             // getChannelsForRequirement() already covers price/ticker/kline channels.
         }
       });
   }
@@ -189,15 +188,16 @@ class MarketWatcher {
       });
     });
 
-    // 2. Unsubscribe from extras
-    // Iterate over what is currently subscribed in WS service
-    // We access the internal set via pendingSubscriptions to be safe
+    // 2. Unsubscribe from extras.
+    // Collect keys first to avoid modifying the Map while iterating (W-10).
     const current = bitunixWs.pendingSubscriptions;
-    current.forEach((_, key) => {
-        if (!intended.has(key)) {
-             const [channel, symbol] = key.split(":");
-             bitunixWs.unsubscribe(symbol, channel);
-        }
+    const toUnsubscribe: string[] = [];
+    current.forEach((_: number, key: string) => {
+        if (!intended.has(key)) toUnsubscribe.push(key);
+    });
+    toUnsubscribe.forEach(key => {
+        const [channel, symbol] = key.split(":");
+        bitunixWs.unsubscribe(symbol, channel);
     });
 
     // 3. Subscribe to missing
@@ -277,22 +277,17 @@ class MarketWatcher {
       // We run the cycle and let 'performPollingCycle' decide per-symbol.
       await this.performPollingCycle();
 
-      // [MAINTENANCE] Prune orphaned subscriptions every 30s
-      if (Date.now() % 30000 < 1000) {
+      // [MAINTENANCE] Prune orphaned subscriptions every ~30 cycles
+      this.maintenanceCycles++;
+      if (this.maintenanceCycles >= 30) {
         this.pruneOrphanedSubscriptions();
+        this.maintenanceCycles = 0;
       }
-
 
       // [PERFORMANCE] Only sync if dirty (Batched updates)
       if (this._subscriptionsDirty) {
         this.syncSubscriptions();
         this._subscriptionsDirty = false;
-      } else {
-        // [HARDENING] Periodic forced sync/prune to prevent drift (every ~30s)
-        const now = Date.now();
-        if (now % 30000 < 1000) {
-            this.pruneOrphanedSubscriptions();
-        }
       }
     } catch (e) {
       logger.error("market", "Polling loop error", e);
@@ -463,7 +458,7 @@ class MarketWatcher {
             if (currentLen < limit) {
                 const batchSize = 200;
                 const intervalMs = safeTfToMs(tf);
-                const MAX_PARALLEL = 30; 
+                const MAX_PARALLEL = 6; // W-12: Aligned with maxConcurrentPolls (6) to stay within rate-limiter budget
 
                 // Source of truth: store count
                 let currentTotal = marketState.data[symbol]?.klines[tf]?.length || klines1.length;
@@ -651,15 +646,9 @@ class MarketWatcher {
     if (!settingsState.capabilities.marketData) return;
     const lockKey = `${symbol}:${channel}`;
 
-    // Request Deduplication
-    if (this.pendingRequests.has(lockKey)) {
-        return this.pendingRequests.get(lockKey);
-    }
-
-    this.inFlight++;
-
-    // Create the Promise wrapper
-    const requestPromise = (async () => {
+    // Request Deduplication using RequestDeduplicator
+    return this.pendingRequests.execute(lockKey, async () => {
+        this.inFlight++;
         try {
             this.requestStartTimes.set(lockKey, Date.now());
             // Determine priority: high for the main trading symbol, normal for the rest
@@ -707,8 +696,7 @@ class MarketWatcher {
                 this.lastErrorLog = now;
             }
         } finally {
-            // Release lock immediately
-            this.pendingRequests.delete(lockKey);
+            // Lock is released by RequestDeduplicator, but we still clean up metadata
             this.requestStartTimes.delete(lockKey);
 
             // Check if this request was already pruned as a zombie
@@ -719,11 +707,7 @@ class MarketWatcher {
                 this.inFlight = Math.max(0, this.inFlight - 1);
             }
         }
-    })();
-
-    // Store the promise
-    this.pendingRequests.set(lockKey, requestPromise);
-    return requestPromise;
+    });
   }
 
   public refreshActiveHistory() {

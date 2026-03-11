@@ -98,7 +98,7 @@ describe("HotkeyService", () => {
       imgbbExpiration: 0,
       apiKeys: {
         bitunix: { key: "", secret: "" },
-        binance: { key: "", secret: "" },
+        bitget: { key: "", secret: "", passphrase: "" },
       },
       enableSidePanel: true,
       sidePanelMode: "chat",

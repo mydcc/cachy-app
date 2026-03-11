@@ -24,6 +24,7 @@ export const ssr = false; // Disable SSR to prevent hydration mismatch with them
 
 export const load: LayoutServerLoad = async ({ cookies }) => {
   const theme = cookies.get(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark"; // Default to dark if no cookie
+
   return {
     theme,
     initialTradeState: INITIAL_TRADE_STATE, // Pass initialTradeState to the layout
