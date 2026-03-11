@@ -703,23 +703,32 @@ export const apiService = {
                    
                    const first = bucket[0];
                    const last = bucket[bucket.length - 1];
-                   let high = new Decimal(first.high);
-                   let low = new Decimal(first.low);
+                   let highNum = Number(first.high);
+                   let lowNum = Number(first.low);
+                   let highRef = first.high;
+                   let lowRef = first.low;
                    let vol = new Decimal(0);
 
-                   for (const c of bucket) {
-                       const h = new Decimal(c.high);
-                       const l = new Decimal(c.low);
-                       if (h.gt(high)) high = h;
-                       if (l.lt(low)) low = l;
+                   for (let i = 0, len = bucket.length; i < len; i++) {
+                       const c = bucket[i];
+                       const h = Number(c.high);
+                       const l = Number(c.low);
+                       if (h > highNum) {
+                           highNum = h;
+                           highRef = c.high;
+                       }
+                       if (l < lowNum) {
+                           lowNum = l;
+                           lowRef = c.low;
+                       }
                        vol = vol.plus(c.volume);
                    }
 
                    aggregated.push({
                        time: start,
                        open: first.open,
-                       high: high,
-                       low: low,
+                       high: new Decimal(highRef),
+                       low: new Decimal(lowRef),
                        close: last.close,
                        volume: vol
                    });
