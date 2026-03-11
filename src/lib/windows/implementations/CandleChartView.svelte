@@ -326,7 +326,6 @@
         // We need to access the property to register the dependency in Svelte 5 rune mode
         const klines = marketData?.klines?.[timeframe];
 
-        const currentTF = timeframe;
         const settings = indicatorState.ema;
         const indicatorsEnabled = settings.enabled !== false;
 
@@ -358,7 +357,9 @@
                         // incremental calculation support or re-running on the tail.
                         // For now, indicators update only on new candles or full refreshes.
                     } catch (e) {
-                        // Fallback to full render
+                        // Fallback to full render by resetting state
+                        lastRenderedTime = null;
+                        lastRenderedCount = 0;
                     }
                 } else {
                     // Slow Path: Full Render (History load or New Candle)
@@ -400,7 +401,7 @@
                             unique.length > 0
                                 ? unique[unique.length - 1].time
                                 : null;
-                        lastRenderedCount = unique.length;
+                        lastRenderedCount = klines.length;
 
                         // Update Indicators if enabled
                         if (
