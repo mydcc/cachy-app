@@ -30,6 +30,7 @@ class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
   private connecting = false;
+  private tableListenersRegistered = false;
   private messages: GlobalMessage[] = [];
 
   // Callback for Svelte to update UI
@@ -116,22 +117,25 @@ class CloudService {
         return;
       }
 
-      // Handle row updates with robustness
-      try {
-        // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
-        const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
+      // Handle row updates with robustness — register only once on the singleton table handle
+      if (!this.tableListenersRegistered) {
+        try {
+          // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
+          const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
 
-        if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
-          globalMessageTable.onInsert((ctx: any, row: any) => {
-            logger.debug('network', 'New Message Received:', row);
-            this.messages = [...this.messages, row];
-            if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
-          });
-        } else {
-          logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
+          if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+            globalMessageTable.onInsert((ctx: any, row: any) => {
+              logger.debug('network', 'New Message Received:', row);
+              this.messages = [...this.messages, row];
+              if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
+            });
+            this.tableListenersRegistered = true;
+          } else {
+            logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
+          }
+        } catch (e) {
+          logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
         }
-      } catch (e) {
-        logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
       }
     });
   }
