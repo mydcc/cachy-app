@@ -177,3 +177,13 @@ class ChatStore {
 }
 
 export const chatStore = new ChatStore();
+
+// Flush pending chat messages to disk on graceful shutdown
+function handleShutdown() {
+  chatStore.forceSave().catch((err) => {
+    console.error("Failed to flush chat store on shutdown:", err);
+  });
+}
+
+process.on("SIGTERM", handleShutdown);
+process.on("SIGINT", handleShutdown);
