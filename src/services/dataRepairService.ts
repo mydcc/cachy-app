@@ -57,8 +57,11 @@ async function fetchSmartKlines(
   // But legacy data is likely Bitunix.
   // If we don't know, checking Bitunix first is safer for legacy data.
 
-  try {
-    const fetchPromises = candidates.map(async (p) => {
+  // Fire all candidates concurrently but respect priority order:
+  // use Promise.allSettled so we can pick the first successful candidate
+  // by priority (candidates[0] preferred over candidates[1]).
+  const results = await Promise.allSettled(
+    candidates.map(async (p) => {
       let klines: Kline[] = [];
       if (p === "bitunix") {
         klines = await apiService.fetchBitunixKlines(
@@ -85,30 +88,36 @@ async function fetchSmartKlines(
       }
 
       throw new Error("apiErrors.symbolNotFound");
-    });
+    }),
+  );
 
-    return await Promise.any(fetchPromises);
-  } catch (e: any) {
-    if (e instanceof AggregateError) {
-      e.errors.forEach((err, i) => {
-        const p = candidates[i];
-        const isNotFound =
-          err.message === "apiErrors.symbolNotFound" || err.status === 404;
-        if (!isNotFound) {
-          logger.warn(
-            "journal",
-            `[DataRepair] ${p} fetch failed for ${symbol}: ${err.message}`,
-          );
-        }
-      });
-    } else {
-      logger.warn(
-        "journal",
-        `[DataRepair] Fetch failed for ${symbol}: ${e.message}`,
-      );
+  // Log errors for all failed providers (preserves observability
+  // even when another provider succeeded).
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === "rejected") {
+      const err = r.reason;
+      const p = candidates[i];
+      const isNotFound =
+        err.message === "apiErrors.symbolNotFound" || err.status === 404;
+      if (!isNotFound) {
+        logger.warn(
+          "journal",
+          `[DataRepair] ${p} fetch failed for ${symbol}: ${err.message}`,
+        );
+      }
     }
-    return null;
   }
+
+  // Return the first successful result in candidate priority order.
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === "fulfilled") {
+      return r.value;
+    }
+  }
+
+  return null;
 }
 
 export const dataRepairService = {

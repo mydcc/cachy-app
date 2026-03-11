@@ -76,6 +76,9 @@ describe("dataRepairService performance", () => {
     const end = performance.now();
 
     console.log(`repairMissingAtr took ${end - start}ms`);
-    expect(end - start).toBeGreaterThan(0);
+    // With parallel fetching: ~10 * (100ms + 500ms pause) = ~6000ms
+    // Sequential would be: ~10 * (100ms fail + 100ms success + 500ms pause) = ~7000ms
+    // Assert it completes faster than sequential would allow.
+    expect(end - start).toBeLessThan(8000);
   }, 15000); // 15s timeout
 });
