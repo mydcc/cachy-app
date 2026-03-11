@@ -62,7 +62,7 @@ describe("TradeService - FlashClose Reproduction", () => {
     vi.clearAllMocks();
   });
 
-  it("should create an optimistic order with 0 price (Bug Reproduction)", async () => {
+  it("should create an optimistic order with current market price", async () => {
     // Setup: Mock a position exists
     const mockPosition = {
       symbol: "BTCUSDT",
