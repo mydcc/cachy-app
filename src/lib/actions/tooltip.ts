@@ -28,7 +28,7 @@ import {
 export interface TooltipOptions {
   content: string;
   placement?: Placement;
-    theme?: "dark" | "light" | "custom";
+  theme?: "dark" | "light" | "custom";
   delay?: number;
 }
 

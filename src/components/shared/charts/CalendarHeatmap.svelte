@@ -17,9 +17,6 @@
 
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { getComputedColor } from "../../../utils/colors";
-  import { escapeHtml } from "../../../utils/utils";
-  import { _ } from "../../../locales/i18n";
   import { computePosition, flip, shift, offset, arrow } from "@floating-ui/dom";
 
   interface Props {
@@ -134,7 +131,7 @@
           ],
         },
       );
-      if (!result) return;
+      if (!result || !tooltipEl || !arrowEl) return;
       const { x, y, placement, middlewareData } = result;
       Object.assign(tooltipEl.style, {
         left: `${x}px`,
