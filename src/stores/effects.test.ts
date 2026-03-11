@@ -16,67 +16,117 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { effectsState, EffectsState } from './effects.svelte';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { effectsState, EffectsState } from "./effects.svelte";
 
-describe('EffectsState', () => {
-    beforeEach(() => {
-        effectsState.consumeProjectileEvent();
-        effectsState.consumeSmashEvent();
-        effectsState.consumeFeedEvent();
-        vi.restoreAllMocks();
-    });
+describe("EffectsState", () => {
+  beforeEach(() => {
+    effectsState.consumeProjectileEvent();
+    effectsState.consumeSmashEvent();
+    effectsState.consumeFeedEvent();
+    vi.restoreAllMocks();
+  });
 
-    it('should export a singleton instance of EffectsState', () => {
-        expect(effectsState).toBeInstanceOf(EffectsState);
-    });
+  it("should export a singleton instance of EffectsState", () => {
+    expect(effectsState).toBeInstanceOf(EffectsState);
+  });
 
-    it('should trigger and consume projectile event correctly', () => {
-        const mockRect = { x: 10, y: 20, width: 100, height: 100 } as DOMRect;
-        const mockElement = {
-            getBoundingClientRect: vi.fn().mockReturnValue(mockRect)
-        } as unknown as HTMLElement;
+  it("should initialize with null states", () => {
+    const state = new EffectsState();
 
-        effectsState.triggerProjectile(mockElement);
-        expect(mockElement.getBoundingClientRect).toHaveBeenCalledTimes(1);
-        expect(effectsState.projectileOrigin).toEqual(mockRect);
+    expect(state.projectileOrigin).toBeNull();
+    expect(state.smashTarget).toBeNull();
+    expect(state.feedEvent).toBeNull();
+  });
 
-        effectsState.consumeProjectileEvent();
-        expect(effectsState.projectileOrigin).toBeNull();
-    });
+  it("should trigger projectile event with a real DOM element", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
 
-    it('should handle triggerProjectile with null element', () => {
-        effectsState.triggerProjectile(null as unknown as HTMLElement);
-        expect(effectsState.projectileOrigin).toBeNull();
-    });
+    // JSDOM doesn't actually render or position elements, so getBoundingClientRect
+    // returns all zeros by default. We can spy on it to mock a return or just accept the zeros,
+    // but setting up a spy is safer to guarantee we're testing our state mapping.
+    const mockRect = { x: 10, y: 20, width: 100, height: 100 } as DOMRect;
+    vi.spyOn(el, "getBoundingClientRect").mockReturnValue(mockRect);
 
-    it('should handle triggerSmash with null element', () => {
-        effectsState.triggerSmash(null as unknown as HTMLElement, 'some-id');
-        expect(effectsState.smashTarget).toBeNull();
-    });
+    try {
+      effectsState.triggerProjectile(el);
+      expect(el.getBoundingClientRect).toHaveBeenCalledTimes(1);
+      expect(effectsState.projectileOrigin).toEqual(mockRect);
 
-    it('should trigger and consume smash event correctly', () => {
-        const mockRect = { x: 30, y: 40, width: 50, height: 50 } as DOMRect;
-        const mockElement = {
-            getBoundingClientRect: vi.fn().mockReturnValue(mockRect)
-        } as unknown as HTMLElement;
-        const mockId = 'test-smash-id';
+      effectsState.consumeProjectileEvent();
+      expect(effectsState.projectileOrigin).toBeNull();
+    } finally {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+  });
 
-        effectsState.triggerSmash(mockElement, mockId);
-        expect(mockElement.getBoundingClientRect).toHaveBeenCalledTimes(1);
-        expect(effectsState.smashTarget).toEqual({ rect: mockRect, id: mockId });
+  it("should trigger smash event with a real DOM element", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
 
-        effectsState.consumeSmashEvent();
-        expect(effectsState.smashTarget).toBeNull();
-    });
+    const mockRect = { x: 30, y: 40, width: 50, height: 50 } as DOMRect;
+    vi.spyOn(el, "getBoundingClientRect").mockReturnValue(mockRect);
+    const mockId = "test-smash-id";
 
-    it('should trigger and consume feed event correctly', () => {
-        const amount = 500;
+    try {
+      effectsState.triggerSmash(el, mockId);
+      expect(el.getBoundingClientRect).toHaveBeenCalledTimes(1);
+      expect(effectsState.smashTarget).toEqual({ rect: mockRect, id: mockId });
 
-        effectsState.triggerFeed(amount);
-        expect(effectsState.feedEvent).toEqual({ amount });
+      effectsState.consumeSmashEvent();
+      expect(effectsState.smashTarget).toBeNull();
+    } finally {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+  });
 
-        effectsState.consumeFeedEvent();
-        expect(effectsState.feedEvent).toBeNull();
-    });
+  it("should trigger and consume projectile event correctly", () => {
+    const mockRect = { x: 10, y: 20, width: 100, height: 100 } as DOMRect;
+    const mockElement = {
+      getBoundingClientRect: vi.fn().mockReturnValue(mockRect),
+    } as unknown as HTMLElement;
+
+    effectsState.triggerProjectile(mockElement);
+    expect(mockElement.getBoundingClientRect).toHaveBeenCalledTimes(1);
+    expect(effectsState.projectileOrigin).toEqual(mockRect);
+
+    effectsState.consumeProjectileEvent();
+    expect(effectsState.projectileOrigin).toBeNull();
+  });
+
+  it("should handle triggerProjectile with null element", () => {
+    effectsState.triggerProjectile(null as unknown as HTMLElement);
+    expect(effectsState.projectileOrigin).toBeNull();
+  });
+
+  it("should handle triggerSmash with null element", () => {
+    effectsState.triggerSmash(null as unknown as HTMLElement, "some-id");
+    expect(effectsState.smashTarget).toBeNull();
+  });
+
+  it("should trigger and consume smash event correctly", () => {
+    const mockRect = { x: 30, y: 40, width: 50, height: 50 } as DOMRect;
+    const mockElement = {
+      getBoundingClientRect: vi.fn().mockReturnValue(mockRect),
+    } as unknown as HTMLElement;
+    const mockId = "test-smash-id";
+
+    effectsState.triggerSmash(mockElement, mockId);
+    expect(mockElement.getBoundingClientRect).toHaveBeenCalledTimes(1);
+    expect(effectsState.smashTarget).toEqual({ rect: mockRect, id: mockId });
+
+    effectsState.consumeSmashEvent();
+    expect(effectsState.smashTarget).toBeNull();
+  });
+
+  it("should trigger and consume feed event correctly", () => {
+    const amount = 500;
+
+    effectsState.triggerFeed(amount);
+    expect(effectsState.feedEvent).toEqual({ amount });
+
+    effectsState.consumeFeedEvent();
+    expect(effectsState.feedEvent).toBeNull();
+  });
 });
