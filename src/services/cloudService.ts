@@ -163,7 +163,7 @@ class CloudService {
       return;
     }
     // The reducers object is exported from the generated code and handles calling the server
-    (reducers as any).sendMessage(text);
+    (reducers as any).sendMessage({ text });
   }
 
   subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {
