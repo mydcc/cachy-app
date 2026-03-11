@@ -719,7 +719,7 @@ export const apiService = {
                            low = c.low;
                        }
                        // Convert to primitive number to avoid allocating thousands of new Decimal objects
-                       volNum += c.volume.toNumber();
+                       volNum += +c.volume;
                    }
 
                    aggregated.push({
