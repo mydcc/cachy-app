@@ -7,13 +7,18 @@
  * (at your option) any later version.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { resultsState, initialResultsState, INITIAL_RESULTS_STATE, ResultsState } from './results.svelte';
+import { Decimal } from 'decimal.js';
 
 describe('Results Manager', () => {
     beforeEach(() => {
         resultsState.reset();
         vi.restoreAllMocks();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     describe('INITIAL_RESULTS_STATE export', () => {
@@ -107,6 +112,51 @@ describe('Results Manager', () => {
 
             // unsubscribe returns a cleanup function from $effect.root
             expect(typeof unsubscribe).toBe('function');
+            unsubscribe();
+        });
+
+        it('should correctly handle calculatedTpDetails with Decimal values', () => {
+            const mockDetail = {
+                index: 1,
+                price: new Decimal(50000),
+                percent: new Decimal(20),
+                percentSold: new Decimal(20),
+                riskRewardRatio: new Decimal(2.5),
+                netProfit: new Decimal(150),
+                priceChangePercent: new Decimal(5),
+                returnOnCapital: new Decimal(10),
+                partialVolume: new Decimal(0.5),
+                exitFee: new Decimal(1.5),
+            };
+
+            resultsState.update({
+                calculatedTpDetails: [mockDetail],
+                totalNetProfit: "150",
+            });
+
+            expect(resultsState.calculatedTpDetails.length).toBe(1);
+            expect(resultsState.calculatedTpDetails[0].price.toNumber()).toBe(50000);
+            expect(resultsState.totalNetProfit).toBe("150");
+
+            resultsState.reset();
+
+            expect(resultsState.calculatedTpDetails).toEqual([]);
+            expect(resultsState.totalNetProfit).toBe("-");
+        });
+
+        it('should not crash on mutation and unsubscribe under fake timers', () => {
+            vi.useFakeTimers();
+
+            const mockCallback = vi.fn();
+
+            const unsubscribe = resultsState.subscribe(mockCallback);
+            expect(mockCallback).toHaveBeenCalledTimes(1);
+            mockCallback.mockClear();
+
+            // Verify mutation and cleanup don't crash.
+            resultsState.positionSize = "3.0";
+
+            // cleanup
             unsubscribe();
         });
     });
