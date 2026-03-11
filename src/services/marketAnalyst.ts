@@ -181,14 +181,36 @@ class MarketAnalystService {
             logger.log("technicals", `Analyst: ${symbol} All technicals done in ${calcTime.toFixed(0)}ms`);
 
             // Build a map of timeframe -> technicals
-            const techMap: Record<string, typeof techResults[0]> = {};
+            const techMap: Record<string, typeof techResults[0] & { _maMap?: Map<string, any>; _oscMap?: Map<string, any> }> = {};
             timeframes.forEach((tf, i) => {
-                const tech = techResults[i];
+                const tech = techResults[i] as typeof techResults[0] & { _maMap?: Map<string, any>; _oscMap?: Map<string, any> };
+
+                if (tech) {
+                    // Pre-index arrays into Maps for O(1) lookups instead of O(N) finds
+                    const maMap = new Map();
+                    if (tech.movingAverages) {
+                        for (let j = 0; j < tech.movingAverages.length; j++) {
+                            const m = tech.movingAverages[j];
+                            maMap.set(`${m.name}_${m.params}`, m);
+                        }
+                    }
+                    tech._maMap = maMap;
+
+                    const oscMap = new Map();
+                    if (tech.oscillators) {
+                        for (let j = 0; j < tech.oscillators.length; j++) {
+                            const o = tech.oscillators[j];
+                            oscMap.set(o.name, o);
+                        }
+                    }
+                    tech._oscMap = oscMap;
+                }
+
                 techMap[tf] = tech;
 
                 // Debug Logging for EMA 200
                 if (import.meta.env.DEV && tech) {
-                    const ema200 = tech.movingAverages.find((m: any) => m.name === "EMA" && m.params === "200");
+                    const ema200 = tech._maMap?.get("EMA_200");
                     const val = ema200?.value;
                     logger.debug("technicals", `Analyst: ${symbol}:${tf} EMA 200 = ${val}`);
                 }
@@ -207,9 +229,9 @@ class MarketAnalystService {
                 const lastKline = klines[klines.length - 1];
                 const openKline = klines.length >= 24 ? klines[klines.length - 24] : klines[0];
 
-                const ema200_4h = tech4h?.movingAverages.find(m => m.name === "EMA" && m.params === "200")?.value || 0;
+                const ema200_4h = tech4h?._maMap?.get("EMA_200")?.value || 0;
 
-                const rsiObj = techPrimary.oscillators.find((o) => o.name === "RSI");
+                const rsiObj = techPrimary._oscMap?.get("RSI");
 
                 const metrics = calculateAnalysisMetrics(
                     lastKline?.close,
@@ -318,7 +340,7 @@ export function calculateAnalysisMetrics(
 
         // Use confluence score if available for broad trend, or EMA check
         // Ideally checking Price > EMA200
-        const ema = tech.movingAverages?.find((m: any) => m.name === "EMA" && m.params === "200")?.value;
+        const ema = tech._maMap?.get("EMA_200")?.value;
         if (ema === undefined || (typeof ema === "number" && isNaN(ema)) || ema === 0) return "neutral";
 
         return priceDec.greaterThan(safeDec(ema)) ? "bullish" : "bearish";
@@ -336,7 +358,7 @@ export function calculateAnalysisMetrics(
 
     // RSI from 1h or primary
     const techPrimary = techMap["1h"] || Object.values(techMap)[0];
-    const rsiValue = techPrimary?.oscillators?.find((o: any) => o.name === "RSI")?.value;
+    const rsiValue = techPrimary?._oscMap?.get("RSI")?.value;
     const rsiDec = safeDec(rsiValue || 50);
     const rsi1h = rsiDec.toFixed(2);
 
