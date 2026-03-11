@@ -35,33 +35,35 @@ vi.mock('../stores/settings.svelte', () => ({
 describe('tradeService benchmark (Optimized)', () => {
     bench('closeAllPositions with pre-fetch', async () => {
         const origFetch = (tradeService as any)._doFetchOpenPositionsFromApi;
-        (tradeService as any)._doFetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
-            await new Promise(resolve => setTimeout(resolve, 50));
-            // Simulate that fetchOpenPositionsFromApi updates the cache correctly!
-            vi.mocked(omsService.getPositions).mockReturnValue([
-                { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() },
-                { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: Date.now() },
-                { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() },
-                { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: Date.now() },
-                { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() }
-            ]);
-        });
-
         const origSignedReq = (tradeService as any).signedRequest;
-        (tradeService as any).signedRequest = vi.fn().mockResolvedValue({ code: 0 });
+        try {
+            (tradeService as any)._doFetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                // Simulate that fetchOpenPositionsFromApi updates the cache correctly!
+                vi.mocked(omsService.getPositions).mockReturnValue([
+                    { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() },
+                    { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: Date.now() },
+                    { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() },
+                    { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: Date.now() },
+                    { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() }
+                ]);
+            });
 
-        // Force a stale environment for the original code path:
-        vi.mocked(omsService.getPositions).mockReturnValue([
-            { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 }
-        ]);
+            (tradeService as any).signedRequest = vi.fn().mockResolvedValue({ code: 0 });
 
-        await (tradeService as any).closeAllPositions();
+            // Force a stale environment for the original code path:
+            vi.mocked(omsService.getPositions).mockReturnValue([
+                { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
+                { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
+                { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
+                { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
+                { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 }
+            ]);
 
-        (tradeService as any)._doFetchOpenPositionsFromApi = origFetch;
-        (tradeService as any).signedRequest = origSignedReq;
+            await (tradeService as any).closeAllPositions();
+        } finally {
+            (tradeService as any)._doFetchOpenPositionsFromApi = origFetch;
+            (tradeService as any).signedRequest = origSignedReq;
+        }
     });
 });
