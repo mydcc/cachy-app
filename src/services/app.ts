@@ -373,7 +373,7 @@ export const app = {
   },
 
   deleteTrade: async (id: number | string) => {
-    const d = app.getJournal().filter((t) => t.id != id);
+    const d = app.getJournal().filter((t) => t.id !== id);
     await app.saveJournal(d);
     journalState.set(d);
   },
