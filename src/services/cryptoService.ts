@@ -286,16 +286,15 @@ class CryptoServiceImpl {
       return await this.attemptDecrypt(blob, password, "SHA-256");
     }
 
-    // Legacy AES-GCM blobs without kdfHash were always encrypted with SHA-256.
-    // Try SHA-256 first, fall back to SHA-512 only if needed (future-proofing).
+    // Try SHA-512 first, fall back to SHA-256 if needed for backward compatibility.
     try {
-      return await this.attemptDecrypt(blob, password, "SHA-256");
+      return await this.attemptDecrypt(blob, password, "SHA-512");
     } catch (e) {
-      // Only fall back to SHA-512 if the error is a decryption failure
+      // Only fall back to SHA-256 if the error is a decryption failure
       // (OperationError), which indicates a key mismatch due to hash algorithm.
       // Other errors (e.g., session locked, invalid base64) should fail fast.
       if (e instanceof DOMException && e.name === "OperationError") {
-        return await this.attemptDecrypt(blob, password, "SHA-512");
+        return await this.attemptDecrypt(blob, password, "SHA-256");
       }
       throw e;
     }
