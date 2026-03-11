@@ -707,11 +707,17 @@ export const apiService = {
                    let low = new Decimal(first.low);
                    let vol = new Decimal(0);
 
-                   for (const c of bucket) {
-                       const h = new Decimal(c.high);
-                       const l = new Decimal(c.low);
-                       if (h.gt(high)) high = h;
-                       if (l.lt(low)) low = l;
+                   for (let i = 0, len = bucket.length; i < len; i++) {
+                       const c = bucket[i];
+                       // We use .lt() and .gt() on the existing Decimal instances,
+                       // passing the raw values. We only allocate a new Decimal
+                       // when a new extreme is found.
+                       if (high.lt(c.high)) {
+                           high = new Decimal(c.high);
+                       }
+                       if (low.gt(c.low)) {
+                           low = new Decimal(c.low);
+                       }
                        vol = vol.plus(c.volume);
                    }
 
