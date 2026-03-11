@@ -103,10 +103,16 @@ describe('CloudService', () => {
     mockCallbacks.onInsert = undefined;
   });
 
+
+  it('should throw an error if no token is provided', async () => {
+    const host = 'http://localhost:3000';
+    await expect(cloudService.connect(host)).rejects.toThrow('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
+  });
+
   it('should use logger service instead of console', async () => {
     const host = 'http://localhost:3000';
 
-    await cloudService.connect(host);
+    await cloudService.connect(host, 'cachy-server', 'mock-token');
 
     // 1. Verify connection log
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Connecting to SpacetimeDB...', host);

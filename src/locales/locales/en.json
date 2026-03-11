@@ -2124,7 +2124,11 @@
     "connectButton": "Connect",
     "noMessages": "No messages yet.",
     "sendButton": "Send",
-    "placeholder": "Say hello..."
+    "placeholder": "Say hello...",
+    "connectionFailed": "Connection failed",
+    "connectionFailed": "Connection failed"
+    ,
+    "connectionFailed": "Connection failed"
   },
   "jules": {
     "title": "Jules Inspector",
