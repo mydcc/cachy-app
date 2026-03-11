@@ -34,7 +34,8 @@ function resolveDbFile(): string {
   const dir = path.dirname(resolved);
   try {
     const realDir = fsSync.realpathSync(dir);
-    if (!realDir.startsWith(cwd + path.sep) && realDir !== cwd) {
+    const realCwd = fsSync.realpathSync(cwd);
+    if (!realDir.startsWith(realCwd + path.sep) && realDir !== realCwd) {
       throw new Error(
         `CHAT_DB_PATH parent directory resolves outside the project directory via symlink. Got: ${raw}`
       );
