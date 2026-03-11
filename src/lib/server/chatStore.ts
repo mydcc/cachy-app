@@ -182,6 +182,8 @@ export const chatStore = new ChatStore();
 function handleShutdown() {
   chatStore.forceSave().catch((err) => {
     console.error("Failed to flush chat store on shutdown:", err);
+  }).finally(() => {
+    process.exit(0);
   });
 }
 
