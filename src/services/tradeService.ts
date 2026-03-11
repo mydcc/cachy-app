@@ -78,6 +78,8 @@ export class TradeError extends Error {
 }
 
 class TradeService {
+    private fetchPositionsPromise: Promise<void> | null = null;
+
     // Helper to sign and send requests to backend
     // Test mocks this
     public async signedRequest<T>(
@@ -334,6 +336,16 @@ class TradeService {
     }
 
     private async fetchOpenPositionsFromApi() {
+        if (this.fetchPositionsPromise) {
+            return this.fetchPositionsPromise;
+        }
+        this.fetchPositionsPromise = this._doFetchOpenPositionsFromApi().finally(() => {
+            this.fetchPositionsPromise = null;
+        });
+        return this.fetchPositionsPromise;
+    }
+
+    private async _doFetchOpenPositionsFromApi() {
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 
         try {

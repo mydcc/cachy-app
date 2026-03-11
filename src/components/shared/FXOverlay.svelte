@@ -38,6 +38,7 @@
 
     let progress = 0;
     let isFlying = false;
+    let cachedTargets: { el: HTMLElement; centerX: number; centerY: number }[] | null = null;
     let startPos = new THREE.Vector3();
     let targetPos = new THREE.Vector3(0, 0, 5);
     let velocity = new THREE.Vector3();
@@ -260,28 +261,22 @@
     // --- PHYSICS & LOGIC ---
 
     function checkWindowImpact(obj: THREE.Object3D) {
-        if (!camera || !browser) return;
+        if (!camera || !browser || !cachedTargets) return;
         const pos2D = obj.position.clone().project(camera);
         const screenX = ((pos2D.x + 1) * window.innerWidth) / 2;
         const screenY = ((-pos2D.y + 1) * window.innerHeight) / 2;
 
-        const elements = document.querySelectorAll(
-            ".window-frame, .glass-panel",
-        );
-        elements.forEach((el) => {
-            const rect = (el as HTMLElement).getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
+        cachedTargets.forEach((target) => {
             const dist = Math.sqrt(
-                Math.pow(screenX - centerX, 2) + Math.pow(screenY - centerY, 2),
+                Math.pow(screenX - target.centerX, 2) + Math.pow(screenY - target.centerY, 2),
             );
 
             if (dist < 180) {
                 const intensity = (1 - dist / 180) * 12;
-                (el as HTMLElement).style.transform =
+                target.el.style.transform =
                     `translate(${(Math.random() - 0.5) * intensity}px, ${(Math.random() - 0.5) * intensity}px) scale(${1 + intensity * 0.001})`;
                 setTimeout(() => {
-                    (el as HTMLElement).style.transform = "";
+                    target.el.style.transform = "";
                 }, 60);
             }
         });
@@ -295,8 +290,23 @@
         return null;
     }
 
+    function refreshCachedTargets() {
+        const elements = document.querySelectorAll(
+            ".window-frame, .glass-panel",
+        );
+        cachedTargets = Array.from(elements).map((el) => {
+            const elRect = (el as HTMLElement).getBoundingClientRect();
+            return {
+                el: el as HTMLElement,
+                centerX: elRect.left + elRect.width / 2,
+                centerY: elRect.top + elRect.height / 2,
+            };
+        });
+    }
+
     function finishAnimation() {
         isFlying = false;
+        cachedTargets = null;
         const obj = getActiveObject();
         if (obj && (activeEffect === "coin" || activeEffect === "orb")) {
             triggerShards(obj.position);
@@ -341,6 +351,10 @@
         }
 
         progress = 0;
+
+        // Cache targets to avoid DOM queries in the animation loop
+        refreshCachedTargets();
+
         isFlying = true;
         usePhysics = activeEffect === "coin" || activeEffect === "orb";
         if (usePhysics) {
@@ -425,7 +439,7 @@
 
         if (isFlying) {
             progress += dt * 1.3;
-            if (progress >= 1.0) finishAnimation();
+            const shouldFinish = progress >= 1.0;
 
             const obj = getActiveObject();
             if (obj) {
@@ -455,6 +469,8 @@
                 }
                 if (activeEffect === "matrix") obj.rotation.z -= dt * 2.5;
             }
+
+            if (shouldFinish) finishAnimation();
         }
 
         renderer.render(scene, camera);
@@ -520,6 +536,7 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        if (isFlying) refreshCachedTargets();
     }
 </script>
 
