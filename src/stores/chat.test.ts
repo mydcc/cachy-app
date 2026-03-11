@@ -139,4 +139,15 @@ describe('ChatManager', () => {
     expect(merged).toHaveLength(1);
     expect(merged[0].id).toBe('me2');
   });
+
+  it('clears history correctly', () => {
+    (chatState as any).messages = [
+      { id: '1', text: 'Hello', timestamp: 100 },
+      { id: '2', text: 'World', timestamp: 200 }
+    ];
+
+    chatState.clearHistory();
+
+    expect((chatState as any).messages).toHaveLength(0);
+  });
 });
