@@ -31,10 +31,10 @@
  * CRITICAL: Do not remove items without updating corresponding components!
  */
 export const DATA_REQUIREMENTS = {
-  /** Market Overview Tile - needs price, depth (bid/ask), and funding */
+  /** Market Overview Tile - needs ticker (price/24h stats) and depth (bid/ask) */
   MARKET_OVERVIEW: ['ticker', 'depth'] as const,
   
-  /** Chart Component - needs price and klines */
+  /** Chart Component - needs ticker (klines are registered separately via marketWatcher) */
   CHART: ['ticker'] as const,
   
   /** Order Book Component - needs depth only */
@@ -74,6 +74,7 @@ export const REQUIREMENT_TO_CHANNELS: Record<string, string[]> = {
  */
 export type DataRequirement = 
   | 'ticker' 
+  | 'price'
   | 'depth' 
   | 'positions'
   | 'orders'
