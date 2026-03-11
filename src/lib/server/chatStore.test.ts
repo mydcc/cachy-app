@@ -18,14 +18,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { chatStore } from './chatStore';
 import type { ChatMessage } from './chatStore';
-import { promises as fs } from 'fs';
+import fs from 'fs/promises';
 
-vi.mock('fs', () => ({
-  promises: {
-    readFile: vi.fn(),
-    writeFile: vi.fn().mockResolvedValue(undefined),
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    rename: vi.fn().mockResolvedValue(undefined),
+vi.mock('fs/promises', () => ({
+  default: {
+
+  readFile: vi.fn(),
+  writeFile: vi.fn().mockResolvedValue(undefined),
+  mkdir: vi.fn().mockResolvedValue(undefined),
+  rename: vi.fn().mockResolvedValue(undefined),
   }
 }));
 
