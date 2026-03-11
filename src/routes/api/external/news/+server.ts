@@ -128,9 +128,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             if (apiKey && apiKey.length > 4) {
               msg = msg.split(apiKey).join("***");
             }
+            const is429 = msg.includes("429");
             msg = sanitizeErrorMessage(msg);
 
-            if (msg.includes("429")) throw new Error(msg);
+            if (is429) throw new Error(msg);
             console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
             lastError = msg;
             continue;
@@ -180,6 +181,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     if (apiKey && apiKey.length > 4) {
       errorMsg = errorMsg.split(apiKey).join("***");
     }
+    const isQuotaError = errorMsg.includes("429") || errorMsg.includes("quota");
     errorMsg = sanitizeErrorMessage(errorMsg);
 
     // Safe logging: Don't log full URL if it has keys
@@ -187,7 +189,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
     if (err.cause) console.error("[NewsProxy] Cause:", err.cause);
 
-    if (errorMsg.includes("429") || errorMsg.includes("quota")) {
+    if (isQuotaError) {
       const staleCache = _newsCache.get(cacheKey);
       if (staleCache) {
         console.warn("[NewsProxy] Using stale cache due to quota exhaustion");

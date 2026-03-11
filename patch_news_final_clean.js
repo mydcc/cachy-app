@@ -119,7 +119,7 @@ testCode = testCode.replace(
 
 testCode = testCode.replace(
   'const responseData = { articles: [\'secure-data\'] };',
-  'const responseData = { status: "ok", articles: [\'secure-data\'] };'
+  'const responseData = { status: "ok", articles: [{ title: \'secure-data\' }] };'
 );
 
 fs.writeFileSync(testFile, testCode);
