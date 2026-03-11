@@ -246,8 +246,8 @@ describe("QuizStore", () => {
 
   describe("Knowledge marking methods", () => {
     beforeEach(() => {
+      vi.useFakeTimers();
       quizState.activeQuestion = { id: "testId", question: "Q?", answer: "A!" };
-      const saveProgressSpy = vi.spyOn(quizState, "saveProgress");
     });
 
     it("marks question as known and closes quiz", () => {
@@ -260,6 +260,8 @@ describe("QuizStore", () => {
       expect(saveProgressSpy).toHaveBeenCalled();
       expect(closeQuizSpy).toHaveBeenCalled();
 
+      vi.advanceTimersByTime(300);
+
       closeQuizSpy.mockRestore();
       saveProgressSpy.mockRestore();
     });
@@ -271,6 +273,8 @@ describe("QuizStore", () => {
 
       expect(quizState.knownQuestionIds.has("testId")).toBe(false);
       expect(closeQuizSpy).toHaveBeenCalled();
+
+      vi.advanceTimersByTime(300);
 
       closeQuizSpy.mockRestore();
     });
