@@ -221,10 +221,6 @@ export class IncrementalCache {
     
     if (lruKey) {
       this.cache.delete(lruKey);
-      
-      if (import.meta.env.DEV) {
-        console.log(`[IncrementalCache] Evicted LRU entry: ${lruKey}`);
-      }
     }
   }
   
@@ -242,10 +238,6 @@ export class IncrementalCache {
     });
     
     staleKeys.forEach(key => this.cache.delete(key));
-    
-    if (import.meta.env.DEV && staleKeys.length > 0) {
-      console.log(`[IncrementalCache] Cleaned up ${staleKeys.length} stale entries`);
-    }
   }
   
   /**

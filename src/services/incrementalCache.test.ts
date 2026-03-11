@@ -150,7 +150,7 @@ describe('IncrementalCache', () => {
   });
   
   describe('LRU Eviction', () => {
-    it('should evict least recently used entry when over max size', () => {
+    it('should evict least recently used entry when over max size', async () => {
       const smallCache = new IncrementalCache(3, 60000); // Max 3 entries
       
       const klines1 = generateKlines(10, 1000000);
@@ -159,7 +159,9 @@ describe('IncrementalCache', () => {
       const klines4 = generateKlines(10, 4000000);
       
       smallCache.set('SYM1', '1m', klines1, mockSettings, {}, generateMockResult());
+      await new Promise(r => setTimeout(r, 2));
       smallCache.set('SYM2', '1m', klines2, mockSettings, {}, generateMockResult());
+      await new Promise(r => setTimeout(r, 2));
       smallCache.set('SYM3', '1m', klines3, mockSettings, {}, generateMockResult());
       
       // Access SYM1 and SYM3 to keep them alive
