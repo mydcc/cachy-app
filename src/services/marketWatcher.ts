@@ -181,10 +181,11 @@ class MarketWatcher {
     const intended = new Map<string, { symbol: string; channel: string }>();
     this.requests.forEach((channels, symbol) => {
       channels.forEach((reqs, ch) => {
-        const bitunixChannel = ch;
-        // No longer map generic "price" to Bitunix "ticker" - let "price" be "price" (mark price + funding)
-        const key = `${bitunixChannel}:${symbol}`;
-        intended.set(key, { symbol, channel: bitunixChannel });
+        const wsChannels = getChannelsForRequirement(ch);
+        wsChannels.forEach(bitunixChannel => {
+          const key = `${bitunixChannel}:${symbol}`;
+          intended.set(key, { symbol, channel: bitunixChannel });
+        });
       });
     });
 
