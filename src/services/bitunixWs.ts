@@ -1673,7 +1673,7 @@ const isSafe = (v: any) => {
   return false;
 };
 
-export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
+export function isTradeData(d: any): d is { p: any; v: any; s?: any; t?: any; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
   // OR { lastPrice, volume, side } fallbacks
