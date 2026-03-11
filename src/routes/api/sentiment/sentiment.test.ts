@@ -18,6 +18,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './+server';
 
+vi.mock('../../../lib/server/auth', () => ({
+    checkAppAuth: vi.fn(() => null),
+}));
+
 describe('POST /api/sentiment error handling', () => {
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
