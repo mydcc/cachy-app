@@ -52,7 +52,6 @@ export function calculateAllIndicators(
 
   const len = klines.length;
   const pool = settings?.performanceMode === "speed" ? bufferPool : null;
-  const cleanupBuffers: Float64Array[] = [];
 
   let highsNum: Float64Array;
   let lowsNum: Float64Array;
@@ -67,7 +66,6 @@ export function calculateAllIndicators(
       closesNum = pool.acquire(len);
       opensNum = pool.acquire(len);
       volumesNum = pool.acquire(len);
-      cleanupBuffers.push(highsNum, lowsNum, closesNum, opensNum, volumesNum);
 
       for (let i = 0; i < len; i++) {
           const k = klines[i];
@@ -96,17 +94,21 @@ export function calculateAllIndicators(
       }
   }
 
-  const result = calculateIndicatorsFromArrays(
-      highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings
-  );
+  try {
+      const result = calculateIndicatorsFromArrays(
+          highsNum, lowsNum, closesNum, opensNum, volumesNum, timesNum, settings
+      );
 
-  if (pool) {
-      for (const buf of cleanupBuffers) {
-          pool.release(buf);
+      return result;
+  } finally {
+      if (pool) {
+          pool.release(highsNum);
+          pool.release(lowsNum);
+          pool.release(closesNum);
+          pool.release(opensNum);
+          pool.release(volumesNum);
       }
   }
-
-  return result;
 }
 
 export function calculateIndicatorsFromArrays(

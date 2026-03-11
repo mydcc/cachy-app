@@ -357,7 +357,8 @@
                         // incremental calculation support or re-running on the tail.
                         // For now, indicators update only on new candles or full refreshes.
                     } catch (e) {
-                        // Fallback to full render by resetting state
+                        // Fallback to full render on next cycle
+                        console.error("[CandleChartView] Live update failed, will full-render next cycle:", e);
                         lastRenderedTime = null;
                         lastRenderedCount = 0;
                     }
@@ -401,7 +402,8 @@
                             unique.length > 0
                                 ? unique[unique.length - 1].time
                                 : null;
-                        lastRenderedCount = klines.length;
+                        lastRenderedCount = unique.length;
+
 
                         // Update Indicators if enabled
                         if (
