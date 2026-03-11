@@ -96,7 +96,7 @@ export const POST: RequestHandler = async ({ request }) => {
       // Sanitize
       console.error(
         "Error fetching regular orders:",
-        msg.replaceAll(apiKey, "***"),
+        msg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
       );
     }
 
@@ -106,7 +106,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const msg = (tpslResult.reason as Error).message || "Unknown error";
       console.warn(
         "Error fetching TP/SL orders:",
-        msg.replaceAll(apiKey, "***"),
+        msg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
       );
     }
 
@@ -116,7 +116,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const msg = (planResult.reason as Error).message || "Unknown error";
       console.warn(
         "Error fetching plan orders:",
-        msg.replaceAll(apiKey, "***"),
+        msg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
       );
     }
 
@@ -124,11 +124,12 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: unknown) {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
     const rawMsg = e instanceof Error ? e.message : String(e);
+    const safeMsg = rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
     console.error(
       `Error fetching orders from Bitunix:`,
-      rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
+      safeMsg,
     );
-    return json({ error: rawMsg || "Failed to fetch orders" }, { status: 500 });
+    return json({ error: safeMsg || "Failed to fetch orders" }, { status: 500 });
   }
 };
 
@@ -224,13 +225,14 @@ async function fetchBitunixData(
   if (!response.ok) {
     const text = await response.text();
     // Try to parse JSON error from text
+    let jsonError: { msg?: string } | undefined;
     try {
-      const jsonError = JSON.parse(text);
-      if (jsonError.msg) {
-        throw new Error(jsonError.msg); // Pass upstream message
-      }
-    } catch (e) {
-      // ignore
+      jsonError = JSON.parse(text);
+    } catch {
+      // not JSON, ignore
+    }
+    if (jsonError?.msg) {
+      throw new Error(jsonError.msg); // Pass upstream message
     }
     // Truncate text to avoid massive logs or leaking too much info
     const safeText = text.length > 200 ? text.substring(0, 200) + "..." : text;

@@ -56,7 +56,7 @@ export const POST: RequestHandler = async ({ request }) => {
     );
     return json({ data: positions });
   } catch (e: any) {
-    // SECURITY FIX: Sanitize logs and error response
+
     const rawMsg = e instanceof Error ? e.message : String(e);
     // Mask sensitive data
     const safeMsg = rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
