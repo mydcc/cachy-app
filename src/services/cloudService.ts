@@ -81,8 +81,11 @@ class CloudService {
         reject(err);
       };
 
+      // Capture reference so callbacks can detect if they belong to a stale connection
+      let connForThisAttempt: DbConnection | null = null;
+
       try {
-        this.conn = DbConnection.builder()
+        connForThisAttempt = DbConnection.builder()
           .withUri(host)
           .withModuleName(dbName)
           .withToken(token) // Enforce token
@@ -105,7 +108,8 @@ class CloudService {
             settleResolve();
           })
           .onDisconnect((ctx) => {
-            if (settled && !this.connected) return; // Ignore disconnect from timed-out connection
+            // Ignore if this callback belongs to a stale connection (e.g. timed-out then replaced)
+            if (this.conn !== connForThisAttempt) return;
             logger.log('network', 'Disconnected from SpacetimeDB', ctx);
             this.connected = false;
             this.connecting = false;
@@ -117,6 +121,7 @@ class CloudService {
             settleReject(err instanceof Error ? err : new Error(String(err)));
           })
           .build();
+        this.conn = connForThisAttempt;
       } catch (e) {
         logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
         this.connecting = false;
