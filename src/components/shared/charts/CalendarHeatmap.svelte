@@ -20,7 +20,7 @@
   import { getComputedColor } from "../../../utils/colors";
   import { escapeHtml } from "../../../utils/utils";
   import { _ } from "../../../locales/i18n";
-  import { tooltip } from "../../../lib/actions/tooltip";
+  import { computePosition, flip, shift, offset, arrow } from "@floating-ui/dom";
 
   interface Props {
     data?: {
@@ -111,55 +111,95 @@
     dispatch("click", { date: dateStr });
   }
 
-  function getTooltipHtml(entry: any, dateStr: string) {
-    if (!entry) return null; // No tooltip for empty days? or just date? user request image shows active day tooltip
+  let hoveredEntry = $state<any>(null);
+  let hoveredDateStr = $state<string>("");
+  let tooltipVisible = $state(false);
+  let tooltipEl = $state<HTMLElement>();
+  let arrowEl = $state<HTMLElement>();
 
-    const pnlColor =
-      entry.pnl > 0
-        ? "var(--success-color, #10b981)"
-        : entry.pnl < 0
-        ? "var(--danger-color, #ef4444)"
-        : "var(--text-secondary, #94a3b8)";
+  async function updateTooltipPosition(triggerEl: HTMLElement) {
+    if (!triggerEl || !tooltipEl || !arrowEl) return;
+    try {
+      const result = await computePosition(
+        triggerEl,
+        tooltipEl,
+        {
+          placement: "top",
+          middleware: [
+            offset(10),
+            flip(),
+            shift({ padding: 5 }),
+            arrow({ element: arrowEl }),
+          ],
+        },
+      );
+      if (!result) return;
+      const { x, y, placement, middlewareData } = result;
+      Object.assign(tooltipEl.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+      });
+      const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+      const side = placement.split("-")[0];
+      const staticSideMap: Record<string, string> = {
+        top: "bottom",
+        right: "left",
+        bottom: "top",
+        left: "right",
+      };
+      const staticSide = staticSideMap[side];
+      if (staticSide) {
+        Object.assign(arrowEl.style, {
+          left: arrowX != null ? `${arrowX}px` : "",
+          top: arrowY != null ? `${arrowY}px` : "",
+          right: "",
+          bottom: "",
+          [staticSide]: "-5px",
+        });
 
-    let html = `
-            <div class="text-left">
-                <div class="text-[var(--text-secondary)] text-xs mb-1">${dateStr}</div>
-                <div class="font-bold mb-1" style="color: ${pnlColor}">
-                    PnL: $${(entry.pnl ?? 0).toFixed(2)}
-                </div>
-                <div class="text-[var(--text-primary)] text-xs">
-                    Trades: ${entry.count}
-                </div>
-        `;
-
-    if (entry.winCount !== undefined && entry.lossCount !== undefined) {
-      html += ` <span class="text-[var(--text-tertiary)]">(${entry.winCount}W / ${entry.lossCount}L)</span>`;
-    }
-
-    html += `</div>`;
-
-    if (entry.bestSymbol) {
-      html += `
-                <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
-                    Top: <span class="font-semibold">${escapeHtml(entry.bestSymbol)}</span>
-            `;
-      if (entry.bestSymbolPnl !== undefined && entry.bestSymbolPnl !== null) {
-        const symPnlColor =
-          entry.bestSymbolPnl > 0
-            ? "var(--success-color)"
-            : entry.bestSymbolPnl < 0
-            ? "var(--danger-color)"
-            : "inherit";
-        html += ` <span style="color: ${symPnlColor}">($${entry.bestSymbolPnl.toFixed(
-          2
-        )})</span>`;
+        arrowEl.style.transform = `rotate(45deg)`;
+        if (placement.startsWith("top")) {
+          arrowEl.style.borderRight = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderBottom = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderLeft = "none";
+          arrowEl.style.borderTop = "none";
+        } else if (placement.startsWith("bottom")) {
+          arrowEl.style.borderTop = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderLeft = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderRight = "none";
+          arrowEl.style.borderBottom = "none";
+        } else if (placement.startsWith("left")) {
+          arrowEl.style.borderTop = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderRight = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderLeft = "none";
+          arrowEl.style.borderBottom = "none";
+        } else if (placement.startsWith("right")) {
+          arrowEl.style.borderBottom = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderLeft = "1px solid var(--border-color, #334155)";
+          arrowEl.style.borderRight = "none";
+          arrowEl.style.borderTop = "none";
+        }
       }
-      html += `</div>`;
+    } catch (e) {
+      // ignore
     }
-
-    html += `</div>`;
-    return html;
   }
+
+  function handleMouseEnter(event: MouseEvent, entry: any, dateStr: string) {
+    hoveredEntry = entry;
+    hoveredDateStr = dateStr;
+    tooltipVisible = true;
+    requestAnimationFrame(() => {
+      updateTooltipPosition(event.target as HTMLElement);
+    });
+  }
+
+  function handleMouseLeave() {
+    tooltipVisible = false;
+  }
+
+
+
 </script>
 
 <div
@@ -207,7 +247,7 @@
         {#each Array(getDaysInMonth(mIndex, year)) as _, dIndex}
           {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
           {@const entry = dataMap[dateStr]}
-          {@const tooltipContent = getTooltipHtml(entry, dateStr)}
+
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <div
             role="button"
@@ -216,9 +256,8 @@
             style="background-color: {getColor(dateStr)}; opacity: {getOpacity(
               dateStr
             )}"
-            use:tooltip={tooltipContent
-              ? { content: tooltipContent, allowHtml: true, placement: "top" }
-              : { content: dateStr, placement: "top" }}
+            onmouseenter={(e) => handleMouseEnter(e, entry, dateStr)}
+            onmouseleave={handleMouseLeave}
             onclick={() => entry && handleDayClick(dateStr)}
 ></div>
         {/each}
@@ -226,6 +265,48 @@
     </div>
   {/each}
 </div>
+
+
+{#if tooltipVisible}
+  <div
+    bind:this={tooltipEl}
+    class="floating-tooltip"
+    style="position: absolute; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: 1; transition: opacity 0.2s ease-in-out; background-color: var(--bg-tertiary, #1e293b); color: var(--text-primary, #f1f5f9); padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid var(--border-color, #334155); line-height: 1.4; max-width: 300px; width: max-content;"
+  >
+    {#if hoveredEntry}
+      <div class="text-left">
+        <div class="text-[var(--text-secondary)] text-xs mb-1">{hoveredDateStr}</div>
+        <div class="font-bold mb-1" style="color: {hoveredEntry.pnl > 0 ? 'var(--success-color, #10b981)' : hoveredEntry.pnl < 0 ? 'var(--danger-color, #ef4444)' : 'var(--text-secondary, #94a3b8)'}">
+          PnL: ${(hoveredEntry.pnl ?? 0).toFixed(2)}
+        </div>
+        <div class="text-[var(--text-primary)] text-xs">
+          Trades: {hoveredEntry.count}
+          {#if hoveredEntry.winCount !== undefined && hoveredEntry.lossCount !== undefined}
+            <span class="text-[var(--text-tertiary)]">({hoveredEntry.winCount}W / {hoveredEntry.lossCount}L)</span>
+          {/if}
+        </div>
+      </div>
+      {#if hoveredEntry.bestSymbol}
+        <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
+          Top: <span class="font-semibold">{hoveredEntry.bestSymbol}</span>
+          {#if hoveredEntry.bestSymbolPnl !== undefined && hoveredEntry.bestSymbolPnl !== null}
+            <span style="color: {hoveredEntry.bestSymbolPnl > 0 ? 'var(--success-color)' : hoveredEntry.bestSymbolPnl < 0 ? 'var(--danger-color)' : 'inherit'}">
+              (${hoveredEntry.bestSymbolPnl.toFixed(2)})
+            </span>
+          {/if}
+        </div>
+      {/if}
+    {:else}
+      {hoveredDateStr}
+    {/if}
+    <div
+      bind:this={arrowEl}
+      class="floating-arrow"
+      style="position: absolute; width: 8px; height: 8px; background-color: inherit; border-right: 1px solid var(--border-color, #334155); border-bottom: 1px solid var(--border-color, #334155); z-index: -1;"
+    ></div>
+  </div>
+{/if}
+
 
 <style>
   .day-cell {
