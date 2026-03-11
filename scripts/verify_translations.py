@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 # Fix path relative to script location in scripts/ dir
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DE_FILE = PROJECT_ROOT / 'src/locales/locales/de.json'
 EN_FILE = PROJECT_ROOT / 'src/locales/locales/en.json'
 
