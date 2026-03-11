@@ -53,7 +53,7 @@ export const discordService = {
             return fetchPromise;
         }
 
-        fetchPromise = (async () => {
+        const thisPromise = (async () => {
             try {
                 const allNews: NewsItem[] = [];
 
@@ -107,10 +107,14 @@ export const discordService = {
                 console.error("[Discord] Failed to fetch news:", e);
                 return [];
             } finally {
-                fetchPromise = null;
+                // Only clear if no newer fetch has replaced us (e.g. due to settings change)
+                if (fetchPromise === thisPromise) {
+                    fetchPromise = null;
+                }
             }
         })();
+        fetchPromise = thisPromise;
 
-        return fetchPromise;
+        return thisPromise;
     }
 };
