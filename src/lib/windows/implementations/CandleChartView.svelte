@@ -402,6 +402,7 @@
                                 : null;
                         lastRenderedCount = unique.length;
 
+
                         // Update Indicators if enabled
                         if (
                             indicatorsEnabled &&
