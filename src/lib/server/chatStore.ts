@@ -22,6 +22,7 @@ import { z } from "zod";
 const DB_FILE = "db/chat_messages.json";
 const MAX_HISTORY = 1000;
 const SAVE_DEBOUNCE_MS = 1000;
+const SHUTDOWN_TIMEOUT_MS = 5000;
 
 export interface ChatMessage {
   id: string;
@@ -56,7 +57,13 @@ class ChatStore {
         // Try to read the file
         // In a real server environment, ensure 'db' folder exists
         const data = await fs.readFile(DB_FILE, "utf-8");
-        const parsed = JSON.parse(data);
+        let parsed;
+        try {
+          parsed = JSON.parse(data);
+        } catch (e) {
+          console.error("Failed to parse chat db:", e);
+          parsed = null;
+        }
         if (Array.isArray(parsed)) {
           this.messages = parsed.reduce<ChatMessage[]>((acc, item, index) => {
             const result = chatMessageSchema.safeParse(item);
@@ -171,3 +178,29 @@ class ChatStore {
 }
 
 export const chatStore = new ChatStore();
+
+// Flush pending chat messages to disk on graceful shutdown
+// Skip in test environments to avoid interfering with test runner cleanup
+if (!process.env.VITEST) {
+  let shuttingDown = false;
+  function handleShutdown(signal: NodeJS.Signals) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    // Force-terminate if flush stalls (e.g. disk I/O hang)
+    const deadline = setTimeout(() => {
+      console.error("Shutdown flush timed out, forcing exit");
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    deadline.unref();
+    chatStore.forceSave().catch((err) => {
+      console.error("Failed to flush chat store on shutdown:", err);
+    }).finally(() => {
+      clearTimeout(deadline);
+      // Re-raise the original signal so process managers see the correct exit code
+      process.kill(process.pid, signal);
+    });
+  }
+
+  process.once("SIGTERM", (signal) => handleShutdown(signal));
+  process.once("SIGINT", (signal) => handleShutdown(signal));
+}
