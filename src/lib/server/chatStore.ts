@@ -17,6 +17,7 @@
 
 import { promises as fs } from "fs";
 import path from "path";
+import { z } from "zod";
 
 const DB_FILE = "db/chat_messages.json";
 const MAX_HISTORY = 1000;
@@ -30,6 +31,17 @@ export interface ChatMessage {
   profitFactor?: number;
   clientId?: string;
 }
+
+const chatMessageSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  sender: z.enum(["user", "system"]),
+  timestamp: z.number(),
+  profitFactor: z.number().optional(),
+  clientId: z.string().optional()
+});
+
+const chatMessagesSchema = z.array(chatMessageSchema);
 
 class ChatStore {
   private messages: ChatMessage[] = [];
@@ -46,7 +58,14 @@ class ChatStore {
         // Try to read the file
         // In a real server environment, ensure 'db' folder exists
         const data = await fs.readFile(DB_FILE, "utf-8");
-        this.messages = JSON.parse(data);
+        const parsed = JSON.parse(data);
+        const validationResult = chatMessagesSchema.safeParse(parsed);
+        if (validationResult.success) {
+          this.messages = validationResult.data;
+        } else {
+          console.error("Invalid chat data in db:", validationResult.error);
+          this.messages = [];
+        }
       } catch (error: any) {
         if (error.code === "ENOENT") {
           // File doesn't exist, create it with welcome message
