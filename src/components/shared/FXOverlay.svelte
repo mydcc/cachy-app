@@ -290,6 +290,20 @@
         return null;
     }
 
+    function refreshCachedTargets() {
+        const elements = document.querySelectorAll(
+            ".window-frame, .glass-panel",
+        );
+        cachedTargets = Array.from(elements).map((el) => {
+            const elRect = (el as HTMLElement).getBoundingClientRect();
+            return {
+                el: el as HTMLElement,
+                centerX: elRect.left + elRect.width / 2,
+                centerY: elRect.top + elRect.height / 2,
+            };
+        });
+    }
+
     function finishAnimation() {
         isFlying = false;
         cachedTargets = null;
@@ -339,17 +353,7 @@
         progress = 0;
 
         // Cache targets to avoid DOM queries in the animation loop
-        const elements = document.querySelectorAll(
-            ".window-frame, .glass-panel",
-        );
-        cachedTargets = Array.from(elements).map((el) => {
-            const rect = (el as HTMLElement).getBoundingClientRect();
-            return {
-                el: el as HTMLElement,
-                centerX: rect.left + rect.width / 2,
-                centerY: rect.top + rect.height / 2,
-            };
-        });
+        refreshCachedTargets();
 
         isFlying = true;
         usePhysics = activeEffect === "coin" || activeEffect === "orb";
@@ -435,7 +439,7 @@
 
         if (isFlying) {
             progress += dt * 1.3;
-            if (progress >= 1.0) finishAnimation();
+            const shouldFinish = progress >= 1.0;
 
             const obj = getActiveObject();
             if (obj) {
@@ -465,6 +469,8 @@
                 }
                 if (activeEffect === "matrix") obj.rotation.z -= dt * 2.5;
             }
+
+            if (shouldFinish) finishAnimation();
         }
 
         renderer.render(scene, camera);
@@ -530,6 +536,7 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        if (isFlying) refreshCachedTargets();
     }
 </script>
 
