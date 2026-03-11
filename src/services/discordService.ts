@@ -53,7 +53,8 @@ export const discordService = {
             return fetchPromise;
         }
 
-        const thisPromise = (async () => {
+        let thisPromise: Promise<NewsItem[]> = Promise.resolve([]); // initialization to bypass TS error
+        thisPromise = (async () => {
             try {
                 const allNews: NewsItem[] = [];
 
