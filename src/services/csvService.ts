@@ -339,22 +339,30 @@ export const csvService = {
           // Handle large IDs / precision loss
           // HARDENING: Replaced djb2 hash with random integer fallback to avoid collisions
           const originalIdAsString = entry.ID;
-          let internalId: number;
+          let internalId: string;
 
-          // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
-          const isTooLarge = originalIdAsString.length >= 16;
-          const parsedId = isTooLarge ? NaN : parseFloat(originalIdAsString);
+          // UUID v4 pattern: xxxxxxxx-xxxx-4xxx-[89ab]xxx-xxxxxxxxxxxx
+          const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-          const isSafe = !isTooLarge &&
-                         !isNaN(parsedId) &&
-                         Number.isSafeInteger(parsedId);
-
-          if (isSafe) {
-            internalId = parsedId;
+          if (uuidV4Regex.test(originalIdAsString)) {
+            // Preserve existing UUID IDs (e.g. from a previous export)
+            internalId = originalIdAsString;
           } else {
-            // Generate a safe unique internal ID (Timestamp + Random)
-            // This ensures uniqueness during the import session better than a hash
-            internalId = Date.now() + Math.floor(Math.random() * 1000000);
+            // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
+            const isTooLarge = originalIdAsString.length >= 16;
+            const parsedId = isTooLarge ? NaN : parseFloat(originalIdAsString);
+
+            const isSafe = !isTooLarge &&
+                           !isNaN(parsedId) &&
+                           Number.isSafeInteger(parsedId);
+
+            if (isSafe) {
+              internalId = String(parsedId);
+            } else {
+              // Generate a safe unique internal ID (UUID)
+              // This ensures uniqueness during the import session better than a hash or predictable random
+              internalId = crypto.randomUUID();
+            }
           }
 
           const importedTrade: JournalEntry = {

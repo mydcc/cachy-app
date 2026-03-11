@@ -120,7 +120,7 @@ class JournalManager {
     }
   }
 
-  deleteEntry(id: string | number) {
+  deleteEntry(id: string) {
     this.entries = this.entries.filter((e) => e.id !== id);
   }
 
