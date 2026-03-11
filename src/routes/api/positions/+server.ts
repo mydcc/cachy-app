@@ -21,7 +21,6 @@ import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { checkAppAuth } from "../../../lib/server/auth";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
-import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
