@@ -92,8 +92,6 @@ describe('Results Manager', () => {
         });
 
         it('should allow subscription to state changes', () => {
-            vi.useFakeTimers();
-
             const mockCallback = vi.fn();
 
             const unsubscribe = resultsState.subscribe(mockCallback);
@@ -110,10 +108,9 @@ describe('Results Manager', () => {
             // we will just verify the mock was initially called. Testing the internal notification
             // logic thoroughly usually requires mounting a component.
 
-            // Calling unsubscribe does nothing in this legacy shim actually
+            // unsubscribe returns a cleanup function from $effect.root
             expect(typeof unsubscribe).toBe('function');
-
-            vi.useRealTimers();
+            unsubscribe();
         });
     });
 });
