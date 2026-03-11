@@ -27,7 +27,6 @@
  * - For now, a general "Directional Bias" score.
  */
 
-import { Decimal } from "decimal.js";
 import type {
   TechnicalsData,
   ConfluenceData,

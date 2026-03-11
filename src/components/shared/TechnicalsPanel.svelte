@@ -25,7 +25,6 @@
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
   import { normalizeTimeframeInput } from "../../utils/utils";
-  import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { TechnicalsPresenter } from "../../utils/technicalsPresenter";

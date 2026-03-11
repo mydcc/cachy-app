@@ -20,7 +20,6 @@
  * Used by running both in Main Thread (Fallback) and Worker (Performance).
  */
 
-import { Decimal } from "decimal.js";
 import {
   JSIndicators,
   calculateAwesomeOscillator,
