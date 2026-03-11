@@ -703,20 +703,20 @@ export const apiService = {
                    
                    const first = bucket[0];
                    const last = bucket[bucket.length - 1];
-                   let high = new Decimal(first.high);
-                   let low = new Decimal(first.low);
+                   let high = first.high;
+                   let low = first.low;
                    let vol = new Decimal(0);
 
                    for (let i = 0, len = bucket.length; i < len; i++) {
                        const c = bucket[i];
-                       // We use .lt() and .gt() on the existing Decimal instances,
-                       // passing the raw values. We only allocate a new Decimal
-                       // when a new extreme is found.
+                       // We keep references to the existing Decimal instances
+                       // inside the bucket instead of allocating new ones to save memory
+                       // and improve performance.
                        if (high.lt(c.high)) {
-                           high = new Decimal(c.high);
+                           high = c.high;
                        }
                        if (low.gt(c.low)) {
-                           low = new Decimal(c.low);
+                           low = c.low;
                        }
                        vol = vol.plus(c.volume);
                    }
