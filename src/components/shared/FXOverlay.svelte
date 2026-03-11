@@ -493,7 +493,9 @@
 
         // Init Physics
         stressLogic = new StressLogic(scene);
-        stressLogic.init();
+        stressLogic.init().catch((e) => {
+            console.error("Failed to initialize physics", e);
+        });
 
         // Init Duck
         duckLogic = new DuckLogic(scene);
