@@ -38,47 +38,35 @@ export interface BurnOptions {
     height?: number;
 }
 
-export function burn(node: HTMLElement, options: BurnOptions | undefined) {
-    let currentOptions = options;
-    let id = currentOptions?.id || `burn-${idCounter++}`;
-    let lastRect: any = null;
 
-    // Set data attribute for debugging/styling
-    node.setAttribute("data-burn-id", id);
-    if (import.meta.env.DEV && options) {
-        // console.log(`[Burn Action] Init ${id}`, options);
-    }
+// Global Theme State (Shared across all burn instances)
+let cachedThemeColor = "";
+let lastThemeCheck = 0;
+let cachedUpColor = "";
+let cachedDownColor = "";
 
-    // Track style state to avoid redundant store updates
-    let lastFinalColor = "";
-    let lastIntensity = 1.0;
-    let lastMode = "";
-    let lastLayer = "";
-    let cachedThemeColor = "";
-    let lastThemeCheck = 0;
-    let cachedUpColor = "";
-    let cachedDownColor = "";
-
-    // Trend state for Interactive Mode (Instance-specific)
-    let localLastSymbol = "";
-    let localLastPrice: any = null; // Decimal
-    let localTrendColor = ""; // Persists until change
-
-    // Reset caches on theme change
-    const themeObserver = new MutationObserver(() => {
+const themeObserver = typeof document !== 'undefined'
+    ? new MutationObserver(() => {
         cachedThemeColor = "";
         cachedUpColor = "";
         cachedDownColor = "";
-    });
-    if (typeof document !== 'undefined') {
-        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    }
+    })
+    : null;
 
-    /**
-     * Resolves the final color based on settings and options.
-     * Logic is optimized to avoid repetitive getComputedStyle calls.
-     */
-    const resolveColor = (inputColor?: string, localMode?: string, inputSymbol?: string): string => {
+if (themeObserver && typeof document !== 'undefined') {
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+}
+
+export function resetBurnThemeCache() {
+    cachedThemeColor = "";
+}
+
+class BurnColorResolver {
+    private localLastSymbol = "";
+    private localLastPrice: any = null; // Decimal
+    private localTrendColor = ""; // Persists until change
+
+    resolve(inputColor?: string, localMode?: string, inputSymbol?: string): string {
         const mode = localMode || settingsState.borderEffectColorMode;
 
         // Common vars for theme color resolution
@@ -94,8 +82,6 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
         if (mode === "theme") {
             return getaccent();
         }
-
-        // Reset cache when leaving theme mode (controlled mainly by getaccent check)
 
         if (mode === "custom") {
             return settingsState.borderEffectCustomColor;
@@ -134,28 +120,49 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
                 if (data && data.lastPrice) {
                     // Check for Symbol Change -> Reset Trend
-                    if (symbol !== localLastSymbol) {
-                        localLastSymbol = symbol;
-                        localLastPrice = data.lastPrice;
-                        localTrendColor = ""; // Reset to neutral/accent
+                    if (symbol !== this.localLastSymbol) {
+                        this.localLastSymbol = symbol;
+                        this.localLastPrice = data.lastPrice;
+                        this.localTrendColor = ""; // Reset to neutral/accent
                     }
                     // Check for Price Change -> Update Trend
-                    else if (localLastPrice && !data.lastPrice.equals(localLastPrice)) {
-                        const isUp = data.lastPrice.gt(localLastPrice);
-                        localTrendColor = isUp ? cachedUpColor : cachedDownColor;
-                        localLastPrice = data.lastPrice;
+                    else if (this.localLastPrice && !data.lastPrice.equals(this.localLastPrice)) {
+                        const isUp = data.lastPrice.gt(this.localLastPrice);
+                        this.localTrendColor = isUp ? cachedUpColor : cachedDownColor;
+                        this.localLastPrice = data.lastPrice;
                     }
                 }
 
                 // Return Trend Color if established, otherwise Accent (Idle/Init)
-                return localTrendColor || getaccent();
+                return this.localTrendColor || getaccent();
             }
 
             return getaccent(); // Fallback to accent
         }
 
         return inputColor ?? "#ffaa00";
-    };
+    }
+}
+
+export function burn(node: HTMLElement, options: BurnOptions | undefined) {
+    const colorResolver = new BurnColorResolver();
+    let currentOptions = options;
+    let id = currentOptions?.id || `burn-${idCounter++}`;
+    let lastRect: any = null;
+
+    // Set data attribute for debugging/styling
+    node.setAttribute("data-burn-id", id);
+    if (import.meta.env.DEV && options) {
+        // console.log(`[Burn Action] Init ${id}`, options);
+    }
+
+    // Track style state to avoid redundant store updates
+    let lastFinalColor = "";
+    let lastIntensity = 1.0;
+    let lastMode = "";
+    let lastLayer = "";
+
+
 
     const update = (force = false) => {
         untrack(() => {
@@ -191,7 +198,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                 Math.abs(rect.height - lastRect.height) >= 1.0;
 
             // 2. Style Update (Normalized comparison)
-            const finalColor = resolveColor(currentOptions.color, currentOptions.mode, currentOptions.symbol).toLowerCase();
+            const finalColor = colorResolver.resolve(currentOptions.color, currentOptions.mode, currentOptions.symbol).toLowerCase();
             const intensity = currentOptions.intensity ?? 1.0;
             const currentMode = settingsState.borderEffectColorMode;
             const currentLayer = currentOptions.layer ?? "tiles";
@@ -280,13 +287,13 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                 fireStore.removeElement(oldId);
             }
 
-            cachedThemeColor = ""; // Reset cache on explicit option change
+            resetBurnThemeCache(); // Reset cache on explicit option change
             requestAnimationFrame(() => update(true));
         },
         destroy() {
             resizeObserver.disconnect();
             visibilityObserver.disconnect();
-            themeObserver.disconnect();
+            themeObserver?.disconnect();
             cancelAnimationFrame(resizeFrame);
             cancelAnimationFrame(loopFrame);
             fireStore.removeElement(id);
