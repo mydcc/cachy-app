@@ -31,6 +31,7 @@ const {
   mockCallbacks: {
     onConnect: undefined as any,
     onDisconnect: undefined as any,
+    onConnectError: undefined as any,
     onApplied: undefined as any,
     onInsert: undefined as any,
   }
@@ -60,6 +61,10 @@ vi.mock('../lib/spacetimedb', () => {
     }),
     onDisconnect: vi.fn(function(this: any, cb) {
       mockCallbacks.onDisconnect = cb;
+      return this;
+    }),
+    onConnectError: vi.fn(function(this: any, cb) {
+      mockCallbacks.onConnectError = cb;
       return this;
     }),
     build: vi.fn(() => ({
@@ -99,6 +104,7 @@ describe('CloudService', () => {
     // Reset callback holders
     mockCallbacks.onConnect = undefined;
     mockCallbacks.onDisconnect = undefined;
+    mockCallbacks.onConnectError = undefined;
     mockCallbacks.onApplied = undefined;
     mockCallbacks.onInsert = undefined;
   });
@@ -112,27 +118,23 @@ describe('CloudService', () => {
   it('should use logger service instead of console', async () => {
     const host = 'http://localhost:3000';
 
-    await cloudService.connect(host, 'cachy-server', 'mock-token');
+    // connect() now returns a Promise that resolves when onConnect fires,
+    // so we need to trigger onConnect while the promise is pending.
+    const connectPromise = cloudService.connect(host, 'cachy-server', 'mock-token');
 
-    // 1. Verify connection log
+    // 1. Verify connection log was called immediately
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Connecting to SpacetimeDB...', host);
 
-    // 2. Simulate connection success
+    // 2. Simulate connection success — this resolves the promise
     expect(mockCallbacks.onConnect).toBeDefined();
     const ctx = { id: 1 };
     mockCallbacks.onConnect(ctx);
 
+    await connectPromise;
+
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Connected to SpacetimeDB!', ctx);
 
     // 3. Simulate subscription applied
-    // The onConnect callback should have triggered subscription builder
-    // Note: The original code calls subscriptionBuilder() inside the onConnect callback.
-    // Our mock needs to ensure that call happens.
-    // The mock for builder.build() returns an object with subscriptionBuilder() method.
-    // The code: const sub = this.conn?.subscriptionBuilder();
-    // My mock: build: vi.fn(() => ({ subscriptionBuilder: ... }))
-    // So this.conn is the object returned by build().
-
     expect(mockCallbacks.onApplied).toBeDefined();
     const appliedCtx = { table: 'all' };
     mockCallbacks.onApplied(appliedCtx);
@@ -151,5 +153,18 @@ describe('CloudService', () => {
     mockCallbacks.onDisconnect(ctx);
 
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Disconnected from SpacetimeDB', ctx);
+  });
+
+  it('should reject when connection fails', async () => {
+    const host = 'http://localhost:3000';
+
+    const connectPromise = cloudService.connect(host, 'cachy-server', 'mock-token');
+
+    // Simulate connection error
+    expect(mockCallbacks.onConnectError).toBeDefined();
+    mockCallbacks.onConnectError({}, new Error('Connection refused'));
+
+    await expect(connectPromise).rejects.toThrow('Connection refused');
+    expect(mockLogger.error).toHaveBeenCalledWith('network', 'SpacetimeDB connection error:', expect.any(Error));
   });
 });

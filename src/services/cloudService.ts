@@ -36,6 +36,9 @@ class CloudService {
 
   constructor() { }
 
+  // Callback for Svelte to update UI on connection status changes
+  private onConnectionStatusCallback: ((connected: boolean) => void) | null = null;
+
   async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
@@ -44,51 +47,67 @@ class CloudService {
 
     logger.log('network', 'Connecting to SpacetimeDB...', host);
 
-    try {
-      this.conn = DbConnection.builder()
-        .withUri(host)
-        .withModuleName(dbName)
-        .withToken(token) // Enforce token
-        .onConnect((ctx) => {
-          logger.log('network', 'Connected to SpacetimeDB!', ctx);
-          this.connected = true;
+    return new Promise<void>((resolve, reject) => {
+      try {
+        this.conn = DbConnection.builder()
+          .withUri(host)
+          .withModuleName(dbName)
+          .withToken(token) // Enforce token
+          .onConnect((ctx) => {
+            logger.log('network', 'Connected to SpacetimeDB!', ctx);
+            this.connected = true;
+            if (this.onConnectionStatusCallback) this.onConnectionStatusCallback(true);
 
-          // Subscribe to queries
-          const sub = this.conn?.subscriptionBuilder();
-          if (sub) {
-            sub.onApplied((ctx) => {
-              logger.debug('network', 'Subscription applied', ctx);
-            })
-              .subscribeToAllTables();
-          }
-        })
-        .onDisconnect((ctx) => {
-          logger.log('network', 'Disconnected from SpacetimeDB', ctx);
-          this.connected = false;
-        })
-        .build();
-    } catch (e) {
-      logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
-      throw e;
-    }
+            // Subscribe to queries
+            const sub = this.conn?.subscriptionBuilder();
+            if (sub) {
+              sub.onApplied((ctx) => {
+                logger.debug('network', 'Subscription applied', ctx);
+              })
+                .subscribeToAllTables();
+            }
 
-    // Handle row updates with robustness
-    try {
-      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
-      const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
-
-      if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
-        globalMessageTable.onInsert((ctx: any, row: any) => {
-          logger.debug('network', 'New Message Received:', row);
-          this.messages = [...this.messages, row];
-          if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
-        });
-      } else {
-        logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
+            resolve();
+          })
+          .onDisconnect((ctx) => {
+            logger.log('network', 'Disconnected from SpacetimeDB', ctx);
+            this.connected = false;
+            if (this.onConnectionStatusCallback) this.onConnectionStatusCallback(false);
+          })
+          .onConnectError((_ctx, err) => {
+            logger.error('network', 'SpacetimeDB connection error:', err);
+            reject(err instanceof Error ? err : new Error(String(err)));
+          })
+          .build();
+      } catch (e) {
+        logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
+        reject(e);
+        return;
       }
-    } catch (e) {
-      logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
-    }
+
+      // Handle row updates with robustness
+      try {
+        // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
+        const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
+
+        if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+          globalMessageTable.onInsert((ctx: any, row: any) => {
+            logger.debug('network', 'New Message Received:', row);
+            this.messages = [...this.messages, row];
+            if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
+          });
+        } else {
+          logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
+        }
+      } catch (e) {
+        logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
+      }
+    });
+  }
+
+  subscribeConnectionStatus(cb: (connected: boolean) => void) {
+    this.onConnectionStatusCallback = cb;
+    cb(this.connected);
   }
 
   sendMessage(text: string) {
