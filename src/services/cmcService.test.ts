@@ -136,4 +136,78 @@ describe("CmcService", () => {
     // Expect exactly one network request
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("clears globalPromise after fetch failure so retries work", async () => {
+    // First call fails
+    fetchMock.mockRejectedValueOnce(new Error("Network error"));
+
+    const result = await cmcService.getGlobalMetrics();
+    expect(result).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Promise should be cleared, so next call triggers a new fetch
+    expect((cmcService as any).globalPromise).toBeNull();
+
+    // Second call succeeds
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        data: {
+          btc_dominance: 50,
+          eth_dominance: 20,
+          active_cryptocurrencies: 10000,
+          last_updated: new Date().toISOString(),
+          quote: { USD: { total_market_cap: 1000, total_volume_24h: 100 } }
+        }
+      })
+    });
+
+    const retry = await cmcService.getGlobalMetrics();
+    expect(retry).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears coinPromises after fetch failure so retries work", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("Network error"));
+
+    const result = await cmcService.getCoinMetadata("BTC");
+    expect(result).toBeNull();
+    expect((cmcService as any).coinPromises.has("BTC")).toBe(false);
+
+    // Retry succeeds
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        data: {
+          BTC: {
+            id: 1,
+            name: "Bitcoin",
+            symbol: "BTC",
+            slug: "bitcoin",
+            date_added: "2013",
+            tags: [],
+            platform: null,
+            category: "coin"
+          }
+        }
+      })
+    });
+
+    const retry = await cmcService.getCoinMetadata("BTC");
+    expect(retry).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns null when result.data is falsy", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ data: null })
+    });
+
+    const result = await cmcService.getGlobalMetrics();
+    expect(result).toBeNull();
+
+    // Promise should be cleaned up
+    expect((cmcService as any).globalPromise).toBeNull();
+  });
 });
