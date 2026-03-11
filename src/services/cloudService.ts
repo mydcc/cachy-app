@@ -118,8 +118,11 @@ class CloudService {
           .onConnectError((_ctx, err) => {
             logger.error('network', 'SpacetimeDB connection error:', err);
             this.connecting = false;
+            if (this.conn === connForThisAttempt) {
+              try { (this.conn as any).disconnect?.(); } catch (_) { /* ignore */ }
+              this.conn = null;
+            }
             settleReject(err instanceof Error ? err : new Error(String(err)));
-          })
           .build();
         this.conn = connForThisAttempt;
       } catch (e) {
