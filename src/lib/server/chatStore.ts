@@ -19,7 +19,7 @@ import fs from "fs/promises";
 import path from "path";
 import { z } from "zod";
 
-const DB_FILE = "db/chat_messages.json";
+const DB_FILE = process.env.CHAT_DB_PATH || "db/chat_messages.json";
 const MAX_HISTORY = 1000;
 const SAVE_DEBOUNCE_MS = 1000;
 const SHUTDOWN_TIMEOUT_MS = 5000;

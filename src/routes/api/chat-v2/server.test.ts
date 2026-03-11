@@ -34,7 +34,7 @@ describe("Chat API v2", () => {
         chatStore.reset();
     }
     try {
-        await fs.rm("db/chat_messages.json", { force: true });
+        await fs.rm(process.env.CHAT_DB_PATH || "db/chat_messages.json", { force: true });
     } catch {}
   });
 
