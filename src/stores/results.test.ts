@@ -44,10 +44,7 @@ describe('Results Manager', () => {
 
     describe('ResultsManager methods', () => {
         it('should initialize with initial state', () => {
-            expect(resultsState.positionSize).toBe("-");
-            expect(resultsState.requiredMargin).toBe("-");
-            expect(resultsState.showTotalMetricsGroup).toBe(false);
-            expect(resultsState.calculatedTpDetails).toEqual([]);
+            expect(resultsState).toMatchObject(INITIAL_RESULTS_STATE);
         });
 
         it('should update specific fields using update()', () => {
