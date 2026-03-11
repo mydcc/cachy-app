@@ -168,4 +168,20 @@ describe('CloudService', () => {
     await expect(connectPromise).rejects.toThrow('Connection refused');
     expect(mockLogger.error).toHaveBeenCalledWith('network', 'SpacetimeDB connection error:', expect.any(Error));
   });
+
+  it('should reject with timeout if connection hangs', async () => {
+    vi.useFakeTimers();
+    const host = 'http://localhost:3000';
+
+    const connectPromise = cloudService.connect(host, 'cachy-server', 'mock-token');
+
+    // Neither onConnect nor onConnectError fires — advance past timeout
+    vi.advanceTimersByTime(15_000);
+
+    await expect(connectPromise).rejects.toThrow('Connection timed out');
+    expect(mockLogger.error).toHaveBeenCalledWith('network', 'SpacetimeDB connection timed out after 15s');
+    expect((cloudService as any).connecting).toBe(false);
+
+    vi.useRealTimers();
+  });
 });

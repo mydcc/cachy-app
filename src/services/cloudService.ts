@@ -49,7 +49,32 @@ class CloudService {
 
     logger.log('network', 'Connecting to SpacetimeDB...', host);
 
+    const CONNECTION_TIMEOUT_MS = 15_000;
+
     return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          this.connecting = false;
+          logger.error('network', 'SpacetimeDB connection timed out after 15s');
+          reject(new Error('Connection timed out'));
+        }
+      }, CONNECTION_TIMEOUT_MS);
+
+      const settleResolve = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve();
+      };
+      const settleReject = (err: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(err);
+      };
+
       try {
         this.conn = DbConnection.builder()
           .withUri(host)
@@ -70,7 +95,7 @@ class CloudService {
                 .subscribeToAllTables();
             }
 
-            resolve();
+            settleResolve();
           })
           .onDisconnect((ctx) => {
             logger.log('network', 'Disconnected from SpacetimeDB', ctx);
@@ -81,13 +106,13 @@ class CloudService {
           .onConnectError((_ctx, err) => {
             logger.error('network', 'SpacetimeDB connection error:', err);
             this.connecting = false;
-            reject(err instanceof Error ? err : new Error(String(err)));
+            settleReject(err instanceof Error ? err : new Error(String(err)));
           })
           .build();
       } catch (e) {
         logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
         this.connecting = false;
-        reject(e);
+        settleReject(e);
         return;
       }
 
