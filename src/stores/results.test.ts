@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { resultsState, initialResultsState, INITIAL_RESULTS_STATE, ResultsState } from './results.svelte';
 import { Decimal } from 'decimal.js';
 
@@ -15,6 +15,10 @@ describe('Results Manager', () => {
     beforeEach(() => {
         resultsState.reset();
         vi.restoreAllMocks();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     describe('INITIAL_RESULTS_STATE export', () => {
@@ -140,7 +144,7 @@ describe('Results Manager', () => {
             expect(resultsState.totalNetProfit).toBe("-");
         });
 
-        it('should throttle and dispatch state changes via subscribe within 10ms', async () => {
+        it('should not crash on mutation and unsubscribe under fake timers', () => {
             vi.useFakeTimers();
 
             const mockCallback = vi.fn();
@@ -149,12 +153,11 @@ describe('Results Manager', () => {
             expect(mockCallback).toHaveBeenCalledTimes(1);
             mockCallback.mockClear();
 
-            // We will just verify it doesn't crash on mutation or cleanup.
+            // Verify mutation and cleanup don't crash.
             resultsState.positionSize = "3.0";
 
             // cleanup
             unsubscribe();
-            vi.useRealTimers();
         });
     });
 });
