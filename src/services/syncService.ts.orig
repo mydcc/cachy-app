@@ -30,7 +30,6 @@ import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { serializationService } from "./serializationService";
-import pLimit from "p-limit";
 
 // --- Helper Functions for Optimization ---
 
@@ -100,10 +99,8 @@ export async function fetchBatchedKlines(trades: any[]) {
     pushTask(currentStart, currentEnd);
   }
 
-  const limit = pLimit(5);
-
   // Execute all tasks concurrently
-  await Promise.all(fetchTasks.map((task) => limit(async () => {
+  await Promise.all(fetchTasks.map(async (task) => {
       try {
           const klines = await apiService.fetchBitunixKlines(task.symbol, task.interval, 1000, task.start, task.end, "normal", 30000);
           if (!results.has(task.key)) results.set(task.key, []);
@@ -111,7 +108,7 @@ export async function fetchBatchedKlines(trades: any[]) {
       } catch (err) {
           console.warn(`[Sync] Failed to fetch batch klines for ${task.symbol}`, err);
       }
-  })));
+  }));
 
   return {
     getKlines: (symbol: string, interval: string, start: number, end: number) => {
