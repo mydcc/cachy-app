@@ -225,13 +225,14 @@ async function fetchBitunixData(
   if (!response.ok) {
     const text = await response.text();
     // Try to parse JSON error from text
+    let jsonError: { msg?: string } | undefined;
     try {
-      const jsonError = JSON.parse(text);
-      if (jsonError.msg) {
-        throw new Error(jsonError.msg); // Pass upstream message
-      }
-    } catch (e) {
-      // ignore
+      jsonError = JSON.parse(text);
+    } catch {
+      // not JSON, ignore
+    }
+    if (jsonError?.msg) {
+      throw new Error(jsonError.msg); // Pass upstream message
     }
     // Truncate text to avoid massive logs or leaking too much info
     const safeText = text.length > 200 ? text.substring(0, 200) + "..." : text;
