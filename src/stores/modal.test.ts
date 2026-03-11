@@ -42,9 +42,9 @@ describe("ModalManager", () => {
     let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(async () => {
+        vi.clearAllMocks();
         // Mock console.warn to suppress output during SSR tests
         consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-        vi.clearAllMocks();
 
         env = await import("$app/environment");
         originalBrowser = env.browser;
