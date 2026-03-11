@@ -333,6 +333,29 @@ export function calculateAnalysisMetrics(
     }
     const change24h = change24hDec.toFixed(2);
 
+    // Ensure _maMap and _oscMap exist on each techMap entry (supports external callers)
+    for (const tf of Object.keys(techMap)) {
+        const tech = techMap[tf];
+        if (tech && !tech._maMap) {
+            const maMap = new Map();
+            if (tech.movingAverages) {
+                for (const m of tech.movingAverages) {
+                    maMap.set(`${m.name}_${m.params}`, m);
+                }
+            }
+            tech._maMap = maMap;
+        }
+        if (tech && !tech._oscMap) {
+            const oscMap = new Map();
+            if (tech.oscillators) {
+                for (const o of tech.oscillators) {
+                    oscMap.set(o.name, o);
+                }
+            }
+            tech._oscMap = oscMap;
+        }
+    }
+
     // Helper to determine trend for a timeframe
     const getTrend = (tf: string): "bullish" | "bearish" | "neutral" => {
         const tech = techMap[tf];

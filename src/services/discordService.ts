@@ -53,8 +53,7 @@ export const discordService = {
             return fetchPromise;
         }
 
-        let thisPromise: Promise<NewsItem[]> | null = null;
-        thisPromise = (async () => {
+        const thisPromise = (async () => {
             try {
                 const allNews: NewsItem[] = [];
 
