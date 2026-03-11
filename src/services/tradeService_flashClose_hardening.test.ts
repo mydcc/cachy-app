@@ -93,7 +93,7 @@ describe('TradeService Flash Close Vulnerability', () => {
 
         // 4. Execute & Assert
         // Expectation: It SHOULD SUCCEED now (resolve)
-        await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).resolves.toEqual({ code: '0', msg: 'Success' });
+        await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).resolves.toEqual({ success: true, data: { code: '0', msg: 'Success' } });
 
         // Verify cancel was called
         expect(cancelSpy).toHaveBeenCalledWith('BTCUSDT', true);
