@@ -120,12 +120,8 @@
     const currentFocused = isSymbolFocused;
 
     untrack(() => {
-      // Only update local from props if:
-      // 1. User is NOT focused
-      // 2. OR user is focused, but prop changed AND it's not just a result of clearing
+      // Only update local from props if user is NOT focused
       if (!currentFocused && currentSymbol !== localSymbol) {
-        localSymbol = currentSymbol || "";
-      } else if (currentFocused && currentSymbol !== localSymbol && localSymbol !== "") {
         localSymbol = currentSymbol || "";
       }
     });
@@ -133,33 +129,47 @@
 
   // Sync Numeric Inputs from Props to Local (One-way sync when NOT focused)
   $effect(() => {
-    if (!isEntryPriceFocused && format(entryPrice) !== localEntryPrice) {
-      localEntryPrice = format(entryPrice);
-    }
+    const currentEntryPrice = format(entryPrice);
+    const currentFocused = isEntryPriceFocused;
+
+    untrack(() => {
+      if (!currentFocused && currentEntryPrice !== localEntryPrice) {
+        localEntryPrice = currentEntryPrice;
+      }
+    });
   });
 
   $effect(() => {
-    if (
-      !isStopLossPriceFocused &&
-      format(stopLossPrice) !== localStopLossPrice
-    ) {
-      localStopLossPrice = format(stopLossPrice);
-    }
+    const currentStopLossPrice = format(stopLossPrice);
+    const currentFocused = isStopLossPriceFocused;
+
+    untrack(() => {
+      if (!currentFocused && currentStopLossPrice !== localStopLossPrice) {
+        localStopLossPrice = currentStopLossPrice;
+      }
+    });
   });
 
   $effect(() => {
-    if (!isAtrValueFocused && format(atrValue) !== localAtrValue) {
-      localAtrValue = format(atrValue);
-    }
+    const currentAtrValue = format(atrValue);
+    const currentFocused = isAtrValueFocused;
+
+    untrack(() => {
+      if (!currentFocused && currentAtrValue !== localAtrValue) {
+        localAtrValue = currentAtrValue;
+      }
+    });
   });
 
   $effect(() => {
-    if (
-      !isAtrMultiplierFocused &&
-      format(atrMultiplier) !== localAtrMultiplier
-    ) {
-      localAtrMultiplier = format(atrMultiplier);
-    }
+    const currentAtrMultiplier = format(atrMultiplier);
+    const currentFocused = isAtrMultiplierFocused;
+
+    untrack(() => {
+      if (!currentFocused && currentAtrMultiplier !== localAtrMultiplier) {
+        localAtrMultiplier = currentAtrMultiplier;
+      }
+    });
   });
 
   function toggleAtrSl() {
