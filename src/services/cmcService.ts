@@ -40,6 +40,8 @@ const CACHE_TTL_COIN = 60 * 60 * 1000; // 1 hour
 class CmcService {
   private globalCache: CacheEntry<CmcGlobalMetrics> | null = null;
   private coinCache: Map<string, CacheEntry<CmcCoinMetadata>> = new Map();
+  private globalPromise: Promise<CmcGlobalMetrics | null> | null = null;
+  private coinPromises: Map<string, Promise<CmcCoinMetadata | null>> = new Map();
 
   /**
    * Helper to make proxied requests
@@ -78,30 +80,40 @@ class CmcService {
       return this.globalCache.data;
     }
 
-    try {
-      const result = await this.fetchFromProxy(
-        "/v1/global-metrics/quotes/latest",
-      );
-      if (result.data) {
-        const metrics = result.data.quote.USD; // Assuming USD
-        // CMC structure is data: { active_cryptocurrencies, ..., quote: { USD: { ... } } }
-        // Let's flatten what we need
-        const parsed: CmcGlobalMetrics = {
-          btc_dominance: result.data.btc_dominance,
-          eth_dominance: result.data.eth_dominance,
-          active_cryptocurrencies: result.data.active_cryptocurrencies,
-          total_market_cap: metrics.total_market_cap,
-          total_volume_24h: metrics.total_volume_24h,
-          last_updated: result.data.last_updated,
-        };
-
-        this.globalCache = { data: parsed, timestamp: Date.now() };
-        return parsed;
-      }
-    } catch (e) {
-      console.warn("[CmcService] Global Metrics Fetch Failed:", e);
+    if (this.globalPromise) {
+      return this.globalPromise;
     }
-    return null;
+
+    this.globalPromise = (async () => {
+      try {
+        const result = await this.fetchFromProxy(
+          "/v1/global-metrics/quotes/latest",
+        );
+        if (result.data) {
+          const metrics = result.data.quote.USD; // Assuming USD
+          // CMC structure is data: { active_cryptocurrencies, ..., quote: { USD: { ... } } }
+          // Let's flatten what we need
+          const parsed: CmcGlobalMetrics = {
+            btc_dominance: result.data.btc_dominance,
+            eth_dominance: result.data.eth_dominance,
+            active_cryptocurrencies: result.data.active_cryptocurrencies,
+            total_market_cap: metrics.total_market_cap,
+            total_volume_24h: metrics.total_volume_24h,
+            last_updated: result.data.last_updated,
+          };
+
+          this.globalCache = { data: parsed, timestamp: Date.now() };
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("[CmcService] Global Metrics Fetch Failed:", e);
+      } finally {
+        this.globalPromise = null;
+      }
+      return null;
+    })();
+
+    return this.globalPromise;
   }
 
   /**
@@ -124,35 +136,46 @@ class CmcService {
       }
     }
 
-    try {
-      const result = await this.fetchFromProxy(
-        "/v1/cryptocurrency/quotes/latest",
-        {
-          symbol: rawSymbol,
-        },
-      );
-
-      // Result structure: { data: { "BTC": { ... } } }
-      if (result.data && result.data[rawSymbol]) {
-        const coin = result.data[rawSymbol];
-        const parsed: CmcCoinMetadata = {
-          id: coin.id,
-          name: coin.name,
-          symbol: coin.symbol,
-          slug: coin.slug,
-          date_added: coin.date_added,
-          tags: coin.tags || [],
-          platform: coin.platform,
-          category: "coin", // Default, CMC field 'category' exists but often 'coin' or 'token'
-        };
-
-        this.coinCache.set(rawSymbol, { data: parsed, timestamp: Date.now() });
-        return parsed;
-      }
-    } catch (e) {
-      console.warn(`[CmcService] Metadata fetch failed for ${rawSymbol}:`, e);
+    if (this.coinPromises.has(rawSymbol)) {
+      return this.coinPromises.get(rawSymbol)!;
     }
-    return null;
+
+    const promise = (async () => {
+      try {
+        const result = await this.fetchFromProxy(
+          "/v1/cryptocurrency/quotes/latest",
+          {
+            symbol: rawSymbol,
+          },
+        );
+
+        // Result structure: { data: { "BTC": { ... } } }
+        if (result.data && result.data[rawSymbol]) {
+          const coin = result.data[rawSymbol];
+          const parsed: CmcCoinMetadata = {
+            id: coin.id,
+            name: coin.name,
+            symbol: coin.symbol,
+            slug: coin.slug,
+            date_added: coin.date_added,
+            tags: coin.tags || [],
+            platform: coin.platform,
+            category: "coin", // Default, CMC field 'category' exists but often 'coin' or 'token'
+          };
+
+          this.coinCache.set(rawSymbol, { data: parsed, timestamp: Date.now() });
+          return parsed;
+        }
+      } catch (e) {
+        console.warn(`[CmcService] Metadata fetch failed for ${rawSymbol}:`, e);
+      } finally {
+        this.coinPromises.delete(rawSymbol);
+      }
+      return null;
+    })();
+
+    this.coinPromises.set(rawSymbol, promise);
+    return promise;
   }
 }
 
