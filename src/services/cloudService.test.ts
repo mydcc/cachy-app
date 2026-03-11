@@ -98,6 +98,7 @@ describe('CloudService', () => {
     vi.clearAllMocks();
     // Reset singleton state
     (cloudService as any).connected = false;
+    (cloudService as any).connecting = false;
     (cloudService as any).messages = [];
     (cloudService as any).conn = null;
 

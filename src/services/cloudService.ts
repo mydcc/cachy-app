@@ -29,6 +29,7 @@ type GlobalMessage = Infer<typeof GlobalMessageType>;
 class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
+  private connecting = false;
   private messages: GlobalMessage[] = [];
 
   // Callback for Svelte to update UI
@@ -43,7 +44,8 @@ class CloudService {
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
     }
-    if (this.connected) return;
+    if (this.connected || this.connecting) return;
+    this.connecting = true;
 
     logger.log('network', 'Connecting to SpacetimeDB...', host);
 
@@ -56,6 +58,7 @@ class CloudService {
           .onConnect((ctx) => {
             logger.log('network', 'Connected to SpacetimeDB!', ctx);
             this.connected = true;
+            this.connecting = false;
             if (this.onConnectionStatusCallback) this.onConnectionStatusCallback(true);
 
             // Subscribe to queries
@@ -72,15 +75,18 @@ class CloudService {
           .onDisconnect((ctx) => {
             logger.log('network', 'Disconnected from SpacetimeDB', ctx);
             this.connected = false;
+            this.connecting = false;
             if (this.onConnectionStatusCallback) this.onConnectionStatusCallback(false);
           })
           .onConnectError((_ctx, err) => {
             logger.error('network', 'SpacetimeDB connection error:', err);
+            this.connecting = false;
             reject(err instanceof Error ? err : new Error(String(err)));
           })
           .build();
       } catch (e) {
         logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
+        this.connecting = false;
         reject(e);
         return;
       }
