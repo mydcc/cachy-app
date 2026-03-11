@@ -272,10 +272,22 @@ class CryptoServiceImpl {
   }
 
   public async decrypt(blob: EncryptedBlob, password?: string | CryptoKey): Promise<string> {
+    // AES-CBC blobs are legacy and were never encrypted with SHA-512.
+    // AES-CBC lacks an authentication tag, so decrypting with the wrong key
+    // can silently return garbage instead of throwing. Skip the fallback.
+    if (blob.method === "AES-CBC") {
+      return await this.attemptDecrypt(blob, password, "SHA-256");
+    }
     try {
       return await this.attemptDecrypt(blob, password, "SHA-512");
     } catch (e) {
-      return await this.attemptDecrypt(blob, password, "SHA-256");
+      // Only fall back to SHA-256 if the error is a decryption failure
+      // (OperationError), which indicates a key mismatch due to hash algorithm.
+      // Other errors (e.g., session locked, invalid base64) should fail fast.
+      if (e instanceof DOMException && e.name === "OperationError") {
+        return await this.attemptDecrypt(blob, password, "SHA-256");
+      }
+      throw e;
     }
   }
 
