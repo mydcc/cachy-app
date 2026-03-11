@@ -139,9 +139,6 @@ export class WebGpuCalculator {
    * Destroy all per-frame cached GPU buffers. Call at end of calculate().
    */
   private clearFrameBuffers(): void {
-      if (import.meta.env.DEV && (this.frameBufferHits > 0 || this.frameBufferMisses > 0)) {
-          console.log(`[WebGPU] Frame buffer stats: ${this.frameBufferHits} reuses, ${this.frameBufferMisses} new uploads`);
-      }
       this.frameBufferCache.forEach(buf => buf.destroy());
       this.frameBufferCache.clear();
       this.frameBufferHits = 0;

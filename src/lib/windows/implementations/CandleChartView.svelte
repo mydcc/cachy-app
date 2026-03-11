@@ -402,12 +402,6 @@
                                 : null;
                         lastRenderedCount = unique.length;
 
-                        if (import.meta.env.DEV && unique.length > 0) {
-                            const timeScale = chart.timeScale();
-                            const currentRange = timeScale.getVisibleLogicalRange();
-                            console.log(`[Chart Render] ${symbol}:${timeframe} Unique: ${unique.length}. First: ${new Date(Number(unique[0].time)*1000).toLocaleString()}. Range: ${JSON.stringify(currentRange)}`);
-                        }
-
                         // Update Indicators if enabled
                         if (
                             indicatorsEnabled &&
