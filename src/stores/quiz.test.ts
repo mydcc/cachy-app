@@ -40,7 +40,7 @@ import { quizState } from "./quiz.svelte";
 
 describe("QuizStore", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
     quizState.questions = [];
     quizState.knownQuestionIds = new Set();
     quizState.activeQuestion = null;
