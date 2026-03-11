@@ -74,6 +74,7 @@ export const REQUIREMENT_TO_CHANNELS: Record<string, string[]> = {
  */
 export type DataRequirement = 
   | 'ticker' 
+  | 'price'
   | 'depth' 
   | 'positions'
   | 'orders'
