@@ -61,7 +61,7 @@ class ChatStore {
           parsed = JSON.parse(data);
         } catch (e) {
           console.error("Failed to parse chat db:", e);
-          parsed = [];
+          parsed = null;
         }
         if (Array.isArray(parsed)) {
           this.messages = parsed.reduce<ChatMessage[]>((acc, item, index) => {
