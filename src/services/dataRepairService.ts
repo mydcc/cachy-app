@@ -57,8 +57,8 @@ async function fetchSmartKlines(
   // But legacy data is likely Bitunix.
   // If we don't know, checking Bitunix first is safer for legacy data.
 
-  for (const p of candidates) {
-    try {
+  try {
+    const fetchPromises = candidates.map(async (p) => {
       let klines: Kline[] = [];
       if (p === "bitunix") {
         klines = await apiService.fetchBitunixKlines(
@@ -83,18 +83,32 @@ async function fetchSmartKlines(
       if (klines && klines.length > 0) {
         return { klines, provider: p };
       }
-    } catch (e: any) {
-      const isNotFound =
-        e.message === "apiErrors.symbolNotFound" || e.status === 404;
-      if (!isNotFound) {
-        logger.warn(
-          "journal",
-          `[DataRepair] ${p} fetch failed for ${symbol}: ${e.message}`,
-        );
-      }
+
+      throw new Error("apiErrors.symbolNotFound");
+    });
+
+    return await Promise.any(fetchPromises);
+  } catch (e: any) {
+    if (e instanceof AggregateError) {
+      e.errors.forEach((err, i) => {
+        const p = candidates[i];
+        const isNotFound =
+          err.message === "apiErrors.symbolNotFound" || err.status === 404;
+        if (!isNotFound) {
+          logger.warn(
+            "journal",
+            `[DataRepair] ${p} fetch failed for ${symbol}: ${err.message}`,
+          );
+        }
+      });
+    } else {
+      logger.warn(
+        "journal",
+        `[DataRepair] Fetch failed for ${symbol}: ${e.message}`,
+      );
     }
+    return null;
   }
-  return null;
 }
 
 export const dataRepairService = {
