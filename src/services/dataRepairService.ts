@@ -105,11 +105,11 @@ async function fetchSmartKlines(
       return await fetchOne(candidates[0]);
     } catch (e: any) {
       const isNotFound =
-        e.message === "apiErrors.symbolNotFound" || e.status === 404;
+        e?.message === "apiErrors.symbolNotFound" || e?.status === 404;
       if (!isNotFound) {
         logger.warn(
           "journal",
-          `[DataRepair] ${candidates[0]} fetch failed for ${symbol}: ${e.message}`,
+          `[DataRepair] ${candidates[0]} fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
         );
       }
       return null;
@@ -137,7 +137,7 @@ async function fetchSmartKlines(
           const err = r.value.reason;
           const p = candidates[i + 1];
           const isNotFound =
-            err.message === "apiErrors.symbolNotFound" || err.status === 404;
+            err?.message === "apiErrors.symbolNotFound" || err?.status === 404;
           if (!isNotFound) {
             logger.warn(
               "journal",
@@ -153,7 +153,7 @@ async function fetchSmartKlines(
   // Priority provider failed – log its error, then wait for fallbacks.
   const firstErr = first.reason;
   const isNotFound =
-    firstErr.message === "apiErrors.symbolNotFound" || firstErr.status === 404;
+    firstErr?.message === "apiErrors.symbolNotFound" || firstErr?.status === 404;
   if (!isNotFound) {
     logger.warn(
       "journal",
@@ -170,7 +170,7 @@ async function fetchSmartKlines(
     // Log the fallback failure too.
     const err = r.reason;
     const isFallbackNotFound =
-      err.message === "apiErrors.symbolNotFound" || err.status === 404;
+      err?.message === "apiErrors.symbolNotFound" || err?.status === 404;
     if (!isFallbackNotFound) {
       logger.warn(
         "journal",
