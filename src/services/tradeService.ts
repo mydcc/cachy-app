@@ -491,46 +491,35 @@ class TradeService {
              const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
              const results: TpSlOrder[] = [];
 
-             // Rate limit handling: Max 5 concurrent requests via sliding window pool
-             const MAX_CONCURRENT = 5;
-             const executing: Promise<void>[] = [];
-             for (const sym of fetchList) {
-                  const p = Promise.resolve().then(async () => {
-                      try {
-                          const params: any = {};
-                          if (sym) params.symbol = sym;
+             // Rate limit handling: Batch requests (max 5 concurrent)
+             const BATCH_SIZE = 5;
+             for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
+                  const batch = fetchList.slice(i, i + BATCH_SIZE);
+                  await Promise.all(
+                      batch.map(async (sym) => {
+                          try {
+                              const params: any = {};
+                              if (sym) params.symbol = sym;
 
-                          const data = await this.signedRequest<any>("POST", "/api/tpsl", {
-                              action: view,
-                              params
-                          }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                                  action: view,
+                                  params
+                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
 
-                          if (data.error) {
-                              if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                  logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
+                              if (data.error) {
+                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
+                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
+                                  }
+                                  return;
                               }
-                              return;
+                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              results.push(...res);
+                          } catch (e: unknown) {
+                              logger.warn("market", `TP/SL network error for ${sym}`, e);
                           }
-                          const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-                          results.push(...res);
-                      } catch (e: unknown) {
-                          logger.warn("market", `TP/SL network error for ${sym}`, e);
-                      }
-                  });
-
-                  const e = p.finally(() => {
-                      const idx = executing.indexOf(e);
-                      if (idx !== -1) {
-                          executing.splice(idx, 1);
-                      }
-                  });
-                  executing.push(e);
-
-                  if (executing.length >= MAX_CONCURRENT) {
-                      await Promise.race(executing);
-                  }
+                      })
+                  );
              }
-             await Promise.all(executing);
 
              // Deduplicate
              const uniqueOrders = new Map<string, TpSlOrder>();
