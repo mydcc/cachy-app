@@ -17,7 +17,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { POST } from './+server';
-import * as auth from '../../../lib/server/auth';
 
 // Mock dependencies
 vi.mock('../../../lib/server/auth', () => ({
@@ -39,7 +38,6 @@ const fetchMock = vi.fn();
 global.fetch = fetchMock;
 
 describe('POST /api/account Security', () => {
-    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
   it('should handle malformed JSON body gracefully', async () => {
     const request = {
       headers: new Headers(),

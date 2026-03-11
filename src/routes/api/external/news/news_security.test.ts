@@ -20,10 +20,10 @@ import { POST, _newsCache } from './+server';
 import * as auth from '../../../../lib/server/auth';
 
 describe('News Service Security', () => {
-    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     beforeEach(() => {
         _newsCache.clear();
         vi.clearAllMocks();
+        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     });
 
     it('should not serve cached data to a different API key', async () => {
@@ -51,7 +51,7 @@ describe('News Service Security', () => {
 
         // 1. Request with Valid Key
         const req1 = {
-            headers: new Map([['x-api-key', validKey]]),
+            headers: new Headers({ 'x-api-key': validKey }),
             json: async () => ({
                 source: 'newsapi',
                 apiKey: validKey,
@@ -66,7 +66,7 @@ describe('News Service Security', () => {
 
         // 2. Request with Invalid Key
         const req2 = {
-            headers: new Map([['x-api-key', invalidKey]]),
+            headers: new Headers({ 'x-api-key': invalidKey }),
             json: async () => ({
                 source: 'newsapi',
                 apiKey: invalidKey, // Different key

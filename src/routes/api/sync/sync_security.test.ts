@@ -24,9 +24,9 @@ const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
 describe('POST /api/sync', () => {
-    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
   });
 
   it('should return 400 if apiKey is missing', async () => {

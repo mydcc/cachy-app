@@ -20,10 +20,10 @@ import { POST, _newsCache } from './+server';
 import * as auth from '../../../../lib/server/auth';
 
 describe('News Service Cache Memory', () => {
-    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     beforeEach(() => {
         _newsCache.clear();
         vi.clearAllMocks();
+        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     });
 
     it('should limit cache size to 50 items (optimization)', async () => {
@@ -36,7 +36,7 @@ describe('News Service Cache Memory', () => {
         // Insert 100 items
         for (let i = 0; i < 100; i++) {
             const request = {
-                headers: new Map([['x-api-key', 'test-key']]),
+                headers: new Headers({ 'x-api-key': 'test-key' }),
                 json: async () => ({
                     source: 'newsapi',
                     apiKey: 'test-key',
