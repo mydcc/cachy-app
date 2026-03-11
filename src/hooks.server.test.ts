@@ -15,8 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { headersHandler } from './hooks.server';
+import { describe, it, expect, vi, afterAll } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
 
 // Mock the dependencies
@@ -31,6 +30,22 @@ vi.mock('$lib/server/logger', () => ({
     error: vi.fn(),
   }
 }));
+
+// Save original console methods before the import patches them
+const originalLog = console.log;
+const originalWarn = console.warn;
+const originalError = console.error;
+
+// Import after mocks are set up (vi.mock calls are hoisted automatically)
+import { headersHandler } from './hooks.server';
+
+afterAll(() => {
+  // Restore the original console methods to prevent cross-test contamination
+  console.log = originalLog;
+  console.warn = originalWarn;
+  console.error = originalError;
+  delete (global as any)._isConsolePatched;
+});
 
 describe('headersHandler (Server Hook)', () => {
   it('should set the expected HTTP security headers on the response', async () => {
