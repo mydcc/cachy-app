@@ -36,6 +36,7 @@
     accentColor: string;
     accentBgManual: string;
     successBg: string;
+    dangerBg: string;
   }
 
   interface Props {
@@ -291,6 +292,117 @@
     ctx.setLineDash([]);
   }
 
+  function drawBodyInsideBodyFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentBgManual } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    const c1 = getCandle(feature.candleIndex1);
+    const c2 = getCandle(feature.candleIndex2);
+    const x2 = getX(feature.candleIndex2);
+
+    // The inner candle (c2) body is inside the outer candle (c1) body
+    const yTop = getY(Math.max(c2.open, c2.close));
+    const yBottom = getY(Math.min(c2.open, c2.close));
+    const width = 32;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentBgManual;
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    ctx.roundRect(x2 - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
+    ctx.fill();
+  }
+
+  function drawBodyRangeFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentBgManual } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+
+    const yTop = getY(Math.max(candle.open, candle.close));
+    const yBottom = getY(Math.min(candle.open, candle.close));
+    const width = 48;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentBgManual;
+
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
+    ctx.fill();
+  }
+
+  function drawHighPointFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+    const y = getY(candle.high);
+    const radius = feature.radius || 5;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentColor;
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawLowPointFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, accentColor } = params;
+    if (feature.candleIndex === undefined) return;
+    const candle = getCandle(feature.candleIndex);
+    const x = getX(feature.candleIndex);
+    const y = getY(candle.low);
+    const radius = feature.radius || 5;
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : accentColor;
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawPenetrationFeature(params: DrawFeatureParams) {
+    const { ctx, getX, getY, getCandle, feature, resolveColor, dangerBg } = params;
+    if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
+    const c1 = getCandle(feature.candleIndex1);
+    const c2 = getCandle(feature.candleIndex2);
+    const x2 = getX(feature.candleIndex2);
+
+    // The penetration zone is the overlap of c2's close into c1's body
+    const c1BodyTop = Math.max(c1.open, c1.close);
+    const c1BodyBottom = Math.min(c1.open, c1.close);
+    const c2Close = c2.close;
+
+    let top, bottom;
+    if (c2Close > c1BodyBottom && c2Close <= c1BodyTop) {
+      // Bullish penetration (piercing line): c2 closes up into c1's body
+      top = getY(c2Close);
+      bottom = getY(c1BodyBottom);
+    } else if (c2Close < c1BodyTop && c2Close >= c1BodyBottom) {
+      // Bearish penetration (dark cloud): c2 closes down into c1's body
+      top = getY(c1BodyTop);
+      bottom = getY(c2Close);
+    } else {
+      return;
+    }
+
+    const width = 28;
+    const height = Math.abs(bottom - top);
+
+    ctx.fillStyle = feature.color
+      ? resolveColor(feature.color, feature.color)
+      : dangerBg;
+    ctx.beginPath();
+    ctx.roundRect(x2 - width / 2, top, width, height, 4);
+    ctx.fill();
+  }
+
   const annotationPlugin: Plugin = {
     id: "patternHighlights",
     afterDraw(chart) {
@@ -301,10 +413,6 @@
       const yAxis = chart.scales.y;
 
       const accentColor = resolveColor("--color-accent", "#FACC15");
-      const accentBg = resolveColor(
-        "--color-accent-transparent",
-        "rgba(250, 204, 21, 0.2)",
-      );
       // Manually making transparency if variable not available
       const accentRgbMatch = accentColor.match(/\d+, \d+, \d+/);
       const accentRgb = accentRgbMatch ? accentRgbMatch[0] : "250, 204, 21";
@@ -330,7 +438,8 @@
           resolveColor,
           accentColor,
           accentBgManual,
-          successBg
+          successBg,
+          dangerBg
         };
 
         switch (feature.type) {
@@ -348,6 +457,21 @@
             break;
           case "engulf":
             drawEngulfFeature(params);
+            break;
+          case "body_inside_body":
+            drawBodyInsideBodyFeature(params);
+            break;
+          case "body_range":
+            drawBodyRangeFeature(params);
+            break;
+          case "high_point":
+            drawHighPointFeature(params);
+            break;
+          case "low_point":
+            drawLowPointFeature(params);
+            break;
+          case "penetration":
+            drawPenetrationFeature(params);
             break;
         }
 
