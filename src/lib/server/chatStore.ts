@@ -18,7 +18,6 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
-import { safeJsonParse } from "../../utils/safeJson";
 
 const DB_FILE = "db/chat_messages.json";
 const MAX_HISTORY = 1000;
@@ -57,7 +56,7 @@ class ChatStore {
         // Try to read the file
         // In a real server environment, ensure 'db' folder exists
         const data = await fs.readFile(DB_FILE, "utf-8");
-        const parsed = safeJsonParse(data);
+        const parsed = JSON.parse(data);
         if (Array.isArray(parsed)) {
           this.messages = parsed.reduce<ChatMessage[]>((acc, item, index) => {
             const result = chatMessageSchema.safeParse(item);
