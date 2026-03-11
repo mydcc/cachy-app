@@ -81,4 +81,55 @@ describe("dataRepairService performance", () => {
     // Assert it completes faster than sequential would allow.
     expect(end - start).toBeLessThan(8000);
   }, 15000); // 15s timeout
+
+  it("should not block on slow priority provider when fallback succeeds quickly", async () => {
+    // This is the key scenario: Bitunix is slow (2s timeout) while Bitget
+    // responds in 50ms.  Without Promise.race the function would block for
+    // 2s per trade; with it, each trade resolves in ~50ms + 500ms pause.
+    const trades = [];
+    for (let i = 0; i < 3; i++) {
+      trades.push({
+        id: `slow-${i}`,
+        symbol: "BTCUSDT",
+        status: "Won",
+        entryDate: new Date().toISOString(),
+        tradeType: "Long",
+        entryPrice: 50000,
+        // no provider set to force checking multiple
+      });
+    }
+
+    journalState.entries = trades;
+    journalState.updateEntry = vi.fn();
+
+    // Bitunix takes 2s then fails – simulates a slow timeout.
+    (apiService.fetchBitunixKlines as any).mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 2000));
+      throw new Error("apiErrors.symbolNotFound");
+    });
+
+    // Bitget responds quickly (50ms) with valid data.
+    (apiService.fetchBitgetKlines as any).mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      return Array(15).fill({
+        time: Date.now(),
+        open: "50000",
+        high: "51000",
+        low: "49000",
+        close: "50500",
+        volume: "100",
+      });
+    });
+
+    const start = performance.now();
+    await dataRepairService.repairMissingAtr(() => {}, true);
+    const elapsed = performance.now() - start;
+
+    console.log(`slow-priority test took ${elapsed}ms`);
+    // With Promise.race: ~3 * (50ms + 500ms pause) = ~1650ms
+    // Without (blocking on priority): ~3 * (2000ms + 500ms pause) = ~7500ms
+    // Use 3000ms as the upper bound – well above the parallel expectation
+    // but well below the sequential/blocking time.
+    expect(elapsed).toBeLessThan(3000);
+  }, 15000);
 });
