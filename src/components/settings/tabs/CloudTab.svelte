@@ -57,10 +57,14 @@
     {#if errorMsg}
       <p class="text-sm text-red-500 mb-2">{errorMsg}</p>
     {/if}
-    <input bind:value={token} type="password" placeholder="Token" class="w-full mb-2 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
-    <button onclick={connect} class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 cursor-pointer text-white font-medium transition-colors">
-      {$_("cloud.connectButton")}
-    </button>
+    {#if !connected}
+      <input bind:value={token} type="password" placeholder="Token" class="w-full mb-2 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
+      <button onclick={connect} class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 cursor-pointer text-white font-medium transition-colors">
+        {$_("cloud.connectButton")}
+      </button>
+    {:else}
+      <p class="text-sm text-green-500">{$_("connection.connected")}</p>
+    {/if}
   </div>
 
   <div class="border border-gray-700 rounded p-4 h-48 overflow-y-auto bg-black/80 font-mono text-sm">
@@ -78,7 +82,7 @@
   </div>
 
   <div class="flex gap-2">
-    <input bind:value={messageText} placeholder={$_("cloud.placeholder")} class="flex-1 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
-    <button onclick={send} class="px-4 py-2 bg-green-600 rounded hover:bg-green-500 cursor-pointer text-white font-medium transition-colors">{$_("cloud.sendButton")}</button>
+    <input bind:value={messageText} placeholder={$_("cloud.placeholder")} disabled={!connected} class="flex-1 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50" />
+    <button onclick={send} disabled={!connected} class="px-4 py-2 bg-green-600 rounded hover:bg-green-500 cursor-pointer text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{$_("cloud.sendButton")}</button>
   </div>
 </div>
