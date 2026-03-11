@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, afterAll } from 'vitest';
+import { describe, it, expect, vi, afterAll, beforeEach } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
 
 // Mock the dependencies
@@ -63,6 +63,10 @@ const originalError = console.error;
 
 // Import after mocks are set up (vi.mock calls are hoisted automatically)
 import { headersHandler, handle } from './hooks.server';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 afterAll(() => {
   // Restore the original console methods to prevent cross-test contamination
@@ -157,5 +161,38 @@ describe('handle sequence (Integration)', () => {
     // 3. Check themeHandler behavior (transformPageChunk application)
     const bodyText = await result.text();
     expect(bodyText).toContain('<body class="theme-light">');
+  });
+
+  it('should log warnings for 429/401 and errors for other 4xx/5xx responses', async () => {
+    const mockCookies = {
+      get: vi.fn().mockReturnValue('dark')
+    };
+
+    const createEvent = (path: string) => ({
+      request: new Request(`http://localhost${path}`, { method: 'GET' }),
+      url: new URL(`http://localhost${path}`),
+      cookies: mockCookies
+    } as unknown as RequestEvent);
+
+    const { logger: mockLogger } = await import('$lib/server/logger');
+
+    // Test 429 (Rate Limit) -> should warn
+    const resolve429 = vi.fn().mockResolvedValue(new Response('rate limited', { status: 429 }));
+    await handle({ event: createEvent('/api/data'), resolve: resolve429 });
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringMatching(/\[RES\] GET \/api\/data -> 429 \(\d+ms\)/));
+
+    vi.clearAllMocks();
+
+    // Test 401 (Unauthorized) -> should warn
+    const resolve401 = vi.fn().mockResolvedValue(new Response('unauthorized', { status: 401 }));
+    await handle({ event: createEvent('/api/auth'), resolve: resolve401 });
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringMatching(/\[RES\] GET \/api\/auth -> 401 \(\d+ms\)/));
+
+    vi.clearAllMocks();
+
+    // Test 500 (Server Error) -> should error
+    const resolve500 = vi.fn().mockResolvedValue(new Response('server error', { status: 500 }));
+    await handle({ event: createEvent('/api/fail'), resolve: resolve500 });
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringMatching(/\[RES\] GET \/api\/fail -> 500 \(\d+ms\)/));
   });
 });
