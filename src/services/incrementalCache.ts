@@ -206,21 +206,23 @@ export class IncrementalCache {
    * Evict least recently used entries if over max size
    */
   private evictIfNeeded(): void {
-    if (this.cache.size <= this.maxSize) return;
-    
-    // Find LRU entry
-    let lruKey: string | null = null;
-    let lruTime = Infinity;
-    
-    this.cache.forEach((entry, key) => {
-      if (entry.lastAccessed < lruTime) {
-        lruTime = entry.lastAccessed;
-        lruKey = key;
+    while (this.cache.size > this.maxSize) {
+      // Find LRU entry
+      let lruKey: string | null = null;
+      let lruTime = Infinity;
+      
+      this.cache.forEach((entry, key) => {
+        if (entry.lastAccessed < lruTime) {
+          lruTime = entry.lastAccessed;
+          lruKey = key;
+        }
+      });
+      
+      if (lruKey) {
+        this.cache.delete(lruKey);
+      } else {
+        break;
       }
-    });
-    
-    if (lruKey) {
-      this.cache.delete(lruKey);
     }
   }
   
