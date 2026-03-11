@@ -379,12 +379,15 @@
     const c1BodyBottom = Math.min(c1.open, c1.close);
     const c2Close = c2.close;
 
+    // Use candle direction to distinguish bullish vs bearish penetration
+    const isBullish = c2.close > c2.open;
+
     let top, bottom;
-    if (c2Close > c1BodyBottom && c2Close <= c1BodyTop) {
+    if (isBullish && c2Close > c1BodyBottom && c2Close <= c1BodyTop) {
       // Bullish penetration (piercing line): c2 closes up into c1's body
       top = getY(c2Close);
       bottom = getY(c1BodyBottom);
-    } else if (c2Close < c1BodyTop && c2Close >= c1BodyBottom) {
+    } else if (!isBullish && c2Close < c1BodyTop && c2Close >= c1BodyBottom) {
       // Bearish penetration (dark cloud): c2 closes down into c1's body
       top = getY(c1BodyTop);
       bottom = getY(c2Close);
