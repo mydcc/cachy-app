@@ -507,12 +507,12 @@ export const app = {
     const symbol = tradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) return;
 
-    const cachedMarketData = marketState.data[symbol];
-    if (cachedMarketData?.lastPrice) {
+    const cachedMarketData = marketState.data[normalizeSymbol(symbol, settingsState.apiProvider)];
+    if (isAuto && cachedMarketData?.lastPrice) {
       logger.debug("api", `[handleFetchPrice] Using cached price for ${symbol}`);
       const priceVal = cachedMarketData.lastPrice;
       app.currentMarketPrice = priceVal;
-      tradeState.update((s) => ({ ...s, entryPrice: priceVal.toString() }));
+      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
       app.calculateAndDisplay();
       return;
     }
