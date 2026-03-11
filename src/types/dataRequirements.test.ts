@@ -59,5 +59,28 @@ describe('dataRequirements', () => {
         }
       });
     });
+
+    it('should not have orphaned entries in REQUIREMENT_TO_CHANNELS', () => {
+      const allRequirementsUsed = new Set<string>();
+
+      Object.values(DATA_REQUIREMENTS).forEach(requirements => {
+        requirements.forEach(req => allRequirementsUsed.add(req));
+      });
+
+      // Every key in REQUIREMENT_TO_CHANNELS should be referenced by
+      // at least one component in DATA_REQUIREMENTS or used directly
+      // by marketWatcher (e.g., 'price' and 'orders' are registered
+      // programmatically rather than through DATA_REQUIREMENTS).
+      const knownDirectUseChannels = new Set(['price', 'orders']);
+
+      Object.keys(REQUIREMENT_TO_CHANNELS).forEach(key => {
+        const isUsedInDataReqs = allRequirementsUsed.has(key);
+        const isKnownDirectUse = knownDirectUseChannels.has(key);
+        expect(
+          isUsedInDataReqs || isKnownDirectUse,
+          `Orphaned REQUIREMENT_TO_CHANNELS entry '${key}' is not used in DATA_REQUIREMENTS or known direct-use list`
+        ).toBe(true);
+      });
+    });
   });
 });
