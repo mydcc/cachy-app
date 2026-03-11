@@ -21,6 +21,7 @@ import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import type { BitunixOrder } from "../../../../types/bitunix";
 import { z } from "zod";
+import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -89,14 +90,21 @@ export const POST: RequestHandler = async ({ request }) => {
     ]);
 
     // Process results
+    // Helper to sanitize error messages consistently
+    const sanitizeMsg = (msg: string): string => {
+      let safe = msg;
+      if (apiKey.length > 4) safe = safe.replaceAll(apiKey, "***");
+      if (apiSecret.length > 4) safe = safe.replaceAll(apiSecret, "***");
+      return sanitizeErrorMessage(safe, 1000);
+    };
+
     if (regularResult.status === "fulfilled") {
       allOrders = allOrders.concat(regularResult.value);
     } else {
       const msg = (regularResult.reason as Error).message || "Unknown error";
-      // Sanitize
       console.error(
         "Error fetching regular orders:",
-        msg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
+        sanitizeMsg(msg),
       );
     }
 
@@ -106,7 +114,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const msg = (tpslResult.reason as Error).message || "Unknown error";
       console.warn(
         "Error fetching TP/SL orders:",
-        msg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
+        sanitizeMsg(msg),
       );
     }
 
@@ -116,7 +124,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const msg = (planResult.reason as Error).message || "Unknown error";
       console.warn(
         "Error fetching plan orders:",
-        msg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
+        sanitizeMsg(msg),
       );
     }
 
@@ -124,7 +132,10 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: unknown) {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
     const rawMsg = e instanceof Error ? e.message : String(e);
-    const safeMsg = rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
+    let safeMsg = rawMsg;
+    if (apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
+    if (apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
+    safeMsg = sanitizeErrorMessage(safeMsg, 1000);
     console.error(
       `Error fetching orders from Bitunix:`,
       safeMsg,
