@@ -81,8 +81,11 @@ describe('Crypto Loop Performance', () => {
 
     bench('Parallel Decryption (Obfuscation Mode)', async () => {
         const decrypted: Record<string, string> = {};
-        await Promise.all(Object.entries(encryptedSecrets).map(async ([key, blob]) => {
-            decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
-        }));
+        const entries = Object.entries(encryptedSecrets);
+        const promises = entries.map(([_, blob]) => cryptoService.decrypt(blob, deviceKey));
+        const results = await Promise.all(promises);
+        for (let i = 0; i < entries.length; i++) {
+            decrypted[entries[i][0]] = results[i];
+        }
     });
 });
