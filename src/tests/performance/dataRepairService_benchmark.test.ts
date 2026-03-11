@@ -17,6 +17,35 @@ vi.mock('../../stores/journal.svelte', () => ({
   }
 }));
 
+vi.mock('../../stores/settings.svelte', () => ({
+  settingsState: {
+    repairTimeframe: '15m',
+  }
+}));
+
+vi.mock('../../lib/calculator', () => ({
+  calculator: {
+    calculateATR: vi.fn(() => ({ isNaN: () => false })),
+  }
+}));
+
+vi.mock('../../lib/constants', () => ({
+  CONSTANTS: {}
+}));
+
+vi.mock('../../utils/symbolUtils', () => ({
+  normalizeSymbol: (s: string) => s
+}));
+
+vi.mock('../../services/logger', () => ({
+  logger: {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }
+}));
+
 describe('DataRepairService fetchSmartKlines Concurrency Benchmark', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,12 +63,10 @@ describe('DataRepairService fetchSmartKlines Concurrency Benchmark', () => {
     ];
 
     let getStart = 0;
-    let unixEnd = 0;
 
     vi.mocked(apiService.fetchBitunixKlines).mockImplementation(async () => {
       // takes 200ms and fails
       await new Promise(r => setTimeout(r, 200));
-      unixEnd = performance.now();
       throw new Error("apiErrors.symbolNotFound");
     });
 
