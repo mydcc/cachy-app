@@ -503,9 +503,10 @@ export const syncService = {
       // (isManual === false && status === "Open") before each save, so
       // freshly-fetched pending entries must be re-added here.
       if (pendingEntries.length > 0) {
+        const pendingIds = new Set(pendingEntries.map(e => e.id));
         const currentJournalState = journalState.entries;
         const keptJournal = currentJournalState.filter(
-          (j) => !(j.isManual === false && j.status === "Open"),
+          (j) => !pendingIds.has(j.id) && !(j.isManual === false && j.status === "Open"),
         );
         const updatedJournal = [...keptJournal, ...pendingEntries];
         updatedJournal.sort(
