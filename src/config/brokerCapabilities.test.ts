@@ -50,7 +50,7 @@ describe('BROKER_CAPABILITIES', () => {
     it('should have correct nativeTimeframes for bitget', () => {
         expect(BROKER_CAPABILITIES.bitget).toBeDefined();
         expect(BROKER_CAPABILITIES.bitget.nativeTimeframes).toEqual([
-            "1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"
+            "1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"
         ]);
     });
 });
