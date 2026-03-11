@@ -336,16 +336,6 @@ class TradeService {
     }
 
     private async fetchOpenPositionsFromApi() {
-        if (this.fetchPositionsPromise) {
-            return this.fetchPositionsPromise;
-        }
-        this.fetchPositionsPromise = this._doFetchOpenPositionsFromApi().finally(() => {
-            this.fetchPositionsPromise = null;
-        });
-        return this.fetchPositionsPromise;
-    }
-
-    private async _doFetchOpenPositionsFromApi() {
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 
         try {
