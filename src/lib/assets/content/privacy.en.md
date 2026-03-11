@@ -21,7 +21,7 @@ You can create backups of your data. These are JSON files generated on your devi
 
 To provide market data and functionality, the app interacts with the following external services:
 
-- **Bitunix & Bitget:** We fetch real-time market data (prices, funding rates, etc.) from these exchanges. While we proxy some requests to avoid CORS issues, we do not store your API keys on our servers. API keys stored in your settings are kept in your browser's Local Storage.
+- **Bitunix & Binance:** We fetch real-time market data (prices, funding rates, etc.) from these exchanges. While we proxy some requests to avoid CORS issues, we do not store your API keys on our servers. API keys stored in your settings are kept in your browser's Local Storage.
 - **ImgBB:** If you choose to upload screenshots for your journal entries, these images are uploaded to ImgBB. Please refer to ImgBB's privacy policy for how they handle data.
 
 ## 4. Tracking & Analytics

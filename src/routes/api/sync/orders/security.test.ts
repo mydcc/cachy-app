@@ -18,11 +18,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 
-vi.mock('../../../../lib/server/auth', () => ({
-  checkAppAuth: vi.fn(() => null)
-}));
-
-
 describe('POST /api/sync/orders', () => {
   it('should return 400 if JSON is malformed', async () => {
     const request = {

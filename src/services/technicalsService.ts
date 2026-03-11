@@ -298,32 +298,14 @@ export const technicalsService = {
     }
 
     try {
-        const len = klines.length;
-        const times = new Float64Array(len);
-        const opens = new Float64Array(len);
-        const highs = new Float64Array(len);
-        const lows = new Float64Array(len);
-        const closes = new Float64Array(len);
-        const volumes = new Float64Array(len);
-
-        for (let i = 0; i < len; i++) {
-          const k = klines[i];
-          times[i] = k.time;
-          opens[i] = toNumFast(k.open);
-          highs[i] = toNumFast(k.high);
-          lows[i] = toNumFast(k.low);
-          closes[i] = toNumFast(k.close);
-          volumes[i] = toNumFast(k.volume);
-        }
-
         const { data: result } = await workerManager.postMessage({
             type: "INITIALIZE",
             payload: {
                 symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
-                times, opens, highs, lows, closes, volumes,
+                klines: klines.map(k => ({ ...k, open: k.open.toString(), high: k.high.toString(), low: k.low.toString(), close: k.close.toString(), volume: k.volume?.toString() || "0" })),
                 settings
             }
-        }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
+        });
         return result;
     } catch (e) {
         return this.calculateTechnicalsInline(klines, settings);
@@ -341,15 +323,8 @@ export const technicalsService = {
             type: "UPDATE",
             payload: {
                 symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
-                kline: {
-                    time: kline.time,
-                    open: toNumFast(kline.open),
-                    high: toNumFast(kline.high),
-                    low: toNumFast(kline.low),
-                    close: toNumFast(kline.close),
-                    volume: toNumFast(kline.volume || 0)
-                },
-                settings
+                kline: { ...kline, open: kline.open.toString(), high: kline.high.toString(), low: kline.low.toString(), close: kline.close.toString(), volume: kline.volume?.toString() || "0" }
+                , settings
             }
         });
         return result;

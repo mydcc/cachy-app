@@ -162,10 +162,12 @@ class WindowManager {
             case 'chart':
                 const { ChartWindow } = await import("./implementations/ChartWindow.svelte");
                 return new ChartWindow(data.symbol || "BTCUSDT", { timeframe: data.timeframe });
-            case 'channel':
-                const { ChannelWindow } = await import("./implementations/ChannelWindow.svelte");
-                return new ChannelWindow(data.url, data.title, data.id);
             case 'iframe':
+                // Check if it's a channel window or a generic iframe
+                if (data.id && (data.id.startsWith('channel') || data.id.startsWith('market'))) {
+                    const { ChannelWindow } = await import("./implementations/ChannelWindow.svelte");
+                    return new ChannelWindow(data.url, data.title, data.id);
+                }
                 return new IframeWindow(data.url, data.title);
             default:
                 return null;

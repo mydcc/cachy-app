@@ -436,7 +436,16 @@ class BitunixWebSocketService {
 
           const message = safeJsonParse(rawData || event.data);
 
-
+          if (import.meta.env.DEV) {
+             const raw = typeof event.data === 'string' ? event.data : '';
+             // Check if we have potential large integers unquoted (>= 15 digits)
+             if (raw && /:\s*-?\d{15,}/.test(raw)) {
+                  const unsafe = JSON.parse(raw);
+                  if (JSON.stringify(message) === JSON.stringify(unsafe)) {
+                      console.warn("[BitunixWS] WARNING: Large integer detected but safeJsonParse did not alter the result. Potential regex failure?", raw);
+                  }
+             }
+          }
 
           this.handleMessage(message, "public");
         } catch (e) {
@@ -459,10 +468,7 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (err) => {
-        // W-1: Log WS errors instead of silently swallowing them
-        this.handleInternalError("public", err);
-      };
+      ws.onerror = (error) => { };
     } catch (e) {
       this.scheduleReconnect("public");
     }
@@ -557,7 +563,16 @@ class BitunixWebSocketService {
 
           const message = safeJsonParse(rawData || event.data);
 
-
+          if (import.meta.env.DEV) {
+             const raw = typeof event.data === 'string' ? event.data : '';
+             // Check if we have potential large integers unquoted (>= 15 digits)
+             if (raw && /:\s*-?\d{15,}/.test(raw)) {
+                  const unsafe = JSON.parse(raw);
+                  if (JSON.stringify(message) === JSON.stringify(unsafe)) {
+                      console.warn("[BitunixWS] WARNING: Large integer detected but safeJsonParse did not alter the result. Potential regex failure?", raw);
+                  }
+             }
+          }
 
           this.handleMessage(message, "private");
         } catch (e) {
@@ -579,9 +594,9 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (err) => {
-          // W-1: Log WS errors instead of silently swallowing them
-          this.handleInternalError("private", err);
+      ws.onerror = (error) => {
+          // [HYBRID FIX] Quietly handle connection errors
+          // logger.warn("network", "[BitunixWS] Private connection error", error);
       };
     } catch (e) {
       // Catch synchronous errors (e.g. invalid URL or browser blocking)
@@ -888,9 +903,9 @@ class BitunixWebSocketService {
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
-                          indexPrice: ip !== undefined && ip !== null && ip !== "" ? new Decimal(ip) : undefined,
-                          fundingRate: fr !== undefined && fr !== null && fr !== "" ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft !== undefined && nft !== null && nft !== "" ? String(nft) : undefined
+                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
+                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
+                          nextFundingTime: data.nft ? String(data.nft) : undefined
                         });
                     }
                     return;
@@ -1209,9 +1224,9 @@ class BitunixWebSocketService {
           const d = priceData.data;
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: d.ip !== undefined && d.ip !== null && d.ip !== "" ? String(d.ip) : undefined,
-            fundingRate: d.fr !== undefined && d.fr !== null && d.fr !== "" ? String(d.fr) : undefined,
-            nextFundingTime: d.nft !== undefined && d.nft !== null && d.nft !== "" ? String(d.nft) : undefined
+            indexPrice: d.ip ? String(d.ip) : undefined,
+            fundingRate: d.fr ? String(d.fr) : undefined,
+            nextFundingTime: d.nft ? String(d.nft) : undefined
           });
         }
       } else if (validatedChannel === "ticker") {

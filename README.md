@@ -7,8 +7,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
-Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Bitget.
-Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and supports real-time market data from Bitunix and Bitget.
+Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Binance.
+Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and supports real-time market data from Bitunix and Binance.
 
 ![Cachy Dashboard](docs/dashboard-preview.png)
 
@@ -20,7 +20,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 - **Risk Management:** Automatically calculates the optimal position size based on account size, risk (%), and stop loss.
 - **Dual Locking System:** Lock either the _Position Size_ (to adjust risk) or the _Risk Amount_ (to adjust position size).
-- **ATR Integration:** Automatic fetching of Average True Range (ATR) from Bitget or Bitunix for dynamic stop-loss calculations.
+- **ATR Integration:** Automatic fetching of Average True Range (ATR) from Binance or Bitunix for dynamic stop-loss calculations.
 - **Live Prices:** Real-time price fetching for cryptocurrencies.
 
 ### 📊 Market Overview & Sidebar
@@ -46,7 +46,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 ### ⚙️ Customization & Tech
 
-- **Multi-API Support:** Choose between **Bitunix** (Default) and **Bitget** as your data source.
+- **Multi-API Support:** Choose between **Bitunix** (Default) and **Binance** as your data source.
 - **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 - **API Integration:** Optional API keys for auto-fetching account balance and private data.
 - **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
@@ -231,13 +231,13 @@ Copyright (C) 2026 MYDCT
 ## <a name="v0.92b2"></a>Version 0.92b2 (December 11, 2025)
 
 - **New:** "Market Overview" displays 24h data (Price, Volume, Change) for the current symbol.
-- **New:** Expanded settings: Select API provider (Bitunix/Bitget) and market data update interval (1s, 1m, 10m).
+- **New:** Expanded settings: Select API provider (Bitunix/Binance) and market data update interval (1s, 1m, 10m).
 
 ---
 
 ## <a name="v0.92b1"></a>Version 0.92b1 (September 04, 2025)
 
-- **New:** Automatic ATR fetch from Bitget API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
+- **New:** Automatic ATR fetch from Binance API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
 - **New:** Advanced locking functions: The risk amount in currency can now be locked to calculate position size and risk percentage.
 - **New:** Keyboard shortcuts (`Alt+L/S/R/J`) added for faster operation.
 - **New:** Modals can now be closed with the `Escape` key or by clicking the background.

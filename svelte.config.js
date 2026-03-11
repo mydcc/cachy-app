@@ -61,10 +61,6 @@ const config = {
         ],
         "object-src": ["none"],
         "base-uri": ["self"],
-        "frame-src": [
-          "self",
-          "https://space.cachy.app",
-        ],
         "frame-ancestors": ["self"],
         "connect-src": [
           "self",

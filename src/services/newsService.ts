@@ -14,7 +14,6 @@ import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
 import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 import { dbService } from "./dbService";
-import { RequestDeduplicator } from "../utils/requestDeduplicator";
 import { z } from "zod";
 import CryptoJS from "crypto-js";
 import { safeJsonParse } from "../utils/safeJson";
@@ -120,8 +119,11 @@ interface NewsCacheEntry {
 }
 
 // Deduplication trackers
-const pendingNewsFetches = new RequestDeduplicator<NewsItem[]>();
-const pendingSentimentFetches = new RequestDeduplicator<SentimentAnalysis | null>();
+const pendingNewsFetches = new Map<string, Promise<NewsItem[]>>();
+const pendingSentimentFetches = new Map<
+  string,
+  Promise<SentimentAnalysis | null>
+>();
 
 const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 mins
 
@@ -189,7 +191,11 @@ export const newsService = {
     const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
 
     // Check if a request for this symbol is already in progress
-    return pendingNewsFetches.execute(symbolKey, async (): Promise<NewsItem[]> => {
+    if (pendingNewsFetches.has(symbolKey)) {
+      return pendingNewsFetches.get(symbolKey)!;
+    }
+
+    const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
         // 1. Cache-Validierung (ASYNC with IDB)
         const cached = await dbService.get<NewsCacheEntry>("news", cacheKey);
@@ -247,10 +253,6 @@ export const newsService = {
             try {
               res = await fetch("/api/external/news", {
                 method: "POST",
-                headers: {
-                  "x-app-access-token": settingsState.appAccessToken || "",
-                  "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                   source: "cryptopanic",
                   apiKey: cryptoPanicApiKey,
@@ -266,7 +268,7 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              newsItems = (Array.isArray(data?.results) ? data.results : []).map((item: any) => ({
+              newsItems = data.results.map((item: any) => ({
                 title: item.title,
                 url: item.url,
                 source: item.source?.title || "Unknown",
@@ -305,10 +307,6 @@ export const newsService = {
             try {
               res = await fetch("/api/external/news", {
                 method: "POST",
-                headers: {
-                  "x-app-access-token": settingsState.appAccessToken || "",
-                  "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                   source: "newsapi",
                   apiKey: newsApiKey,
@@ -326,7 +324,7 @@ export const newsService = {
               const mapped = data.articles.map((item: any) => ({
                 title: item.title,
                 url: item.url,
-                source: item.source?.name ?? "Unknown",
+                source: item.source.name,
                 published_at: item.publishedAt,
                 currencies: [],
                 id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
@@ -421,19 +419,24 @@ export const newsService = {
 
         return newsItems;
       } finally {
-        // RequestDeduplicator automatically removes the promise
+        pendingNewsFetches.delete(symbolKey);
       }
-    });
+    })();
+
+    pendingNewsFetches.set(symbolKey, fetchPromise);
+    return fetchPromise;
   },
 
   async analyzeSentiment(news: NewsItem[]): Promise<SentimentAnalysis | null> {
     if (news.length === 0) return null;
-    const newsHash = CryptoJS.SHA256(
-        news.slice(0, 10).map(n => `${n.published_at}|${n.title}`).join('||')
-    ).toString();
+    const newsHash = news[0].title;
+
+    if (pendingSentimentFetches.has(newsHash)) {
+      return pendingSentimentFetches.get(newsHash)!;
+    }
 
     // Immer serverseitig, kein allowClientSideAi mehr
-    return pendingSentimentFetches.execute(newsHash, async (): Promise<SentimentAnalysis | null> => {
+    const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
       try {
         // IDB Read
         const cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
@@ -505,8 +508,11 @@ export const newsService = {
           keyFactors: [],
         };
       } finally {
-        // RequestDeduplicator automatically removes the promise
+        pendingSentimentFetches.delete(newsHash);
       }
-    });
+    })();
+
+    pendingSentimentFetches.set(newsHash, analysisPromise);
+    return analysisPromise;
   },
 };

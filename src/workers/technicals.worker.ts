@@ -1,19 +1,6 @@
 /*
  * Copyright (C) 2026 MYDCT
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
  * Technicals Calculation Worker
  * Offloads heavy indicator math to a background thread.
  */
@@ -82,8 +69,9 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
     }
     else if (type === "INITIALIZE") {
         if (!id) throw new Error("INITIALIZE requires an ID");
-        // Payload contains SOA transferred arrays
-        const len = payload.times.length;
+        // Payload contains full history (usually AoS)
+        const klines = payload.klines;
+        const len = klines.length;
 
         // Allocate buffers with some headroom
         const capacity = Math.max(len + 100, 1000);
@@ -98,12 +86,15 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
             capacity: capacity
         };
 
-        hist.times.set(payload.times);
-        hist.opens.set(payload.opens);
-        hist.highs.set(payload.highs);
-        hist.lows.set(payload.lows);
-        hist.closes.set(payload.closes);
-        hist.volumes.set(payload.volumes);
+        for(let i=0; i<len; i++) {
+            const k = klines[i];
+            hist.times[i] = k.time;
+            hist.opens[i] = parseFloat(k.open);
+            hist.highs[i] = parseFloat(k.high);
+            hist.lows[i] = parseFloat(k.low);
+            hist.closes[i] = parseFloat(k.close);
+            hist.volumes[i] = parseFloat(k.volume);
+        }
 
         historyCache.set(payload.cacheKey || id, hist);
 
@@ -175,20 +166,20 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         if (time === lastTime) {
             // Replace last
             const i = hist.length - 1;
-            hist.opens[i] = k.open;
-            hist.highs[i] = k.high;
-            hist.lows[i] = k.low;
-            hist.closes[i] = k.close;
-            hist.volumes[i] = k.volume;
+            hist.opens[i] = parseFloat(k.open);
+            hist.highs[i] = parseFloat(k.high);
+            hist.lows[i] = parseFloat(k.low);
+            hist.closes[i] = parseFloat(k.close);
+            hist.volumes[i] = parseFloat(k.volume);
         } else if (time > lastTime) {
             // Append
             const i = hist.length;
             hist.times[i] = time;
-            hist.opens[i] = k.open;
-            hist.highs[i] = k.high;
-            hist.lows[i] = k.low;
-            hist.closes[i] = k.close;
-            hist.volumes[i] = k.volume;
+            hist.opens[i] = parseFloat(k.open);
+            hist.highs[i] = parseFloat(k.high);
+            hist.lows[i] = parseFloat(k.low);
+            hist.closes[i] = parseFloat(k.close);
+            hist.volumes[i] = parseFloat(k.volume);
             hist.length++;
         }
 
