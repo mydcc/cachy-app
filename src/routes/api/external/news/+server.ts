@@ -21,6 +21,16 @@ interface CachedResponse {
 }
 
 export const _newsCache = new Map<string, CachedResponse>();
+
+// Rate Limiting
+interface RateLimitInfo {
+  count: number;
+  resetTime: number;
+}
+export const _rateLimits = new Map<string, RateLimitInfo>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10;
+
 const pendingRequests = new Map<string, Promise<any>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
 const MAX_CACHE_SIZE = 50;
@@ -52,6 +62,38 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 400 });
+    }
+
+    // Rate Limit Check
+    // Use IP as fallback if apiKey is not provided (though apiKey is required above, it might be an empty string depending on extraction)
+    const clientIp = request.headers.get('x-forwarded-for') || 'unknown-ip';
+    const rateLimitKey = apiKey || clientIp;
+
+    const nowLimit = Date.now();
+    const userLimit = _rateLimits.get(rateLimitKey);
+
+    // Memory Limit Check
+    if (_rateLimits.size > 1000) {
+      // Evict oldest entries
+      const oldestKeys = Array.from(_rateLimits.entries())
+        .filter(([_, info]) => nowLimit > info.resetTime)
+        .map(([k]) => k);
+      oldestKeys.forEach(k => _rateLimits.delete(k));
+
+      // If still too large, forcefully clear
+      if (_rateLimits.size > 1000) {
+        const toDelete = Array.from(_rateLimits.keys()).slice(0, 100);
+        toDelete.forEach(k => _rateLimits.delete(k));
+      }
+    }
+
+    if (!userLimit || nowLimit > userLimit.resetTime) {
+      _rateLimits.set(rateLimitKey, { count: 1, resetTime: nowLimit + RATE_LIMIT_WINDOW });
+    } else {
+      if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+        return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+      }
+      userLimit.count++;
     }
 
     // Cache key still needs apiKey to isolate user quotas/plans

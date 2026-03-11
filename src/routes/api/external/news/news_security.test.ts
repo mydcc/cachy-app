@@ -16,12 +16,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST, _newsCache } from './+server';
+import { POST, _newsCache, _rateLimits } from './+server';
 import * as auth from '../../../../lib/server/auth';
 
 describe('News Service Security', () => {
     beforeEach(() => {
         _newsCache.clear();
+        _rateLimits.clear();
         vi.clearAllMocks();
         vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     });
@@ -83,5 +84,29 @@ describe('News Service Security', () => {
 
         expect(json2).not.toEqual(responseData);
         expect(json2).toHaveProperty('error');
+    });
+
+    it('should rate limit multiple requests from the same API key', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ status: "ok", articles: [] }),
+            text: async () => "",
+        });
+        const apiKey = 'rate-limit-key';
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'newsapi', apiKey, params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as any;
+
+        for (let i = 0; i < 10; i++) {
+            const res = await POST({ request: requestMock, fetch: fetchMock } as any);
+            expect(res.status).not.toBe(429);
+        }
+
+        const res = await POST({ request: requestMock, fetch: fetchMock } as any);
+        expect(res.status).toBe(429);
+        const body = await res.json();
+        expect(body.error).toContain('Rate limit exceeded');
     });
 });
