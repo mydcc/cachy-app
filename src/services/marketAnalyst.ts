@@ -180,10 +180,11 @@ class MarketAnalystService {
             const calcTime = performance.now() - startCalc;
             logger.log("technicals", `Analyst: ${symbol} All technicals done in ${calcTime.toFixed(0)}ms`);
 
-            // Build a map of timeframe -> technicals
-            const techMap: Record<string, typeof techResults[0] & { _maMap?: Map<string, any>; _oscMap?: Map<string, any> }> = {};
+            // Build a map of timeframe -> technicals (with pre-indexed Maps for O(1) lookups)
+            // NOTE: Do NOT mutate techResults objects — they may be cached by technicalsService.
+            const techMap: Record<string, any> = {};
             timeframes.forEach((tf, i) => {
-                const tech = techResults[i] as typeof techResults[0] & { _maMap?: Map<string, any>; _oscMap?: Map<string, any> };
+                const tech = techResults[i];
 
                 if (tech) {
                     // Pre-index arrays into Maps for O(1) lookups instead of O(N) finds
@@ -194,7 +195,6 @@ class MarketAnalystService {
                             maMap.set(`${m.name}_${m.params}`, m);
                         }
                     }
-                    tech._maMap = maMap;
 
                     const oscMap = new Map();
                     if (tech.oscillators) {
@@ -203,14 +203,16 @@ class MarketAnalystService {
                             oscMap.set(o.name, o);
                         }
                     }
-                    tech._oscMap = oscMap;
+
+                    // Wrap without mutating the original cached object
+                    techMap[tf] = { ...tech, _maMap: maMap, _oscMap: oscMap };
+                } else {
+                    techMap[tf] = tech;
                 }
 
-                techMap[tf] = tech;
-
                 // Debug Logging for EMA 200
-                if (import.meta.env.DEV && tech) {
-                    const ema200 = tech._maMap?.get("EMA_200");
+                if (import.meta.env.DEV && techMap[tf]) {
+                    const ema200 = techMap[tf]._maMap?.get("EMA_200");
                     const val = ema200?.value;
                     logger.debug("technicals", `Analyst: ${symbol}:${tf} EMA 200 = ${val}`);
                 }
