@@ -20,6 +20,7 @@ import type { RequestHandler } from "./$types";
 import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 import { z } from "zod";
 import { checkAppAuth } from "../../../../lib/server/auth";
+import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -58,8 +59,10 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: any) {
 
     const rawMsg = e instanceof Error ? e.message : String(e);
-    // Mask sensitive data
-    const safeMsg = rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
+    // Mask sensitive data (SECURITY FIX)
+    let safeMsg = sanitizeErrorMessage(rawMsg, 1000);
+    if (apiKey && apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
+    if (apiSecret && apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
 
     console.error(`Error fetching history positions from Bitunix:`, safeMsg);
 
