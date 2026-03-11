@@ -180,24 +180,27 @@ class ChatStore {
 export const chatStore = new ChatStore();
 
 // Flush pending chat messages to disk on graceful shutdown
-let shuttingDown = false;
-function handleShutdown(signal: NodeJS.Signals) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  // Force-terminate if flush stalls (e.g. disk I/O hang)
-  const deadline = setTimeout(() => {
-    console.error("Shutdown flush timed out, forcing exit");
-    process.exit(1);
-  }, SHUTDOWN_TIMEOUT_MS);
-  deadline.unref();
-  chatStore.forceSave().catch((err) => {
-    console.error("Failed to flush chat store on shutdown:", err);
-  }).finally(() => {
-    clearTimeout(deadline);
-    // Re-raise the original signal so process managers see the correct exit code
-    process.kill(process.pid, signal);
-  });
-}
+// Skip in test environments to avoid interfering with test runner cleanup
+if (!process.env.VITEST) {
+  let shuttingDown = false;
+  function handleShutdown(signal: NodeJS.Signals) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    // Force-terminate if flush stalls (e.g. disk I/O hang)
+    const deadline = setTimeout(() => {
+      console.error("Shutdown flush timed out, forcing exit");
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    deadline.unref();
+    chatStore.forceSave().catch((err) => {
+      console.error("Failed to flush chat store on shutdown:", err);
+    }).finally(() => {
+      clearTimeout(deadline);
+      // Re-raise the original signal so process managers see the correct exit code
+      process.kill(process.pid, signal);
+    });
+  }
 
-process.once("SIGTERM", (signal) => handleShutdown(signal));
-process.once("SIGINT", (signal) => handleShutdown(signal));
+  process.once("SIGTERM", (signal) => handleShutdown(signal));
+  process.once("SIGINT", (signal) => handleShutdown(signal));
+}
