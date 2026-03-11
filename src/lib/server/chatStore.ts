@@ -179,13 +179,17 @@ class ChatStore {
 export const chatStore = new ChatStore();
 
 // Flush pending chat messages to disk on graceful shutdown
-function handleShutdown() {
+let shuttingDown = false;
+function handleShutdown(signal: NodeJS.Signals) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   chatStore.forceSave().catch((err) => {
     console.error("Failed to flush chat store on shutdown:", err);
   }).finally(() => {
-    process.exit(0);
+    // Re-raise the original signal so process managers see the correct exit code
+    process.kill(process.pid, signal);
   });
 }
 
-process.on("SIGTERM", handleShutdown);
-process.on("SIGINT", handleShutdown);
+process.once("SIGTERM", (signal) => handleShutdown(signal));
+process.once("SIGINT", (signal) => handleShutdown(signal));
