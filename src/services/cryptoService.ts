@@ -37,6 +37,7 @@ export interface EncryptedBlob {
   iv: string;
   salt: string;
   method: "AES-GCM" | "AES-CBC";
+  kdfHash?: "SHA-512" | "SHA-256";
 }
 
 const SECURE_DB_NAME = "CachySecurityDB";
@@ -199,7 +200,8 @@ class CryptoServiceImpl {
         ciphertext: bufferToBase64(ciphertextBuffer),
         iv: bufferToBase64(iv.buffer as unknown as ArrayBuffer),
         salt: bufferToBase64(salt.buffer as unknown as ArrayBuffer),
-        method: "AES-GCM"
+        method: "AES-GCM",
+        kdfHash: "SHA-512"
       };
     } catch (e) {
       console.error("Encryption failed", e);
@@ -272,12 +274,19 @@ class CryptoServiceImpl {
   }
 
   public async decrypt(blob: EncryptedBlob, password?: string | CryptoKey): Promise<string> {
+    // If the blob records which hash was used, use it directly (no trial decryption).
+    if (blob.kdfHash) {
+      return await this.attemptDecrypt(blob, password, blob.kdfHash);
+    }
+
     // AES-CBC blobs are legacy and were never encrypted with SHA-512.
     // AES-CBC lacks an authentication tag, so decrypting with the wrong key
     // can silently return garbage instead of throwing. Skip the fallback.
     if (blob.method === "AES-CBC") {
       return await this.attemptDecrypt(blob, password, "SHA-256");
     }
+
+    // Legacy AES-GCM blobs without kdfHash: try SHA-512 first, fall back to SHA-256.
     try {
       return await this.attemptDecrypt(blob, password, "SHA-512");
     } catch (e) {
