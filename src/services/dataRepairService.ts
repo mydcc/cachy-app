@@ -296,7 +296,7 @@ export const dataRepairService = {
                 const h = new Decimal(k.high);
                 const l = new Decimal(k.low);
                 if (h.gt(highest)) highest = h;
-                if (l.gt(0) && l.lt(lowest)) lowest = l;
+                if (l.gt(0) && (lowest.eq(0) || l.lt(lowest))) lowest = l;
               }
 
               const entryPrice = new Decimal(trade.entryPrice);
