@@ -46,6 +46,10 @@ vi.mock('../../lib/calculator', () => ({
   }
 }));
 
+vi.mock('../../lib/constants', () => ({
+  CONSTANTS: {}
+}));
+
 vi.mock('../../utils/symbolUtils', () => ({
   normalizeSymbol: (s: string) => s
 }));
