@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
 import { Decimal } from "decimal.js";
@@ -54,12 +54,12 @@ vi.mock("./logger", () => ({
   },
 }));
 
-// Mock signedRequest to avoid network calls
-vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({ code: 0 });
-
 describe("TradeService - FlashClose Reproduction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock signedRequest to avoid network calls (must be inside beforeEach so
+    // it is re-applied after vi.clearAllMocks() resets all mock implementations)
+    vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({ code: 0 });
   });
 
   it("should create an optimistic order with current market price", async () => {
