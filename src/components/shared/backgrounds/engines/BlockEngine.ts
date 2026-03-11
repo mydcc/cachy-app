@@ -35,6 +35,7 @@ export class BlockEngine extends BaseEngine {
     
     private smoothMin = 0;
     private smoothMax = 100;
+    private isFirstTrade = true;
     
     private readonly fibLevels = [0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0];
     private dummyObj = new THREE.Object3D();
@@ -291,9 +292,11 @@ export class BlockEngine extends BaseEngine {
         this.blockScales[idx] = Math.max(Math.pow(trade.amount, 0.4) * (s.volumeScale || 1.0), 1.0);
         
         // CRITICAL FIX: Snap camera to price on first trade
-        if (this.smoothMin < 1.0 && trade.price > 100.0) {
-            this.smoothMin = trade.price - 20.0;
-            this.smoothMax = trade.price + 20.0;
+        if (this.isFirstTrade) {
+            const margin = Math.max(trade.price * 0.005, 0.0001); // proportional margin or absolute minimum
+            this.smoothMin = trade.price - margin;
+            this.smoothMax = trade.price + margin;
+            this.isFirstTrade = false;
         }
         
         const color = trade.type === 'buy' 
@@ -319,6 +322,7 @@ export class BlockEngine extends BaseEngine {
     }
 
     private cleanupResources() {
+        this.isFirstTrade = true;
          if (this.blockMesh) {
             this.blockMesh.geometry.dispose();
             (this.blockMesh.material as THREE.Material).dispose();
