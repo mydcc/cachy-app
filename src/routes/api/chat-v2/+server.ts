@@ -56,10 +56,15 @@ export const POST: RequestHandler = async ({ request }) => {
     // Sanitize input to prevent Stored XSS
     const sanitizedText = sanitizeChatInput(text);
 
+    const validSenders = ["user", "system"] as const;
+    const resolvedSender: "user" | "system" = validSenders.includes(sender)
+      ? sender
+      : "user";
+
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       text: sanitizedText.slice(0, 500), // Limit length per message
-      sender: sender || "user",
+      sender: resolvedSender,
       timestamp: Date.now(),
       profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
       clientId: clientId || undefined,

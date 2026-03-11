@@ -32,16 +32,14 @@ export interface ChatMessage {
   clientId?: string;
 }
 
-const chatMessageSchema: z.ZodType<ChatMessage> = z.object({
+const chatMessageSchema = z.object({
   id: z.string(),
   text: z.string(),
   sender: z.enum(["user", "system"]),
   timestamp: z.number(),
-  profitFactor: z.number().optional(),
-  clientId: z.string().optional()
+  profitFactor: z.number().nullish().transform(v => v ?? undefined),
+  clientId: z.string().nullish().transform(v => v ?? undefined)
 });
-
-const chatMessagesSchema = z.array(chatMessageSchema);
 
 class ChatStore {
   private messages: ChatMessage[] = [];
@@ -59,12 +57,23 @@ class ChatStore {
         // In a real server environment, ensure 'db' folder exists
         const data = await fs.readFile(DB_FILE, "utf-8");
         const parsed = JSON.parse(data);
-        const validationResult = chatMessagesSchema.safeParse(parsed);
-        if (validationResult.success) {
-          this.messages = validationResult.data;
+        if (Array.isArray(parsed)) {
+          this.messages = parsed.reduce<ChatMessage[]>((acc, item, index) => {
+            const result = chatMessageSchema.safeParse(item);
+            if (result.success) {
+              acc.push(result.data);
+            } else {
+              console.warn(`Skipping invalid chat message at index ${index}:`, result.error);
+            }
+            return acc;
+          }, []);
         } else {
-          console.error("Invalid chat data in db:", validationResult.error);
+          console.error("Chat data is not an array, resetting to empty");
           this.messages = [];
+        }
+        // Persist cleaned data back to disk if any messages were dropped
+        if (!Array.isArray(parsed) || this.messages.length !== parsed.length) {
+          await this.saveInternal();
         }
       } catch (error: any) {
         if (error.code === "ENOENT") {
@@ -104,7 +113,13 @@ class ChatStore {
       await this.init();
     }
 
-    this.messages.push(message);
+    const validation = chatMessageSchema.safeParse(message);
+    if (!validation.success) {
+      console.error("Rejected invalid chat message:", validation.error);
+      return;
+    }
+
+    this.messages.push(validation.data);
 
     // Trim history
     if (this.messages.length > MAX_HISTORY) {
