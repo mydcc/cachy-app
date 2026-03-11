@@ -64,12 +64,12 @@ describe('Crypto Loop Performance', () => {
 
     bench('Parallel Encryption (Obfuscation Mode)', async () => {
         const secrets: Record<string, EncryptedBlob> = {};
-        await Promise.all(SENSITIVE_KEYS.map(async (key) => {
-            const value = values[key];
-            if (value) {
-                secrets[key] = await cryptoService.encrypt(value, deviceKey);
-            }
-        }));
+        const keysWithValues = SENSITIVE_KEYS.filter(key => values[key]);
+        const promises = keysWithValues.map(key => cryptoService.encrypt(values[key], deviceKey));
+        const results = await Promise.all(promises);
+        for (let i = 0; i < keysWithValues.length; i++) {
+            secrets[keysWithValues[i]] = results[i];
+        }
     });
 
     bench('Sequential Decryption (Obfuscation Mode)', async () => {
