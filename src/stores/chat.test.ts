@@ -145,9 +145,13 @@ describe('ChatManager', () => {
       { id: '1', text: 'Hello', timestamp: 100 },
       { id: '2', text: 'World', timestamp: 200 }
     ];
+    (chatState as any).latestSeenTimestamp = 200;
 
     chatState.clearHistory();
 
     expect((chatState as any).messages).toHaveLength(0);
+    // latestSeenTimestamp is intentionally preserved so the next poll
+    // only fetches new messages rather than re-fetching cleared history
+    expect((chatState as any).latestSeenTimestamp).toBe(200);
   });
 });
