@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { Chart, type ChartConfiguration, type Plugin } from "chart.js";
   import { browser } from "$app/environment";
   import "../../lib/chartSetup"; // Ensure Chart.js defaults are loaded

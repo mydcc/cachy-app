@@ -94,6 +94,9 @@ export class WebGpuCalculator {
     this.pipelines.set('williamsR', await this.createComputePipeline(wrShader));
     this.pipelines.set('momentum', await this.createComputePipeline(momShader));
 
+    if (import.meta.env.DEV) {
+      console.log('[WebGPU] Initialized pipelines');
+    }
   }
 
   private async createComputePipeline(shaderCode: string): Promise<GPUComputePipeline> {
@@ -136,6 +139,9 @@ export class WebGpuCalculator {
    * Destroy all per-frame cached GPU buffers. Call at end of calculate().
    */
   private clearFrameBuffers(): void {
+      if (import.meta.env.DEV && (this.frameBufferHits > 0 || this.frameBufferMisses > 0)) {
+          console.log(`[WebGPU] Frame buffer stats: ${this.frameBufferHits} reuses, ${this.frameBufferMisses} new uploads`);
+      }
       this.frameBufferCache.forEach(buf => buf.destroy());
       this.frameBufferCache.clear();
       this.frameBufferHits = 0;
@@ -630,8 +636,8 @@ export class WebGpuCalculator {
   }
   
   async calculateStochRaw(high: Float32Array, low: Float32Array, close: Float32Array, kLen: number): Promise<Float32Array> {
-      // Params: k_len, data_len
-      return this.compute('stochRaw', stochRawShader, [high, low, close], [kLen, high.length], high.length) as Promise<Float32Array>;
+      // Params: k_len, k_smooth (unused in raw), d_len (unused), data_len
+      return this.compute('stochRaw', stochRawShader, [high, low, close], [kLen, 0, 0, high.length], high.length) as Promise<Float32Array>;
   }
 
   async calculateSuperTrend(

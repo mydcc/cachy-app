@@ -37,9 +37,6 @@ class CloudService {
   constructor() { }
 
   async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
-    if (!token) {
-      throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
-    }
     if (this.connected) return;
 
     logger.log('network', 'Connecting to SpacetimeDB...', host);
@@ -48,7 +45,7 @@ class CloudService {
       this.conn = DbConnection.builder()
         .withUri(host)
         .withModuleName(dbName)
-        .withToken(token) // Enforce token
+        .withToken(token || "") // Anonymous or token
         .onConnect((ctx) => {
           logger.log('network', 'Connected to SpacetimeDB!', ctx);
           this.connected = true;

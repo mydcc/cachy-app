@@ -165,6 +165,8 @@ export async function runBenchmark(
       if (await WebGpuCalculator.isSupported()) engines.push('gpu');
   } catch(e) {}
 
+  console.log(`\n🏁 Starting Benchmark: engines=[${engines.join(', ')}], sizes=[${sizes.join(', ')}], ${warmup} warmup + ${runs} measured runs\n`);
+
   for (const size of sizes) {
     const klines = generateTestKlines(size);
     let tsMedian = 1; // Fallback for speedup calc

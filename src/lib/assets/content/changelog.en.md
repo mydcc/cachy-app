@@ -82,13 +82,13 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 ## <a name="v0.92.2"></a>Version 0.92.2 (December 11, 2025)
 
 - **New:** "Market Overview" displays 24h data (Price, Volume, Change) for the current symbol.
-- **New:** Expanded settings: Select API provider (Bitunix/Bitget) and market data update interval (1s, 1m, 10m).
+- **New:** Expanded settings: Select API provider (Bitunix/Binance) and market data update interval (1s, 1m, 10m).
 
 ---
 
 ## <a name="v0.92.1"></a>Version 0.92.1 (September 04, 2025)
 
-- **New:** Automatic ATR fetch from Bitget API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
+- **New:** Automatic ATR fetch from Binance API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
 - **New:** Advanced locking functions: The risk amount in currency can now be locked to calculate position size and risk percentage.
 - **New:** Keyboard shortcuts (`Alt+L/S/R/J`) added for faster operation.
 - **New:** Modals can now be closed with the `Escape` key or by clicking the background.

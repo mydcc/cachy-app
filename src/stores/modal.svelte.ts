@@ -24,7 +24,30 @@ import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { DialogWindow } from "../lib/windows/implementations/DialogWindow.svelte";
 import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";
 
+// Interface kept for backward compatibility if imported elsewhere,
+// though the state itself is no longer active.
+export interface ModalState {
+  title: string;
+  message: string;
+  type: "alert" | "confirm" | "prompt" | "symbolPicker";
+  defaultValue?: string;
+  isOpen: boolean;
+  resolve: ((value: boolean | string) => void) | null;
+  extraClasses?: string;
+}
+
 class ModalManager {
+    // Legacy state container - effectively unused by new logic
+    state = $state<ModalState>({
+        title: "",
+        message: "",
+        type: "alert",
+        defaultValue: "",
+        isOpen: false,
+        resolve: null,
+        extraClasses: "",
+    });
+
   show(
     title: string,
     message: string,
@@ -55,6 +78,14 @@ class ModalManager {
     });
   }
 
+  handleModalConfirm(result: boolean | string) {
+      // Deprecated: Logic is now handled within Window instances (DialogWindow/SymbolPickerWindow)
+      console.warn("modalState.handleModalConfirm called but is deprecated.");
+  }
+
+  close() {
+      // Deprecated
+  }
 }
 
 export const modalState = new ModalManager();

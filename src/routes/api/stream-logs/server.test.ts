@@ -56,12 +56,8 @@ describe('GET /api/stream-logs', () => {
     const envModule = await import('$env/dynamic/private');
     envModule.env.LOG_STREAM_KEY = 'secret-key';
 
-    const url = new URL('http://localhost/api/stream-logs');
-    const request = new Request(url, {
-      headers: new Headers({
-        'Authorization': 'Bearer wrong-token'
-      })
-    });
+    const url = new URL('http://localhost/api/stream-logs?token=wrong-token');
+    const request = new Request(url);
 
     const response = await GET({ request, url } as any);
 
@@ -73,12 +69,8 @@ describe('GET /api/stream-logs', () => {
     const envModule = await import('$env/dynamic/private');
     envModule.env.LOG_STREAM_KEY = 'secret-key';
 
-    const url = new URL('http://localhost/api/stream-logs');
-    const request = new Request(url, {
-      headers: new Headers({
-        'Authorization': 'Bearer secret-key'
-      })
-    });
+    const url = new URL('http://localhost/api/stream-logs?token=secret-key');
+    const request = new Request(url);
 
     // Mock signal to avoid issues if environment doesn't support it fully
     Object.defineProperty(request, 'signal', {
@@ -102,12 +94,8 @@ describe('GET /api/stream-logs', () => {
     envModule.env.LOG_STREAM_KEY = 'secret-key';
 
     // Use a token of same length to ensure timingSafeEqual is called (if length check is implemented)
-    const url = new URL('http://localhost/api/stream-logs');
-    const request = new Request(url, {
-      headers: new Headers({
-        'Authorization': 'Bearer wrong-key1'
-      })
-    });
+    const url = new URL('http://localhost/api/stream-logs?token=wrong-key1');
+    const request = new Request(url);
 
     await GET({ request, url } as any);
 

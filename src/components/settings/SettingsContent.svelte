@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import { settingsState } from "../../stores/settings.svelte";
     import { uiState } from "../../stores/ui.svelte";
     import { modalState } from "../../stores/modal.svelte";
     import { _ } from "../../locales/i18n";

@@ -30,7 +30,6 @@ export class EffectsState {
     }
 
     triggerSmash(element: HTMLElement, id: string) {
-        if (!element) return;
         const rect = element.getBoundingClientRect();
         this.smashTarget = { rect, id };
     }

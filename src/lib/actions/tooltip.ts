@@ -24,10 +24,12 @@ import {
   type Placement,
   autoUpdate,
 } from "@floating-ui/dom";
+import DOMPurify from "dompurify";
 
 export interface TooltipOptions {
   content: string;
   placement?: Placement;
+  allowHtml?: boolean;
   theme?: "dark" | "light" | "custom";
   delay?: number;
 }
@@ -40,14 +42,14 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
 
   let config: TooltipOptions =
     typeof options === "string"
-      ? { content: options, placement: "top", delay: 0 }
-      : { placement: "top", delay: 0, ...options };
+      ? { content: options, placement: "top", allowHtml: false, delay: 0 }
+      : { placement: "top", allowHtml: false, delay: 0, ...options };
 
   function updateConfig(newOptions: TooltipOptions | string) {
     config =
       typeof newOptions === "string"
-        ? { content: newOptions, placement: "top", delay: 0 }
-        : { placement: "top", delay: 0, ...newOptions };
+        ? { content: newOptions, placement: "top", allowHtml: false, delay: 0 }
+        : { placement: "top", allowHtml: false, delay: 0, ...newOptions };
 
     if (tooltipElement) {
       setContent();
@@ -60,7 +62,14 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
       ".tooltip-content-inner",
     );
     if (contentContainer) {
-      contentContainer.textContent = config.content;
+      if (config.allowHtml) {
+        contentContainer.innerHTML = DOMPurify.sanitize(config.content, {
+          ALLOWED_TAGS: ["b", "i", "em", "strong", "u", "a", "br", "span", "div"],
+          ALLOWED_ATTR: ["href", "title", "class", "style"],
+        });
+      } else {
+        contentContainer.textContent = config.content;
+      }
     }
   }
 

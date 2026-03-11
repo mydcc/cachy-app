@@ -36,7 +36,7 @@ class PresetManager {
       selectedPreset: this.selectedPreset,
     });
     fn(getSnapshot());
-    const cleanup = $effect.root(() => {
+    return $effect.root(() => {
       $effect(() => {
         const snap = getSnapshot(); // Track
         untrack(() => {
@@ -48,13 +48,6 @@ class PresetManager {
         });
       });
     });
-    return () => {
-      cleanup();
-      if (this.notifyTimer) {
-        clearTimeout(this.notifyTimer);
-        this.notifyTimer = null;
-      }
-    };
   }
 }
 

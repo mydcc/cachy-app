@@ -17,6 +17,7 @@
 
 import { describe, it, expect } from "vitest";
 import { TechnicalsPresenter } from "./technicalsPresenter";
+import { Decimal } from "decimal.js";
 
 describe("TechnicalsPresenter", () => {
     describe("getOscillatorContext", () => {

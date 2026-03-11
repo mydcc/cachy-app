@@ -158,38 +158,23 @@ describe('IncrementalCache', () => {
       const klines3 = generateKlines(10, 3000000);
       const klines4 = generateKlines(10, 4000000);
       
-      // Mock Date.now() to ensure deterministic timestamps
-      let now = 1000;
-      const originalDateNow = Date.now;
-      Date.now = () => now;
+      smallCache.set('SYM1', '1m', klines1, mockSettings, {}, generateMockResult());
+      smallCache.set('SYM2', '1m', klines2, mockSettings, {}, generateMockResult());
+      smallCache.set('SYM3', '1m', klines3, mockSettings, {}, generateMockResult());
       
-      try {
-        now = 1000;
-        smallCache.set('SYM1', '1m', klines1, mockSettings, {}, generateMockResult());
-        now = 2000;
-        smallCache.set('SYM2', '1m', klines2, mockSettings, {}, generateMockResult());
-        now = 3000;
-        smallCache.set('SYM3', '1m', klines3, mockSettings, {}, generateMockResult());
-        
-        // Access SYM1 and SYM3 to keep them alive
-        now = 4000;
-        smallCache.get('SYM1', '1m', klines1[klines1.length - 1].time);
-        now = 5000;
-        smallCache.get('SYM3', '1m', klines3[klines3.length - 1].time);
-        
-        // Add 4th entry - should evict SYM2 (least recently used)
-        now = 6000;
-        smallCache.set('SYM4', '1m', klines4, mockSettings, {}, generateMockResult());
-        
-        const stats = smallCache.getStats();
-        expect(stats.size).toBe(3); // Max size enforced
-        
-        // SYM2 should be evicted
-        const sym2Result = smallCache.get('SYM2', '1m', klines2[klines2.length - 1].time);
-        expect(sym2Result).toBeNull();
-      } finally {
-        Date.now = originalDateNow;
-      }
+      // Access SYM1 and SYM3 to keep them alive
+      smallCache.get('SYM1', '1m', klines1[klines1.length - 1].time);
+      smallCache.get('SYM3', '1m', klines3[klines3.length - 1].time);
+
+      // Add 4th entry - should evict SYM2 (least recently used)
+      smallCache.set('SYM4', '1m', klines4, mockSettings, {}, generateMockResult());
+
+      const stats = smallCache.getStats();
+      expect(stats.size).toBe(3); // Max size enforced
+
+      // SYM2 should be evicted
+      const sym2Result = smallCache.get('SYM2', '1m', klines2[klines2.length - 1].time);
+      expect(sym2Result).toBeNull();
     });
   });
   

@@ -86,7 +86,12 @@ self.addEventListener("fetch", (event) => {
         throw new Error("invalid response from fetch");
       }
 
-      const isCacheable = response.status === 200 && ASSETS.includes(url.pathname);
+      // CRITICAL FIX: Only cache static assets, NOT dynamic content
+      // This prevents Service Worker memory explosion from caching klines, news, API responses
+      const isCacheable =
+        response.status === 200 &&
+        ASSETS.includes(url.pathname) && // ONLY cache known static assets
+        !url.pathname.startsWith("/api/");
 
       if (isCacheable) {
         cache.put(fetchEvent.request, response.clone()).catch((err) => {

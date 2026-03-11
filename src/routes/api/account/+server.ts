@@ -54,10 +54,10 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const { exchange } = validation.data;
-    const creds = extractApiCredentials(request, validation.data);
-    const apiKey = creds.apiKey;
-    const apiSecret = creds.apiSecret;
-    const passphrase = creds.passphrase;
+    const creds = extractApiCredentials(request, body);
+    const apiKey = creds.apiKey || validation.data.apiKey;
+    const apiSecret = creds.apiSecret || validation.data.apiSecret;
+    const passphrase = creds.passphrase || validation.data.passphrase;
 
     if (!apiKey || !apiSecret) {
         return jsonError("Missing API Credentials", "MISSING_CREDENTIALS", 401);

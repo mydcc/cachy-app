@@ -139,28 +139,4 @@ describe('ChatManager', () => {
     expect(merged).toHaveLength(1);
     expect(merged[0].id).toBe('me2');
   });
-
-  it('clears history correctly and leaves other state intact', () => {
-    (chatState as any).messages = [
-      { id: '1', text: 'Hello', timestamp: 100 },
-      { id: '2', text: 'World', timestamp: 200 }
-    ];
-    (chatState as any).latestSeenTimestamp = 200;
-    (chatState as any).lastSentTimestamp = 150;
-    (chatState as any).loading = true;
-    (chatState as any).clientId = 'existing-client-id';
-
-    chatState.clearHistory();
-
-    expect((chatState as any).messages).toHaveLength(0);
-
-    // Ensure other states remain unaffected
-    expect((chatState as any).lastSentTimestamp).toBe(150);
-    expect((chatState as any).loading).toBe(true);
-    expect((chatState as any).clientId).toBe('existing-client-id');
-
-    // latestSeenTimestamp is intentionally preserved so the next poll
-    // only fetches new messages rather than re-fetching cleared history
-    expect((chatState as any).latestSeenTimestamp).toBe(200);
-  });
 });

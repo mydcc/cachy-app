@@ -18,6 +18,7 @@
 <script lang="ts">
     import { dataRepairService } from "../../services/dataRepairService";
     import { settingsState } from "../../stores/settings.svelte";
+    import { get } from "svelte/store";
     import { _ } from "../../locales/i18n";
 
     let missingAtrCount = $state(0);

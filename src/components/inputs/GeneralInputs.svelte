@@ -22,9 +22,9 @@
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
-
+  import { trackClick } from "../../lib/actions";
   import { trackCustomEvent } from "../../services/trackingService";
-
+  import { Decimal } from "decimal.js";
 
   interface Props {
     tradeType: string;

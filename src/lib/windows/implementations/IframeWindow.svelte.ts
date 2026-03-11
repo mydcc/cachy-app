@@ -44,17 +44,6 @@ export class IframeWindow extends WindowBase {
     }
 
     get componentProps() {
-        return {
-            url: this.url,
-            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups",
-            allow: "fullscreen"
-        };
-    }
-
-    public serialize(): any {
-        return {
-            ...super.serialize(),
-            url: this.url
-        };
+        return { url: this.url };
     }
 }

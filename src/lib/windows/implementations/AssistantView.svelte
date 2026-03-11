@@ -56,6 +56,8 @@
         }
     });
 
+    let errorTimeout: ReturnType<typeof setTimeout> | undefined;
+
     async function handleSend() {
         if (!messageText.trim()) return;
 
@@ -80,6 +82,10 @@
             messageText = "";
         } catch (e: any) {
             errorMessage = e.message || "Error";
+            // Critical fix: Do NOT auto-clear error after 3s.
+            // Users need to see what went wrong.
+            // if (errorTimeout) clearTimeout(errorTimeout);
+            // errorTimeout = setTimeout(() => (errorMessage = ""), 3000);
         } finally {
             isSending = false;
             // Keep focus only if not error?
@@ -87,6 +93,13 @@
             if (inputEl) inputEl.focus();
         }
     }
+
+    // Cleanup effect
+    $effect(() => {
+        return () => {
+            if (errorTimeout) clearTimeout(errorTimeout);
+        };
+    });
 
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === "Enter" && !e.shiftKey) {

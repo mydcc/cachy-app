@@ -2109,8 +2109,7 @@
     "connectButton": "Verbinden",
     "noMessages": "Noch keine Nachrichten.",
     "sendButton": "Senden",
-    "placeholder": "Sag Hallo...",
-    "connectionFailed": "Verbindung fehlgeschlagen"
+    "placeholder": "Sag Hallo..."
   },
   "jules": {
     "title": "Jules Inspektor",

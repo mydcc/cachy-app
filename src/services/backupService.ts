@@ -42,7 +42,6 @@ interface BackupFile {
   isEncrypted?: boolean;
   salt?: string; // Base64
   iv?: string; // Base64
-  kdfHash?: "SHA-512" | "SHA-256"; // PBKDF2 hash algorithm used for key derivation
 }
 
 /**
@@ -96,11 +95,10 @@ export async function createBackup(password?: string) {
 
   if (password) {
     const dataString = JSON.stringify(rawData);
-    const blob = await cryptoService.encrypt(dataString, password);
-    backupFile.encryptedData = blob.ciphertext;
-    backupFile.salt = blob.salt;
-    backupFile.iv = blob.iv;
-    backupFile.kdfHash = blob.kdfHash;
+    const { ciphertext, salt, iv } = await cryptoService.encrypt(dataString, password);
+    backupFile.encryptedData = ciphertext;
+    backupFile.salt = salt;
+    backupFile.iv = iv;
     backupFile.isEncrypted = true;
   } else {
     backupFile.data = rawData;
@@ -195,8 +193,7 @@ export async function restoreFromBackup(
           ciphertext: backup.encryptedData,
           salt: backup.salt,
           iv: backup.iv,
-          method: method,
-          kdfHash: backup.kdfHash
+          method: method
         }, password);
 
         data = JSON.parse(decryptedJson);

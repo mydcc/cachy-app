@@ -44,10 +44,6 @@
 
   $effect(() => {
     if (!videoEl) return;
-    // When the video element mounts or changes, attempt to play it immediately
-    videoEl.play().catch(() => {});
-
-    // Fallback observer
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!videoEl) return;
@@ -57,7 +53,7 @@
           videoEl.pause();
         }
       },
-      { threshold: 0.05 },
+      { threshold: 0.1 },
     );
     observer.observe(videoEl);
     return () => {
@@ -96,11 +92,7 @@
         muted
         loop
         playsinline
-        crossorigin="anonymous"
-        preload="auto"
-        oncanplay={() => {
-            if (videoEl) videoEl.play().catch(() => {});
-        }}
+        preload="metadata"
         onerror={() => (videoError = true)}
       ></video>
     {:else if settingsState.backgroundType === "animation"}

@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import fs from "fs/promises";
+import { promises as fs } from "fs";
 
 // Mock auth to bypass checks
 vi.mock("../../../lib/server/auth", () => ({

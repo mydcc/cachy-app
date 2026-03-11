@@ -18,7 +18,7 @@
 <script lang="ts">
   import { icons } from "../../lib/constants";
   import { debounce } from "../../utils/utils";
-  import { createEventDispatcher, untrack } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
@@ -116,60 +116,43 @@
   // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
   // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
   $effect(() => {
-    const currentSymbol = symbol;
-    const currentFocused = isSymbolFocused;
-
-    untrack(() => {
-      // Only update local from props if user is NOT focused
-      if (!currentFocused && currentSymbol !== localSymbol) {
-        localSymbol = currentSymbol || "";
-      }
-    });
+    // Only update local from props if:
+    // 1. User is NOT focused
+    // 2. OR user is focused, but prop changed AND it's not just a result of clearing
+    if (!isSymbolFocused && symbol !== localSymbol) {
+      localSymbol = symbol || "";
+    }
   });
 
   // Sync Numeric Inputs from Props to Local (One-way sync when NOT focused)
   $effect(() => {
-    const currentEntryPrice = format(entryPrice);
-    const currentFocused = isEntryPriceFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentEntryPrice !== localEntryPrice) {
-        localEntryPrice = currentEntryPrice;
-      }
-    });
+    if (!isEntryPriceFocused && format(entryPrice) !== localEntryPrice) {
+      localEntryPrice = format(entryPrice);
+    }
   });
 
   $effect(() => {
-    const currentStopLossPrice = format(stopLossPrice);
-    const currentFocused = isStopLossPriceFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentStopLossPrice !== localStopLossPrice) {
-        localStopLossPrice = currentStopLossPrice;
-      }
-    });
+    if (
+      !isStopLossPriceFocused &&
+      format(stopLossPrice) !== localStopLossPrice
+    ) {
+      localStopLossPrice = format(stopLossPrice);
+    }
   });
 
   $effect(() => {
-    const currentAtrValue = format(atrValue);
-    const currentFocused = isAtrValueFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentAtrValue !== localAtrValue) {
-        localAtrValue = currentAtrValue;
-      }
-    });
+    if (!isAtrValueFocused && format(atrValue) !== localAtrValue) {
+      localAtrValue = format(atrValue);
+    }
   });
 
   $effect(() => {
-    const currentAtrMultiplier = format(atrMultiplier);
-    const currentFocused = isAtrMultiplierFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentAtrMultiplier !== localAtrMultiplier) {
-        localAtrMultiplier = currentAtrMultiplier;
-      }
-    });
+    if (
+      !isAtrMultiplierFocused &&
+      format(atrMultiplier) !== localAtrMultiplier
+    ) {
+      localAtrMultiplier = format(atrMultiplier);
+    }
   });
 
   function toggleAtrSl() {

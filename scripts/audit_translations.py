@@ -36,7 +36,7 @@ if len(sys.argv) > 1:
     PROJECT_ROOT = Path(sys.argv[1]).resolve()
 else:
     # Use script location to find project root
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
 SRC_DIR = PROJECT_ROOT / 'src'
 DE_TRANSLATIONS = SRC_DIR / 'locales/locales/de.json'

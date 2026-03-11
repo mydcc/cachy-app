@@ -20,23 +20,16 @@
 
     interface Props {
         window: WindowBase & { url: string };
-        sandbox?: string;
-        allow?: string;
     }
 
-    let {
-        window: win,
-        sandbox = "allow-scripts allow-same-origin allow-forms allow-popups",
-        allow = "fullscreen"
-    }: Props = $props();
+    let { window: win }: Props = $props();
 </script>
 
 <div class="iframe-view-container">
     <iframe
         src={win.url}
         title={win.title}
-        {allow}
-        {sandbox}
+        allow="xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
     ></iframe>
 </div>
 
