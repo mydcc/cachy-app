@@ -50,10 +50,9 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const { apiKey: bodyKey, apiSecret: bodySecret } = result.data;
-  const creds = extractApiCredentials(request, body);
-  const apiKey = creds.apiKey || bodyKey;
-  const apiSecret = creds.apiSecret || bodySecret;
+  const creds = extractApiCredentials(request, result.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
 
   if (!apiKey || !apiSecret) {
       return json({ error: "Missing API Credentials" }, { status: 401 });
