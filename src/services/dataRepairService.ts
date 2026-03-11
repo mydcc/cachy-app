@@ -91,7 +91,7 @@ async function fetchSmartKlines(
         if (!isNotFound) {
           logger.warn(
             "journal",
-            `[DataRepair] ${p} fetch failed for ${symbol}: ${e.message}`,
+            `[DataRepair] ${p} fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
           );
         }
         throw e;
@@ -99,7 +99,7 @@ async function fetchSmartKlines(
     });
 
     return await Promise.any(promises);
-  } catch (AggregateError) {
+  } catch (_e) {
     return null;
   }
 }
