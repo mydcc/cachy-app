@@ -10,12 +10,6 @@
 import { z } from "zod";
 import { Decimal } from "decimal.js";
 
-/**
- * Common regex for validating numeric strings
- * Allows integers and decimals, positive or negative
- */
-const numericStringRegex = /^-?\d+(\.\d+)?$/;
-
 const NumericString = z.union([z.number(), z.string()])
   .refine((val) => {
     try {

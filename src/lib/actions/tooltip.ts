@@ -231,7 +231,10 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
 
   function removeTooltip() {
     if (timer) clearTimeout(timer);
-    if (cleanup) cleanup();
+    if (cleanup) {
+      cleanup();
+      cleanup = null;
+    }
     if (tooltipElement) {
       tooltipElement.remove();
       tooltipElement = null;

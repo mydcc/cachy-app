@@ -22,7 +22,7 @@
  * Handles order execution, validation, and lifecycle management.
  */
 
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";

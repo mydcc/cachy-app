@@ -233,8 +233,18 @@ class MarketWatcher {
     }
 
     if (this.prunedRequestIds.size > 1000) {
-        this.prunedRequestIds.clear();
-        logger.warn("market", "[MarketWatcher] Cleared prunedRequestIds to prevent memory leak");
+        // Only evict entries whose finally blocks have already run
+        // (i.e., no longer tracked in requestStartTimes).
+        // Keys still in requestStartTimes may have active finally blocks
+        // that need to check prunedRequestIds to avoid double-decrement.
+        let evicted = 0;
+        for (const id of this.prunedRequestIds) {
+            if (!this.requestStartTimes.has(id) && !this.pendingRequests.has(id)) {
+                this.prunedRequestIds.delete(id);
+                evicted++;
+            }
+        }
+        logger.warn("market", `[MarketWatcher] Evicted ${evicted} stale entries from prunedRequestIds (remaining: ${this.prunedRequestIds.size})`);
     }
   }
 
