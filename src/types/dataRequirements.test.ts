@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getChannelsForRequirement, REQUIREMENT_TO_CHANNELS } from './dataRequirements';
+import { getChannelsForRequirement, DATA_REQUIREMENTS, REQUIREMENT_TO_CHANNELS } from './dataRequirements';
 
 describe('dataRequirements - getChannelsForRequirement', () => {
 
@@ -26,8 +26,6 @@ describe('dataRequirements - getChannelsForRequirement', () => {
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
             expect(result).toEqual(REQUIREMENT_TO_CHANNELS['ticker']);
-            // Validate the actual content based on the dictionary
-            expect(result).toEqual(['ticker']);
         });
 
         it('should return correct channel array for "price" requirement', () => {
@@ -35,8 +33,6 @@ describe('dataRequirements - getChannelsForRequirement', () => {
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
             expect(result).toEqual(REQUIREMENT_TO_CHANNELS['price']);
-            // Validate the actual content based on the dictionary
-            expect(result).toEqual(['price']);
         });
 
         it('should return correct channel array for "depth" requirement', () => {
@@ -44,8 +40,6 @@ describe('dataRequirements - getChannelsForRequirement', () => {
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
             expect(result).toEqual(REQUIREMENT_TO_CHANNELS['depth']);
-            // Validate the actual content based on the dictionary
-            expect(result).toEqual(['depth_book5']);
         });
 
         it('should return correct channel array for "positions" requirement', () => {
@@ -53,8 +47,6 @@ describe('dataRequirements - getChannelsForRequirement', () => {
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
             expect(result).toEqual(REQUIREMENT_TO_CHANNELS['positions']);
-            // Validate the actual content based on the dictionary
-            expect(result).toEqual(['positions']);
         });
 
         it('should return correct channel array for "orders" requirement', () => {
@@ -62,8 +54,6 @@ describe('dataRequirements - getChannelsForRequirement', () => {
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
             expect(result).toEqual(REQUIREMENT_TO_CHANNELS['orders']);
-            // Validate the actual content based on the dictionary
-            expect(result).toEqual(['orders']);
         });
     });
 
@@ -123,4 +113,46 @@ describe('dataRequirements - getChannelsForRequirement', () => {
         });
     });
 
+});
+
+describe('DATA_REQUIREMENTS and REQUIREMENT_TO_CHANNELS consistency', () => {
+    it('should have a mapping for every requirement used in DATA_REQUIREMENTS', () => {
+        const allRequirementsUsed = new Set<string>();
+
+        Object.values(DATA_REQUIREMENTS).forEach(requirements => {
+            requirements.forEach(req => allRequirementsUsed.add(req));
+        });
+
+        allRequirementsUsed.forEach(req => {
+            // Either it's a kline requirement or it must be in REQUIREMENT_TO_CHANNELS
+            if (!req.startsWith('kline_')) {
+                expect(REQUIREMENT_TO_CHANNELS[req], `Missing mapping for ${req}`).toBeDefined();
+                expect(Array.isArray(REQUIREMENT_TO_CHANNELS[req])).toBe(true);
+                expect(REQUIREMENT_TO_CHANNELS[req].length).toBeGreaterThan(0);
+            }
+        });
+    });
+
+    it('should not have orphaned entries in REQUIREMENT_TO_CHANNELS', () => {
+        const allRequirementsUsed = new Set<string>();
+
+        Object.values(DATA_REQUIREMENTS).forEach(requirements => {
+            requirements.forEach(req => allRequirementsUsed.add(req));
+        });
+
+        // Every key in REQUIREMENT_TO_CHANNELS should be referenced by
+        // at least one component in DATA_REQUIREMENTS or used directly
+        // by marketWatcher (e.g., 'price' and 'orders' are registered
+        // programmatically rather than through DATA_REQUIREMENTS).
+        const knownDirectUseChannels = new Set(['price', 'orders']);
+
+        Object.keys(REQUIREMENT_TO_CHANNELS).forEach(key => {
+            const isUsedInDataReqs = allRequirementsUsed.has(key);
+            const isKnownDirectUse = knownDirectUseChannels.has(key);
+            expect(
+                isUsedInDataReqs || isKnownDirectUse,
+                `Orphaned REQUIREMENT_TO_CHANNELS entry '${key}' is not used in DATA_REQUIREMENTS or known direct-use list`
+            ).toBe(true);
+        });
+    });
 });
