@@ -28,6 +28,7 @@ import { calculationStrategy } from './calculationStrategy';
 import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator';
 import { indicatorState } from '../stores/indicator.svelte';
 import type { IndicatorSettings } from '../types/indicators';
+import { logger } from './logger';
 
 export interface BenchmarkRun {
   engine: 'ts' | 'wasm' | 'gpu';
@@ -126,7 +127,8 @@ export async function benchmarkEngine(
       } else {
         return []; // Engine not available
       }
-    } catch {
+    } catch (e) {
+      logger.error('technicals', `Engine ${engine} failed during benchmark`, e);
       return []; // Engine failed
     }
 
@@ -158,12 +160,16 @@ export async function runBenchmark(
   try {
       const { wasmCalculator } = await import('./wasmCalculator');
       if (wasmCalculator.isAvailable()) engines.push('wasm');
-  } catch(e) {}
+  } catch (e) {
+      logger.debug('technicals', 'Failed to load wasmCalculator', e);
+  }
   
   try {
       const { WebGpuCalculator } = await import('./webGpuCalculator');
       if (await WebGpuCalculator.isSupported()) engines.push('gpu');
-  } catch(e) {}
+  } catch (e) {
+      logger.debug('technicals', 'Failed to load WebGpuCalculator', e);
+  }
 
   for (const size of sizes) {
     const klines = generateTestKlines(size);
