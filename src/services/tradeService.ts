@@ -144,7 +144,7 @@ class TradeService {
         if (payload instanceof Decimal) return payload.toString();
 
         // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
-        if (typeof payload === 'object' && payload !== null && typeof payload.isZero === 'function' && typeof payload.toFixed === 'function') {
+        if (Decimal.isDecimal(payload)) {
             return payload.toString();
         }
 

@@ -60,7 +60,16 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
       ".tooltip-content-inner",
     );
     if (contentContainer) {
-      contentContainer.textContent = config.content;
+      if (config.allowHtml) {
+        const sanitized = DOMPurify.sanitize(config.content, {
+          ALLOWED_TAGS: ["b", "i", "em", "strong", "u", "a", "br", "span", "div"],
+          ALLOWED_ATTR: ["href", "title", "class", "style"],
+          RETURN_DOM_FRAGMENT: true,
+        });
+        contentContainer.replaceChildren(sanitized);
+      } else {
+        contentContainer.textContent = config.content;
+      }
     }
   }
 
@@ -226,6 +235,7 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
     if (tooltipElement) {
       tooltipElement.remove();
       tooltipElement = null;
+      arrowElement = null;
     }
   }
 
