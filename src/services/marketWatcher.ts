@@ -224,6 +224,17 @@ class MarketWatcher {
             this.prunedRequestIds.add(key);
         }
     });
+
+    // Bounds for unbounded caches to prevent OOM
+    if (this.exhaustedHistory.size > 1000) {
+        this.exhaustedHistory.clear();
+        logger.warn("market", "[MarketWatcher] Cleared exhaustedHistory to prevent memory leak");
+    }
+
+    if (this.prunedRequestIds.size > 1000) {
+        this.prunedRequestIds.clear();
+        logger.warn("market", "[MarketWatcher] Cleared prunedRequestIds to prevent memory leak");
+    }
   }
 
   public startPolling() {
@@ -752,6 +763,12 @@ class MarketWatcher {
   public forceCleanup() {
     this.requests.clear();
     this.pendingRequests.clear();
+    this.requestStartTimes.clear();
+    this.exhaustedHistory.clear();
+    this.prunedRequestIds.clear();
+    this.historyLocks.clear();
+    this.staggerTimeouts.forEach(clearTimeout);
+    this.staggerTimeouts.clear();
     this.inFlight = 0;
     this.syncSubscriptions();
     this._subscriptionsDirty = false;

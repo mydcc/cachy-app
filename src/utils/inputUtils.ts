@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 
 export type NumberInputOptions = {
   decimalPlaces?: number;
@@ -49,10 +49,19 @@ export function numberInput(
 
   const updateStickyPrecision = (value: string) => {
     const cleanValue = value.replace(",", ".").trim();
-    if (cleanValue === "" || isNaN(parseFloat(cleanValue))) {
+    if (cleanValue === "") {
       stickyDecimalPlaces = null;
-    } else {
-      stickyDecimalPlaces = getDecimalPlaces(cleanValue);
+      return;
+    }
+    try {
+      const d = new Decimal(cleanValue);
+      if (!d.isFinite() || d.isNaN()) {
+        stickyDecimalPlaces = null;
+      } else {
+        stickyDecimalPlaces = getDecimalPlaces(cleanValue);
+      }
+    } catch {
+      stickyDecimalPlaces = null;
     }
   };
 
@@ -166,15 +175,20 @@ export function numberInput(
     const rawValue = node.value.replace(",", ".");
     const cursorPosition = node.selectionStart ?? rawValue.length;
 
-    if (rawValue.trim() === "" || isNaN(parseFloat(rawValue))) {
+    if (rawValue.trim() === "") {
       handleEmptyInputArrow(operation);
       return;
     }
 
     try {
+      const d = new Decimal(rawValue);
+      if (!d.isFinite() || d.isNaN()) {
+        handleEmptyInputArrow(operation);
+        return;
+      }
       performStep(rawValue, operation, cursorPosition);
     } catch (error) {
-      console.error("Error in handleKeyDown:", error);
+      handleEmptyInputArrow(operation);
     }
   }
 
