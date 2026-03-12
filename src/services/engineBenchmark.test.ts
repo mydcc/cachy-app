@@ -178,6 +178,11 @@ describe('engineBenchmark', () => {
       expect(calculationStrategy.recordMetrics).toHaveBeenCalledWith('ts', expect.any(Number), true, 100);
       expect(calculationStrategy.recordMetrics).toHaveBeenCalledWith('gpu', expect.any(Number), true, 100);
       expect(calculationStrategy.recordMetrics).not.toHaveBeenCalledWith('wasm', expect.any(Number), true, 100);
+
+      // Restore default implementations to prevent persistent mocks from leaking.
+      // clearAllMocks() only clears call history, not mockRejectedValue/mockResolvedValue.
+      (wasmCalculator.calculate as any).mockReset();
+      (webGpuCalculator.calculate as any).mockReset();
     });
   });
 });
