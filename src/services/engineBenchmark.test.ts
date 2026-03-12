@@ -54,6 +54,9 @@ vi.mock('./webGpuCalculator', () => {
 
 describe('engineBenchmark', () => {
   beforeEach(() => {
+    // Use clearAllMocks (not resetAllMocks) to preserve default mock implementations
+    // from vi.mock() factories (e.g., isAvailable defaults to true, isSupported to true).
+    // resetAllMocks would reset implementations to () => undefined, silently breaking tests.
     vi.clearAllMocks();
   });
 
