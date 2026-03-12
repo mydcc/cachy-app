@@ -93,7 +93,7 @@ function percentile(values: number[], p: number): number {
 /**
  * Run benchmark for a single engine at a given data size
  */
-async function benchmarkEngine(
+export async function benchmarkEngine(
   engine: 'ts' | 'wasm' | 'gpu',
   klines: any[],
   settings: IndicatorSettings,
