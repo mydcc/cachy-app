@@ -97,6 +97,37 @@ describe('extractApiCredentials', () => {
         });
     });
 
+    it('should safely handle array body type', () => {
+        const request = new Request('http://localhost');
+
+        expect(extractApiCredentials(request, ['a', 'b'])).toEqual({
+            apiKey: undefined,
+            apiSecret: undefined,
+            passphrase: undefined
+        });
+    });
+
+    it('should fall back to body when header is empty string', () => {
+        const headers = new Headers();
+        headers.set('x-api-key', '');
+        headers.set('x-api-secret', '');
+        headers.set('x-api-passphrase', '');
+
+        const request = new Request('http://localhost', { headers });
+        const body = {
+            apiKey: 'body-key',
+            apiSecret: 'body-secret',
+            passphrase: 'body-passphrase'
+        };
+        const result = extractApiCredentials(request, body);
+
+        expect(result).toEqual({
+            apiKey: 'body-key',
+            apiSecret: 'body-secret',
+            passphrase: 'body-passphrase'
+        });
+    });
+
     it('should convert body properties to strings', () => {
         const request = new Request('http://localhost');
         const body = {
