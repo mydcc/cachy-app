@@ -23,7 +23,7 @@
         type PatternDefinition,
     } from "../../services/candlestickPatterns";
     import CandlestickChart from "./CandlestickChart.svelte";
-    import { renderTrustedMarkdown } from "../../utils/markdownUtils";
+    import { markdown } from "../../actions/markdown";
     import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
 
@@ -119,9 +119,6 @@
         return text;
     }
 
-    function renderMarkdown(text: string) {
-        return renderTrustedMarkdown(text);
-    }
 </script>
 
 <div class="flex flex-col md:flex-row h-full gap-4">
@@ -292,14 +289,13 @@
                         >
                             {$_("chartPatterns.description")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
-                                getLocalizedText(
-                                    currentPattern.id,
-                                    "description",
-                                ),
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern.id,
+                                "description",
                             )}
-                        </div>
+                        ></div>
                     </div>
                 </div>
 
@@ -314,14 +310,13 @@
                         >
                             {$_("chartPatterns.tradingStrategy")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
-                                getLocalizedText(
-                                    currentPattern.id,
-                                    "indicatorCombination",
-                                ) || "No specific strategy data available.",
-                            )}
-                        </div>
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern.id,
+                                "indicatorCombination",
+                            ) || "No specific strategy data available."}
+                        ></div>
                     </div>
 
                     <!-- Interpretation -->
@@ -333,14 +328,13 @@
                         >
                             {$_("chartPatterns.interpretation")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(
-                                getLocalizedText(
-                                    currentPattern.id,
-                                    "interpretation",
-                                ),
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern.id,
+                                "interpretation",
                             )}
-                        </div>
+                        ></div>
                     </div>
                 </div>
             </div>
