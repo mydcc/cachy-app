@@ -86,6 +86,11 @@ export type DataRequirement =
  * @returns Array of WebSocket channel names
  */
 export function getChannelsForRequirement(requirement: string): string[] {
+  // Guard against null/undefined or non-strings from JS land
+  if (!requirement || typeof requirement !== 'string') {
+    return [];
+  }
+
   // Handle kline specially (timeframe-specific)
   if (requirement.startsWith('kline_')) {
     return [requirement]; // e.g., 'kline_1h', 'kline_5m'
