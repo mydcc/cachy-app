@@ -47,9 +47,9 @@ class CloudService {
     try {
       this.conn = DbConnection.builder()
         .withUri(host)
-        .withModuleName(dbName)
+        .withDatabaseName(dbName)
         .withToken(token) // Enforce token
-        .onConnect((ctx) => {
+        .onConnect((ctx: any) => {
           logger.log('network', 'Connected to SpacetimeDB!', ctx);
           this.connected = true;
 
@@ -62,7 +62,7 @@ class CloudService {
               .subscribeToAllTables();
           }
         })
-        .onDisconnect((ctx) => {
+        .onDisconnect((ctx: any) => {
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
         })

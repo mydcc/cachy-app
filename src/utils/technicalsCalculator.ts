@@ -606,12 +606,20 @@ function calculateMA(type: string, period: number, source: Float64Array, target:
         default: return;
     }
     const val = res[res.length - 1];
-    if (!isNaN(val)) {
+    if (val !== undefined && !isNaN(val)) {
         target.push({
             name: type,
             params: `${period}`,
             value: val,
             action: source[source.length - 1] > val ? "Buy" : "Sell"
+        });
+    } else {
+        // Falls val undefined/NaN ist (z.B. wegen zu wenig Daten)
+        target.push({
+            name: type,
+            params: `${period}`,
+            value: 0,
+            action: "Neutral"
         });
     }
 }
