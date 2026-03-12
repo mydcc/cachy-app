@@ -55,6 +55,16 @@ describe('dataRequirements - getChannelsForRequirement', () => {
             expect(Array.isArray(result)).toBe(true);
             expect(result).toEqual(REQUIREMENT_TO_CHANNELS['orders']);
         });
+
+        it('should return correct channels for all REQUIREMENT_TO_CHANNELS entries', () => {
+            const keys = Object.keys(REQUIREMENT_TO_CHANNELS);
+            expect(keys.length).toBeGreaterThan(0);
+
+            keys.forEach(req => {
+                const result = getChannelsForRequirement(req);
+                expect(result, `getChannelsForRequirement('${req}') returned unexpected value`).toEqual(REQUIREMENT_TO_CHANNELS[req]);
+            });
+        });
     });
 
     describe('Dynamic/Kline Requirements', () => {
