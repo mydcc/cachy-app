@@ -72,6 +72,7 @@
 
   // Local state for input to prevent immediate store updates
   let localSymbol = $state(symbol || "");
+  let lastPropSymbol = $state(symbol); // Track prop for external changes
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
@@ -120,8 +121,21 @@
     const currentFocused = isSymbolFocused;
 
     untrack(() => {
-      // Only update local from props if user is NOT focused
+      // 1. If prop changed externally (e.g. Preset), always sync even if focused
+      if (currentSymbol !== lastPropSymbol) {
+        localSymbol = currentSymbol || "";
+        lastPropSymbol = currentSymbol;
+        return;
+      }
+
+      // 2. Standard sync when NOT focused
       if (!currentFocused && currentSymbol !== localSymbol) {
+        // FIX: If user cleared the input, do NOT snap back to old prop value.
+        // The debounce will eventually update the prop/store to empty.
+        if (localSymbol === "" && currentSymbol !== "") {
+          return;
+        }
+
         localSymbol = currentSymbol || "";
       }
     });
