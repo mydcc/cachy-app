@@ -1605,7 +1605,8 @@
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
     "saveFailed": "Save failed.",
-    "modifyFailed": "Failed to modify order."
+    "modifyFailed": "Failed to modify order.",
+    "chatRateLimit": "Please wait 2 seconds between messages."
   },
   "modals": {
     "editTP": {
@@ -2098,7 +2099,8 @@
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
     "apiError": "API Error: {error}",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "flashCloseFailed": "Flash Close Failed: {error}"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",

@@ -9,6 +9,7 @@
 
 import { Decimal } from "decimal.js";
 import { parseTimestamp } from "../utils/utils";
+import { browser } from "$app/environment";
 
 export interface Position {
   positionId: string;
@@ -51,6 +52,62 @@ class AccountManager {
   assets = $state<Asset[]>([]);
 
   private syncCallback: (() => void) | null = null;
+  private pruneIntervalId: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+      if (browser) {
+          // Periodically prune definitively closed orders to prevent Svelte array memory leaks
+          // AND trigger a full REST API reconciliation to fix Zombie Orders/Positions
+          this.pruneIntervalId = setInterval(() => {
+              this.pruneOldData();
+              if (this.syncCallback) {
+                  this.syncCallback();
+              }
+          }, 10 * 60 * 1000); // Every 10 minutes
+      }
+  }
+
+  destroy() {
+      if (this.pruneIntervalId) {
+          clearInterval(this.pruneIntervalId);
+          this.pruneIntervalId = null;
+      }
+  }
+
+  pruneOldData() {
+      // Prevent unbounded array growth. We only keep the 100 most recent closed orders.
+      // All open orders are kept.
+      const closedStatuses = ["FILLED", "CANCELED", "PART_FILLED_CANCELED", "REJECTED", "EXPIRED"];
+
+      const openOrders = this.openOrders.filter(o => !closedStatuses.includes(o.status.toUpperCase()));
+      const closedOrders = this.openOrders.filter(o => closedStatuses.includes(o.status.toUpperCase()));
+
+      // Sort closed orders by timestamp descending (newest first)
+      closedOrders.sort((a, b) => b.timestamp - a.timestamp);
+
+      // Keep only top 100 closed orders
+      const keptClosedOrders = closedOrders.slice(0, 100);
+
+      // Combine and update
+      this.openOrders = [...openOrders, ...keptClosedOrders];
+
+      // Also ensure positions don't leak somehow, though they are inherently limited by the exchange
+      // We don't prune positions as aggressively, but we limit extreme outliers to 200 just in case.
+      if (this.positions.length > 200) {
+          this.positions = this.positions.slice(-200);
+      }
+  }
+
+  // Safe Decimal Helper specifically checking for valid finite inputs to prevent crash
+  private safeDecimal(val: any, fallback: Decimal): Decimal {
+      if (val === undefined || val === null) return fallback;
+      try {
+          const d = new Decimal(val);
+          return (d.isFinite() && !d.isNaN()) ? d : fallback;
+      } catch {
+          return fallback;
+      }
+  }
 
   reset() {
     this.positions = [];
@@ -73,7 +130,7 @@ class AccountManager {
     // Robust check for close event or zero quantity
     const isClose =
       data.event === "CLOSE" ||
-      new Decimal(data.qty || 0).isZero();
+      this.safeDecimal(data.qty, new Decimal(0)).isZero();
 
     if (isClose) {
       if (index !== -1) {
@@ -104,26 +161,22 @@ class AccountManager {
         return;
       }
 
-      // Safe Decimal Helpers
-      const safeDecimal = (val: any, fallback: Decimal) =>
-        val !== undefined && val !== null ? new Decimal(val) : fallback;
-
       if (existing) {
         const newPos: Position = {
           positionId: data.positionId,
           symbol: data.symbol,
           side: side,
-          size: safeDecimal(data.qty, existing.size),
-          entryPrice: safeDecimal(
+          size: this.safeDecimal(data.qty, existing.size),
+          entryPrice: this.safeDecimal(
             data.averagePrice || data.avgOpenPrice,
             existing.entryPrice,
           ),
-          leverage: safeDecimal(data.leverage, existing.leverage),
-          unrealizedPnl: safeDecimal(
+          leverage: this.safeDecimal(data.leverage, existing.leverage),
+          unrealizedPnl: this.safeDecimal(
             data.unrealizedPNL,
             existing.unrealizedPnl,
           ),
-          margin: safeDecimal(data.margin, existing.margin),
+          margin: this.safeDecimal(data.margin, existing.margin),
           marginMode: data.marginMode
             ? data.marginMode.toLowerCase()
             : existing.marginMode,
@@ -138,11 +191,11 @@ class AccountManager {
           positionId: data.positionId,
           symbol: data.symbol,
           side: side,
-          size: new Decimal(data.qty || 0),
-          entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
-          leverage: new Decimal(data.leverage || 0),
-          unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-          margin: new Decimal(data.margin || 0),
+          size: this.safeDecimal(data.qty, new Decimal(0)),
+          entryPrice: this.safeDecimal(data.averagePrice || data.avgOpenPrice, new Decimal(0)),
+          leverage: this.safeDecimal(data.leverage, new Decimal(0)),
+          unrealizedPnl: this.safeDecimal(data.unrealizedPNL, new Decimal(0)),
+          margin: this.safeDecimal(data.margin, new Decimal(0)),
           marginMode: data.marginMode ? data.marginMode.toLowerCase() : "cross",
           liquidationPrice: new Decimal(0),
           markPrice: new Decimal(0),
@@ -170,8 +223,6 @@ class AccountManager {
     } else {
       // Update or Create
       const existing = index !== -1 ? this.openOrders[index] : null;
-      const safeDecimal = (val: any, fallback: Decimal) =>
-        val !== undefined && val !== null ? new Decimal(val) : fallback;
 
       if (existing) {
         const newOrder: OpenOrder = {
@@ -179,9 +230,9 @@ class AccountManager {
           symbol: data.symbol,
           side: data.side ? data.side.toLowerCase() : existing.side,
           type: data.type ? data.type.toLowerCase() : existing.type,
-          price: safeDecimal(data.price, existing.price),
-          amount: safeDecimal(data.qty, existing.amount),
-          filled: safeDecimal(data.dealAmount, existing.filled),
+          price: this.safeDecimal(data.price, existing.price),
+          amount: this.safeDecimal(data.qty, existing.amount),
+          filled: this.safeDecimal(data.dealAmount, existing.filled),
           status: data.orderStatus || existing.status,
           timestamp: parseTimestamp(data.ctime) || existing.timestamp,
         };
@@ -192,9 +243,9 @@ class AccountManager {
           symbol: data.symbol,
           side: data.side ? data.side.toLowerCase() : "buy",
           type: data.type ? data.type.toLowerCase() : "limit",
-          price: new Decimal(data.price || 0),
-          amount: new Decimal(data.qty || 0),
-          filled: new Decimal(data.dealAmount || 0),
+          price: this.safeDecimal(data.price, new Decimal(0)),
+          amount: this.safeDecimal(data.qty, new Decimal(0)),
+          filled: this.safeDecimal(data.dealAmount, new Decimal(0)),
           status: data.orderStatus,
           timestamp: parseTimestamp(data.ctime) || Date.now(),
         };

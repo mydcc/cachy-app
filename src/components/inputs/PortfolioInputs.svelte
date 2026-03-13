@@ -28,6 +28,7 @@
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
+  import { Decimal } from "decimal.js";
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
 
@@ -93,12 +94,15 @@
     // Hardening: Treat empty input as null (if allowed) or "0" to prevent Decimal constructor crashes
     if (val === "") return allowEmpty ? null : "0";
 
-    const num = parseFloat(val);
-    if (isNaN(num)) return "0"; // Safe fallback
-
-    if (num < min) return String(min);
-    if (num > max) return String(max);
-    return val;
+    try {
+        const d = new Decimal(val);
+        if (!d.isFinite() || d.isNaN()) return "0";
+        if (d.lt(min)) return String(min);
+        if (d.gt(max)) return String(max);
+        return val;
+    } catch {
+        return "0"; // Safe fallback
+    }
   }
 
   function handleAccountSizeInput(e: Event) {
