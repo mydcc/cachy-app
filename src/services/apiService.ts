@@ -383,6 +383,15 @@ export const apiService = {
   },
 
   async safeJson(response: Response, maxSizeMB: number = 10) {
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+        const sizeMB = parseInt(contentLength, 10) / (1024 * 1024);
+        if (sizeMB > maxSizeMB) {
+            logger.error("network", `[API] Response too large based on headers: ${Math.round(sizeMB * 100) / 100}MB`);
+            throw new Error("apiErrors.responseTooLarge");
+        }
+    }
+
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
@@ -394,7 +403,7 @@ export const apiService = {
 
     const text = await response.text();
 
-    // Validate size
+    // Validate size (fallback if content-length is missing)
     if (!validateResponseSize(text, maxSizeMB)) {
       throw new Error("apiErrors.responseTooLarge");
     }

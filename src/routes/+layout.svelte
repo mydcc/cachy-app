@@ -176,17 +176,15 @@ import { afterNavigate } from "$app/navigation";
       // Stop if reason is null/undefined to avoid showing empty error modals
       if (event.reason === null || event.reason === undefined) return;
 
+      // Filter out common harmless network or cancellation errors (AbortError)
+      if (event.reason.name === "AbortError" || event.reason.code === 20) {
+        return;
+      }
+
       const message =
         event.reason instanceof Error
           ? event.reason.message
           : String(event.reason);
-
-      // Filter out common harmless network or cancellation errors
-      if (
-        message.includes("The user aborted a request") || // i18n-ignore
-        message === "AbortError"
-      )
-        return;
 
       uiState.showError(message);
     };
