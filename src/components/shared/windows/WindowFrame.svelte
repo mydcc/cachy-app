@@ -82,8 +82,7 @@
      * from the header bar.
      */
     function startDrag(e: PointerEvent) {
-        // Prevent movement if clicking control buttons
-        if ((e.target as HTMLElement).closest(".window-controls")) return;
+        if ((e.target as HTMLElement).closest(".window-controls") || (e.target as HTMLElement).closest(".header-controls")) return;
 
         isDragging = true;
         const target = e.currentTarget as HTMLElement;
@@ -427,11 +426,17 @@
             </div>
 
             {#if win.headerControls.length > 0 && !win.isMinimized}
-                <div class="header-controls">
+                <div 
+                    class="header-controls"
+                    onpointerdown={(e) => e.stopPropagation()}
+                    onclick={(e) => e.stopPropagation()}
+                    ondblclick={(e) => e.stopPropagation()}
+                >
                     {#each win.headerControls as ctrl}
                         <button
                             class="header-ctrl-btn"
                             class:active={ctrl.active}
+                            onpointerdown={(e) => e.stopPropagation()}
                             onclick={(e) => {
                                 e.stopPropagation();
                                 ctrl.action();
