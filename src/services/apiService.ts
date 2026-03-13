@@ -383,7 +383,7 @@ export const apiService = {
     if (contentLength) {
         const sizeMB = parseInt(contentLength, 10) / (1024 * 1024);
         if (sizeMB > maxSizeMB) {
-            logger.error("network", `[API] Response too large based on headers: ${sizeMB.toFixed(2)}MB`);
+            logger.error("network", `[API] Response too large based on headers: ${Math.round(sizeMB * 100) / 100}MB`);
             throw new Error("apiErrors.responseTooLarge");
         }
     }
