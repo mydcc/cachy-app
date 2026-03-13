@@ -41,7 +41,7 @@
     entryPrice: string | null;
     useAtrSl: boolean;
     atrValue: string | null;
-    atrMultiplier: number; // Multiplier kept as number (1.2 etc)
+    atrMultiplier: string | null; // Multiplier kept as number (1.2 etc)
     stopLossPrice: string | null;
     atrMode: "manual" | "auto";
     atrTimeframe: string;
@@ -324,20 +324,9 @@
     const value = target.value;
     localAtrMultiplier = value;
 
-    // Multiplier is still number in Store
-    if (/^\d*[.,]?\d*$/.test(value)) {
-      const normalized = value.replace(",", ".");
-      // Check for trailing dot to avoid parsing "1." as 1 immediately
-      if (!normalized.endsWith(".")) {
-          try {
-            const num = normalized === "" ? 0 : new Decimal(normalized).toNumber();
-            if (!isNaN(num) && atrMultiplier !== num) {
-              tradeState.update((s) => ({ ...s, atrMultiplier: num }));
-            }
-          } catch {
-            // Invalid decimal input
-          }
-      }
+    const validated = parseInputVal(value);
+    if (validated !== undefined && atrMultiplier !== validated) {
+      tradeState.update((s) => ({ ...s, atrMultiplier: validated }));
     }
   }
 
