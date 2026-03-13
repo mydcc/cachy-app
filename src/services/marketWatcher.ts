@@ -770,6 +770,20 @@ class MarketWatcher {
     return this.historyLocks.has(`${symbol}:${tf}`);
   }
 
+  destroy() {
+    this.isPolling = false;
+    if (this.startTimeout) {
+      clearTimeout(this.startTimeout);
+      this.startTimeout = null;
+    }
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
+    }
+    this.staggerTimeouts.forEach(clearTimeout);
+    this.staggerTimeouts.clear();
+  }
+
   // Safety valve: Force cleanup
   public forceCleanup() {
     this.requests.clear();
@@ -788,3 +802,10 @@ class MarketWatcher {
 }
 
 export const marketWatcher = new MarketWatcher();
+
+// HMR: Cleanup on module disposal to prevent timer leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    marketWatcher.destroy();
+  });
+}

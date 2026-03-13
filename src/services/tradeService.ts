@@ -537,7 +537,7 @@ class TradeService {
     }
     }
 
-    public async cancelTpSlOrder(order: any) {
+    public async cancelTpSlOrder(order: TpSlOrder) {
         return this.signedRequest("POST", "/api/tpsl", {
             action: "cancel",
             params: {
