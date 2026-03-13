@@ -25,7 +25,6 @@
 
 import { technicalsService } from './technicalsService';
 import { calculationStrategy } from './calculationStrategy';
-import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator';
 import { indicatorState } from '../stores/indicator.svelte';
 import type { IndicatorSettings } from '../types/indicators';
 import { logger } from './logger';
