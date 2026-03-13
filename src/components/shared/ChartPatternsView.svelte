@@ -20,7 +20,7 @@
     import { _ } from "../../locales/i18n";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
-    import { renderTrustedMarkdown } from "../../utils/markdownUtils";
+    import { markdown } from "../../actions/markdown";
     import { safeJsonParse } from "../../utils/safeJson";
     import "katex/dist/katex.min.css";
 
@@ -295,11 +295,13 @@
                         >
                             {$_("chartPatterns.description")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
-                                getLocalizedText(currentPattern, "description"),
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern,
+                                "description",
                             )}
-                        </div>
+                        ></div>
 
                         <!-- Characteristics -->
                         <h3
@@ -328,11 +330,13 @@
                         >
                             {$_("chartPatterns.tradingStrategy")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
-                                getLocalizedText(currentPattern, "trading"),
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern,
+                                "trading",
                             )}
-                        </div>
+                        ></div>
                     </div>
 
                     <!-- Interpretation / Advanced -->
@@ -344,28 +348,26 @@
                         >
                             {$_("chartPatterns.interpretation")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
-                                getLocalizedText(
-                                    currentPattern,
-                                    "advancedConsiderations",
-                                ),
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern,
+                                "advancedConsiderations",
                             )}
-                        </div>
+                        ></div>
 
                         <h3
                             class="text-sm font-bold uppercase text-[var(--text-secondary)] mt-4 mb-2"
                         >
                             {$_("chartPatterns.performance")}
                         </h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderTrustedMarkdown(
-                                getLocalizedText(
-                                    currentPattern,
-                                    "performanceStats",
-                                ),
+                        <div
+                            class="prose dark:prose-invert text-sm max-w-none"
+                            use:markdown={getLocalizedText(
+                                currentPattern,
+                                "performanceStats",
                             )}
-                        </div>
+                        ></div>
                     </div>
                 </div>
             </div>
