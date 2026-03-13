@@ -1627,7 +1627,8 @@
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
     "saveFailed": "Speichern fehlgeschlagen.",
-    "modifyFailed": "Änderung der Order fehlgeschlagen."
+    "modifyFailed": "Änderung der Order fehlgeschlagen.",
+    "chatRateLimit": "Bitte warten Sie 2 Sekunden zwischen den Nachrichten."
   },
   "modals": {
     "editTP": {

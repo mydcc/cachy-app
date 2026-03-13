@@ -9,6 +9,7 @@
 
 import { Decimal } from "decimal.js";
 import { parseTimestamp } from "../utils/utils";
+import { browser } from "$app/environment";
 
 export interface Position {
   positionId: string;
@@ -51,6 +52,51 @@ class AccountManager {
   assets = $state<Asset[]>([]);
 
   private syncCallback: (() => void) | null = null;
+  private pruneIntervalId: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+      if (browser) {
+          // Periodically prune definitively closed orders to prevent Svelte array memory leaks
+          // AND trigger a full REST API reconciliation to fix Zombie Orders/Positions
+          this.pruneIntervalId = setInterval(() => {
+              this.pruneOldData();
+              if (this.syncCallback) {
+                  this.syncCallback();
+              }
+          }, 10 * 60 * 1000); // Every 10 minutes
+      }
+  }
+
+  destroy() {
+      if (this.pruneIntervalId) {
+          clearInterval(this.pruneIntervalId);
+          this.pruneIntervalId = null;
+      }
+  }
+
+  pruneOldData() {
+      // Prevent unbounded array growth. We only keep the 100 most recent closed orders.
+      // All open orders are kept.
+      const closedStatuses = ["FILLED", "CANCELED", "PART_FILLED_CANCELED", "REJECTED", "EXPIRED"];
+
+      const openOrders = this.openOrders.filter(o => !closedStatuses.includes(o.status.toUpperCase()));
+      const closedOrders = this.openOrders.filter(o => closedStatuses.includes(o.status.toUpperCase()));
+
+      // Sort closed orders by timestamp descending (newest first)
+      closedOrders.sort((a, b) => b.timestamp - a.timestamp);
+
+      // Keep only top 100 closed orders
+      const keptClosedOrders = closedOrders.slice(0, 100);
+
+      // Combine and update
+      this.openOrders = [...openOrders, ...keptClosedOrders];
+
+      // Also ensure positions don't leak somehow, though they are inherently limited by the exchange
+      // We don't prune positions as aggressively, but we limit extreme outliers to 200 just in case.
+      if (this.positions.length > 200) {
+          this.positions = this.positions.slice(-200);
+      }
+  }
 
   // Safe Decimal Helper specifically checking for valid finite inputs to prevent crash
   private safeDecimal(val: any, fallback: Decimal): Decimal {

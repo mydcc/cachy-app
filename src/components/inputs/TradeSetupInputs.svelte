@@ -334,16 +334,21 @@
   // Determine dynamic step based on price magnitude
   let priceStep = $derived.by(() => {
     if (!entryPrice) return 0.01;
-    const price = parseFloat(entryPrice);
-    if (isNaN(price) || price === 0) return 0.01;
+    try {
+        const d = new Decimal(entryPrice);
+        if (!d.isFinite() || d.isNaN() || d.isZero()) return 0.01;
+        const price = d.toNumber();
 
-    // Dynamic precision for low-sat assets vs high-value assets
-    if (price > 1000) return 0.5;
-    if (price > 100) return 0.1;
-    if (price > 1) return 0.01;
-    if (price > 0.01) return 0.0001;
-    if (price > 0.0001) return 0.000001;
-    return 0.00000001;
+        // Dynamic precision for low-sat assets vs high-value assets
+        if (price > 1000) return 0.5;
+        if (price > 100) return 0.1;
+        if (price > 1) return 0.01;
+        if (price > 0.01) return 0.0001;
+        if (price > 0.0001) return 0.000001;
+        return 0.00000001;
+    } catch {
+        return 0.01;
+    }
   });
 
   // Copy to clipboard with smiley feedback

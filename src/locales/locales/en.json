@@ -1605,7 +1605,8 @@
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
     "saveFailed": "Save failed.",
-    "modifyFailed": "Failed to modify order."
+    "modifyFailed": "Failed to modify order.",
+    "chatRateLimit": "Please wait 2 seconds between messages."
   },
   "modals": {
     "editTP": {

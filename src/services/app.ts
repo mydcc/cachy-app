@@ -268,7 +268,14 @@ export const app = {
   },
 
   setupMarketSync: () => {
-    // Implementation of market sync if needed
+    // Register the reconciliation callback to prevent Zombie Orders
+    import("../stores/account.svelte").then(({ accountState }) => {
+      accountState.registerSyncCallback(() => {
+        if (settingsState.isPro && settingsState.apiProvider === "bitunix") {
+          app.syncBitunixHistory().catch(e => console.warn("[Sync] Background reconciliation failed", e));
+        }
+      });
+    });
   },
 
   calculateAndDisplay: () => {

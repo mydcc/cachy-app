@@ -268,14 +268,21 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              newsItems = data.results.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source?.title || "Unknown",
-                published_at: item.published_at,
-                currencies: item.currencies,
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
-              }));
+
+              // Harden mapping: Validate incoming data format
+              if (data && Array.isArray(data.results)) {
+                  newsItems = data.results.map((item: any) => ({
+                    title: String(item.title || "Untitled"),
+                    url: String(item.url || ""),
+                    source: String(item.source?.title || "Unknown"),
+                    published_at: String(item.published_at || new Date().toISOString()),
+                    currencies: Array.isArray(item.currencies) ? item.currencies : undefined,
+                    id: generateNewsId({ title: item.title || "", url: item.url || "", source: "", published_at: "" }),
+                  }));
+              } else {
+                  logger.warn("market", "[NewsService] CryptoPanic response missing 'results' array", data);
+              }
+
               apiQuotaTracker.logCall("cryptopanic", true);
             } else {
               const errorText = await res.text();
@@ -321,15 +328,21 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              const mapped = data.articles.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source.name,
-                published_at: item.publishedAt,
-                currencies: [],
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
-              }));
-              newsItems = [...newsItems, ...mapped];
+
+              if (data && Array.isArray(data.articles)) {
+                  const mapped = data.articles.map((item: any) => ({
+                    title: String(item.title || "Untitled"),
+                    url: String(item.url || ""),
+                    source: String(item.source?.name || "Unknown"),
+                    published_at: String(item.publishedAt || new Date().toISOString()),
+                    currencies: [],
+                    id: generateNewsId({ title: item.title || "", url: item.url || "", source: "", published_at: "" }),
+                  }));
+                  newsItems = [...newsItems, ...mapped];
+              } else {
+                  logger.warn("market", "[NewsService] NewsAPI response missing 'articles' array", data);
+              }
+
               apiQuotaTracker.logCall("newsapi", true);
             } else {
               const errorText = await res.text();

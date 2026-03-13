@@ -14,6 +14,9 @@ import { journalState } from "./journal.svelte";
 import { calculator } from "../lib/calculator";
 import { Decimal } from "decimal.js";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
+import type { TranslationKey } from "../locales/schema";
 
 export interface ChatMessage {
   id: string;
@@ -137,7 +140,7 @@ class ChatManager {
 
     // Rate Limit Check (2 seconds)
     if (now - this.lastSentTimestamp < 2000) {
-      throw new Error("Please wait 2 seconds between messages.");
+      throw new Error(get(_)("errors.chatRateLimit" as TranslationKey));
     }
 
     // Calculate own PF
