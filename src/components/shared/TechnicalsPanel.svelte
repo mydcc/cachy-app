@@ -216,13 +216,13 @@
         {/if}
         {#if loading}
           <div
-            class="animate-pulse w-2 h-2 bg-[var(--accent-color)] rounded-full"
+            class="animate-pulse w-indicator h-indicator bg-[var(--accent-color)] rounded-full"
           ></div>
         {:else}
           <div
-            class="w-2 h-2 rounded-full {data
-              ? 'bg-green-500'
-              : 'bg-red-500'} opacity-50"
+            class="w-indicator h-indicator rounded-full {data
+              ? 'bg-success'
+              : 'bg-danger'} opacity-50"
           ></div>
         {/if}
       </div>

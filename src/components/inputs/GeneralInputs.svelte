@@ -167,7 +167,7 @@
         <!-- Sync Indicator -->
         {#if remoteLev !== undefined}
           <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-colors duration-300 focus:outline-none z-30"
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
             style="background-color: {isLeverageSynced
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
@@ -208,7 +208,7 @@
         <!-- Sync Indicator for Fees -->
         {#if targetRemoteFee !== undefined}
           <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-colors duration-300 focus:outline-none z-30"
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
             style="background-color: {isFeeSynced
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"

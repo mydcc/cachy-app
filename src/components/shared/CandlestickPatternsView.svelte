@@ -184,17 +184,17 @@
 
                     {#if pattern.type.includes("Bullish")}
                         <span
-                            class="w-2 h-2 rounded-full bg-[var(--success-color)] flex-shrink-0"
+                            class="w-indicator h-indicator rounded-full bg-success flex-shrink-0"
                             title="Bullish"
                         ></span>
                     {:else if pattern.type.includes("Bearish")}
                         <span
-                            class="w-2 h-2 rounded-full bg-[var(--danger-color)] flex-shrink-0"
+                            class="w-indicator h-indicator rounded-full bg-danger flex-shrink-0"
                             title="Bearish"
                         ></span>
                     {:else}
                         <span
-                            class="w-2 h-2 rounded-full bg-[var(--text-tertiary)] flex-shrink-0"
+                            class="w-indicator h-indicator rounded-full bg-[var(--text-tertiary)] flex-shrink-0"
                             title="Neutral/Indecision"
                         ></span>
                     {/if}
