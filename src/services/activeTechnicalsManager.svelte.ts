@@ -438,14 +438,36 @@ class ActiveTechnicalsManager {
         // Volatility
         if (a.volatility?.atr?.toString() !== b.volatility?.atr?.toString()) return false;
 
-        // Deep verification for critical changes
-        try {
-            const cleanA = { ...a, lastUpdated: 0 };
-            const cleanB = { ...b, lastUpdated: 0 };
-            return JSON.stringify(cleanA) === JSON.stringify(cleanB);
-        } catch {
-            return false;
+        // Deep verification for critical changes (optimized to avoid JSON.stringify)
+        // We only care about the latest prices and main indicators that change frequently.
+        // Doing a full JSON.stringify on every tick causes heavy GC overhead.
+
+        if (!!a.indicators !== !!b.indicators) return false;
+
+        if (a.indicators && b.indicators) {
+            const keysA = Object.keys(a.indicators);
+            const keysB = Object.keys(b.indicators);
+            if (keysA.length !== keysB.length) return false;
+
+            for (const key of keysA) {
+                const indA = a.indicators[key];
+                const indB = b.indicators[key];
+                if (!indA || !indB) {
+                    if (indA !== indB) return false;
+                    continue;
+                }
+
+                // Compare last values
+                if (indA.value?.toString() !== indB.value?.toString()) return false;
+                // If it's a multi-value indicator (like MACD)
+                if (indA.histogram?.toString() !== indB.histogram?.toString()) return false;
+                if (indA.signal?.toString() !== indB.signal?.toString()) return false;
+                if (indA.upper?.toString() !== indB.upper?.toString()) return false;
+                if (indA.lower?.toString() !== indB.lower?.toString()) return false;
+            }
         }
+
+        return true;
     }
 
     private async performCalculation(symbol: string, timeframe: string) {
@@ -492,8 +514,9 @@ class ActiveTechnicalsManager {
         }
 
         // REAL-TIME SYNC:
-        // Inject latest price
+        // Inject latest price (Ensure we clone to avoid mutating reactive array unexpectedly)
         if (marketData.lastPrice) {
+            history = [...history]; // Fast shallow copy
             this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
         }
 
