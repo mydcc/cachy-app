@@ -381,7 +381,7 @@
                                         : handleMainSort("slAtr")}
                                 class="sortable"
                             >
-                                {$_("journal.table.sl")} (ATR)
+                                {$_("journal.table.sl")} ({$_("journal.table.atr")})
                                 <span class="sort-icon"
                                     >{activeSort === "slAtr"
                                         ? activeDir === "asc"
@@ -881,6 +881,9 @@
                                                     title={$_(
                                                         "journal.labels.view" as any,
                                                     )}
+                                                    aria-label={$_(
+                                                        "journal.labels.view" as any,
+                                                    )}
                                                 >
                                                     🖼️
                                                     <div
@@ -906,6 +909,9 @@
                                                     title={$_(
                                                         "journal.labels.removeScreenshot" as any,
                                                     )}
+                                                    aria-label={$_(
+                                                        "journal.labels.removeScreenshot" as any,
+                                                    )}
                                                 >
                                                     🗑️
                                                 </button>
@@ -915,6 +921,13 @@
                                                 onclick={() =>
                                                     triggerFileUpload(item.id)}
                                                 title={item.screenshot
+                                                    ? $_(
+                                                          "journal.labels.replaceScreenshot",
+                                                      )
+                                                    : $_(
+                                                          "journal.labels.uploadScreenshot",
+                                                      )}
+                                                aria-label={item.screenshot
                                                     ? $_(
                                                           "journal.labels.replaceScreenshot",
                                                       )
@@ -1021,6 +1034,9 @@
                                                 onclick={() =>
                                                     onDeleteTrade?.(item.id)}
                                                 title={$_(
+                                                    "journal.labels.delete" as any,
+                                                )}
+                                                aria-label={$_(
                                                     "journal.labels.delete" as any,
                                                 )}
                                             >
