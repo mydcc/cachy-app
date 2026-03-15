@@ -228,8 +228,12 @@ class MarketWatcher {
 
     // Bounds for unbounded caches to prevent OOM
     if (this.exhaustedHistory.size > 1000) {
+        const arr = Array.from(this.exhaustedHistory);
         this.exhaustedHistory.clear();
-        logger.warn("market", "[MarketWatcher] Cleared exhaustedHistory to prevent memory leak");
+        for (let i = 500; i < arr.length; i++) {
+            this.exhaustedHistory.add(arr[i]);
+        }
+        logger.warn("market", "[MarketWatcher] Pruned exhaustedHistory to prevent memory leak");
     }
 
     if (this.prunedRequestIds.size > 1000) {
@@ -551,10 +555,16 @@ class MarketWatcher {
       if (!klines || klines.length < 2) return klines || [];
 
       // Validating Decimal presence
-      if (klines[0] && !(klines[0].open instanceof Decimal)) {
-          // Fallback if somehow not Decimal, though types suggest it is.
-          // In strict TS, this check might not be needed if typed correctly, but for runtime safety:
-          return klines;
+      if (klines[0] && !Decimal.isDecimal(klines[0].open)) {
+          // Hardening: Fallback to convert everything to Decimal safely instead of returning raw number types
+          for (let i = 0; i < klines.length; i++) {
+              const k = klines[i];
+              k.open = new Decimal(k.open);
+              k.high = new Decimal(k.high);
+              k.low = new Decimal(k.low);
+              k.close = new Decimal(k.close);
+              k.volume = new Decimal(k.volume);
+          }
       }
 
       // Optimization: Fast scan for gaps to avoid allocation in happy path (99% of cases)
@@ -591,7 +601,7 @@ class MarketWatcher {
           if (!curr || typeof curr.time !== "number") continue;
 
           const diff = curr.time - prev.time;
-          if (diff > threshold) {
+          if (diff > threshold && intervalMs > 0) {
                // Calculate missing candles
                // Example: T=0, T=3. Diff=3. Interval=1. 3/1 - 1 = 2 missing (T+1, T+2).
                const gapCount = Math.floor(diff / intervalMs) - 1;

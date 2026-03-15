@@ -34,6 +34,8 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
 
 export interface TpSlOrder {
     orderId: string;
@@ -65,9 +67,9 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
-    FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
+    FETCH_FAILED: "tradeErrors.fetchFailed",
+    CLOSE_ALL_FAILED: "tradeErrors.closeAllFailed"
 };
 
 export class TradeError extends Error {
@@ -120,7 +122,7 @@ class TradeService {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
             // use the status code as the error code
             if (!response.ok) {
-                 throw new BitunixApiError(response.status, text || response.statusText);
+                 throw new BitunixApiError(response.status, "apiErrors.invalidResponse");
             }
         }
 
@@ -326,7 +328,8 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`Flash Close Failed: ${msg}`);
+            const translatedMsg = get(_)(msg as any) || msg;
+            toastService.error(`Flash Close Failed: ${translatedMsg}`);
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
@@ -471,7 +474,7 @@ class TradeService {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {
-             throw new Error("dashboard.alerts.noApiKeys");
+             throw new Error("apiErrors.missingCredentials");
         }
 
         if (provider === "bitunix") {
@@ -489,30 +492,8 @@ class TradeService {
              const BATCH_SIZE = 5;
              for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
                   const batch = fetchList.slice(i, i + BATCH_SIZE);
-                  const batchResults = await Promise.all(
-                      batch.map(async (sym) => {
-                          try {
-                              const params: any = {};
-                              if (sym) params.symbol = sym;
-
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
-                                  action: view,
-                                  params
-                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
-
-                              if (data.error) {
-                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
-                                  }
-                                  return [];
-                              }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-                          } catch (e: unknown) {
-                              logger.warn("market", `TP/SL network error for ${sym}`, e);
-                              return [];
-                          }
-                      })
-                  );
+                  const batchPromises = batch.map((sym) => this.fetchSingleTpSlOrder(sym, view));
+                  const batchResults = await Promise.all(batchPromises);
                   results.push(...batchResults.flat());
              }
 
@@ -535,6 +516,26 @@ class TradeService {
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }
+    }
+
+    private fetchSingleTpSlOrder(sym: string | undefined, view: string): Promise<TpSlOrder[]> {
+        const params: any = {};
+        if (sym) params.symbol = sym;
+
+        return this.signedRequest<any>("POST", "/api/tpsl", {
+            action: view,
+            params
+        })
+        .then(data => {
+            return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+        })
+        .catch(e => {
+            const errorStr = e instanceof Error ? e.message : String(e);
+            if (!errorStr.includes("code: 2")) { // Symbol not found
+                logger.warn("market", `TP/SL network/fetch error for ${sym}: ${errorStr}`);
+            }
+            return [];
+        });
     }
 
     public async cancelTpSlOrder(order: any) {

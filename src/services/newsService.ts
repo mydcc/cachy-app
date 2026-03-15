@@ -127,6 +127,8 @@ const pendingSentimentFetches = new Map<
 
 const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 mins
 
+let isPruningCaches = false;
+
 function shouldFetchNews(cached: NewsCacheEntry | undefined | null): boolean {
   if (!cached) {
     if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) return false;
@@ -153,7 +155,8 @@ function shouldFetchNews(cached: NewsCacheEntry | undefined | null): boolean {
 }
 
 async function pruneOldCaches() {
-  if (!isBrowser) return;
+  if (!isBrowser || isPruningCaches) return;
+  isPruningCaches = true;
 
   try {
     // Limit retrieval to 50 to prevent OOM if cache was flooded
@@ -168,6 +171,8 @@ async function pruneOldCaches() {
     }
   } catch (e) {
     logger.warn("market", "[pruneOldCaches] Failed to prune caches", e);
+  } finally {
+    isPruningCaches = false;
   }
 }
 
