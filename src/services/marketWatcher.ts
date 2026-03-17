@@ -232,6 +232,11 @@ class MarketWatcher {
         logger.warn("market", "[MarketWatcher] Cleared exhaustedHistory to prevent memory leak");
     }
 
+    if (this.historyLocks.size > 1000) {
+        this.historyLocks.clear();
+        logger.warn("market", "[MarketWatcher] Cleared historyLocks to prevent memory leak");
+    }
+
     if (this.prunedRequestIds.size > 1000) {
         // Only evict entries old enough that their finally blocks have
         // certainly already run (or will never run). The zombie timeout

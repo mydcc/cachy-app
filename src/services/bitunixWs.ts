@@ -882,6 +882,7 @@ class BitunixWebSocketService {
                     // HARDENING: Direct property access + Warning on Numeric Types
                     const safeString = (val: any, fieldName: string) => {
                         if (typeof val === 'number') {
+                            if (!isFinite(val) || isNaN(val)) throw new Error("Invalid number");
                             const now = Date.now();
                             if (now - this.lastNumericWarning > 60000) {
                                 logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Value: ${val}. Precision loss possible.`);
@@ -921,6 +922,7 @@ class BitunixWebSocketService {
                   try {
                     const safeString = (val: any, fieldName: string) => {
                         if (typeof val === 'number') {
+                            if (!isFinite(val) || isNaN(val)) throw new Error("Invalid number");
                             const now = Date.now();
                             if (now - this.lastNumericWarning > 60000) {
                                 logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Casting to string.`);

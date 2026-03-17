@@ -67,7 +67,8 @@ export class BitunixApiError extends Error {
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "trade.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    INVALID_AMOUNT: "apiErrors.invalidAmount"
 };
 
 export class TradeError extends Error {
@@ -193,8 +194,13 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error("tradeErrors.fetchFailed");
+                throw new Error(TRADE_ERRORS.FETCH_FAILED);
              }
+        }
+
+        if (position && (!Decimal.isDecimal(position.amount) || !position.amount.isFinite() || position.amount.isNaN())) {
+            logger.error("market", `[Freshness] Invalid position amount detected`, position);
+            throw new Error(TRADE_ERRORS.FETCH_FAILED);
         }
 
         if (!position) {
@@ -222,7 +228,7 @@ class TradeService {
             const position = await this.ensurePositionFreshness(symbol, positionSide);
 
             if (!position) {
-                throw new Error("tradeErrors.positionNotFound");
+                throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
             }
 
             // 2. Execute Close
@@ -234,7 +240,7 @@ class TradeService {
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
+                throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
             }
 
             const qty = position.amount.toString();
@@ -428,7 +434,7 @@ class TradeService {
         const position = await this.ensurePositionFreshness(symbol, positionSide);
 
         if (!position) {
-            throw new Error("tradeErrors.positionNotFound");
+            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -437,7 +443,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("tradeErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();

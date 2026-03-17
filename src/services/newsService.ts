@@ -423,6 +423,10 @@ export const newsService = {
       }
     })();
 
+    if (pendingNewsFetches.size > 100) {
+      pendingNewsFetches.clear();
+      logger.warn("market", "[NewsService] Cleared pendingNewsFetches to prevent memory leak");
+    }
     pendingNewsFetches.set(symbolKey, fetchPromise);
     return fetchPromise;
   },
@@ -512,6 +516,10 @@ export const newsService = {
       }
     })();
 
+    if (pendingSentimentFetches.size > 100) {
+      pendingSentimentFetches.clear();
+      logger.warn("ai", "[NewsService] Cleared pendingSentimentFetches to prevent memory leak");
+    }
     pendingSentimentFetches.set(newsHash, analysisPromise);
     return analysisPromise;
   },
