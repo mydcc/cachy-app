@@ -79,8 +79,8 @@ class AccountManager {
       // All open orders are kept.
       const closedStatuses = ["FILLED", "CANCELED", "PART_FILLED_CANCELED", "REJECTED", "EXPIRED"];
 
-      const openOrders = this.openOrders.filter(o => !closedStatuses.includes(o.status.toUpperCase()));
-      const closedOrders = this.openOrders.filter(o => closedStatuses.includes(o.status.toUpperCase()));
+      const openOrders = this.openOrders.filter(o => !closedStatuses.includes((o.status || "").toUpperCase()));
+      const closedOrders = this.openOrders.filter(o => closedStatuses.includes((o.status || "").toUpperCase()));
 
       // Sort closed orders by timestamp descending (newest first)
       closedOrders.sort((a, b) => b.timestamp - a.timestamp);
