@@ -279,11 +279,11 @@ export const newsService = {
                     currencies: Array.isArray(item.currencies) ? item.currencies : undefined,
                     id: generateNewsId({ title: item.title || "", url: item.url || "", source: "", published_at: "" }),
                   }));
+                  apiQuotaTracker.logCall("cryptopanic", true);
               } else {
                   logger.warn("market", "[NewsService] CryptoPanic response missing 'results' array", data);
+                  apiQuotaTracker.logCall("cryptopanic", false, "Response missing 'results' array");
               }
-
-              apiQuotaTracker.logCall("cryptopanic", true);
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
@@ -339,11 +339,11 @@ export const newsService = {
                     id: generateNewsId({ title: item.title || "", url: item.url || "", source: "", published_at: "" }),
                   }));
                   newsItems = [...newsItems, ...mapped];
+                  apiQuotaTracker.logCall("newsapi", true);
               } else {
                   logger.warn("market", "[NewsService] NewsAPI response missing 'articles' array", data);
+                  apiQuotaTracker.logCall("newsapi", false, "Response missing 'articles' array");
               }
-
-              apiQuotaTracker.logCall("newsapi", true);
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);

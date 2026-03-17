@@ -258,14 +258,16 @@ class AccountManager {
     if (data.coin === "USDT") {
       const idx = this.assets.findIndex((a) => a.currency === "USDT");
 
+      const available = this.safeDecimal(data.available, new Decimal(0));
+      const margin = this.safeDecimal(data.margin, new Decimal(0));
+      const frozen = this.safeDecimal(data.frozen, new Decimal(0));
+
       const newAsset = {
         currency: "USDT",
-        available: new Decimal(data.available || 0),
-        margin: new Decimal(data.margin || 0),
-        frozen: new Decimal(data.frozen || 0),
-        total: new Decimal(data.available || 0)
-          .plus(new Decimal(data.margin || 0))
-          .plus(new Decimal(data.frozen || 0)),
+        available,
+        margin,
+        frozen,
+        total: available.plus(margin).plus(frozen),
       };
 
       if (idx !== -1) {

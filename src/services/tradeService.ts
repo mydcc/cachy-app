@@ -329,7 +329,7 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            const errorMsg = get(_)("trade.flashCloseFailed" as TranslationKey).replace("{error}", msg);
+            const errorMsg = get(_)("trade.flashCloseFailed" as TranslationKey, { values: { error: msg } });
             toastService.error(errorMsg);
 
             // Return failure object instead of throwing
