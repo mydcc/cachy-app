@@ -2083,7 +2083,8 @@
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",
     "positionMismatch": "Position Seite stimmt nicht überein (erwartet {expected}, erhalten {actual})",
-    "dataError": "Dateninkonsistenz erkannt"
+    "dataError": "Dateninkonsistenz erkannt",
+    "invalidAmount": "Ungültige Ordergröße"
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",

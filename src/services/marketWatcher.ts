@@ -772,6 +772,14 @@ class MarketWatcher {
 
   // Safety valve: Force cleanup
   public forceCleanup() {
+    if (this.startTimeout) {
+      clearTimeout(this.startTimeout);
+      this.startTimeout = null;
+    }
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
+    }
     this.requests.clear();
     this.pendingRequests.clear();
     this.requestStartTimes.clear();

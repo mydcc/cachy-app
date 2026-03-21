@@ -67,7 +67,12 @@ export class BitunixApiError extends Error {
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "trade.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    MISSING_CREDENTIALS: "apiErrors.missingCredentials",
+    INVALID_AMOUNT: "tradeErrors.invalidAmount",
+    GENERIC: "apiErrors.generic",
+    NO_API_KEYS: "dashboard.alerts.noApiKeys",
+    FETCH_FAILED_API: "apiErrors.fetchFailed"
 };
 
 export class TradeError extends Error {
@@ -91,7 +96,7 @@ class TradeService {
         const keys = settingsState.apiKeys[provider];
 
         if (!keys || !keys.key) {
-            throw new Error("apiErrors.missingCredentials");
+            throw new Error(TRADE_ERRORS.MISSING_CREDENTIALS);
         }
 
         const headers: Record<string, string> = {
@@ -193,7 +198,7 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error("tradeErrors.fetchFailed");
+                throw new Error(TRADE_ERRORS.FETCH_FAILED);
              }
         }
 
@@ -222,7 +227,7 @@ class TradeService {
             const position = await this.ensurePositionFreshness(symbol, positionSide);
 
             if (!position) {
-                throw new Error("tradeErrors.positionNotFound");
+                throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
             }
 
             // 2. Execute Close
@@ -234,7 +239,7 @@ class TradeService {
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
+                throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
             }
 
             const qty = position.amount.toString();
@@ -349,7 +354,7 @@ class TradeService {
                 body: JSON.stringify({}),
             });
 
-            if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
+            if (!pendingResponse.ok) throw new Error(TRADE_ERRORS.FETCH_FAILED_API);
 
             const pendingText = await pendingResponse.text();
             const pendingResult = safeJsonParse(pendingText);
@@ -428,7 +433,7 @@ class TradeService {
         const position = await this.ensurePositionFreshness(symbol, positionSide);
 
         if (!position) {
-            throw new Error("tradeErrors.positionNotFound");
+            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -437,7 +442,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("tradeErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
@@ -461,7 +466,7 @@ class TradeService {
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
+            throw new Error(TRADE_ERRORS.GENERIC); // Or specific bulk error if we had one
         }
 
         return results;
@@ -471,7 +476,7 @@ class TradeService {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {
-             throw new Error("dashboard.alerts.noApiKeys");
+             throw new Error(TRADE_ERRORS.NO_API_KEYS);
         }
 
         if (provider === "bitunix") {
