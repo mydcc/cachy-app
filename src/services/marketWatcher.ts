@@ -551,7 +551,7 @@ class MarketWatcher {
       if (!klines || klines.length < 2) return klines || [];
 
       // Validating Decimal presence
-      if (klines[0] && !(klines[0].open instanceof Decimal)) {
+      if (klines[0] && !Decimal.isDecimal(klines[0].open)) {
           // Fallback if somehow not Decimal, though types suggest it is.
           // In strict TS, this check might not be needed if typed correctly, but for runtime safety:
           return klines;

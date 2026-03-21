@@ -65,9 +65,10 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
-    FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
+    FETCH_FAILED: "tradeErrors.fetchFailed",
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    INVALID_AMOUNT: "tradeErrors.invalidAmount"
 };
 
 export class TradeError extends Error {
@@ -193,7 +194,7 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error("tradeErrors.fetchFailed");
+                throw new Error(TRADE_ERRORS.FETCH_FAILED);
              }
         }
 
@@ -222,7 +223,7 @@ class TradeService {
             const position = await this.ensurePositionFreshness(symbol, positionSide);
 
             if (!position) {
-                throw new Error("tradeErrors.positionNotFound");
+                throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
             }
 
             // 2. Execute Close
@@ -428,7 +429,7 @@ class TradeService {
         const position = await this.ensurePositionFreshness(symbol, positionSide);
 
         if (!position) {
-            throw new Error("tradeErrors.positionNotFound");
+            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -437,7 +438,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("tradeErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();

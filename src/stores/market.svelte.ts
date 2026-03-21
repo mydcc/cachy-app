@@ -453,7 +453,7 @@ export class MarketManager {
     const current = this.getOrCreateSymbol(symbol);
 
     // [OPTIMIZATION] Deduplicate raw updates
-    if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
+    if (klines.length > 1 && (source === "ws" || !Decimal.isDecimal(klines[0]?.open))) {
         klines.sort((a, b) => a.time - b.time);
         const dedupedRaw: any[] = [];
         let lastTime = -1;
@@ -505,7 +505,7 @@ export class MarketManager {
                  const getNum = (val: any): number => {
                     if (typeof val === "number") return val;
                     if (typeof val === "string") return parseFloat(val);
-                    return val instanceof Decimal ? val.toNumber() : Number(val);
+                    return Decimal.isDecimal(val) ? val.toNumber() : Number(val);
                  };
 
                  backing.opens[lastIdx] = getNum(newRaw.open);
@@ -521,11 +521,11 @@ export class MarketManager {
     }
     // Normalize
     let newKlines: Kline[] = klines.map(k => ({
-      open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
-      high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
-      low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
-      close: k.close instanceof Decimal ? k.close : new Decimal(k.close),
-      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
+      open: Decimal.isDecimal(k.open) ? k.open : new Decimal(k.open),
+      high: Decimal.isDecimal(k.high) ? k.high : new Decimal(k.high),
+      low: Decimal.isDecimal(k.low) ? k.low : new Decimal(k.low),
+      close: Decimal.isDecimal(k.close) ? k.close : new Decimal(k.close),
+      volume: Decimal.isDecimal(k.volume) ? k.volume : new Decimal(k.volume),
       time: k.time
     }));
 

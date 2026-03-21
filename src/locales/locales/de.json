@@ -1519,6 +1519,9 @@
     "performance": "Performance"
   },
   "apiErrors": {
+    "invalidResponseFormat": "Invalid response format.",
+    "responseTooLarge": "Response is too large.",
+    "invalidJson": "Invalid JSON response.",
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
     "invalidResponse": "Invalid response from API.",
     "klineError": "Could not load candle data.",
