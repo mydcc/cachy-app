@@ -141,7 +141,6 @@ class TradeService {
         }
 
         if (!payload) return payload;
-        if (payload instanceof Decimal) return payload.toString();
 
         // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
         if (Decimal.isDecimal(payload)) {
@@ -193,7 +192,7 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error("tradeErrors.fetchFailed");
+                throw new Error("apiErrors.fetchFailed");
              }
         }
 
@@ -437,7 +436,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("tradeErrors.invalidAmount");
+             throw new Error("apiErrors.invalidAmount");
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
