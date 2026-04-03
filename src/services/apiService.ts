@@ -24,6 +24,15 @@ import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
 import { safeJsonParse } from "../utils/safeJson";
 import type { Kline } from "./technicalsTypes";
+export class ApiStatusError extends Error {
+  public status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "ApiStatusError";
+    this.status = status;
+  }
+}
+
 import {
   BitunixTickerResponseSchema,
   BitunixKlineSchema,
@@ -254,7 +263,7 @@ class RequestManager {
                 const errorMsg =
                   e instanceof Error ? e.message.toLowerCase() : "";
                 const is404 =
-                  errorMsg.includes("404") || (e as any).status === 404;
+                  errorMsg.includes("404") || (e instanceof ApiStatusError && e.status === 404);
                 const isSystemError = errorMsg.includes("system error");
 
                 // DON'T retry on 404 (Not Found) or "System error" (invalid symbol for Bitunix)
@@ -428,9 +437,7 @@ export const apiService = {
             signal,
           });
           if (response.status === 404) {
-            const error = new Error("apiErrors.symbolNotFound");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiStatusError("apiErrors.symbolNotFound", 404);
           }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const res = await apiService.safeJson(response);
@@ -449,21 +456,18 @@ export const apiService = {
           const validatedRes = validation.data;
 
           if (validatedRes.code !== undefined && validatedRes.code !== 0) {
-            const error = new Error(getBitunixErrorKey(validatedRes.code));
-            if (validatedRes.code === 2 || validatedRes.code === "2")
-              (error as any).status = 404;
-            throw error;
+            const is404 = validatedRes.code === 2 || validatedRes.code === "2";
+            throw new ApiStatusError(getBitunixErrorKey(validatedRes.code), is404 ? 404 : undefined);
           }
           if (!validatedRes.data || validatedRes.data.length === 0) {
-            const error = new Error("apiErrors.invalidResponse");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiStatusError("apiErrors.invalidResponse", 404);
           }
           const data = validatedRes.data[0];
           return data.lastPrice;
         } catch (e: unknown) {
           if (e instanceof Error && e.name === "AbortError") throw e;
-          if (e instanceof Error && ((e as any).status || (e.message && e.message.includes(".")))) throw e;
+          if (e instanceof ApiStatusError && e.status) throw e;
+          if (e instanceof Error && e.message && e.message.includes(".")) throw e;
           throw new Error("apiErrors.generic");
         }
       },
@@ -614,9 +618,7 @@ export const apiService = {
             signal,
           });
           if (response.status === 404) {
-            const error = new Error("apiErrors.symbolNotFound");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiStatusError("apiErrors.symbolNotFound", 404);
           }
           if (!response.ok) {
             // Try to parse error details
@@ -633,9 +635,7 @@ export const apiService = {
                 lowerErr.includes("symbol not found") ||
                 lowerErr.includes("system error")
               ) {
-                const error = new Error("apiErrors.symbolNotFound");
-                (error as any).status = 404;
-                throw error;
+                throw new ApiStatusError("apiErrors.symbolNotFound", 404);
               }
 
               // Log to proper logger
@@ -738,7 +738,8 @@ export const apiService = {
             logger.error("network", `fetchBitunixKlines error for ${symbol}`, e);
           }
           if (e instanceof Error && e.name === "AbortError") throw e;
-          if (e instanceof Error && ((e as any).status || (e.message && e.message.includes(".")))) throw e;
+          if (e instanceof ApiStatusError && e.status) throw e;
+          if (e instanceof Error && e.message && e.message.includes(".")) throw e;
           throw new Error("apiErrors.generic");
         }
       },
@@ -839,9 +840,7 @@ export const apiService = {
           });
 
           if (response.status === 404) {
-            const error = new Error("apiErrors.symbolNotFound");
-            (error as any).status = 404;
-            throw error;
+            throw new ApiStatusError("apiErrors.symbolNotFound", 404);
           }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const data = await apiService.safeJson(response);
