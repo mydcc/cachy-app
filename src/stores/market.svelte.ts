@@ -312,7 +312,9 @@ export class MarketManager {
           if (currentVal && currentVal.toString() === valStr) {
              return currentVal; // Reuse existing object
           }
-          return new Decimal(val);
+          const d = new Decimal(val);
+          if (!d.isFinite() || d.isNaN()) return undefined;
+          return d;
         } catch (e) {
           return undefined;
         }
@@ -480,11 +482,15 @@ export class MarketManager {
             // 1. Update History In-Place (Minimizing Decimal Allocations)
             // We use a helper to only create new Decimals if value changed
             const updateDecimal = (oldVal: Decimal, newVal: any): Decimal => {
+                let d: Decimal;
                 if (typeof newVal === "number") {
-                     return new Decimal(newVal);
+                     d = new Decimal(newVal);
+                } else {
+                    if (typeof newVal === "string" && oldVal.toString() === newVal) return oldVal;
+                    d = new Decimal(newVal);
                 }
-                if (typeof newVal === "string" && oldVal.toString() === newVal) return oldVal;
-                return new Decimal(newVal);
+                if (!d.isFinite() || d.isNaN()) return oldVal;
+                return d;
             };
 
             const updatedKline: Kline = {

@@ -1521,6 +1521,9 @@
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
     "invalidResponse": "Invalid response from API.",
+    "invalidResponseFormat": "Ungültiges Antwortformat, JSON erwartet.",
+    "responseTooLarge": "Antwort-Payload ist zu groß.",
+    "invalidJson": "API-Antwort konnte nicht als JSON geparst werden.",
     "klineError": "Could not load candle data.",
     "generic": "An unknown API error occurred.",
     "noMarketData": "No market data available.",

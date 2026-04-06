@@ -34,6 +34,23 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import { z } from "zod";
+
+export const TpSlOrderSchema = z.object({
+    id: z.string().optional(),
+    orderId: z.string().optional(),
+    symbol: z.string(),
+    planType: z.union([z.literal("PROFIT"), z.literal("LOSS"), z.string()]),
+    triggerPrice: z.union([z.string(), z.number()]).transform(String),
+    qty: z.union([z.string(), z.number()]).transform(String).optional(),
+    ctime: z.number().optional(),
+    createTime: z.number().optional()
+}).passthrough();
+
+export interface TpSlResponse {
+    rows?: TpSlOrder[];
+    [key: string]: any;
+}
 
 export interface TpSlOrder {
     orderId: string;
@@ -495,18 +512,25 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<TpSlResponse | TpSlOrder[] | { error: string }>("POST", "/api/tpsl", {
                                   action: view,
                                   params
                               }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
 
-                              if (data.error) {
+                              if (typeof data === 'object' && data !== null && 'error' in data && data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
                                       logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
                                   }
                                   return [];
                               }
-                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const list = (Array.isArray(data) ? data : (data as TpSlResponse)?.rows || []);
+                              return list.map(item => {
+                                  const parsed = TpSlOrderSchema.safeParse(item);
+                                  if (!parsed.success) {
+                                      logger.warn("market", `TP/SL fetch warning for ${sym}: invalid schema`, parsed.error);
+                                  }
+                                  return parsed.success ? parsed.data : null;
+                              }).filter(Boolean) as TpSlOrder[];
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                               return [];
@@ -528,16 +552,21 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<TpSlResponse | TpSlOrder[]>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+
+             const listRaw = (Array.isArray(data) ? data : (data as TpSlResponse)?.rows || []);
+             const list = listRaw.map(item => {
+                 const parsed = TpSlOrderSchema.safeParse(item);
+                 return parsed.success ? parsed.data : null;
+             }).filter(Boolean) as TpSlOrder[];
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }
     }
 
-    public async cancelTpSlOrder(order: any) {
+    public async cancelTpSlOrder(order: TpSlOrder & { id?: string }) {
         return this.signedRequest("POST", "/api/tpsl", {
             action: "cancel",
             params: {
