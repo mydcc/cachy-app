@@ -477,12 +477,16 @@ export const newsService = {
 
         if (!response.ok) {
           const errText = await response.text();
-          throw new Error(`Sentiment API failed (${response.status}): ${errText}`);
+          logger.error("ai", `Sentiment API failed (${response.status}): ${errText}`);
+          throw new Error("apiErrors.generic");
         }
 
         const text = await response.text();
         const data = safeJsonParse(text);
-        if (data.error) throw new Error(data.error);
+        if (data.error) {
+          logger.error("ai", `Sentiment API returned error: ${data.error}`);
+          throw new Error("apiErrors.generic");
+        }
 
         const analysis: SentimentAnalysis = data.analysis;
 

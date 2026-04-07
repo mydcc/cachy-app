@@ -38,7 +38,6 @@ class ChatManager {
     this.clientId = this.getClientId();
     if (browser) {
       // Auto-start polling when conditions are met
-      // Auto-start polling when conditions are met
       $effect.root(() => {
         $effect(() => {
           if (
@@ -52,6 +51,11 @@ class ChatManager {
         });
       });
     }
+  }
+
+  public destroy() {
+    // If there were explicit manual intervals we would clear them here.
+    // The $effect returns a cleanup which handles the interval clearing automatically.
   }
 
   private getClientId(): string {
