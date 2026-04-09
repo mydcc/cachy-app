@@ -785,6 +785,26 @@ class MarketWatcher {
     this._subscriptionsDirty = false;
     logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
   }
+
+  /**
+   * Complete teardown of the MarketWatcher to prevent zombie timers/memory leaks.
+   */
+  public destroy() {
+    this.stopPolling();
+    this.staggerTimeouts.forEach(clearTimeout);
+    this.staggerTimeouts.clear();
+    this.requests.clear();
+    this.pendingRequests.clear();
+    this.requestStartTimes.clear();
+    this.exhaustedHistory.clear();
+    this.prunedRequestIds.clear();
+    this.historyLocks.clear();
+  }
+
 }
 
 export const marketWatcher = new MarketWatcher();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => marketWatcher.destroy());
+}

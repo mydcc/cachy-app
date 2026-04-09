@@ -28,6 +28,8 @@ import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
 import { toastService } from "./toastService.svelte";
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
@@ -78,6 +80,9 @@ export class TradeError extends Error {
 }
 
 class TradeService {
+    // Hardening: Promise Coalescing to prevent Thundering Herd
+    private fetchPositionsPromise: Promise<void> | null = null;
+
     // Helper to sign and send requests to backend
     // Test mocks this
     public async signedRequest<T>(
@@ -118,9 +123,9 @@ class TradeService {
             data = safeJsonParse(text);
         } catch (e) {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
-            // use the status code as the error code
+            // use the status code as the error code. Do NOT expose raw text or statusText.
             if (!response.ok) {
-                 throw new BitunixApiError(response.status, text || response.statusText);
+                 throw new BitunixApiError(response.status, "apiErrors.invalidResponse");
             }
         }
 
@@ -193,7 +198,7 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error("tradeErrors.fetchFailed");
+                throw new Error(TRADE_ERRORS.FETCH_FAILED);
              }
         }
 
@@ -222,7 +227,7 @@ class TradeService {
             const position = await this.ensurePositionFreshness(symbol, positionSide);
 
             if (!position) {
-                throw new Error("tradeErrors.positionNotFound");
+                throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
             }
 
             // 2. Execute Close
@@ -326,7 +331,7 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`Flash Close Failed: ${msg}`);
+            toastService.error(`${get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed"}: ${msg}`);
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
@@ -428,7 +433,7 @@ class TradeService {
         const position = await this.ensurePositionFreshness(symbol, positionSide);
 
         if (!position) {
-            throw new Error("tradeErrors.positionNotFound");
+            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -437,7 +442,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("tradeErrors.invalidAmount");
+             throw new Error("apiErrors.invalidAmount");
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
