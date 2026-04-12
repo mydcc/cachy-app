@@ -334,12 +334,9 @@ class TradeService {
         }
     }
 
-    private fetchPositionsPromise: Promise<void> | null = null;
     private async fetchOpenPositionsFromApi() {
-        if (this.fetchPositionsPromise) return this.fetchPositionsPromise;
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 
-        const doFetch = async (): Promise<void> => {
         try {
             // Re-use the sync endpoint which wraps the signed API call
             const pendingResponse = await fetch("/api/sync/positions-pending", {
@@ -353,7 +350,7 @@ class TradeService {
                 body: JSON.stringify({}),
             });
 
-            if (!pendingResponse || !pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
+            if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
 
             const pendingText = await pendingResponse.text();
             const pendingResult = safeJsonParse(pendingText);
@@ -399,13 +396,6 @@ class TradeService {
             logger.error("market", "[TradeService] Failed to fetch open positions", e);
             throw e;
         }
-        };
-
-        this.fetchPositionsPromise = doFetch();
-        this.fetchPositionsPromise.finally(() => {
-            this.fetchPositionsPromise = null;
-        });
-        return this.fetchPositionsPromise;
     }
 
     public async cancelOrder(symbol: string, orderId: string) {

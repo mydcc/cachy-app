@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    public async fetchPositions(symbol?: string) {
+        const s = symbol ? normalizeSymbol(symbol, "bitunix") : undefined;
+        return RetryPolicy.execute(
+=======
+    public async fetchPositions(symbol?: string) {
+        if (!symbol && this.fetchPositionsPromise) {
+            return this.fetchPositionsPromise;
+        }
+
+        const s = symbol ? normalizeSymbol(symbol, "bitunix") : undefined;
+
+        const fetchPromise = RetryPolicy.execute(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                retries: 3,
+                delayMs: 200,
+                context: "fetchPositions"
+            }
+        );
+    }
+
+    /**
+=======
+                retries: 3,
+                delayMs: 200,
+                context: "fetchPositions"
+            }
+        );
+
+        if (!symbol) {
+            this.fetchPositionsPromise = fetchPromise as Promise<any>;
+            fetchPromise.finally(() => {
+                if (this.fetchPositionsPromise === fetchPromise) {
+                    this.fetchPositionsPromise = null;
+                }
+            });
+        }
+
+        return fetchPromise;
+    }
+
+    /**
+>>>>>>> REPLACE

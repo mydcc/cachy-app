@@ -860,6 +860,10 @@ export class MarketManager {
 
 export const marketState = new MarketManager();
 
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => marketState.destroy());
+}
+
 // HMR: Cleanup on module disposal to prevent timer leaks
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
