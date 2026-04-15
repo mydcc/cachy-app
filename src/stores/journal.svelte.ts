@@ -109,7 +109,16 @@ class JournalManager {
   addEntry(entry: JournalEntry) {
     this.entries.push(entry);
     if (this.entries.length > 1000) {
-      this.entries.shift();
+      // Logical Pruning: Find the oldest closed entry to remove instead of blindly shifting active entries
+      const oldestClosedIndex = this.entries.findIndex(
+        (e) => e.status === "Won" || e.status === "Lost"
+      );
+      if (oldestClosedIndex !== -1) {
+        this.entries.splice(oldestClosedIndex, 1);
+      } else {
+        // Fallback if all are open (unlikely but safe)
+        this.entries.shift();
+      }
     }
   }
 

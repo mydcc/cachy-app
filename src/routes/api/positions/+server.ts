@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const { exchange } = validation.data;
-  const creds = extractApiCredentials(request, body);
+  const creds = extractApiCredentials(request, validation.data);
   const apiKey = creds.apiKey || validation.data.apiKey;
   const apiSecret = creds.apiSecret || validation.data.apiSecret;
   const passphrase = creds.passphrase || validation.data.passphrase;
@@ -125,16 +125,13 @@ async function fetchBitunixPositions(
   });
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    throw new Error("apiErrors.fetchFailed");
   }
 
   const data = await response.json();
 
   if (data.code !== 0 && data.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
-    );
+    throw new Error("apiErrors.fetchFailed");
   }
 
   // Normalized Position Object
@@ -210,9 +207,9 @@ async function fetchBitgetPositions(
         }
     });
 
-    if (!response.ok) throw new Error("Bitget API Error");
+    if (!response.ok) throw new Error("apiErrors.fetchFailed");
     const res = await response.json();
-    if (res.code !== "00000") throw new Error(res.msg);
+    if (res.code !== "00000") throw new Error("apiErrors.fetchFailed");
 
     const data = res.data || [];
 
