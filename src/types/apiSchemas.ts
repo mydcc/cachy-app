@@ -19,17 +19,14 @@ const StrictPositiveDecimal = StrictDecimal.refine((val) => val.gt(0), {
 });
 
 // Bitunix Ticker Schema
-// Note: optional fields are also .nullable() because StrictDecimal rejects null/undefined.
-// This lets Zod handle explicit null at the schema level before StrictDecimal runs,
-// so an API returning `{"open": null}` doesn't fail the entire validation.
 export const BitunixTickerSchema = z.object({
   symbol: z.string(),
   lastPrice: StrictPositiveDecimal,
-  open: StrictDecimal.nullable().optional(),
-  high: StrictDecimal.nullable().optional(),
-  low: StrictDecimal.nullable().optional(),
-  baseVol: StrictDecimal.nullable().optional(),
-  quoteVol: StrictDecimal.nullable().optional(),
+  open: StrictDecimal.optional(),
+  high: StrictDecimal.optional(),
+  low: StrictDecimal.optional(),
+  baseVol: StrictDecimal.optional(),
+  quoteVol: StrictDecimal.optional(),
 });
 
 export const BitunixTickerResponseSchema = z.object({
@@ -44,8 +41,8 @@ export const BitunixKlineSchema = z.object({
   high: StrictDecimal,
   low: StrictDecimal,
   close: StrictDecimal,
-  vol: StrictDecimal.nullable().optional(),
-  volume: StrictDecimal.nullable().optional(),
+  vol: StrictDecimal.optional(),
+  volume: StrictDecimal.optional(),
   timestamp: z.union([z.number(), z.string()]).optional(),
   time: z.union([z.number(), z.string()]).optional(),
   ts: z.union([z.number(), z.string()]).optional(),

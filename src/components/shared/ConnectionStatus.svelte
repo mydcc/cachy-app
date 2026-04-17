@@ -49,7 +49,7 @@
 >
   <div
     class="rounded-full transition-colors duration-300"
-    style="width: var(--indicator-size); height: var(--indicator-size); background-color: {statusColor};"
+    style="width: 0.382rem; height: 0.382rem; background-color: {statusColor};"
     title="WebSocket: {statusText}"
   ></div>
 </div>

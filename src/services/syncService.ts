@@ -207,7 +207,6 @@ export const syncService = {
 
       let newEntries: JournalEntry[] = [];
       let addedCount = 0;
-      let refreshedCount = 0;
       const symbolSlMap: Record<string, any[]> = {};
 
       // Build SL Map
@@ -230,38 +229,20 @@ export const syncService = {
         symbolSlMap[k].sort((a, b) => a.ctime - b.ctime);
       });
 
-      // Process Pending (Open) Positions
-      const pendingEntries: JournalEntry[] = [];
+      // Process Pending (Open) Positions - No Changes Here
       for (const p of pendingPositions) {
         const uniqueId = String(p.positionId || `OPEN-${p.symbol}-${p.ctime}`);
 
-        const existingEntry = journalState.entries.find(
+        const exists = journalState.entries.some(
           (e) => String(e.tradeId) === uniqueId,
         );
-        if (existingEntry) {
-          // Refresh live fields from the fresh API payload while
-          // preserving user-editable fields (notes, tags, screenshot)
-          const funding = new Decimal(p.funding || 0);
-          const fee = new Decimal(0);
-          const refreshed: JournalEntry = {
-            ...existingEntry,
-            entryPrice: new Decimal(p.entryPrice || 0),
-            leverage: new Decimal(p.leverage || 0),
-            totalNetProfit: new Decimal(p.unrealizedPNL || 0),
-            positionSize: new Decimal(p.qty || p.size || 0),
-            totalFees: fee.abs().plus(funding.abs()),
-            fundingFee: funding,
-          };
-          pendingEntries.push(refreshed);
-          refreshedCount++;
-          continue;
-        }
+        if (exists) continue;
 
         const funding = new Decimal(p.funding || 0);
         const fee = new Decimal(0); // Fees usually not final for open pos
 
-        const pendingEntry: JournalEntry = {
-          id: crypto.randomUUID(),
+        newEntries.push({
+          id: Date.now() + Math.random(),
           tradeId: uniqueId,
           date: new Date(parseTimestamp(p.ctime)).toISOString(),
           symbol: p.symbol,
@@ -288,9 +269,7 @@ export const syncService = {
           calculatedTpDetails: [],
           tags: [],
           fundingFee: funding,
-        };
-        pendingEntries.push(pendingEntry);
-        newEntries.push(pendingEntry);
+        });
         addedCount++;
       }
 
@@ -300,18 +279,9 @@ export const syncService = {
         currentJournal.map((j) => String(j.tradeId || j.id)),
       );
 
-      // Also exclude positions already tracked as pending to avoid duplicates
-      // when the same positionId appears in both pending and history responses
-      for (const pe of pendingEntries) {
-        if (pe.tradeId) existingHistoryIds.add(String(pe.tradeId));
-      }
-
       const filteredHistory = historyPositions.filter((p: any) => {
         const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
-        if (existingHistoryIds.has(uniqueId)) return false;
-        // Track ID to deduplicate within the API response itself
-        existingHistoryIds.add(uniqueId);
-        return true;
+        return !existingHistoryIds.has(uniqueId);
       });
 
       const totalItems = filteredHistory.length;
@@ -433,7 +403,7 @@ export const syncService = {
           addedCount++;
 
           return {
-            id: crypto.randomUUID(),
+            id: Date.now() + Math.random(),
             tradeId: uniqueId,
             date: new Date(closeTime).toISOString(),
             entryDate:
@@ -498,27 +468,8 @@ export const syncService = {
         processedItems += batch.length;
       }
 
-      // Persist pending (open) positions after all history batches are done.
-      // The history batch loop filters out stale synced open positions
-      // (isManual === false && status === "Open") before each save, so
-      // freshly-fetched pending entries must be re-added here.
-      if (pendingEntries.length > 0) {
-        const pendingIds = new Set(pendingEntries.map(e => e.id));
-        const currentJournalState = journalState.entries;
-        const keptJournal = currentJournalState.filter(
-          (j) => !pendingIds.has(j.id) && !(j.isManual === false && j.status === "Open"),
-        );
-        const updatedJournal = [...keptJournal, ...pendingEntries];
-        updatedJournal.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        );
-
-        journalState.set(updatedJournal);
-        await syncService.saveJournal(updatedJournal);
-      }
-
       // Final feedback - trades already added incrementally
-      if (addedCount > 0 || refreshedCount > 0) {
+      if (addedCount > 0) {
         trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
         if (isPartialSync) uiState.showError(get(_)("apiErrors.syncIncomplete"));
         else uiState.showFeedback("save", 2000);

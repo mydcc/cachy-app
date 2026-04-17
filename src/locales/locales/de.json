@@ -396,7 +396,6 @@
       "uploadScreenshot": "Screenshot hochladen",
       "pasteScreenshot": "Bild einfügen (Strg+V)",
       "replaceScreenshot": "Ersetzen",
-      "viewScreenshot": "Screenshot ansehen",
       "deleteScreenshot": "Screenshot löschen",
       "recalculateAtr": "ATR neu berechnen",
       "advancedMetrics": "Erweiterte Metriken",
@@ -2110,8 +2109,7 @@
     "connectButton": "Verbinden",
     "noMessages": "Noch keine Nachrichten.",
     "sendButton": "Senden",
-    "placeholder": "Sag Hallo...",
-    "connectionFailed": "Verbindung fehlgeschlagen"
+    "placeholder": "Sag Hallo..."
   },
   "jules": {
     "title": "Jules Inspektor",

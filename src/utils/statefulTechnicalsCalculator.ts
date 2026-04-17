@@ -20,6 +20,7 @@
  * Manages the state of technical indicators to allow for O(1) incremental updates.
  */
 
+import { Decimal } from "decimal.js";
 import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState, EmaState, RsiState } from "../services/technicalsTypes";

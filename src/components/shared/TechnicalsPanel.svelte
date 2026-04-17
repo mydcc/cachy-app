@@ -1,22 +1,5 @@
-<!--
-  Copyright (C) 2026 MYDCT
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as
-  published by the Free Software Foundation, either version 3 of the
-  License, or (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <https://www.gnu.org/licenses/>.
--->
-
 <script lang="ts">
-
+  import { untrack } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
@@ -25,6 +8,7 @@
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
   import { normalizeTimeframeInput } from "../../utils/utils";
+  import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
@@ -216,13 +200,13 @@
         {/if}
         {#if loading}
           <div
-            class="animate-pulse w-indicator h-indicator bg-[var(--accent-color)] rounded-full"
+            class="animate-pulse w-2 h-2 bg-[var(--accent-color)] rounded-full"
           ></div>
         {:else}
           <div
-            class="w-indicator h-indicator rounded-full {data
-              ? 'bg-success'
-              : 'bg-danger'} opacity-50"
+            class="w-2 h-2 rounded-full {data
+              ? 'bg-green-500'
+              : 'bg-red-500'} opacity-50"
           ></div>
         {/if}
       </div>

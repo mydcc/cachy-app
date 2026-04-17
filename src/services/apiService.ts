@@ -114,11 +114,9 @@ export class RateLimiter {
   }
 }
 
-import { RequestDeduplicator } from "../utils/requestDeduplicator";
-
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
-  private pending = new RequestDeduplicator();
+  private pending = new Map<string, Promise<unknown>>();
   private cache = new Map<string, { data: unknown; timestamp: number }>();
 
   // Two queues for Priority handling
@@ -213,9 +211,14 @@ class RequestManager {
       return Promise.resolve(cached.data as T);
     }
 
-    // 1. & 2. Deduplication and Wrap in queue logic
-    return (this.pending.execute(key, async () => {
-      return new Promise<T>((resolve, reject) => {
+    // 1. Deduplication: If already fetching this key, return existing promise
+    if (this.pending.has(key)) {
+      logger.debug("network", `[Dedupe] Joined: ${key}`);
+      return this.pending.get(key) as Promise<T>;
+    }
+
+    // 2. Wrap in queue logic
+    const promise = new Promise<T>((resolve, reject) => {
       const run = async () => {
         this.activeCount++;
 
@@ -320,6 +323,7 @@ class RequestManager {
           reject(e);
         } finally {
           this.activeCount--;
+          this.pending.delete(key);
           this.next();
         }
       };
@@ -335,9 +339,9 @@ class RequestManager {
         }
       }
     });
-    }, (k) => {
-      logger.debug("network", `[Dedupe] Joined: ${k}`);
-    }) as Promise<unknown>) as Promise<T>;
+
+    this.pending.set(key, promise);
+    return promise;
   }
 
   private next() {
@@ -374,20 +378,11 @@ export function clearApiCache() {
 }
 
 export const apiService = {
-  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget" | string): string {
+  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget"): string {
     return normalizeSymbol(symbol, provider);
   },
 
   async safeJson(response: Response, maxSizeMB: number = 10) {
-    const contentLength = response.headers.get("content-length");
-    if (contentLength) {
-        const sizeMB = parseInt(contentLength, 10) / (1024 * 1024);
-        if (sizeMB > maxSizeMB) {
-            logger.error("network", `[API] Response too large based on headers: ${Math.round(sizeMB * 100) / 100}MB`);
-            throw new Error("apiErrors.responseTooLarge");
-        }
-    }
-
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
@@ -399,7 +394,7 @@ export const apiService = {
 
     const text = await response.text();
 
-    // Validate size (fallback if content-length is missing)
+    // Validate size
     if (!validateResponseSize(text, maxSizeMB)) {
       throw new Error("apiErrors.responseTooLarge");
     }
@@ -523,7 +518,7 @@ export const apiService = {
                   const low = new Decimal(k.low || k.l);
                   const close = new Decimal(k.close || k.c);
                   const volume = new Decimal(k.volume || k.vol || k.v || 0);
-                  if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
+                  if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) {
                       logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
                       return null;
                   }
@@ -547,7 +542,7 @@ export const apiService = {
               const close = new Decimal(d[4]);
               const volume = new Decimal(d[5]);
 
-              if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
+              if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) {
                   logger.warn("network", "[Bitget] Dropping invalid kline (NaN Array)", d);
                   return null;
               }
@@ -558,7 +553,6 @@ export const apiService = {
             }
           }).filter((k): k is Kline => k !== null);
         } catch (e: unknown) {
-          console.error(e);
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
@@ -713,32 +707,26 @@ export const apiService = {
                    
                    const first = bucket[0];
                    const last = bucket[bucket.length - 1];
-                   let high = first.high;
-                   let low = first.low;
+                   let high = new Decimal(first.high);
+                   let low = new Decimal(first.low);
                    let vol = new Decimal(0);
 
-                   for (let i = 0, len = bucket.length; i < len; i++) {
-                       const c = bucket[i];
-                       // We keep references to the existing Decimal instances
-                       // inside the bucket instead of allocating new ones to save memory
-                       // and improve performance.
-                       if (high.lt(c.high)) {
-                           high = c.high;
-                       }
-                       if (low.gt(c.low)) {
-                           low = c.low;
-                       }
+                   for (const c of bucket) {
+                       const h = new Decimal(c.high);
+                       const l = new Decimal(c.low);
+                       if (h.gt(high)) high = h;
+                       if (l.lt(low)) low = l;
                        vol = vol.plus(c.volume);
                    }
 
                    aggregated.push({
                        time: start,
                        open: first.open,
-                       high: high,
+                       high: high.toString(),
                        low: low,
                        close: last.close,
                        volume: vol
-                   });
+                   } as any);
                }
                return aggregated;
            }

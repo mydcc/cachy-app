@@ -414,70 +414,38 @@ class ActiveTechnicalsManager {
         };
     }
 
-    // Helper for deep equality – avoids JSON.stringify to reduce GC pressure on every tick.
-    // Compares all TechnicalsData fields that can change between calculations.
-    // Returns false (allow update) on any uncertainty – safe default for a dedup guard.
+    // Helper for deep equality
     private isTechnicalsEqual(a: any, b: any): boolean {
         // Fast path for references
         if (!a || !b) return false;
 
-        // --- Summary (action + counts) ---
+        // Check timestamp first (optimization)
+        if (a.lastUpdated !== b.lastUpdated) {
+            // If only lastUpdated changed but rest is same...
+            // But usually calculation changes result.
+            // We ignore lastUpdated for content equality check if we generated it.
+        }
+
+        // Specific field checks for efficiency instead of full recursive JSON stringify
+        // Summary Action
         if (a.summary?.action !== b.summary?.action) return false;
-        if (a.summary?.buy !== b.summary?.buy) return false;
-        if (a.summary?.sell !== b.summary?.sell) return false;
-        if (a.summary?.neutral !== b.summary?.neutral) return false;
-
-        // --- Confluence ---
         if (a.confluence?.score !== b.confluence?.score) return false;
-        if (a.confluence?.level !== b.confluence?.level) return false;
 
-        // --- Volatility (atr + Bollinger Bands) ---
-        if (a.volatility?.atr?.toString() !== b.volatility?.atr?.toString()) return false;
-        if (a.volatility?.bb?.upper !== b.volatility?.bb?.upper) return false;
-        if (a.volatility?.bb?.middle !== b.volatility?.bb?.middle) return false;
-        if (a.volatility?.bb?.lower !== b.volatility?.bb?.lower) return false;
-        if (a.volatility?.bb?.percentP !== b.volatility?.bb?.percentP) return false;
-
-        // --- Oscillators (compare all entries, not just index 0) ---
+        // Oscillators (check length and values of first few)
         if (a.oscillators?.length !== b.oscillators?.length) return false;
-        if (a.oscillators) {
-            for (let i = 0; i < a.oscillators.length; i++) {
-                if (a.oscillators[i]?.value?.toString() !== b.oscillators[i]?.value?.toString()) return false;
-                if (a.oscillators[i]?.action !== b.oscillators[i]?.action) return false;
-            }
+        if (a.oscillators?.[0]?.value?.toString() !== b.oscillators?.[0]?.value?.toString()) return false;
+
+        // Volatility
+        if (a.volatility?.atr?.toString() !== b.volatility?.atr?.toString()) return false;
+
+        // Deep verification for critical changes
+        try {
+            const cleanA = { ...a, lastUpdated: 0 };
+            const cleanB = { ...b, lastUpdated: 0 };
+            return JSON.stringify(cleanA) === JSON.stringify(cleanB);
+        } catch {
+            return false;
         }
-
-        // --- Moving Averages (compare all entries) ---
-        if (a.movingAverages?.length !== b.movingAverages?.length) return false;
-        if (a.movingAverages) {
-            for (let i = 0; i < a.movingAverages.length; i++) {
-                if (a.movingAverages[i]?.value?.toString() !== b.movingAverages[i]?.value?.toString()) return false;
-                if (a.movingAverages[i]?.action !== b.movingAverages[i]?.action) return false;
-            }
-        }
-
-        // --- Pivots ---
-        if (a.pivots?.classic?.p !== b.pivots?.classic?.p) return false;
-        if (a.pivots?.classic?.r1 !== b.pivots?.classic?.r1) return false;
-        if (a.pivots?.classic?.s1 !== b.pivots?.classic?.s1) return false;
-
-        // --- Divergences (length + first entry as fast check) ---
-        if (a.divergences?.length !== b.divergences?.length) return false;
-
-        // --- Advanced indicators (spot-check the most volatile fields) ---
-        if (a.advanced?.vwap !== b.advanced?.vwap) return false;
-        if (a.advanced?.superTrend?.value !== b.advanced?.superTrend?.value) return false;
-        if (a.advanced?.superTrend?.trend !== b.advanced?.superTrend?.trend) return false;
-        if (a.advanced?.adx?.value !== b.advanced?.adx?.value) return false;
-        if (a.advanced?.mfi?.value !== b.advanced?.mfi?.value) return false;
-        if (a.advanced?.stochRsi?.k !== b.advanced?.stochRsi?.k) return false;
-        if (a.advanced?.parabolicSar !== b.advanced?.parabolicSar) return false;
-        if (a.advanced?.obv !== b.advanced?.obv) return false;
-        if (a.advanced?.ichimoku?.action !== b.advanced?.ichimoku?.action) return false;
-        if (a.advanced?.atrTrailingStop?.buy !== b.advanced?.atrTrailingStop?.buy) return false;
-        if (a.advanced?.atrTrailingStop?.sell !== b.advanced?.atrTrailingStop?.sell) return false;
-
-        return true;
     }
 
     private async performCalculation(symbol: string, timeframe: string) {
@@ -524,9 +492,8 @@ class ActiveTechnicalsManager {
         }
 
         // REAL-TIME SYNC:
-        // Inject latest price (Ensure we clone to avoid mutating reactive array unexpectedly)
+        // Inject latest price
         if (marketData.lastPrice) {
-            history = [...history]; // Fast shallow copy
             this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
         }
 

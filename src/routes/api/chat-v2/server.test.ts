@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import fs from "fs/promises";
+import { promises as fs } from "fs";
 
 // Mock auth to bypass checks
 vi.mock("../../../lib/server/auth", () => ({
@@ -24,7 +24,7 @@ vi.mock("../../../lib/server/auth", () => ({
 }));
 
 import { GET, POST } from "./+server";
-import { chatStore, DB_FILE } from "$lib/server/chatStore";
+import { chatStore } from "$lib/server/chatStore";
 
 describe("Chat API v2", () => {
   beforeEach(async () => {
@@ -34,7 +34,7 @@ describe("Chat API v2", () => {
         chatStore.reset();
     }
     try {
-        await fs.rm(DB_FILE, { force: true });
+        await fs.rm("db/chat_messages.json", { force: true });
     } catch {}
   });
 

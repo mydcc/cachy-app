@@ -24,15 +24,14 @@ import {
   type Placement,
   autoUpdate,
 } from "@floating-ui/dom";
-
 import DOMPurify from "dompurify";
 
 export interface TooltipOptions {
   content: string;
   placement?: Placement;
+  allowHtml?: boolean;
   theme?: "dark" | "light" | "custom";
   delay?: number;
-  allowHtml?: boolean;
 }
 
 export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
@@ -43,14 +42,14 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
 
   let config: TooltipOptions =
     typeof options === "string"
-      ? { content: options, placement: "top", delay: 0 }
-      : { placement: "top", delay: 0, ...options };
+      ? { content: options, placement: "top", allowHtml: false, delay: 0 }
+      : { placement: "top", allowHtml: false, delay: 0, ...options };
 
   function updateConfig(newOptions: TooltipOptions | string) {
     config =
       typeof newOptions === "string"
-        ? { content: newOptions, placement: "top", delay: 0 }
-        : { placement: "top", delay: 0, ...newOptions };
+        ? { content: newOptions, placement: "top", allowHtml: false, delay: 0 }
+        : { placement: "top", allowHtml: false, delay: 0, ...newOptions };
 
     if (tooltipElement) {
       setContent();

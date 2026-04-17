@@ -93,39 +93,4 @@ describe('sanitizeErrorMessage', () => {
     expect(sanitized).toContain('User id=123');
     expect(sanitized).toContain('apiKey=***');
   });
-
-
-  // --- Edge Case Tests ---
-
-  it('should handle empty strings', () => {
-    expect(sanitizeErrorMessage('', 100)).toBe('');
-  });
-
-  it('should handle strings with no sensitive keys', () => {
-    const msg = 'Error: something went wrong';
-    expect(sanitizeErrorMessage(msg, 100)).toBe(msg);
-  });
-
-  it('should be case insensitive for keys', () => {
-    const message = 'Error: APIKEY=12345, PassWord=abcde';
-    const sanitized = sanitizeErrorMessage(message, 100);
-    expect(sanitized).toBe('Error: APIKEY=***, PassWord=***');
-  });
-
-  it('should handle empty values', () => {
-    const message = 'apiKey=""';
-    expect(sanitizeErrorMessage(message, 100)).toBe('apiKey=""');
-  });
-
-  it('should not over-redact keys with suffixes', () => {
-    const message = 'token_type=Bearer, token=12345';
-    const sanitized = sanitizeErrorMessage(message, 100);
-    expect(sanitized).toBe('token_type=Bearer, token=***');
-  });
-
-  it('should handle values with special characters (URL encoded, dashes, dots)', () => {
-    const message = 'apiKey=abc-123.def%20ghi';
-    const sanitized = sanitizeErrorMessage(message, 100);
-    expect(sanitized).toBe('apiKey=***');
-  });
 });

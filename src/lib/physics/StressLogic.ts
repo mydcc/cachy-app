@@ -58,7 +58,7 @@ export class StressLogic {
                 }
             } catch (e) {
                 console.error("Failed to load Ammo.js", e);
-                throw e;
+                return;
             }
         } else if (typeof (window as any).Ammo === 'function') {
             const AmmoFactory = (window as any).Ammo;

@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { apiService } from "./apiService";
+import { Decimal } from "decimal.js";
 
 // Mock logger
 vi.mock("./logger", () => ({

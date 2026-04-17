@@ -22,6 +22,7 @@
  * Detects Regular and Hidden Divergences between Price and Indicators.
  */
 
+import { Decimal } from "decimal.js";
 import type { Kline, NumberArray } from "./indicators";
 
 export type DivergenceType = "Regular" | "Hidden";

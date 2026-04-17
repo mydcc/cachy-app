@@ -22,12 +22,12 @@
 /**
  * Normalizes a trading symbol for a specific provider.
  * @param symbol The raw symbol (e.g., "BTC", "BTCUSDT", "btcusdt")
- * @param provider The API provider ("bitunix", "bitget", etc.)
+ * @param provider The API provider ("bitunix" or "binance")
  * @returns The normalized symbol string in uppercase and provider-specific format.
  */
 export function normalizeSymbol(
   symbol: string,
-  provider: "bitunix" | "bitget" | string,
+  provider: "bitunix" | "binance" | string,
 ): string {
   if (!symbol) return "";
 

@@ -66,7 +66,7 @@ export class BitunixApiError extends Error {
 
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
-    FETCH_FAILED: "apiErrors.fetchFailed",
+    FETCH_FAILED: "trade.fetchFailed",
     CLOSE_ALL_FAILED: "trade.closeAllFailed"
 };
 
@@ -181,8 +181,8 @@ class TradeService {
         const MAX_POS_AGE_MS = 200;
         const now = Date.now();
 
-        if (position && (now - (position.lastUpdated ?? 0) > MAX_POS_AGE_MS)) {
-             logger.warn("market", `[Freshness] Position stale (${now - (position.lastUpdated ?? 0)}ms). Forcing refresh.`);
+        if (position && position.lastUpdated && (now - position.lastUpdated > MAX_POS_AGE_MS)) {
+             logger.warn("market", `[Freshness] Position stale (${now - position.lastUpdated}ms). Forcing refresh.`);
              try {
                 await this.fetchOpenPositionsFromApi();
                 positions = omsService.getPositions();
@@ -193,7 +193,7 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error(TRADE_ERRORS.FETCH_FAILED);
+                throw new Error("apiErrors.fetchFailed");
              }
         }
 
@@ -245,7 +245,7 @@ class TradeService {
             const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
 
             // OPTIMISTIC UPDATE
-            clientOrderId = "opt-" + crypto.randomUUID().replace(/-/g, "").slice(0, 28);
+            clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
             omsService.addOptimisticOrder({
                 id: clientOrderId,
                 clientOrderId,
@@ -337,18 +337,14 @@ class TradeService {
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 
         try {
-            // W-6: Use generalized provider key lookup instead of hardcoding 'bitunix'
-            const provider = settingsState.apiProvider;
-            const keys = settingsState.apiKeys[provider];
-            if (!keys?.key || !keys?.secret) return;
-
+            // Re-use the sync endpoint which wraps the signed API call
             const pendingResponse = await fetch("/api/sync/positions-pending", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}),
-                    "X-Api-Key": keys.key,
-                    "X-Api-Secret": keys.secret
+                    "X-Api-Key": settingsState.apiKeys.bitunix.key,
+                    "X-Api-Secret": settingsState.apiKeys.bitunix.secret
                 },
                 body: JSON.stringify({}),
             });
@@ -458,24 +454,14 @@ class TradeService {
     }
 
     public async closeAllPositions() {
-        // Pre-fetch all open positions once before looping to avoid triggering
-        // concurrent stale data fetches (and network overhead) within the ensurePositionFreshness loop below.
-        try {
-            await this.fetchOpenPositionsFromApi();
-        } catch (e) {
-            logger.error("market", "[CloseAll] Pre-fetch of positions failed", e);
-            // Continue with potentially stale OMS data rather than aborting entirely
-        }
         const positions = omsService.getPositions();
         const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side, forceFullClose: true }));
         const results = await Promise.allSettled(promises);
 
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
-            const failedSymbols = results.map((r, i) => r.status === "rejected" ? (positions[i]?.symbol ?? `position[${i}]`) : null).filter(Boolean).join(", ");
-            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
-            toastService.error(`Flash Close Failed for: ${failedSymbols}`);
-            throw new Error("trade.closeAllFailed");
+            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
+            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
         }
 
         return results;
@@ -503,7 +489,7 @@ class TradeService {
              const BATCH_SIZE = 5;
              for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
                   const batch = fetchList.slice(i, i + BATCH_SIZE);
-                  await Promise.all(
+                  const batchResults = await Promise.all(
                       batch.map(async (sym) => {
                           try {
                               const params: any = {};
@@ -518,15 +504,16 @@ class TradeService {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
                                       logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
                                   }
-                                  return;
+                                  return [];
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-                              results.push(...res);
+                              return (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
+                              return [];
                           }
                       })
                   );
+                  results.push(...batchResults.flat());
              }
 
              // Deduplicate

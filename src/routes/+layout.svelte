@@ -58,8 +58,7 @@ import { afterNavigate } from "$app/navigation";
   // Connect to Server-Sent Events stream for real-time server logs
   $effect(() => {
     if (!browser) return;
-
-    let abortController: AbortController | null = null;
+    let evtSource: EventSource | null = null;
 
     const isDevDomain =
       window.location.hostname.includes("localhost") ||
@@ -68,115 +67,67 @@ import { afterNavigate } from "$app/navigation";
     const shouldEnable =
       settingsState.enableNetworkLogs || import.meta.env.DEV || isDevDomain;
 
-    if (shouldEnable) {
-      abortController = new AbortController();
+    if (typeof EventSource !== "undefined" && shouldEnable) {
+      try {
+        evtSource = new EventSource("/api/stream-logs");
 
-      const connectStream = async () => {
-        let retryDelay = 1000; // Start with 1s, mimics EventSource default
-        const maxRetryDelay = 30000;
-
-        while (!abortController?.signal.aborted) {
+        evtSource.onmessage = (event) => {
           try {
-            const adminToken = localStorage.getItem("cachy_admin_token") || "";
+            const logEntry = JSON.parse(event.data);
+            const now = new Date();
+            const timeStr =
+              now.toLocaleTimeString([], {
+                hour12: false,
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }) +
+              "." +
+              now.getMilliseconds().toString().padStart(3, "0");
 
-            const response = await fetch("/api/stream-logs", {
-              headers: {
-                "Authorization": `Bearer ${adminToken}` // i18n-ignore
-              },
-              signal: abortController?.signal
-            });
+            // Styling for console
+            const clStyle =
+              "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
+            const timeStyle =
+              "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
+            const levelStyle =
+              logEntry.level === "error"
+                ? "color: #ff4444; font-weight: bold;"
+                : logEntry.level === "warn"
+                  ? "color: #ffbb33; font-weight: bold;"
+                  : "color: #88ccff;";
 
-            if (!response.ok || !response.body) {
-              // Auth failures (401/403) won't resolve by retrying
-              return;
-            }
-
-            // Connection succeeded — reset backoff
-            retryDelay = 1000;
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              buffer += decoder.decode(value, { stream: true });
-
-              const lines = buffer.split("\n\n");
-              buffer = lines.pop() || ""; // Keep the last incomplete chunk in the buffer
-
-              for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  const data = line.slice(6);
-                  if (!data) continue;
-
-                  try {
-                    const logEntry = JSON.parse(data);
-                    const now = new Date();
-                    const timeStr =
-                      now.toLocaleTimeString([], {
-                        hour12: false,
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      }) +
-                      "." +
-                      now.getMilliseconds().toString().padStart(3, "0");
-
-                    // Styling for console
-                    const clStyle =
-                      "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
-                    const timeStyle =
-                      "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
-                    const levelStyle =
-                      logEntry.level === "error"
-                        ? "color: #ff4444; font-weight: bold;"
-                        : logEntry.level === "warn"
-                          ? "color: #ffbb33; font-weight: bold;"
-                          : "color: #88ccff;";
-
-                    // "CL | 22:10:24.572 [LEVEL] Message"
-                    console.log(
-                      `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
-                      clStyle,
-                      timeStyle,
-                      levelStyle,
-                      logEntry.data ? logEntry.data : "",
-                    );
-                  } catch (e) {
-                    console.log(
-                      "%cCL:%c [RAW]",
-                      "background: #333; color: #00ff9d;",
-                      "",
-                      data,
-                    );
-                  }
-                }
-              }
-            }
-
-            // Stream ended (server closed connection) — fall through to retry
-          } catch (e: any) {
-            if (e.name === 'AbortError') return; // Cleanup requested, stop entirely
-            if (import.meta.env.DEV) {
-              console.error("CL: Failed to consume log stream", e);
-            }
+            // "CL | 22:10:24.572 [LEVEL] Message"
+            console.log(
+              `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
+              clStyle,
+              timeStyle,
+              levelStyle,
+              logEntry.data ? logEntry.data : "",
+            );
+          } catch (e) {
+            console.log(
+              "%cCL:%c [RAW]",
+              "background: #333; color: #00ff9d;",
+              "",
+              event.data,
+            );
           }
+        };
 
-          // Reconnect after delay (exponential backoff, capped at 30s)
-          await new Promise((r) => setTimeout(r, retryDelay));
-          retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
+        evtSource.onerror = () => {
+          // Silence error to stay transparent
+        };
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error("CL: Failed to init EventSource", e);
         }
-      };
-
-      connectStream();
+      }
     }
 
     return () => {
-      if (abortController) {
-        abortController.abort();
+      if (evtSource) {
+        evtSource.close();
       }
     };
   });
@@ -225,15 +176,17 @@ import { afterNavigate } from "$app/navigation";
       // Stop if reason is null/undefined to avoid showing empty error modals
       if (event.reason === null || event.reason === undefined) return;
 
-      // Filter out common harmless network or cancellation errors (AbortError)
-      if (event.reason.name === "AbortError" || event.reason.code === 20) {
-        return;
-      }
-
       const message =
         event.reason instanceof Error
           ? event.reason.message
           : String(event.reason);
+
+      // Filter out common harmless network or cancellation errors
+      if (
+        message.includes("The user aborted a request") || // i18n-ignore
+        message === "AbortError"
+      )
+        return;
 
       uiState.showError(message);
     };

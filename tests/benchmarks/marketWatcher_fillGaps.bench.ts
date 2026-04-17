@@ -35,7 +35,7 @@ function fillGaps_Original(klines: Kline[], intervalMs: number): Kline[] {
             let nextTime = prev.time + intervalMs;
             let gapCount = 0;
             // Limit gap fill to prevent freezing on massive gaps (e.g. months of missing data)
-            const MAX_GAP_FILL = 500;
+            const MAX_GAP_FILL = 5000;
 
             while (nextTime < curr.time) {
                 if (gapCount >= MAX_GAP_FILL) {
@@ -98,7 +98,7 @@ function fillGaps_Optimized(klines: Kline[], intervalMs: number): Kline[] {
         if (curr.time - prev.time > threshold) {
             let nextTime = prev.time + intervalMs;
             let gapCount = 0;
-            const MAX_GAP_FILL = 500;
+            const MAX_GAP_FILL = 5000;
 
             while (nextTime < curr.time) {
                 if (gapCount >= MAX_GAP_FILL) break;

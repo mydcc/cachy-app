@@ -34,6 +34,6 @@ export function sanitizeHtml(dirty: string): string {
       "ul", "ol", "li", "span", "div", "code", "pre", "small",
       "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "table", "thead", "tbody", "tr", "td", "th"
     ],
-    ALLOWED_ATTR: ["href", "target", "class", "title", "alt"]
+    ALLOWED_ATTR: ["href", "target", "class", "style", "title", "alt"]
   });
 }

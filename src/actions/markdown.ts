@@ -24,12 +24,10 @@ import { renderSafeMarkdown } from "../utils/markdownUtils";
 export function markdown(node: HTMLElement, content: string) {
     const update = (newContent: string) => {
         if (!newContent) {
-            node.replaceChildren();
+            node.innerHTML = "";
             return;
         }
-
-        const rendered = renderSafeMarkdown(newContent);
-        node.replaceChildren(rendered); // Works for both string (SSR fallback) and DocumentFragment
+        node.innerHTML = renderSafeMarkdown(newContent);
     };
 
     update(content);

@@ -18,7 +18,7 @@
 <script lang="ts">
   import { icons } from "../../lib/constants";
   import { debounce } from "../../utils/utils";
-  import { createEventDispatcher, untrack } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
@@ -41,7 +41,7 @@
     entryPrice: string | null;
     useAtrSl: boolean;
     atrValue: string | null;
-    atrMultiplier: string | null; // Multiplier kept as number (1.2 etc)
+    atrMultiplier: number; // Multiplier kept as number (1.2 etc)
     stopLossPrice: string | null;
     atrMode: "manual" | "auto";
     atrTimeframe: string;
@@ -72,7 +72,6 @@
 
   // Local state for input to prevent immediate store updates
   let localSymbol = $state(symbol || "");
-  let lastPropSymbol = $state(symbol); // Track prop for external changes
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
@@ -117,73 +116,43 @@
   // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
   // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
   $effect(() => {
-    const currentSymbol = symbol;
-    const currentFocused = isSymbolFocused;
-
-    untrack(() => {
-      // 1. If prop changed externally (e.g. Preset), always sync even if focused
-      if (currentSymbol !== lastPropSymbol) {
-        localSymbol = currentSymbol || "";
-        lastPropSymbol = currentSymbol;
-        return;
-      }
-
-      // 2. Standard sync when NOT focused
-      if (!currentFocused && currentSymbol !== localSymbol) {
-        // FIX: If user cleared the input, do NOT snap back to old prop value.
-        // The debounce will eventually update the prop/store to empty.
-        if (localSymbol === "" && currentSymbol !== "") {
-          return;
-        }
-
-        localSymbol = currentSymbol || "";
-      }
-    });
+    // Only update local from props if:
+    // 1. User is NOT focused
+    // 2. OR user is focused, but prop changed AND it's not just a result of clearing
+    if (!isSymbolFocused && symbol !== localSymbol) {
+      localSymbol = symbol || "";
+    }
   });
 
   // Sync Numeric Inputs from Props to Local (One-way sync when NOT focused)
   $effect(() => {
-    const currentEntryPrice = format(entryPrice);
-    const currentFocused = isEntryPriceFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentEntryPrice !== localEntryPrice) {
-        localEntryPrice = currentEntryPrice;
-      }
-    });
+    if (!isEntryPriceFocused && format(entryPrice) !== localEntryPrice) {
+      localEntryPrice = format(entryPrice);
+    }
   });
 
   $effect(() => {
-    const currentStopLossPrice = format(stopLossPrice);
-    const currentFocused = isStopLossPriceFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentStopLossPrice !== localStopLossPrice) {
-        localStopLossPrice = currentStopLossPrice;
-      }
-    });
+    if (
+      !isStopLossPriceFocused &&
+      format(stopLossPrice) !== localStopLossPrice
+    ) {
+      localStopLossPrice = format(stopLossPrice);
+    }
   });
 
   $effect(() => {
-    const currentAtrValue = format(atrValue);
-    const currentFocused = isAtrValueFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentAtrValue !== localAtrValue) {
-        localAtrValue = currentAtrValue;
-      }
-    });
+    if (!isAtrValueFocused && format(atrValue) !== localAtrValue) {
+      localAtrValue = format(atrValue);
+    }
   });
 
   $effect(() => {
-    const currentAtrMultiplier = format(atrMultiplier);
-    const currentFocused = isAtrMultiplierFocused;
-
-    untrack(() => {
-      if (!currentFocused && currentAtrMultiplier !== localAtrMultiplier) {
-        localAtrMultiplier = currentAtrMultiplier;
-      }
-    });
+    if (
+      !isAtrMultiplierFocused &&
+      format(atrMultiplier) !== localAtrMultiplier
+    ) {
+      localAtrMultiplier = format(atrMultiplier);
+    }
   });
 
   function toggleAtrSl() {
@@ -324,9 +293,20 @@
     const value = target.value;
     localAtrMultiplier = value;
 
-    const validated = parseInputVal(value);
-    if (validated !== undefined && atrMultiplier !== validated) {
-      tradeState.update((s) => ({ ...s, atrMultiplier: validated }));
+    // Multiplier is still number in Store
+    if (/^\d*[.,]?\d*$/.test(value)) {
+      const normalized = value.replace(",", ".");
+      // Check for trailing dot to avoid parsing "1." as 1 immediately
+      if (!normalized.endsWith(".")) {
+          try {
+            const num = normalized === "" ? 0 : new Decimal(normalized).toNumber();
+            if (!isNaN(num) && atrMultiplier !== num) {
+              tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+            }
+          } catch {
+            // Invalid decimal input
+          }
+      }
     }
   }
 

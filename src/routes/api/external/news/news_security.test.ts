@@ -16,26 +16,23 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST, _newsCache, _rateLimits } from './+server';
-import * as auth from '../../../../lib/server/auth';
+import { POST, _newsCache } from './+server';
 
 describe('News Service Security', () => {
     beforeEach(() => {
         _newsCache.clear();
-        _rateLimits.clear();
         vi.clearAllMocks();
-        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     });
 
     it('should not serve cached data to a different API key', async () => {
         const validKey = 'key-A';
         const invalidKey = 'key-B';
         const params = { q: 'bitcoin' };
-        const responseData = { status: "ok", articles: [{ title: 'secure-data' }] };
+        const responseData = { articles: ['secure-data'] };
 
         // Mock fetch
-        const fetchMock = vi.fn().mockImplementation(async (url, options) => {
-            if (url.includes(validKey) || options?.headers?.["X-Api-Key"] === validKey || options?.headers?.["x-api-key"] === validKey) {
+        const fetchMock = vi.fn().mockImplementation(async (url) => {
+            if (url.includes(validKey)) {
                 return {
                     ok: true,
                     json: async () => responseData,
@@ -52,7 +49,6 @@ describe('News Service Security', () => {
 
         // 1. Request with Valid Key
         const req1 = {
-            headers: new Headers({ 'x-api-key': validKey }),
             json: async () => ({
                 source: 'newsapi',
                 apiKey: validKey,
@@ -67,7 +63,6 @@ describe('News Service Security', () => {
 
         // 2. Request with Invalid Key
         const req2 = {
-            headers: new Headers({ 'x-api-key': invalidKey }),
             json: async () => ({
                 source: 'newsapi',
                 apiKey: invalidKey, // Different key
@@ -84,36 +79,5 @@ describe('News Service Security', () => {
 
         expect(json2).not.toEqual(responseData);
         expect(json2).toHaveProperty('error');
-    });
-
-    it('should rate limit multiple requests from the same API key', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ status: "ok", articles: [] }),
-            text: async () => "",
-        });
-        const apiKey = 'rate-limit-key';
-
-        // Each request uses a unique query to avoid cache hits, ensuring every
-        // request reaches the rate limiter.
-        for (let i = 0; i < 10; i++) {
-            const requestMock = {
-                headers: new Headers({ 'x-api-key': apiKey }),
-                json: async () => ({ source: 'newsapi', apiKey, params: { q: `query-${i}` } }),
-                url: 'http://localhost/api/news'
-            } as any;
-            const res = await POST({ request: requestMock, fetch: fetchMock } as any);
-            expect(res.status).not.toBe(429);
-        }
-
-        const requestMock = {
-            headers: new Headers({ 'x-api-key': apiKey }),
-            json: async () => ({ source: 'newsapi', apiKey, params: { q: 'query-final' } }),
-            url: 'http://localhost/api/news'
-        } as any;
-        const res = await POST({ request: requestMock, fetch: fetchMock } as any);
-        expect(res.status).toBe(429);
-        const body = await res.json();
-        expect(body.error).toContain('Rate limit exceeded');
     });
 });

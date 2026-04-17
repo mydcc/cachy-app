@@ -16,29 +16,24 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST, _newsCache, _rateLimits } from './+server';
-import * as auth from '../../../../lib/server/auth';
+import { POST, _newsCache } from './+server';
 
 describe('News Service Cache Memory', () => {
     beforeEach(() => {
         _newsCache.clear();
-        _rateLimits.clear();
         vi.clearAllMocks();
-        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
     });
 
     it('should limit cache size to 50 items (optimization)', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ status: "ok", articles: [] }),
+            json: async () => ({ articles: [] }),
             text: async () => "",
         });
 
         // Insert 100 items
         for (let i = 0; i < 100; i++) {
-            _rateLimits.clear(); // Reset rate limit to allow all requests through for cache size testing
             const request = {
-                headers: new Headers({ 'x-api-key': 'test-key' }),
                 json: async () => ({
                     source: 'newsapi',
                     apiKey: 'test-key',

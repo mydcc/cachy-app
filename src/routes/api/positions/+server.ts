@@ -21,6 +21,7 @@ import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { checkAppAuth } from "../../../lib/server/auth";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
+import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
@@ -46,10 +47,10 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const { exchange } = validation.data;
-  const creds = extractApiCredentials(request, validation.data);
-  const apiKey = creds.apiKey;
-  const apiSecret = creds.apiSecret;
-  const passphrase = creds.passphrase;
+  const creds = extractApiCredentials(request, body);
+  const apiKey = creds.apiKey || validation.data.apiKey;
+  const apiSecret = creds.apiSecret || validation.data.apiSecret;
+  const passphrase = creds.passphrase || validation.data.passphrase;
 
   if (!apiKey || !apiSecret) {
       return jsonError("Missing API Credentials", "MISSING_CREDENTIALS", 401);

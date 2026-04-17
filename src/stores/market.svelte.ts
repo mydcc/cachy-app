@@ -300,6 +300,7 @@ export class MarketManager {
 
           // HARDENING: Reject NaN strictly
           if (typeof val === 'number' && isNaN(val)) {
+              // if (import.meta.env.DEV) console.warn("[Market] Rejected NaN value in update");
               return undefined;
           }
 
@@ -720,9 +721,6 @@ export class MarketManager {
       if (data.low !== undefined) update.lowPrice = data.low;
       if (data.vol !== undefined) update.volume = data.vol;
       if (data.quoteVol !== undefined) update.quoteVolume = data.quoteVol;
-      if (data.fundingRate !== undefined) update.fundingRate = data.fundingRate;
-      if (data.nextFundingTime !== undefined) update.nextFundingTime = data.nextFundingTime;
-
 
       // Calculate price change percent from open and last price if available
       let calculatedChange = false;

@@ -264,14 +264,12 @@
                             <span
                                 class="text-[var(--success-color)] flex items-center gap-2"
                             >
-                                <span class="relative flex" style="width: var(--indicator-size); height: var(--indicator-size);">
+                                <span class="relative flex h-2 w-2">
                                     <span
-                                        class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                                        style="background-color: var(--success-color);"
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
                                     ></span>
                                     <span
-                                        class="relative inline-flex rounded-full h-full w-full"
-                                        style="background-color: var(--success-color);"
+                                        class="relative inline-flex rounded-full h-2 w-2 bg-green-500"
                                     ></span>
                                 </span>
                                 Live

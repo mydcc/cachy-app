@@ -18,8 +18,8 @@ import json
 import sys
 from pathlib import Path
 
-# Fixed path relative to script location in scripts/ dir
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Fix path relative to script location in scripts/ dir
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DE_FILE = PROJECT_ROOT / 'src/locales/locales/de.json'
 EN_FILE = PROJECT_ROOT / 'src/locales/locales/en.json'
 

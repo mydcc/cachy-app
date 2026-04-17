@@ -83,13 +83,13 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 ## <a name="v0.92.2"></a>Version 0.92.2 (11. Dezember 2025)
 
 - **Neu:** "Marktübersicht" (Market Overview) zeigt 24h-Daten (Preis, Volumen, Änderung) für das aktuelle Symbol an.
-- **Neu:** Einstellungen erweitert: Auswahl des API-Anbieters (Bitunix/Bitget) und Intervall für Marktdaten-Updates (1s, 1m, 10m).
+- **Neu:** Einstellungen erweitert: Auswahl des API-Anbieters (Bitunix/Binance) und Intervall für Marktdaten-Updates (1s, 1m, 10m).
 
 ---
 
 ## <a name="v0.92.1"></a>Version 0.92.1 (04. September 2025)
 
-- **Neu:** Automatischer ATR-Abruf von der Bitget-API mit wählbarem Zeitrahmen (5m, 15m, 1h, 4h, 1d). Der abgerufene Wert kann manuell angepasst werden.
+- **Neu:** Automatischer ATR-Abruf von der Binance-API mit wählbarem Zeitrahmen (5m, 15m, 1h, 4h, 1d). Der abgerufene Wert kann manuell angepasst werden.
 - **Neu:** Erweiterte Sperr-Funktionen: Der Risikobetrag in Währung kann jetzt gesperrt werden, um die Positionsgröße und das Risiko in % zu berechnen.
 - **Neu:** Tastaturkürzel (`Alt+L/S/R/J`) für schnellere Bedienung hinzugefügt.
 - **Neu:** Modalfenster können jetzt mit der `Escape`-Taste oder per Klick auf den Hintergrund geschlossen werden.

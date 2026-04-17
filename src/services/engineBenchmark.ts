@@ -25,9 +25,9 @@
 
 import { technicalsService } from './technicalsService';
 import { calculationStrategy } from './calculationStrategy';
+import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator';
 import { indicatorState } from '../stores/indicator.svelte';
 import type { IndicatorSettings } from '../types/indicators';
-import { logger } from './logger';
 
 export interface BenchmarkRun {
   engine: 'ts' | 'wasm' | 'gpu';
@@ -93,7 +93,7 @@ function percentile(values: number[], p: number): number {
 /**
  * Run benchmark for a single engine at a given data size
  */
-export async function benchmarkEngine(
+async function benchmarkEngine(
   engine: 'ts' | 'wasm' | 'gpu',
   klines: any[],
   settings: IndicatorSettings,
@@ -126,8 +126,7 @@ export async function benchmarkEngine(
       } else {
         return []; // Engine not available
       }
-    } catch (e) {
-      logger.error('technicals', `Engine ${engine} failed during benchmark`, e);
+    } catch {
       return []; // Engine failed
     }
 
@@ -159,16 +158,14 @@ export async function runBenchmark(
   try {
       const { wasmCalculator } = await import('./wasmCalculator');
       if (wasmCalculator.isAvailable()) engines.push('wasm');
-  } catch (e) {
-      logger.debug('technicals', 'Failed to load wasmCalculator', e);
-  }
+  } catch(e) {}
   
   try {
       const { WebGpuCalculator } = await import('./webGpuCalculator');
       if (await WebGpuCalculator.isSupported()) engines.push('gpu');
-  } catch (e) {
-      logger.debug('technicals', 'Failed to load WebGpuCalculator', e);
-  }
+  } catch(e) {}
+
+  console.log(`\n🏁 Starting Benchmark: engines=[${engines.join(', ')}], sizes=[${sizes.join(', ')}], ${warmup} warmup + ${runs} measured runs\n`);
 
   for (const size of sizes) {
     const klines = generateTestKlines(size);
