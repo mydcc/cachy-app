@@ -37,9 +37,10 @@ export class ChannelWindow extends WindowBase {
 
     constructor(url: string, title = "Galaxy Chat", id?: string, options: any = {}) {
         super({
+            ...options,
             title,
             windowType: 'channel',
-            ...options
+            id: id ?? options.id,
         });
 
         // Stabilize ID for context-specific channels.
@@ -59,6 +60,16 @@ export class ChannelWindow extends WindowBase {
      * aspect ratio to match the required content dimensions.
      */
     private handleUnityMessage = (event: MessageEvent) => {
+        try {
+            const expectedOrigin = new URL(this.url).origin;
+            if (event.origin !== expectedOrigin) {
+                return;
+            }
+        } catch (e) {
+            // Invalid URL or local file, fail safe
+            return;
+        }
+
         if (event.data && event.data.type === 'unity-info') {
             const { width, height } = event.data;
             if (width && height) {
@@ -69,6 +80,14 @@ export class ChannelWindow extends WindowBase {
         }
     };
 
+    /** Clean up event listeners when the window is closed. */
+    public destroy() {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('message', this.handleUnityMessage);
+        }
+        super.destroy();
+    }
+
     /** The UI component used to display the iframe. */
     get component() {
         return IframeView;
@@ -76,7 +95,11 @@ export class ChannelWindow extends WindowBase {
 
     /** Mapping of logic parameters to component props. */
     get componentProps() {
-        return { url: this.url };
+        return {
+            url: this.url,
+            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock",
+            allow: "xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
+        };
     }
 
     public serialize(): any {

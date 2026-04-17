@@ -34,26 +34,38 @@ export const StrictDecimal = z
     .union([z.string(), z.number(), z.null(), z.undefined()])
     .transform((val, ctx) => {
         if (val === null || val === undefined) {
-            // logger.debug("data", "Null/undefined Decimal encountered, returning fallback 0");
-            return new Decimal(0);
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Value is null or undefined, expected valid numeric value",
+            });
+            return z.NEVER;
         }
 
         try {
             const strVal = String(val);
             if (strVal.trim() === "") {
-                logger.error("data", "Empty string for Decimal, returning fallback 0");
-                return new Decimal(0);
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Empty string is not a valid numeric value",
+                });
+                return z.NEVER;
             }
 
             const d = new Decimal(strVal);
             if (d.isNaN() || !d.isFinite()) {
-                logger.error("data", `Invalid decimal value: ${val}, using fallback 0`);
-                return new Decimal(0);
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Invalid decimal value: ${val}`,
+                });
+                return z.NEVER;
             }
             return d;
         } catch (e) {
-            logger.error("data", `Failed to parse decimal: ${val}`, e);
-            return new Decimal(0);
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Failed to parse decimal: ${val}`,
+            });
+            return z.NEVER;
         }
     });
 

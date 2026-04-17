@@ -27,7 +27,7 @@
     import { icons } from "../../lib/constants";
     import { browser } from "$app/environment";
     import { getComputedColor } from "../../utils/colors";
-    import { formatDynamicDecimal } from "../../utils/utils";
+
     import DashboardNav from "./DashboardNav.svelte";
     import { Decimal } from "decimal.js";
     import { onMount, untrack } from "svelte";

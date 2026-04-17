@@ -925,8 +925,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         case "setStopLossATR":
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
-            // parseAiValue returns Decimal, convert to number for tradeState
-            tradeState.atrMultiplier = parseAiValue(mult as string).toNumber();
+            // parseAiValue returns Decimal, convert to string for tradeState
+            tradeState.atrMultiplier = parseAiValue(mult as string).toString();
             tradeState.useAtrSl = true;
           }
           break;

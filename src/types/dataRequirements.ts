@@ -31,10 +31,10 @@
  * CRITICAL: Do not remove items without updating corresponding components!
  */
 export const DATA_REQUIREMENTS = {
-  /** Market Overview Tile - needs price, depth (bid/ask), and funding */
+  /** Market Overview Tile - needs ticker (price/24h stats) and depth (bid/ask) */
   MARKET_OVERVIEW: ['ticker', 'depth'] as const,
   
-  /** Chart Component - needs price and klines */
+  /** Chart Component - needs ticker (klines are registered separately via marketWatcher) */
   CHART: ['ticker'] as const,
   
   /** Order Book Component - needs depth only */
@@ -56,11 +56,13 @@ export const DATA_REQUIREMENTS = {
 export const REQUIREMENT_TO_CHANNELS: Record<string, string[]> = {
   // Public channels
   'ticker': ['ticker'],
+  'price': ['price'],
   'depth': ['depth_book5'],
   
   // Private channels
   'positions': ['positions'],
   'orders': ['orders'],
+  
   
   // Kline channels are handled separately (timeframe-specific)
   // e.g., 'kline_1h', 'kline_5m', etc.
@@ -72,6 +74,7 @@ export const REQUIREMENT_TO_CHANNELS: Record<string, string[]> = {
  */
 export type DataRequirement = 
   | 'ticker' 
+  | 'price'
   | 'depth' 
   | 'positions'
   | 'orders'
@@ -83,6 +86,11 @@ export type DataRequirement =
  * @returns Array of WebSocket channel names
  */
 export function getChannelsForRequirement(requirement: string): string[] {
+  // Guard against null/undefined or non-strings from JS land
+  if (!requirement || typeof requirement !== 'string') {
+    return [];
+  }
+
   // Handle kline specially (timeframe-specific)
   if (requirement.startsWith('kline_')) {
     return [requirement]; // e.g., 'kline_1h', 'kline_5m'

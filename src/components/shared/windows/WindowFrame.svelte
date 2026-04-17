@@ -82,8 +82,7 @@
      * from the header bar.
      */
     function startDrag(e: PointerEvent) {
-        // Prevent movement if clicking control buttons
-        if ((e.target as HTMLElement).closest(".window-controls")) return;
+        if ((e.target as HTMLElement).closest(".window-controls") || (e.target as HTMLElement).closest(".header-controls")) return;
 
         isDragging = true;
         const target = e.currentTarget as HTMLElement;
@@ -350,6 +349,8 @@
                     win.toggleMaximize();
                 } else if (win.doubleClickBehavior === "pin") {
                     win.togglePin();
+                } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
+                    win.minimize();
                 }
             }
         }}
@@ -357,13 +358,23 @@
         <div
             class="header-content"
             ondblclick={(e) => {
-                // Symbol/Logo/Title area double-click: Minimize/Restore
+                // Symbol/Logo/Title area double-click: Maximize/Restore/Pin
                 e.stopPropagation();
                 if (win.isMinimized) {
                     win.restore();
                     windowManager.bringToFront(win.id);
-                } else if (win.allowMinimize) {
-                    win.minimize();
+                } else {
+                    // Respect doubleClickBehavior flag instead of blindly minimizing
+                    if (
+                        win.doubleClickBehavior === "maximize" &&
+                        win.allowMaximize
+                    ) {
+                        win.toggleMaximize();
+                    } else if (win.doubleClickBehavior === "pin") {
+                        win.togglePin();
+                    } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
+                        win.minimize();
+                    }
                 }
             }}
         >
@@ -415,11 +426,19 @@
             </div>
 
             {#if win.headerControls.length > 0 && !win.isMinimized}
-                <div class="header-controls">
+                <div 
+                    class="header-controls"
+                    onpointerdown={(e) => e.stopPropagation()}
+                    onclick={(e) => e.stopPropagation()}
+                    ondblclick={(e) => e.stopPropagation()}
+                    onkeydown={(e) => e.stopPropagation()}
+                    role="presentation"
+                >
                     {#each win.headerControls as ctrl}
                         <button
                             class="header-ctrl-btn"
                             class:active={ctrl.active}
+                            onpointerdown={(e) => e.stopPropagation()}
                             onclick={(e) => {
                                 e.stopPropagation();
                                 ctrl.action();
@@ -767,7 +786,7 @@
         display: flex;
         align-items: center;
         overflow: hidden;
-        flex: 0 1 auto;
+        flex: 1; /* Take up remaining space so header-indicators is pushed to right */
     }
     .title-wrapper {
         display: flex;

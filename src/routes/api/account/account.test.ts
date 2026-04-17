@@ -40,6 +40,7 @@ global.fetch = fetchMock;
 describe('POST /api/account Security', () => {
   it('should handle malformed JSON body gracefully', async () => {
     const request = {
+      headers: new Headers(),
       text: vi.fn().mockResolvedValue('{ "broken": '),
     } as unknown as Request;
 
@@ -47,11 +48,12 @@ describe('POST /api/account Security', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({ error: 'Invalid JSON body' });
+    expect(body.error?.message || body.error).toEqual('Invalid JSON body');
   });
 
   it('should handle non-object body gracefully (Zod Validation)', async () => {
     const request = {
+      headers: new Headers(),
       text: vi.fn().mockResolvedValue('null'),
     } as unknown as Request;
 
@@ -60,11 +62,12 @@ describe('POST /api/account Security', () => {
 
     expect(response.status).toBe(400);
     // Zod returns a specific structure for validation errors
-    expect(body).toHaveProperty('error', 'Validation Error');
+    expect(body.error?.message || body.error).toEqual('Validation Error');
   });
 
   it('should process valid request correctly', async () => {
     const request = {
+      headers: new Headers(),
       text: vi.fn().mockResolvedValue(JSON.stringify({
         exchange: 'bitunix',
         apiKey: 'key',

@@ -94,7 +94,11 @@ class ResultsManager {
   isMarginExceeded = $state(false);
 
   reset() {
-    Object.assign(this, INITIAL_RESULTS_STATE);
+    if (this.notifyTimer) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
+    }
+    Object.assign(this, { ...INITIAL_RESULTS_STATE, calculatedTpDetails: [] });
   }
 
   // Bulk update helper for calculatorService

@@ -48,6 +48,7 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { tradeCalculator } from "./tradeCalculator.svelte";
 import { marketAnalyst } from "./marketAnalyst";
 import { serializationService } from "./serializationService";
+import { logger } from "./logger";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -122,7 +123,7 @@ export const app = {
         symbol: "BTCUSDT",
         entryPrice: "88480.2", // User screenshot value
         atrValue: "45.5",
-        atrMultiplier: 1.2,
+        atrMultiplier: "1.2",
         useAtrSl: true,
         atrMode: "auto",
         targets: [
@@ -340,7 +341,7 @@ export const app = {
       ...currentAppState.currentTradeData,
       notes: currentAppState.tradeNotes,
       tags: currentAppState.tags || [],
-      id: Date.now(),
+      id: crypto.randomUUID(),
       date: new Date().toISOString(),
       entryDate: new Date().toISOString(),
     } as JournalEntry;
@@ -353,7 +354,7 @@ export const app = {
 
   updateTradeStatus: async (id: number | string, newStatus: string) => {
     const journalData = app.getJournal();
-    const tradeIndex = journalData.findIndex((t) => t.id == id);
+    const tradeIndex = journalData.findIndex((t) => t.id === id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex].status = newStatus;
       await app.saveJournal(journalData);
@@ -363,7 +364,7 @@ export const app = {
 
   updateTrade: async (id: number | string, updates: Partial<JournalEntry>) => {
     const journalData = app.getJournal();
-    const tradeIndex = journalData.findIndex((t) => t.id == id);
+    const tradeIndex = journalData.findIndex((t) => t.id === id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex] = { ...journalData[tradeIndex], ...updates };
       await app.saveJournal(journalData);
@@ -372,7 +373,7 @@ export const app = {
   },
 
   deleteTrade: async (id: number | string) => {
-    const d = app.getJournal().filter((t) => t.id != id);
+    const d = app.getJournal().filter((t) => t.id !== id);
     await app.saveJournal(d);
     journalState.set(d);
   },
@@ -507,10 +508,12 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
     try {
+      logger.debug("api", `[handleFetchPrice] Fetching price for ${symbol} via ${settingsState.apiProvider}`);
       const ticker = await apiService.fetchTicker24h(
         symbol,
         settingsState.apiProvider,
       );
+      logger.debug("api", `[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
       app.currentMarketPrice = priceVal;

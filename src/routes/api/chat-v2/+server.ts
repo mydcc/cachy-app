@@ -59,10 +59,10 @@ export const POST: RequestHandler = async ({ request }) => {
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       text: sanitizedText.slice(0, 500), // Limit length per message
-      sender: sender || "user",
+      sender: "user",
       timestamp: Date.now(),
       profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
-      clientId: clientId || undefined,
+      clientId: typeof clientId === "string" && clientId ? clientId : undefined,
     };
 
     await chatStore.addMessage(newMessage);

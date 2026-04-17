@@ -171,7 +171,7 @@ Zugriff auf die Einstellungen über das Zahnrad-Symbol.
 ### API Provider
 
 - **Bitunix (Empfohlen):** Unterstützt volle Websocket-Integration (Echtzeitdaten), Positionssynchronisation und Order-Management.
-- **Binance:** Unterstützt Marktdaten und einfachen Kontostandsabruf.
+- **Bitget:** Unterstützt Marktdaten und einfachen Kontostandsabruf.
 
 ### Datensicherung (Backup)
 

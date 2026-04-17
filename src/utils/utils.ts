@@ -291,7 +291,7 @@ export function normalizeTimeframeInput(input: string): string {
     if (unit.startsWith("w")) unit = "w";
 
     // Uppercase 'M' for Month if needed, but usually we use lowercase m for minutes.
-    // Bitunix/Binance use '1M' for month, '1m' for minute.
+    // Bitunix/Bitget use '1M' for month, '1m' for minute.
     // If user typed '1M' (uppercase), we might assume Month if it's explicitly uppercase?
     // But prompt says "1d, 1D" -> acceptable.
     // Let's assume standard crypto notation: m=minute, h=hour, d=day, w=week, M=month.
@@ -366,7 +366,7 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
   if (!trade || typeof trade !== "object") {
     // Return a minimal valid dummy if completely malformed
     return {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       date: new Date().toISOString(),
       symbol: "UNKNOWN",
       tradeType: "long",
@@ -375,6 +375,11 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
     } as unknown as JournalEntry;
   }
   const newTrade = { ...trade };
+
+  // Normalize ID to string for consistent comparisons
+  if (newTrade.id !== undefined && newTrade.id !== null) {
+    newTrade.id = String(newTrade.id);
+  }
 
   // Numerical fields that must be Decimal
   const decimalFields = [

@@ -68,6 +68,9 @@
 
   /* Box Shadows */
   --shadow-tooltip: var(--shadow-tooltip);
+
+  /* Custom Spacing / Sizes */
+  --spacing-indicator: var(--indicator-size);
 }
 
 html {
