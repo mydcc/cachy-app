@@ -301,15 +301,6 @@ class IndicatorManager {
     try {
       const parsed = JSON.parse(stored);
 
-      // Migration for ADX
-      let adxParsed = { ...defaultSettings.adx, ...(parsed.adx || {}) };
-      if (
-        parsed.adx &&
-        parsed.adx.length !== undefined &&
-        parsed.adx.adxSmoothing === undefined
-      ) {
-        adxParsed.adxSmoothing = parsed.adx.length;
-      }
       // Migration for enabled flags (if missing)
       const merge = (key: keyof IndicatorSettings, fallback: any) => {
           const val = parsed[key] || {};
@@ -334,9 +325,12 @@ class IndicatorManager {
       this.stochastic = merge('stochastic', defaultSettings.stochastic);
       this.williamsR = merge('williamsR', defaultSettings.williamsR);
       this.cci = merge('cci', defaultSettings.cci);
-      this.adx = adxParsed; // Assuming adx is special case handled above, but missing enabled?
-      // Fix ADX enabled:
-      if (this.adx.enabled === undefined) this.adx.enabled = defaultSettings.adx.enabled;
+
+      this.adx = merge('adx', defaultSettings.adx);
+      // Migration for ADX: Handle old 'length' property
+      if (parsed.adx?.length !== undefined && parsed.adx?.adxSmoothing === undefined) {
+        this.adx.adxSmoothing = parsed.adx.length;
+      }
 
       this.ao = merge('ao', defaultSettings.ao);
       this.momentum = merge('momentum', defaultSettings.momentum);

@@ -33,7 +33,7 @@ marked.use(markedKatex({
  * SECURITY: Returns empty string during SSR to prevent XSS/hydration mismatches
  * from untrusted content.
  */
-export function renderSafeMarkdown(text: string): string {
+export function renderSafeMarkdown(text: string): string | DocumentFragment {
     try {
         if (!text) return "";
 
@@ -45,14 +45,14 @@ export function renderSafeMarkdown(text: string): string {
         const raw = marked.parse(cleaned) as string;
 
         if (typeof window !== "undefined") {
-            return DOMPurify.sanitize(raw);
+            return DOMPurify.sanitize(raw, { RETURN_DOM_FRAGMENT: true });
         }
 
         // SSR Fallback: Return empty string to prevent XSS.
         return "";
     } catch (e) {
         console.error("Markdown rendering error:", e);
-        return text;
+        return "";
     }
 }
 

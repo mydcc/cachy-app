@@ -206,24 +206,22 @@ export class IncrementalCache {
    * Evict least recently used entries if over max size
    */
   private evictIfNeeded(): void {
-    if (this.cache.size <= this.maxSize) return;
-    
-    // Find LRU entry
-    let lruKey: string | null = null;
-    let lruTime = Infinity;
-    
-    this.cache.forEach((entry, key) => {
-      if (entry.lastAccessed < lruTime) {
-        lruTime = entry.lastAccessed;
-        lruKey = key;
-      }
-    });
-    
-    if (lruKey) {
-      this.cache.delete(lruKey);
+    while (this.cache.size > this.maxSize) {
+      // Find LRU entry
+      let lruKey: string | null = null;
+      let lruTime = Infinity;
       
-      if (import.meta.env.DEV) {
-        console.log(`[IncrementalCache] Evicted LRU entry: ${lruKey}`);
+      this.cache.forEach((entry, key) => {
+        if (entry.lastAccessed < lruTime) {
+          lruTime = entry.lastAccessed;
+          lruKey = key;
+        }
+      });
+      
+      if (lruKey) {
+        this.cache.delete(lruKey);
+      } else {
+        break;
       }
     }
   }
@@ -242,10 +240,6 @@ export class IncrementalCache {
     });
     
     staleKeys.forEach(key => this.cache.delete(key));
-    
-    if (import.meta.env.DEV && staleKeys.length > 0) {
-      console.log(`[IncrementalCache] Cleaned up ${staleKeys.length} stale entries`);
-    }
   }
   
   /**

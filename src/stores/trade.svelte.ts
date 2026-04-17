@@ -44,7 +44,7 @@ export interface TradeStateSnapshot {
   fees: string | null;
   symbol: string;
   atrValue: string | null;
-  atrMultiplier: number;
+  atrMultiplier: string | null;
   useAtrSl: boolean;
   atrMode: "auto" | "manual";
   atrTimeframe: string;
@@ -102,14 +102,14 @@ const TradeStateSchema = z.object({
   fees: stringSchema,
   symbol: z.string(),
   atrValue: stringSchema,
-  atrMultiplier: z.number(), // Multiplier is usually simple float (1.5)
+  atrMultiplier: stringSchema,
   useAtrSl: z.boolean(),
   atrMode: z.enum(["auto", "manual"]).catch("auto"),
   atrTimeframe: z.string(),
   analysisTimeframe: z.string().optional().default("1h"),
   tradeNotes: z.string(),
-  tags: z.array(z.string()).optional().default([]),
-  targets: z.array(TradeTargetSchema).optional(),
+  tags: z.array(z.string()).max(50).optional().default([]),
+  targets: z.array(TradeTargetSchema).max(20).optional(),
   isPositionSizeLocked: z.boolean(),
   lockedPositionSize: z.union([z.string(), z.number(), z.null()]).transform(val => {
     if (val === null) return null;
@@ -131,7 +131,7 @@ export const INITIAL_TRADE_STATE = {
   fees: CONSTANTS.DEFAULT_FEES,
   symbol: "BTCUSDT",
   atrValue: null as string | null,
-  atrMultiplier: 1.2,
+  atrMultiplier: "1.2",
   useAtrSl: true,
   atrMode: "auto" as "auto" | "manual",
   atrTimeframe: "5m",
@@ -165,7 +165,7 @@ class TradeManager {
   fees = $state<string | null>(INITIAL_TRADE_STATE.fees);
   symbol = $state<string>(INITIAL_TRADE_STATE.symbol);
   atrValue = $state<string | null>(INITIAL_TRADE_STATE.atrValue);
-  atrMultiplier = $state<number>(INITIAL_TRADE_STATE.atrMultiplier);
+  atrMultiplier = $state<string | null>(INITIAL_TRADE_STATE.atrMultiplier);
   useAtrSl = $state<boolean>(INITIAL_TRADE_STATE.useAtrSl);
   atrMode = $state<"auto" | "manual">(INITIAL_TRADE_STATE.atrMode);
   atrTimeframe = $state<string>(INITIAL_TRADE_STATE.atrTimeframe);
@@ -342,7 +342,7 @@ class TradeManager {
 
   setSymbol(
     symbol: string,
-    provider: "bitunix" | "binance" = "bitunix",
+    provider: "bitunix" | "bitget" | string = "bitunix",
   ): boolean {
     if (!symbol) {
       this.symbol = "";

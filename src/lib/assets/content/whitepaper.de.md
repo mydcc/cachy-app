@@ -66,7 +66,7 @@ In einer Ära von Datenlecks bezieht Cachy eine radikale Position: **Wir wollen 
 Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 
 - **Frontend**: Eine umfangreiche Single Page Application (SPA), angetrieben von SvelteKit. Sie handhabt 95% der Logik, einschließlich Datenverarbeitung, Chart-Rendering und Zustandsverwaltung.
-- **Backend (Serverless/Node)**: Eine leichtgewichtige API-Proxy-Schicht innerhalb von SvelteKit (\`src/routes/api/\`). Ihr Hauptzweck ist es, Anfragen für Börsen (Bitunix/Binance) sicher zu signieren, ohne API-Geheimnisse an den Client preiszugeben, und KI-gestützte Diagnosen durchzuführen.
+- **Backend (Serverless/Node)**: Eine leichtgewichtige API-Proxy-Schicht innerhalb von SvelteKit (\`src/routes/api/\`). Ihr Hauptzweck ist es, Anfragen für Börsen (Bitunix/Bitget) sicher zu signieren, ohne API-Geheimnisse an den Client preiszugeben, und KI-gestützte Diagnosen durchzuführen.
 
 ### Technologie-Stack
 
@@ -420,7 +420,7 @@ _Komponente: \`app.ts\` (Sync-Logik)_
 
 ## 5. Externe Integrationen & Datenfeeds
 
-Cachy zielt darauf ab, börsenunabhängig zu sein, optimiert aber derzeit für **Bitunix** (primär) und **Binance** (sekundär).
+Cachy zielt darauf ab, börsenunabhängig zu sein, optimiert aber derzeit für **Bitunix** (primär) und **Bitget** (sekundär).
 
 ### Börsen-Konnektivität
 
@@ -428,7 +428,7 @@ Die Konnektivität wird über die Abstraktionsschicht \`src/services/apiService.
 
 **Normalisierungsstrategie**:
 
-- Börsen formatieren Daten unterschiedlich (z. B. Bitunix verwendet \`lastPrice`, Binance verwendet \`price`).
+- Börsen formatieren Daten unterschiedlich (z. B. Bitunix verwendet \`lastPrice`, Bitget verwendet \`price`).
 - Die Service-Schicht normalisiert alle Antworten in eine Standard-\`Ticker24h\`- oder \`Kline\`-Schnittstelle, bevor Daten an die UI übergeben werden.
 - _Spezielle Handhabung_: Bitunix-Futures-Symbole enden oft auf \`.P\` oder \`USDTP\`. Der Normalisierer entfernt diese Suffixe strikt, um saubere UI-Symbole zu erhalten (z. B. \`BTCUSDT\`).
 

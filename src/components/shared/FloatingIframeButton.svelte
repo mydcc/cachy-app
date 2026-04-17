@@ -16,11 +16,9 @@
 -->
 
 <script lang="ts">
-    import { uiState } from "../../stores/ui.svelte";
     import { windowManager } from "../../lib/windows/WindowManager.svelte";
-    import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
-    import { _ } from "../../locales/i18n";
-    import { fade, scale } from "svelte/transition";
+    import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
+    import { scale } from "svelte/transition";
 
     // Derived state to check if main window ("genesis") is open
     let isGenesisOpen = $derived(
@@ -41,9 +39,10 @@
             windowManager.close("genesis");
         } else {
             windowManager.open(
-                new IframeWindow(
+                new ChannelWindow(
                     "https://space.cachy.app/index.php?plot_id=genesis",
                     "Cachy Space",
+                    "genesis",
                     { id: "genesis" },
                 ),
             );
@@ -52,9 +51,10 @@
 
     function openChannel(ch: { id: string; label: string; plotId: string }) {
         windowManager.open(
-            new IframeWindow(
+            new ChannelWindow(
                 `https://space.cachy.app/index.php?plot_id=${ch.plotId}`,
                 ch.label,
+                ch.id,
                 { id: ch.id },
             ),
         );

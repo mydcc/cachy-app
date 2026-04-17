@@ -56,12 +56,21 @@ export class ChartWindow extends WindowBase {
      * Updates whenever the active timeframe changes.
      */
     updateHeaderControls() {
-        const tfs = ["3m", "5m", "15m", "1h", "4h", "1d"];
+        const tfs = [
+            { label: "3m", value: "3m" },
+            { label: "5m", value: "5m" },
+            { label: "15m", value: "15m" },
+            { label: "1h", value: "1h" },
+            { label: "4h", value: "4h" },
+            { label: "1D", value: "1d" },
+            { label: "1W", value: "1w" },
+            { label: "1M", value: "1M" }
+        ];
         this.headerControls = tfs.map(tf => ({
-            label: tf,
-            active: this.timeframe === tf,
+            label: tf.label,
+            active: this.timeframe === tf.value,
             action: () => {
-                this.timeframe = tf;
+                this.timeframe = tf.value;
                 this.updateHeaderControls();
             }
         }));

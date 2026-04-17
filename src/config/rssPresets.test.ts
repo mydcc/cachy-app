@@ -17,9 +17,29 @@
 
 
 import { describe, it, expect } from 'vitest';
-import { getPresetUrls, getRSSUrlsByIds, RSS_PRESETS } from './rssPresets';
+import { getPresetUrls, getRSSUrlsByIds, getPresetById, RSS_PRESETS } from './rssPresets';
 
 describe('rssPresets', () => {
+  describe('getPresetById', () => {
+    it('should return the correct preset object for a valid ID', () => {
+      const preset = getPresetById('coindesk');
+      expect(preset).toBeDefined();
+      expect(preset?.id).toBe('coindesk');
+      expect(preset?.name).toBe('CoinDesk');
+      expect(preset?.category).toBe('crypto');
+    });
+
+    it('should return undefined for a non-existent ID', () => {
+      const preset = getPresetById('fake-id');
+      expect(preset).toBeUndefined();
+    });
+
+    it('should return undefined for an empty string', () => {
+      const preset = getPresetById('');
+      expect(preset).toBeUndefined();
+    });
+  });
+
   describe('getPresetUrls', () => {
     it('should return correct URLs for existing IDs', () => {
       const ids = ['coindesk', 'decrypt'];

@@ -58,7 +58,7 @@
                     >{$_("settings.apiQuota.cryptopanic")}</span
                 >
                 <span
-                    class="status-dot w-2 h-2 rounded-full"
+                    class="status-dot w-indicator h-indicator rounded-full"
                     style="background-color: {getStatusColor(cryptoPanicStats)}"
                 ></span>
             </div>
@@ -114,7 +114,7 @@
                     >{$_("settings.apiQuota.newsapi")}</span
                 >
                 <span
-                    class="status-dot w-2 h-2 rounded-full"
+                    class="status-dot w-indicator h-indicator rounded-full"
                     style="background-color: {getStatusColor(newsApiStats)}"
                 ></span>
             </div>

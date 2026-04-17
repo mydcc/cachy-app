@@ -493,8 +493,8 @@
 
         // Init Physics
         stressLogic = new StressLogic(scene);
-        stressLogic.init().then(() => {
-            console.log("Ammo Physics Loaded");
+        stressLogic.init().catch((e) => {
+            console.error("Failed to initialize physics", e);
         });
 
         // Init Duck

@@ -153,6 +153,9 @@
   --glass-blur: 8px;
   --glass-saturate: 100%;
   --glass-opacity: 0.7;
+
+  /* --- Status Indicators (Golden Ratio Harmonization) --- */
+  --indicator-size: 0.382rem;
 }
 
 /* =================================================================

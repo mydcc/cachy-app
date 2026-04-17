@@ -37,6 +37,7 @@ export interface EncryptedBlob {
   iv: string;
   salt: string;
   method: "AES-GCM" | "AES-CBC";
+  kdfHash?: "SHA-512" | "SHA-256";
 }
 
 const SECURE_DB_NAME = "CachySecurityDB";
@@ -44,18 +45,34 @@ const SECURE_STORE_NAME = "keys";
 const DEVICE_KEY_ALIAS = "device_key";
 
 class CryptoServiceImpl {
-  private sessionKey: CryptoKey | null = null;
-  private sessionSalt: Uint8Array | null = null; // To verify if salt matches
+  // Non-extractable PBKDF2 base key derived from the user's password.
+  // The raw password is never stored — only this opaque CryptoKey handle,
+  // which the Web Crypto API protects from JavaScript read access.
+  private sessionBaseKey: CryptoKey | null = null;
+  // Cache derived AES keys by salt to avoid redundant PBKDF2 derivations
+  private sessionKeyCache: Map<string, CryptoKey> = new Map();
 
   /**
-   * Unlocks the session by deriving and caching the key.
-   * Returns true if successful (simple check).
+   * Unlocks the session by importing the password as a non-extractable PBKDF2 CryptoKey.
+   * The raw password is discarded after import — only the opaque key handle is retained.
+   * AES keys are derived on-demand per salt during encrypt/decrypt.
+   * Returns true if successful.
    */
   async unlockSession(password: string): Promise<boolean> {
     try {
-      const salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
-      this.sessionKey = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
-      this.sessionSalt = salt;
+      // Import the password as a non-extractable PBKDF2 base key
+      const baseKey = await this.getPasswordKey(password);
+      // Verify the key can be used for derivation
+      const testSalt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
+      await window.crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: testSalt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-512" },
+        baseKey,
+        { name: "AES-GCM", length: KEY_SIZE },
+        false,
+        ["encrypt", "decrypt"]
+      );
+      this.sessionBaseKey = baseKey;
+      this.sessionKeyCache.clear();
       return true;
     } catch (e) {
       console.error("Failed to unlock session", e);
@@ -64,12 +81,33 @@ class CryptoServiceImpl {
   }
 
   lockSession() {
-    this.sessionKey = null;
-    this.sessionSalt = null;
+    this.sessionBaseKey = null;
+    this.sessionKeyCache.clear();
   }
 
   isUnlocked(): boolean {
-    return this.sessionKey !== null;
+    return this.sessionBaseKey !== null;
+  }
+
+  /**
+   * Derives (or retrieves from cache) an AES key for the given salt using the session base key.
+   */
+  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[], hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512"): Promise<CryptoKey> {
+    if (!this.sessionBaseKey) {
+      throw new Error("Session locked and no password provided");
+    }
+    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo;
+    const cached = this.sessionKeyCache.get(saltKey);
+    if (cached) return cached;
+    const key = await window.crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
+      this.sessionBaseKey,
+      { name: "AES-GCM", length: KEY_SIZE },
+      false,
+      ["encrypt", "decrypt"]
+    );
+    this.sessionKeyCache.set(saltKey, key);
+    return key;
   }
 
   // --- Core Crypto Operations ---
@@ -89,7 +127,7 @@ class CryptoServiceImpl {
     password: string,
     salt: Uint8Array,
     iterations: number,
-    hash: "SHA-256" | "SHA-1",
+    hash: "SHA-512" | "SHA-256" | "SHA-1",
   ): Promise<CryptoKey> {
     const passwordKey = await this.getPasswordKey(password);
     return window.crypto.subtle.deriveKey(
@@ -121,7 +159,7 @@ class CryptoServiceImpl {
         if (password.algorithm.name === "PBKDF2") {
           salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
           key = await window.crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-512" },
             password,
             { name: "AES-GCM", length: KEY_SIZE },
             false,
@@ -131,12 +169,19 @@ class CryptoServiceImpl {
           key = password;
           salt = new Uint8Array(SALT_SIZE); // Dummy salt for blob consistency
         }
-      } else if (this.sessionKey && !password) {
-        key = this.sessionKey;
-        salt = this.sessionSalt!;
+      } else if (this.sessionBaseKey && !password) {
+        salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
+        // Derive key directly without caching — fresh random salts are never reused
+        key = await window.crypto.subtle.deriveKey(
+          { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-512" },
+          this.sessionBaseKey,
+          { name: "AES-GCM", length: KEY_SIZE },
+          false,
+          ["encrypt", "decrypt"]
+        );
       } else if (typeof password === 'string' && password) {
         salt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
-        key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
+        key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-512");
       } else {
         throw new Error("Session locked and no password or key provided");
       }
@@ -155,7 +200,8 @@ class CryptoServiceImpl {
         ciphertext: bufferToBase64(ciphertextBuffer),
         iv: bufferToBase64(iv.buffer as unknown as ArrayBuffer),
         salt: bufferToBase64(salt.buffer as unknown as ArrayBuffer),
-        method: "AES-GCM"
+        method: "AES-GCM",
+        kdfHash: "SHA-512"
       };
     } catch (e) {
       console.error("Encryption failed", e);
@@ -165,7 +211,7 @@ class CryptoServiceImpl {
 
   // --- Decryption ---
 
-  public async decrypt(blob: EncryptedBlob, password?: string | CryptoKey): Promise<string> {
+  private async attemptDecrypt(blob: EncryptedBlob, password?: string | CryptoKey, hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512"): Promise<string> {
     try {
       const salt = base64ToBuffer(blob.salt);
       const iv = base64ToBuffer(blob.iv);
@@ -176,7 +222,7 @@ class CryptoServiceImpl {
       if (password instanceof CryptoKey) {
         if (password.algorithm.name === "PBKDF2") {
           key = await window.crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
             password,
             { name: "AES-GCM", length: KEY_SIZE },
             false,
@@ -185,22 +231,18 @@ class CryptoServiceImpl {
         } else {
           key = password;
         }
-      } else if (this.sessionKey && !password) {
-        // Verify salt matches session
-        if (this.sessionSalt && this.arraysEqual(salt, this.sessionSalt)) {
-          key = this.sessionKey;
-        } else {
-          throw new Error("Data salt does not match session salt. Verification required.");
-        }
+      } else if (this.sessionBaseKey && !password) {
+        // Derive key from session base key + blob's salt
+        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo);
       } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
         if (blob.method === "AES-GCM") {
-          key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, "SHA-256");
+          key = await this.deriveKeyFromPassword(password, salt, STRONG_ITERATIONS, hashAlgo);
         } else {
           // Legacy or CBC. Import as CBC key.
           const passwordKey = await this.getPasswordKey(password);
           key = await window.crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
             passwordKey,
             { name: "AES-CBC", length: KEY_SIZE },
             false,
@@ -227,6 +269,35 @@ class CryptoServiceImpl {
       // Fallback logic for legacy strings (not EncryptedBlob objects)? 
       // The old code handled raw strings. We might need a wrapper "legacyDecrypt"
       console.error("Decryption failed", e);
+      throw e;
+    }
+  }
+
+  public async decrypt(blob: EncryptedBlob, password?: string | CryptoKey): Promise<string> {
+    // If the blob records which hash was used, use it directly (no trial decryption).
+    if (blob.kdfHash) {
+      return await this.attemptDecrypt(blob, password, blob.kdfHash);
+    }
+
+    // AES-CBC blobs are legacy and were never encrypted with SHA-512.
+    // AES-CBC lacks an authentication tag, so decrypting with the wrong key
+    // can silently return garbage instead of throwing. Skip the fallback.
+    if (blob.method === "AES-CBC") {
+      return await this.attemptDecrypt(blob, password, "SHA-256");
+    }
+
+    // Legacy AES-GCM blobs without kdfHash were always encrypted with SHA-256.
+    // New blobs always include kdfHash and are handled by the early return above.
+    // Try SHA-256 first, fall back to SHA-512 only if needed (future-proofing).
+    try {
+      return await this.attemptDecrypt(blob, password, "SHA-256");
+    } catch (e) {
+      // Only fall back to SHA-512 if the error is a decryption failure
+      // (OperationError), which indicates a key mismatch due to hash algorithm.
+      // Other errors (e.g., session locked, invalid base64) should fail fast.
+      if (e instanceof DOMException && e.name === "OperationError") {
+        return await this.attemptDecrypt(blob, password, "SHA-512");
+      }
       throw e;
     }
   }
@@ -312,12 +383,6 @@ class CryptoServiceImpl {
     });
   }
 
-  // Helper
-  private arraysEqual(a: Uint8Array, b: Uint8Array) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-    return true;
-  }
 }
 
 // Internal Utils

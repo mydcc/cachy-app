@@ -1033,12 +1033,8 @@
                                                 class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                 onclick={() =>
                                                     onDeleteTrade?.(item.id)}
-                                                title={$_(
-                                                    "journal.labels.delete" as any,
-                                                )}
-                                                aria-label={$_(
-                                                    "journal.labels.delete" as any,
-                                                )}
+                                                title={$_("journal.delete")}
+                                                aria-label={$_("journal.delete")}
                                             >
                                                 🗑️
                                             </button>
