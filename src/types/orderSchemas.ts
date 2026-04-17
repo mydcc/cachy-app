@@ -8,26 +8,29 @@
  */
 
 import { z } from "zod";
-
-/**
- * Common regex for validating numeric strings
- * Allows integers and decimals, positive or negative
- */
-const numericStringRegex = /^-?\d+(\.\d+)?$/;
+import { Decimal } from "decimal.js";
 
 const NumericString = z.union([z.number(), z.string()])
   .refine((val) => {
-    if (typeof val === "number") return !isNaN(val) && isFinite(val);
-    return numericStringRegex.test(val);
+    try {
+      const d = new Decimal(val);
+      return d.isFinite() && !d.isNaN();
+    } catch {
+      return false;
+    }
   }, { message: "Must be a valid number" })
-  .transform((val) => String(val)); // Normalize to string for API
+  .transform((val) => new Decimal(val).toString()); // Normalize to string for API
 
 const PositiveNumericString = z.union([z.number(), z.string()])
   .refine((val) => {
-    const num = parseFloat(String(val));
-    return !isNaN(num) && num > 0;
+    try {
+      const num = new Decimal(val);
+      return num.isFinite() && !num.isNaN() && num.gt(0);
+    } catch {
+      return false;
+    }
   }, { message: "Must be a positive number" })
-  .transform((val) => String(val));
+  .transform((val) => new Decimal(val).toString());
 
 const ExchangeEnum = z.enum(["bitunix", "bitget"]);
 

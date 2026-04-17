@@ -420,23 +420,10 @@ class BitunixWebSocketService {
         }
 
         try {
-          // [FIX] Precision Loss Protection
-          // Pre-process raw JSON string to wrap numeric fields in quotes before JSON.parse
-          // This is critical for the "Fast Path" to ensure numbers like 0.00000001 aren't parsed as 1e-8 numbers
-          let rawData = typeof event.data === 'string' ? event.data : '';
-
-          if (rawData && (rawData.includes('"topic":"price"') || rawData.includes('"ch":"price"') ||
-              rawData.includes('"topic":"ticker"') || rawData.includes('"ch":"ticker"') ||
-              rawData.includes('"topic":"trade"') || rawData.includes('"ch":"trade"'))) {
-              // Regex to target specific keys followed by a number
-              // Captures: 1=key, 2=value
-              const regex = /"(p|v|a|b|price|amount|qty|lastPrice|high|low|volume|quoteVolume|triggerPrice|stopPrice|i|m|c|o|h|l)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
-              rawData = rawData.replace(regex, '"$1":"$2"');
-          }
-
+          // safeJsonParse already handles high-precision numbers correctly by wrapping large numbers in strings
+          // before JSON parsing, thus avoiding the overhead of expensive regex matching on the hot path
+          const rawData = typeof event.data === 'string' ? event.data : '';
           const message = safeJsonParse(rawData || event.data);
-
-
 
           this.handleMessage(message, "public");
         } catch (e) {
@@ -459,10 +446,7 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (err) => {
-        // W-1: Log WS errors instead of silently swallowing them
-        this.handleInternalError("public", err);
-      };
+      ws.onerror = (error) => { };
     } catch (e) {
       this.scheduleReconnect("public");
     }
@@ -546,18 +530,10 @@ class BitunixWebSocketService {
         }
 
         try {
-          // [FIX] Precision Loss Protection
-          let rawData = typeof event.data === 'string' ? event.data : '';
-
-          if (rawData && (rawData.includes('"topic":"order"') || rawData.includes('"ch":"order"') ||
-              rawData.includes('"topic":"position"') || rawData.includes('"ch":"position"'))) {
-              const regex = /"(orderId|id|planId|price|triggerPrice|qty|amount|size|margin|value|entryPrice|liquidationPrice)":\s*(-?\d+(\.\d+)?([eE][+-]?\d+)?)/g;
-              rawData = rawData.replace(regex, '"$1":"$2"');
-          }
-
+          // safeJsonParse already handles high-precision numbers correctly by wrapping large numbers in strings
+          // before JSON parsing, thus avoiding the overhead of expensive regex matching on the hot path
+          const rawData = typeof event.data === 'string' ? event.data : '';
           const message = safeJsonParse(rawData || event.data);
-
-
 
           this.handleMessage(message, "private");
         } catch (e) {
@@ -579,9 +555,9 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (err) => {
-          // W-1: Log WS errors instead of silently swallowing them
-          this.handleInternalError("private", err);
+      ws.onerror = (error) => {
+          // [HYBRID FIX] Quietly handle connection errors
+          // logger.warn("network", "[BitunixWS] Private connection error", error);
       };
     } catch (e) {
       // Catch synchronous errors (e.g. invalid URL or browser blocking)
@@ -888,9 +864,9 @@ class BitunixWebSocketService {
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
                         marketState.updateSymbol(symbol, {
-                          indexPrice: ip !== undefined && ip !== null && ip !== "" ? new Decimal(ip) : undefined,
-                          fundingRate: fr !== undefined && fr !== null && fr !== "" ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft !== undefined && nft !== null && nft !== "" ? String(nft) : undefined
+                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
+                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
+                          nextFundingTime: data.nft ? String(data.nft) : undefined
                         });
                     }
                     return;
@@ -1209,9 +1185,9 @@ class BitunixWebSocketService {
           const d = priceData.data;
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: d.ip !== undefined && d.ip !== null && d.ip !== "" ? String(d.ip) : undefined,
-            fundingRate: d.fr !== undefined && d.fr !== null && d.fr !== "" ? String(d.fr) : undefined,
-            nextFundingTime: d.nft !== undefined && d.nft !== null && d.nft !== "" ? String(d.nft) : undefined
+            indexPrice: d.ip ? String(d.ip) : undefined,
+            fundingRate: d.fr ? String(d.fr) : undefined,
+            nextFundingTime: d.nft ? String(d.nft) : undefined
           });
         }
       } else if (validatedChannel === "ticker") {
@@ -1681,6 +1657,8 @@ export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
   // Strict Safety Checks
   const p = d.p ?? d.lastPrice ?? d.price;
   const v = d.v ?? d.volume ?? d.amount;
+  // Side can be anything truthy usually, but safer to check existence
+  // const s = d.s ?? d.side; // Unused but good to know it exists
 
   if (p === undefined || !isSafe(p)) return false;
   if (v === undefined || !isSafe(v)) return false;

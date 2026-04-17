@@ -60,7 +60,8 @@ class MarketWatcher {
   private historyLocks = new Set<string>();
 
   // Track pruned requests to prevent double-decrement of inFlight
-  private prunedRequestIds = new Set<string>();
+  // Maps lockKey -> timestamp when pruned, so we can safely evict only ancient entries
+  private prunedRequestIds = new Map<string, number>();
 
   private staggerTimeouts = new Set<ReturnType<typeof setTimeout>>(); // Track staggered requests to prevent zombie calls
   private maxConcurrentPolls = 6; // Reduced to mitigate rate limits (aligned with strict token bucket)
@@ -222,9 +223,30 @@ class MarketWatcher {
             // Since we don't know for sure if it finished or hung, we decrement carefully
             this.inFlight = Math.max(0, this.inFlight - 1);
             // Mark as pruned so the finally block doesn't decrement again
-            this.prunedRequestIds.add(key);
+            this.prunedRequestIds.set(key, now);
         }
     });
+
+    // Bounds for unbounded caches to prevent OOM
+    if (this.exhaustedHistory.size > 1000) {
+        this.exhaustedHistory.clear();
+        logger.warn("market", "[MarketWatcher] Cleared exhaustedHistory to prevent memory leak");
+    }
+
+    if (this.prunedRequestIds.size > 1000) {
+        // Only evict entries old enough that their finally blocks have
+        // certainly already run (or will never run). The zombie timeout
+        // is 20s, so 60s gives a 3× safety margin.
+        const AGE_THRESHOLD = 60_000;
+        let evicted = 0;
+        for (const [id, prunedAt] of this.prunedRequestIds) {
+            if (now - prunedAt > AGE_THRESHOLD) {
+                this.prunedRequestIds.delete(id);
+                evicted++;
+            }
+        }
+        logger.warn("market", `[MarketWatcher] Evicted ${evicted} stale entries from prunedRequestIds (remaining: ${this.prunedRequestIds.size})`);
+    }
   }
 
   public startPolling() {
@@ -737,6 +759,12 @@ class MarketWatcher {
   public forceCleanup() {
     this.requests.clear();
     this.pendingRequests.clear();
+    this.requestStartTimes.clear();
+    this.exhaustedHistory.clear();
+    this.prunedRequestIds.clear();
+    this.historyLocks.clear();
+    this.staggerTimeouts.forEach(clearTimeout);
+    this.staggerTimeouts.clear();
     this.inFlight = 0;
     this.syncSubscriptions();
     this._subscriptionsDirty = false;
