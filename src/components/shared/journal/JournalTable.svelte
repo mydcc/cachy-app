@@ -879,10 +879,10 @@
                                                     rel="noopener noreferrer"
                                                     class="screenshot-icon-wrapper relative group text-lg"
                                                     title={$_(
-                                                        "journal.labels.view" as any,
+                                                        "journal.labels.viewScreenshot" as any,
                                                     )}
                                                     aria-label={$_(
-                                                        "journal.labels.view" as any,
+                                                        "journal.labels.viewScreenshot" as any,
                                                     )}
                                                 >
                                                     🖼️
