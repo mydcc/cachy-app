@@ -771,17 +771,7 @@ class MarketWatcher {
   }
 
   destroy() {
-    this.isPolling = false;
-    if (this.startTimeout) {
-      clearTimeout(this.startTimeout);
-      this.startTimeout = null;
-    }
-    if (this.pollingTimeout) {
-      clearTimeout(this.pollingTimeout);
-      this.pollingTimeout = null;
-    }
-    this.staggerTimeouts.forEach(clearTimeout);
-    this.staggerTimeouts.clear();
+    this.stopPolling();
   }
 
   // Safety valve: Force cleanup
