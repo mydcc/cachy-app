@@ -523,7 +523,7 @@ export const apiService = {
                   const low = new Decimal(k.low || k.l);
                   const close = new Decimal(k.close || k.c);
                   const volume = new Decimal(k.volume || k.vol || k.v || 0);
-                  if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) {
+                  if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
                       logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
                       return null;
                   }
@@ -547,7 +547,7 @@ export const apiService = {
               const close = new Decimal(d[4]);
               const volume = new Decimal(d[5]);
 
-              if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) {
+              if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
                   logger.warn("network", "[Bitget] Dropping invalid kline (NaN Array)", d);
                   return null;
               }
@@ -558,6 +558,7 @@ export const apiService = {
             }
           }).filter((k): k is Kline => k !== null);
         } catch (e: unknown) {
+          console.error(e);
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
