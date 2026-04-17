@@ -65,7 +65,7 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
+    POSITION_NOT_FOUND: "trade.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
     CLOSE_ALL_FAILED: "trade.closeAllFailed"
 };

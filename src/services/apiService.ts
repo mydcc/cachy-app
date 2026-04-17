@@ -553,7 +553,7 @@ export const apiService = {
             }
           }).filter((k): k is Kline => k !== null);
         } catch (e: unknown) {
-          logger.error("network", "[Bitget] Kline fetch error", e);
+          console.error(e);
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
