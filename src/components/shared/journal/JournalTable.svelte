@@ -907,10 +907,10 @@
                                                             },
                                                         )}
                                                     title={$_(
-                                                        "journal.labels.removeScreenshot" as any,
+                                                        "journal.labels.deleteScreenshot" as any,
                                                     )}
                                                     aria-label={$_(
-                                                        "journal.labels.removeScreenshot" as any,
+                                                        "journal.labels.deleteScreenshot" as any,
                                                     )}
                                                 >
                                                     🗑️
