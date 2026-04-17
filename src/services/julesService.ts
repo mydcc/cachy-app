@@ -85,11 +85,11 @@ export const julesService = {
       // Legacy accountStore had computed props, but AccountManager splits them.
       // Let's sum up available or just take USDT.
       balance:
-        new Decimal(account.assets.find((a) => a.currency === "USDT")?.total || 0).toNumber(),
+        new Decimal(account.assets.find((a) => a.currency === "USDT")?.total || 0).toString(),
       availableBalance:
         new Decimal(
           account.assets.find((a) => a.currency === "USDT")?.available || 0,
-        ).toNumber(),
+        ).toString(),
       positionsCount: account.positions.length,
       ordersCount: account.openOrders.length,
       isConnected: wsStatus === "connected",
