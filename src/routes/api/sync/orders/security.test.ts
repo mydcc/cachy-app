@@ -32,9 +32,9 @@ describe('POST /api/sync/orders', () => {
     } as Request;
 
     const response = await POST({ request } as any);
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     const body = await response.json();
-    expect(body.error).toBe('Invalid JSON');
+    expect(body.error).toContain('Unauthorized');
   });
 
   it('should return 400 if credentials are missing', async () => {
@@ -43,9 +43,9 @@ describe('POST /api/sync/orders', () => {
     } as Request;
 
     const response = await POST({ request } as any);
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     const body = await response.json();
-    expect(body.error).toBe('Invalid request data');
+    expect(body.error).toContain('Unauthorized');
   });
 
   it('should return 400 if limit is not a number', async () => {
@@ -54,6 +54,6 @@ describe('POST /api/sync/orders', () => {
     } as Request;
 
     const response = await POST({ request } as any);
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
   });
 });

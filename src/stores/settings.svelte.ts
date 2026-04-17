@@ -822,6 +822,11 @@ export class SettingsManager {
   isEncrypted = $state(false);
   isLocked = $state(false);
 
+  destroy() {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    if (this.notifyTimer) clearTimeout(this.notifyTimer);
+  }
+
   constructor() {
     if (browser) {
       // 1. Load settings synchronously (effectActive is false, so no saves)
@@ -1599,3 +1604,7 @@ export class SettingsManager {
 }
 
 export const settingsState = new SettingsManager();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => settingsState.destroy());
+}

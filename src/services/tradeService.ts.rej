@@ -1,0 +1,13 @@
+--- src/services/tradeService.ts
++++ src/services/tradeService.ts
+@@ -194,6 +194,9 @@
+      * Helper to fetch positions for one or all symbols
+      */
+     public async fetchPositions(symbol?: string) {
++        if (!symbol && this.fetchPositionsPromise) {
++            return this.fetchPositionsPromise;
++        }
+         const s = symbol ? normalizeSymbol(symbol, "bitunix") : undefined;
+-        return RetryPolicy.execute(
++        const fetchPromise = RetryPolicy.execute(
+             async () => {

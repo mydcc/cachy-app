@@ -105,6 +105,10 @@ class UiManager {
     y: 0,
   });
 
+  destroy() {
+    if (this.notifyTimer) clearTimeout(this.notifyTimer);
+  }
+
   constructor() {
     if (browser) {
       this.currentTheme =

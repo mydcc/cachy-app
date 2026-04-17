@@ -270,6 +270,11 @@ class IndicatorManager {
 
   _cachedJson = $derived(JSON.stringify(this._snapshot));
 
+  destroy() {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    if (this.notifyTimer) clearTimeout(this.notifyTimer);
+  }
+
   constructor() {
     if (browser) {
       this.load();
@@ -490,3 +495,7 @@ class IndicatorManager {
 }
 
 export const indicatorState = new IndicatorManager();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => indicatorState.destroy());
+}
