@@ -100,17 +100,22 @@ class CryptoServiceImpl {
     );
   }
 
-  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[], hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512"): Promise<CryptoKey> {
+  private async getSessionKeyForSalt(
+    salt: Uint8Array,
+    usages: KeyUsage[],
+    hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512",
+    keyAlgo: "AES-GCM" | "AES-CBC" = "AES-GCM",
+  ): Promise<CryptoKey> {
     if (!this.sessionBaseKey) {
       throw new Error("Session locked and no password provided");
     }
-    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo;
+    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo + "_" + keyAlgo;
     const cached = this.sessionKeyCache.get(saltKey);
     if (cached) return cached;
     const key = await window.crypto.subtle.deriveKey(
       { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
       this.sessionBaseKey,
-      { name: "AES-GCM", length: KEY_SIZE },
+      { name: keyAlgo, length: KEY_SIZE },
       false,
       ["encrypt", "decrypt"]
     );
@@ -256,8 +261,8 @@ class CryptoServiceImpl {
           key = password;
         }
       } else if (this.sessionBaseKey && !password) {
-        // Derive key from session base key + blob's salt
-        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo);
+        // Derive key from session base key + blob's salt, matching the blob's algorithm
+        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo, blob.method);
       } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
         if (blob.method === "AES-GCM") {
