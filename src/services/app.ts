@@ -122,7 +122,7 @@ export const app = {
         symbol: "BTCUSDT",
         entryPrice: "88480.2", // User screenshot value
         atrValue: "45.5",
-        atrMultiplier: 1.2,
+        atrMultiplier: "1.2",
         useAtrSl: true,
         atrMode: "auto",
         targets: [
