@@ -396,7 +396,7 @@
       "uploadScreenshot": "Upload Screenshot",
       "pasteScreenshot": "Paste Image (Ctrl+V)",
       "replaceScreenshot": "Replace",
-      "deleteScreenshot": "Delete Screenshot",
+      "viewScreenshot": "View Screenshot",
       "recalculateAtr": "Recalculate ATR",
       "advancedMetrics": "Advanced Metrics",
       "showScreenshots": "Show Screenshots",
