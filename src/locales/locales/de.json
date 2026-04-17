@@ -396,6 +396,7 @@
       "uploadScreenshot": "Screenshot hochladen",
       "pasteScreenshot": "Bild einfügen (Strg+V)",
       "replaceScreenshot": "Ersetzen",
+      "viewScreenshot": "Screenshot ansehen",
       "deleteScreenshot": "Screenshot löschen",
       "recalculateAtr": "ATR neu berechnen",
       "advancedMetrics": "Erweiterte Metriken",

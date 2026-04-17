@@ -873,17 +873,16 @@
                                     <td class="screenshot-cell">
                                         <div class="flex items-center gap-2">
                                             {#if item.screenshot}
+                                                {@const viewLabel = $_(
+                                                    "journal.labels.viewScreenshot",
+                                                )}
                                                 <a
                                                     href={item.screenshot}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     class="screenshot-icon-wrapper relative group text-lg"
-                                                    title={$_(
-                                                        "journal.labels.view" as any,
-                                                    )}
-                                                    aria-label={$_(
-                                                        "journal.labels.view" as any,
-                                                    )}
+                                                    title={viewLabel}
+                                                    aria-label={viewLabel}
                                                 >
                                                     🖼️
                                                     <div
@@ -896,6 +895,9 @@
                                                         />
                                                     </div>
                                                 </a>
+                                                {@const removeLabel = $_(
+                                                    "journal.labels.deleteScreenshot",
+                                                )}
                                                 <button
                                                     class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                     onclick={() =>
@@ -906,34 +908,25 @@
                                                                     undefined,
                                                             },
                                                         )}
-                                                    title={$_(
-                                                        "journal.labels.removeScreenshot" as any,
-                                                    )}
-                                                    aria-label={$_(
-                                                        "journal.labels.removeScreenshot" as any,
-                                                    )}
+                                                    title={removeLabel}
+                                                    aria-label={removeLabel}
                                                 >
                                                     🗑️
                                                 </button>
                                             {/if}
+                                            {@const uploadLabel = item.screenshot
+                                                ? $_(
+                                                      "journal.labels.replaceScreenshot",
+                                                  )
+                                                : $_(
+                                                      "journal.labels.uploadScreenshot",
+                                                  )}
                                             <button
                                                 class="text-xs opacity-50 hover:opacity-100"
                                                 onclick={() =>
                                                     triggerFileUpload(item.id)}
-                                                title={item.screenshot
-                                                    ? $_(
-                                                          "journal.labels.replaceScreenshot",
-                                                      )
-                                                    : $_(
-                                                          "journal.labels.uploadScreenshot",
-                                                      )}
-                                                aria-label={item.screenshot
-                                                    ? $_(
-                                                          "journal.labels.replaceScreenshot",
-                                                      )
-                                                    : $_(
-                                                          "journal.labels.uploadScreenshot",
-                                                      )}
+                                                title={uploadLabel}
+                                                aria-label={uploadLabel}
                                             >
                                                 {item.screenshot ? "↻" : "➕"}
                                             </button>
@@ -1029,16 +1022,15 @@
                                 {#if visibility.action}
                                     <td class="action-cell">
                                         <div class="flex items-center gap-2">
+                                            {@const deleteLabel = $_(
+                                                "journal.delete",
+                                            )}
                                             <button
                                                 class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                 onclick={() =>
                                                     onDeleteTrade?.(item.id)}
-                                                title={$_(
-                                                    "journal.labels.delete" as any,
-                                                )}
-                                                aria-label={$_(
-                                                    "journal.labels.delete" as any,
-                                                )}
+                                                title={deleteLabel}
+                                                aria-label={deleteLabel}
                                             >
                                                 🗑️
                                             </button>
