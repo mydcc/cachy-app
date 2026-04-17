@@ -74,7 +74,7 @@ describe("TradeService - Serialization Hardening", () => {
             planType: "profit_plan"
         };
 
-        await tradeService.cancelTpSlOrder(order as any);
+        await tradeService.cancelTpSlOrder(order);
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
         const call = fetchSpy.mock.calls[0];

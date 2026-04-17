@@ -415,11 +415,19 @@
             </div>
 
             {#if win.headerControls.length > 0 && !win.isMinimized}
-                <div class="header-controls">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                    class="header-controls"
+                    onpointerdown={(e) => e.stopPropagation()}
+                    onclick={(e) => e.stopPropagation()}
+                    ondblclick={(e) => e.stopPropagation()}
+                >
                     {#each win.headerControls as ctrl}
                         <button
                             class="header-ctrl-btn"
                             class:active={ctrl.active}
+                            onpointerdown={(e) => e.stopPropagation()}
                             onclick={(e) => {
                                 e.stopPropagation();
                                 ctrl.action();
