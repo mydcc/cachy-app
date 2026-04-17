@@ -398,7 +398,7 @@ export class CalculatorService {
       atrValue: parseDecimal(currentTradeState.atrValue),
       atrMultiplier: parseDecimal(
         currentTradeState.atrMultiplier ||
-        String(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
+        CONSTANTS.DEFAULT_ATR_MULTIPLIER,
       ),
       stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
       targets: currentTradeState.targets.map((t: any) => ({
