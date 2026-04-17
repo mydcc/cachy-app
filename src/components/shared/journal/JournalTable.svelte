@@ -873,17 +873,16 @@
                                     <td class="screenshot-cell">
                                         <div class="flex items-center gap-2">
                                             {#if item.screenshot}
+                                                {@const viewLabel = $_(
+                                                    "journal.labels.viewScreenshot",
+                                                )}
                                                 <a
                                                     href={item.screenshot}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     class="screenshot-icon-wrapper relative group text-lg"
-                                                    title={$_(
-                                                        "journal.labels.viewScreenshot" as any,
-                                                    )}
-                                                    aria-label={$_(
-                                                        "journal.labels.viewScreenshot" as any,
-                                                    )}
+                                                    title={viewLabel}
+                                                    aria-label={viewLabel}
                                                 >
                                                     🖼️
                                                     <div
@@ -896,6 +895,9 @@
                                                         />
                                                     </div>
                                                 </a>
+                                                {@const removeLabel = $_(
+                                                    "journal.labels.deleteScreenshot",
+                                                )}
                                                 <button
                                                     class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                     onclick={() =>
@@ -906,12 +908,8 @@
                                                                     undefined,
                                                             },
                                                         )}
-                                                    title={$_(
-                                                        "journal.labels.deleteScreenshot" as any,
-                                                    )}
-                                                    aria-label={$_(
-                                                        "journal.labels.deleteScreenshot" as any,
-                                                    )}
+                                                    title={removeLabel}
+                                                    aria-label={removeLabel}
                                                 >
                                                     🗑️
                                                 </button>
