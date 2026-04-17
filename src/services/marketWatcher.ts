@@ -578,7 +578,7 @@ class MarketWatcher {
       let prev = klines[0];
       result.push(prev);
 
-      const MAX_GAP_FILL = 100;
+      const MAX_GAP_FILL = 500;
 
       for (let i = 1; i < klines.length; i++) {
           const curr = klines[i];
