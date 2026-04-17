@@ -431,6 +431,8 @@
                     onpointerdown={(e) => e.stopPropagation()}
                     onclick={(e) => e.stopPropagation()}
                     ondblclick={(e) => e.stopPropagation()}
+                    onkeydown={(e) => e.stopPropagation()}
+                    role="presentation"
                 >
                     {#each win.headerControls as ctrl}
                         <button

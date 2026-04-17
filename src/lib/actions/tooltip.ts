@@ -25,11 +25,14 @@ import {
   autoUpdate,
 } from "@floating-ui/dom";
 
+import DOMPurify from "dompurify";
+
 export interface TooltipOptions {
   content: string;
   placement?: Placement;
   theme?: "dark" | "light" | "custom";
   delay?: number;
+  allowHtml?: boolean;
 }
 
 export function tooltip(node: HTMLElement, options: TooltipOptions | string) {

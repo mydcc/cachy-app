@@ -366,6 +366,7 @@ export type TranslationKey =
   | "journal.labels.uploadScreenshot"
   | "journal.labels.pasteScreenshot"
   | "journal.labels.replaceScreenshot"
+  | "journal.labels.viewScreenshot"
   | "journal.labels.deleteScreenshot"
   | "journal.labels.recalculateAtr"
   | "journal.labels.advancedMetrics"
