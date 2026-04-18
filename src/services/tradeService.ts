@@ -287,7 +287,9 @@ class TradeService {
             return { success: true, data: result };
 
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
+            // Use rawMessage for display when available (human-readable API text),
+            // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
+            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -296,9 +298,6 @@ class TradeService {
                 const isTerminalError =
                     (e instanceof BitunixApiError) ||
                     (e instanceof Error && (
-                        e.message.includes("400") ||
-                        e.message.includes("401") ||
-                        e.message.includes("403") ||
                         (e as any).code === "VALIDATION_ERROR" ||
                         (e as any).status === 400 ||
                         (e as any).status === 401 ||
