@@ -2098,7 +2098,9 @@
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
     "apiError": "API Error: {error}",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "flashCloseFailed": "Flash Close Failed",
+    "closeAllFailed": "Failed to close all positions"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",

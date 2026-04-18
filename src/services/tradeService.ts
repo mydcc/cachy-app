@@ -67,10 +67,10 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
+    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
     CLOSE_ALL_FAILED: "trade.closeAllFailed"
-};
+} as const satisfies Record<string, import("../locales/schema").TranslationKey>;
 
 export class TradeError extends Error {
     constructor(message: string, public code: string, public details?: any) {
@@ -331,14 +331,36 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`${get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed"}: ${msg}`);
+            const t = get(_);
+            // If msg looks like an i18n key (e.g. "tradeErrors.positionNotFound"),
+            // translate it; otherwise show it as-is.
+            const translatedDetail =
+                typeof msg === "string" && /^[a-zA-Z]+(\.[a-zA-Z0-9_]+)+$/.test(msg)
+                    ? (t(msg as import("../locales/schema").TranslationKey) || msg)
+                    : msg;
+            toastService.error(`${t("trade.flashCloseFailed")}: ${translatedDetail}`);
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
         }
     }
 
-    private async fetchOpenPositionsFromApi() {
+    private async fetchOpenPositionsFromApi(): Promise<void> {
+        // Hardening: Promise Coalescing — if a fetch is already in-flight, return it.
+        // This prevents a thundering herd when multiple callers (e.g. rapid flash-close
+        // attempts) trigger ensurePositionFreshness concurrently.
+        if (this.fetchPositionsPromise) {
+            return this.fetchPositionsPromise;
+        }
+
+        this.fetchPositionsPromise = this.doFetchOpenPositionsFromApi().finally(() => {
+            this.fetchPositionsPromise = null;
+        });
+
+        return this.fetchPositionsPromise;
+    }
+
+    private async doFetchOpenPositionsFromApi(): Promise<void> {
         if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
 
         try {
