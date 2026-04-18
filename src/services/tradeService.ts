@@ -67,9 +67,9 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
+    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "tradeErrors.closeAllFailed"
 };
 
 export class TradeError extends Error {
@@ -82,6 +82,21 @@ export class TradeError extends Error {
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
     private fetchPositionsPromise: Promise<void> | null = null;
+
+    /**
+     * Coalesced wrapper around fetchOpenPositionsFromApi.
+     * If a fetch is already in-flight, returns the same promise
+     * instead of firing a duplicate API call.
+     */
+    private async fetchPositionsCoalesced(): Promise<void> {
+        if (this.fetchPositionsPromise) {
+            return this.fetchPositionsPromise;
+        }
+        this.fetchPositionsPromise = this.fetchOpenPositionsFromApi().finally(() => {
+            this.fetchPositionsPromise = null;
+        });
+        return this.fetchPositionsPromise;
+    }
 
     // Helper to sign and send requests to backend
     // Test mocks this
@@ -189,7 +204,7 @@ class TradeService {
         if (position && position.lastUpdated && (now - position.lastUpdated > MAX_POS_AGE_MS)) {
              logger.warn("market", `[Freshness] Position stale (${now - position.lastUpdated}ms). Forcing refresh.`);
              try {
-                await this.fetchOpenPositionsFromApi();
+                await this.fetchPositionsCoalesced();
                 positions = omsService.getPositions();
                 position = positions.find(
                     (p) => p.symbol === symbol && p.side === positionSide
@@ -205,7 +220,7 @@ class TradeService {
         if (!position) {
             logger.warn("market", `[Freshness] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
             try {
-                await this.fetchOpenPositionsFromApi();
+                await this.fetchPositionsCoalesced();
                 positions = omsService.getPositions();
                 position = positions.find(
                     (p) => p.symbol === symbol && p.side === positionSide
@@ -331,7 +346,9 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`${get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed"}: ${msg}`);
+            const translatedMsg = get(_)(msg as import("../locales/schema").TranslationKey);
+            const displayMsg = (translatedMsg && translatedMsg !== msg) ? translatedMsg : msg;
+            toastService.error(`Flash Close Failed: ${displayMsg}`);
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
