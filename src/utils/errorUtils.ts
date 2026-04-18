@@ -29,7 +29,11 @@ export function getBitunixErrorKey(code: number | string): string {
 }
 
 export function mapApiErrorToLabel(error: unknown): string {
-    const msg = getErrorMessage(error);
+    // Use rawMessage from BitunixApiError for classification if available
+    let msg = getErrorMessage(error);
+    if (error && typeof error === 'object' && 'rawMessage' in error && typeof (error as any).rawMessage === 'string') {
+        msg = (error as any).rawMessage || msg;
+    }
     const lowerMsg = msg.toLowerCase();
 
     // Map common authentication errors

@@ -477,6 +477,11 @@ export const newsService = {
 
         if (!response.ok) {
           const errText = await response.text();
+          // Detect missing API key errors before sanitizing
+          if (errText.includes("NO_GEMINI_KEY") || errText.includes("NO_OPENAI_KEY")) {
+            logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
+            throw new Error("NO_API_KEY");
+          }
           logger.error("ai", `Sentiment API failed (${response.status}): ${errText}`);
           throw new Error("apiErrors.generic");
         }
@@ -484,6 +489,11 @@ export const newsService = {
         const text = await response.text();
         const data = safeJsonParse(text);
         if (data.error) {
+          // Detect missing API key errors before sanitizing
+          if (String(data.error).includes("NO_GEMINI_KEY") || String(data.error).includes("NO_OPENAI_KEY")) {
+            logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
+            throw new Error("NO_API_KEY");
+          }
           logger.error("ai", `Sentiment API returned error: ${data.error}`);
           throw new Error("apiErrors.generic");
         }
@@ -500,7 +510,7 @@ export const newsService = {
         return analysis;
       } catch (e: any) {
         const msg = e?.message || String(e);
-        if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY")) {
+        if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY") || msg.includes("NO_API_KEY")) {
           logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
         } else {
           logger.error("ai", "Sentiment Analysis Failed", e);

@@ -58,9 +58,12 @@ export interface TpSlOrder {
 }
 
 export class BitunixApiError extends Error {
-    constructor(public code: number | string, message?: string) {
+    /** Raw API message for internal classification (not for display) */
+    public rawMessage: string;
+    constructor(public code: number | string, message?: string, rawMessage?: string) {
         super(message || `Bitunix API Error ${code}`);
         this.name = "BitunixApiError";
+        this.rawMessage = rawMessage || message || "";
     }
 }
 
@@ -128,10 +131,11 @@ class TradeService {
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
             // Log raw gateway text silently
-            if (data.msg || data.error) {
-                logger.debug("api", `[Bitunix] API Exception: ${data.msg || data.error}`);
+            const rawMsg = data.msg || data.error || "Unknown API Error";
+            if (rawMsg) {
+                logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic");
+            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
         }
 
         return data;
@@ -502,7 +506,11 @@ class TradeService {
                               const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                                   action: view,
                                   params
-                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                              }).catch(e => {
+                                  // Preserve rawMessage for classification if available
+                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  return { error: errMsg };
+                              }); // Hardened
 
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found

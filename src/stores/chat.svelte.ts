@@ -34,11 +34,13 @@ class ChatManager {
   loading = $state(false);
   clientId = $state("");
 
+  private effectCleanup: (() => void) | null = null;
+
   constructor() {
     this.clientId = this.getClientId();
     if (browser) {
       // Auto-start polling when conditions are met
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           if (
             windowManager.isOpen("assistant") &&
@@ -54,8 +56,10 @@ class ChatManager {
   }
 
   public destroy() {
-    // If there were explicit manual intervals we would clear them here.
-    // The $effect returns a cleanup which handles the interval clearing automatically.
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
   }
 
   private getClientId(): string {
@@ -186,3 +190,10 @@ class ChatManager {
 }
 
 export const chatState = new ChatManager();
+
+// HMR: Cleanup on module disposal to prevent memory leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    chatState.destroy();
+  });
+}
