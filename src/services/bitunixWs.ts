@@ -711,6 +711,10 @@ class BitunixWebSocketService {
   private cleanup(type: "public" | "private") {
     this.stopHeartbeat(type);
     if (type === "public") {
+      // Clear all state to prevent memory leaks over time
+      this.syntheticSubs.clear();
+      this.pendingSubscriptions.clear();
+
       if (this.connectionTimeoutPublic) {
         clearTimeout(this.connectionTimeoutPublic);
         this.connectionTimeoutPublic = null;

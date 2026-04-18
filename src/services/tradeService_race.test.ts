@@ -95,7 +95,7 @@ describe('TradeService Race Condition Hardening', () => {
     // Execute Flash Close — now returns { success: false } instead of throwing
     const result = await tradeService.flashClosePosition('BTCUSDT', 'long');
     expect(result.success).toBe(false);
-    expect(result.error).toContain('trade.positionNotFound');
+    expect(result.error).toContain('tradeErrors.positionNotFound');
 
     // Verify Sync was called
     expect(globalFetch).toHaveBeenCalledWith(
