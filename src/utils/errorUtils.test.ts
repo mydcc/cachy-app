@@ -16,7 +16,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { getBitunixErrorKey, getErrorMessage, mapApiErrorToLabel } from "./errorUtils";
+import { getBitunixErrorKey, getErrorMessage, getDisplayMessage, mapApiErrorToLabel } from "./errorUtils";
+import { BitunixApiError } from "../services/tradeService";
 
 describe("errorUtils", () => {
   describe("getBitunixErrorKey", () => {
@@ -58,6 +59,31 @@ describe("errorUtils", () => {
       expect(getErrorMessage(null)).toBe("null");
       expect(getErrorMessage(undefined)).toBe("undefined");
       expect(getErrorMessage({ foo: "bar" })).toBe("[object Object]");
+    });
+  });
+
+  describe("getDisplayMessage", () => {
+    it("returns rawMessage from BitunixApiError instead of the i18n key in message", () => {
+      const err = new BitunixApiError(10001, "apiErrors.generic", "Invalid Quantity");
+      expect(err.message).toBe("apiErrors.generic");
+      // Must not leak the i18n key into user-facing toasts/modals
+      expect(getDisplayMessage(err)).toBe("Invalid Quantity");
+    });
+
+    it("falls back to message for plain Error instances without rawMessage", () => {
+      expect(getDisplayMessage(new Error("tradeErrors.positionNotFound"))).toBe(
+        "tradeErrors.positionNotFound",
+      );
+    });
+
+    it("ignores empty rawMessage and falls back to message", () => {
+      const err = new BitunixApiError(500, "apiErrors.generic", "");
+      expect(getDisplayMessage(err)).toBe("apiErrors.generic");
+    });
+
+    it("handles non-Error inputs", () => {
+      expect(getDisplayMessage("Network down")).toBe("Network down");
+      expect(getDisplayMessage({ rawMessage: "oops" })).toBe("oops");
     });
   });
 

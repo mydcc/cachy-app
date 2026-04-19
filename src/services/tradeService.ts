@@ -28,6 +28,8 @@ import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
 import { mapToOMSPosition } from "./mappers";
 import { toastService } from "./toastService.svelte";
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
@@ -58,9 +60,12 @@ export interface TpSlOrder {
 }
 
 export class BitunixApiError extends Error {
-    constructor(public code: number | string, message?: string) {
+    /** Raw API message for internal classification (not for display) */
+    public rawMessage: string;
+    constructor(public code: number | string, message?: string, rawMessage?: string) {
         super(message || `Bitunix API Error ${code}`);
         this.name = "BitunixApiError";
+        this.rawMessage = rawMessage || message || "";
     }
 }
 
@@ -78,6 +83,9 @@ export class TradeError extends Error {
 }
 
 class TradeService {
+    // Hardening: Promise Coalescing to prevent Thundering Herd
+    private fetchPositionsPromise: Promise<void> | null = null;
+
     // Helper to sign and send requests to backend
     // Test mocks this
     public async signedRequest<T>(
@@ -118,16 +126,21 @@ class TradeService {
             data = safeJsonParse(text);
         } catch (e) {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
-            // use the status code as the error code
+            // use the status code as the error code. Do NOT expose raw text or statusText.
             if (!response.ok) {
-                 throw new BitunixApiError(response.status, text || response.statusText);
+                 throw new BitunixApiError(response.status, "apiErrors.invalidResponse");
             }
         }
 
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "Unknown API Error");
+            // Log raw gateway text silently
+            const rawMsg = data.msg || data.error || "Unknown API Error";
+            if (rawMsg) {
+                logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
+            }
+            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
         }
 
         return data;
@@ -279,7 +292,9 @@ class TradeService {
             return { success: true, data: result };
 
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
+            // Use rawMessage for display when available (human-readable API text),
+            // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
+            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -329,7 +344,7 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`Flash Close Failed: ${msg}`);
+            toastService.error(`${get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed"}: ${msg}`);
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
@@ -515,7 +530,11 @@ class TradeService {
                               const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                                   action: view,
                                   params
-                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                              }).catch(e => {
+                                  // Preserve rawMessage for classification if available
+                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  return { error: errMsg };
+                              }); // Hardened
 
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
