@@ -23,6 +23,7 @@
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
+  import { getDisplayMessage } from "../../utils/errorUtils";
   import type { OMSPosition } from "../../services/omsTypes";
 
   // Sub-components
@@ -335,8 +336,11 @@
              uiState.showToast($_("dashboard.alerts.cancelOrderSuccess") || "Order cancelled", "success");
              fetchOrders("pending");
         }
-    } catch (e: any) {
-        uiState.showError(e.message || $_("dashboard.alerts.cancelOrderError"));
+    } catch (e: unknown) {
+        // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
+        // key "apiErrors.generic" and would render as a literal string otherwise.
+        const msg = getDisplayMessage(e);
+        uiState.showError(msg || $_("dashboard.alerts.cancelOrderError"));
     }
   }
 

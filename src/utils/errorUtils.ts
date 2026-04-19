@@ -22,6 +22,23 @@ export function getErrorMessage(e: unknown): string {
     return String(e);
 }
 
+/**
+ * Returns a human-readable message suitable for display in toasts/modals.
+ *
+ * `BitunixApiError.message` intentionally carries an i18n key such as
+ * "apiErrors.generic" for sanitized propagation, with the raw gateway text
+ * preserved in `rawMessage`. Callers that surface errors directly to the
+ * user must prefer `rawMessage`, falling back to the Error message for
+ * non-API errors (e.g. "tradeErrors.positionNotFound").
+ */
+export function getDisplayMessage(e: unknown): string {
+    if (e && typeof e === 'object' && 'rawMessage' in e) {
+        const raw = (e as { rawMessage?: unknown }).rawMessage;
+        if (typeof raw === 'string' && raw.length > 0) return raw;
+    }
+    return getErrorMessage(e);
+}
+
 export function getBitunixErrorKey(code: number | string): string {
     // Map Bitunix error codes to translation keys
     const codeStr = String(code);
