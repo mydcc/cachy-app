@@ -60,9 +60,12 @@ export interface TpSlOrder {
 }
 
 export class BitunixApiError extends Error {
-    constructor(public code: number | string, message?: string) {
+    /** Raw API message for internal classification (not for display) */
+    public rawMessage: string;
+    constructor(public code: number | string, message?: string, rawMessage?: string) {
         super(message || `Bitunix API Error ${code}`);
         this.name = "BitunixApiError";
+        this.rawMessage = rawMessage || message || "";
     }
 }
 
@@ -132,7 +135,12 @@ class TradeService {
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || response.status || -1, data.msg || data.error || "Unknown API Error");
+            // Log raw gateway text silently
+            const rawMsg = data.msg || data.error || "Unknown API Error";
+            if (rawMsg) {
+                logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
+            }
+            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
         }
 
         return data;
@@ -284,7 +292,9 @@ class TradeService {
             return { success: true, data: result };
 
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
+            // Use rawMessage for display when available (human-readable API text),
+            // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
+            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -293,9 +303,6 @@ class TradeService {
                 const isTerminalError =
                     (e instanceof BitunixApiError) ||
                     (e instanceof Error && (
-                        e.message.includes("400") ||
-                        e.message.includes("401") ||
-                        e.message.includes("403") ||
                         (e as any).code === "VALIDATION_ERROR" ||
                         (e as any).status === 400 ||
                         (e as any).status === 401 ||
@@ -517,7 +524,11 @@ class TradeService {
                               const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                                   action: view,
                                   params
-                              }).catch(e => ({ error: (e instanceof Error ? e.message : String(e)) })); // Hardened
+                              }).catch(e => {
+                                  // Preserve rawMessage for classification if available
+                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  return { error: errMsg };
+                              }); // Hardened
 
                               if (data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found

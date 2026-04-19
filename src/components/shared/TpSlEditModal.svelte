@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { tradeService } from "../../services/tradeService";
+  import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
 
@@ -59,8 +60,10 @@
         qty: amount ? String(amount) : undefined,
       });
       onsuccess?.();
-    } catch (e: any) {
-      error = e.message || $_("errors.modifyFailed");
+    } catch (e: unknown) {
+      // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
+      // key "apiErrors.generic" and would render as a literal string otherwise.
+      error = getDisplayMessage(e) || $_("errors.modifyFailed");
     } finally {
       loading = false;
     }

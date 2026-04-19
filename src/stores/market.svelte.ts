@@ -427,6 +427,7 @@ export class MarketManager {
       // Optimization: Just append. Logic to merge is handled in flush.
       // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
       for (const k of klines) pending.push(k);
+      if (pending.length > KLINE_BUFFER_HARD_LIMIT) pending.splice(0, pending.length - KLINE_BUFFER_HARD_LIMIT);
 
       // Safety check: force flush if too many SYMBOLS are pending updates
       // Klines need more buffer space (10x cache size)
