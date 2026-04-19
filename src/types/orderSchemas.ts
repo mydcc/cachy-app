@@ -10,6 +10,20 @@
 import { z } from "zod";
 import { Decimal } from "decimal.js";
 
+/**
+ * Serializes a Decimal to a plain string for exchange API payloads.
+ *
+ * Exchange APIs (Bitunix, Bitget) reject scientific notation such as "1e-7",
+ * which `Decimal.toString()` emits for values with exponent <= -7. Using
+ * `toFixed(decimalPlaces())` preserves the full decimal representation for
+ * low-priced assets (e.g. PEPE) without introducing artificial trailing
+ * zeros for whole numbers.
+ */
+function serializeDecimal(val: string | number): string {
+  const d = new Decimal(val);
+  return d.toFixed(d.decimalPlaces() ?? 0);
+}
+
 const NumericString = z.union([z.number(), z.string()])
   .refine((val) => {
     try {
@@ -19,7 +33,7 @@ const NumericString = z.union([z.number(), z.string()])
       return false;
     }
   }, { message: "Must be a valid number" })
-  .transform((val) => new Decimal(val).toString()); // Normalize to string for API
+  .transform(serializeDecimal); // Normalize to string for API (avoid scientific notation)
 
 const PositiveNumericString = z.union([z.number(), z.string()])
   .refine((val) => {
@@ -30,7 +44,7 @@ const PositiveNumericString = z.union([z.number(), z.string()])
       return false;
     }
   }, { message: "Must be a positive number" })
-  .transform((val) => new Decimal(val).toString());
+  .transform(serializeDecimal);
 
 const ExchangeEnum = z.enum(["bitunix", "bitget"]);
 
