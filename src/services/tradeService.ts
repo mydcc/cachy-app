@@ -300,13 +300,19 @@ class TradeService {
             if (clientOrderId) {
                 logger.warn("market", `[FlashClose] Request failed. Handling optimistic order ${clientOrderId}.`, e);
 
+                const isApiErr = (err: unknown): err is { status?: number, code?: string } =>
+                    typeof err === "object" && err !== null && ("status" in err || "code" in err);
+
                 const isTerminalError =
                     (e instanceof BitunixApiError) ||
                     (e instanceof Error && (
-                        (e as any).code === "VALIDATION_ERROR" ||
-                        (e as any).status === 400 ||
-                        (e as any).status === 401 ||
-                        (e as any).status === 403
+                        e.message.includes("400") ||
+                        e.message.includes("401") ||
+                        e.message.includes("403") ||
+                        (isApiErr(e) && e.code === "VALIDATION_ERROR") ||
+                        (isApiErr(e) && e.status === 400) ||
+                        (isApiErr(e) && e.status === 401) ||
+                        (isApiErr(e) && e.status === 403)
                     ));
 
                 if (isTerminalError) {
