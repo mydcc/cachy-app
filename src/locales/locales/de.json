@@ -2131,6 +2131,7 @@
   "trade": {
     "apiError": "API-Fehler: {error}",
     "closeAbortedSafety": "Schließen sicherheitshalber abgebrochen. Offene Orders konnten nicht storniert werden.",
+    "closeAllFailed": "Schließen aller Positionen fehlgeschlagen",
     "fetchFailed": "Abrufen fehlgeschlagen"
   }
 }

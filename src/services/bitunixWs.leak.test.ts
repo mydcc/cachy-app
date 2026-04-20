@@ -59,4 +59,19 @@ describe('BitunixWebSocketService Leak', () => {
         bitunixWs.unsubscribe(symbol, channel);
         expect(syntheticSubs.size).toBe(0);
     });
+
+    it('should clear all pending and synthetic subscriptions on public cleanup', () => {
+        const symbol = 'BTCUSDT';
+        const channel = 'kline_2h';
+
+        bitunixWs.subscribe(symbol, channel);
+
+        expect((bitunixWs as any).syntheticSubs.size).toBe(1);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
+
+        (bitunixWs as any).cleanup("public");
+
+        expect((bitunixWs as any).syntheticSubs.size).toBe(0);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBe(0);
+    });
 });

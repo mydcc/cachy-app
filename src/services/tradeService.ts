@@ -70,7 +70,7 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
+    POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
     CLOSE_ALL_FAILED: "trade.closeAllFailed"
 };
@@ -91,7 +91,7 @@ class TradeService {
     public async signedRequest<T>(
         method: string,
         endpoint: string,
-        payload: Record<string, any>
+        payload: Record<string, unknown>
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
@@ -147,7 +147,7 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: any, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): any {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -174,7 +174,7 @@ class TradeService {
             const newObj: any = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
-                    newObj[key] = this.serializePayload(payload[key], depth + 1, seen);
+                    newObj[key] = this.serializePayload((payload as any)[key], depth + 1, seen);
                 }
             }
             return newObj;
@@ -371,7 +371,7 @@ class TradeService {
                 body: JSON.stringify({}),
             });
 
-            if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
+            if (!pendingResponse.ok) throw new Error(TRADE_ERRORS.FETCH_FAILED);
 
             const pendingText = await pendingResponse.text();
             const pendingResult = safeJsonParse(pendingText);
@@ -493,7 +493,7 @@ class TradeService {
             const failedSymbols = results.map((r, i) => r.status === "rejected" ? (positions[i]?.symbol ?? `position[${i}]`) : null).filter(Boolean).join(", ");
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
             toastService.error(`Flash Close Failed for: ${failedSymbols}`);
-            throw new Error("trade.closeAllFailed");
+            throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
         }
 
         return results;
@@ -572,11 +572,11 @@ class TradeService {
     }
     }
 
-    public async cancelTpSlOrder(order: any) {
+    public async cancelTpSlOrder(order: TpSlOrder) {
         return this.signedRequest("POST", "/api/tpsl", {
             action: "cancel",
             params: {
-                orderId: order.orderId || order.id,
+                orderId: order.orderId || (order as any).id,
                 symbol: order.symbol,
                 planType: order.planType,
             },
