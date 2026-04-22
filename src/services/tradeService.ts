@@ -479,7 +479,7 @@ class TradeService {
         if (failures.length > 0) {
             const failedSymbols = results.map((r, i) => r.status === "rejected" ? (positions[i]?.symbol ?? `position[${i}]`) : null).filter(Boolean).join(", ");
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
-            toastService.error(`Flash Close Failed for: ${failedSymbols}`);
+            toastService.error(`${get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed for"}: ${failedSymbols}`);
             throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
         }
 
