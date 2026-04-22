@@ -60,7 +60,7 @@ describe('BitunixWebSocketService Leak', () => {
         expect(syntheticSubs.size).toBe(0);
     });
 
-    it('should clear all pending and synthetic subscriptions on public cleanup', () => {
+    it('should preserve pending/synthetic subscriptions on transient public cleanup (reconnect buffer)', () => {
         const symbol = 'BTCUSDT';
         const channel = 'kline_2h';
 
@@ -69,7 +69,24 @@ describe('BitunixWebSocketService Leak', () => {
         expect((bitunixWs as any).syntheticSubs.size).toBe(1);
         expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
 
+        // Transient cleanups (heartbeat failure, watchdog timeout, close, etc.)
+        // MUST NOT drop the reconnection buffer.
         (bitunixWs as any).cleanup("public");
+
+        expect((bitunixWs as any).syntheticSubs.size).toBe(1);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
+    });
+
+    it('should clear all pending and synthetic subscriptions on destroy()', () => {
+        const symbol = 'BTCUSDT';
+        const channel = 'kline_2h';
+
+        bitunixWs.subscribe(symbol, channel);
+
+        expect((bitunixWs as any).syntheticSubs.size).toBe(1);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
+
+        (bitunixWs as any).destroy();
 
         expect((bitunixWs as any).syntheticSubs.size).toBe(0);
         expect((bitunixWs as any).pendingSubscriptions.size).toBe(0);

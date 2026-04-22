@@ -166,7 +166,7 @@ class TradeService {
             const newObj: any = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
-                    newObj[key] = this.serializePayload((payload as any)[key], depth + 1, seen);
+                    newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
                 }
             }
             return newObj;
@@ -559,7 +559,7 @@ class TradeService {
         return this.signedRequest("POST", "/api/tpsl", {
             action: "cancel",
             params: {
-                orderId: order.orderId || (order as any).id,
+                orderId: order.orderId || order.id,
                 symbol: order.symbol,
                 planType: order.planType,
             },
