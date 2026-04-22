@@ -1746,6 +1746,7 @@ export type TranslationKey =
   | "tradeErrors.positionNotFound"
   | "tradeErrors.positionMismatch"
   | "tradeErrors.dataError"
+  | "trade.closeAllFailed"
   | "trade.closeAbortedSafety"
   | "trade.apiError"
   | "trade.fetchFailed"

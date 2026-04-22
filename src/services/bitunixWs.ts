@@ -315,6 +315,11 @@ class BitunixWebSocketService {
     // 4. Force clear any lingering timers manually (Redundancy check)
     if (this.reconnectTimerPublic) { clearTimeout(this.reconnectTimerPublic); this.reconnectTimerPublic = null; }
     if (this.reconnectTimerPrivate) { clearTimeout(this.reconnectTimerPrivate); this.reconnectTimerPrivate = null; }
+
+    // 5. Permanent teardown: drop subscription state only when the service is
+    // being destroyed (not on transient reconnect-driven cleanup).
+    this.syntheticSubs.clear();
+    this.pendingSubscriptions.clear();
   }
 
   connect(force?: boolean) {
@@ -711,6 +716,13 @@ class BitunixWebSocketService {
   private cleanup(type: "public" | "private") {
     this.stopHeartbeat(type);
     if (type === "public") {
+      // NOTE: Do NOT clear `pendingSubscriptions` or `syntheticSubs` here.
+      // See the comment at line 114: `pendingSubscriptions` is a buffer that
+      // MUST survive re-connects so that `flushPendingSubscriptions()` and
+      // `resubscribePublic()` can restore channels after any transient
+      // cleanup (heartbeat failure, watchdog timeout, close, error threshold,
+      // online/offline). Full teardown happens in `destroy()`.
+
       if (this.connectionTimeoutPublic) {
         clearTimeout(this.connectionTimeoutPublic);
         this.connectionTimeoutPublic = null;
