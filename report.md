@@ -4,64 +4,57 @@
 
 ### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
 
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
+1.  **Floating Point Precision Loss via Native Casting**:
+    *   **Finding**: Code in `src/routes/api/orders/+server.ts`, `src/lib/calculators/charts.ts`, and UI components like `SymbolPickerView.svelte` use native JS `Number()` or `parseFloat()` directly on financial values (e.g., `Number(snapshot[s]?.priceChangePercent)` or `Number(lastKline.open)`).
+    *   **Risk**: Critical risk for financial loss due to IEEE-754 precision issues on large quantities or micro-prices. These should explicitly construct `new Decimal(val).toNumber()` where the terminal conversion to native float is unavoidable.
 
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
+2.  **Missing i18n Keys & Silent Failures (`src/services/tradeService.ts`)**:
+    *   **Finding**: Code references literal strings like `throw new Error("tradeErrors.dataError")` and `trade.apiError`, but these are missing from `en.json`, `de.json`, and the `schema.d.ts`.
+    *   **Risk**: The frontend i18n library will fail to resolve keys, either crashing the component or displaying raw text during critical connection or trade execution errors.
+    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
 
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
+3.  **Memory Leaks via Unmanaged Timers**:
+    *   **Finding**: Stores and services like `marketWatcher.ts`, `apiService.ts`, and `omsService.ts` instantiate `setInterval` or `setTimeout` but fail to implement or correctly trigger `import.meta.hot.dispose` with rigorous `destroy()` methods.
+    *   **Risk**: Zombie timers will leak memory over extended HMR sessions or navigation lifecycle changes, eventually causing a browser tab crash.
 
 ### 🟡 WARNING (Performance issue, UX error, missing i18n)
 
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
+1.  **High-Frequency Reactivity Thrashing (`src/stores/market.svelte.ts`)**:
+    *   **Finding**: Svelte reactivity store polling loops (e.g., `flushIntervalId` at 250ms) are executing continuously without sufficient batching logic.
+    *   **Risk**: Massive DOM thrashing when market data stream is highly active.
 
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
-
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
+2.  **Hardcoded Error Enums**:
+    *   **Finding**: Widespread use of hardcoded strings (e.g., `apiErrors.invalidAmount`) without corresponding constants. `TRADE_ERRORS` map itself bypasses TypeScript schema safety.
 
 ### 🔵 REFACTOR (Code smell, technical debt)
 
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
+1.  **Redundant Type Validation Guards (`src/services/marketWatcher.ts`)**:
+    *   **Finding**: Checks like `!(klines[0].open instanceof Decimal)` point to mistrust in upstream data normalization processes (e.g., Zod schemas missing `.transform`).
+    *   **Impact**: Wasted cycles and defensive boilerplate that hides root API schema configuration issues.
 
 ---
 
 ## Action Plan (Planning Phase - Step 2)
 
-### Group 1: Hardening Financial Execution Types (CRITICAL)
+### Group 1: Floating Point Math & Precision Hardening (CRITICAL)
 
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
+**Justification:** Measurably improves stability by ensuring core API payloads and terminal sorting operations maintain strict Decimal boundaries until Svelte/HTML constraints mandate otherwise.
+*   **Action**: Trace and replace native `Number()`/`parseFloat()` usage in `CandleChartView.svelte` and `SymbolPickerView.svelte` with `new Decimal(val).toNumber()`.
+*   **Action**: Ensure API routes use `Decimal` for any limit/amount calculations.
+*   **Unit Test to Reproduce (Before Fix)**: Expand `safeJson.test.ts` to assert loss of precision when natively parsing large quantities, ensuring `new Decimal(val)` explicitly preserves it.
 
-### Group 2: Standardizing i18n Error Reporting (WARNING)
+### Group 2: Svelte i18n Error Reporting & Typings (CRITICAL)
 
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
+**Justification:** Measurably improves stability by guaranteeing runtime translations never throw or display undefined objects to the user.
+*   **Action**: Add missing `"tradeErrors.dataError"`, `"apiErrors.missingCredentials"`, `"apiErrors.invalidAmount"` to `en.json`, `de.json`, and `schema.d.ts`.
+*   **Action**: Replace string throws with enums.
 
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
+### Group 3: Memory Leak Elimination (CRITICAL)
 
 **Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
+*   **Action**: Implement `public destroy()` on `apiService.ts`, `omsService.ts` and add SvelteKit HMR logic: `if (import.meta.hot) { import.meta.hot.dispose(() => instance.destroy()); }`.
 
 ### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
+*   **Defensive Programming**: We assume missing API i18n keys crash standard `svelte-i18n` render paths.
+*   **No Regressions**: No UI behaviors change; only stability improvements.
+*   **Financial Standards**: Using `new Decimal().toNumber()` bridges safe math to strict D3/Canvas APIs.
