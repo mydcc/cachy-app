@@ -91,11 +91,11 @@ export class MarketManager {
   private backingBuffers = new Map<string, KlineBuffers>();
   private pendingKlineUpdates = new Map<string, any[]>();
   private bufferPool = new BufferPool();
-  private cleanupIntervalId: any = null;
-  private flushIntervalId: any = null;
-  private telemetryIntervalId: any = null;
-  private notifyTimer: any = null;
-  private statusNotifyTimer: any = null;
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private flushIntervalId: ReturnType<typeof setInterval> | null = null;
+  private telemetryIntervalId: ReturnType<typeof setInterval> | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private statusNotifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
