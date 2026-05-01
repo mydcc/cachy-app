@@ -628,7 +628,7 @@ export const apiService = {
           }
           if (!response.ok) {
             // Try to parse error details
-            let errData: any = {};
+            let errData: Record<string, unknown> = {};
             try {
               errData = await response.json();
             } catch {

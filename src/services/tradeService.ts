@@ -72,11 +72,14 @@ export class BitunixApiError extends Error {
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    MISSING_CREDENTIALS: "apiErrors.missingCredentials",
+    INVALID_AMOUNT: "apiErrors.invalidAmount",
+    NO_API_KEYS: "dashboard.alerts.noApiKeys"
 };
 
 export class TradeError extends Error {
-    constructor(message: string, public code: string, public details?: any) {
+    constructor(message: string, public code: string, public details?: unknown) {
         super(message);
         this.name = "TradeError";
     }
@@ -99,7 +102,7 @@ class TradeService {
         const keys = settingsState.apiKeys[provider];
 
         if (!keys || !keys.key) {
-            throw new Error("apiErrors.missingCredentials");
+            throw new Error(TRADE_ERRORS.MISSING_CREDENTIALS);
         }
 
         const headers: Record<string, string> = {
@@ -121,7 +124,7 @@ class TradeService {
         });
 
         const text = await response.text();
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
             data = safeJsonParse(text);
         } catch (e) {
@@ -136,18 +139,19 @@ class TradeService {
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
             // Log raw gateway text silently
-            const rawMsg = data.msg || data.error || "Unknown API Error";
+            const rawMsg = typeof data.msg === 'string' ? data.msg : (typeof data.error === 'string' ? data.error : "Unknown API Error");
             if (rawMsg) {
                 logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
+            const code = typeof data.code === 'number' || typeof data.code === 'string' ? data.code : response.status || -1;
+            throw new BitunixApiError(code, "apiErrors.generic", rawMsg);
         }
 
-        return data;
+        return data as T;
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -171,7 +175,7 @@ class TradeService {
         }
 
         if (typeof payload === 'object') {
-            const newObj: any = {};
+            const newObj: Record<string, unknown> = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
                     newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
@@ -247,7 +251,7 @@ class TradeService {
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
+                throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
             }
 
             const qty = position.amount.toString();
@@ -459,7 +463,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("apiErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
@@ -503,7 +507,7 @@ class TradeService {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {
-             throw new Error("dashboard.alerts.noApiKeys");
+             throw new Error(TRADE_ERRORS.NO_API_KEYS);
         }
 
         if (provider === "bitunix") {

@@ -34,6 +34,7 @@ export interface Toast {
 
 class ToastService {
     toasts = $state<Toast[]>([]);
+    private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
     add(message: string, type: ToastType = "info", duration = 3000) {
         const id = crypto.randomUUID();
@@ -46,17 +47,26 @@ class ToastService {
         };
 
         this.toasts.push(toast);
+        if (this.toasts.length > 50) {
+            const removed = this.toasts.shift();
+            if (removed) this.remove(removed.id);
+        }
 
         if (duration > 0) {
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 this.remove(id);
             }, duration);
+            this.timers.set(id, timer);
         }
 
         return id;
     }
 
     remove(id: string) {
+        if (this.timers.has(id)) {
+            clearTimeout(this.timers.get(id));
+            this.timers.delete(id);
+        }
         this.toasts = this.toasts.filter(t => t.id !== id);
     }
 
