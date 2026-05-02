@@ -46,20 +46,20 @@
 
 **Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
 *   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
+*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to strictly use `unknown` and `Record<string, unknown>` instead of `any`, ensuring explicit type safety.
 *   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
 
 ### Group 2: Standardizing i18n Error Reporting (WARNING)
 
 **Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
 *   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
+*   **Action**: Replace literal string throws (e.g., `throw new Error("apiErrors.missingCredentials")`) with the centralized constants from `TRADE_ERRORS`.
 
 ### Group 3: Hardening WebSocket Memory Management (CRITICAL)
 
 **Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
+*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies for `syntheticSubs` and `pendingSubscriptions` by slicing the Map entries when size exceeds 10,000 to retain only the most recent bounds.
+*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate inserting 11,000 subscriptions and asserting that bounded eviction prevents the memory from growing infinitely.
 
 ### Execution Guidelines Adherence
 *   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.

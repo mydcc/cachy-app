@@ -72,11 +72,15 @@ export class BitunixApiError extends Error {
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    MISSING_CREDENTIALS: "apiErrors.missingCredentials",
+    INVALID_AMOUNT: "apiErrors.invalidAmount",
+    INVALID_RESPONSE: "apiErrors.invalidResponse",
+    GENERIC_API_ERROR: "apiErrors.generic"
 };
 
 export class TradeError extends Error {
-    constructor(message: string, public code: string, public details?: any) {
+    constructor(message: string, public code: string, public details?: unknown) {
         super(message);
         this.name = "TradeError";
     }
@@ -99,7 +103,7 @@ class TradeService {
         const keys = settingsState.apiKeys[provider];
 
         if (!keys || !keys.key) {
-            throw new Error("apiErrors.missingCredentials");
+            throw new Error(TRADE_ERRORS.MISSING_CREDENTIALS);
         }
 
         const headers: Record<string, string> = {
@@ -121,14 +125,14 @@ class TradeService {
         });
 
         const text = await response.text();
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
             data = safeJsonParse(text);
         } catch (e) {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
             // use the status code as the error code. Do NOT expose raw text or statusText.
             if (!response.ok) {
-                 throw new BitunixApiError(response.status, "apiErrors.invalidResponse");
+                 throw new BitunixApiError(String(response.status), TRADE_ERRORS.INVALID_RESPONSE);
             }
         }
 
@@ -140,14 +144,14 @@ class TradeService {
             if (rawMsg) {
                 logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
+            throw new BitunixApiError(String(data.code || response.status || -1), "apiErrors.generic", String(rawMsg));
         }
 
-        return data;
+        return data as T;
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -171,7 +175,7 @@ class TradeService {
         }
 
         if (typeof payload === 'object') {
-            const newObj: any = {};
+            const newObj: Record<string, unknown> = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
                     newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
@@ -247,7 +251,7 @@ class TradeService {
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
+                throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
             }
 
             const qty = position.amount.toString();
@@ -459,7 +463,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("apiErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
@@ -524,10 +528,10 @@ class TradeService {
                   await Promise.all(
                       batch.map(async (sym) => {
                           try {
-                              const params: any = {};
+                              const params: Record<string, unknown> = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                                   action: view,
                                   params
                               }).catch(e => {
@@ -536,13 +540,13 @@ class TradeService {
                                   return { error: errMsg };
                               }); // Hardened
 
-                              if (data.error) {
+                              if ('error' in data && data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
                                       logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const res = (Array.isArray(data) ? data : (data as { rows?: TpSlOrder[] }).rows || []) as TpSlOrder[];
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -563,10 +567,10 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const list = (Array.isArray(data) ? data : (data as { rows?: TpSlOrder[] }).rows || []) as TpSlOrder[];
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }

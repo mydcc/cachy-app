@@ -1374,6 +1374,18 @@ class BitunixWebSocketService {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
 
+    // Bounded Eviction to prevent leaks
+    if (this.syntheticSubs.size > 10000) {
+        logger.warn("network", "[WebSocket] syntheticSubs bounded eviction triggered.");
+        const keysToEvict = Array.from(this.syntheticSubs.keys()).slice(0, 1000);
+        for (const k of keysToEvict) this.syntheticSubs.delete(k);
+    }
+    if (this.pendingSubscriptions.size > 10000) {
+        logger.warn("network", "[WebSocket] pendingSubscriptions bounded eviction triggered.");
+        const keysToEvict = Array.from(this.pendingSubscriptions.keys()).slice(0, 1000);
+        for (const k of keysToEvict) this.pendingSubscriptions.delete(k);
+    }
+
     // [SYNTHETIC] Dynamic Support
     const resolved = this.resolveTimeframe(channel.replace("kline_", ""));
     let targetChannel = channel;

@@ -77,6 +77,18 @@ describe('BitunixWebSocketService Leak', () => {
         expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
     });
 
+    it('should enforce bounded eviction when subscription limit is exceeded', () => {
+        for (let i = 0; i < 11000; i++) {
+            (bitunixWs as any).syntheticSubs.set(`TEST:${i}`, 1);
+            (bitunixWs as any).pendingSubscriptions.set(`TEST:${i}`, 1);
+        }
+
+        bitunixWs.subscribe('BTCUSDT', 'kline_1m');
+
+        expect((bitunixWs as any).syntheticSubs.size).toBeLessThanOrEqual(10001);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBeLessThanOrEqual(10001);
+    });
+
     it('should clear all pending and synthetic subscriptions on destroy()', () => {
         const symbol = 'BTCUSDT';
         const channel = 'kline_2h';
