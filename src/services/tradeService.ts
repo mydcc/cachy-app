@@ -23,6 +23,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { z } from "zod";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
@@ -70,6 +71,7 @@ export class BitunixApiError extends Error {
 }
 
 export const TRADE_ERRORS = {
+    INVALID_AMOUNT: "apiErrors.invalidAmount",
     POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
     CLOSE_ALL_FAILED: "trade.closeAllFailed"
@@ -81,6 +83,27 @@ export class TradeError extends Error {
         this.name = "TradeError";
     }
 }
+
+export const TpSlOrderSchema = z.object({
+    orderId: z.string().optional(),
+    id: z.string().optional(),
+    planId: z.string().optional(),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]).or(z.string()),
+    triggerPrice: z.string().optional(),
+    qty: z.string().optional(),
+    status: z.string().optional(),
+    ctime: z.number().optional(),
+    createTime: z.number().optional(),
+    side: z.string().optional(),
+    price: z.string().optional(),
+    executePrice: z.string().optional(),
+    clientOrderId: z.string().optional(),
+    reduceOnly: z.boolean().optional(),
+    workingType: z.string().optional(),
+    timeInForce: z.string().optional()
+}).passthrough();
+
 
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
@@ -247,7 +270,7 @@ class TradeService {
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
+                throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
             }
 
             const qty = position.amount.toString();
@@ -459,7 +482,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("apiErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
@@ -542,7 +565,13 @@ class TradeService {
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const rawArray = Array.isArray(data) ? data : data.rows || [];
+                              const res: TpSlOrder[] = [];
+                              for (const item of rawArray) {
+                                  const parsed = TpSlOrderSchema.safeParse(item);
+                                  if (parsed.success) res.push(parsed.data as TpSlOrder);
+                                  else logger.warn("market", "Invalid TpSlOrder skipped", { error: parsed.error });
+                              }
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -566,7 +595,13 @@ class TradeService {
              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const rawArray = Array.isArray(data) ? data : data.rows || [];
+             const list: TpSlOrder[] = [];
+             for (const item of rawArray) {
+                 const parsed = TpSlOrderSchema.safeParse(item);
+                 if (parsed.success) list.push(parsed.data as TpSlOrder);
+                 else logger.warn("market", "Invalid TpSlOrder skipped", { error: parsed.error });
+             }
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }

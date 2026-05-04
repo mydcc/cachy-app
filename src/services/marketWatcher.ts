@@ -525,6 +525,10 @@ class MarketWatcher {
                     if (reachedEnd || allNewKlines.length === 0) {
                         logger.log("market", `[History] Backfill reached end of history for ${symbol}:${tf} at ${currentTotal}/${limit}.`);
                         this.exhaustedHistory.add(exhaustKey);
+                        if (this.exhaustedHistory.size > 1000) {
+                            const first = this.exhaustedHistory.values().next().value;
+                            if (first) this.exhaustedHistory.delete(first);
+                        }
                         break;
                     }
                 }

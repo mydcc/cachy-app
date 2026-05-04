@@ -49,12 +49,12 @@ describe("TradeService - Error Constants", () => {
       .rejects.toThrow(TRADE_ERRORS.POSITION_NOT_FOUND);
   });
 
-  it("should throw apiErrors.invalidAmount when amount is missing in closePosition", async () => {
+  it("should throw TRADE_ERRORS.INVALID_AMOUNT when amount is missing in closePosition", async () => {
     (omsService.getPositions as any).mockReturnValue([
       { symbol: "BTCUSDT", side: "long", amount: new Decimal(1), lastUpdated: Date.now() }
     ]);
 
     await expect(tradeService.closePosition({ symbol: "BTCUSDT", positionSide: "long", forceFullClose: false }))
-      .rejects.toThrow("apiErrors.invalidAmount"); // Currently it's throwing this incorrectly
+      .rejects.toThrow(TRADE_ERRORS.INVALID_AMOUNT); // Currently it's throwing this incorrectly
   });
 });

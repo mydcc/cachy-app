@@ -126,12 +126,21 @@ class OrderManagementSystem {
         this.positions.set(position.symbol + ":" + position.side, position);
         logger.log("market", `[OMS] Position Updated: ${position.symbol} ${position.side}`);
 
+
         if (this.positions.size > this.MAX_POSITIONS) {
             // Prune positions with 0 amount (closed)
             for (const [key, pos] of this.positions) {
                 if (this.positions.size <= this.MAX_POSITIONS) break;
                 if (pos.amount.isZero()) {
                     this.positions.delete(key);
+                }
+            }
+
+            // Emergency fallback if still over limit
+            if (this.positions.size > this.MAX_POSITIONS * 2) {
+                const keys = Array.from(this.positions.keys());
+                for (let i = 0; i < keys.length - this.MAX_POSITIONS; i++) {
+                    this.positions.delete(keys[i]);
                 }
             }
         }
