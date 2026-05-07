@@ -280,8 +280,8 @@ export const newsService = {
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
               logger.error("market", `CryptoPanic error: ${res.status}`, errorText);
             }
-          } catch (e: any) {
-            const errorMsg = e?.message || String(e);
+          } catch (e: unknown) {
+            const errorMsg = (e instanceof Error ? e.message : undefined) || String(e);
             apiQuotaTracker.logCall("cryptopanic", false, errorMsg);
             logger.error("market", "Failed to fetch CryptoPanic", e);
           }
@@ -337,8 +337,8 @@ export const newsService = {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
             }
-          } catch (e: any) {
-            const errorMsg = e?.message || String(e);
+          } catch (e: unknown) {
+            const errorMsg = (e instanceof Error ? e.message : undefined) || String(e);
             apiQuotaTracker.logCall("newsapi", false, errorMsg);
             logger.error("market", "Failed to fetch NewsAPI", e);
           }
@@ -505,8 +505,8 @@ export const newsService = {
         });
 
         return analysis;
-      } catch (e: any) {
-        const msg = e?.message || String(e);
+      } catch (e: unknown) {
+        const msg = (e instanceof Error ? e.message : undefined) || String(e);
         if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY") || msg.includes("NO_API_KEY")) {
           logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
         } else {
