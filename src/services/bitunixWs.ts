@@ -302,6 +302,9 @@ class BitunixWebSocketService {
       this.globalMonitorInterval = null;
     }
 
+    this.syntheticSubs.clear();
+    this.pendingSubscriptions.clear();
+
     // 2. Remove Listeners
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.handleOnline);

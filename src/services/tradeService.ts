@@ -524,10 +524,10 @@ class TradeService {
                   await Promise.all(
                       batch.map(async (sym) => {
                           try {
-                              const params: any = {};
+                              const params: Record<string, unknown> = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                                   action: view,
                                   params
                               }).catch(e => {
@@ -542,7 +542,7 @@ class TradeService {
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const res = (Array.isArray(data) ? data : (data as Record<string, any>).rows || []) as TpSlOrder[];
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -563,10 +563,10 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const list = (Array.isArray(data) ? data : (data as Record<string, any>).rows || []) as TpSlOrder[];
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }
