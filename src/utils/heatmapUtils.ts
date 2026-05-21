@@ -49,7 +49,7 @@ export function getCoinankUrl(symbol: string, tf: string, provider: 'bitunix' | 
         // Example: https://coinank.com/de/proChart?exchange=Bitunix&symbol=BTCUSDT&productType=SWAP&interval=1h
         // Uses Standard Timeframe (tf) and Uppercase Symbol
         const exchange = provider === 'bitget' ? 'Bitget' : 'Bitunix';
-        const formattedSymbol = symbol.toUpperCase();
+        const formattedSymbol = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
         return `https://coinank.com/de/proChart?exchange=${exchange}&symbol=${formattedSymbol}&productType=SWAP&interval=${tf}`;
     } else {
         // Heatmap Direct Link
@@ -66,6 +66,6 @@ export function getCoinankUrl(symbol: string, tf: string, provider: 'bitunix' | 
  * Example: https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=BTC
  */
 export function getCoinglassUrl(symbol: string): string {
-    const baseAsset = symbol.toUpperCase().replace(/USDT(\.P|P)?$/, "");
+    const baseAsset = symbol.toUpperCase().replace(/USDT(\.P|P)?$/, "").replace(/[^A-Z0-9]/g, '');
     return `https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=${baseAsset}`;
 }

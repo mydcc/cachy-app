@@ -49,13 +49,13 @@ describe('heatmapUtils', () => {
     });
 
     describe('getCoinankUrl', () => {
-        it('should generate ProChart URL for iframe mode with Bitget', () => {
+        it('should generate ProChart URL for iframe mode with Bitget and strip special characters', () => {
             const url = getCoinankUrl('BTC-USDT', '1h', 'bitget', 'iframe');
-            expect(url).toBe('https://coinank.com/de/proChart?exchange=Bitget&symbol=BTC-USDT&productType=SWAP&interval=1h');
+            expect(url).toBe('https://coinank.com/de/proChart?exchange=Bitget&symbol=BTCUSDT&productType=SWAP&interval=1h');
         });
 
-        it('should generate ProChart URL for iframe mode with Bitunix', () => {
-            const url = getCoinankUrl('ethusdt', '4h', 'bitunix', 'iframe');
+        it('should generate ProChart URL for iframe mode with Bitunix and capitalize symbol correctly', () => {
+            const url = getCoinankUrl('eth_usdt', '4h', 'bitunix', 'iframe');
             expect(url).toBe('https://coinank.com/de/proChart?exchange=Bitunix&symbol=ETHUSDT&productType=SWAP&interval=4h');
         });
 
@@ -78,6 +78,11 @@ describe('heatmapUtils', () => {
         it('should extract base asset and build URL correctly', () => {
             expect(getCoinglassUrl('BTCUSDT')).toBe('https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=BTC');
             expect(getCoinglassUrl('ethusdt')).toBe('https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=ETH');
+        });
+
+        it('should extract base asset and strip special characters correctly', () => {
+            expect(getCoinglassUrl('BTC-USDT')).toBe('https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=BTC');
+            expect(getCoinglassUrl('ETH_USDT')).toBe('https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=ETH');
         });
 
         it('should correctly strip .P suffix', () => {
