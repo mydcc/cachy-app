@@ -57,11 +57,7 @@ describe('POST /api/sync', () => {
     const response = await POST({ request } as any);
     // Before fix: likely 500 or 200 (if upstream accepts it, but here we expect validation)
     // After fix: 400
-    if (response.status === 200) {
-        console.warn('Test passed but endpoint accepts short keys (expected behavior before fix)');
-    } else {
-        expect(response.status).toBe(400);
-    }
+    expect(response.status).toBe(400);
   });
 
   it('should return 200 and call fetch with correct headers for valid input', async () => {
