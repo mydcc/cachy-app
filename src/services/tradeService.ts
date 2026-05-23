@@ -76,7 +76,7 @@ export const TRADE_ERRORS = {
 };
 
 export class TradeError extends Error {
-    constructor(message: string, public code: string, public details?: any) {
+    constructor(message: string, public code: string, public details?: unknown) {
         super(message);
         this.name = "TradeError";
     }
@@ -121,9 +121,9 @@ class TradeService {
         });
 
         const text = await response.text();
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
-            data = safeJsonParse(text);
+            data = safeJsonParse(text) as Record<string, unknown>;
         } catch (e) {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
             // use the status code as the error code. Do NOT expose raw text or statusText.
@@ -140,10 +140,10 @@ class TradeService {
             if (rawMsg) {
                 logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
+            throw new BitunixApiError((data.code as string | number) || response.status || -1, "apiErrors.generic", String(rawMsg));
         }
 
-        return data;
+        return data as T;
     }
 
     // Helper to safely serialize Decimals to strings
@@ -294,7 +294,10 @@ class TradeService {
         } catch (e: unknown) {
             // Use rawMessage for display when available (human-readable API text),
             // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
-            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            let msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            if (msg.toLowerCase().includes('<html')) {
+                msg = "apiErrors.invalidResponse";
+            }
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -532,7 +535,10 @@ class TradeService {
                                   params
                               }).catch(e => {
                                   // Preserve rawMessage for classification if available
-                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  let errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  if (errMsg.toLowerCase().includes('<html')) {
+                                      errMsg = "apiErrors.invalidResponse";
+                                  }
                                   return { error: errMsg };
                               }); // Hardened
 

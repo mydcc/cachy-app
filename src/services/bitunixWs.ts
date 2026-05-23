@@ -309,6 +309,11 @@ class BitunixWebSocketService {
     }
 
     // 3. Strict Cleanup
+    this.pendingSubscriptions.clear();
+    this.syntheticSubs.clear();
+    this.throttleMap.clear();
+    this.tradeListeners.clear();
+
     this.cleanup("public");
     this.cleanup("private");
 
