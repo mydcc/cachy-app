@@ -1401,6 +1401,19 @@ class BitunixWebSocketService {
         const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
 
         const count = this.syntheticSubs.get(synthKey) || 0;
+
+        // [HARDENING] Bounded eviction to prevent memory leaks
+        if (count === 0 && this.syntheticSubs.size > 5000) {
+            logger.warn("network", `[BitunixWS] syntheticSubs limit exceeded (5000). Evicting oldest inactive.`);
+            // Only evict entries with a reference count of 0
+            for (const [key, val] of this.syntheticSubs.entries()) {
+                 if (val === 0) {
+                      this.syntheticSubs.delete(key);
+                      break;
+                 }
+            }
+        }
+
         this.syntheticSubs.set(synthKey, count + 1);
 
         if (import.meta.env.DEV) {
@@ -1412,6 +1425,19 @@ class BitunixWebSocketService {
 
     // Reference Counting Logic
     const currentCount = this.pendingSubscriptions.get(subKey) || 0;
+
+    // [HARDENING] Bounded eviction to prevent memory leaks
+    if (currentCount === 0 && this.pendingSubscriptions.size > 5000) {
+        logger.warn("network", `[BitunixWS] pendingSubscriptions limit exceeded (5000). Evicting oldest inactive.`);
+        // Only evict entries with a reference count of 0
+        for (const [key, val] of this.pendingSubscriptions.entries()) {
+             if (val === 0) {
+                  this.pendingSubscriptions.delete(key);
+                  break;
+             }
+        }
+    }
+
     this.pendingSubscriptions.set(subKey, currentCount + 1);
 
     // Only subscribe if this is the first requester

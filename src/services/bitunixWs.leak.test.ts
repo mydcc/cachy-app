@@ -91,4 +91,21 @@ describe('BitunixWebSocketService Leak', () => {
         expect((bitunixWs as any).syntheticSubs.size).toBe(0);
         expect((bitunixWs as any).pendingSubscriptions.size).toBe(0);
     });
+
+    it('should bound syntheticSubs and pendingSubscriptions growth under rapid subscribe/unsubscribe cycles', () => {
+        // [HARDENING] Test bounded eviction limits
+        for (let i = 0; i < 10000; i++) {
+            const sym = `TEST${i}USDT`;
+            bitunixWs.subscribe(sym, 'kline_2h'); // 2h is synthetic, relies on 1h
+            // Unsubscribe immediately to simulate rapid cycles and ensure ref counts hit 0 allowing eviction
+            bitunixWs.unsubscribe(sym, 'kline_2h');
+        }
+
+        // The max limit is set to 5000 in BitunixWS.
+        // It allows up to 5001 before evicting elements with count 0.
+        expect((bitunixWs as any).syntheticSubs.size).toBeLessThanOrEqual(5001);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBeLessThanOrEqual(5001);
+
+        (bitunixWs as any).destroy();
+    });
 });
