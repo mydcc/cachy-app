@@ -1,67 +1,82 @@
-# In-Depth Code Analysis & Status Report
+# In-depth Code Analysis & Status Report
 
-## Status Quo & Vulnerabilities (Step 1)
+## Step 1: Status Quo & Vulnerabilities
 
 ### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
 
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
+**Unsafe response.text() parsing (Potential HTML leak)**
+- `src/services/apiService.ts:402:      const text = await response.text();`
+- `src/services/apiService.ts:409:    const text = await response.text();`
+- `src/services/newsService.ts:476:          const errText = await response.text();`
+- `src/services/newsService.ts:486:        const text = await response.text();`
+- `src/services/tradeService.ts:123:        const text = await response.text();`
+*Risk*: Calling `.text()` without `try/catch` and blindly parsing can leak proxy error HTML pages (e.g., 502 Bad Gateway) directly into the UI.
 
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
+**Native Number floats used instead of Decimal.js in financial logic**
+- `src/stores/market.svelte.ts:501:            // 2. Update Buffer Directly (Skip Decimal.toNumber() overhead)`
+- `src/stores/market.svelte.ts:507:                    if (typeof val === "string") return parseFloat(val);`
+- `src/stores/market.svelte.ts:508:                    return val instanceof Decimal ? val.toNumber() : Number(val);`
+- ... and more instances where Decimals are converted to native `Number()`.
+*Risk*: Casting to floats causes floating-point inaccuracies during price and quantity calculations which could result in data desyncs or incorrect values propagating.
 
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
+**Direct DOM manipulation (innerHTML)**
+*(No non-test occurrences found during this scan for `innerHTML`, which is good. We must ensure no future direct assignments exist to avoid XSS vulnerabilities.)*
 
 ### 🟡 WARNING (Performance issue, UX error, missing i18n)
 
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
+**Potential unbounded array growth in stores**
+- `src/stores/quiz.svelte.ts:125:        cards.push({ id, question, answer });`
+- `src/stores/journal.svelte.ts:110:    this.entries.push(entry);`
+- `src/stores/floatingWindows.svelte.ts:62:        this.windows.push(newWindow);`
+- `src/stores/account.svelte.ts:151:        this.positions.push(newPos);`
+- ... and 15 more.
+*Risk*: Arrays without bounded eviction strategies or slicing can grow indefinitely, leading to memory leaks and lagging in long-running processes.
 
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
+**Destroy methods potentially missing clear() for Maps/Sets**
+- `src/services/omsService.ts:46:    public destroy() {`
+- `src/services/apiService.ts:166:  public destroy() {`
+- ... and 9 more.
+*Risk*: Failing to `.clear()` all internal `Map` and `Set` collections in teardown methods causes objects to persist, leading to memory leaks.
 
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
+**Hardcoded error messages (Missing i18n/constants)**
+- `src/services/dataRepairService.ts:79:            throw new Error("apiErrors.symbolNotFound");`
+- `src/services/apiService.ts:406:      throw new Error("apiErrors.invalidResponseFormat");`
+- ... and 44 more.
+*Risk*: Hardcoded strings can cause the UI to display raw keys rather than helpful localized texts if not properly mapped to constants like `TRADE_ERRORS`.
 
 ### 🔵 REFACTOR (Code smell, technical debt)
 
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
+**Unsafe catch (e: any) blocks**
+- Over 27 occurrences in files (e.g., `dataRepairService.ts`, `syncService.ts`, `newsService.ts`) use `catch (e: any)`.
+*Risk*: This bypasses TypeScript safety checks, leading to potential runtime errors when extracting error messages.
+
+**Widespread `as any` casting**
+- Approximately 38 occurrences in core service logic files bypass the type safety net.
+*Risk*: The data structure assumptions are ignored by the compiler, risking unexpected exceptions in production.
 
 ---
 
-## Action Plan (Planning Phase - Step 2)
+## Step 2: Action Plan (Planning Phase)
 
-### Group 1: Hardening Financial Execution Types (CRITICAL)
+### Group 1: Harden Financial Logic and Number Handling (CRITICAL)
+- **Action**: Systematically replace all `Number` or floating-point conversions (`parseFloat`) with strict `Decimal.js` arithmetic in core trading logic (`tradeService.ts`, `marketWatcher.ts`, and stores). Only allow native numbers where strictly required for TypedArrays in WebGL/charting.
+- **Unit Test**: Write a unit test that mocks market data processing with floating-point decimals (e.g., `0.30000000000000004`) to reproduce the arithmetic precision errors before applying the fix.
+- **Justification**: Measurably improves stability by eliminating the risk of floating-point arithmetic errors leading to incorrect trade executions or financial data desyncs.
 
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
+### Group 2: Fix Unsafe Response Parsing (CRITICAL)
+- **Action**: Wrap all `response.text()` calls in a `try/catch` block. Ensure checking for HTML presence (e.g., `.toLowerCase().includes('<html')`) and map failures to generic localized error keys (e.g., `apiErrors.invalidResponseFormat`) before sending it to the UI.
+- **Unit Test**: Write a unit test simulating a proxy throwing an HTML 502 Bad Gateway response to reproduce the failure before applying the fix.
+- **Justification**: Measurably improves security and UX by ensuring raw HTML proxy errors or sensitive gateway details are never exposed to the user via toast notifications.
 
-### Group 2: Standardizing i18n Error Reporting (WARNING)
+### Group 3: Harden WebSocket Memory Management (WARNING/CRITICAL)
+- **Action**: Implement bounded eviction strategies (e.g., limiting the maximum length of cached arrays via `.entries()` checking) and ensure `.clear()` is called unconditionally on all Maps/Sets during `destroy()` methods in `bitunixWs.ts` and others.
+- **Unit Test**: Expand the existing `bitunixWs.leak.test.ts` to assert that complex structures (`syntheticSubs`, `pendingSubscriptions`) do not continuously grow during simulated reconnection cycles.
+- **Justification**: Measurably improves performance and prevents fatal browser tab crashes due to memory exhaustion over long trading sessions.
 
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
+### Group 4: Standardize i18n & Error Handling (WARNING)
+- **Action**: Replace literal hardcoded error strings with centralized constant mappings (e.g., `TRADE_ERRORS`) that correspond exactly to keys in `TranslationKey`.
+- **Justification**: Measurably improves UX and accessibility (A11y) by ensuring errors are understandable, actionable, and properly translated in broken state scenarios.
 
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
-
-**Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
-
-### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
+### Group 5: Refactor Unsafe Try/Catch Types (REFACTOR)
+- **Action**: Replace `catch (e: any)` with `catch (e: unknown)` and enforce type-narrowing using `e instanceof Error ? e.message : String(e)`.
+- **Justification**: Measurably improves stability by enforcing TypeScript's checks, preventing unhandled exceptions when processing errors.
