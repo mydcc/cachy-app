@@ -1,33 +1,24 @@
-# Action Plan: cachy-app Hardening
+1. **Fix Type Safety and `any` Usage (CRITICAL)**
+   - **`src/services/newsService.ts`**: Replace `catch (e: any)` with `catch (e: unknown)` and narrow the type using `e instanceof Error ? e.message : String(e)`.
+   - **`src/services/newsService.ts`**: Replace `.map((item: any) => ...)` with `.map((item: Record<string, unknown>) => ...)` or explicit unknown narrowing for `newsItems` parsing.
+   - **`src/services/tradeService.ts`**: Fix `catch (e: any)` logic and type casting like `data: any = {}` or `<any>` in `signedRequest` to `unknown` or `Record<string, unknown>`.
 
-## Group 1: Critical Logic & Type Safety fixes (🔴 CRITICAL)
+2. **Harden Error Message Parsing and Prevent HTML Leakage (CRITICAL / WARNING)**
+   - **`src/services/tradeService.ts`**: Update the `catch` blocks that handle `BitunixApiError`. Check if `rawMessage` contains HTML (e.g., `.toLowerCase().includes('<html')`). If it does, map the error to a localized key like `apiErrors.invalidResponse` to prevent proxy error pages from bleeding into the UI.
 
-1.  **Refactor `tradeService.ts` Types:**
-    *   Replace `any` in `signedRequest<any>` and `serializePayload(payload: any)` with explicit generic types or `unknown` combined with Zod validation/type predicates.
-    *   *Unit Test requirement:* Write a test mocking `signedRequest` returning malformed data to ensure the service throws a structured error instead of crashing.
-2.  **Fix Decimal Conversion Leak in `julesService.ts`:**
-    *   Locate lines 88-92 in `src/services/julesService.ts`.
-    *   Change `.toNumber()` back to preserving the `Decimal` type or handle the formatting string specifically for the output required, avoiding native JS Number floats.
-3.  **Strict Error Type Checking in `apiService.ts` & `omsService.ts`:**
-    *   Remove `(e as any).status` casting.
-    *   Implement an `isApiError(error: unknown): error is ApiError` type guard to safely check for `.status` and `.code`.
+3. **Fix Memory Leak & Teardown Logic (CRITICAL)**
+   - **`src/services/marketWatcher.ts`**: Update `destroy()` to clear the `channels` Set (e.g. `this.channels.clear()`) and `this.exhaustedHistory` correctly. Ensure no bounded eviction clears indiscriminately but selectively (e.g., `.entries()`).
 
-## Group 2: Resource Management & Memory (🟡 WARNING & 🔵 REFACTOR)
+4. **Security: Fix Untrusted Markdown Rendering (CRITICAL)**
+   - **`src/lib/windows/implementations/MarkdownView.svelte`**: Replace `{@html renderTrustedMarkdown(win.content)}` with `<div use:markdown={win.content}></div>`. Import the action from `src/actions/markdown.ts`.
 
-4.  **Harden Timer Management (Intervals/Timeouts):**
-    *   `src/services/omsService.ts`: Ensure `watchdogInterval` is cleared in a `destroy()` method. Add HMR disposal block (`if (import.meta.hot) ...`).
-    *   `src/stores/settings.svelte.ts`: Type `notifyTimer` and `saveTimer` as `ReturnType<typeof setTimeout> | null` (instead of `any`). Ensure clearance on destroy.
-5.  **Toast Service Bounded Array:**
-    *   `src/services/toastService.svelte.ts`: Implement a maximum size for the `this.toasts` array. If `.push()` exceeds `MAX_TOASTS` (e.g., 50), `.shift()` the oldest one. Ensure `setTimeout` IDs are tracked and cleared if the toast is removed early.
+5. **Fix i18n Missing Keys (WARNING)**
+   - Ensure the required error keys (like `tradeErrors.fetchFailed` and `apiErrors.*`) exist in both `src/locales/locales/en.json` and `src/locales/schema.d.ts`. Add `fetchFailed` and `closeAllFailed` if missing.
 
-## Group 3: i18n & UX Improvements (🟡 WARNING)
+6. **Tests (CRITICAL)**
+   - Create or update a test case (e.g. `src/services/tradeService_errors.test.ts`) that simulates a proxy returning HTML to ensure the HTML is not exposed in the error message.
+   - Create or update `src/services/marketWatcher_hardening.test.ts` to assert that `destroy()` properly clears the sets.
+   - Execute `npm run test` targeting modified test files to verify stability.
 
-6.  **Migrate Hardcoded Strings to i18n:**
-    *   Identify strings in `src/lib/windows/implementations/AssistantView.svelte` ("Anwenden", "Ignorieren").
-    *   Verify target JSON locale files (`src/locales/locales/*.json`) and add keys if missing.
-    *   Update Svelte components to use `get(_)('key')` or `$_('key')` appropriately.
-
-## Group 4: Pre-commit Verification
-
-7.  **Complete pre-commit steps:**
-    *   Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+7. **Pre-commit Steps**
+   - Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.

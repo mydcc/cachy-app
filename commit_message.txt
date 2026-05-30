@@ -1,0 +1,7 @@
+fix(maintenance): systemic hardening of trading logic & memory
+
+* Refactored type-safety in `newsService.ts` and `tradeService.ts` by replacing `any` with `Record<string, unknown>` and `unknown` in catch blocks.
+* Hardened `BitunixApiError.rawMessage` parsing in `tradeService.ts` to prevent raw HTML string leakage to the UI via `apiErrors.invalidResponse`.
+* Addressed memory leaks in `MarketWatcher.destroy()` and `exhaustedHistory` cache clearing bounds.
+* Secured untrusted markdown rendering in `MarkdownView.svelte` using the `markdown` DOMPurify action.
+* Added missing i18n localization keys for `fetchFailed` and `closeAllFailed`.

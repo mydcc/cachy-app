@@ -294,7 +294,8 @@ class TradeService {
         } catch (e: unknown) {
             // Use rawMessage for display when available (human-readable API text),
             // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
-            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            let msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            if (msg.toLowerCase().includes('<html')) msg = "apiErrors.invalidResponse";
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -532,7 +533,8 @@ class TradeService {
                                   params
                               }).catch(e => {
                                   // Preserve rawMessage for classification if available
-                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  let errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  if (typeof errMsg === 'string' && errMsg.toLowerCase().includes('<html')) errMsg = "apiErrors.invalidResponse";
                                   return { error: errMsg };
                               }); // Hardened
 
