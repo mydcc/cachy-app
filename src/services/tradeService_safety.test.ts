@@ -64,7 +64,7 @@ describe("TradeService Safety - Flash Close", () => {
         vi.restoreAllMocks();
     });
 
-    it("should retain optimistic order when network failure occurs (Two Generals Problem)", async () => {
+    it("should unconditionally roll back optimistic order when network failure occurs", async () => {
         // 1. Setup Position
         const symbol = "BTCUSDT";
         const side = "long";
@@ -98,9 +98,9 @@ describe("TradeService Safety - Flash Close", () => {
         const orders = omsService.getAllOrders();
         const optimisticOrder = orders.find(o => o.symbol === symbol && o._isOptimistic);
 
-        expect(optimisticOrder).toBeDefined();
-        expect(optimisticOrder?.amount.toString()).toBe("1.5");
-        expect(optimisticOrder?._isUnconfirmed).toBe(true); // Should be marked unconfirmed
+        expect(optimisticOrder).toBeUndefined();
+
+
     });
 
     it("should remove optimistic order when terminal error occurs (e.g. 400 Bad Request)", async () => {

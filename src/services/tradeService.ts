@@ -22,6 +22,7 @@
  * Handles order execution, validation, and lifecycle management.
  */
 
+import { z } from "zod";
 import { Decimal } from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
@@ -36,6 +37,27 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema, type PositionRaw } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+
+
+const TpSlOrderSchema = z.object({
+    orderId: z.string().optional(),
+    symbol: z.string().optional(),
+    planType: z.string().optional(),
+    triggerPrice: z.string().optional(),
+    qty: z.string().optional(),
+    status: z.string().optional(),
+    ctime: z.number().optional(),
+    createTime: z.number().optional(),
+    id: z.string().optional(),
+    planId: z.string().optional(),
+    side: z.string().optional(),
+    price: z.string().optional(),
+    executePrice: z.string().optional(),
+    clientOrderId: z.string().optional(),
+    reduceOnly: z.boolean().optional(),
+    workingType: z.string().optional(),
+    timeInForce: z.string().optional(),
+}).passthrough();
 
 export interface TpSlOrder {
     orderId: string;
@@ -120,7 +142,13 @@ class TradeService {
             body: JSON.stringify(serializedPayload)
         });
 
-        const text = await response.text();
+        let text = "";
+        try {
+            text = await response.text();
+        } catch (e) {
+            throw new BitunixApiError(response.status || 500, "apiErrors.invalidResponseFormat");
+        }
+
         let data: any = {};
         try {
             data = safeJsonParse(text);
@@ -294,38 +322,23 @@ class TradeService {
         } catch (e: unknown) {
             // Use rawMessage for display when available (human-readable API text),
             // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
-            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            let msg = e instanceof Error ? e.message : String(e);
+            if (e instanceof BitunixApiError && e.rawMessage) {
+                if (e.rawMessage.toLowerCase().includes('<html')) {
+                    msg = "apiErrors.invalidResponse";
+                } else {
+                    msg = e.rawMessage;
+                }
+            }
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
                 logger.warn("market", `[FlashClose] Request failed. Handling optimistic order ${clientOrderId}.`, e);
 
-                const isApiErr = (err: unknown): err is { status?: number, code?: string } =>
-                    typeof err === "object" && err !== null && ("status" in err || "code" in err);
 
-                const isTerminalError =
-                    (e instanceof BitunixApiError) ||
-                    (e instanceof Error && (
-                        e.message.includes("400") ||
-                        e.message.includes("401") ||
-                        e.message.includes("403") ||
-                        (isApiErr(e) && e.code === "VALIDATION_ERROR") ||
-                        (isApiErr(e) && e.status === 400) ||
-                        (isApiErr(e) && e.status === 401) ||
-                        (isApiErr(e) && e.status === 403)
-                    ));
 
-                if (isTerminalError) {
-                     logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
-                     omsService.removeOrder(clientOrderId);
-                } else {
-                     // Indeterminate state (Timeout / Network Error)
-                     const order = omsService.getOrder(clientOrderId);
-                     if (order) {
-                         order._isUnconfirmed = true;
-                         omsService.updateOrder(order);
-                     }
-                }
+                logger.warn("market", `[FlashClose] API Failure. Unconditionally rolling back optimistic order.`);
+                omsService.removeOrder(clientOrderId);
 
                 // Trigger background sync
                 (async () => {
@@ -532,7 +545,14 @@ class TradeService {
                                   params
                               }).catch(e => {
                                   // Preserve rawMessage for classification if available
-                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  let errMsg = e instanceof Error ? e.message : String(e);
+                                  if (e instanceof BitunixApiError && e.rawMessage) {
+                                      if (e.rawMessage.toLowerCase().includes('<html')) {
+                                          errMsg = "apiErrors.invalidResponse";
+                                      } else {
+                                          errMsg = e.rawMessage;
+                                      }
+                                  }
                                   return { error: errMsg };
                               }); // Hardened
 
@@ -542,7 +562,16 @@ class TradeService {
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const rawRes = (Array.isArray(data) ? data : data.rows || []);
+                              const res: TpSlOrder[] = [];
+                              for (const item of rawRes) {
+                                  const parsed = TpSlOrderSchema.safeParse(item);
+                                  if (parsed.success) {
+                                      res.push(parsed.data as TpSlOrder);
+                                  } else {
+                                      logger.warn("market", "Invalid TpSlOrder payload", parsed.error);
+                                  }
+                              }
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -566,7 +595,16 @@ class TradeService {
              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const rawList = (Array.isArray(data) ? data : data.rows || []);
+             const list: TpSlOrder[] = [];
+             for (const item of rawList) {
+                 const parsed = TpSlOrderSchema.safeParse(item);
+                 if (parsed.success) {
+                     list.push(parsed.data as TpSlOrder);
+                 } else {
+                     logger.warn("market", "Invalid TpSlOrder history payload", parsed.error);
+                 }
+             }
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }

@@ -776,6 +776,14 @@ class MarketWatcher {
    */
   public destroy() {
     this.stopPolling();
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout);
+      this.pollingTimeout = null;
+    }
+    if (this.startTimeout) {
+      clearTimeout(this.startTimeout);
+      this.startTimeout = null;
+    }
     this.staggerTimeouts.forEach(clearTimeout);
     this.staggerTimeouts.clear();
     this.requests.clear();
