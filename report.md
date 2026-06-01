@@ -1,67 +1,55 @@
-# In-Depth Code Analysis & Status Report
+# Code Analysis Report
 
-## Status Quo & Vulnerabilities (Step 1)
+## Critical Findings 🔴
+1. `JSON.parse` is used improperly in multiple files. The project memory and standards dictate using `safeJsonParse` for API responses and payload strings to avoid precision loss on large 64-bit integers (common in crypto order IDs) and high-precision floats. Files using raw `JSON.parse`:
+   - `src/services/apiService.ts`
+   - `src/services/wasmCalculator.ts`
+   - `src/services/apiQuotaTracker.svelte.ts`
+   - `src/components/shared/ChartPatternsView.svelte`
+   - `src/components/shared/GlobalTracker.svelte`
+   - `src/components/shared/backgrounds/TradeFlowBackground.svelte`
+   - `src/components/shared/ThreeBackground.svelte`
+   - `src/utils/WasmTechnicalsCalculator.ts`
 
-### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+2. Rejections inside optimistic order handlers can leave data corrupted if not properly rolled back. The codebase memory states: "When handling backend API failures for optimistic UI operations (e.g., optimistic orders in omsService), always unconditionally roll back the local state (e.g., removeOrder(clientOrderId)) in the catch block to prevent phantom data, rather than leaving it in an indeterminate unconfirmed state." Currently in `src/services/tradeService.ts`, flashClose leaves it in `_isUnconfirmed = true` on non-terminal errors.
 
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
+3. Unhandled unclosed resources when services are stopped (cleanup leaks). The codebase memory states: "While indiscriminate `.clear()` should be avoided during active operation, complete teardown methods (e.g., destroy()) must unconditionally call `.clear()` on all internal Map and Set collections (such as syntheticSubs or pendingSubscriptions) to ensure deterministic resource release and prevent memory leaks upon service disposal."
+And also: "To prevent unbounded memory growth in caching Maps/Sets, implement bounded eviction strategies (e.g., size > limit). Crucially, when evicting from reference-counted Maps, do not blindly remove the first key via `.keys().next().value`. Iterate via `.entries()` to safely evict only inactive entries (e.g., val === 0) to prevent corrupting active application state."
 
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
+4. Direct access to `.text()` followed by improper handling. The memory states: "When parsing text from a network response (await response.text()), always wrap the call in a try/catch block to safely handle stream reading errors or missing bodies, throwing a standardized localized error (e.g., apiErrors.invalidResponseFormat) on failure." And "Never expose raw response.statusText, non-JSON text() payloads, or API error rawMessage fields containing HTML to the UI or standard logs to prevent leaking sensitive gateway details or raw HTML."
+Files using `.text()` without full try-catch or proper sanitization logic need inspection, especially `api/orders/+server.ts` and `tradeService.ts`. In `tradeService.ts` line 297, `rawMessage` might contain HTML. The instruction is to: "When extracting error messages for UI display (e.g., BitunixApiError.rawMessage), check if the string contains HTML (e.g., .toLowerCase().includes('<html')) and map it to a safe, localized error key like apiErrors.invalidResponse to prevent exposing raw proxy error pages via toastService."
 
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
+## Warnings 🟡
+1. Potential precision loss by using `Number()` or `parseFloat()` or `parseInt()` instead of `Decimal`. For instance, `parseInt` in `src/services/apiService.ts:393` and various array logic might bypass Decimal.js.
+2. Missing i18n or using raw text when mapping.
 
-### 🟡 WARNING (Performance issue, UX error, missing i18n)
+## Refactor 🔵
+1. Consolidate error handling for standard HTTP responses across API endpoints.
 
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
 
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
+# Action Plan
 
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
+## 1. Data Integrity & Precision Loss
+- Replace `JSON.parse` with `safeJsonParse` in identified files.
+- Ensure all instances of `parseInt`/`parseFloat` strictly related to amounts/prices are replaced with `Decimal` implementations.
+- **Specific test case (for JSON.parse):** Create a test in `src/utils/tests/precision_loss.test.ts` that asserts `JSON.parse('{"id": 1234567890123456789}')` loses precision, whereas `safeJsonParse('{"id": 1234567890123456789}')` strictly returns `"1234567890123456789"` without rounding to `1234567890123456800`.
 
-### 🔵 REFACTOR (Code smell, technical debt)
+## 2. API Error Handling & Rejection Wrappers (Optimistic UI & text())
+- Modify `tradeService.ts` error handlers:
+  - Add logic to explicitly `omsService.removeOrder(clientOrderId)` instead of leaving `_isUnconfirmed` true for non-terminal errors in optimistic UI actions.
+  - **Specific test case (for optimistic UI):** Add a test in `tradeService_safety.test.ts` to mock a non-terminal error (e.g. timeout) during `flashClosePosition` and verify `omsService.getOrder(clientOrderId)` returns undefined (removed) instead of unconfirmed.
+  - Implement HTML detection on `e.rawMessage`. If `.toLowerCase().includes('<html')`, fallback to `apiErrors.invalidResponse`.
+- Add `try/catch` wrappers around `.text()` calls in APIs and `apiService`.
+- **Specific test case (for HTML parsing):** Mock an API failure returning HTML string in `BitunixApiError.rawMessage` and assert the error message shown to user is strictly `apiErrors.invalidResponse`.
 
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
+## 3. Resource Management (Memory Leaks & Interval Types)
+- Fix the typing of `setInterval` values to use `ReturnType<typeof setInterval>`.
+- In eviction logic (like `apiService.ts` or `marketWatcher.ts`), modify Maps with ref counts to evict via `.entries()` checking for `0` instead of popping the first via `.keys()`.
+- Add explicit `.clear()` inside all `destroy()` methods (e.g. WS implementations).
 
----
+## 4. UI/UX & A11y (i18n & Error Mapping)
+- Verify the existence of keys like `apiErrors.invalidResponse` and standardizing their usage instead of hardcoded raw string messages.
 
-## Action Plan (Planning Phase - Step 2)
-
-### Group 1: Hardening Financial Execution Types (CRITICAL)
-
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
-
-### Group 2: Standardizing i18n Error Reporting (WARNING)
-
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
-
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
-
-**Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
-
-### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
+## Refactoring Justifications
+- **Consolidate error handling for standard HTTP responses:** Does this measurably improve stability or performance? **Yes**. Standardizing error responses ensures the frontend never crashes on unexpected payload structures and strictly catches missing network issues, enhancing stability across edge cases.
+- **Replacing Set/Map eviction via `.keys()` with `.entries()`:** Does this measurably improve stability or performance? **Yes**. Using `.keys()` to clear resources can mistakenly wipe active data causing data inconsistency; checking reference count via entries prevents silent application state corruption.
