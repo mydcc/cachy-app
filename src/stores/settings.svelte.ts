@@ -812,8 +812,8 @@ export class SettingsManager {
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
   private listeners: Set<(value: Settings) => void> = new Set();
-  private notifyTimer: any = null;
-  private saveTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private saveLock = false; // Prevents concurrent saves
 
   // Security State
@@ -1361,7 +1361,7 @@ export class SettingsManager {
       }
 
       // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
-      let encryptionPassword: any = undefined;
+      let encryptionPassword: string | CryptoKey | undefined = undefined;
       let canEncrypt = true;
 
       if (!this.isEncrypted) {

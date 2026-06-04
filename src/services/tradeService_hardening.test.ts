@@ -124,4 +124,30 @@ describe('TradeService Hardening', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith("/api/orders", expect.anything());
   });
+
+  it('serializePayload should correctly handle nested types and return unknown safely', () => {
+    // Cast to any to access the private method
+    const ts = tradeService as any;
+
+    // Create an object with normal properties
+    const testObj = {
+      str: "value",
+      num: 123,
+      nested: {
+        arr: [1, 2, 3]
+      }
+    };
+
+    const serialized = ts.serializePayload(testObj);
+    // Should be deeply serialized
+    expect(serialized).toBeDefined();
+    expect((serialized as any).str).toBe("value");
+    expect((serialized as any).num).toBe(123);
+    expect((serialized as any).nested.arr).toEqual([1, 2, 3]);
+
+    // Test decimal handling natively without mock issues
+    const dec = new Decimal("0.30000000000000004");
+    const decSerialized = ts.serializePayload({ val: dec });
+    expect((decSerialized as any).val).toBe("0.30000000000000004");
+  });
 });

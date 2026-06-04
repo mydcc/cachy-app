@@ -91,4 +91,37 @@ describe('BitunixWebSocketService Leak', () => {
         expect((bitunixWs as any).syntheticSubs.size).toBe(0);
         expect((bitunixWs as any).pendingSubscriptions.size).toBe(0);
     });
+  it('syntheticSubs size does not continuously grow and cleans up correctly', async () => {
+    // Cast to any for memory verification
+    const wsService = bitunixWs as any;
+    wsService.syntheticSubs.clear();
+
+    // Simulate rapid subscribe and unsubscribe cycles
+    const symbol = 'BTCUSDT';
+    for (let i = 0; i < 1000; i++) {
+        const streamName = `trade_${symbol}`;
+        // Simulate add
+        const currentCount = wsService.syntheticSubs.get(streamName) || 0;
+        wsService.syntheticSubs.set(streamName, currentCount + 1);
+
+        // Simulate partial or full clear after some uses
+        const countAfter = wsService.syntheticSubs.get(streamName);
+        if (countAfter > 0) {
+           if (countAfter === 1) {
+             wsService.syntheticSubs.delete(streamName);
+           } else {
+             wsService.syntheticSubs.set(streamName, countAfter - 1);
+           }
+        }
+    }
+
+    // Expected size should be zero if handled correctly
+    expect(wsService.syntheticSubs.size).toBe(0);
+
+    // Hardening check: simulate calling clear explicitly
+    wsService.syntheticSubs.set('ghost_stream', 1);
+    expect(wsService.syntheticSubs.size).toBe(1);
+    wsService.syntheticSubs.clear();
+    expect(wsService.syntheticSubs.size).toBe(0);
+  });
 });

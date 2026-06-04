@@ -34,6 +34,8 @@ export interface Toast {
 
 class ToastService {
     toasts = $state<Toast[]>([]);
+    private timeouts = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly MAX_TOASTS = 50;
 
     add(message: string, type: ToastType = "info", duration = 3000) {
         const id = crypto.randomUUID();
@@ -45,12 +47,24 @@ class ToastService {
             createdAt: Date.now()
         };
 
+        if (this.toasts.length >= this.MAX_TOASTS) {
+            const oldest = this.toasts.shift();
+            if (oldest) {
+                const timeout = this.timeouts.get(oldest.id);
+                if (timeout) {
+                    clearTimeout(timeout);
+                    this.timeouts.delete(oldest.id);
+                }
+            }
+        }
+
         this.toasts.push(toast);
 
         if (duration > 0) {
-            setTimeout(() => {
+            const timeout = setTimeout(() => {
                 this.remove(id);
             }, duration);
+            this.timeouts.set(id, timeout);
         }
 
         return id;
@@ -58,6 +72,19 @@ class ToastService {
 
     remove(id: string) {
         this.toasts = this.toasts.filter(t => t.id !== id);
+        const timeout = this.timeouts.get(id);
+        if (timeout) {
+            clearTimeout(timeout);
+            this.timeouts.delete(id);
+        }
+    }
+
+    destroy() {
+        this.toasts = [];
+        for (const timeout of this.timeouts.values()) {
+            clearTimeout(timeout);
+        }
+        this.timeouts.clear();
     }
 
     // Convenience methods

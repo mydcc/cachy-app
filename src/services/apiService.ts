@@ -516,17 +516,17 @@ export const apiService = {
           }
 
           // Use Bitget Schema
-          return res.map((k: any) => {
+          return res.map((k: Record<string, unknown>) => {
             // Bitget returns array of strings/numbers or objects depending on endpoint version.
             // If it's an object with keys:
             if (k && typeof k === 'object' && !Array.isArray(k)) {
                try {
-                  const time = parseTimestamp(k.timestamp || k.time || k.t || k.ts);
-                  const open = new Decimal(k.open || k.o);
-                  const high = new Decimal(k.high || k.h);
-                  const low = new Decimal(k.low || k.l);
-                  const close = new Decimal(k.close || k.c);
-                  const volume = new Decimal(k.volume || k.vol || k.v || 0);
+                  const time = parseTimestamp((k.timestamp || k.time || k.t || k.ts) as string | number);
+                  const open = new Decimal((k.open || k.o) as string | number);
+                  const high = new Decimal((k.high || k.h) as string | number);
+                  const low = new Decimal((k.low || k.l) as string | number);
+                  const close = new Decimal((k.close || k.c) as string | number);
+                  const volume = new Decimal((k.volume || k.vol || k.v || 0) as string | number);
                   if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
                       logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
                       return null;
@@ -628,7 +628,7 @@ export const apiService = {
           }
           if (!response.ok) {
             // Try to parse error details
-            let errData: any = {};
+            let errData: Record<string, unknown> = {};
             try {
               errData = await response.json();
             } catch {
@@ -664,7 +664,7 @@ export const apiService = {
 
           // Map the response data to the required Kline interface
           const mapped = res
-            .map((kline: any) => {
+            .map((kline: Record<string, unknown>) => {
               const validation = BitunixKlineSchema.safeParse(kline);
               if (!validation.success) {
                 logger.warn("network", "Skipping invalid kline", { kline, error: validation.error.issues });
@@ -786,9 +786,9 @@ export const apiService = {
             if (!res.data || !Array.isArray(res.data)) {
               throw new Error("apiErrors.invalidResponse");
             }
-            return res.data.map((ticker: any) => {
-              const open = new Decimal(ticker.open || 0);
-              const last = new Decimal(ticker.lastPrice || 0);
+            return res.data.map((ticker: Record<string, unknown>) => {
+              const open = new Decimal((ticker.open || 0) as string | number);
+              const last = new Decimal((ticker.lastPrice || 0) as string | number);
               const change = !open.isZero()
                 ? last.minus(open).dividedBy(open).times(100)
                 : new Decimal(0);
@@ -797,10 +797,10 @@ export const apiService = {
                 provider: "bitunix",
                 symbol: ticker.symbol,
                 lastPrice: last,
-                highPrice: new Decimal(ticker.high || 0),
-                lowPrice: new Decimal(ticker.low || 0),
-                volume: new Decimal(ticker.baseVol || 0),
-                quoteVolume: new Decimal(ticker.quoteVol || 0),
+                highPrice: new Decimal((ticker.high || 0) as string | number),
+                lowPrice: new Decimal((ticker.low || 0) as string | number),
+                volume: new Decimal((ticker.baseVol || 0) as string | number),
+                quoteVolume: new Decimal((ticker.quoteVol || 0) as string | number),
                 priceChangePercent: change
               };
             });
@@ -809,15 +809,15 @@ export const apiService = {
             const data = res.data || [];
             if (!Array.isArray(data)) throw new Error("apiErrors.invalidResponse");
 
-            return data.map((t: any) => ({
+            return data.map((t: Record<string, unknown>) => ({
               provider: "bitget",
               symbol: t.instId || t.symbol,
-              lastPrice: new Decimal(t.last || 0),
-              highPrice: new Decimal(t.high24h || 0),
-              lowPrice: new Decimal(t.low24h || 0),
-              volume: new Decimal(t.volume24h || 0),
-              quoteVolume: new Decimal(t.quoteVolume || t.usdtVolume || 0),
-              priceChangePercent: new Decimal(t.priceChangePercent || 0) // Or calculate
+              lastPrice: new Decimal((t.last || 0) as string | number),
+              highPrice: new Decimal((t.high24h || 0) as string | number),
+              lowPrice: new Decimal((t.low24h || 0) as string | number),
+              volume: new Decimal((t.volume24h || 0) as string | number),
+              quoteVolume: new Decimal((t.quoteVolume || t.usdtVolume || 0) as string | number),
+              priceChangePercent: new Decimal((t.priceChangePercent || 0) as string | number) // Or calculate
             }));
           }
         } catch (e: unknown) {
