@@ -1,67 +1,75 @@
-# In-Depth Code Analysis & Status Report
+# Code Analysis & Hardening Report (Cachy-App)
 
-## Status Quo & Vulnerabilities (Step 1)
+## Executive Summary
+This report outlines critical vulnerabilities, technical debt, and required improvements for the cachy-app trading platform, categorized by severity.
+
+## Findings
 
 ### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+1. **Incomplete Type Safety & Error Handling (`tradeService.ts`, `dataRepairService.ts`)**
+   - High usage of `any` types in `tradeService.ts` for payloads and `dataRepairService.ts` for catching errors. This can cause runtime crashes or incorrect trade execution logic if unexpected API responses occur.
+   - Using `any` bypasses TypeScript validation, which violates the strict defense-in-depth principles of the platform.
 
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
+2. **Dangerous State Handling on API Failures**
+   - We need to verify if `omsService.ts` handles API failures appropriately. The platform must rollback local state aggressively (optimistic orders) to prevent "phantom data" on unconfirmed state.
 
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
-
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
+3. **Potential Precision Loss with JSON.parse (`mappers.ts`, `apiService.ts`)**
+   - The usage of standard `JSON.parse` is present across the codebase (e.g., `tradeService_flashClose.test.ts`, `backupService.ts`, `apiService.ts`).
+   - 19-digit numerical IDs (often used by exchanges like Bitunix/Bitget) can suffer precision loss when processed via standard `JSON.parse`. The memory guidelines mandate using `safeJsonParse`.
 
 ### 🟡 WARNING (Performance issue, UX error, missing i18n)
+1. **Memory Leaks in Maps/Sets without cleanup**
+   - Need to verify if `bitunixWs.ts` effectively cleans up its collections when disconnected or explicitly cleared, and check if eviction logic exists for bounded Maps.
 
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
+2. **Hardcoded Strings / Missing i18n**
+   - `tradeService.ts` uses fallback English strings instead of strictly typed translation keys.
+   - Error mapping should map raw error strings to localized keys to ensure proper UX, especially for raw proxy HTML error responses.
 
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
-
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
+3. **Inconsistent Decimal Calculation**
+   - While Decimal.js is heavily used in `rmsService.ts` and `dataRepairService.ts`, there may be instances where `.toNumber()` is misused or `any` allows implicit float calculations.
 
 ### 🔵 REFACTOR (Code smell, technical debt)
+1. **Type Assertions in Catch Blocks**
+   - Numerous instances of `catch (e: any)` exist in `apiService.ts`, `dataRepairService.ts`, and others. These should be refactored to `catch (e: unknown)` with proper `e instanceof Error` type narrowing.
 
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
+2. **Timer Types**
+   - Use `ReturnType<typeof setInterval>` instead of `number` or `any` for timer properties (e.g., `timeoutId` in `marketAnalyst.ts`).
 
 ---
 
-## Action Plan (Planning Phase - Step 2)
+## Step 2: Action Plan
 
-### Group 1: Hardening Financial Execution Types (CRITICAL)
+### 1. Fix Critical Data Issues & JSON Parsing (CRITICAL)
+**Goal:** Prevent ID precision loss and runtime errors.
+**Justification:** Measurably improves stability and prevents financial risks. Standard `JSON.parse` is risky when used on exchange IDs.
+**Actions:**
+- Replace `JSON.parse` with the project's custom `safeJsonParse` utility.
+- Add robust type-checking and Zod schema validations for order payloads instead of using `any`.
+- Refactor the catch blocks (e.g., `catch(e: any)`) to `catch(e: unknown)` to prevent bypass of type safety.
 
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
+**Specific Test Cases for Verification:**
+- Write test in `apiService.test.ts` where the network response has an ID of `9007199254740992` to ensure no precision loss.
 
-### Group 2: Standardizing i18n Error Reporting (WARNING)
+### 2. Hardening API Failures and Optimistic UI Rollbacks (CRITICAL)
+**Goal:** Prevent unconfirmed phantom data.
+**Justification:** Measurably improves reliability and prevents UI glitches causing invalid state.
+**Actions:**
+- In `omsService.ts`, when placing an optimistic order, explicitly add `.catch()` to rollback and remove the unconfirmed client order ID from local state if the network request fails.
 
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
+**Specific Test Cases for Verification:**
+- Add test in `omsService.test.ts`: simulate an optimistic order where the API mock throws a 500 error. Assert that the order is successfully removed from the `orders` store.
 
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
+### 3. All i18n Fixes & Raw Error Mitigation (WARNING)
+**Goal:** Improve accessibility and prevent raw HTML errors.
+**Justification:** Improves UX by ensuring error readability.
+**Actions:**
+- Scan and replace hardcoded error strings in `tradeService.ts` and `apiService.ts` with localization keys from `src/locales/schema.d.ts`.
+- In `toastService.svelte.ts` or error interceptors, check if raw error messages include HTML (`<html`) and fallback to a generic `apiErrors.invalidResponse`.
 
-**Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
+### 4. WebSocket Hardening & Memory Leaks (WARNING)
+**Goal:** Prevent out-of-memory errors on extensive connection runs.
+**Justification:** Measurably improves stability over extended runtimes.
+**Actions:**
+- Ensure `.clear()` is unconditionally called on `pendingSubscriptions` and `syntheticSubs` in all disconnect or teardown methods in `bitunixWs.ts`.
+- Review Map/Set iterations: Ensure bounded evictions use `.entries()` to avoid indiscriminately deleting active keys.
 
-### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
