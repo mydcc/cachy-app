@@ -229,7 +229,7 @@ export const newsService = {
         // Prioritize CryptoPanic (wenn Quota nicht erschöpft)
         if (cryptoPanicApiKey && !isQuotaExhausted) {
           try {
-            const params: any = {
+            const params: Record<string, unknown> = {
               filter: settingsState.cryptoPanicFilter || "important",
               public: "true",
             };
@@ -280,8 +280,8 @@ export const newsService = {
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
               logger.error("market", `CryptoPanic error: ${res.status}`, errorText);
             }
-          } catch (e: any) {
-            const errorMsg = e?.message || String(e);
+          } catch (e: unknown) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
             apiQuotaTracker.logCall("cryptopanic", false, errorMsg);
             logger.error("market", "Failed to fetch CryptoPanic", e);
           }
@@ -337,8 +337,8 @@ export const newsService = {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
             }
-          } catch (e: any) {
-            const errorMsg = e?.message || String(e);
+          } catch (e: unknown) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
             apiQuotaTracker.logCall("newsapi", false, errorMsg);
             logger.error("market", "Failed to fetch NewsAPI", e);
           }
@@ -483,7 +483,12 @@ export const newsService = {
           throw new Error("apiErrors.generic");
         }
 
-        const text = await response.text();
+        let text: string;
+    try {
+        text = await response.text();
+    } catch (e: unknown) {
+        throw new Error("apiErrors.invalidResponseFormat");
+    }
         const data = safeJsonParse(text);
         if (data.error) {
           // Detect missing API key errors before sanitizing
@@ -505,8 +510,8 @@ export const newsService = {
         });
 
         return analysis;
-      } catch (e: any) {
-        const msg = e?.message || String(e);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
         if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY") || msg.includes("NO_API_KEY")) {
           logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
         } else {

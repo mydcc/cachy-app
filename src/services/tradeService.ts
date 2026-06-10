@@ -147,7 +147,7 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -171,7 +171,7 @@ class TradeService {
         }
 
         if (typeof payload === 'object') {
-            const newObj: any = {};
+            const newObj: Record<string, unknown> = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
                     newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
@@ -524,10 +524,10 @@ class TradeService {
                   await Promise.all(
                       batch.map(async (sym) => {
                           try {
-                              const params: any = {};
+                              const params: Record<string, unknown> = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<unknown>("POST", "/api/tpsl", {
                                   action: view,
                                   params
                               }).catch(e => {
@@ -536,13 +536,14 @@ class TradeService {
                                   return { error: errMsg };
                               }); // Hardened
 
-                              if (data.error) {
-                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
+                              const dataRecord = typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
+                              if (dataRecord.error) {
+                                  if (!String(dataRecord.error).includes("code: 2")) { // Symbol not found
+                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${dataRecord.error}`);
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const res = (Array.isArray(data) ? data : dataRecord.rows || []) as TpSlOrder[];
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -563,10 +564,11 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<unknown>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const dataRecord = typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
+             const list = (Array.isArray(data) ? data : dataRecord.rows || []) as TpSlOrder[];
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }

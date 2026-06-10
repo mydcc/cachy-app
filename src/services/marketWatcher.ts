@@ -194,7 +194,7 @@ class MarketWatcher {
     // Collect keys first to avoid modifying the Map while iterating (W-10).
     const current = bitunixWs.pendingSubscriptions;
     const toUnsubscribe: string[] = [];
-    current.forEach((_: number, key: string) => {
+    current.forEach((_: unknown, key: string) => {
         if (!intended.has(key)) toUnsubscribe.push(key);
     });
     toUnsubscribe.forEach(key => {
