@@ -853,7 +853,7 @@ class BitunixWebSocketService {
                 if (symbol && priceRes.success) {
                   try {
                     // HARDENING: Direct property access + Warning on Numeric Types
-                    const safeString = (val: any, fieldName: string) => {
+                    const safeString = (val: unknown, fieldName: string) => {
                         if (typeof val === 'number') {
                             const now = Date.now();
                             if (now - this.lastNumericWarning > 60000) {
@@ -892,7 +892,7 @@ class BitunixWebSocketService {
                 const tickerRes = StrictTickerDataSchema.safeParse(data);
                 if (symbol && tickerRes.success) {
                   try {
-                    const safeString = (val: any, fieldName: string) => {
+                    const safeString = (val: unknown, fieldName: string) => {
                         if (typeof val === 'number') {
                             const now = Date.now();
                             if (now - this.lastNumericWarning > 60000) {
@@ -958,7 +958,7 @@ class BitunixWebSocketService {
                 // Klines (dynamic channel names)
                 if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
                     try {
-                        const d = data as any;
+                        const d = data as Record<string, unknown>;
                         if (d && (d.close || d.c || d.open || d.o)) {
                           let timeframe = "1h";
                           if (channel === "mark_kline_1day") timeframe = "1d";
@@ -1294,7 +1294,7 @@ class BitunixWebSocketService {
                          p: String(item.p ?? item.lastPrice ?? item.price ?? "0"),
                          v: String(item.v ?? item.volume ?? item.amount ?? "0"),
                          s: String(item.s ?? item.side ?? "buy"),
-                         t: Number(item.t ?? item.ts ?? item.time ?? Date.now())
+                         t: Number(item.t ?? item.ts ?? item.time) || Date.now()
                      };
 
                      for (const cb of listeners) {
@@ -1319,7 +1319,7 @@ class BitunixWebSocketService {
         const data = validatedMessage.data;
         if (data) {
           const items = Array.isArray(data) ? data : [data];
-          items.forEach((item: any) => {
+          items.forEach((item: Record<string, unknown>) => {
             const val = BitunixPositionSchema.safeParse(item);
             if (!val.success) {
               logger.warn("network", "[BitunixWS] Position schema validation failed", val.error);
@@ -1332,7 +1332,7 @@ class BitunixWebSocketService {
       } else if (validatedChannel === "order") {
         const data = validatedMessage.data;
         if (data) {
-          const sanitize = (item: any) => {
+          const sanitize = (item: Record<string, unknown>) => {
              if (typeof item.orderId === 'number') {
                  // Precision loss only happens > 15 digits, but we enforce string for consistency
                  // safeJsonParse handles >15 digits, so this catches smaller IDs or edge cases
@@ -1345,7 +1345,7 @@ class BitunixWebSocketService {
           };
 
           if (Array.isArray(data))
-            data.forEach((item: any) => {
+            data.forEach((item: Record<string, unknown>) => {
               const safeItem = sanitize(item);
               accountState.updateOrderFromWs(safeItem);
               omsService.updateOrder(mapToOMSOrder(safeItem));
@@ -1360,8 +1360,8 @@ class BitunixWebSocketService {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))
-            data.forEach((item: any) => accountState.updateBalanceFromWs(item));
-          else accountState.updateBalanceFromWs(data);
+            data.forEach((item: Record<string, unknown>) => accountState.updateBalanceFromWs(item));
+          else accountState.updateBalanceFromWs(data as Record<string, unknown>);
         }
       }
     } catch (err) {
@@ -1655,22 +1655,22 @@ export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
 // Helper to check for safe primitives (string or number)
-const isSafe = (v: any) => {
+const isSafe = (v: unknown) => {
   if (typeof v === 'string') return true;
   if (typeof v === 'number') return !isNaN(v) && isFinite(v);
   return false;
 };
 
-export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
+export function isTradeData(d: unknown): d is { p: unknown; v: unknown; s: unknown; t: unknown; } {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
   // OR { lastPrice, volume, side } fallbacks
+  const obj = d as Record<string, unknown>;
   
   // Strict Safety Checks
-  const p = d.p ?? d.lastPrice ?? d.price;
-  const v = d.v ?? d.volume ?? d.amount;
-  // Side can be anything truthy usually, but safer to check existence
-  // const s = d.s ?? d.side; // Unused but good to know it exists
+  const p = obj.p ?? obj.lastPrice ?? obj.price;
+  const v = obj.v ?? obj.volume ?? obj.amount;
 
   if (p === undefined || !isSafe(p)) return false;
   if (v === undefined || !isSafe(v)) return false;

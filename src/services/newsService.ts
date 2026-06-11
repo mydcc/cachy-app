@@ -229,7 +229,7 @@ export const newsService = {
         // Prioritize CryptoPanic (wenn Quota nicht erschöpft)
         if (cryptoPanicApiKey && !isQuotaExhausted) {
           try {
-            const params: any = {
+            const params: Record<string, string> = {
               filter: settingsState.cryptoPanicFilter || "important",
               public: "true",
             };
@@ -266,13 +266,13 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              newsItems = (Array.isArray(data?.results) ? data.results : []).map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source?.title || "Unknown",
-                published_at: item.published_at,
-                currencies: item.currencies,
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+              newsItems = (Array.isArray(data?.results) ? data.results : []).map((item: Record<string, unknown>) => ({
+                title: String(item.title || ""),
+                url: String(item.url || ""),
+                source: String((item.source as Record<string, unknown>)?.title || "Unknown"),
+                published_at: String(item.published_at || ""),
+                currencies: Array.isArray(item.currencies) ? item.currencies : [],
+                id: generateNewsId({ title: String(item.title || ""), url: String(item.url || ""), source: "", published_at: "" }),
               }));
               apiQuotaTracker.logCall("cryptopanic", true);
             } else {
@@ -280,8 +280,8 @@ export const newsService = {
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
               logger.error("market", `CryptoPanic error: ${res.status}`, errorText);
             }
-          } catch (e: any) {
-            const errorMsg = e?.message || String(e);
+          } catch (e: unknown) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
             apiQuotaTracker.logCall("cryptopanic", false, errorMsg);
             logger.error("market", "Failed to fetch CryptoPanic", e);
           }
@@ -323,13 +323,13 @@ export const newsService = {
             if (res.ok) {
               const text = await res.text();
               const data = safeJsonParse(text);
-              const mapped = data.articles.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source?.name ?? "Unknown",
-                published_at: item.publishedAt,
+              const mapped = data.articles.map((item: Record<string, unknown>) => ({
+                title: String(item.title || ""),
+                url: String(item.url || ""),
+                source: String((item.source as Record<string, unknown>)?.name ?? "Unknown"),
+                published_at: String(item.publishedAt || ""),
                 currencies: [],
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+                id: generateNewsId({ title: String(item.title || ""), url: String(item.url || ""), source: "", published_at: "" }),
               }));
               newsItems = [...newsItems, ...mapped];
               apiQuotaTracker.logCall("newsapi", true);
@@ -337,8 +337,8 @@ export const newsService = {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
             }
-          } catch (e: any) {
-            const errorMsg = e?.message || String(e);
+          } catch (e: unknown) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
             apiQuotaTracker.logCall("newsapi", false, errorMsg);
             logger.error("market", "Failed to fetch NewsAPI", e);
           }
@@ -505,8 +505,8 @@ export const newsService = {
         });
 
         return analysis;
-      } catch (e: any) {
-        const msg = e?.message || String(e);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
         if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY") || msg.includes("NO_API_KEY")) {
           logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
         } else {
