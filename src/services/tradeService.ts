@@ -145,7 +145,7 @@ class TradeService {
             if (rawMsg) {
                 logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(Number(data.code) || response.status || -1, "apiErrors.generic", String(rawMsg));
+            throw new BitunixApiError(+(data.code as any) || response.status || -1, "apiErrors.generic", String(rawMsg));
         }
 
         return data as unknown as T;
