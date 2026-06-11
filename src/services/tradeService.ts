@@ -120,8 +120,13 @@ class TradeService {
             body: JSON.stringify(serializedPayload)
         });
 
-        const text = await response.text();
-        let data: any = {};
+        let text: string;
+        try {
+            text = await response.text();
+        } catch {
+            throw new Error("apiErrors.invalidResponseFormat");
+        }
+        let data: Record<string, unknown> = {};
         try {
             data = safeJsonParse(text);
         } catch (e) {
@@ -140,10 +145,10 @@ class TradeService {
             if (rawMsg) {
                 logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
+            throw new BitunixApiError(Number(data.code) || response.status || -1, "apiErrors.generic", String(rawMsg));
         }
 
-        return data;
+        return data as unknown as T;
     }
 
     // Helper to safely serialize Decimals to strings
@@ -294,7 +299,11 @@ class TradeService {
         } catch (e: unknown) {
             // Use rawMessage for display when available (human-readable API text),
             // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
-            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            let errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            if (errMsg.toLowerCase().includes("<html")) {
+                errMsg = "apiErrors.invalidResponse";
+            }
+            const msg = errMsg;
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -373,7 +382,12 @@ class TradeService {
 
             if (!pendingResponse.ok) throw new Error(TRADE_ERRORS.FETCH_FAILED);
 
-            const pendingText = await pendingResponse.text();
+            let pendingText: string;
+            try {
+                pendingText = await pendingResponse.text();
+            } catch {
+                throw new Error("apiErrors.invalidResponseFormat");
+            }
             const pendingResult = safeJsonParse(pendingText);
             if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
@@ -527,12 +541,15 @@ class TradeService {
                               const params: any = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                                   action: view,
                                   params
                               }).catch(e => {
                                   // Preserve rawMessage for classification if available
-                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  let errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+                                  if (errMsg.toLowerCase().includes("<html")) {
+                                      errMsg = "apiErrors.invalidResponse";
+                                  }
                                   return { error: errMsg };
                               }); // Hardened
 
@@ -542,7 +559,7 @@ class TradeService {
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const res = (Array.isArray(data) ? data : (data as any).rows || []) as TpSlOrder[];
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -563,7 +580,7 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                   action: view
              });
              const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];

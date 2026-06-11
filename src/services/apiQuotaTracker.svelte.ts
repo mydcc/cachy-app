@@ -1,3 +1,4 @@
+import { safeJsonParse } from "../utils/safeJson";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -40,7 +41,7 @@ class ApiQuotaTracker {
         try {
             const raw = localStorage.getItem(QUOTA_STORAGE_KEY);
             if (raw) {
-                this.quotas = JSON.parse(raw);
+                this.quotas = safeJsonParse(raw);
             }
         } catch (e) {
             logger.warn("market", `[apiQuotaTracker] Cache load failed`, e);

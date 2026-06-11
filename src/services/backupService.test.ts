@@ -1,3 +1,4 @@
+vi.mock('$app/environment', () => ({ browser: true }));
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -43,9 +44,9 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, "localStorage", {
-  value: localStorageMock,
-});
+vi.stubGlobal("localStorage", localStorageMock);
+vi.stubGlobal("window", { crypto: require("crypto").webcrypto });
+vi.stubGlobal("document", { createElement: vi.fn(), body: { appendChild: vi.fn(), removeChild: vi.fn() } });
 
 describe("backupService", () => {
   beforeEach(() => {

@@ -1,3 +1,4 @@
+import { safeJsonParse } from "../utils/safeJson";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -66,7 +67,7 @@ export async function createBackup(password?: string) {
     const raw = getDataFromLocalStorage(key);
     if (!raw) return null;
     try {
-      JSON.parse(raw); // Check if valid JSON
+      safeJsonParse(raw); // Check if valid JSON
       return raw;
     } catch (e) {
       console.error(
@@ -144,7 +145,7 @@ export async function restoreFromBackup(
   }
 
   try {
-    const backup: BackupFile = JSON.parse(jsonContent);
+    const backup: BackupFile = safeJsonParse(jsonContent);
 
     // --- Validation ---
     if (backup.appName !== APP_NAME) {
@@ -199,7 +200,7 @@ export async function restoreFromBackup(
           kdfHash: backup.kdfHash
         }, password);
 
-        data = JSON.parse(decryptedJson);
+        data = safeJsonParse(decryptedJson);
       } catch (e) {
         return {
           success: false,

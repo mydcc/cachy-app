@@ -399,14 +399,24 @@ export const apiService = {
 
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-      const text = await response.text();
+      let text: string;
+    try {
+      text = await response.text();
+    } catch {
+      throw new Error("apiErrors.invalidResponseFormat");
+    }
       // Sanitize error message (max 100 chars, no sensitive data)
       const sanitized = sanitizeErrorMessage(text, 100);
       logger.error("network", "[API] Expected JSON, got", sanitized);
       throw new Error("apiErrors.invalidResponseFormat");
     }
 
-    const text = await response.text();
+    let text: string;
+    try {
+      text = await response.text();
+    } catch {
+      throw new Error("apiErrors.invalidResponseFormat");
+    }
 
     // Validate size (fallback if content-length is missing)
     if (!validateResponseSize(text, maxSizeMB)) {

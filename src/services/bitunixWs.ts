@@ -276,7 +276,11 @@ class BitunixWebSocketService {
     const now = Date.now();
     // Safety: Prevent map from growing indefinitely if user cycles symbols
     if (this.throttleMap.size > 1000) {
-      this.throttleMap.clear();
+      for (const [k, timestamp] of this.throttleMap.entries()) {
+        if (now - timestamp > this.THROTTLE_TTL) {
+          this.throttleMap.delete(k);
+        }
+      }
     }
     const last = this.throttleMap.get(key) || 0;
     const shouldBlock = now - last < this.UPDATE_INTERVAL;
