@@ -76,7 +76,7 @@ export const TRADE_ERRORS = {
 };
 
 export class TradeError extends Error {
-    constructor(message: string, public code: string, public details?: any) {
+    constructor(message: string, public code: string, public details?: unknown) {
         super(message);
         this.name = "TradeError";
     }
@@ -121,9 +121,10 @@ class TradeService {
         });
 
         const text = await response.text();
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
-            data = safeJsonParse(text);
+            const parsed = safeJsonParse(text);
+            data = typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
         } catch (e) {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
             // use the status code as the error code. Do NOT expose raw text or statusText.
@@ -136,18 +137,19 @@ class TradeService {
         // We cast to string to handle both number 0 and string "0"
         if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
             // Log raw gateway text silently
-            const rawMsg = data.msg || data.error || "Unknown API Error";
+            const rawMsg = typeof data.msg === 'string' ? data.msg : (typeof data.error === 'string' ? data.error : "Unknown API Error");
             if (rawMsg) {
                 logger.debug("api", `[Bitunix] API Exception: ${rawMsg}`);
             }
-            throw new BitunixApiError(data.code || response.status || -1, "apiErrors.generic", rawMsg);
+            const errorCode = typeof data.code === 'string' || typeof data.code === 'number' ? data.code : response.status || -1;
+            throw new BitunixApiError(errorCode, "apiErrors.generic", rawMsg);
         }
 
-        return data;
+        return data as T;
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -170,8 +172,8 @@ class TradeService {
             return payload.map(item => this.serializePayload(item, depth + 1, seen));
         }
 
-        if (typeof payload === 'object') {
-            const newObj: any = {};
+        if (typeof payload === 'object' && payload !== null) {
+            const newObj: Record<string, unknown> = {};
             for (const key in payload) {
                 if (Object.prototype.hasOwnProperty.call(payload, key)) {
                     newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
@@ -524,10 +526,10 @@ class TradeService {
                   await Promise.all(
                       batch.map(async (sym) => {
                           try {
-                              const params: any = {};
+                              const params: Record<string, string> = {};
                               if (sym) params.symbol = sym;
 
-                              const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+                              const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
                                   action: view,
                                   params
                               }).catch(e => {
@@ -536,13 +538,14 @@ class TradeService {
                                   return { error: errMsg };
                               }); // Hardened
 
-                              if (data.error) {
+                              if ('error' in data && data.error) {
                                   if (!String(data.error).includes("code: 2")) { // Symbol not found
                                       logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+                              const dataRecord = data as Record<string, unknown>;
+                              const res = (Array.isArray(dataRecord) ? dataRecord : (dataRecord.rows as TpSlOrder[]) || []) as TpSlOrder[];
                               results.push(...res);
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
@@ -563,10 +566,10 @@ class TradeService {
              return final;
         } else {
              // Generic provider
-             const data = await this.signedRequest<any>("POST", "/api/tpsl", {
+             const data = await this.signedRequest<Record<string, unknown> | unknown[]>("POST", "/api/tpsl", {
                   action: view
              });
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
+             const list = (Array.isArray(data) ? data : (data as Record<string, unknown>).rows || []) as TpSlOrder[];
              list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return list;
     }
