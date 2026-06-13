@@ -1,67 +1,45 @@
-# In-Depth Code Analysis & Status Report
+# In-Depth Codebase Analysis & Hardening Report
 
-## Status Quo & Vulnerabilities (Step 1)
+## Step 1: Status & Risk Report
 
-### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+### 🔴 CRITICAL (Financial/Security Risk)
+- **Data Integrity & Mapping (Precision Loss):** Native `JSON.parse` is used instead of `safeJsonParse` in multiple files (e.g., `src/components/shared/GlobalTracker.svelte`), risking silent precision loss with large numeric IDs. There are instances of native `number` being used for price/quantity instead of `Decimal.js` (e.g., `src/components/inputs/PortfolioInputs.svelte`), and downcasting of Decimal to native float via `.toNumber()` (e.g., `src/components/inputs/TradeSetupInputs.svelte`).
+- **Type Safety in Catch Blocks:** Usage of `catch (e: any)` instead of `catch (e: unknown)` exists across components and services (e.g., `src/components/inputs/PortfolioInputs.svelte`), bypassing TypeScript safety.
+- **Unsafe Direct DOM Manipulation:** Direct usage of DOM methods like `document.createElement` and `document.documentElement` is detected in UI components (e.g., `src/components/shared/CandlestickChart.svelte`, `src/components/shared/FXOverlay.svelte`). Usage of `document.getElementById` is detected in `src/components/shared/JournalContent.svelte`.
 
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
+### 🟡 WARNING (Performance/UX/i18n Issues)
+- **Resource Management (Memory Leaks):** Missing listener cleanups in `src/lib/windows/WindowManager.svelte.ts` (`window.addEventListener('mousedown', ...)`) and `src/services/activeTechnicalsManager.svelte.ts` (`document.addEventListener('visibilitychange', ...)`).
+- **Performance (Hot Paths):** Complex calculations inside `requestAnimationFrame` hooks (e.g., `src/actions/burn.ts`, `src/components/shared/FXOverlay.svelte`) introduce potential framerate drops.
+- **Actionable Error Messages:** Hardcoded generic string error throws in `src/services/cloudService.ts` (`throw new Error('A valid authentication token is required...')`) and `src/services/cryptoService.ts` (`throw new Error("Session locked...")`) lead to non-i18n, unhelpful UI errors.
 
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
-
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
-
-### 🟡 WARNING (Performance issue, UX error, missing i18n)
-
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
-
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
-
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
-
-### 🔵 REFACTOR (Code smell, technical debt)
-
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
+### 🔵 REFACTOR (Stability/Maintainability Technical Debt)
+- **Pervasive `any` Type:** Widespread usage of explicit `any` types throughout components and logic files (e.g., `src/components/inputs/PortfolioInputs.svelte`, `src/actions/burn.ts`), heavily compromising type safety and stability.
 
 ---
 
-## Action Plan (Planning Phase - Step 2)
+## Step 2: Action Plan (Implementation Proposal)
 
-### Group 1: Hardening Financial Execution Types (CRITICAL)
+1. **Precision & Financial Integrity Fixes**
+   - Replace native `JSON.parse` with `safeJsonParse` system-wide.
+   - Refactor `price` and `quantity` fields to strictly accept `Decimal` instances. Remove `.toNumber()` downcasts.
+   - *Measurable Benefit:* Prevents silent precision loss and logic bugs in order amounts and PnL calculations.
+   - **Critical Unit Test Pre-Requisite:**
+     - Create a test verifying `safeJsonParse` preserves IDs correctly compared to native `JSON.parse` (e.g., parsing `{"id": 1234567890123456789}`).
+     - Create a test in components previously using native `number` to ensure they handle `Decimal.js` bounds and reject native numbers to avoid rounding artifacts.
 
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
+2. **Type Safety & Error Handling Refactor**
+   - Convert `catch (e: any)` blocks to `catch (e: unknown)`. Safely extract error messages.
+   - Refactor hardcoded generic error messages into localized keys (e.g., `apiErrors.invalidResponse`).
+   - *Measurable Benefit:* Ensures runtime typesafety, limits exception masking, and improves debugging in production.
+   - **Critical Unit Test Pre-Requisite:**
+     - Assert that non-Error throwables (e.g., string errors or numbers thrown within catch blocks) are stringified correctly using `String(e)` and do not crash the component.
 
-### Group 2: Standardizing i18n Error Reporting (WARNING)
+3. **Resource Management & Memory Leaks Cleanup**
+   - Implement strict `removeEventListener` in `activeTechnicalsManager.svelte.ts` and `WindowManager.svelte.ts`.
+   - *Measurable Benefit:* Prevents progressive memory degradation over extended user sessions.
 
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
-
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
-
-**Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
-
-### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
+4. **DOM Manipulation & Security Hardening**
+   - Replace direct `.innerHTML` and DOM manipulations with Svelte bindings. Use `markdown` action (`use:markdown`) for untrusted content.
+   - *Measurable Benefit:* Eliminates XSS vectors and adheres to Svelte component lifecycle invariants.
+   - **Critical Unit Test Pre-Requisite:**
+     - Assert that the `markdown` action safely parses and escapes malicious strings like `<script>alert('xss')</script>`.
