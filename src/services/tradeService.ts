@@ -72,7 +72,10 @@ export class BitunixApiError extends Error {
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
     FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+    CLOSE_ALL_FAILED: "trade.closeAllFailed",
+    MISSING_CREDENTIALS: "apiErrors.missingCredentials",
+    INVALID_AMOUNT: "apiErrors.invalidAmount",
+    NO_API_KEYS: "dashboard.alerts.noApiKeys"
 };
 
 export class TradeError extends Error {
@@ -99,7 +102,7 @@ class TradeService {
         const keys = settingsState.apiKeys[provider];
 
         if (!keys || !keys.key) {
-            throw new Error("apiErrors.missingCredentials");
+            throw new Error(TRADE_ERRORS.MISSING_CREDENTIALS);
         }
 
         const headers: Record<string, string> = {
@@ -147,7 +150,7 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
-    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): any {
+    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
             return "[Serialization Limit]";
@@ -247,7 +250,7 @@ class TradeService {
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
+                throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
             }
 
             const qty = position.amount.toString();
@@ -459,7 +462,7 @@ class TradeService {
         // If explicit amount is provided, use it.
         if (!amount && !forceFullClose) {
              logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("apiErrors.invalidAmount");
+             throw new Error(TRADE_ERRORS.INVALID_AMOUNT);
         }
 
         const qty = amount ? amount.toString() : position.amount.toString();
@@ -503,7 +506,7 @@ class TradeService {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
         if (!keys?.key || !keys?.secret) {
-             throw new Error("dashboard.alerts.noApiKeys");
+             throw new Error(TRADE_ERRORS.NO_API_KEYS);
         }
 
         if (provider === "bitunix") {

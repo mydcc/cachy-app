@@ -48,11 +48,12 @@
     error = "";
     try {
       orders = await tradeService.fetchTpSlOrders(view);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("TP/SL Global Error:", e);
+      const eMsg = e instanceof Error ? e.message : String(e);
       // Map error message using i18n key if available
-      if (e.message && e.message.startsWith("dashboard.alerts")) {
-        error = $_(e.message);
+      if (eMsg && eMsg.startsWith("dashboard.alerts")) {
+        error = $_(eMsg as import("../../locales/schema").TranslationKey);
       } else {
         error = $_("apiErrors.failedToLoadOrders");
       }
@@ -61,17 +62,18 @@
     }
   }
 
-  async function handleCancel(order: any) {
+  async function handleCancel(order: import('../../services/tradeService').TpSlOrder) {
     if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
 
     try {
       await tradeService.cancelTpSlOrder(order);
       toastService.success($_("dashboard.alerts.orderCancelled"));
       fetchOrders(); // Refresh
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const eMsg = e instanceof Error ? e.message : String(e);
       const msg =
-        e.message && e.message.startsWith("dashboard.alerts")
-          ? $_(e.message)
+        eMsg && eMsg.startsWith("dashboard.alerts")
+          ? $_(eMsg as import("../../locales/schema").TranslationKey)
           : $_("dashboard.alerts.cancelFailed");
       toastService.error(msg);
     }

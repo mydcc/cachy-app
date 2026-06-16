@@ -73,4 +73,14 @@ describe('BitunixWS Memory Leak', () => {
         // Without fix, this will still be 1 because unsubscribe doesn't touch syntheticSubs
         expect(synthMap.has('BTCUSDT:2h')).toBe(false);
     });
+
+    it('should enforce bounded limit of 5000 on syntheticSubs and pendingSubscriptions', () => {
+        for (let i = 0; i < 6000; i++) {
+            bitunixWs.subscribe('BTCUSDT_' + i, 'kline_2h');
+            bitunixWs.unsubscribe('BTCUSDT_' + i, 'kline_2h');
+        }
+        expect((bitunixWs as any).syntheticSubs.size).toBeLessThanOrEqual(5000);
+        expect((bitunixWs as any).pendingSubscriptions.size).toBeLessThanOrEqual(5000);
+    });
+
 });

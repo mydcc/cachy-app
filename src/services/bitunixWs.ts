@@ -117,6 +117,18 @@ class BitunixWebSocketService {
   // [FIX] Initialize syntheticSubs to prevent TS errors and runtime undefined access
   private syntheticSubs: Map<string, number> = new Map();
 
+  // Helper to evict inactive subscriptions safely if bounded limit is exceeded
+  private evictInactive(map: Map<string, number>, maxLimit: number) {
+      if (map.size >= maxLimit) {
+          for (const [key, val] of map.entries()) {
+              if (val === 0) {
+                  map.delete(key);
+                  return;
+              }
+          }
+      }
+  }
+
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
@@ -1401,6 +1413,7 @@ class BitunixWebSocketService {
         const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
 
         const count = this.syntheticSubs.get(synthKey) || 0;
+        if (count === 0) this.evictInactive(this.syntheticSubs, 5000);
         this.syntheticSubs.set(synthKey, count + 1);
 
         if (import.meta.env.DEV) {
@@ -1412,6 +1425,7 @@ class BitunixWebSocketService {
 
     // Reference Counting Logic
     const currentCount = this.pendingSubscriptions.get(subKey) || 0;
+    if (currentCount === 0) this.evictInactive(this.pendingSubscriptions, 5000);
     this.pendingSubscriptions.set(subKey, currentCount + 1);
 
     // Only subscribe if this is the first requester
