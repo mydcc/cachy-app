@@ -40,11 +40,11 @@ echo "Ensuring wasm32-unknown-unknown target..."
 rustup target add wasm32-unknown-unknown
 
 echo "Installing Node dependencies..."
-# Use npm ci for reliable builds if lockfile exists
+# Use PUPPETEER_SKIP_DOWNLOAD=true npm ci for reliable builds if lockfile exists
 if [ -f "package-lock.json" ]; then
-    npm ci
+    PUPPETEER_SKIP_DOWNLOAD=true npm ci
 else
-    npm install
+    PUPPETEER_SKIP_DOWNLOAD=true npm install
 fi
 
 echo "Building..."
