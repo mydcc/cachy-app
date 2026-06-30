@@ -1,67 +1,47 @@
-# In-Depth Code Analysis & Status Report
+# Code Analysis & Risk Report (Institutional Grade)
 
 ## Status Quo & Vulnerabilities (Step 1)
 
 ### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
-
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
-
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
-
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
+1. **Precision Loss (`activeTechnicalsManager.svelte.ts`)**: The method `price.toNumber()` is being used to convert `Decimal` back to native JavaScript floats. This causes floating-point precision loss in financial calculations.
+2. **Precision Loss (`JSON.parse`)**: There are 51 instances of native `JSON.parse` across critical files (e.g., `tradeService_flashClose.test.ts`, `backupService.ts`, `apiService.ts`, stores). For large 64-bit integer IDs (like order IDs) and high-precision floats, `JSON.parse` silently truncates data. `safeJsonParse` should be used instead.
+3. **Memory Leaks (`Map`/`Set` Eviction)**: `apiService.ts`, `rss-fetch/+server.ts`, and `news/+server.ts` blindly evict the first key from caches using `.keys().next().value`. In reference-counted Maps or active maps, removing the first key without checking if it's currently active/in-use corrupts state and leads to unpredictable bugs.
+4. **XSS Vulnerabilities (`{@html}` without `DOMPurify`)**: Several Svelte components render dynamic content using `{@html}` without wrapping it in `DOMPurify.sanitize()`, exposing the app to Cross-Site Scripting (XSS). Examples: `SummaryResults.svelte`, `SettingsContent.svelte`, `DashboardNav.svelte`, `ChartPatternsView.svelte`, `ToastItem.svelte`, `MarketOverview.svelte`, `NewsSentimentPanel.svelte`, `SidePanel.svelte`, `OrderDetailsTooltip.svelte`, `JournalContent.svelte`, `LeftControlPanel.svelte`.
+5. **Raw API Errors / HTML Leaks**: The `rawMessage` field from `BitunixApiError` is used directly for UI display via `tradeService.ts`, `PositionsSidebar.svelte`, and `TpSlEditModal.svelte`. If an API gateway returns a 502/504 HTML error page, this raw HTML is currently injected or displayed to the user. It must be checked for HTML content and mapped to a safe i18n key (e.g., `apiErrors.invalidResponse`).
+6. **Type Safety Bypass (`catch (e: any)`)**: There are 16 instances of `catch (e: any)` in the codebase (e.g., in `api/ai/anthropic/+server.ts`, `api/ai/gemini/+server.ts`, `api/external/cmc/+server.ts`, `api/external/news/+server.ts`, `api/sync/positions-pending/+server.ts`, etc.). This circumvents TypeScript and leads to runtime crashes when trying to access `e.message` on non-Error objects. Must use `catch (e: unknown)`.
 
 ### 🟡 WARNING (Performance issue, UX error, missing i18n)
-
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
-
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
-
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
+1. **Zombie Timers (Intervals/Timeouts)**: The codebase heavily utilizes `setInterval` and `setTimeout`. In Svelte 5 and stores (e.g., `market.svelte.ts`, `chat.svelte.ts`, `activeTechnicalsManager.svelte.ts`, `apiService.ts`), if these are not strictly cleaned up in a `destroy()` or `$effect` cleanup block, they cause memory leaks and background CPU drain ("zombie polling"). A thorough audit of cleanup routines (`clearInterval`, `clearTimeout`) is required.
+2. **Missing i18n (Hardcoded Strings)**: Fallback error messages in `catch` blocks (e.g., `"Internal Server Error"`, `"Failed to fetch balance"`) are hardcoded in English instead of using the translation system.
+3. **Optimistic UI Rollbacks**: When network timeouts occur during optimistic UI operations (like placing an order), unconditionally removing the unconfirmed order locally can lead to accidental double-ordering if the exchange actually executed it. Orders should be marked as `_isUnconfirmed = true` instead.
 
 ### 🔵 REFACTOR (Code smell, technical debt)
+1. **Consistent Timer Types**: Ensure all timer IDs are strictly typed as `ReturnType<typeof setInterval>` and `ReturnType<typeof setTimeout>` rather than `any` or `number` for cross-environment safety.
+2. **Temporary Script Cleanup**: The repository has multiple temporary `.cjs`, `.mjs`, `.js`, and `.py` scripts scattered in the root directory (e.g., `fix_test.cjs`, `patch_news_final_clean.js`, `fix_registry_journal.py`). These should be moved to a `scripts/` folder or deleted if no longer needed.
 
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
 
----
+## Action Plan (Step 2)
 
-## Action Plan (Planning Phase - Step 2)
+### Group 1: Data Integrity & Math Hardening (CRITICAL)
+**Justification**: Measurably improves stability by preventing incorrect financial calculations and broken state.
+* **Action**: Replace `price.toNumber()` in `activeTechnicalsManager.svelte.ts` with explicit `Decimal` logic.
+* **Action**: Replace all critical instances of `JSON.parse` with the `safeJsonParse` utility.
+* **Unit Test**: Provide a test demonstrating precision loss with `JSON.parse` on large IDs (e.g. `9007199254740992`).
 
-### Group 1: Hardening Financial Execution Types (CRITICAL)
+### Group 2: Security & Type Safety (CRITICAL)
+**Justification**: Prevents Cross-Site Scripting (XSS) and hard runtime crashes due to typing bypasses.
+* **Action**: Wrap all dynamic `{@html}` usages in Svelte components with `DOMPurify.sanitize()`.
+* **Action**: Fix `BitunixApiError.rawMessage` usage to parse HTML responses and map to i18n keys (e.g., `apiErrors.invalidResponse`).
+* **Action**: Replace all instances of `catch (e: any)` with `catch (e: unknown)` and properly type-narrow `e instanceof Error ? e.message : String(e)`.
+* **Unit Test**: Test Svelte component rendering with malformed HTML to ensure XSS tags are stripped. Test error handling throwing non-Error objects.
 
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
+### Group 3: Memory & Resource Management (CRITICAL / WARNING)
+**Justification**: Measurably improves performance and prevents memory leaks that crash the platform during long trading sessions.
+* **Action**: Refactor cache eviction in maps using `.keys().next().value` to use `.entries()` and safely evict inactive entries (e.g. checking activity).
+* **Action**: Audit timer lifecycle and ensure robust cleanup of `setInterval` and `setTimeout`. Strongly type timers as `ReturnType<typeof ...>`.
+* **Unit Test**: Simulate rapid caching to ensure memory remains bounded and evicts correctly.
 
-### Group 2: Standardizing i18n Error Reporting (WARNING)
-
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
-
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
-
-**Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
-
-### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
+### Group 4: UI/UX State (WARNING)
+**Justification**: Enhances user experience during failure states.
+* **Action**: Replace hardcoded error strings in `catch` blocks with centralized i18n translation keys.
+* **Action**: Adjust optimistic UI execution to mark unconfirmed orders (e.g., `_isUnconfirmed = true`) instead of fully rolling back on timeout.
