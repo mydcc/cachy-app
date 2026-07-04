@@ -27,9 +27,18 @@ export const GET: RequestHandler = ({ request, url }) => {
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!secret) {
-    return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
-      status: 403,
+    const headers = {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    };
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(`data: {"level":"warn","message":"Server logs disabled (LOG_STREAM_KEY not set)"}\n\n`);
+        controller.close();
+      }
     });
+    return new Response(stream, { headers });
   }
 
   // Use timingSafeEqual to prevent timing attacks
