@@ -1,67 +1,50 @@
-# In-Depth Code Analysis & Status Report
+# In-Depth Status & Risk Report
 
-## Status Quo & Vulnerabilities (Step 1)
+## 🔴 CRITICAL: Risk of financial loss, crash, or security vulnerability
 
-### 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)
+*   **Financial Standards Violation (Decimal.js vs. Native Floats)**:
+    *   The `src/services/activeTechnicalsManager.svelte.ts` file contains unsafe conversions from `Decimal` to native JavaScript floats using `.toNumber()` or `Number()`. This violates the strict rule of maintaining `Decimal` end-to-end to prevent precision loss.
+*   **Security (Unsanitized {@html} usage)**:
+    *   Several Svelte components use `{@html}` without explicitly wrapping the content in `DOMPurify.sanitize()`. This presents a risk for Cross-Site Scripting (XSS) if the data source isn't trusted.
+        *   Affected files include: `src/components/results/SummaryResults.svelte`, `src/components/settings/SettingsContent.svelte`, `src/components/shared/AnalyticsButton.svelte`, `src/components/shared/ChartPatternsView.svelte`, `src/components/shared/DashboardNav.svelte`, `src/components/shared/DisclaimerModal.svelte`, `src/components/shared/JournalContent.svelte`, `src/components/shared/LeftControlPanel.svelte`, `src/components/shared/MarketDashboardModal.svelte`, `src/components/shared/MarketOverview.svelte`, `src/components/shared/NewsSentimentPanel.svelte`, `src/components/shared/OrderDetailsTooltip.svelte`, `src/components/shared/SidePanel.svelte`, `src/components/shared/ToastItem.svelte`, `src/components/shared/journal/JournalFilters.svelte`, `src/lib/windows/implementations/DialogView.svelte`, `src/lib/windows/implementations/MarkdownView.svelte`, `src/lib/windows/implementations/SymbolPickerView.svelte`, `src/routes/+layout.svelte`, `src/routes/+page.svelte`, `src/routes/[[lang]]/(seo)/+layout.svelte`.
+*   **Data Integrity (JSON parsing)**:
+    *   Many files still use native `JSON.parse()` instead of the custom `safeJsonParse` utility. This poses a severe risk of silent precision loss with large numeric IDs and unhandled parsing exceptions.
+        *   Affected files include: `src/services/apiQuotaTracker.svelte.ts`, `src/services/backupService.ts`, `src/services/mappers.ts`, `src/stores/settings.svelte.ts`, `src/stores/notes.svelte.ts`, `src/stores/quiz.svelte.ts`, `src/stores/ai.svelte.ts`, `src/stores/indicator.svelte.ts`, `src/stores/favorites.svelte.ts`, `src/utils/fastConversion.ts`, `src/routes/api/sync/orders/+server.ts`, `src/routes/api/ai/gemini/+server.ts`, `src/routes/api/sentiment/+server.ts`.
 
-1.  **Type Safety & Validation in Execution Paths (`src/services/tradeService.ts`)**:
-    *   **Finding**: Critical order execution functions rely heavily on `any` types. Specifically, `cancelTpSlOrder(order: any)` accepts untyped parameters, bypassing the TypeScript compiler entirely.
-    *   **Risk**: The backend might receive malformed execution payloads (e.g., missing `orderId` or `symbol`), resulting in silently failed cancellations while the frontend assumes success.
-    *   **Impact**: Financial loss if a user attempts to cancel a stop-loss or take-profit order, but it executes anyway due to a malformed payload.
+## 🟡 WARNING: Performance issue, UX error, missing i18n
 
-2.  **Generic API Serialization Risk (`src/services/tradeService.ts`)**:
-    *   **Finding**: The `signedRequest` method accepts `payload: Record<string, any>` and serializes it using `serializePayload(payload: any...)`.
-    *   **Risk**: If a deeply nested float/number sneaks into the payload instead of a `Decimal.js` instance, it could be serialized with floating-point inaccuracies (e.g., `0.30000000000000004`), resulting in rejected API requests or incorrect order amounts.
+*   **Resource Management (Memory Leaks)**:
+    *   **Unclosed WebSocket subscriptions**: `src/services/bitgetWs.ts` is missing a `.clear()` call in its teardown/destroy method. Collections (like `syntheticSubs` or `pendingSubscriptions`) must be cleared to prevent memory leaks on service disposal.
+    *   **Unbounded arrays in stores**: `src/stores/account.svelte.ts` has multiple `.push()` calls on its collections (like `positions`, `openOrders`, `assets`) without an obvious bounded eviction strategy (e.g. slicing or popping when length exceeds a limit).
 
-3.  **Potential WebSocket Resource Leaks (`src/services/bitunixWs.ts`)**:
-    *   **Finding**: `src/services/bitunixWs.leak.test.ts` exists, highlighting a known risk area. While explicit leaks weren't deeply confirmed in this read-only pass, `syntheticSubs` and `pendingSubscriptions` manage complex state that must be rigorously cleared on disconnection or component unmount.
-    *   **Risk**: Memory exhaustion over long trading sessions, leading to a browser tab crash.
+## 🔵 REFACTOR: Code smell, technical debt
 
-### 🟡 WARNING (Performance issue, UX error, missing i18n)
+*   (No massive technical debt items that strictly compromise stability were identified beyond the critical and warning items above).
 
-1.  **Missing i18n & Hardcoded Errors (`src/services/tradeService.ts`)**:
-    *   **Finding**: The system maps `TRADE_ERRORS.POSITION_NOT_FOUND` to `"trade.positionNotFound"`, but the code throws literal strings like `throw new Error("tradeErrors.positionNotFound")` or `throw new Error("tradeErrors.fetchFailed")`.
-    *   **Risk**: The frontend i18n library (e.g., `svelte-i18n`) will fail to find keys like `"tradeErrors.positionNotFound"` because the correct schema key might be different, displaying a raw, broken string to the user.
-    *   **UX Impact**: Non-actionable error messages when the API fails or a position is missing.
+## Step 2: Action Plan
 
-2.  **Performance "Hot Paths" (`src/services/activeTechnicalsManager.svelte.ts`)**:
-    *   **Finding**: Rapid `.toNumber()` conversions on `Decimal` objects during high-frequency market updates.
-    *   **Risk**: While necessary for charting libraries that only accept native JS numbers, excessive object instantiation and conversion in the UI thread can cause micro-stutters during volatile market conditions.
+### 1. Fix Decimal.js Precision Downcasting
+*   **Target:** `src/services/activeTechnicalsManager.svelte.ts`
+*   **Action:** Refactor `.toNumber()` and `Number()` conversions to use `Decimal` directly. Adjust types to accept `Decimal` where necessary.
+*   **Justification:** Does this measurably improve stability? Yes. Preventing downcasting from `Decimal` to float is an institutional-grade requirement to avoid silent precision loss in price/quantity calculations, eliminating the risk of incorrect financial states or rejected API orders.
+*   **Test Case Proposal:** Add a unit test feeding extremely small/large decimal values (e.g., `0.00000000000000000123`) to `activeTechnicalsManager` and assert that the internal representations and outputs retain full precision exactly matching `Decimal('0.00000000000000000123')`, verifying no float rounding occurred.
 
-3.  **Floating Point Parsing Fallback (`src/services/csvService.ts`)**:
-    *   **Finding**: `parseFloat(originalIdAsString)` is used as a fallback for smaller IDs.
-    *   **Risk**: While not directly a financial risk (it's parsing an ID, not a price/quantity), it is unidiomatic and demonstrates a lapse in the strict use of strings/Decimals for external identifiers.
+### 2. Harden WebSocket Memory Management (Teardown)
+*   **Target:** `src/services/bitgetWs.ts`
+*   **Action:** Add `.clear()` calls for all internal `Map` and `Set` collections inside the teardown/destroy method.
+*   **Justification:** Does this measurably improve performance/stability? Yes. Ensuring explicit memory release prevents unbounded memory growth across reconnection lifecycles, critical for long-running high-frequency trading clients.
 
-### 🔵 REFACTOR (Code smell, technical debt)
+### 3. Enforce Safe JSON Parsing
+*   **Target:** All identified files using `JSON.parse()` natively (e.g., `src/services/apiQuotaTracker.svelte.ts`, `src/services/backupService.ts`, `src/services/mappers.ts`, etc.)
+*   **Action:** Replace all instances of `JSON.parse(...)` with `safeJsonParse(...)` and import the utility correctly. Ensure proper type-narrowing handles parsing exceptions.
+*   **Justification:** Does this measurably improve stability? Yes. Large numeric IDs (e.g., 64-bit exchange order IDs) can lose precision silently in native `JSON.parse()`. `safeJsonParse` guarantees precision and fails safely, preventing silent data corruption in mission-critical synchronization paths.
 
-1.  **Widespread Test Mocks Bypassing Types**:
-    *   **Finding**: Extensive use of `as any` in test files (e.g., `(global.fetch as any).mockResolvedValueOnce(...)`, `marketWatcher as any`).
-    *   **Impact**: If the underlying interfaces change (e.g., `marketWatcher` signature), the tests will silently continue to pass because `any` defeats the type checker, eroding confidence in the test suite.
+### 4. Mitigate Unbounded Memory Growth in Stores
+*   **Target:** `src/stores/account.svelte.ts`
+*   **Action:** Introduce a bounded eviction strategy (e.g., limit history/arrays to a max size) or use `Map` structures to replace outdated entries rather than continually pushing to `openOrders`, `positions`, or `assets`.
+*   **Justification:** Does this measurably improve performance? Yes. Unbounded arrays eventually lead to UI thread lag and memory exhaustion in active trading sessions with frequent state updates.
 
----
-
-## Action Plan (Planning Phase - Step 2)
-
-### Group 1: Hardening Financial Execution Types (CRITICAL)
-
-**Justification:** Measurably improves stability by ensuring the execution engine never receives structurally invalid data from the UI.
-*   **Action**: In `tradeService.ts`, replace `cancelTpSlOrder(order: any)` with `cancelTpSlOrder(order: TpSlOrder)`.
-*   **Action**: In `tradeService.ts`, refactor `signedRequest` and `serializePayload` to accept `Record<string, unknown>` and `unknown` respectively, forcing explicit type checking before property access.
-*   **Unit Test to Reproduce (Before Fix)**: Create a mock test where `cancelTpSlOrder` is called with `{ wrongField: 123 }`. In the current state, it compiles and sends an invalid payload. The fix will cause a compilation error, proving the vulnerability is closed.
-
-### Group 2: Standardizing i18n Error Reporting (WARNING)
-
-**Justification:** Improves UX by ensuring broken states provide localized, actionable feedback to the user.
-*   **Action**: In `tradeService.ts`, align the `TRADE_ERRORS` map directly with the exact keys in `src/locales/schema.d.ts` (e.g., `POSITION_NOT_FOUND: "tradeErrors.positionNotFound"`).
-*   **Action**: Replace literal string throws (e.g., `throw new Error("tradeErrors.fetchFailed")`) with the centralized constants (`throw new Error(TRADE_ERRORS.FETCH_FAILED)`).
-
-### Group 3: Hardening WebSocket Memory Management (CRITICAL)
-
-**Justification:** Prevents platform crashes during long trading sessions (measurably improves stability/performance).
-*   **Action**: Audit `bitunixWs.ts`. Implement bounded eviction strategies (e.g., maximum queue sizes) for pending arrays and guarantee that `syntheticSubs.clear()` is called unconditionally during `ws.close` or reconnection cycles.
-*   **Unit Test to Reproduce (Before Fix)**: Expand `bitunixWs.leak.test.ts` to simulate 10,000 rapid subscribe/unsubscribe cycles. Assert that the size of `syntheticSubs` does not continuously grow.
-
-### Execution Guidelines Adherence
-*   **Defensive Programming**: We assume `serializePayload` will eventually receive garbage data and ensure it falls back safely.
-*   **No Regressions**: No structural API payload changes are proposed, only TypeScript enforcement.
-*   **Financial Standards**: The `parseFloat` in `csvService.ts` was noted but deprioritized over `tradeService.ts` execution paths, keeping focus on core trading math.
+### 5. Secure {@html} Tags against XSS
+*   **Target:** All Svelte files with unsanitized `{@html}` tags.
+*   **Action:** Wrap all inputs for `{@html}` blocks with `DOMPurify.sanitize(...)`.
+*   **Justification:** Does this measurably improve stability? Yes. It patches high-severity XSS attack vectors. Since we cannot fully trust dynamic backend responses or API error messages, this eliminates the risk of executing injected malicious scripts.
