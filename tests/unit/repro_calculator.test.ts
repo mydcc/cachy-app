@@ -16,8 +16,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { calculateAllIndicators } from '../src/utils/technicalsCalculator';
-import { getEmptyData } from '../src/services/technicalsTypes';
+import { calculateAllIndicators } from '../../src/utils/technicalsCalculator';
+import { getEmptyData } from '../../src/services/technicalsTypes';
 import { Decimal } from 'decimal.js';
 
 describe('calculateAllIndicators Repro', () => {
@@ -41,7 +41,7 @@ describe('calculateAllIndicators Repro', () => {
             }
         };
 
-        const result = calculateAllIndicators(klines, settings);
+        const result = calculateAllIndicators(klines, settings as any);
 
         const ema200 = result.movingAverages.find(ma => ma.params === '200');
         expect(ema200).toBeDefined();

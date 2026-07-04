@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { checkAppAuth } from '../src/lib/server/auth';
+import { checkAppAuth } from '../../src/lib/server/auth';
 
 // Mock SvelteKit modules
 vi.mock('$env/dynamic/private', () => ({
