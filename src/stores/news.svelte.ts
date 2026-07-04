@@ -34,6 +34,12 @@ class NewsStore {
         return;
     }
 
+    // Delay the RSS and News fetch to make it secondary (nachrangig)
+    // so real-time data has priority during initialization.
+    if (!force) {
+        await new Promise(r => setTimeout(r, 3000));
+    }
+
     const now = Date.now();
 
     // Avoid redundant loads for same symbol unless forced

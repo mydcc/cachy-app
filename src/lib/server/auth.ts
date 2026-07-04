@@ -18,13 +18,11 @@ import crypto from "node:crypto";
 export function checkAppAuth(request: Request): Response | null {
   const serverToken = env.APP_ACCESS_TOKEN;
 
-  // Security: Fail closed if no token is configured on the server.
-  // This prevents accidental exposure of the API if the configuration is missing.
+  // Security: Fail open if no token is configured on the server.
+  // This allows the app to work without a .env file as requested by the user.
   if (!serverToken) {
-    return json(
-      { error: "Unauthorized: App Access Token not configured on server" },
-      { status: 401 }
-    );
+    console.warn("WARNING: App Access Token not configured on server. Allowing request (Fail-Open).");
+    return null;
   }
 
   const clientToken = request.headers.get("x-app-access-token") || "";
