@@ -165,4 +165,84 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
         expect(true).toBe(true);
     });
+
+    describe('Batching and Rate Limiting Queue', () => {
+        let mockWs: any;
+
+        beforeEach(() => {
+            mockWs = {
+                readyState: 1, // WebSocket.OPEN
+                send: vi.fn()
+            };
+            wsService.wsPublic = mockWs;
+            wsService.isDestroyed = false;
+            wsService.pendingSubscribes = [];
+            wsService.pendingUnsubscribes = [];
+            wsService.publicMessageQueue = [];
+            if (wsService.batchTimer) clearTimeout(wsService.batchTimer);
+            wsService.batchTimer = null;
+            if (wsService.publicMessageTimer) clearTimeout(wsService.publicMessageTimer);
+            wsService.publicMessageTimer = null;
+            wsService.lastPublicSendTime = 0;
+        });
+
+        it('should batch multiple subscribe calls in the same tick', async () => {
+            vi.useFakeTimers();
+
+            wsService.subscribe('BTCUSDT', 'ticker');
+            wsService.subscribe('ETHUSDT', 'ticker');
+
+            // Fast-forward 50ms batch window
+            vi.advanceTimersByTime(50);
+
+            expect(mockWs.send).toHaveBeenCalledTimes(1);
+            const payload = JSON.parse(mockWs.send.mock.calls[0][0]);
+            expect(payload.op).toBe('subscribe');
+            expect(payload.args).toHaveLength(2);
+            expect(payload.args).toContainEqual({ symbol: 'BTCUSDT', ch: 'ticker' });
+            expect(payload.args).toContainEqual({ symbol: 'ETHUSDT', ch: 'ticker' });
+
+            vi.useRealTimers();
+        });
+
+        it('should enforce rate limits on outgoing public messages', async () => {
+            vi.useFakeTimers();
+
+            // Send multiple messages
+            wsService.sendPublicMessage({ op: 'msg1' });
+            wsService.sendPublicMessage({ op: 'msg2' });
+
+            // First message sent immediately
+            expect(mockWs.send).toHaveBeenCalledTimes(1);
+            expect(JSON.parse(mockWs.send.mock.calls[0][0]).op).toBe('msg1');
+
+            // Fast-forward 150ms (less than 300ms MIN_SEND_INTERVAL)
+            vi.advanceTimersByTime(150);
+            expect(mockWs.send).toHaveBeenCalledTimes(1);
+
+            // Fast-forward remaining 150ms
+            vi.advanceTimersByTime(150);
+            expect(mockWs.send).toHaveBeenCalledTimes(2);
+            expect(JSON.parse(mockWs.send.mock.calls[1][0]).op).toBe('msg2');
+
+            vi.useRealTimers();
+        });
+
+        it('should perform mutual cancellation of subscribe and unsubscribe in the same batch', async () => {
+            vi.useFakeTimers();
+
+            // Simulate unsubscribe then subscribe in same tick
+            wsService.pendingSubscriptions.set('ticker:BTCUSDT', 1);
+            wsService.unsubscribe('BTCUSDT', 'ticker'); // Queues unsubscribe
+            wsService.subscribe('BTCUSDT', 'ticker'); // Queues subscribe
+
+            // Fast-forward 50ms batch window
+            vi.advanceTimersByTime(50);
+
+            // They should cancel each other out, so no send is called
+            expect(mockWs.send).not.toHaveBeenCalled();
+
+            vi.useRealTimers();
+        });
+    });
 });

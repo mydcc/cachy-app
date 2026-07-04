@@ -117,6 +117,14 @@ class BitunixWebSocketService {
   // [FIX] Initialize syntheticSubs to prevent TS errors and runtime undefined access
   private syntheticSubs: Map<string, number> = new Map();
 
+  private pendingSubscribes: { symbol: string, ch: string }[] = [];
+  private pendingUnsubscribes: { symbol: string, ch: string }[] = [];
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
+  private publicMessageQueue: string[] = [];
+  private publicMessageTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastPublicSendTime = 0;
+  private readonly MIN_SEND_INTERVAL = 300; // 300ms delay between messages
+
   private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
@@ -315,11 +323,16 @@ class BitunixWebSocketService {
     // 4. Force clear any lingering timers manually (Redundancy check)
     if (this.reconnectTimerPublic) { clearTimeout(this.reconnectTimerPublic); this.reconnectTimerPublic = null; }
     if (this.reconnectTimerPrivate) { clearTimeout(this.reconnectTimerPrivate); this.reconnectTimerPrivate = null; }
+    if (this.batchTimer) { clearTimeout(this.batchTimer); this.batchTimer = null; }
+    if (this.publicMessageTimer) { clearTimeout(this.publicMessageTimer); this.publicMessageTimer = null; }
 
     // 5. Permanent teardown: drop subscription state only when the service is
     // being destroyed (not on transient reconnect-driven cleanup).
     this.syntheticSubs.clear();
     this.pendingSubscriptions.clear();
+    this.pendingSubscribes = [];
+    this.pendingUnsubscribes = [];
+    this.publicMessageQueue = [];
   }
 
   connect(force?: boolean) {
@@ -731,6 +744,18 @@ class BitunixWebSocketService {
         clearTimeout(this.reconnectTimerPublic);
         this.reconnectTimerPublic = null;
       }
+      if (this.batchTimer) {
+        clearTimeout(this.batchTimer);
+        this.batchTimer = null;
+      }
+      if (this.publicMessageTimer) {
+        clearTimeout(this.publicMessageTimer);
+        this.publicMessageTimer = null;
+      }
+      this.pendingSubscribes = [];
+      this.pendingUnsubscribes = [];
+      this.publicMessageQueue = [];
+
       if (this.wsPublic) {
         this.wsPublic.onopen = null;
         this.wsPublic.onmessage = null;
@@ -1420,8 +1445,7 @@ class BitunixWebSocketService {
         if (settingsState.enableNetworkLogs) {
           logger.log("network", `Subscribe: ${bitunixChannel}:${normalizedSymbol}`);
         }
-        this.sendSubscribe(this.wsPublic, normalizedSymbol, bitunixChannel);
-        // Force flush of synthetic initial fetch if needed? No, marketWatcher handles fetch.
+        this.queueSubscription(normalizedSymbol, bitunixChannel, "subscribe");
       } else if (!this.wsPublic || this.wsPublic.readyState === WebSocket.CLOSED) {
         this.connectPublic();
       }
@@ -1468,7 +1492,7 @@ class BitunixWebSocketService {
         this.pendingSubscriptions.delete(subKey);
 
         if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-          this.sendUnsubscribe(this.wsPublic, normalizedSymbol, bitunixChannel);
+          this.queueSubscription(normalizedSymbol, bitunixChannel, "unsubscribe");
         }
       } else {
         this.pendingSubscriptions.set(subKey, newCount);
@@ -1499,7 +1523,7 @@ class BitunixWebSocketService {
 
     this.pendingSubscriptions.delete(subKey);
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-        this.sendUnsubscribe(this.wsPublic, normalizedSymbol, bitunixChannel);
+        this.queueSubscription(normalizedSymbol, bitunixChannel, "unsubscribe");
     }
   }
 
@@ -1566,13 +1590,18 @@ class BitunixWebSocketService {
 
     logger.log("network", `[BitunixWS] Flushing ${subs.length} buffered subscriptions`);
 
+    const args: { symbol: string, ch: string }[] = [];
     subs.forEach(key => {
       const [channel, symbol] = key.split(":");
       const bitunixChannel = this.getBitunixChannel(channel);
       if (bitunixChannel) {
-          this.sendSubscribe(this.wsPublic!, symbol, bitunixChannel);
+        args.push({ symbol, ch: bitunixChannel });
       }
     });
+
+    if (args.length > 0) {
+      this.sendPublicMessage({ op: "subscribe", args });
+    }
   }
 
   private subscribePrivate() {
@@ -1589,30 +1618,132 @@ class BitunixWebSocketService {
 
   private sendSubscribe(ws: WebSocket, symbol: string, channel: string) {
     const payload = { op: "subscribe", args: [{ symbol, ch: channel }] };
-    try {
-      ws.send(JSON.stringify(payload));
-    } catch (e) {
-      logger.warn("network", `[WebSocket] Failed to send subscribe for ${symbol}:${channel}`, e);
+    if (ws === this.wsPublic) {
+      this.sendPublicMessage(payload);
+    } else {
+      try {
+        ws.send(JSON.stringify(payload));
+      } catch (e) {
+        logger.warn("network", `[WebSocket] Failed to send subscribe for ${symbol}:${channel}`, e);
+      }
     }
   }
 
   private sendUnsubscribe(ws: WebSocket, symbol: string, channel: string) {
     const payload = { op: "unsubscribe", args: [{ symbol, ch: channel }] };
-    try {
-      ws.send(JSON.stringify(payload));
-    } catch (e) {
-      logger.warn("network", `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}`, e);
+    if (ws === this.wsPublic) {
+      this.sendPublicMessage(payload);
+    } else {
+      try {
+        ws.send(JSON.stringify(payload));
+      } catch (e) {
+        logger.warn("network", `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}`, e);
+      }
     }
   }
 
   private resubscribePublic() {
+    const args: { symbol: string, ch: string }[] = [];
     this.pendingSubscriptions.forEach((count, subKey) => {
       const [channel, symbol] = subKey.split(":");
       const bitunixChannel = this.getBitunixChannel(channel);
-      if (bitunixChannel && this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-        this.sendSubscribe(this.wsPublic, symbol, bitunixChannel);
+      if (bitunixChannel) {
+        args.push({ symbol, ch: bitunixChannel });
       }
     });
+    if (args.length > 0) {
+      this.sendPublicMessage({ op: "subscribe", args });
+    }
+  }
+
+  private queueSubscription(symbol: string, ch: string, op: "subscribe" | "unsubscribe") {
+    if (op === "subscribe") {
+      const unsubIndex = this.pendingUnsubscribes.findIndex(item => item.symbol === symbol && item.ch === ch);
+      if (unsubIndex !== -1) {
+        this.pendingUnsubscribes.splice(unsubIndex, 1);
+      } else {
+        const subExists = this.pendingSubscribes.some(item => item.symbol === symbol && item.ch === ch);
+        if (!subExists) {
+          this.pendingSubscribes.push({ symbol, ch });
+        }
+      }
+    } else {
+      const subIndex = this.pendingSubscribes.findIndex(item => item.symbol === symbol && item.ch === ch);
+      if (subIndex !== -1) {
+        this.pendingSubscribes.splice(subIndex, 1);
+      } else {
+        const unsubExists = this.pendingUnsubscribes.some(item => item.symbol === symbol && item.ch === ch);
+        if (!unsubExists) {
+          this.pendingUnsubscribes.push({ symbol, ch });
+        }
+      }
+    }
+    this.scheduleBatch();
+  }
+
+  private scheduleBatch() {
+    if (this.batchTimer) return;
+    this.batchTimer = setTimeout(() => {
+      this.batchTimer = null;
+      this.processBatch();
+    }, 50);
+  }
+
+  private processBatch() {
+    if (this.isDestroyed) return;
+
+    if (this.pendingUnsubscribes.length > 0) {
+      const payload = { op: "unsubscribe", args: [...this.pendingUnsubscribes] };
+      this.sendPublicMessage(payload);
+      this.pendingUnsubscribes = [];
+    }
+
+    if (this.pendingSubscribes.length > 0) {
+      const payload = { op: "subscribe", args: [...this.pendingSubscribes] };
+      this.sendPublicMessage(payload);
+      this.pendingSubscribes = [];
+    }
+  }
+
+  private sendPublicMessage(payload: any) {
+    this.publicMessageQueue.push(JSON.stringify(payload));
+    this.processPublicMessageQueue();
+  }
+
+  private processPublicMessageQueue() {
+    if (this.publicMessageTimer) return;
+    if (this.publicMessageQueue.length === 0) return;
+    if (!this.wsPublic || this.wsPublic.readyState !== WebSocket.OPEN) {
+      this.publicMessageQueue = [];
+      return;
+    }
+
+    const now = Date.now();
+    const elapsed = now - this.lastPublicSendTime;
+    const waitTime = Math.max(0, this.MIN_SEND_INTERVAL - elapsed);
+
+    if (waitTime === 0) {
+      const msg = this.publicMessageQueue.shift();
+      if (msg) {
+        try {
+          this.wsPublic.send(msg);
+          this.lastPublicSendTime = Date.now();
+        } catch (e) {
+          logger.warn("network", "[BitunixWS] Failed to send message from queue", e);
+        }
+      }
+      if (this.publicMessageQueue.length > 0) {
+        this.publicMessageTimer = setTimeout(() => {
+          this.publicMessageTimer = null;
+          this.processPublicMessageQueue();
+        }, this.MIN_SEND_INTERVAL);
+      }
+    } else {
+      this.publicMessageTimer = setTimeout(() => {
+        this.publicMessageTimer = null;
+        this.processPublicMessageQueue();
+      }, waitTime);
+    }
   }
 
   private handleInternalError(type: "public" | "private", error: unknown) {
