@@ -44,7 +44,7 @@ def verify_settings_v2(page):
 
     # Check width indirectly by visual inspection of screenshot
     print("Taking screenshot...")
-    page.screenshot(path="/home/jules/verification/settings_v2.png")
+    page.screenshot(path="verification/settings_v2.png")
 
 if __name__ == "__main__":
     with sync_playwright() as p:

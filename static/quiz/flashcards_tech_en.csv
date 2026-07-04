@@ -8,7 +8,6 @@ How many Take-Profit targets can be defined for a trade in Cachy at most?,Up to 
 Which specific metrics does the system calculate for each Take-Profit target?,"Profit, Risk-Reward Ratio ($R/R$), and Net Yield."
 Which service in Cachy's architecture handles the central management of WebSockets?,The `MarketWatcher` service.
 What is the purpose of 'Reference Counting' in Cachy's system?,"Intelligent tracking of data requests to prevent unwanted connection drops."
-What function does the 'Jules API' fulfill within the application?,An AI-assisted system for analyzing and reporting errors.
 "Name three technical indicators available in the 'Technicals Panel' via `talib-web`.","RSI, MACD, and Stochastic."
 Which timeframes are available for automatic ATR retrieval?,"5m, 15m, 1h, 4h, and 1d."
 How many favorite symbols can be stored in the sidebar for quick access?,Maximum 4 symbols.

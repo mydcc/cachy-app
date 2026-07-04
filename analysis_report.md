@@ -6,7 +6,6 @@
     *   `src/services/tradeService.ts`: Intensive use of `any` for order payloads and API responses (`payload: Record<string, any>`, `serializePayload(payload: any)`, `signedRequest<any>`). This circumvents TypeScript's safety net. Invalid API responses or missing fields can lead to runtime crashes or incorrect financial logic.
     *   `src/services/omsService.ts`, `src/services/apiService.ts`: Catch blocks use `(e as any).status` and similar constructs. Should use type narrowing or custom error classes to safely access error properties.
 2.  **Number vs. Decimal in Financial Calculations:**
-    *   `src/services/julesService.ts` lines 88-92: Conversion from Decimal back to native numbers (`.toNumber()`) for financial values (e.g., USDT balance). This completely defeats the purpose of using Decimal and re-introduces floating-point inaccuracies.
     *   `src/services/marketWatcher.ts`: Fallback checks for `!(klines[0].open instanceof Decimal)` indicate uncertainty about data mapping. If mapping fails, native floats might leak into calculations.
 3.  **Potential State Corruption / Missed Events (Memory & Data Management):**
     *   `src/services/toastService.svelte.ts`: Uses `.push()` and unmanaged `setTimeout` for toasts. Without bounds checking, this is a minor memory leak, but more importantly, unmanaged timeouts can cause state inconsistencies if a toast is dismissed early or component unmounts.

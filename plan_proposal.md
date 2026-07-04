@@ -5,10 +5,7 @@
 1.  **Refactor `tradeService.ts` Types:**
     *   Replace `any` in `signedRequest<any>` and `serializePayload(payload: any)` with explicit generic types or `unknown` combined with Zod validation/type predicates.
     *   *Unit Test requirement:* Write a test mocking `signedRequest` returning malformed data to ensure the service throws a structured error instead of crashing.
-2.  **Fix Decimal Conversion Leak in `julesService.ts`:**
-    *   Locate lines 88-92 in `src/services/julesService.ts`.
-    *   Change `.toNumber()` back to preserving the `Decimal` type or handle the formatting string specifically for the output required, avoiding native JS Number floats.
-3.  **Strict Error Type Checking in `apiService.ts` & `omsService.ts`:**
+2.  **Strict Error Type Checking in `apiService.ts` & `omsService.ts`:**
     *   Remove `(e as any).status` casting.
     *   Implement an `isApiError(error: unknown): error is ApiError` type guard to safely check for `.status` and `.code`.
 

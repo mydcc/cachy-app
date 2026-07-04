@@ -69,7 +69,7 @@ def verify_technicals(page):
         expect(panel).to_be_visible(timeout=15000)
     except:
         print("Visible panel not found. Taking screenshot.")
-        page.screenshot(path="/home/jules/verification/debug_no_panel_4.png")
+        page.screenshot(path="verification/debug_no_panel_4.png")
         raise
 
     print("Panel found. Scroll to Signals...")
@@ -93,7 +93,7 @@ def verify_technicals(page):
         expect(signals_header).to_be_visible(timeout=30000)
     except:
         print("Signals header not found/visible. Taking screenshot.")
-        page.screenshot(path="/home/jules/verification/debug_no_signals_header_4.png")
+        page.screenshot(path="verification/debug_no_signals_header_4.png")
         print("Panel Text:", panel.inner_text())
         raise
 
@@ -108,7 +108,7 @@ def verify_technicals(page):
         corrected_text.scroll_into_view_if_needed()
 
     # Take screenshot of the panel area
-    page.screenshot(path="/home/jules/verification/technicals_panel_final.png")
+    page.screenshot(path="verification/technicals_panel_final.png")
 
     if buggy_text.is_visible():
         print("FAILURE: Found buggy text 'technicals.noSignals'")
