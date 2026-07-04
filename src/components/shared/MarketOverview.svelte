@@ -199,6 +199,20 @@
     }
   });
 
+  // Price and Ticker Data Subscription
+  $effect(() => {
+    if (symbol && symbol.length >= 3) {
+      untrack(() => {
+        marketWatcher.register(symbol, "price");
+        marketWatcher.register(symbol, "ticker");
+      });
+      return () => {
+        marketWatcher.unregister(symbol, "price");
+        marketWatcher.unregister(symbol, "ticker");
+      };
+    }
+  });
+
   // RSI Values from centralized Technicals
   let rsiValue = $derived.by(() => {
     const tech = wsData?.technicals?.[effectiveRsiTimeframe];
