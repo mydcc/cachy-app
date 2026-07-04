@@ -1,12 +1,12 @@
-import { Window } from 'happy-dom';
+import { JSDOM } from 'jsdom';
 import dompurify from 'dompurify';
 
-const window = new Window();
+const window = new JSDOM('').window;
 
 vi.mock('dompurify', async (importOriginal) => {
   const actual = await importOriginal() as any;
   const dompurifyActual = actual.default || actual;
-  const purify = dompurifyActual(new Window() as unknown as any);
+  const purify = dompurifyActual(new JSDOM('').window as unknown as any);
 
   return {
     ...actual,
