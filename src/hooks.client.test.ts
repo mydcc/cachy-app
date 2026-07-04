@@ -17,26 +17,15 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleError } from './hooks.client';
-import { julesService } from './services/julesService';
-import type { RequestEvent } from '@sveltejs/kit';
-
-// Mock the dependencies
-vi.mock('./services/julesService', () => ({
-  julesService: {
-    reportToJules: vi.fn(),
-  },
-}));
 
 vi.mock('./locales/i18n', () => ({}));
 
 describe('handleError (Client Hook)', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Spy on console methods to verify they are called and to prevent them from cluttering the test output
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Clear mock data before each test
     vi.clearAllMocks();
@@ -45,10 +34,9 @@ describe('handleError (Client Hook)', () => {
   afterEach(() => {
     // Restore original console methods
     consoleErrorSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
   });
 
-  it('should log the error to console, report to julesService, and return fallback message', async () => {
+  it('should log the error to console and return fallback message', async () => {
     // Arrange
     const mockError = new Error('Test application error');
     const mockEvent = {} as any; // Event is not used in the function body
@@ -58,34 +46,8 @@ describe('handleError (Client Hook)', () => {
 
     // Assert
     expect(consoleErrorSpy).toHaveBeenCalledWith('Client Hook Error:', mockError);
-    expect(julesService.reportToJules).toHaveBeenCalledWith(mockError, 'AUTO');
     expect(result).toEqual({
-      message: 'An unexpected error occurred. Jules has been notified.',
-      code: 'UNKNOWN',
-    });
-    expect(consoleWarnSpy).not.toHaveBeenCalled();
-  });
-
-  it('should not crash and still return fallback message if julesService throws an error', async () => {
-    // Arrange
-    const mockError = new Error('Original error');
-    const reportError = new Error('Jules reporting failed');
-    const mockEvent = {} as any;
-
-    // Make reportToJules throw
-    (julesService.reportToJules as any).mockRejectedValueOnce(reportError);
-
-    // Act
-    const result = await handleError({ error: mockError, event: mockEvent, status: 500, message: '' });
-
-    // Assert
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Client Hook Error:', mockError);
-    expect(julesService.reportToJules).toHaveBeenCalledWith(mockError, 'AUTO');
-    expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to send error report to Jules:', reportError);
-
-    // Crucially, it must still return the fallback message
-    expect(result).toEqual({
-      message: 'An unexpected error occurred. Jules has been notified.',
+      message: 'An unexpected error occurred.',
       code: 'UNKNOWN',
     });
   });

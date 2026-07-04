@@ -44,15 +44,13 @@ import { afterNavigate } from "$app/navigation";
 
   import { CONSTANTS } from "../lib/constants";
 
-  import { julesState } from "../stores/jules.svelte";
   import { browser } from "$app/environment";
+
   interface Props {
     children?: import("svelte").Snippet;
   }
 
   let { children }: Props = $props();
-
-  // Removed local Jules state variables in favor of julesStore
 
   // --- CachyLog Integration (Developer & Manual Opt-in) ---
   // Connect to Server-Sent Events stream for real-time server logs
@@ -398,82 +396,6 @@ import { afterNavigate } from "$app/navigation";
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 
-  <!-- Jules Report Overlay -->
-  <!-- Jules Report Overlay -->
-  <!-- Jules Report Overlay -->
-  {#if julesState.isVisible || julesState.isLoading}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
-      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all animate-fade-in"
-      onclick={() => julesState.hideReport()}
-      role="dialog"
-      tabindex="-1"
-    >
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div
-        class="bg-[var(--bg-secondary)] text-[var(--text-primary)] p-6 rounded-lg shadow-2xl border border-[var(--accent-color)] max-w-2xl w-full mx-4 relative transform transition-all"
-        onclick={(e) => e.stopPropagation()}
-        role="document"
-      >
-        <button
-          class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          aria-label={$_("common.close")}
-          onclick={() => julesState.hideReport()}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-
-        <div class="flex items-center gap-3 mb-4">
-          <span class="text-2xl">🤖</span>
-          <h3 class="text-xl font-bold text-[var(--accent-color)]">
-            {$_("jules.title")}
-          </h3>
-        </div>
-
-        {#if julesState.isLoading}
-          <div class="flex flex-col items-center justify-center py-8 gap-4">
-            <div
-              class="w-8 h-8 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
-            ></div>
-            <p class="text-sm text-[var(--text-secondary)] animate-pulse">
-              {$_("jules.analyzing")}
-            </p>
-          </div>
-        {:else}
-          <div
-            class="prose prose-invert prose-sm max-w-none max-h-[60vh] overflow-y-auto custom-scrollbar p-2 bg-[var(--bg-tertiary)] rounded"
-          >
-            <pre
-              class="whitespace-pre-wrap font-mono text-xs">{julesState.message}</pre>
-          </div>
-        {/if}
-
-        <div class="mt-4 flex justify-end">
-          <button
-            class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity font-bold text-sm"
-            onclick={() => julesState.hideReport()}
-          >
-            {$_("jules.close")}
-          </button>
-        </div>
-      </div>
-    </div>
-  {/if}
 </div>
 
 {#if !settingsState.disclaimerAccepted}

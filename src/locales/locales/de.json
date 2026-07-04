@@ -2113,11 +2113,7 @@
     "placeholder": "Sag Hallo...",
     "connectionFailed": "Verbindung fehlgeschlagen"
   },
-  "jules": {
-    "title": "Jules Inspektor",
-    "analyzing": "Analysiere Systemstatus...",
-    "close": "Bericht schließen"
-  },
+
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",
     "size": "Größe",

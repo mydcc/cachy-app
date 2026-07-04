@@ -1766,7 +1766,4 @@ export type TranslationKey =
   | "cloud.noMessages"
   | "cloud.sendButton"
   | "cloud.placeholder"
-  | "cloud.connectionFailed"
-  | "jules.title"
-  | "jules.analyzing"
-  | "jules.close";
+  | "cloud.connectionFailed";

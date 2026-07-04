@@ -2131,10 +2131,5 @@
     "connectionFailed": "Connection failed"
     ,
     "connectionFailed": "Connection failed"
-  },
-  "jules": {
-    "title": "Jules Inspector",
-    "analyzing": "Analyzing system status...",
-    "close": "Close Report"
   }
 }
