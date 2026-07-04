@@ -156,11 +156,9 @@
                                     bind:value={settingsState.geminiModel}
                                     class="input-field"
                                 >
-                                    <option value="gemini-2.5-flash">{$_("settings.ai.geminiRecommended")}</option>
-                                    <option value="gemini-2.0-flash">{$_("settings.ai.geminiStable")}</option>
-                                    <option value="gemini-3-flash-preview">{$_("settings.ai.geminiPreview")}</option>
-                                    <option value="gemini-3-pro-preview">{$_("settings.ai.geminiPro")}</option>
-                                    <option value="gemma-3-27b-it">{$_("settings.ai.gemmaOpen")}</option>
+                                    <option value="gemini-3.5-flash">{$_("settings.ai.geminiRecommended")}</option>
+                                    <option value="gemini-3.5-pro">{$_("settings.ai.geminiPro")}</option>
+                                    <option value="gemma-4-31b-it">{$_("settings.ai.gemmaOpen")}</option>
                                 </select>
                             </div>
                         </div>

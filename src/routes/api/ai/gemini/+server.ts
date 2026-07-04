@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Use the model provided by the client directly.
     // This allows selecting any available Gemini model in settings.
-    let selectedModel = model || "gemini-2.5-flash"; // Default: Current stable generation
+    let selectedModel = model || "gemini-3.5-flash"; // Default: Current stable generation
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;

@@ -63,7 +63,7 @@ const WS_PRIVATE_URL =
 const PING_INTERVAL = 5000;
 const WATCHDOG_TIMEOUT = 20000;
 const RECONNECT_DELAY = 500;
-const CONNECTION_TIMEOUT_MS = 3000;
+const CONNECTION_TIMEOUT_MS = 10000;
 
 interface Subscription {
   symbol: string;
