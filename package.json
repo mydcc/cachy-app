@@ -24,7 +24,6 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
     "@floating-ui/dom": "^1.7.4",
     "@google/generative-ai": "^0.24.1",
     "@sveltejs/adapter-node": "^5.5.7",

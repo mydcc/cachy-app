@@ -17,9 +17,13 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import Anthropic from "@anthropic-ai/sdk";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { AiRequestSchema } from "../../../../types/ai";
+
+interface AnthropicMessageParam {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -44,7 +48,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     let systemPrompt = "";
-    const anthropicMessages: Anthropic.MessageParam[] = [];
+    const anthropicMessages: AnthropicMessageParam[] = [];
 
     for (const m of messages) {
       if (m.role === "system") {
