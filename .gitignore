@@ -84,3 +84,4 @@ reports/
 target/
 technicals-wasm/target/
 __pycache__/
+.claude/settings.local.json

@@ -8,11 +8,15 @@
  */
 
 import { sveltekit } from "@sveltejs/kit/vite";
-import { defineConfig } from "vite";
+import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
+  test: {
+    // Playwright specs must only run via `npm run test:e2e`, not Vitest
+    exclude: [...configDefaults.exclude, "tests/e2e/**"],
+  },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(
       process.env.npm_package_version,
