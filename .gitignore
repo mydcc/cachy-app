@@ -85,3 +85,9 @@ target/
 technicals-wasm/target/
 __pycache__/
 .claude/settings.local.json
+
+
+build_old_*/
+.last_build_time
+.htaccess
+.well-known/
