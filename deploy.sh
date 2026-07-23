@@ -208,9 +208,9 @@ health_check() {
         url="http://localhost:$PORT/api/health"
     fi
     
-    log "Running health check on $url (Waiting up to 30s)..."
+    log "Running health check on $url (Waiting up to 90s)..."
     local count=0
-    while [[ $count -lt 30 ]]; do
+    while [[ $count -lt 90 ]]; do
         if curl -sf "$url" > /dev/null 2>&1; then
             log "${GREEN}Health check passed${NC}"
             return 0
