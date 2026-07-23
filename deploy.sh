@@ -275,6 +275,7 @@ log "Current Branch: ${YELLOW}$CURRENT_BRANCH${NC}"
 if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
     if prompt_user "Wrong branch! Should I switch to ${GREEN}$TARGET_BRANCH${NC} for you?"; then
         # Check for dirty state before switching to be safe
+        git update-index -q --refresh
         if ! git diff-index --quiet HEAD --; then
              if prompt_user "Your branch is dirty. Should I stash your changes before switching?"; then
                  git stash || error_exit "Stashing failed"
@@ -290,6 +291,7 @@ if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
 fi
 
 # 2. Smart Stashing (if still dirty)
+git update-index -q --refresh
 if ! git diff-index --quiet HEAD --; then
     if prompt_user "Dirty Git state detected. Should I stash your changes for deployment?"; then
         git stash || error_exit "Stashing failed"
