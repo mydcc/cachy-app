@@ -202,22 +202,57 @@ graceful_shutdown() {
 
 health_check() {
     local url="${1//\{\{PORT\}\}/$PORT}"
-    
+
     # Safety Check: Fallback if URL is empty
     if [[ -z "$url" ]]; then
         url="http://localhost:$PORT/api/health"
     fi
-    
-    log "Running health check on $url (Waiting up to 90s)..."
-    local count=0
-    while [[ $count -lt 90 ]]; do
-        if curl -sf "$url" > /dev/null 2>&1; then
-            log "${GREEN}Health check passed${NC}"
+
+    local max_wait=90
+    local check_start=$(date +%s)
+    log "Running health check on $url (Waiting up to ${max_wait}s)..."
+
+    local last_state=""
+    local http_code curl_exit state elapsed
+
+    # Wall-clock bound: honour ${max_wait}s regardless of per-attempt latency.
+    while [[ $(( $(date +%s) - check_start )) -lt $max_wait ]]; do
+        # Capture HTTP status and curl's exit code separately so we can tell
+        # "process not listening yet" apart from "listening but erroring".
+        # --max-time caps a single hanging attempt at 5s. The if-guard stops a
+        # failing curl from tripping `set -e`.
+        if http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url" 2>/dev/null); then
+            curl_exit=0
+        else
+            curl_exit=$?
+        fi
+
+        if [[ "$http_code" == "200" ]]; then
+            elapsed=$(( $(date +%s) - check_start ))
+            log "${GREEN}Health check passed after ${elapsed}s (HTTP 200)${NC}"
             return 0
         fi
+
+        # Classify why we are still waiting, so the log is actionable on failure.
+        case "$curl_exit" in
+            0)  state="server responded HTTP ${http_code} (waiting for 200)" ;;
+            7)  state="port ${PORT} not open yet — Node process still starting" ;;
+            28) state="request timed out (>5s) — process listening but unresponsive" ;;
+            *)  state="curl failed (exit ${curl_exit}, http ${http_code})" ;;
+        esac
+
+        # Log only on state change to avoid ~90 identical lines.
+        if [[ "$state" != "$last_state" ]]; then
+            elapsed=$(( $(date +%s) - check_start ))
+            log "${GREY}  [+${elapsed}s] ${state}${NC}"
+            last_state="$state"
+        fi
+
         sleep 1
-        count=$((count + 1))
     done
+
+    elapsed=$(( $(date +%s) - check_start ))
+    log "${RED}Health check FAILED after ${elapsed}s. Last observed: ${last_state:-no response at all}${NC}"
     return 1
 }
 
