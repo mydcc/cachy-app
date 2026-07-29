@@ -240,7 +240,67 @@ Left for a decision, deliberately not touched:
 
 ---
 
-## 6. Verified state after these changes
+## 6. Whitepaper audit — all eight chapters
+
+The whitepaper (`src/lib/assets/content/whitepaper.{de,en}.md`, ~29 KB per
+language) is the document shown to outside readers, and it had never been checked
+against the code. Every file, path and command reference was resolved, and the
+published maths was made executable.
+
+### What held up
+
+- **The worked example in chapter 3 is correct.** Account $10,000, risk 1%, entry
+  $50,000, stop $49,000 → 0.1 BTC, $5,000 position value, $500 margin at 10x, and
+  a loss of exactly the risked $100 if the stop is hit. All five figures were run
+  through the real calculator and match. This is now locked in by
+  `src/lib/whitepaper-claims.test.ts`, so the document cannot drift from the
+  engine without a test failing.
+- **The security chapter is accurate, and understates the implementation.**
+  `cryptoService.ts` uses AES-GCM/CBC with a 256-bit key size and PBKDF2, with
+  non-extractable keys and derived-key caching — more than the whitepaper claims.
+- **The three named `localStorage` keys all exist** (`cachy_trade_store`,
+  `tradeJournal`, `cryptoCalculatorSettings`).
+- **The PWA and telemetry claims hold.** `static/manifest.json` and
+  `src/service-worker.ts` are present, and tracking is Matomo via `window._mtm`,
+  consistent with "standard non-intrusive analytics (if enabled)".
+- **The core stack claims are right**: SvelteKit, TypeScript, TailwindCSS, Svelte 5
+  Runes, decimal.js, Chart.js, Vitest are all installed at the stated versions.
+
+### What was wrong
+
+| Chapter | Claim | Reality |
+| --- | --- | --- |
+| 2 | Four store files named `AccountState.svelte.ts`, `MarketState.svelte.ts`, `TradeState.svelte.ts`, `JournalState.svelte.ts` | None exist. The real files are lowercase: `account.svelte.ts`, `market.svelte.ts`, `trade.svelte.ts`, `journal.svelte.ts`. A reader following the document finds nothing. |
+| 2 | "TechnicalIndicators — modular library" | No such library, and no such dependency. Indicator maths is `technicals-wasm/` (Rust → WASM) plus `src/utils/indicators.ts` (~2000 lines) and `technicalsCalculator.ts`. |
+| 2 | Stack table of eight rows | Omitted the WASM indicator engine, WebGPU (17 WGSL shaders + `webGpuCalculator.ts`), three Web Workers, SpacetimeDB, both AI SDKs (OpenAI, Gemini), `lightweight-charts`, `three` and Zod validation. The document described a materially simpler application than the one that exists. |
+| 3 | "The mathematical heart resides in `src/lib/calculator.ts`" | That file is **74 lines** — a facade. The maths is in nine modules under `src/lib/calculators/`. |
+| 3 | `journalStore` | Named `journalState`. |
+| 5 | The "Safe Swap" synchronisation protocol | The term appears nowhere in the codebase. Marked in the document as a whitepaper-only name, pointing readers to `syncService.ts` instead. |
+| 8 | `npm run test:unit` | Does not exist. The command is `npm test`. |
+| 8 | `python3 verify_pagination.py` | Does not exist. The real scripts are in `verification/` and `scripts/`. |
+| 8 | Reverse proxy to "Port 3000" | `.deploy.conf` uses **3001** (stable) and **3002** (beta). |
+| 8 | `pm2 start server.js` | `npm start` runs `node build/index.js`. Both files exist but are different entry points; the document now says so instead of implying they are interchangeable. |
+| 8 | Setup is `npm install && npm run dev` | Omitted that both `dev` and `build` first run `scripts/build_wasm.sh`, and said nothing about `npm run check`, `npm run lint` or `npm run test:e2e`. |
+
+### Cross-language divergence
+
+The German table carried a `VisualBar Component` row the English one lacked. The
+component is real (`src/components/shared/VisualBar.svelte`), so the row was added
+to the English table rather than removed from the German one. Both tables now
+match.
+
+### One forward-looking correction
+
+Chapter 7 promised a "Read-Only Investor View" generating a public link to a
+portfolio, noting in passing that it "requires a move to a DB-backed
+architecture". Under ADR-0001 that moves journal data from Class A to Class B —
+a breaking change requiring its own ADR. The chapter now states that explicitly
+and marks the feature as not currently planned, rather than advertising it as a
+roadmap item with an unstated architectural cost.
+
+---
+
+## 7. Verified state after these changes
 
 | Check | Result |
 | --- | --- |

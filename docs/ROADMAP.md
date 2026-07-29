@@ -36,14 +36,18 @@ baseline tag is required and there is no manual step left. The hand-written
 | # | Item | Status |
 | --- | --- | --- |
 | 8 | Align `CLAUDE.md`, README and both whitepapers with ADR-0001 | 🟢 |
-| 9 | Audit the rest of the whitepaper against the code | ⚪ |
+| 9 | ~~Audit the rest of the whitepaper against the code~~ — done: all eight chapters checked, every reference resolved, chapter 3 maths now covered by an executable test | 🟢 |
 | 10 | Merge `DEPLOY.md` and `DEPLOYMENT.md` into one guide | ⚪ |
 | 11 | Consolidate the four brand/design sources into one canonical doc | ⚪ |
 | 11a | Feed the in-app changelog from the generated `CHANGELOG.md` — the app renders `src/lib/assets/content/changelog.{de,en}.md`, which will no longer be updated by releases | ⚪ |
 
-Item 9 matters because the whitepaper is the document shown to outside readers
-and makes concrete claims about the mathematical core, the security model and
-the trade lifecycle. Only its privacy section has been verified so far.
+Item 9 is done. The published risk-engine example verified correct against the
+real calculator, and the security chapter turned out to understate the
+implementation. But chapter 2 had described a materially simpler application than
+exists — no WASM engine, no WebGPU, no SpacetimeDB, no AI SDKs — and chapter 8
+would have actively misled a new developer (a `npm run test:unit` script that
+does not exist, a verification file that does not exist, the wrong port).
+Full findings in `docs/REPO-AUDIT.md`, section 6.
 
 ---
 
