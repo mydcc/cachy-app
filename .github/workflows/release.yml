@@ -2,7 +2,10 @@ name: Release
 
 on:
   push:
-    branches: [develop]
+    # main produces stable releases; develop produces `-beta.N` prereleases.
+    # This mirrors the split already used by deploy.sh via .deploy.conf
+    # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app).
+    branches: [main, develop]
 
 # Prevent two releases from racing each other and producing duplicate tags.
 concurrency:
