@@ -15,17 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { json } from '@sveltejs/kit';
-import { APP_VERSION } from '$lib/version';
-import type { RequestHandler } from './$types';
-
-export const GET: RequestHandler = async () => {
-    const status = {
-        status: 'ok',
-        timestamp: Date.now(),
-        version: APP_VERSION,
-        environment: process.env.NODE_ENV || 'development'
-    };
-
-    return json(status);
-};
+/**
+ * The single place the app reads its own version from.
+ *
+ * `VITE_APP_VERSION` is injected at build time by `vite.config.ts`, which reads
+ * the `version` field of package.json. Never hardcode a version string
+ * elsewhere — it will drift out of sync with the released artifact.
+ *
+ * The fallback only applies when the define is missing (e.g. a bare `vitest`
+ * run without the Vite config), and is deliberately marked as non-release so a
+ * misconfigured build is obvious instead of silently reporting a plausible
+ * version.
+ */
+export const APP_VERSION: string =
+  import.meta.env.VITE_APP_VERSION || "0.0.0-unknown";

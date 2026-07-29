@@ -24,6 +24,7 @@
         restoreFromBackup,
     } from "../../services/backupService";
     import { trackCustomEvent } from "../../services/trackingService";
+    import { APP_VERSION } from "../../lib/version";
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
@@ -40,7 +41,7 @@
         uiState.settingsTab = tab;
     }
 
-    const appVersion = import.meta.env.VITE_APP_VERSION || "0.0.0";
+    const appVersion = APP_VERSION;
 
     // System Tab Functions passed down
     async function handleBackup() {

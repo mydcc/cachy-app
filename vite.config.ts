@@ -7,9 +7,19 @@
  * (at your option) any later version.
  */
 
+import { readFileSync } from "node:fs";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
+
+// Single source of truth for the app version: the `version` field in
+// package.json, which semantic-release bumps on every release.
+// Read the file directly instead of relying on `process.env.npm_package_version`
+// — that variable is only set when Vite runs through an npm script, and it
+// silently injected `undefined` when invoked any other way.
+const { version: appVersion } = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
+) as { version: string };
 
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
@@ -18,9 +28,7 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "tests/e2e/**"],
   },
   define: {
-    "import.meta.env.VITE_APP_VERSION": JSON.stringify(
-      process.env.npm_package_version,
-    ),
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
   },
   optimizeDeps: {
     include: ["intl-messageformat"],

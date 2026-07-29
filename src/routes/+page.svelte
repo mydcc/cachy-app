@@ -25,6 +25,7 @@
   import TakeProfitTargets from "../components/inputs/TakeProfitTargets.svelte";
   import VisualBar from "../components/shared/VisualBar.svelte";
   import { CONSTANTS, themes, themeIcons, icons } from "../lib/constants";
+  import { APP_VERSION } from "../lib/version";
   import { app } from "../services/app";
   import { tradeState } from "../stores/trade.svelte";
   import { resultsState } from "../stores/results.svelte";
@@ -777,7 +778,7 @@ import { indicatorState } from "../stores/indicator.svelte";
   class="relative z-10 w-full max-w-4xl mx-auto text-center py-4 px-4 text-sm text-[var(--text-secondary)] flex flex-col md:flex-row justify-center items-center gap-4"
 >
   <div class="flex items-center justify-between w-full md:w-auto gap-4">
-    <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
+    <span>{$_("app.version")} {APP_VERSION}</span>
   </div>
 
   <div

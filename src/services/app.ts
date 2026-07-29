@@ -28,6 +28,7 @@ import { csvService } from "./csvService";
 import { apiService } from "./apiService";
 import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
+import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
 import { normalizeJournalEntry, parseDecimal } from "../utils/utils";
 import { safeJsonParse } from "../utils/safeJson";
@@ -78,7 +79,7 @@ export const app = {
           app_modals: uiState.windows.map((w) => w.id).join(","),
           app_viewport: `${window.innerWidth}x${window.innerHeight}`,
           app_zoom: window.devicePixelRatio,
-          app_version: import.meta.env.VITE_APP_VERSION,
+          app_version: APP_VERSION,
         };
       });
 
