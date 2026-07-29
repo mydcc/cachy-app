@@ -305,7 +305,7 @@ export class CalculatorService {
         }
       }
     });
-    // @ts-ignore - type matching between old and new might need casting
+    // @ts-expect-error - type matching between old and new might need casting
     newResults.calculatedTpDetails = calculatedTpDetails;
 
     // --- Total Metrics ---

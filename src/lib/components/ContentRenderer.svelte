@@ -41,7 +41,7 @@
         loading = true;
         error = '';
         try {
-          // @ts-ignore - slug checked above
+          // @ts-expect-error - slug checked above
           const result = await loadInstruction(slug, lang);
           fetchedContent = result.html;
         } catch (e) {

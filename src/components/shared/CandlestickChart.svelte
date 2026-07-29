@@ -195,11 +195,11 @@
     if (feature.candleIndex1 === undefined || feature.candleIndex2 === undefined) return;
     const x1 = getX(feature.candleIndex1);
     const x2 = getX(feature.candleIndex2);
-    // @ts-ignore
+    // @ts-expect-error
     const val1 = getCandle(feature.candleIndex1)[
       feature.yValue1Property || "close"
     ];
-    // @ts-ignore
+    // @ts-expect-error
     const val2 = getCandle(feature.candleIndex2)[
       feature.yValue2Property || "close"
     ];

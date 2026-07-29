@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-// @ts-ignore
+// @ts-expect-error
 import { GET } from '../../routes/api/external/cmc/+server';
 
 describe('CMC Proxy Security', () => {

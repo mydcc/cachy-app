@@ -65,7 +65,7 @@ describe('toNumFast', () => {
     describe('Decimal-like Objects', () => {
         it('should use .toNumber() if available', () => {
             const mockDecimal = { toNumber: () => 42 };
-            // @ts-ignore
+            // @ts-expect-error
             expect(toNumFast(mockDecimal)).toBe(42);
         });
     });
@@ -112,9 +112,9 @@ describe('toNumFast', () => {
         });
 
         it('should return 0 for boolean', () => {
-            // @ts-ignore
+            // @ts-expect-error
             expect(toNumFast(true)).toBe(0);
-            // @ts-ignore
+            // @ts-expect-error
             expect(toNumFast(false)).toBe(0);
         });
     });

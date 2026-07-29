@@ -417,7 +417,7 @@ export const apiService = {
       return safeJsonParse(text);
     } catch (e) {
       logger.error("network", "[API] JSON parse error");
-      throw new Error("apiErrors.invalidJson");
+      throw new Error("apiErrors.invalidJson", { cause: e });
     }
   },
 
@@ -473,7 +473,7 @@ export const apiService = {
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e instanceof ApiStatusError && e.status) throw e;
           if (e instanceof Error && e.message && e.message.includes(".")) throw e;
-          throw new Error("apiErrors.generic");
+          throw new Error("apiErrors.generic", { cause: e });
         }
       },
       priority,
@@ -564,7 +564,7 @@ export const apiService = {
         } catch (e: unknown) {
           console.error(e);
           if (e instanceof Error && e.name === "AbortError") throw e;
-          throw new Error("apiErrors.generic");
+          throw new Error("apiErrors.generic", { cause: e });
         }
       },
       priority,
@@ -752,7 +752,7 @@ export const apiService = {
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e instanceof ApiStatusError && e.status) throw e;
           if (e instanceof Error && e.message && e.message.includes(".")) throw e;
-          throw new Error("apiErrors.generic");
+          throw new Error("apiErrors.generic", { cause: e });
         }
       },
       priority,
@@ -823,7 +823,7 @@ export const apiService = {
         } catch (e: unknown) {
           logger.error("network", "Snapshot Fetch Error", e);
           if (e instanceof Error && e.name === "AbortError") throw e;
-          throw new Error("apiErrors.generic");
+          throw new Error("apiErrors.generic", { cause: e });
         }
       },
       priority,
@@ -920,7 +920,7 @@ export const apiService = {
           ) {
             throw e;
           }
-          throw new Error("apiErrors.generic");
+          throw new Error("apiErrors.generic", { cause: e });
         }
       },
       priority,

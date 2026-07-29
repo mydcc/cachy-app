@@ -173,6 +173,7 @@ class JournalManager {
     fn(this.entries);
     return $effect.root(() => {
       $effect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.entries; // Track
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);

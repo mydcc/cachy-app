@@ -950,7 +950,7 @@ export class SettingsManager {
             try {
               const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
               if (aborted) return;
-              // @ts-ignore
+              // @ts-expect-error
               this[key] = decrypted;
             } catch (e) {
               console.error("[Settings] Failed to decrypt secret " + key, e);
@@ -980,7 +980,7 @@ export class SettingsManager {
 
       // Clear generic secrets from memory
       for (const key of SENSITIVE_KEYS) {
-        // @ts-ignore
+        // @ts-expect-error
         this[key] = "";
       }
 
@@ -1013,7 +1013,6 @@ export class SettingsManager {
       // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
       // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
       const genericEncryptionTasks = SENSITIVE_KEYS.map(async (key) => {
-        // @ts-ignore
         const value = this[key];
         if (typeof value === 'string' && value.length > 0) {
           // Encrypt with Session Key (implied)
@@ -1151,7 +1150,7 @@ export class SettingsManager {
                  try {
                    const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
                    if (SENSITIVE_KEYS.includes(key as any)) {
-                     // @ts-ignore
+                     // @ts-expect-error
                      this[key] = decrypted;
                    }
                  } catch (e) {
@@ -1377,7 +1376,6 @@ export class SettingsManager {
 
       if (canEncrypt) {
         const encryptionTasks = SENSITIVE_KEYS.map(async (key) => {
-          // @ts-ignore
           const value = data[key];
 
           // Only encrypt if value is present and not empty
@@ -1388,14 +1386,14 @@ export class SettingsManager {
               data.encryptedSecrets![key] = blob;
 
               // Redact plain text from saved object
-              // @ts-ignore
+              // @ts-expect-error
               data[key] = "";
             } catch (err) {
               if (import.meta.env.DEV) {
                 console.error(`[Settings] Failed to encrypt ${key}:`, err);
               }
               // Safety: Do not save plain text on error
-              // @ts-ignore
+              // @ts-expect-error
               data[key] = "";
             }
           }
@@ -1404,7 +1402,7 @@ export class SettingsManager {
       } else {
         // Locked mode: Ensure plain text fields are empty
         for (const key of SENSITIVE_KEYS) {
-          // @ts-ignore
+          // @ts-expect-error
           data[key] = "";
         }
       }

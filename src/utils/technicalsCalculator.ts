@@ -628,14 +628,16 @@ function getSourceArray(
         case "open": return open;
         case "high": return high;
         case "low": return low;
-        case "hl2":
+        case "hl2": {
             const hl2 = new Float64Array(close.length);
             for(let i=0; i<close.length; i++) hl2[i] = (high[i] + low[i]) / 2;
             return hl2;
-        case "hlc3":
+        }
+        case "hlc3": {
             const hlc3 = new Float64Array(close.length);
             for(let i=0; i<close.length; i++) hlc3[i] = (high[i] + low[i] + close[i]) / 3;
             return hlc3;
+        }
         case "close":
         default: return close;
     }

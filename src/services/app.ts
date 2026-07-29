@@ -305,7 +305,6 @@ export const app = {
     if (saveJournalTask) return saveJournalTask;
 
     saveJournalTask = new Promise<void>((resolve) => {
-      // @ts-ignore
       const schedule = (window.requestIdleCallback) || ((cb: any) => setTimeout(cb, 1000));
 
       schedule(async () => {

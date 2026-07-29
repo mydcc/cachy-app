@@ -872,7 +872,7 @@ class BitunixWebSocketService {
 
           if (isObjectData) {
             switch (channel) {
-              case "price":
+              case "price": {
                 // HARDENING: Use Strict Zod Validation instead of loose casting
                 const priceRes = StrictPriceDataSchema.safeParse(data);
                 if (symbol && priceRes.success) {
@@ -912,8 +912,9 @@ class BitunixWebSocketService {
                   }
                 }
                 break;
+              }
 
-              case "ticker":
+              case "ticker": {
                 const tickerRes = StrictTickerDataSchema.safeParse(data);
                 if (symbol && tickerRes.success) {
                   try {
@@ -958,8 +959,9 @@ class BitunixWebSocketService {
                   }
                 }
                 break;
+              }
 
-              case "depth_book5":
+              case "depth_book5": {
                 const depthRes = StrictDepthDataSchema.safeParse(data);
                 if (symbol && depthRes.success) {
                   try {
@@ -978,6 +980,7 @@ class BitunixWebSocketService {
                   }
                 }
                 break;
+              }
 
               default:
                 // Klines (dynamic channel names)

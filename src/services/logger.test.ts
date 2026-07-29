@@ -55,7 +55,7 @@ describe('LoggerService', () => {
         consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
         // Reset browser mock default
-        // @ts-ignore
+        // @ts-expect-error
         appEnvironment.browser = true;
     });
 

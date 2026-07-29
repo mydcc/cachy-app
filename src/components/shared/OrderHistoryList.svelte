@@ -36,6 +36,7 @@
 
   // Reset page when orders reference changes (e.g. symbol switch)
   $effect(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
       orders;
       page = 1;
   });

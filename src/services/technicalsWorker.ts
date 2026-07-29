@@ -116,7 +116,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
                 buffers
             };
 
-            // @ts-ignore
+            // @ts-expect-error
             self.postMessage(response, [
                 buffers.times.buffer,
                 buffers.opens.buffer,

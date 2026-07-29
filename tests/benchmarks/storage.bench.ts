@@ -60,7 +60,7 @@ globalThis.IDBKeyRange = {
     upperBound: (upper) => ({ upper })
 } as any;
 
-// @ts-ignore
+// @ts-expect-error
 window.indexedDB = {
     open: () => {
         const req: any = {};
