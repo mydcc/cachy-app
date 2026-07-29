@@ -1,8 +1,7 @@
 # Cachy Technical Whitepaper
 
-**Version:** 0.94.3
-**Date:** February 2026
-**Last Updated:** February 14, 2026
+**Last Updated:** July 29, 2026
+**Last Verified Against Code:** v0.94.3 — so far only the security and privacy model (chapter 6) has been fully checked. The remaining chapters have not yet been verified against the implementation; see `docs/ROADMAP.md`, item 9.
 
 ---
 
@@ -490,12 +489,17 @@ Cachy acts as a pass-through entity.
 - **Transit**: Keys are sent only in the HTTP Headers of specific API requests.
 - **Server Side**: The Node.js proxy receives the request, signs it using the Secret, forwards it to Bitunix, and immediately discards the credentials from memory. No logs are kept.
 
-### No-Database Architecture
+### Data Class Boundary: What Stays Local and What Does Not
 
-By removing the database:
+Cachy is Local-First, but that does not mean "no server". The guarantee is defined precisely, by data class:
 
-1. **Attack Vector Elimination**: SQL Injection and Database Leaks are impossible.
-2. **GDPR/CCPA Compliance**: We do not process user data, so compliance is automatic by design.
+**Class A — never leaves the device.** Journal entries, settings, API keys and secrets, presets, private notes and trade drafts live in `localStorage` only. There is no server-side storage for this data — no database exists that could hold it, and therefore no SQL injection or database-leak surface applies to it. API keys leave the browser only as the credential of a user-initiated exchange request passing through the proxy layer (described above).
+
+**Class B — may reside on a server, opt-in.** Currently only Global Chat message content, stored in a SpacetimeDB instance. This feature is **disabled by default**, requires an explicit authentication token (anonymous access is prohibited), covers exactly three fields (sender, text, timestamp), and is not required for operation: the calculator, journal and risk management work fully when the server is unreachable.
+
+**Data protection position.** For Class A data, no processing by Cachy takes place. Class B chat messages, by contrast, are personal data processed on a server; a retention and deletion policy is required and is not yet implemented (see the roadmap). This distinction is stated deliberately rather than claiming blanket compliance.
+
+The binding version of this boundary — including the conditions under which future server-side features are permitted — is `docs/adr/0001-local-first-boundary.md`.
 
 ---
 

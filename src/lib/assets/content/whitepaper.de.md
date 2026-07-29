@@ -1,8 +1,7 @@
 # Cachy Technisches Whitepaper
 
-**Version:** 0.94.3
-**Datum:** Februar 2026
-**Letzte Aktualisierung:** 14. Februar 2026
+**Letzte Aktualisierung:** 29. Juli 2026
+**Letzter Abgleich mit dem Code:** v0.94.3 — vollständig geprüft ist bislang nur das Sicherheits- und Datenschutzmodell (Kapitel 6). Die übrigen Kapitel sind noch nicht gegen die Implementierung verifiziert; siehe `docs/ROADMAP.md`, Punkt 9.
 
 ---
 
@@ -486,12 +485,17 @@ Cachy fungiert als Durchgangsinstanz.
 - **Übertragung**: Schlüssel werden nur in den HTTP-Headern spezifischer API-Anfragen gesendet.
 - **Server-seitig**: Der Node.js-Proxy empfängt die Anfrage, signiert sie mit dem Geheimnis, leitet sie an Bitunix weiter und verwirft die Anmeldeinformationen sofort aus dem Speicher. Es werden keine Protokolle geführt.
 
-### Datenbanklose Architektur
+### Datenklassen-Grenze: Was lokal bleibt und was nicht
 
-Durch das Entfernen der Datenbank:
+Cachy ist Local-First, aber das bedeutet nicht „kein Server". Die Garantie ist präzise nach Datenklassen definiert:
 
-1. **Eliminierung von Angriffsvektoren**: SQL-Injection und Datenbank-Lecks sind unmöglich.
-2. **DSGVO/CCPA-Konformität**: Wir verarbeiten keine Benutzerdaten, daher ist die Konformität per Design automatisch gegeben.
+**Klasse A — verlässt das Gerät nie.** Journal, Einstellungen, API-Schlüssel und Secrets, Presets, private Notizen und Trade-Entwürfe liegen ausschließlich im `localStorage`. Für diese Daten existiert keine serverseitige Speicherung — es gibt keine Datenbank, in der sie stehen könnten, und damit für sie auch keine Angriffsfläche durch SQL-Injection oder Datenbank-Lecks. API-Schlüssel verlassen den Browser nur als Credential eines vom Nutzer ausgelösten Börsen-Requests durch die Proxy-Schicht (siehe oben).
+
+**Klasse B — darf serverseitig liegen, opt-in.** Derzeit ausschließlich der Inhalt von Global-Chat-Nachrichten, gespeichert in einer SpacetimeDB-Instanz. Diese Funktion ist standardmäßig **deaktiviert**, erfordert ein explizites Authentifizierungs-Token (anonymer Zugriff ist ausgeschlossen), umfasst genau drei Felder (Absender, Text, Zeitstempel) und ist für den Betrieb nicht erforderlich: Rechner, Journal und Risikomanagement funktionieren vollständig, wenn der Server nicht erreichbar ist.
+
+**Datenschutzrechtliche Einordnung.** Für Klasse-A-Daten findet keine Verarbeitung durch Cachy statt. Chat-Nachrichten der Klasse B sind demgegenüber personenbezogene Daten, die auf einem Server verarbeitet werden; eine Aufbewahrungs- und Löschrichtlinie ist erforderlich und noch nicht umgesetzt (siehe Roadmap). Diese Unterscheidung wird hier bewusst benannt, statt eine pauschale Konformität zu behaupten.
+
+Die verbindliche Fassung dieser Grenze — einschließlich der Bedingungen, unter denen künftige Server-Funktionen zulässig sind — steht in `docs/adr/0001-local-first-boundary.md`.
 
 ### AES-256 Backup-Verschlüsselung
 

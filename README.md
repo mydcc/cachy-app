@@ -47,7 +47,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Multi-API Support:** Choose between **Bitunix** (Default) and **Bitget** as your data source.
 - **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 - **API Integration:** Optional API keys for auto-fetching account balance and private data.
-- **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
+- **Privacy:** Your journal, settings, API keys, presets and notes are stored only in your browser's `localStorage` and are never sent to a Cachy server. The one optional exception is Global Chat message content — off by default, requires an explicit token, and every core function works without it. See [ADR-0001](docs/adr/0001-local-first-boundary.md).
 - **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
 - **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 - **Multilingual:** German and English support.
@@ -61,7 +61,8 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Debug Mode:** Optional system logs for better diagnostics.
 - **Symbol Normalization:** Improved handling of symbol suffixes for stable API mapping.
 - **Mobile Optimization:** Enhanced mobile layout with toggleable Sidebar/Market Overview.
-- **Security:** All data remains local (localStorage), no cloud/server persistence.
+- **Security:** Trading data and credentials remain local (`localStorage`). The only server-side data is optional Global Chat message content — see the Privacy note above.
+- **Global Chat (optional):** An opt-in chat backed by SpacetimeDB, reachable from the Cloud settings tab. Disabled by default and never carries journal, settings or key data.
 
 ---
 
@@ -163,16 +164,25 @@ Contributions are welcome! Please follow these steps:
 
 ## 🔖 Versioning
 
-Cachy uses [semantic-release](https://semantic-release.gitbook.io/). Version numbers are **never edited by hand** — the commit messages that land on `develop` determine the next release:
+Cachy uses [semantic-release](https://semantic-release.gitbook.io/). Version numbers are **never edited by hand** — the commit messages determine the next release:
 
-| Commit prefix                 | Release | Example                          |
-| ----------------------------- | ------- | -------------------------------- |
-| `fix:` / `perf:`              | Patch   | `0.94.3` → `0.94.4`              |
-| `feat:`                       | Minor   | `0.94.3` → `0.95.0`              |
-| `BREAKING CHANGE:` in footer  | Major   | `0.94.3` → `1.0.0`               |
-| `chore:` `docs:` `refactor:` … | none   | no release                        |
+| Commit prefix                  | Release | Example             |
+| ------------------------------ | ------- | ------------------- |
+| `fix:` / `perf:`               | Patch   | `0.94.3` → `0.94.4` |
+| `feat:`                        | Minor   | `0.94.3` → `0.95.0` |
+| `BREAKING CHANGE:` in footer   | Major   | `0.94.3` → `1.0.0`  |
+| `chore:` `docs:` `refactor:` … | none    | no release          |
 
-On every push to `develop`, the Release workflow bumps `version` in `package.json`, prepends the release notes to `CHANGELOG.md`, creates the Git tag and publishes a GitHub release.
+### Branches
+
+Two release channels, matching the split `deploy.sh` already uses via `.deploy.conf`:
+
+| Branch    | Channel            | Deploys to     | Example version  |
+| --------- | ------------------ | -------------- | ---------------- |
+| `main`    | stable             | cachy.app      | `0.94.4`         |
+| `develop` | `beta` prerelease  | dev.cachy.app  | `0.94.4-beta.1`  |
+
+Feature branches target `develop`. On every push, the Release workflow bumps `version` in `package.json`, prepends the release notes to `CHANGELOG.md`, creates the Git tag and publishes a GitHub release. A stable release happens when `develop` merges into `main`.
 
 The app reads its version from exactly one place: the `version` field in `package.json`. `vite.config.ts` injects it as `VITE_APP_VERSION`, and `src/lib/version.ts` exposes it as `APP_VERSION`. **Do not hardcode version strings anywhere else** — if you see `0.0.0-unknown` in the UI, the build did not pick up the injected value.
 

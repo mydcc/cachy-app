@@ -57,19 +57,29 @@ semantic-release derives the next version from the **most recent Git tag**. The
 repository has none, and with no tag present semantic-release publishes its
 default first release of `1.0.0` instead of continuing from `0.94.3`.
 
-To keep the intended numbering, a baseline tag has to exist on `develop` before
-the first automated release:
+**The anchor is now unambiguous, but the tag still has to be pushed by hand.**
+Once `main` was found to exist (see section 5), the right target became clear:
+the tag belongs on the stable line, not on `develop`. It should point at
+`main` / `d324c32` — the commit currently deployed to cachy.app — so the stable
+channel starts from a real released state rather than from work in progress:
 
 ```bash
-git checkout develop
-git tag -a v0.94.3 -m "Baseline before automated releases"
+git fetch origin main
+git tag -a v0.94.3 origin/main -m "Baseline release before automated versioning"
 git push origin v0.94.3
 ```
 
-This was deliberately **not** done automatically, because it is ambiguous which
-commit truly represents 0.94.3: the legacy changelog dates that release to
-February 2026, while the current `develop` HEAD contains later work. Tagging the
-current HEAD is the pragmatic choice, but it is a call for the maintainer.
+This could not be completed from the development environment: its Git proxy
+rejects tag pushes (`send-pack: unexpected disconnect`, reproduced across four
+retries with exponential backoff), and the available GitHub tooling can create
+branches but not tags or releases. Verified with `list_tags` that the repository
+still has none.
+
+With `develop` configured as a `beta` prerelease channel, the next release from
+`develop` will be a `0.94.4-beta.N` prerelease (the commits on this branch are
+`fix:`, `ci:`, `build:`, `docs:` and `chore:`; the first `feat:` will move the
+minor to `0.95.0-beta.N`). Stable `0.94.4` follows when `develop` merges to
+`main`.
 
 ---
 
@@ -114,17 +124,32 @@ The code says otherwise:
 - However, `chatStore` is imported **only by its own test file** — no route or
   component wires it up.
 
-So the feature is partly removed, partly orphaned, and the documentation states
-it is fully gone. Nothing was deleted here: per the project's defensive-deletion
-rule, code whose purpose is unclear stays. This needs a deliberate decision:
+Further investigation found a **second, current** chat backend that the first
+pass missed: `src/services/cloudService.ts` connects to **SpacetimeDB** and is
+wired to `src/components/settings/tabs/CloudTab.svelte`. The server module is
+`server/spacetimedb/src/index.ts` with a single `send_message` reducer, and 10
+generated binding files live in `src/lib/spacetimedb/`.
 
-- **Remove** the remaining Global Chat code and the server store, making the
-  Local-First claim true, or
-- **Keep** it as an intentional server-side feature and correct `CLAUDE.md`, the
-  README and the whitepaper to describe it honestly.
+Decisively, the SpacetimeDB table `GlobalMessage` contains exactly three fields —
+`sender`, `text`, `sentAt`. No journal entry, setting, preset, note or API key
+appears in the schema or in any reducer, `connect()` refuses to run without an
+explicit token, and the only entry point is a settings tab the user must open.
 
-For an application handling real money, the privacy claim in the whitepaper
-should not be broader than what the code guarantees.
+So the guarantee that actually matters — trading data and credentials never leave
+the device — **held in the code all along**. Only the documentation was wrong, and
+wrong in both directions at once: too absolute about the architecture, and
+incorrect about Global Chat having been removed.
+
+**Resolved.** Global Chat is kept as an optional, opt-in server feature.
+`docs/adr/0001-local-first-boundary.md` defines Local-First as a data class
+boundary rather than an absolute, and `CLAUDE.md`, the README and both
+whitepapers now state that boundary. The whitepaper's previous blanket
+GDPR/CCPA claim ("we do not process user data") was removed: chat messages are
+personal data processed on a server, which implies a retention and deletion
+policy that does not yet exist (roadmap item 15).
+
+The orphaned file-based `chatStore.ts` remains untouched and is roadmap item 12 —
+it has no authentication and would violate the boundary's second condition.
 
 ---
 
@@ -183,11 +208,17 @@ Left for a decision, deliberately not touched:
 - **`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
   no secrets, only infrastructure paths and ports, but it is the example file
   filled in — normally environment-specific and left untracked.
-- **Branch mismatch:** `.deploy.conf` sets `BRANCH_STABLE="main"` and all CI
-  workflows trigger on `[main, develop]`, but **no `main` branch exists** on the
-  remote. `develop` is the default branch. Either create `main` as the stable
-  branch (the deploy script and the documented stable/beta split assume it) or
-  drop the references. `.releaserc.json` currently releases from `develop` only.
+- ~~**Branch mismatch:** no `main` branch exists on the remote.~~ **Incorrect —
+  corrected.** `main` does exist, at `d324c32`, two commits behind `develop` and
+  fully contained in it. The initial audit relied on `git branch -a`, which in
+  this partial clone only listed the branches that had been fetched;
+  `git ls-remote --heads origin main` shows it. `.deploy.conf` was right all
+  along, and the stable/beta split it documents is real.
+
+  **Resolved:** `.releaserc.json` now configures `main` for stable releases and
+  `develop` as a `beta` prerelease channel, matching `.deploy.conf`
+  (`BRANCH_STABLE=main` → cachy.app, `BRANCH_BETA=develop` → dev.cachy.app).
+  `release.yml` triggers on both.
 - **Ad-hoc scripts without structure:** `verification/`, `plans/`,
   `src/verify_settings_v2.py`, and roughly 20 mixed Python/JS helper scripts in
   `scripts/`. Worth grouping and documenting, or removing what is spent.
