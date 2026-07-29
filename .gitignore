@@ -80,6 +80,9 @@ dist/
 ! .env.example
 db/
 test-results/
+playwright-report/
+blob-report/
+.playwright/
 reports/
 target/
 technicals-wasm/target/
