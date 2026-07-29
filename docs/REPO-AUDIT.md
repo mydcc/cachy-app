@@ -35,7 +35,7 @@ This was not cosmetic. The failure chain:
 
 ### Fixed
 
-- `package.json` now declares `name`, `version` (`0.94.3`), `license`,
+- `package.json` now declares `name`, `version` (`1.0.0`), `license`,
   `description` and `repository`.
 - `vite.config.ts` reads the version out of `package.json` directly, so it no
   longer depends on being launched through an npm script.
@@ -47,41 +47,34 @@ This was not cosmetic. The failure chain:
   `APP_VERSION` drifts from `package.json`.
 - semantic-release, commitlint and the previously missing ESLint packages are
   installed. `.releaserc.json` and `commitlint.config.js` configure them.
-- `.github/workflows/release.yml` releases from `develop`;
+- `.github/workflows/release.yml` releases from `main` and `develop`;
   `.github/workflows/commit-lint.yml` rejects non-conforming commits in pull
   requests.
 
-### Still required — one manual step
+### Versioning restarts at 1.0.0
 
-semantic-release derives the next version from the **most recent Git tag**. The
-repository has none, and with no tag present semantic-release publishes its
-default first release of `1.0.0` instead of continuing from `0.94.3`.
+semantic-release derives the next version from the most recent Git tag. The
+repository has none — and rather than anchoring a tag to continue the
+hand-maintained 0.9x line, the decision was to **restart at 1.0.0**. With no tag
+present, `1.0.0` is exactly what semantic-release publishes as its first release,
+so no baseline tag is needed and no manual step remains.
 
-**The anchor is now unambiguous, but the tag still has to be pushed by hand.**
-Once `main` was found to exist (see section 5), the right target became clear:
-the tag belongs on the stable line, not on `develop`. It should point at
-`main` / `d324c32` — the commit currently deployed to cachy.app — so the stable
-channel starts from a real released state rather than from work in progress:
+`package.json` declares `1.0.0`. The 0.9x history stays in
+`docs/CHANGELOG-legacy.md`. Because the published number jumps series, the change
+carries a `BREAKING CHANGE:` footer — anything comparing against 0.9x strings,
+including the `/api/health` `version` field, has to be updated.
 
-```bash
-git fetch origin main
-git tag -a v0.94.3 origin/main -m "Baseline release before automated versioning"
-git push origin v0.94.3
-```
+Two release channels are configured, matching the split `deploy.sh` already uses
+via `.deploy.conf`: `main` publishes stable releases (cachy.app) and `develop`
+publishes `-beta.N` prereleases (dev.cachy.app). So the first release from
+`develop` will be `1.0.0-beta.1`, with stable `1.0.0` following when `develop`
+merges to `main`.
 
-This could not be completed from the development environment: its Git proxy
-rejects tag pushes (`send-pack: unexpected disconnect`, reproduced across four
-retries with exponential backoff), and the available GitHub tooling can create
-branches but not tags or releases. Verified with `list_tags` that the repository
-still has none.
-
-With `develop` configured as a `beta` prerelease channel, the next release from
-`develop` will be a `0.94.4-beta.N` prerelease (the commits on this branch are
-`fix:`, `ci:`, `build:`, `docs:` and `chore:`; the first `feat:` will move the
-minor to `0.95.0-beta.N`). Stable `0.94.4` follows when `develop` merges to
-`main`.
-
----
+One gap worth noting: the app renders its in-app changelog from
+`src/lib/assets/content/changelog.{de,en}.md`, **not** from the generated
+`CHANGELOG.md`, so releases will not update what users see. Both files now carry
+a note pointing at the generated changelog; wiring them together is roadmap
+item 11a.
 
 ## 2. Documentation contradicted the code
 
