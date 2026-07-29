@@ -26,6 +26,12 @@ export default defineConfig({
   test: {
     // Playwright specs must only run via `npm run test:e2e`, not Vitest
     exclude: [...configDefaults.exclude, "tests/e2e/**"],
+    // Most of the suite exercises browser-facing code (localStorage, window),
+    // but no default environment was configured, so those files failed to load
+    // under the implicit `node` default. Individual files can still opt out
+    // with `// @vitest-environment node`, and the 12 files that already declare
+    // jsdom or happy-dom keep their own choice — per-file directives win.
+    environment: "happy-dom",
   },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
