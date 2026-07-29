@@ -35,7 +35,9 @@ describe("Chat API v2", () => {
     }
     try {
         await fs.rm(DB_FILE, { force: true });
-    } catch {}
+    } catch {
+        // Test cleanup only — a missing file is the expected case.
+    }
   });
 
   it("should return initial welcome message on GET", async () => {

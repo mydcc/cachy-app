@@ -164,25 +164,47 @@ Analysis showed most were configuration faults rather than code defects:
 | `no-undef` on TypeScript files, which cannot see ambient type names like `EventListener` or `NodeJS`, nor Svelte 5 runes | 498 | Disabled for TS per typescript-eslint guidance; runes declared as globals. `npm run check` is the real gate and passes with 0 errors. |
 | `no-redeclare` on the const-object-as-enum pattern in `src/types/orderTypes.ts`, where `export const OrderSide` and `export type OrderSide` legitimately occupy separate declaration spaces | 3 | Disabled; `tsc` is the authority. |
 
-That leaves **112 errors and 1374 warnings** across 334 files of genuine
-project code. `@typescript-eslint/no-explicit-any` (983) and
-`no-unused-vars` (388) dominate and are set to `warn`, so the backlog stays
-visible without blocking every pull request. Linting is intentionally **not** a
-CI gate yet.
+Of the genuine findings that remained, **all 112 errors are now fixed and lint is
+a required CI check** (`.github/workflows/audit.yml`). Highlights:
 
-Notable items in the remaining errors:
+- **22 `no-unused-expressions` were not defects at all.** Every one was a
+  deliberate Svelte 5 dependency registration — a bare read like
+  `_s.accountSize;` inside `$effect`, which is what subscribes the effect to that
+  rune. Removing one would silently stop the calculator recalculating when that
+  input changes. They carry inline disables explaining the pattern; the rule
+  stays active everywhere else.
+- **Converting 27 `@ts-ignore` to `@ts-expect-error` exposed four dead
+  suppressions** — directives on lines that produce no error at all, in
+  `app.ts`, `cryptoService.ts` and `settings.svelte.ts` (x2). They had been
+  masking nothing while hiding type checking. Removed.
+- **The 10 `preserve-caught-error` sites now chain the original failure** via
+  `{ cause: e }`. Thrown messages are unchanged i18n keys, so the UI is
+  unaffected, but exchange and storage failures are now diagnosable.
+- **10 empty `catch` blocks were all intentional** best-effort teardown
+  (WebSocket send/close, JSON fallback, test cleanup). Each now carries a comment
+  stating why nothing is done — which both documents the intent and satisfies
+  the rule.
+- **Dead initialisers were removed where TypeScript can prove the paths.** In
+  `calculatePivotsFromValues` the `let p = 0` defaults were genuinely dangerous:
+  a missed branch would have emitted a pivot of `0`, which looks like a real
+  price level. With `strict: true`, the uninitialised declarations now fail the
+  build instead.
+- **The parse error at `+layout.svelte`** was resolved by moving the JSON-LD
+  construction into the script block and concatenating the tag delimiters, so
+  neither the Svelte compiler nor `svelte-eslint-parser` sees a literal script
+  tag. Output verified byte-equivalent.
+- **Test and benchmark files keep relaxed rules** for module mocking
+  (`no-require-imports`, `no-import-assign`, `no-useless-catch`), and
+  `safeJson.bench.ts` disables `no-loss-of-precision` because its fixtures
+  deliberately exceed IEEE 754 precision — that is the thing being benchmarked.
 
-- `preserve-caught-error` (10) — errors rethrown without a `cause` in
-  `src/services/apiService.ts`, `tradeService.ts` and `src/utils/storageUtils.ts`,
-  which loses the original failure when diagnosing exchange API problems.
-- `no-loss-of-precision` (5) — all in `tests/benchmarks/safeJson.bench.ts`, which
-  tests precision-losing literals deliberately. **No production money path is
-  affected.**
-- One parse error at `src/routes/+layout.svelte:369` is a
-  `svelte-eslint-parser` limitation with a JSON-LD `<script>` inside `{@html}`.
-  The code is valid and ships correctly; it was left untouched.
+**1367 warnings remain**, dominated by `no-explicit-any` (983) and
+`no-unused-vars` (388). CI enforces `--max-warnings 1367` as a ratchet: the
+ceiling may only be lowered, so the backlog can shrink but never grow.
 
----
+Verified across the whole change: `npm run check` stays at 0 errors and the full
+test suite reports the identical 28 pre-existing failures (777 passing, 0 new,
+0 fixed).
 
 ## 5. Repository hygiene
 

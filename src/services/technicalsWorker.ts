@@ -116,7 +116,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
                 buffers
             };
 
-            // @ts-expect-error
+            // @ts-expect-error -- the transfer-list overload of postMessage is not on the ambient worker self type
             self.postMessage(response, [
                 buffers.times.buffer,
                 buffers.opens.buffer,

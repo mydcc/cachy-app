@@ -550,7 +550,7 @@ export class MarketManager {
     // Calculate Limit
     const userLimit = settingsState.chartHistoryLimit || 2000;
     const safetyLimit = 50000;
-    let effectiveLimit = userLimit;
+    let effectiveLimit: number;
     if (!enforceLimit) {
       effectiveLimit = safetyLimit;
     } else {
@@ -831,7 +831,7 @@ export class MarketManager {
     });
     return () => {
       if (typeof cleanup === 'function') {
-        (cleanup as Function)();
+        (cleanup as () => void)();
       } else if (cleanup && typeof (cleanup as any).stop === 'function') {
         (cleanup as any).stop();
       }
@@ -855,7 +855,7 @@ export class MarketManager {
     });
     return () => {
       if (typeof cleanup === 'function') {
-        (cleanup as Function)();
+        (cleanup as () => void)();
       } else if (cleanup && typeof (cleanup as any).stop === 'function') {
         (cleanup as any).stop();
       }

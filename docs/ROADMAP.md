@@ -67,18 +67,20 @@ missing is everything around it:
 
 ### Code health
 
-| # | Item |
-| --- | --- |
-| 18 | Fix the 28 pre-existing test failures (see `docs/REPO-AUDIT.md`) |
-| 19 | Attach `cause` to rethrown errors — 10 sites in `apiService.ts`, `tradeService.ts`, `storageUtils.ts` lose the original failure when diagnosing exchange problems |
-| 20 | Burn down the 112 ESLint errors, then make lint a required CI check |
-| 21 | Burn down the 1374 `no-explicit-any` / `no-unused-vars` warnings, then restore both rules to `error` |
-| 22 | Resolve `.deploy.conf` being committed alongside its own `.example` |
-| 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) |
-| 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` |
+| # | Item | Status |
+| --- | --- | --- |
+| 18 | Fix the 28 pre-existing test failures (see `docs/REPO-AUDIT.md`) | ⚪ |
+| 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
+| 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
+| 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
+| 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
+| 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
+| 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 
-Items 18 and 20 are the two that currently prevent CI from being a real quality
-gate. Until they are done, green CI means less than it appears to.
+Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
+the backlog cannot grow. **Item 18 is now the one thing still holding CI back** —
+28 tests fail on `develop` independently of any change, so a green pull request
+does not yet mean the suite is healthy.
 
 ---
 

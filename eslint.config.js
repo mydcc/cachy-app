@@ -133,16 +133,38 @@ export default [
     },
   },
 
-  // Test files specific config
+  // Test, benchmark and spec files.
+  //
+  // Test code legitimately does things production code must not: replacing
+  // module exports to inject mocks, requiring modules dynamically to control
+  // import order, and wrapping assertions in scaffolding. These rules are
+  // relaxed here only — they stay errors everywhere else. Note that tsconfig.json
+  // excludes these paths, so `npm run check` does not cover them either.
   {
-    files: ["**/*.test.ts"],
+    files: [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.bench.ts",
+      "tests/**/*.ts",
+      "src/tests/**/*.ts",
+      "src/benchmarks/**/*.ts",
+    ],
     plugins: {
       "@typescript-eslint": tsPlugin,
     },
     languageOptions: {
       globals: {
         ...globals.vitest,
+        ...globals.node,
       },
+    },
+    rules: {
+      // `require()` is used to control module load order around vi.mock().
+      "@typescript-eslint/no-require-imports": "off",
+      // Assigning to an imported binding is how module state is stubbed.
+      "no-import-assign": "off",
+      // Try/catch scaffolding around assertions is acceptable in tests.
+      "no-useless-catch": "off",
     },
   },
 ];

@@ -830,7 +830,9 @@ class BitunixWebSocketService {
         args: [{ apiKey, timestamp, nonce, sign }],
       };
       this.wsPrivate.send(JSON.stringify(payload));
-    } catch (error) {
+    } catch {
+      // Best effort send on the private socket. If it is not writable the
+      // reconnect handler re-subscribes, so there is nothing to do here.
     }
   }
 

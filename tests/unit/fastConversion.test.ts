@@ -65,7 +65,7 @@ describe('toNumFast', () => {
     describe('Decimal-like Objects', () => {
         it('should use .toNumber() if available', () => {
             const mockDecimal = { toNumber: () => 42 };
-            // @ts-expect-error
+            // @ts-expect-error -- deliberately passing a Decimal-shaped mock to check the fast path
             expect(toNumFast(mockDecimal)).toBe(42);
         });
     });
@@ -112,9 +112,9 @@ describe('toNumFast', () => {
         });
 
         it('should return 0 for boolean', () => {
-            // @ts-expect-error
+            // @ts-expect-error -- deliberately passing an invalid type to assert the runtime fallback
             expect(toNumFast(true)).toBe(0);
-            // @ts-expect-error
+            // @ts-expect-error -- deliberately passing an invalid type to assert the runtime fallback
             expect(toNumFast(false)).toBe(0);
         });
     });

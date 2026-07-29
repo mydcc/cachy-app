@@ -115,7 +115,7 @@
             if (bVal == null) return -1;
 
             // Compare
-            let comparison = 0;
+            let comparison: number;
 
             // Computed field: slAtr
             if (field === "slAtr") {

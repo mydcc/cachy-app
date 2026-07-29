@@ -47,7 +47,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     const data = await cache.getOrFetch(
       cacheKey,
       async () => {
-        let apiUrl = "";
+        let apiUrl: string;
         if (provider === "bitget") {
           // Bitget Futures API
           if (symbols) {

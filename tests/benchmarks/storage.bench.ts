@@ -60,7 +60,7 @@ globalThis.IDBKeyRange = {
     upperBound: (upper) => ({ upper })
 } as any;
 
-// @ts-expect-error
+// @ts-expect-error -- window.indexedDB is readonly; replaced with a stub for the benchmark
 window.indexedDB = {
     open: () => {
         const req: any = {};

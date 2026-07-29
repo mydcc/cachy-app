@@ -74,10 +74,10 @@ class JournalManager {
     if (count > 0) {
       // Run repair in background without blocking UI
       dataRepairService
-        .repairMissingAtr((current, total, message) => {
-          // Silent background operation - no UI feedback
-          if (current === total) {
-          }
+        .repairMissingAtr(() => {
+          // Progress callback is required by repairMissingAtr but intentionally
+          // does nothing: this repair runs silently in the background with no
+          // UI feedback. Failures surface via the .catch() below.
         })
         .catch((err) => {
           console.warn("[Journal] ATR auto-calculation failed:", err);

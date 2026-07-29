@@ -291,7 +291,10 @@ class BitgetWebSocketService {
         try {
           this.lastPingTime = Date.now();
           ws.send("ping");
-        } catch (e) { }
+        } catch {
+          // Best effort keepalive. A failed ping means the socket is already
+          // gone; the close/reconnect handler owns recovery.
+        }
       }
     }, PING_INTERVAL);
   }
@@ -331,7 +334,9 @@ class BitgetWebSocketService {
       this.ws.onclose = null;
       try {
         this.ws.close();
-      } catch (e) { }
+      } catch {
+        // Teardown must never throw — the socket may already be closed.
+      }
     }
     this.ws = null;
     this.isReconnecting = false;
@@ -584,7 +589,12 @@ class BitgetWebSocketService {
         instId: symbol
       }]
     };
-    try { ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch {
+      // Best effort subscribe/unsubscribe. If the socket is not writable
+      // the reconnect handler replays subscriptions.
+    }
   }
 
   private sendUnsubscribe(ws: WebSocket, symbol: string, channel: string) {
@@ -596,7 +606,12 @@ class BitgetWebSocketService {
         instId: symbol
       }]
     };
-    try { ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch {
+      // Best effort subscribe/unsubscribe. If the socket is not writable
+      // the reconnect handler replays subscriptions.
+    }
   }
 
   private resubscribe() {
@@ -623,7 +638,12 @@ class BitgetWebSocketService {
     }));
 
     const payload = { op: "subscribe", args };
-    try { this.ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      this.ws.send(JSON.stringify(payload));
+    } catch {
+      // Best effort subscribe/unsubscribe. If the socket is not writable
+      // the reconnect handler replays subscriptions.
+    }
   }
 }
 

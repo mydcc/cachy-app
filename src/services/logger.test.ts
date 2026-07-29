@@ -55,7 +55,7 @@ describe('LoggerService', () => {
         consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
         // Reset browser mock default
-        // @ts-expect-error
+        // @ts-expect-error -- overriding a module export to exercise the browser code path
         appEnvironment.browser = true;
     });
 

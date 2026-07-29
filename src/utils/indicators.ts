@@ -1490,13 +1490,13 @@ export function calculatePivotsFromValues(
   const close = c;
   const open = o;
 
-  let p = 0;
-  let r1 = 0,
-    r2 = 0,
-    r3 = 0;
-  let s1 = 0,
-    s2 = 0,
-    s3 = 0;
+  // Deliberately uninitialised: every `type` branch below, including the final
+  // `else`, assigns all seven. With `strict: true` TypeScript now fails the
+  // build if a future branch forgets one, instead of silently emitting a pivot
+  // of 0 — which would look like a real price level.
+  let p: number;
+  let r1: number, r2: number, r3: number;
+  let s1: number, s2: number, s3: number;
 
   if (type === "woodie") {
     p = (high + low + close * 2) / 4;

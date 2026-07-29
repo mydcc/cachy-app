@@ -109,7 +109,11 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: any) {
         let rawMsg = e instanceof Error ? e.message : String(e);
     if (typeof e === "object" && e !== null && !e.message) {
-      try { rawMsg = JSON.stringify(e); } catch {}
+      try {
+        rawMsg = JSON.stringify(e);
+      } catch {
+        // Non-serialisable (circular) error object — keep the String(e) fallback.
+      }
     }
     console.error(`Error processing TP/SL request:`, sanitizeErrorMessage(rawMsg, 1000));
 

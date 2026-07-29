@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-// @ts-expect-error
+// @ts-expect-error -- route module import without its generated $types, which are unavailable outside the SvelteKit build
 import { GET } from '../../routes/api/external/cmc/+server';
 
 describe('CMC Proxy Security', () => {

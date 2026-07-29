@@ -358,28 +358,42 @@ import { afterNavigate } from "$app/navigation";
       marketWatcher.refreshActiveHistory();
     });
   });
+
+  // JSON-LD structured data for search engines.
+  //
+  // The tag delimiters are concatenated rather than written literally. A
+  // verbatim closing script tag would terminate this very script block, and a
+  // verbatim opening one inside a template literal in the markup cannot be
+  // parsed by svelte-eslint-parser.
+  const JSON_LD_OPEN = "<" + 'script type="application/ld+json">';
+  const JSON_LD_CLOSE = "<" + "/" + "script>";
+
+  const jsonLdTag = $derived(
+    JSON_LD_OPEN +
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "Cachy",
+        applicationCategory: "FinanceApplication",
+        operatingSystem: "Web",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+        image: "https://cachy.app/og-image.jpg",
+        description: $_("seo.description"),
+      }) +
+      JSON_LD_CLOSE,
+  );
 </script>
 
 <svelte:head>
   <title>{$_("seo.pageTitle")}</title>
   <meta name="description" content={$_("seo.description")} />
 
-  {@html `<script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Cachy",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "image": "https://cachy.app/og-image.jpg",
-      "description": ${JSON.stringify($_("seo.description"))}
-    }
-    </script>`}
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -- static structured data assembled in the script block, no user input -->
+  {@html jsonLdTag}
 </svelte:head>
 
 <div class="app-container">

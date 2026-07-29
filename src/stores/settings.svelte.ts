@@ -950,7 +950,7 @@ export class SettingsManager {
             try {
               const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
               if (aborted) return;
-              // @ts-expect-error
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
               this[key] = decrypted;
             } catch (e) {
               console.error("[Settings] Failed to decrypt secret " + key, e);
@@ -980,7 +980,7 @@ export class SettingsManager {
 
       // Clear generic secrets from memory
       for (const key of SENSITIVE_KEYS) {
-        // @ts-expect-error
+        // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
         this[key] = "";
       }
 
@@ -1150,7 +1150,7 @@ export class SettingsManager {
                  try {
                    const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
                    if (SENSITIVE_KEYS.includes(key as any)) {
-                     // @ts-expect-error
+                     // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
                      this[key] = decrypted;
                    }
                  } catch (e) {
@@ -1386,14 +1386,14 @@ export class SettingsManager {
               data.encryptedSecrets![key] = blob;
 
               // Redact plain text from saved object
-              // @ts-expect-error
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
               data[key] = "";
             } catch (err) {
               if (import.meta.env.DEV) {
                 console.error(`[Settings] Failed to encrypt ${key}:`, err);
               }
               // Safety: Do not save plain text on error
-              // @ts-expect-error
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
               data[key] = "";
             }
           }
@@ -1402,7 +1402,7 @@ export class SettingsManager {
       } else {
         // Locked mode: Ensure plain text fields are empty
         for (const key of SENSITIVE_KEYS) {
-          // @ts-expect-error
+          // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
           data[key] = "";
         }
       }

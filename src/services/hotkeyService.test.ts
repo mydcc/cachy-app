@@ -202,7 +202,7 @@ describe("HotkeyService", () => {
   it("should ignore hotkeys when input is focused", () => {
     // Mock input being focused
     const inputElement = { ...mockElement, tagName: "INPUT" };
-    // @ts-expect-error
+    // @ts-expect-error -- document.activeElement is readonly; assigned directly to simulate focus
     global.document.activeElement = inputElement;
 
     const event = new KeyboardEvent("keydown", { key: "t" });
@@ -215,7 +215,7 @@ describe("HotkeyService", () => {
 
   it("should handle Direct Mode (Mode 1) hotkeys", () => {
     settingsState.hotkeyMode = "mode1";
-    // @ts-expect-error
+    // @ts-expect-error -- document.activeElement is readonly; assigned directly to simulate focus
     global.document.activeElement = document.body;
 
     const event = new KeyboardEvent("keydown", { key: "e" });
@@ -230,7 +230,7 @@ describe("HotkeyService", () => {
 
   it("should handle Safety Mode (Mode 2) hotkeys", () => {
     settingsState.hotkeyMode = "mode2";
-    // @ts-expect-error
+    // @ts-expect-error -- document.activeElement is readonly; assigned directly to simulate focus
     global.document.activeElement = document.body;
 
     // Press 'E' without Alt -> Should do nothing
