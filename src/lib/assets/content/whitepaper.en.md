@@ -1,7 +1,7 @@
 # Cachy Technical Whitepaper
 
 **Last Updated:** July 29, 2026
-**Last Verified Against Code:** v0.94.3 — so far only the security and privacy model (chapter 6) has been fully checked. The remaining chapters have not yet been verified against the implementation; see `docs/ROADMAP.md`, item 9.
+**Verified Against Code:** So far only the security and privacy model (chapter 6) has been fully checked. The remaining chapters have not yet been verified against the implementation; see `docs/ROADMAP.md`, item 9.
 
 ---
 

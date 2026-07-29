@@ -22,14 +22,14 @@ Status legend: 🟢 done · 🟡 in progress · ⚪ not started
 | 2 | semantic-release + commitlint | 🟢 |
 | 3 | Install the missing ESLint stack, fix config false positives | 🟢 |
 | 4 | Correct README, extract the legacy changelog, add the repo audit | 🟢 |
-| 5 | Push the baseline tag `v0.94.3` on `main` — **blocked, needs a manual push** (see `docs/REPO-AUDIT.md` §1) | ⚪ |
+| 5 | ~~Baseline tag `v0.94.3`~~ — dropped: the first release is 1.0.0, so no anchor tag is needed | 🟢 |
 | 6 | Two-branch model: `main` stable, `develop` as `beta` prerelease | 🟢 |
 | 7 | ADR process + ADR-0001 defining the Local-First boundary | 🟢 |
 
-Item 5 blocks the first automated release: with no tag present,
-semantic-release publishes its default `1.0.0` instead of continuing the 0.94.x
-line. It is the one remaining manual step — the development environment's Git
-proxy rejects tag pushes.
+Versioning restarts at **1.0.0**. With no tag in the repository,
+semantic-release publishes `1.0.0` as its first release by default, so no
+baseline tag is required and there is no manual step left. The hand-written
+0.9x history stays in `docs/CHANGELOG-legacy.md`.
 
 ### Documentation truth pass
 
@@ -39,6 +39,7 @@ proxy rejects tag pushes.
 | 9 | Audit the rest of the whitepaper against the code | ⚪ |
 | 10 | Merge `DEPLOY.md` and `DEPLOYMENT.md` into one guide | ⚪ |
 | 11 | Consolidate the four brand/design sources into one canonical doc | ⚪ |
+| 11a | Feed the in-app changelog from the generated `CHANGELOG.md` — the app renders `src/lib/assets/content/changelog.{de,en}.md`, which will no longer be updated by releases | ⚪ |
 
 Item 9 matters because the whitepaper is the document shown to outside readers
 and makes concrete claims about the mathematical core, the security model and
@@ -70,7 +71,7 @@ missing is everything around it:
 | --- | --- |
 | 18 | Fix the 28 pre-existing test failures (see `docs/REPO-AUDIT.md`) |
 | 19 | Attach `cause` to rethrown errors — 10 sites in `apiService.ts`, `tradeService.ts`, `storageUtils.ts` lose the original failure when diagnosing exchange problems |
-| 20 | Burn down the 112 ESLint errors, then make lint a CI gate |
+| 20 | Burn down the 112 ESLint errors, then make lint a required CI check |
 | 21 | Burn down the 1374 `no-explicit-any` / `no-unused-vars` warnings, then restore both rules to `error` |
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) |

@@ -5,8 +5,9 @@ semantic-release. They are preserved here for historical reference and are no
 longer updated.
 
 Version numbers use the informal scheme of the time (e.g. `0.94b1` for betas).
-Everything from **v0.94.3** onward is generated automatically in
-[`CHANGELOG.md`](../CHANGELOG.md) from Conventional Commit messages.
+Versioning restarted at **1.0.0** with the move to automated releases; everything
+from there on is generated in [`CHANGELOG.md`](../CHANGELOG.md) from Conventional
+Commit messages.
 
 ---
 
