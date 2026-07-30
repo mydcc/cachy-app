@@ -132,4 +132,5 @@ describe("depth updates carry the schema-normalised values", () => {
     expect(payload.asks[0][0]).toBe("43568.12");
     expect(typeof payload.bids[0][1]).toBe("string");
   });
+
 });

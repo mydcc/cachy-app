@@ -369,12 +369,26 @@ is a number in the browser and a `Timeout` under Node, which is what the `any`
 was really covering — and a duck-typed cleanup that cast to `any` twice now names
 its union.
 
-**One thing to be careful about in the write-up.** Typing `updateDecimal`'s
-parameter made the typechecker reject `new Decimal(undefined)`, so a null guard
-was added. That was first recorded here as a latent crash — but a test written to
-prove it **passed with the guard reverted**, so no call path reaching it was ever
-demonstrated. The guard stays, because the type requires it; the claim does not.
-The comment in the code says so.
+**Two claims in this pass had to be walked back, which is the part worth
+recording.** Both times the code change was sound and the *story about it* was
+not, and both times the test written to prove the story passed with the change
+reverted — which is the only reason it was caught.
+
+1. Typing `updateDecimal`'s parameter made the typechecker reject
+   `new Decimal(undefined)`, so a null guard was added. First recorded as a
+   latent crash; no call path reaching it was ever demonstrated. The guard stays
+   because the type requires it, the claim does not.
+2. A second `updateDepth` call site in `bitunixWs.ts` also passed raw levels, and
+   was recorded as "the same defect at a second site". It is narrower than that:
+   the fast path handles `depth_book5` whenever the payload parses, so the
+   fallback only runs for payloads that failed validation — which then fail the
+   new check too, and the update is skipped. The change makes the two paths
+   consistent (depth is either validated or not applied) rather than fixing a
+   demonstrated leak.
+
+Both comments in the code now say this. The lesson is cheap to state and easy to
+forget: **a fix that compiles is not a bug that existed.** Reachability has to be
+shown, and the way to show it is a test that fails without the fix.
 
 ### Code health
 

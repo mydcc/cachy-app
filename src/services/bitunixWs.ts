@@ -1254,8 +1254,24 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
         if (symbol && data) {
-          if (!this.shouldThrottle(`${symbol}:depth`)) {
-            marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+          // BitunixWSMessageSchema types `data` as z.any(), so reaching this
+          // branch does not mean the depth arrays were validated — this site
+          // used to pass raw, possibly numeric levels through while the declared
+          // type said string.
+          //
+          // Reachability is narrow, and worth being precise about: the fast path
+          // above handles depth_book5 whenever the payload parses, so this
+          // fallback only runs for payloads that failed StrictDepthDataSchema —
+          // which then fail here too, and the update is skipped. The effect is
+          // consistency: depth is either validated or not applied, never
+          // forwarded raw. No path was found where this branch previously
+          // delivered usable but unnormalised levels.
+          const depthRes = StrictDepthDataSchema.safeParse(data);
+          if (depthRes.success && !this.shouldThrottle(`${symbol}:depth`)) {
+            marketState.updateDepth(symbol, {
+              bids: depthRes.data.b as [string, string][],
+              asks: depthRes.data.a as [string, string][],
+            });
           }
         }
       } else if (
