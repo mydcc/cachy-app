@@ -29,22 +29,15 @@ import { mapToOMSPosition, mapToOMSOrder } from "./mappers";
 import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import { Decimal } from "decimal.js";
-import type {
-  BitunixWSMessage,
-  BitunixPriceData,
-  BitunixTickerData,
-} from "../types/bitunix";
+import type { BitunixWSMessage } from "../types/bitunix";
 import {
   BitunixWSMessageSchema,
   BitunixPriceDataSchema,
-  BitunixTickerDataSchema,
   StrictPriceDataSchema,
   StrictTickerDataSchema,
   StrictDepthDataSchema,
-  BitunixOrderSchema,
   BitunixPositionSchema,
   isAllowedChannel,
-  validateSymbol,
 } from "../types/bitunixValidation";
 
 export interface TradeData {
@@ -63,11 +56,6 @@ const PING_INTERVAL = 5000;
 const WATCHDOG_TIMEOUT = 20000;
 const RECONNECT_DELAY = 500;
 const CONNECTION_TIMEOUT_MS = 10000;
-
-interface Subscription {
-  symbol: string;
-  channel: string;
-}
 
 class BitunixWebSocketService {
   // Trade Listeners
@@ -463,7 +451,9 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => { };
+      // Deliberately silent: onclose fires straight after and drives the
+      // reconnect, so logging here would only duplicate it.
+      ws.onerror = () => {};
     } catch {
       this.scheduleReconnect("public");
     }
@@ -489,7 +479,11 @@ class BitunixWebSocketService {
         this.wsPrivate.readyState === WebSocket.OPEN ||
         this.wsPrivate.readyState === WebSocket.CONNECTING
       ) {
-        return;
+        // `force` was accepted and then ignored here, so connect(force: true)
+        // reconnected the public socket and silently left the private one
+        // alone — the authenticated stream carrying order and position updates.
+        // Same shape as connectPublic: when forced, fall through and rebuild.
+        if (!force) return;
       }
       this.cleanup("private");
     }
@@ -572,9 +566,9 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {
-          // [HYBRID FIX] Quietly handle connection errors
-          // logger.warn("network", "[BitunixWS] Private connection error", error);
+      ws.onerror = () => {
+          // [HYBRID FIX] Quietly handle connection errors — onclose drives the
+          // reconnect. Left silent on purpose; see the public handler.
       };
     } catch (e) {
       // Catch synchronous errors (e.g. invalid URL or browser blocking)
@@ -837,10 +831,9 @@ class BitunixWebSocketService {
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
     try {
-      const rawDataStr = JSON.stringify(message);
-      const dataSize = rawDataStr.length;
-      const messageType = message.event || message.op || message.ch || message.topic || 'unknown';
-      
+      // A JSON.stringify of every inbound message used to live here, purely to
+      // measure a length nobody read. On a market-data socket that is a full
+      // serialisation per tick, discarded.
       if (type === "public") {
         this.awaitingPongPublic = false;
         this.missedPongsPublic = 0;
@@ -901,10 +894,13 @@ class BitunixWebSocketService {
                     }
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
+                        // The safeString results above, not the raw fields: that is
+                        // what the hardening block exists for, and it was computing
+                        // them and then reading `data.*` anyway.
                         marketState.updateSymbol(symbol, {
-                          indexPrice: data.ip ? new Decimal(data.ip) : undefined,
-                          fundingRate: data.fr ? new Decimal(data.fr) : undefined,
-                          nextFundingTime: data.nft ? String(data.nft) : undefined
+                          indexPrice: ip ? new Decimal(ip) : undefined,
+                          fundingRate: fr ? new Decimal(fr) : undefined,
+                          nextFundingTime: nft
                         });
                     }
                     return;
@@ -973,7 +969,12 @@ class BitunixWebSocketService {
                     const asks = sData.a as [string, string][];
 
                     if (!this.shouldThrottle(`${symbol}:depth`)) {
-                      marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+                      // sData, not data. The schema's SafeString transform is what
+                      // normalises numeric levels to strings; passing the raw
+                      // `data.b` / `data.a` here skipped it entirely, so an
+                      // orderbook level the exchange sent as a number reached
+                      // marketState as a number while the type said string.
+                      marketState.updateDepth(symbol, { bids, asks });
                     }
                     return;
                   } catch (fastPathError) {
@@ -1028,7 +1029,7 @@ class BitunixWebSocketService {
                           // [SYNTHETIC] Dynamic Support
                           // Iterate active synthetic subscriptions to see if any depend on this update
                           if (this.syntheticSubs) {
-                              for (const [key, count] of this.syntheticSubs.entries()) {
+                              for (const key of this.syntheticSubs.keys()) {
                                   // key format: "SYMBOL:TF"
                                   const parts = key.split(":");
                                   if (parts.length !== 2) continue;
