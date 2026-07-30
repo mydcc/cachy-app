@@ -1776,4 +1776,10 @@ export type TranslationKey =
   | "cloud.dbNameLabel"
   | "cloud.tokenLabel"
   | "cloud.tokenHelp"
-  | "cloud.offlineNotice";
+  | "cloud.offlineNotice"
+  | "cloud.retentionNotice"
+  | "cloud.eraseButton"
+  | "cloud.eraseConfirm"
+  | "cloud.eraseDone"
+  | "cloud.eraseNeedsConnection"
+  | "cloud.eraseUnavailable";

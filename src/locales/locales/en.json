@@ -2143,6 +2143,12 @@
     "dbNameLabel": "Module name",
     "tokenLabel": "Connection token",
     "tokenHelp": "Issued by the operator of the server above. See docs/GLOBAL-CHAT.md for how to obtain one.",
-    "offlineNotice": "Global Chat is unavailable. Everything else — calculator, journal, risk management, market data — is unaffected."
+    "offlineNotice": "Global Chat is unavailable. Everything else — calculator, journal, risk management, market data — is unaffected.",
+    "retentionNotice": "Messages are deleted automatically 90 days after they are sent. You can erase your own at any time — this affects the server and cannot be undone.",
+    "eraseButton": "Delete my messages",
+    "eraseConfirm": "Click again to confirm",
+    "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
+    "eraseNeedsConnection": "Connect first — erasure runs against the server.",
+    "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
   }
 }

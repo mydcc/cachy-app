@@ -103,7 +103,7 @@ missing is everything around it:
 | 14 | ~~Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults~~ — done: `cloudHost` / `cloudDbName` settings | 🟢 |
 | 15 | ~~Message retention and deletion policy~~ — done as policy: `docs/GLOBAL-CHAT.md` section 4 | 🟢 |
 | 15a | ~~Enforce the retention policy in the module~~ — done: scheduled 90-day sweep plus self-service erasure. Needs `spacetime publish` + `generate` to go live | 🟢 |
-| 15b | Wire `delete_my_messages` into the Cloud tab once the client bindings are regenerated — the capability exists on the server but is not offered in the UI | ⚪ |
+| 15b | ~~Wire `delete_my_messages` into the Cloud tab~~ — done: the control exists and degrades honestly until `spacetime generate` has run | 🟢 |
 | 16 | ~~Make the off-by-default state and the four Class B conditions visible in the Cloud tab~~ — done | 🟢 |
 | 17 | ~~Behaviour when the server is unreachable~~ — done, with a test that breaks the connection and runs the risk engine | 🟢 |
 
@@ -166,6 +166,20 @@ messages. Both typecheck; neither has run against a live instance, because
 publishing needs the SpacetimeDB CLI. `spacetime publish` and `spacetime generate`
 are required before the erasure reducer is callable from the client, which is
 item 15b.
+
+**Item 15b is done.** Settings → Cloud has a "delete my messages" control behind
+a two-click confirmation. The interesting part is what it does when it cannot
+work: the reducer is only callable through bindings that `spacetime generate`
+produces, and the ones committed here predate it. Hand-editing generated files is
+forbidden by `server/CLAUDE.md`, and there is no SpacetimeDB CLI in this
+environment to regenerate them — so the client asks at runtime whether the
+reducer exists, disables the button when it does not, and names the missing step
+and who has to take it. `cloudService.erasure.test.ts` covers both states plus
+the disconnected case.
+
+That leaves the CLI steps as the only thing outstanding, and they need a machine
+with SpacetimeDB installed: `spacetime publish`, then `spacetime generate`. After
+that the button works with no further change.
 
 ### Code health
 

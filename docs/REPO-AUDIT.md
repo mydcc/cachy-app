@@ -722,9 +722,21 @@ so re-adding any derived field fails there rather than in review.
   else.
 
 **Both typecheck; neither has run.** Publishing needs the SpacetimeDB CLI, which
-is not vendored here, so `spacetime publish` and `spacetime generate` are still
-required before `delete_my_messages` is callable from the client. Until then the
-capability exists on the server and is not offered in the interface — item 15b.
+is not vendored here and is not obtainable from npm — `spacetimedb-cli` returns
+404. So `spacetime publish` and `spacetime generate` remain outstanding and need
+a machine with SpacetimeDB installed.
+
+The interface for erasure is in place regardless (item 15b): Settings → Cloud has
+a "delete my messages" control behind a two-click confirmation. The awkward part
+is a deployment state rather than a defect — the reducer is only callable through
+bindings that `spacetime generate` produces, and the committed ones predate it.
+Hand-writing a generated file would have violated `server/CLAUDE.md` hard
+requirement 1 and, worse, could not have been verified here: there is no local
+instance to connect to. So the client asks at runtime
+(`cloudService.canDeleteMyMessages()`), disables the button when the answer is
+no, and names the missing step and who has to take it, rather than failing with
+"deleteMyMessages is not a function". `cloudService.erasure.test.ts` covers both
+states and the disconnected case.
 
 ---
 
@@ -733,6 +745,6 @@ capability exists on the server and is not offered in the interface — item 15b
 | Check | Result |
 | --- | --- |
 | `npm run check` | 1925 files, **0 errors, 0 warnings** |
-| `npm test` | **842 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
+| `npm test` | **847 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
 | `npx eslint .` | **0 errors**, 1315 warnings under the CI ratchet |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |

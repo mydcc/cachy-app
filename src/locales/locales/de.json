@@ -2127,7 +2127,13 @@
     "dbNameLabel": "Modulname",
     "tokenLabel": "Verbindungs-Token",
     "tokenHelp": "Wird vom Betreiber des oben genannten Servers ausgestellt. Wie man eines erhält, steht in docs/GLOBAL-CHAT.md.",
-    "offlineNotice": "Der globale Chat ist nicht erreichbar. Alles andere — Rechner, Journal, Risikomanagement, Marktdaten — ist davon unberührt."
+    "offlineNotice": "Der globale Chat ist nicht erreichbar. Alles andere — Rechner, Journal, Risikomanagement, Marktdaten — ist davon unberührt.",
+    "retentionNotice": "Nachrichten werden 90 Tage nach dem Senden automatisch gelöscht. Deine eigenen kannst du jederzeit löschen — das wirkt auf dem Server und lässt sich nicht rückgängig machen.",
+    "eraseButton": "Meine Nachrichten löschen",
+    "eraseConfirm": "Zum Bestätigen erneut klicken",
+    "eraseDone": "Löschung angefordert. Deine Nachrichten verschwinden, sobald die Änderung durchläuft.",
+    "eraseNeedsConnection": "Zuerst verbinden — die Löschung läuft gegen den Server.",
+    "eraseUnavailable": "In diesem Build nicht verfügbar: Die SpacetimeDB-Bindings sind älter als der Lösch-Reducer. Der Betreiber muss `spacetime generate` ausführen und neu bauen."
   },
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",

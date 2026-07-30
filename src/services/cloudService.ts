@@ -169,6 +169,49 @@ class CloudService {
     }
   }
 
+  /**
+   * True when the current generated bindings know about `delete_my_messages`.
+   *
+   * The reducer exists in `server/spacetimedb/src/index.ts`, but the bindings in
+   * `src/lib/spacetimedb/` are produced by `spacetime generate` and a build made
+   * before that ran does not have it. Editing generated files by hand is
+   * forbidden (`server/CLAUDE.md`), so the client asks instead of assuming — a
+   * missing reducer is a deployment state, not a bug.
+   */
+  canDeleteMyMessages(): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return typeof (reducers as any).deleteMyMessages === 'function';
+  }
+
+  /**
+   * Erases every message the connected identity has sent — the GDPR right to
+   * erasure, exercised by the person it belongs to.
+   *
+   * The module derives the sender from `ctx.sender`, so this cannot be aimed at
+   * anyone else's messages, and no argument is needed.
+   */
+  deleteMyMessages() {
+    if (!this.connected) {
+      logger.warn('network', 'Cannot delete messages: Not connected');
+      throw new Error('Not connected to Global Chat.');
+    }
+    if (!this.canDeleteMyMessages()) {
+      throw new Error(
+        'This build cannot delete messages: the SpacetimeDB bindings predate the delete_my_messages reducer. Run `spacetime generate` and rebuild.',
+      );
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (reducers as any).deleteMyMessages({});
+    } catch (e) {
+      this.lastError = e instanceof Error ? e.message : String(e);
+      logger.error('network', 'Failed to delete messages:', e);
+      if (this.onStatusCallback) this.onStatusCallback(this.status());
+      throw e;
+    }
+  }
+
   subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {
     this.onMessageCallback = cb;
     cb(this.messages);

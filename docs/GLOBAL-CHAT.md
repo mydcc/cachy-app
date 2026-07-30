@@ -131,13 +131,19 @@ SpacetimeDB CLI, which is not vendored here. Before relying on the policy:
 
 1. `spacetime publish` the module. The retention sweep is armed in `init`, so a
    module published before this change keeps its old messages until republished.
-2. `spacetime generate` to regenerate `src/lib/spacetimedb/`. The current
-   bindings predate `delete_my_messages`, so the client cannot call it yet.
-3. Add a "delete my messages" control to the Cloud settings tab once the binding
-   exists. Until then the reducer is reachable only through the CLI.
+2. `spacetime generate` to regenerate `src/lib/spacetimedb/`. The bindings
+   committed here predate `delete_my_messages`, so a build made from them cannot
+   call it.
 
-Step 3 is the gap that matters to a user: the capability exists on the server and
-is not yet offered in the interface.
+The interface is already in place (item 15b): **Settings → Cloud** has a
+"delete my messages" control behind a two-click confirmation. It asks the
+bindings at runtime whether the reducer exists — `cloudService.canDeleteMyMessages()`
+— and when it does not, it disables the button and says exactly what is missing
+and who has to fix it, rather than failing with an opaque "not a function".
+
+Generated bindings are never edited by hand (`server/CLAUDE.md`, hard
+requirement 1), which is why the client asks instead of assuming. Once
+`spacetime generate` has run, the button works with no further change.
 
 **Export** is not a reducer. Reducers are transactional and return nothing, so an
 export is a client-side operation over the subscribed table — the messages a user
@@ -152,8 +158,8 @@ Chat.** The feature is off by default, which makes that the easy choice.
 
 Two surfaces, one connection:
 
-- **Settings → Cloud** is where it is turned on and configured, and carries a
-  small message log for checking that the connection works.
+- **Settings → Cloud** is where it is turned on and configured. It carries a
+  small message log for checking the connection, and the erasure control.
 - **The side panel and the chat window** are the chat proper. They were built
   against the old file-based backend and are unchanged — `src/stores/chat.svelte.ts`
   now adapts SpacetimeDB rows into the same shape they already read.

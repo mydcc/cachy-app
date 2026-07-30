@@ -63,6 +63,28 @@
     cloudService.sendMessage(messageText);
     messageText = "";
   }
+
+  // Erasure is irreversible and hits the server, so it takes two clicks.
+  let confirmingErase = $state(false);
+  let eraseNotice = $state("");
+
+  const canErase = $derived(connected && cloudService.canDeleteMyMessages());
+
+  function eraseMyMessages() {
+    eraseNotice = "";
+    if (!confirmingErase) {
+      confirmingErase = true;
+      return;
+    }
+
+    confirmingErase = false;
+    try {
+      cloudService.deleteMyMessages();
+      eraseNotice = $_("cloud.eraseDone");
+    } catch (e) {
+      eraseNotice = e instanceof Error ? e.message : String(e);
+    }
+  }
 </script>
 
 <div class="space-y-4">
@@ -147,6 +169,35 @@
         <p class="text-xs" style="color: var(--text-secondary);">
           {$_("cloud.offlineNotice")}
         </p>
+      {/if}
+    </div>
+
+    <!-- GDPR right to erasure, self-service. See docs/GLOBAL-CHAT.md section 4. -->
+    <div class="cloud-panel">
+      <p class="text-xs" style="color: var(--text-secondary);">
+        {$_("cloud.retentionNotice")}
+      </p>
+
+      <button
+        onclick={eraseMyMessages}
+        disabled={!canErase}
+        class="cloud-button bg-danger-paired hover-bg-danger-paired"
+      >
+        {confirmingErase ? $_("cloud.eraseConfirm") : $_("cloud.eraseButton")}
+      </button>
+
+      {#if !connected}
+        <p class="text-xs" style="color: var(--text-secondary);">
+          {$_("cloud.eraseNeedsConnection")}
+        </p>
+      {:else if !cloudService.canDeleteMyMessages()}
+        <p class="text-xs" style="color: var(--warning-color);">
+          {$_("cloud.eraseUnavailable")}
+        </p>
+      {/if}
+
+      {#if eraseNotice}
+        <p class="text-xs" style="color: var(--text-secondary);">{eraseNotice}</p>
       {/if}
     </div>
 
