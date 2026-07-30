@@ -80,10 +80,11 @@ missing is everything around it:
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
-| 24a | **Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`** — Vite inlines them into the client bundle, so setting them for a production build serves the operator's AI keys to every visitor. Documented as a trap in `.env.example`; the code path should go. | ⚪ |
+| 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |
 | 24b | Audit remaining `env.*` reads against `.env.example` so no required variable is undocumented again | ⚪ |
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
 | 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
+| 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
 the backlog cannot grow. The ratchet has already earned its place: work on item 18
@@ -110,9 +111,18 @@ being omitted when there is insufficient history. The remaining 23 were stale or
 incomplete test setups — most often a mock that had drifted from the interface it
 stood in for, which is why they failed while the code was correct.
 
-Item 24a is a build-time trap rather than a live bug: the keys only leak if
-someone sets those variables when building for production. But nothing currently
-stops them.
+**Item 24a is done.** The AI key fields no longer fall back to
+`import.meta.env.VITE_*_API_KEY`, so no production build can inline the
+operator's keys into the client bundle. The convenience that fallback bought was
+minor — a key entered once in Settings → AI persists in that browser — against a
+leak that would be served to every visitor. `settings.security.test.ts` stubs the
+three variables and asserts a fresh store ignores them; restoring one fallback
+makes the tests fail, so they are real guards.
+
+Removing it surfaced item 24e: `defaultSettings.imgbbApiKey` is not empty like
+every other credential but holds a real key, shared by every user of every build.
+That one is a decision rather than a deletion — see `docs/REPO-AUDIT.md`,
+section 7.
 
 **Item 24c is done.** All 11 exchange-response sites — `tpsl` (2), `balance` (2),
 `positions` (2), `sync` (1), `sync/orders`, `sync/order-detail`,

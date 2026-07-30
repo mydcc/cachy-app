@@ -335,19 +335,40 @@ the live instance answers 401 to everything.
 Both fixed. The second is the more instructive: a mock pointing at a nonexistent
 path fails silently, and the test still passed for the wrong reason.
 
-### `VITE_*_API_KEY` defaults leak to the browser
+### `VITE_*_API_KEY` defaults leaked to the browser — resolved
 
-`src/stores/settings.svelte.ts` reads `import.meta.env.VITE_OPENAI_API_KEY`,
+`src/stores/settings.svelte.ts` read `import.meta.env.VITE_OPENAI_API_KEY`,
 `VITE_GEMINI_API_KEY` and `VITE_ANTHROPIC_API_KEY` as default values for the
 user's AI key settings. Vite **inlines every `VITE_`-prefixed variable into the
 client bundle at build time**, so setting any of them for a production build
-serves the operator's AI keys as plain JavaScript to every visitor.
+served the operator's AI keys as plain JavaScript to every visitor.
 
-This is a trap rather than a live bug — it only fires if someone sets those
-variables when building. Nothing currently prevents that. Documented with an
-explicit warning in `.env.example` and the README; removing the code path is
-roadmap item 24a. Not removed here, since it is plausibly deliberate for local
-development and the project's defensive-deletion rule applies.
+A trap rather than a live bug — it only fired if someone set those variables when
+building. But nothing prevented it, and the convenience it bought was small: a
+key entered once in Settings → AI persists in that browser anyway.
+
+**Resolved** as roadmap item 24a. The three fallbacks are gone, replaced by a
+comment at the field declarations stating why there is none. Two tests in
+`src/stores/settings.security.test.ts` stub the environment variables and assert
+a fresh `SettingsManager` ignores them, and that nothing containing the value
+reaches `toJSON()`. Verified as genuine guards: restoring one fallback makes both
+fail. The variables were also dropped from `.env.example`, since nothing reads
+them any more; the README keeps the warning, because the underlying Vite
+behaviour still applies to any future `VITE_` variable.
+
+### A live imgbb API key is committed as a default setting
+
+Found while removing the above. `defaultSettings.imgbbApiKey` in
+`src/stores/settings.svelte.ts` is not empty like every other credential — it
+holds a 32-character hex imgbb key. `imgbbService.ts` uploads screenshots with
+whatever is in that field, so **every user of every build shares one account's
+key**, and it ships in the client bundle by construction.
+
+Left in place deliberately: unlike the `VITE_` fallbacks this is load-bearing —
+deleting it silently breaks screenshot upload for everyone until they register
+their own key, and a shared free-tier key may well have been the intent. It also
+sits in git history, so the effective fix is to rotate the key at imgbb, not just
+to remove the literal. Recorded as roadmap item 24e for an explicit decision.
 
 ### An unrelated `.gitignore` bug found while fixing the above
 

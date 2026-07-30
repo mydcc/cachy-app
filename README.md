@@ -100,7 +100,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
    > ⚠️ **Deploying this to an existing instance:** set `APP_ACCESS_TOKEN` on the server **before** deploying, or every API call on the live site starts failing with 401.
 
-   > ⚠️ **Never set the `VITE_*_API_KEY` variables for a production build.** Vite inlines any `VITE_`-prefixed variable into the client bundle, so those AI keys would be served as plain JavaScript to every visitor and billed to you. Let each user enter their own key in Settings → AI instead.
+   > ⚠️ **Never put a secret behind a `VITE_`-prefixed variable.** Vite inlines any such variable into the client bundle, so its value is served as plain JavaScript to every visitor. AI keys are entered per user in Settings → AI and stay in that browser.
 
 4. **Start Development Server:**
 
