@@ -20,6 +20,7 @@ import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
 import { checkAppAuth } from "../../../../lib/server/auth";
+import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -116,7 +117,7 @@ async function fetchBitunixOrderDetail(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

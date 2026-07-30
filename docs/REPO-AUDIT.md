@@ -405,11 +405,54 @@ red run finally means the pull request broke something.
 
 ---
 
-## 9. Verified state after these changes
+## 9. Order IDs were silently corrupted (fixed)
+
+The project has `safeJsonParse` specifically to stop `JSON.parse` from mangling
+long numeric literals, and used it for **inbound** request bodies — but every
+exchange response was read with `response.json()`, which is the direction the
+large numbers actually come from. `klines/+server.ts` was the sole exception and
+already did it correctly.
+
+`apiSchemas.ts` types `orderId` as `z.union([z.string(), z.number()])`, so an ID
+may legitimately arrive as a JSON number. Exchange order IDs are routinely 19
+digits; `Number.MAX_SAFE_INTEGER` is 16. Reproduced end to end through the real
+`sync/orders` route:
+
+```
+1234567890123456789  ->  response.json()      ->  1234567890123456800
+1234567890123456789  ->  readExchangeJson()   ->  1234567890123456789
+```
+
+A corrupted ID is not a rounding inconvenience. The app would hold an order
+identifier that does not exist, so a later cancel or modify targets the wrong
+order or silently does nothing.
+
+**Fixed.** All 11 exchange sites — `tpsl` (2), `balance` (2), `positions` (2),
+`sync`, `sync/orders`, `sync/order-detail`, `sync/positions-pending`,
+`sync/positions-history` — now use `readExchangeJson`
+(`src/utils/server/exchangeResponse.ts`).
+
+Two things worth recording about the fix:
+
+- **It is safe for arithmetic.** `safeJsonParse` quotes only literals of 15+
+  characters. Millisecond timestamps (13 digits) and status codes keep their
+  numeric type, so code doing `a.timestamp - b.timestamp` is unaffected. Asserted
+  explicitly in `exchangeResponse.test.ts`.
+- **The guard is real, not a tautology.** Reverting one route to
+  `response.json()` makes the end-to-end test fail; restoring it makes it pass.
+  That was checked rather than assumed.
+
+`external/cmc` still uses `response.json()` and returns prices as JSON numbers.
+It feeds display and sentiment, never order handling, so it is recorded as
+roadmap item 24d rather than folded into this change.
+
+---
+
+## 10. Verified state after these changes
 
 | Check | Result |
 | --- | --- |
 | `npm run check` | 1924 files, **0 errors, 0 warnings** |
-| `npm test` | **830 passing, 0 failing** (2 files / 6 tests skipped) |
+| `npm test` | **828 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
 | `npx eslint .` | **0 errors**, 1367 warnings under the CI ratchet |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |

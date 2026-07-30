@@ -22,6 +22,7 @@ import { checkAppAuth } from "../../../lib/server/auth";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
+import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -109,7 +110,7 @@ async function fetchBitunixBalance(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
@@ -183,7 +184,7 @@ async function fetchBitgetBalance(
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
-    const res = await response.json();
+    const res = await readExchangeJson(response);
     if (res.code !== "00000") throw new Error(res.msg);
 
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;

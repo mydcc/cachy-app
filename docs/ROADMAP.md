@@ -82,7 +82,8 @@ missing is everything around it:
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 | 24a | **Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`** — Vite inlines them into the client bundle, so setting them for a production build serves the operator's AI keys to every visitor. Documented as a trap in `.env.example`; the code path should go. | ⚪ |
 | 24b | Audit remaining `env.*` reads against `.env.example` so no required variable is undocumented again | ⚪ |
-| 24c | **Parse exchange responses with `safeJsonParse`, not `response.json()`** — see the note below. Money path. | ⚪ |
+| 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
+| 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
 the backlog cannot grow. The ratchet has already earned its place: work on item 18
@@ -113,25 +114,34 @@ Item 24a is a build-time trap rather than a live bug: the keys only leak if
 someone sets those variables when building for production. But nothing currently
 stops them.
 
-**Item 24c is the most serious open finding in this section.** The project has
-`safeJsonParse` specifically to stop `JSON.parse` from mangling long numeric
-literals, and uses it for *inbound* request bodies — but every exchange response
-is read with `response.json()`: `tpsl` (2 sites), `balance` (2), `positions` (2),
-`sync`. That is the direction the large numbers actually come from.
+**Item 24c is done.** All 11 exchange-response sites — `tpsl` (2), `balance` (2),
+`positions` (2), `sync` (1), `sync/orders`, `sync/order-detail`,
+`sync/positions-pending`, `sync/positions-history` — now read the body through
+`readExchangeJson` (`src/utils/server/exchangeResponse.ts`), which is
+`safeJsonParse(await response.text())`. `klines/+server.ts` already did this; the
+helper gives the other routes one named place stating why.
 
-`apiSchemas.ts` types `orderId` as `z.union([z.string(), z.number()])`, so an
-order ID may legitimately arrive as a JSON number. Exchange order IDs are
-routinely 19 digits, and `Number.MAX_SAFE_INTEGER` is 16:
+The bug was real and reproducible end to end, not theoretical:
 
 ```
-1234567890123456789  ->  JSON.parse  ->  1234567890123456800
+1234567890123456789  ->  response.json()      ->  1234567890123456800
+1234567890123456789  ->  readExchangeJson()   ->  1234567890123456789
 ```
 
-If an exchange sends `orderId` as a number rather than a string, the app holds a
-silently wrong ID, and a subsequent cancel or modify targets the wrong order or
-none at all. Not fixed here: it spans five routes on the money path and needs
-verification of what Bitunix and Bitget actually send for each field, plus tests,
-rather than a blind search-and-replace.
+`src/routes/api/sync/orders/security.test.ts` drives the actual route with a
+19-digit order ID and asserts the rounded form appears nowhere in the payload.
+Verified as a genuine guard rather than a tautology: reverting that one route to
+`response.json()` makes the test fail, restoring it makes it pass.
+
+Why the change is safe for arithmetic: `safeJsonParse` only quotes numeric
+literals of **15 or more characters**. Millisecond timestamps are 13 digits and
+status codes are tiny, so both keep their numeric type — `exchangeResponse.test.ts`
+asserts this explicitly. Only the values that were already being corrupted change
+type, and the schemas in `apiSchemas.ts` accept `string | number` for them.
+
+Two route tests failed on the change because their fetch mocks offered only
+`json()`. Same mock drift as item 18: fixed by giving them `text()` as a real
+Response has.
 
 ---
 

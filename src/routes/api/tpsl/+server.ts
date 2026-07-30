@@ -25,6 +25,7 @@ import {
 import { checkAppAuth } from "../../../lib/server/auth";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -187,7 +188,7 @@ async function fetchBitunixTpSl(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
+  const res = await readExchangeJson(response);
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
       `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
@@ -242,7 +243,7 @@ async function executeBitunixAction(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
+  const res = await readExchangeJson(response);
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
       `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
