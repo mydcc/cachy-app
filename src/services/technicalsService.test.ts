@@ -52,30 +52,67 @@ describe("technicalsService", () => {
     expect(cci).toBeDefined();
     expect(typeof cci?.value).toBe("number");
 
-    const adx = result.oscillators.find((o) => o.name === "ADX");
-    expect(adx).toBeDefined();
+  });
+
+  it("exposes ADX under `advanced` once it is enabled", async () => {
+    // ADX is not an oscillator — the calculator writes it to `advanced.adx`
+    // alongside its +DI/-DI components. It is also disabled by default
+    // (`adx.enabled === false` in indicator.svelte.ts), so it has to be switched
+    // on explicitly. The previous version of this assertion searched
+    // `result.oscillators` for a name that is never pushed there, with ADX
+    // switched off, so it could not have passed either way.
+    const base = indicatorState.toJSON();
+    const withAdx = {
+      ...base,
+      adx: { ...base.adx, enabled: true, diLength: 14, adxSmoothing: 14 },
+    };
+
+    const result = await technicalsService.calculateTechnicals(klines, withAdx);
+
+    expect(result.advanced?.adx).toBeDefined();
+    expect(typeof result.advanced.adx.value).toBe("number");
+    expect(typeof result.advanced.adx.pdi).toBe("number");
+    expect(typeof result.advanced.adx.mdi).toBe("number");
   });
 
   it("should respect custom settings", async () => {
-    const customSettings = {
-      ...indicatorState.toJSON(),
-      rsi: {
-        length: 20,
-        source: "close",
-        overbought: 80,
-        oversold: 20,
-        showSignal: false,
-        signalType: "sma",
-        signalLength: 14,
-        defaultTimeframe: "1h",
-      },
-    } as any; // Cast to any to avoid strict type checks on partial settings
+    // Oscillators carry { name, value, action } — only movingAverages entries
+    // have a `params` string. This used to assert `rsi.params === "20"`, a field
+    // oscillators never had.
+    //
+    // The setting is instead verified by its effect: a different RSI length must
+    // produce a different RSI value. That needs price data that actually
+    // oscillates — with the strictly rising `klines` fixture every candle is a
+    // gain, so RSI saturates at 100 for any length and the lengths are
+    // indistinguishable.
+    const wave = Array.from({ length: 100 }, (_, i) => {
+      const base = 100 + Math.sin(i / 3) * 10;
+      return {
+        time: 1600000000000 + i * 60000,
+        open: new Decimal(base),
+        high: new Decimal(base + 2),
+        low: new Decimal(base - 2),
+        close: new Decimal(base + Math.cos(i / 2)),
+        volume: new Decimal(1000),
+      };
+    });
 
-    const result = await technicalsService.calculateTechnicals(
-      klines,
-      customSettings,
-    );
-    const rsi = result.oscillators.find((o) => o.name === "RSI");
-    expect(rsi?.params).toBe("20");
+    const base = indicatorState.toJSON();
+    const rsiOf = async (length: number) => {
+      const result = await technicalsService.calculateTechnicals(wave, {
+        ...base,
+        rsi: { ...base.rsi, length },
+      });
+      return result.oscillators.find((o) => o.name === "RSI")?.value;
+    };
+
+    const short = await rsiOf(14);
+    const long = await rsiOf(20);
+
+    expect(typeof short).toBe("number");
+    expect(typeof long).toBe("number");
+    expect(short).not.toBeNaN();
+    expect(long).not.toBeNaN();
+    expect(short).not.toBe(long);
   });
 });

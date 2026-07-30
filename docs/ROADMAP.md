@@ -73,7 +73,7 @@ missing is everything around it:
 
 | # | Item | Status |
 | --- | --- | --- |
-| 18 | Fix the pre-existing test failures — **28 → 16 so far** (see `docs/REPO-AUDIT.md`) | 🟡 |
+| 18 | Fix the pre-existing test failures — **28 → 3 so far** (see `docs/REPO-AUDIT.md`) | 🟡 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
@@ -85,9 +85,15 @@ missing is everything around it:
 | 24c | **Parse exchange responses with `safeJsonParse`, not `response.json()`** — see the note below. Money path. | ⚪ |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
-the backlog cannot grow. **Item 18 is in progress and still holds CI back** — 24
-tests fail on `develop` independently of any change, so a green pull request does
-not yet mean the suite is healthy.
+the backlog cannot grow. The ratchet has already earned its place: work on item 18
+pushed the count to 1371 and CI rejected it until the four new `as any` casts were
+typed properly.
+
+**Item 18 is nearly done** — 3 of the original 28 failures remain. Five of the
+fixes turned out to be production bugs rather than test problems: an invalid date
+rendering as "just now", fail-open API auth, an unbounded kline backfill loop, an
+ineffective news concurrency guard, and moving averages reporting 0 instead of
+being omitted when there is insufficient history.
 
 Item 24a is a build-time trap rather than a live bug: the keys only leak if
 someone sets those variables when building for production. But nothing currently
