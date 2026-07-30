@@ -294,6 +294,34 @@ also says what to do if a CMC value ever does feed a calculation: type it
 `string | number` and run it through `Decimal`, rather than switching the one
 line.
 
+**Item 24 is done.** `scripts/README.md` indexes all of it, grouped by the only
+question that matters when you open the directory: **does this run on its own, or
+did someone write it for one afternoon?**
+
+Six scripts are wired into automation — `build_wasm.sh` via `package.json`,
+`lint-i18n.js` and the three translation scripts via CI, `discord-notify.sh` via
+`deploy.sh`. Breaking one of those breaks a build, a deploy or a check. Eight
+more are real manual tools with a stated reason to reach for them.
+
+Three findings worth recording:
+
+- **`pre-commit.sh` and `husky-pre-commit.sh` are not installed.** There is no
+  `.husky/` directory and husky is not a dependency, so neither hook has ever
+  run. The checks they perform now live in `translation-check.yml`, where
+  `--no-verify` cannot skip them. Kept, because installing a local hook is the
+  developer's choice, and `pre-commit.sh` documents its own installation.
+- **`render_build.sh` targets Render.com**, while the project deploys to aaPanel
+  through `deploy.sh`. Nothing references it.
+- **`scripts/maintenance/` holds four one-shot patch scripts** that performed a
+  specific refactor once. They are not idempotent. The README says plainly not to
+  run one to find out what it does — which is exactly what an undocumented
+  directory of `fix_*.py` files invites.
+
+Descriptions were read out of the scripts, not guessed from filenames, and one
+was corrected in the process: `detect_leaks.cjs` checks **timer** cleanup
+specifically (`setInterval` without `clearInterval`), not listeners or
+subscriptions in general.
+
 ### Code health
 
 | # | Item | Status |
@@ -304,7 +332,7 @@ line.
 | 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
-| 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
+| 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |
 | 24b | ~~Audit remaining `env.*` reads against `.env.example`~~ — done: audited, `PORT` added, and a test now enforces it | 🟢 |
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
