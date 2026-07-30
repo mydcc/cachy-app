@@ -178,6 +178,16 @@ export interface Settings {
   isDeepDiveUnlocked?: boolean;
   imgurClientId?: string;
   enableSidePanel: boolean;
+  /**
+   * Global Chat over SpacetimeDB. Class B under ADR-0001, so it is opt-in and
+   * off by default: nothing connects until the user turns this on and supplies
+   * a token.
+   */
+  cloudEnabled: boolean;
+  /** SpacetimeDB host, e.g. `http://127.0.0.1:3000` for a local module. */
+  cloudHost: string;
+  /** SpacetimeDB module name the client subscribes to. */
+  cloudDbName: string;
   showSidebarActivity: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
   sidePanelLayout: SidePanelLayout;
@@ -344,6 +354,11 @@ const defaultSettings: Settings = {
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
+  // Class B defaults per ADR-0001: off, and pointing at a local module rather
+  // than at any Cachy-operated server. Turning it on is a deliberate act.
+  cloudEnabled: false,
+  cloudHost: "http://127.0.0.1:3000",
+  cloudDbName: "cachy-server",
   sidePanelMode: "ai",
   sidePanelLayout: "floating",
   chatStyle: "minimal",
@@ -564,6 +579,9 @@ export class SettingsManager {
   imgurClientId = $state<string | undefined>(defaultSettings.imgurClientId);
 
   enableSidePanel = $state<boolean>(defaultSettings.enableSidePanel);
+  cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
+  cloudHost = $state<string>(defaultSettings.cloudHost);
+  cloudDbName = $state<string>(defaultSettings.cloudDbName);
   sidePanelMode = $state<"chat" | "notes" | "ai">(
     defaultSettings.sidePanelMode,
   );
@@ -1235,6 +1253,9 @@ export class SettingsManager {
       this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
       this.imgurClientId = merged.imgurClientId;
       this.enableSidePanel = merged.enableSidePanel;
+      this.cloudEnabled = merged.cloudEnabled;
+      this.cloudHost = merged.cloudHost;
+      this.cloudDbName = merged.cloudDbName;
       this.sidePanelMode = merged.sidePanelMode;
       this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
@@ -1568,6 +1589,9 @@ export class SettingsManager {
       isDeepDiveUnlocked: this.isDeepDiveUnlocked,
       imgurClientId: this.imgurClientId,
       enableSidePanel: this.enableSidePanel,
+      cloudEnabled: this.cloudEnabled,
+      cloudHost: this.cloudHost,
+      cloudDbName: this.cloudDbName,
       sidePanelMode: this.sidePanelMode,
       sidePanelLayout: this.sidePanelLayout,
       chatStyle: this.chatStyle,

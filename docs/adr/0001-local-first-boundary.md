@@ -30,10 +30,17 @@ None of that is accurate. What the code actually contains:
 files). The single table, `GlobalMessage`, has three fields: `sender`, `text`,
 `sentAt`.
 
-**A second, older chat backend that is orphaned.**
+**A second, older chat backend — live, not orphaned.**
 `src/lib/server/chatStore.ts` persists messages to `db/chat_messages.json` (up
-to 1000, overridable via `CHAT_DB_PATH`). It is imported by nothing except its
-own test file — no route and no component uses it.
+to 1000, overridable via `CHAT_DB_PATH`).
+
+> **Correction (July 2026).** This ADR originally stated that `chatStore.ts` was
+> "imported by nothing except its own test file — no route and no component uses
+> it", and that it lacked authentication. **Both claims were wrong.** It is
+> reached by `src/routes/api/chat-v2/+server.ts`, whose `GET` and `POST` handlers
+> both call `checkAppAuth`, and that route is driven by `src/stores/chat.svelte.ts`
+> behind the side panel. So Cachy ships **two** Class B chat backends, not one
+> plus dead code. Which one survives is roadmap item 12.
 
 The important finding is what the server component does **not** touch. No
 journal entry, setting, preset, note or API key is present in the SpacetimeDB

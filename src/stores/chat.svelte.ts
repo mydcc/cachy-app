@@ -27,6 +27,20 @@ export interface ChatMessage {
 
 const POLL_INTERVAL = 3000;
 
+/**
+ * `/api/chat-v2` is one of the routes guarded by `checkAppAuth`, which fails
+ * closed since ADR-0002. This store previously sent no token at all, so every
+ * poll and every send was rejected with 401 on any deployment that had
+ * `APP_ACCESS_TOKEN` configured — and on all of them once auth stopped failing
+ * open. Same shape as `tradeService.ts`: omit the header entirely when no token
+ * is configured, rather than sending an empty one.
+ */
+function appAuthHeader(): Record<string, string> {
+  return settingsState.appAccessToken
+    ? { "x-app-access-token": settingsState.appAccessToken }
+    : {};
+}
+
 class ChatManager {
   messages = $state<ChatMessage[]>([]);
   lastSentTimestamp = $state(0);
@@ -125,7 +139,9 @@ class ChatManager {
     const since = this.latestSeenTimestamp;
 
     try {
-      const res = await fetch(`/api/chat-v2?since=${since}`);
+      const res = await fetch(`/api/chat-v2?since=${since}`, {
+        headers: appAuthHeader(),
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.messages && data.messages.length > 0) {
@@ -159,7 +175,7 @@ class ChatManager {
     try {
       const res = await fetch("/api/chat-v2", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...appAuthHeader() },
         body: JSON.stringify({
           text,
           profitFactor: pf,

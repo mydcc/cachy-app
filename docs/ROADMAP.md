@@ -95,14 +95,39 @@ Kept per ADR-0001, on SpacetimeDB. The integration already exists —
 bindings in `src/lib/spacetimedb/`, and a wired `CloudTab.svelte`. What is
 missing is everything around it:
 
-| # | Item |
-| --- | --- |
-| 12 | Decide the fate of the orphaned file-based `src/lib/server/chatStore.ts` — it has no authentication and violates Class B condition 2 |
-| 13 | Document how a user obtains a connection token; today `connect()` requires one with no described path to get it |
-| 14 | Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults in `cloudService.ts` with configuration |
-| 15 | Message retention and deletion policy — required by the GDPR consequence named in ADR-0001 |
-| 16 | Make the off-by-default state and the four Class B conditions visible in the Cloud settings tab |
-| 17 | Behaviour when the server is unreachable: core functions must stay fully usable |
+| # | Item | Status |
+| --- | --- | --- |
+| 12 | **Two chat backends ship, not one.** Decide which survives: the file-based `/api/chat-v2` behind the side panel, or SpacetimeDB behind the Cloud tab. Needs a product decision — see below | ⚪ |
+| 12a | **Class A leak:** `chat.svelte.ts` sends a profit factor derived from the journal with every message. Deliberate (it powers `minChatProfitFactor` filtering) but contrary to ADR-0001 condition 3 | ⚪ |
+| 13 | ~~Document how a user obtains a connection token~~ — done: `docs/GLOBAL-CHAT.md` section 3 | 🟢 |
+| 14 | ~~Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults~~ — done: `cloudHost` / `cloudDbName` settings | 🟢 |
+| 15 | ~~Message retention and deletion policy~~ — done as policy: `docs/GLOBAL-CHAT.md` section 4 | 🟢 |
+| 15a | **Enforce the retention policy in the module** — no scheduled cleanup, deletion or export reducer exists yet | ⚪ |
+| 16 | ~~Make the off-by-default state and the four Class B conditions visible in the Cloud tab~~ — done | 🟢 |
+| 17 | ~~Behaviour when the server is unreachable~~ — done, with a test that breaks the connection and runs the risk engine | 🟢 |
+
+**Item 12's premise was wrong.** It described `chatStore.ts` as orphaned and
+unauthenticated. It is neither: `src/routes/api/chat-v2/+server.ts` uses it, both
+handlers call `checkAppAuth`, and the side panel drives the whole chain. The first
+audit pass grepped for the relative import path and missed the `$lib` alias.
+
+So the real question is not what to do with dead code — it is that **two Class B
+chat backends ship side by side**, sharing no storage, schema or UI. That is a
+product decision, not a cleanup.
+
+Fixing this uncovered a regression: `chat.svelte.ts` never sent the
+`x-app-access-token` header, so making auth fail closed (ADR-0002) broke the
+side-panel chat on every deployment. Fixed here.
+
+**Items 13–17 are done** for the SpacetimeDB path, which is unaffected by the
+item-12 decision. `docs/GLOBAL-CHAT.md` is the operator's guide: what is stored
+(three fields), how a token is issued (by the module operator — there is no
+issuance path in this repository, and that is stated plainly rather than papered
+over), the retention policy, and the offline guarantee. The host and module name
+moved out of `cloudService.ts` into settings, the Cloud tab now states the four
+Class B conditions and its off-by-default state, and
+`cloudService.offline.test.ts` proves a dead chat server cannot take the risk
+engine with it.
 
 ### Code health
 
@@ -111,7 +136,7 @@ missing is everything around it:
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
+| 21 | Burn down the 1365 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |

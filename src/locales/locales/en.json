@@ -923,7 +923,13 @@
       }
     },
     "technicals": {
-      "tabs": { "general": "General", "oscillators": "Oscillators", "trend": "Trend", "volatility": "Volatility", "volume": "Volume" },
+      "tabs": {
+        "general": "General",
+        "oscillators": "Oscillators",
+        "trend": "Trend",
+        "volatility": "Volatility",
+        "volume": "Volume"
+      },
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
       "title": "Technicals Analysis",
@@ -2128,8 +2134,17 @@
     "sendButton": "Send",
     "placeholder": "Say hello...",
     "connectionFailed": "Connection failed",
-    "connectionFailed": "Connection failed"
-    ,
-    "connectionFailed": "Connection failed"
+    "enableLabel": "Enable Global Chat",
+    "stateOn": "On. Message text you send is stored on the server you configure below.",
+    "stateOff": "Off. Nothing connects and nothing leaves this device.",
+    "conditionOptIn": "Opt-in: off by default, and turning it on is a deliberate act.",
+    "conditionAuthenticated": "Authenticated: a token is required, anonymous access is refused.",
+    "conditionMinimal": "Minimal: only message text and a short sender ID. No journal, settings, keys, presets or notes — not even as metadata.",
+    "conditionNonEssential": "Non-essential: calculator, journal and risk management work fully without it.",
+    "hostLabel": "Server address",
+    "dbNameLabel": "Module name",
+    "tokenLabel": "Connection token",
+    "tokenHelp": "Issued by the operator of the server above. See docs/GLOBAL-CHAT.md for how to obtain one.",
+    "offlineNotice": "Global Chat is unavailable. Everything else — calculator, journal, risk management, market data — is unaffected."
   }
 }

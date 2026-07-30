@@ -23,35 +23,68 @@ import {
 import GlobalMessageType from '../lib/spacetimedb/global_message_type';
 import type { Infer } from 'spacetimedb';
 import { logger } from './logger';
+import { settingsState } from '../stores/settings.svelte';
 
 type GlobalMessage = Infer<typeof GlobalMessageType>;
+
+export interface CloudStatus {
+  connected: boolean;
+  /** Last connection or send failure, or null. Shown in the settings tab. */
+  lastError: string | null;
+}
 
 class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
+  private lastError: string | null = null;
   private messages: GlobalMessage[] = [];
 
   // Callback for Svelte to update UI
   private onMessageCallback: ((msgs: GlobalMessage[]) => void) | null = null;
+  private onStatusCallback: ((status: CloudStatus) => void) | null = null;
 
   constructor() { }
 
-  async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
+  status(): CloudStatus {
+    return { connected: this.connected, lastError: this.lastError };
+  }
+
+  /**
+   * Connects to the Global Chat module.
+   *
+   * `host` and `dbName` come from settings (`cloudHost`, `cloudDbName`) rather
+   * than from constants in this file — the endpoint is the user's choice, not
+   * something Cachy points at on their behalf. The old hardcoded
+   * `http://127.0.0.1:3000` / `cachy-server` defaults now live in
+   * `defaultSettings`, where the user can see and change them.
+   *
+   * Anonymous access stays prohibited: Class B condition 2 in ADR-0001.
+   */
+  async connect(host?: string, dbName?: string, token?: string) {
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
     }
     if (this.connected) return;
 
-    logger.log('network', 'Connecting to SpacetimeDB...', host);
+    const uri = host || settingsState.cloudHost;
+    const moduleName = dbName || settingsState.cloudDbName;
+
+    if (!uri || !moduleName) {
+      throw new Error('Global Chat is not configured: set a server address and module name in Settings.');
+    }
+
+    logger.log('network', 'Connecting to SpacetimeDB...', uri);
 
     try {
       this.conn = DbConnection.builder()
-        .withUri(host)
-        .withModuleName(dbName)
+        .withUri(uri)
+        .withModuleName(moduleName)
         .withToken(token) // Enforce token
         .onConnect((ctx) => {
           logger.log('network', 'Connected to SpacetimeDB!', ctx);
           this.connected = true;
+          this.lastError = null;
+          if (this.onStatusCallback) this.onStatusCallback(this.status());
 
           // Subscribe to queries
           const sub = this.conn?.subscriptionBuilder();
@@ -65,10 +98,17 @@ class CloudService {
         .onDisconnect((ctx) => {
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
+          if (this.onStatusCallback) this.onStatusCallback(this.status());
         })
         .build();
     } catch (e) {
+      // Deliberately not rethrown. An unreachable chat server must never take a
+      // calculation, a journal entry or a risk figure down with it — ADR-0001
+      // requires every core function to work with the network down. The failure
+      // is recorded so the settings tab can say so, and nothing else changes.
+      this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
+      if (this.onStatusCallback) this.onStatusCallback(this.status());
     }
 
     // Handle row updates with robustness
@@ -95,13 +135,25 @@ class CloudService {
       logger.warn('network', 'Cannot send message: Not connected');
       return;
     }
-    // The reducers object is exported from the generated code and handles calling the server
-    (reducers as any).sendMessage(text);
+    try {
+      // The reducers object is exported from the generated code and handles calling the server
+      (reducers as any).sendMessage(text);
+    } catch (e) {
+      // Same rule as connect(): a chat failure stays a chat failure.
+      this.lastError = e instanceof Error ? e.message : String(e);
+      logger.error('network', 'Failed to send message:', e);
+      if (this.onStatusCallback) this.onStatusCallback(this.status());
+    }
   }
 
   subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {
     this.onMessageCallback = cb;
     cb(this.messages);
+  }
+
+  subscribeStatus(cb: (status: CloudStatus) => void) {
+    this.onStatusCallback = cb;
+    cb(this.status());
   }
 }
 
