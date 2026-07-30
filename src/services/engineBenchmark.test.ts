@@ -77,7 +77,7 @@ describe('engineBenchmark', () => {
     it('should return empty array if WASM engine throws an error', async () => {
       const { wasmCalculator } = await import('./wasmCalculator');
       // Mock an error during calculation
-      (wasmCalculator.calculate as any).mockRejectedValueOnce(new Error('WASM computation failed'));
+      vi.mocked(wasmCalculator.calculate).mockRejectedValueOnce(new Error('WASM computation failed'));
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const result = await benchmarkEngine('wasm', mockKlines, mockSettings as any, 1, 2);
@@ -88,7 +88,7 @@ describe('engineBenchmark', () => {
 
     it('should return empty array if WASM is not available', async () => {
       const { wasmCalculator } = await import('./wasmCalculator');
-      (wasmCalculator.isAvailable as any).mockReturnValueOnce(false);
+      vi.mocked(wasmCalculator.isAvailable).mockReturnValueOnce(false);
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const result = await benchmarkEngine('wasm', mockKlines, mockSettings as any, 1, 2);
@@ -99,7 +99,7 @@ describe('engineBenchmark', () => {
 
     it('should calculate technicals using WASM engine when successful', async () => {
       const { wasmCalculator } = await import('./wasmCalculator');
-      (wasmCalculator.calculate as any).mockResolvedValue(undefined);
+      vi.mocked(wasmCalculator.calculate).mockResolvedValue(undefined);
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const warmupRuns = 1;
@@ -112,7 +112,7 @@ describe('engineBenchmark', () => {
 
     it('should return empty array if GPU engine throws an error', async () => {
       const { webGpuCalculator } = await import('./webGpuCalculator');
-      (webGpuCalculator.calculate as any).mockRejectedValueOnce(new Error('GPU Out of Memory'));
+      vi.mocked(webGpuCalculator.calculate).mockRejectedValueOnce(new Error('GPU Out of Memory'));
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const result = await benchmarkEngine('gpu', mockKlines, mockSettings as any, 1, 2);
@@ -123,7 +123,7 @@ describe('engineBenchmark', () => {
 
     it('should return empty array if GPU is not supported', async () => {
       const { WebGpuCalculator } = await import('./webGpuCalculator');
-      (WebGpuCalculator.isSupported as any).mockResolvedValueOnce(false);
+      vi.mocked(WebGpuCalculator.isSupported).mockResolvedValueOnce(false);
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const result = await benchmarkEngine('gpu', mockKlines, mockSettings as any, 1, 2);
@@ -135,7 +135,7 @@ describe('engineBenchmark', () => {
 
     it('should calculate technicals using GPU engine when successful', async () => {
       const { webGpuCalculator } = await import('./webGpuCalculator');
-      (webGpuCalculator.calculate as any).mockResolvedValue(undefined);
+      vi.mocked(webGpuCalculator.calculate).mockResolvedValue(undefined);
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const warmupRuns = 1;
@@ -160,11 +160,11 @@ describe('engineBenchmark', () => {
 
       const { wasmCalculator } = await import('./wasmCalculator');
       // Let WASM fail, TS succeed
-      (wasmCalculator.calculate as any).mockRejectedValue(new Error('WASM fallback test'));
+      vi.mocked(wasmCalculator.calculate).mockRejectedValue(new Error('WASM fallback test'));
 
       // GPU succeeds
       const { webGpuCalculator } = await import('./webGpuCalculator');
-      (webGpuCalculator.calculate as any).mockResolvedValue(undefined);
+      vi.mocked(webGpuCalculator.calculate).mockResolvedValue(undefined);
 
       const sizes = [100];
       const results = await runBenchmark(sizes, 1, 2);
@@ -181,8 +181,8 @@ describe('engineBenchmark', () => {
 
       // Restore default implementations to prevent persistent mocks from leaking.
       // clearAllMocks() only clears call history, not mockRejectedValue/mockResolvedValue.
-      (wasmCalculator.calculate as any).mockReset();
-      (webGpuCalculator.calculate as any).mockReset();
+      vi.mocked(wasmCalculator.calculate).mockReset();
+      vi.mocked(webGpuCalculator.calculate).mockReset();
     });
   });
 });

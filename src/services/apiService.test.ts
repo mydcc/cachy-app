@@ -66,7 +66,7 @@ describe("apiService - AbortError", () => {
         const signal = controller.signal;
 
         // Mock fetch to throw AbortError
-        (global.fetch as any).mockImplementation(() => {
+        vi.mocked(global.fetch).mockImplementation(() => {
             const e = new Error("The user aborted a request");
             e.name = "AbortError";
             return Promise.reject(e);

@@ -50,7 +50,7 @@ describe("ApiService - Kline Gap Reproduction", () => {
     ];
 
     // Setup fetch mock
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       headers: { get: () => "application/json" },
       text: async () => JSON.stringify(mockResponse),

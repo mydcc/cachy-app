@@ -72,7 +72,7 @@ describe("ModalManager", () => {
 
         expect(windowManager.open).toHaveBeenCalled();
 
-        const callArgs = (windowManager.open as any).mock.calls[(windowManager.open as any).mock.calls.length - 1][0];
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
         expect(callArgs).toBeInstanceOf(SymbolPickerWindow);
         expect(callArgs.windowType).toBe("symbolpicker");
     });
@@ -82,7 +82,7 @@ describe("ModalManager", () => {
 
         expect(windowManager.open).toHaveBeenCalled();
 
-        const callArgs = (windowManager.open as any).mock.calls[(windowManager.open as any).mock.calls.length - 1][0];
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
         expect(callArgs).toBeInstanceOf(DialogWindow);
         expect(callArgs.title).toBe("Alert Title");
         expect(callArgs.message).toBe("Alert Message");
@@ -95,7 +95,7 @@ describe("ModalManager", () => {
 
         expect(windowManager.open).toHaveBeenCalled();
 
-        const callArgs = (windowManager.open as any).mock.calls[(windowManager.open as any).mock.calls.length - 1][0];
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
         expect(callArgs).toBeInstanceOf(DialogWindow);
         expect(callArgs.title).toBe("Confirm Title");
         expect(callArgs.message).toBe("Confirm Message");
@@ -108,7 +108,7 @@ describe("ModalManager", () => {
 
         expect(windowManager.open).toHaveBeenCalled();
 
-        const callArgs = (windowManager.open as any).mock.calls[(windowManager.open as any).mock.calls.length - 1][0];
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
         expect(callArgs).toBeInstanceOf(DialogWindow);
         expect(callArgs.title).toBe("Prompt Title");
         expect(callArgs.message).toBe("Prompt Message");

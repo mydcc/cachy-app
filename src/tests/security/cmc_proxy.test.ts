@@ -43,7 +43,7 @@ describe('CMC Proxy Security', () => {
       headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
     });
 
-    (global.fetch as any).mockResolvedValue(new Response(JSON.stringify({ data: 'ok' })));
+    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({ data: 'ok' })));
 
     const response = await GET({ request, url } as any);
 
@@ -73,7 +73,7 @@ describe('CMC Proxy Security', () => {
     });
 
     // Mock successful fetch to simulate successful exploitation if passed through
-    (global.fetch as any).mockResolvedValue(new Response(JSON.stringify({ secret: 'exposed' })));
+    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({ secret: 'exposed' })));
 
     const response = await GET({ request, url } as any);
 

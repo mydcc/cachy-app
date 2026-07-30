@@ -131,7 +131,7 @@ describe('TP/SL API Validation', () => {
     };
 
     // Mock successful fetch for logic flow
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         // The route reads the upstream body with response.json() on the success
         // path and response.text() only in the error branch, so the mock needs
@@ -166,7 +166,7 @@ describe('TP/SL API Validation', () => {
     };
 
     // Mock successful fetch
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({ code: 0, data: {} }),
         text: async () => JSON.stringify({ code: 0, data: {} })
