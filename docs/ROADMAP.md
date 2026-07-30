@@ -73,7 +73,7 @@ missing is everything around it:
 
 | # | Item | Status |
 | --- | --- | --- |
-| 18 | Fix the pre-existing test failures — **28 → 3 so far** (see `docs/REPO-AUDIT.md`) | 🟡 |
+| 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The whole suite passes (830 tests) and CI now runs all of it instead of three hand-picked files | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
@@ -89,11 +89,16 @@ the backlog cannot grow. The ratchet has already earned its place: work on item 
 pushed the count to 1371 and CI rejected it until the four new `as any` casts were
 typed properly.
 
-**Item 18 is nearly done** — 3 of the original 28 failures remain. Five of the
-fixes turned out to be production bugs rather than test problems: an invalid date
+**Item 18 is done.** All 28 failures are fixed, `npm test` exits 0 with 830
+passing tests, and the CI job that previously ran three hand-picked files now runs
+the whole suite — so a red run finally means the pull request broke something.
+
+Five of the fixes were production bugs rather than test problems: an invalid date
 rendering as "just now", fail-open API auth, an unbounded kline backfill loop, an
 ineffective news concurrency guard, and moving averages reporting 0 instead of
-being omitted when there is insufficient history.
+being omitted when there is insufficient history. The remaining 23 were stale or
+incomplete test setups — most often a mock that had drifted from the interface it
+stood in for, which is why they failed while the code was correct.
 
 Item 24a is a build-time trap rather than a live bug: the keys only leak if
 someone sets those variables when building for production. But nothing currently

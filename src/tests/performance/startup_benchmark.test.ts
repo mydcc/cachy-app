@@ -50,6 +50,17 @@ Object.defineProperty(global, 'WebSocket', { value: MockWebSocket });
 global.requestAnimationFrame = (cb) => setTimeout(cb, 0);
 
 // Mock Modules BEFORE imports
+// app.init() is wrapped in `if (browser)`, and $app/environment reports browser
+// as false under Vitest. Without this mock init() returned immediately, so the
+// benchmark issued zero fetches and measured nothing — the "waiting for price"
+// assertion could never pass.
+vi.mock('$app/environment', () => ({
+  browser: true,
+  dev: true,
+  building: false,
+  version: 'test',
+}));
+
 vi.mock('../../services/bitunixWs', () => ({
   bitunixWs: {
     connect: vi.fn(),

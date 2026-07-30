@@ -175,7 +175,7 @@ Contributions are welcome! Please follow these steps:
 
 1. Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages — the release version is derived from them (see Versioning below). CI rejects pull requests whose commits do not conform.
 2. Create a separate branch for each feature (`feat/my-feature`).
-3. Ensure that `npm run check` and `npm test` pass, and that `npm run lint` reports no *new* problems in the files you touched (see the note on the lint backlog above).
+3. Ensure that `npm run check`, `npm test` and `npm run lint` pass. All three are required CI checks: type checking and lint must report zero errors, and the full test suite must be green.
 
 ---
 

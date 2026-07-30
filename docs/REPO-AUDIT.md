@@ -358,11 +358,58 @@ Corrected to `!.env.example`, verified with `git add --dry-run`.
 
 ---
 
-## 8. Verified state after these changes
+## 8. The 28 pre-existing test failures
+
+At the start of this work `npm test` reported 28 failures across 20 files on
+`develop`, independent of any change. They had been red long enough to be treated
+as background noise, and that is precisely what made them expensive: **five were
+production bugs hiding behind them.**
+
+### Production bugs found
+
+| Bug | Consequence |
+| --- | --- |
+| `getRelativeTimeString` and `formatGermanDate` did not guard against `NaN`. `new Date("nonsense")` does not throw — it yields an Invalid Date, so every `NaN > 0` comparison was false and control fell through to the final return. | A news item with an unparseable timestamp was displayed as **"gerade eben" / "just now"** — presented as breaking news. The values also fed the AI context. |
+| `checkAppAuth` failed **open** when `APP_ACCESS_TOKEN` was unset, which was the realistic default since the variable was undocumented and no `.env.example` existed. | 17 routes open on a public deployment, including three AI proxies billed to the operator. See ADR-0002. |
+| The kline backfill loop in `ensureHistory` broke on an empty batch but had no guard for non-empty batches that added nothing. | Infinite loop issuing API requests — rate-limit exhaustion, then OOM. Reproduced: the test exhausted the heap. |
+| `newsStore.refresh()` guarded concurrency with `isLoading`, which is only set *after* a deliberate 3s delay. | Two calls inside that 3s window both fetched — the exact duplicate the guard existed to prevent, and the likeliest case in practice. |
+| Moving averages with insufficient history reported a value of **0**. | A pivot or MA of 0 is indistinguishable from a real price level. Already fixed in the calculator; a test still asserted the broken behaviour and was inverted to lock the fix in. |
+
+### The other 23
+
+Stale or incomplete test setups. The recurring theme is a **mock that had drifted
+from the interface it stood in for**, so the test failed while the code was right:
+
+- Request mocks offering `json()` when the route reads `text()` (deliberately, via
+  `safeJsonParse`, to protect numeric precision), or lacking `headers` entirely.
+- Response mocks lacking `status`, which the terminal-error classification reads.
+- A logger mock missing `debug`, so the code threw a `TypeError` mid-flow — and the
+  rollback logic then correctly classified an unknown outcome as indeterminate,
+  which the test blamed on the rollback.
+- A `vi.mock` path one directory level too high, so the mock silently never applied.
+- Position fixtures with no `lastUpdated`, tripping a 200ms freshness check that
+  aborts before the code under test is reached.
+- Tests awaiting a promise gated on a timer under `vi.useFakeTimers()` without ever
+  advancing the clock.
+- A missing `$app/environment` mock, so `app.init()` returned immediately at its
+  `if (browser)` guard and the startup benchmark measured nothing — zero fetches.
+- Assertions against fields that do not exist (`params` on an oscillator) or in the
+  wrong place (ADX searched in `oscillators`; it lives in `advanced`, and is off by
+  default).
+
+### Result
+
+`npm test` exits 0 — **830 passing, 0 failing**, 2 files and 6 tests skipped. The
+CI job that previously ran three hand-picked files now runs the whole suite, so a
+red run finally means the pull request broke something.
+
+---
+
+## 9. Verified state after these changes
 
 | Check | Result |
 | --- | --- |
-| `npm run check` | 1924 files, **0 errors, 0 warnings** (identical to the pre-change baseline) |
-| `npx vitest run src/lib/version.test.ts` | 4/4 passing — `APP_VERSION` resolves to `0.94.3` |
-| `npx semantic-release --dry-run` | Config valid, all 15 plugin hooks load, correctly scoped to `develop` |
-| `npm run lint` | 112 errors / 1374 warnings — pre-existing backlog, documented above |
+| `npm run check` | 1924 files, **0 errors, 0 warnings** |
+| `npm test` | **830 passing, 0 failing** (2 files / 6 tests skipped) |
+| `npx eslint .` | **0 errors**, 1367 warnings under the CI ratchet |
+| `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |
