@@ -423,6 +423,28 @@ in tests and scripts, 628 in production code. At roughly 8–60 per file this is
 several sessions of work, not one — and the exchange and market-data files should
 be done slowly, since that is where a wrong type is a money bug.
 
+**Where passes three to seven left it: 1107 → 978.** The method that works is
+now clear enough to state, because it produced every one of those passes:
+
+> Find the file with the most warnings, look for the **one thing** being cast
+> around repeatedly, and name it. `ExchangeError` removed six casts from the
+> orders route; `MockConnection` removed fifteen from `networkMonitor.test.ts`;
+> `WsInternals` removed fifteen more from the two leak tests. A file rarely has
+> N different problems — it usually has one, N times.
+
+**Next up, and why they are in this order:**
+
+1. `src/services/bitunixWs.ts` (16) and `src/services/wasmCalculator.ts` (14) —
+   production, exchange path. Worth doing slowly; the earlier pass on this file
+   found two real bugs.
+2. `src/services/storageService.test.ts` (10 left) and the other test files —
+   self-contained, and a wrong type fails loudly.
+3. `src/lib/physics/StressLogic.ts` (17) — **deliberately last.** Ammo.js ships
+   no types, so this needs a real ambient declaration for the ~10 constructors
+   and 4 world methods actually used. It is also the hardest to verify from a
+   terminal: it needs a browser and WASM. A hasty declaration here would look
+   like progress and not be any.
+
 ### Code health
 
 | # | Item | Status |
@@ -430,7 +452,7 @@ be done slowly, since that is where a wrong type is a money bug.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 984 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 978 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
