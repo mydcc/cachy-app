@@ -73,7 +73,7 @@ missing is everything around it:
 
 | # | Item | Status |
 | --- | --- | --- |
-| 18 | Fix the pre-existing test failures — **28 → 24 so far** (see `docs/REPO-AUDIT.md`) | 🟡 |
+| 18 | Fix the pre-existing test failures — **28 → 16 so far** (see `docs/REPO-AUDIT.md`) | 🟡 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
@@ -82,15 +82,36 @@ missing is everything around it:
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 | 24a | **Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`** — Vite inlines them into the client bundle, so setting them for a production build serves the operator's AI keys to every visitor. Documented as a trap in `.env.example`; the code path should go. | ⚪ |
 | 24b | Audit remaining `env.*` reads against `.env.example` so no required variable is undocumented again | ⚪ |
+| 24c | **Parse exchange responses with `safeJsonParse`, not `response.json()`** — see the note below. Money path. | ⚪ |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
 the backlog cannot grow. **Item 18 is in progress and still holds CI back** — 24
 tests fail on `develop` independently of any change, so a green pull request does
 not yet mean the suite is healthy.
 
-Item 24a is the most serious open finding in this section. It is a build-time
-trap rather than a live bug: the keys only leak if someone sets those variables
-when building for production. But nothing currently stops them.
+Item 24a is a build-time trap rather than a live bug: the keys only leak if
+someone sets those variables when building for production. But nothing currently
+stops them.
+
+**Item 24c is the most serious open finding in this section.** The project has
+`safeJsonParse` specifically to stop `JSON.parse` from mangling long numeric
+literals, and uses it for *inbound* request bodies — but every exchange response
+is read with `response.json()`: `tpsl` (2 sites), `balance` (2), `positions` (2),
+`sync`. That is the direction the large numbers actually come from.
+
+`apiSchemas.ts` types `orderId` as `z.union([z.string(), z.number()])`, so an
+order ID may legitimately arrive as a JSON number. Exchange order IDs are
+routinely 19 digits, and `Number.MAX_SAFE_INTEGER` is 16:
+
+```
+1234567890123456789  ->  JSON.parse  ->  1234567890123456800
+```
+
+If an exchange sends `orderId` as a number rather than a string, the app holds a
+silently wrong ID, and a subsequent cancel or modify targets the wrong order or
+none at all. Not fixed here: it spans five routes on the money path and needs
+verification of what Bitunix and Bitget actually send for each field, plus tests,
+rather than a blind search-and-replace.
 
 ---
 
