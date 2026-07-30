@@ -322,6 +322,38 @@ was corrected in the process: `detect_leaks.cjs` checks **timer** cleanup
 specifically (`setInterval` without `clearInterval`), not listeners or
 subscriptions in general.
 
+**Item 21, second pass: 1124 → 1107 — and it found two real bugs.** This is the
+pass the first one predicted: an "assigned but never used" warning looks the
+same whether it is a leftover or a value someone forgot to use, and only reading
+the code tells them apart. `bitunixWs.ts` had 17 of them, and two were the second
+kind.
+
+**`connectPrivate(force)` accepted the parameter and ignored it.** Its sibling
+`connectPublic(force)` uses it in three places, including "when already
+connected, do not return early — rebuild". `connectPrivate` returned
+unconditionally, so `connect(force: true)` rebuilt the public socket and silently
+left the **authenticated** one — the stream carrying order and position updates —
+exactly as it was. A forced reconnect never reached it.
+
+**The depth handler validated the payload and then discarded the result.** It
+bound `bids` / `asks` from the Zod-parsed data, whose `SafeString` transform
+exists to keep orderbook levels as strings, and then passed the raw `data.b` /
+`data.a` to `marketState`. The comment directly above said the transform had
+already normalised them. So a level the exchange sent as a number arrived as a
+number while the declared type said string.
+
+Both are covered by `bitunixWs_force_reconnect.test.ts`, verified as genuine
+guards: reverting each fix fails its test, restoring it passes.
+
+Also removed from the same file: a `JSON.stringify` of **every inbound message**
+whose only consumer was an unused length — a full serialisation per tick on a
+market-data socket, discarded. Plus six dead imports and a dead interface.
+
+Two `ws.onerror` handlers were left deliberately silent, only losing their unused
+parameter. The private one carries a comment showing the logging was commented
+out on purpose; `onclose` fires straight after and drives the reconnect. Not a
+place to "fix" by restoring noise.
+
 ### Code health
 
 | # | Item | Status |
@@ -329,7 +361,7 @@ subscriptions in general.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 1107 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
