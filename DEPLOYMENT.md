@@ -239,17 +239,24 @@ npm run build
 
 ---
 
-## 7. Environment Variables (Optional)
+## 7. Environment Variables
 
-If you need to change configurations (like ports or API secrets), you can create a `.env` file in the root directory:
+Create a `.env` file in the root directory. `.env.example` is the full reference — copy it and fill it in:
+
+```bash
+cp .env.example .env
+```
 
 ```env
+APP_ACCESS_TOKEN=<openssl rand -hex 32>
 PORT=3001
 ORIGIN=https://cachy.app
 NODE_ENV=production
 ```
 
-_Note: `ORIGIN` is important for SvelteKit Form Actions to avoid CSRF errors._
+> ⚠️ **`APP_ACCESS_TOKEN` is required, not optional.** Authentication fails closed: without it, all 17 guarded API routes answer 401 and the deployed app cannot reach its own backend. Set it on the server **before** deploying, and enter the same value in the running app under **Settings → Connections → App Access Token**. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+
+_Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions._
 
 ---
 

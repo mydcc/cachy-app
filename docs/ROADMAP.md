@@ -81,7 +81,7 @@ missing is everything around it:
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |
-| 24b | Audit remaining `env.*` reads against `.env.example` so no required variable is undocumented again | ⚪ |
+| 24b | ~~Audit remaining `env.*` reads against `.env.example`~~ — done: audited, `PORT` added, and a test now enforces it | 🟢 |
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
 | 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
 | 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
@@ -123,6 +123,13 @@ Removing it surfaced item 24e: `defaultSettings.imgbbApiKey` is not empty like
 every other credential but holds a real key, shared by every user of every build.
 That one is a decision rather than a deletion — see `docs/REPO-AUDIT.md`,
 section 7.
+
+**Item 24b is done.** Seven variables are read by application code; six were
+already documented and `PORT` was not. The lasting part is
+`src/tests/env_documentation.test.ts`, which scans the source for
+`process.env.X` and `$env` reads and fails if any of them is missing from
+`.env.example` — the drift that produced ADR-0002 cannot repeat silently. It
+found `PORT` on its first run.
 
 **Item 24c is done.** All 11 exchange-response sites — `tpsl` (2), `balance` (2),
 `positions` (2), `sync` (1), `sync/orders`, `sync/order-detail`,

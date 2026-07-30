@@ -370,6 +370,49 @@ their own key, and a shared free-tier key may well have been the intent. It also
 sits in git history, so the effective fix is to rotate the key at imgbb, not just
 to remove the literal. Recorded as roadmap item 24e for an explicit decision.
 
+### The full environment-variable audit
+
+Item 24b: every variable the code reads, checked against `.env.example`.
+Application code reads seven, plus one that is not operator configuration:
+
+| Variable | Read by | Was documented |
+| --- | --- | --- |
+| `APP_ACCESS_TOKEN` | `src/lib/server/auth.ts` (`$env/dynamic/private`) | yes |
+| `LOG_STREAM_KEY` | `src/routes/api/stream-logs/+server.ts` | yes |
+| `CHAT_DB_PATH` | `src/lib/server/chatStore.ts` | yes |
+| `NODE_ENV` | `api/health`, `api/tpsl` | yes |
+| `OPENAI_API_KEY` | `src/routes/api/sentiment/+server.ts` | yes |
+| `GEMINI_API_KEY` | `src/routes/api/sentiment/+server.ts` | yes |
+| `PORT` | `server.js` | **no** |
+| `VITEST` | `src/lib/server/chatStore.ts` | n/a — set by the test runner |
+
+Only `PORT` was missing, and it is not cosmetic: `server.js` deliberately
+defaults to 3001 rather than adapter-node's 3000, because port 3000 is commonly
+taken on shared hosting. That decision lived in a code comment and in
+`.deploy.conf`, nowhere an operator reading `.env.example` would find it.
+
+Added along with `ORIGIN`, which the application never reads but adapter-node
+does — behind a reverse proxy, SvelteKit cannot otherwise resolve `event.url`.
+The reverse check found no orphans: every variable in `.env.example` is read by
+something.
+
+`DISCORD_WEBHOOK_URL` (`scripts/discord-notify.sh`) is deployment tooling
+configured through `.deploy.conf`, not the app's `.env`. `.env.example` now says
+so rather than leaving the reader to guess.
+
+**The durable part is `src/tests/env_documentation.test.ts`**, which walks the
+source tree, extracts `process.env.X` and `$env` reads, and fails when one is
+absent from `.env.example`. It caught `PORT` on its first run. This is the exact
+failure mode behind ADR-0002 — `APP_ACCESS_TOKEN` was undocumented, so nobody set
+it, so auth had to fail open to work at all — and it can no longer happen
+quietly. The test also asserts that its own scanner still finds
+`APP_ACCESS_TOKEN`, so a regex that stops matching cannot make it pass vacuously.
+
+While there: `DEPLOYMENT.md` section 7 was headed "Environment Variables
+(Optional)" and omitted `APP_ACCESS_TOKEN` entirely. Written before ADR-0002, it
+would have walked an operator straight into a deployment that answers 401 to
+everything. Corrected.
+
 ### An unrelated `.gitignore` bug found while fixing the above
 
 `.gitignore` contained `! .env.example` — with a space after the `!`. Git reads
