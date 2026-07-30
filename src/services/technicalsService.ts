@@ -336,26 +336,25 @@ export const technicalsService = {
         throw new Error("Worker unavailable for update"); 
     }
 
-    try {
-        const { data: result } = await workerManager.postMessage({
-            type: "UPDATE",
-            payload: {
-                symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
-                kline: {
-                    time: kline.time,
-                    open: toNumFast(kline.open),
-                    high: toNumFast(kline.high),
-                    low: toNumFast(kline.low),
-                    close: toNumFast(kline.close),
-                    volume: toNumFast(kline.volume || 0)
-                },
-                settings
-            }
-        });
-        return result;
-    } catch (e) {
-        throw e; // Propagate error to manager to trigger re-init
-    }
+    // Errors propagate to the manager unhandled, which triggers re-init.
+    // This deliberately has no try/catch: a bare `catch (e) { throw e; }`
+    // wrapper behaves identically but hides that intent.
+    const { data: result } = await workerManager.postMessage({
+        type: "UPDATE",
+        payload: {
+            symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
+            kline: {
+                time: kline.time,
+                open: toNumFast(kline.open),
+                high: toNumFast(kline.high),
+                low: toNumFast(kline.low),
+                close: toNumFast(kline.close),
+                volume: toNumFast(kline.volume || 0)
+            },
+            settings
+        }
+    });
+    return result;
   },
 
   // Cleanup: Remove worker state to prevent leaks

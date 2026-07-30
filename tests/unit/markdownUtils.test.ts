@@ -56,7 +56,7 @@ describe('markdownUtils', () => {
 
         it('should return empty string during SSR', () => {
             const temp = global.window;
-            // @ts-ignore
+            // @ts-expect-error -- global.window is not optional; deleted to simulate a server environment
             delete global.window;
 
             expect(renderSafeMarkdown('# Hello')).toBe('');

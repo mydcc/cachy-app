@@ -21,6 +21,7 @@ import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 import { z } from "zod";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
+import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -117,7 +118,7 @@ async function fetchBitunixHistoryPositions(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

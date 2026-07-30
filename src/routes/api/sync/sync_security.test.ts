@@ -63,6 +63,10 @@ describe('POST /api/sync', () => {
   it('should return 200 and call fetch with correct headers for valid input', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
+      // The route reads the exchange body via readExchangeJson (text() +
+      // safeJsonParse) so long numeric IDs keep their precision. A real Response
+      // offers both, so the mock must too.
+      text: async () => JSON.stringify({ code: 0, data: { tradeList: [] } }),
       json: async () => ({ code: 0, data: { tradeList: [] } }),
     });
 

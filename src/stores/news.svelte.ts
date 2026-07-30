@@ -26,14 +26,28 @@ class NewsStore {
   // Cooldown to prevent infinite loops when API returns empty/fails silently
   private readonly FETCH_COOLDOWN = 60000; // 60s
 
+  // Symbols with a refresh in progress, including the ones still parked on the
+  // deliberate startup delay. Not $state: this is an internal concurrency guard,
+  // not something the UI renders.
+  private readonly pendingSymbols = new Set<string>();
+
   async refresh(symbol?: string, force = false) {
     if (!settingsState.enableNewsAnalysis) return;
 
-    // Prevent concurrent loads for the same symbol
-    if (this.isLoading && symbol === this.lastSymbol && !force) {
+    // Prevent concurrent loads for the same symbol.
+    //
+    // This cannot rely on `isLoading`, which is only set after the deliberate
+    // 3s delay below. Two calls issued inside that window both passed the old
+    // guard and both fetched — the exact duplicate the guard exists to stop,
+    // and the likeliest case in practice (startup, or rapid symbol switching).
+    // `pendingSymbols` is tracked separately so the UI-facing `isLoading` keeps
+    // meaning "a request is actually in flight".
+    if (!force && symbol !== undefined && this.pendingSymbols.has(symbol)) {
         return;
     }
+    if (symbol !== undefined) this.pendingSymbols.add(symbol);
 
+    try {
     // Delay the RSS and News fetch to make it secondary (nachrangig)
     // so real-time data has priority during initialization.
     if (!force) {
@@ -80,6 +94,11 @@ class NewsStore {
       this.lastFetchTime = Date.now();
     } finally {
       this.isLoading = false;
+    }
+    } finally {
+      // Runs for every exit path, including the cooldown early-returns above,
+      // so a skipped refresh cannot leave the symbol permanently blocked.
+      if (symbol !== undefined) this.pendingSymbols.delete(symbol);
     }
   }
 }

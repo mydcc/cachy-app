@@ -6,6 +6,21 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 # Changelog
 
+> **Note:** From version 1.0.0 onward, release notes are generated automatically
+> from commit messages. They appear directly below and are English only, since
+> commit messages are written in English. They are also published in
+> `CHANGELOG.md` in the repository and on
+> [GitHub Releases](https://github.com/mydcc/cachy-app/releases). Further down
+> follows the hand-maintained history of the 0.9x versions.
+
+## Releases
+
+<!-- CHANGELOG_GENERATED -->
+
+---
+
+## Version history 0.9x
+
 ### Table of Contents
 
 1. [Version 0.94.3](#v0.94.3)

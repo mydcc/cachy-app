@@ -21,6 +21,7 @@ import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { z } from "zod";
+import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
 // It receives API keys from the client to perform a signed request to Bitunix.
@@ -125,7 +126,7 @@ async function fetchBitunixPendingPositions(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

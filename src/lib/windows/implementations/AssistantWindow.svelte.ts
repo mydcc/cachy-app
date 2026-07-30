@@ -78,7 +78,7 @@ export class AssistantWindow extends WindowBase {
     }
 
     exportChat() {
-        let content = "";
+        let content: string;
         const mode = settingsState.sidePanelMode;
         if (mode === "ai") {
             content = aiState.messages

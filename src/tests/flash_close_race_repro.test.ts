@@ -39,8 +39,11 @@ vi.mock('../stores/settings.svelte', () => ({
 }));
 
 vi.mock('../services/logger', () => ({
+    // Mirrors the real logger interface exactly. `debug` was missing, so the code
+    // under test threw "logger.debug is not a function" mid-flow.
     logger: {
         log: vi.fn(),
+        debug: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
     }
@@ -68,6 +71,10 @@ describe('Flash Close Race Condition Reproduction', () => {
                 unrealizedPnl: new Decimal('0'),
                 marginMode: 'cross',
                 markPrice: new Decimal('50000'),
+                // ensurePositionFreshness refreshes anything older than 200ms and
+                // aborts the operation if that refresh fails, so an undated
+                // fixture never reaches the close call under test.
+                lastUpdated: Date.now(),
             }
         ]);
 

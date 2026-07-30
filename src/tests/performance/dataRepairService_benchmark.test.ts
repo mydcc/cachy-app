@@ -79,7 +79,7 @@ describe('DataRepairService fetchSmartKlines Concurrency Benchmark', () => {
       }
     ];
 
-    let getStart = 0;
+    let getStart: number;
 
     vi.mocked(apiService.fetchBitunixKlines).mockImplementation(async () => {
       // takes 200ms and fails

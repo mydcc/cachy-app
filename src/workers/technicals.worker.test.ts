@@ -67,9 +67,22 @@ describe("technicals.worker", () => {
     it("should handle incomplete data gracefully", () => {
       const shortKlines = klines.slice(0, 5);
       const result = calculateAllIndicators(shortKlines);
-      // Should not crash, just empty or partial results (MAs return 0 if not enough data)
-      expect(result.movingAverages.length).toBe(3);
-      expect(result.movingAverages[0].value).toBe(0);
+
+      // Must not throw on five candles.
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.movingAverages)).toBe(true);
+
+      // This assertion used to expect three entries with value 0. The
+      // calculator now pushes a moving average only when its value is not NaN,
+      // so an indicator without enough history is omitted instead of reported as
+      // 0 — a zero is indistinguishable from a real price level. Five candles is
+      // not enough for any of the configured periods, so none appear.
+      expect(result.movingAverages.length).toBe(0);
+
+      // Whatever is returned must never contain a NaN masquerading as a number.
+      for (const ma of result.movingAverages) {
+        expect(Number.isNaN(ma.value)).toBe(false);
+      }
     });
   });
 });

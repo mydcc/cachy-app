@@ -550,7 +550,7 @@ export class MarketManager {
     // Calculate Limit
     const userLimit = settingsState.chartHistoryLimit || 2000;
     const safetyLimit = 50000;
-    let effectiveLimit = userLimit;
+    let effectiveLimit: number;
     if (!enforceLimit) {
       effectiveLimit = safetyLimit;
     } else {
@@ -818,6 +818,7 @@ export class MarketManager {
     const cleanup = $effect.root(() => {
       $effect(() => {
         // Track.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.data;
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);
@@ -830,7 +831,7 @@ export class MarketManager {
     });
     return () => {
       if (typeof cleanup === 'function') {
-        (cleanup as Function)();
+        (cleanup as () => void)();
       } else if (cleanup && typeof (cleanup as any).stop === 'function') {
         (cleanup as any).stop();
       }
@@ -841,6 +842,7 @@ export class MarketManager {
     fn(this.connectionStatus);
     const cleanup = $effect.root(() => {
       $effect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.connectionStatus; // Track
         untrack(() => {
           if (this.statusNotifyTimer) clearTimeout(this.statusNotifyTimer);
@@ -853,7 +855,7 @@ export class MarketManager {
     });
     return () => {
       if (typeof cleanup === 'function') {
-        (cleanup as Function)();
+        (cleanup as () => void)();
       } else if (cleanup && typeof (cleanup as any).stop === 'function') {
         (cleanup as any).stop();
       }

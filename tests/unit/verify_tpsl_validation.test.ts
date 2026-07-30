@@ -41,13 +41,22 @@ vi.mock('../../src/lib/server/auth', () => ({
 // Mock global fetch
 global.fetch = vi.fn();
 
+// The route reads the body with safeJsonParse(await request.text()) rather than
+// request.json(), deliberately: JSON.parse mangles the precision of large numeric
+// literals, which matters for prices and sizes. These mocks previously provided
+// only json(), so every request threw "request.text is not a function" and the
+// route answered 500 instead of the status under test.
 describe('TP/SL API Validation', () => {
   const validKey = '12345678901234567890'; // > 10 chars
   const validSecret = '12345678901234567890';
 
   it('should reject requests with invalid structure', async () => {
     const request = {
-      json: async () => ({
+      // A real Request always has headers; extractApiCredentials reads them
+      // before falling back to the body. An empty Headers instance keeps that
+      // fallback path exercised without pretending headers are absent.
+      headers: new Headers(),
+      text: async () => JSON.stringify({
         exchange: 'bitunix',
         // Missing keys
       })
@@ -61,7 +70,11 @@ describe('TP/SL API Validation', () => {
 
   it('should reject requests with invalid action', async () => {
     const request = {
-      json: async () => ({
+      // A real Request always has headers; extractApiCredentials reads them
+      // before falling back to the body. An empty Headers instance keeps that
+      // fallback path exercised without pretending headers are absent.
+      headers: new Headers(),
+      text: async () => JSON.stringify({
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -78,7 +91,11 @@ describe('TP/SL API Validation', () => {
 
   it('should reject modify action without required params', async () => {
     const request = {
-      json: async () => ({
+      // A real Request always has headers; extractApiCredentials reads them
+      // before falling back to the body. An empty Headers instance keeps that
+      // fallback path exercised without pretending headers are absent.
+      headers: new Headers(),
+      text: async () => JSON.stringify({
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -98,7 +115,11 @@ describe('TP/SL API Validation', () => {
 
   it('should accept valid pending request', async () => {
     const request = {
-      json: async () => ({
+      // A real Request always has headers; extractApiCredentials reads them
+      // before falling back to the body. An empty Headers instance keeps that
+      // fallback path exercised without pretending headers are absent.
+      headers: new Headers(),
+      text: async () => JSON.stringify({
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -112,7 +133,11 @@ describe('TP/SL API Validation', () => {
     // Mock successful fetch for logic flow
     (global.fetch as any).mockResolvedValue({
         ok: true,
-        json: async () => ({ code: 0, data: [] })
+        // The route reads the upstream body with response.json() on the success
+        // path and response.text() only in the error branch, so the mock needs
+        // both to stand in for a real Response.
+        json: async () => ({ code: 0, data: [] }),
+        text: async () => JSON.stringify({ code: 0, data: [] })
     });
 
     const response = await POST({ request } as any);
@@ -121,7 +146,11 @@ describe('TP/SL API Validation', () => {
 
   it('should accept valid modify request', async () => {
     const request = {
-      json: async () => ({
+      // A real Request always has headers; extractApiCredentials reads them
+      // before falling back to the body. An empty Headers instance keeps that
+      // fallback path exercised without pretending headers are absent.
+      headers: new Headers(),
+      text: async () => JSON.stringify({
         exchange: 'bitunix',
         apiKey: validKey,
         apiSecret: validSecret,
@@ -139,7 +168,8 @@ describe('TP/SL API Validation', () => {
     // Mock successful fetch
     (global.fetch as any).mockResolvedValue({
         ok: true,
-        json: async () => ({ code: 0, data: {} })
+        json: async () => ({ code: 0, data: {} }),
+        text: async () => JSON.stringify({ code: 0, data: {} })
     });
 
     const response = await POST({ request } as any);

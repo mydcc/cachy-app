@@ -116,7 +116,10 @@ async function fetchBitunixKlines(
     let data;
     try {
       data = safeJsonParse(text);
-    } catch (e) {}
+    } catch {
+      // Leave `data` undefined: the upstream body was not valid JSON.
+      // The shape check below rejects it and returns a proper error response.
+    }
 
     if (
       data &&

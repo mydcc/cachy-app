@@ -184,10 +184,10 @@ export class WebGpuCalculator {
 
       // Params Buffer (Uniform): Binding N+M
       const paramBinding = inputs.length + outputSizes.length;
-      let paramsBuffer: GPUBuffer | null = null;
-
       if (params) {
-          let bufferSize = 0;
+          // Declared inside the block: paramsBuffer is never read outside it,
+          // so it needs no null default.
+          let bufferSize: number;
           if (params instanceof ArrayBuffer || params instanceof Float32Array || params instanceof Uint32Array) {
               bufferSize = params.byteLength;
           } else {
@@ -195,7 +195,7 @@ export class WebGpuCalculator {
           }
           bufferSize = Math.max(16, bufferSize); // Minimum uniform buffer size
           
-          paramsBuffer = this.device.createBuffer({
+          const paramsBuffer = this.device.createBuffer({
               size: bufferSize, 
               usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
           });

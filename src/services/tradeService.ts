@@ -206,7 +206,7 @@ class TradeService {
                 logger.error("market", `[Freshness] Stale refresh failed`, e);
                 // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
                 // We throw here to abort the operation.
-                throw new Error(TRADE_ERRORS.FETCH_FAILED);
+                throw new Error(TRADE_ERRORS.FETCH_FAILED, { cause: e });
              }
         }
 

@@ -44,6 +44,13 @@ class TradeCalculator {
                 // 1. Establish dependencies (Accessing values tracks them)
                 const _s = tradeState;
 
+                /* eslint-disable @typescript-eslint/no-unused-expressions --
+                   These bare property reads are the dependency registration for
+                   this $effect: touching a rune-backed property is what
+                   subscribes the effect to it. They are not dead code, and
+                   removing one would silently stop the calculator from
+                   recalculating when that input changes. */
+
                 // Core inputs
                 _s.accountSize;
                 _s.riskPercentage;
@@ -69,6 +76,8 @@ class TradeCalculator {
                     // If ATR is off, Stop Loss is a manual input TRIGGER.
                     _s.stopLossPrice;
                 }
+
+                /* eslint-enable @typescript-eslint/no-unused-expressions */
 
                 // 2. Throttle check
                 const now = Date.now();

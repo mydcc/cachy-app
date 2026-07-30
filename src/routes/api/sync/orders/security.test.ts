@@ -24,6 +24,40 @@ vi.mock('../../../../lib/server/auth', () => ({
 
 
 describe('POST /api/sync/orders', () => {
+  it('returns a 19-digit order ID unchanged (money path)', async () => {
+    // The whole reason this route reads the exchange body via readExchangeJson
+    // rather than response.json(): a 19-digit order ID exceeds
+    // Number.MAX_SAFE_INTEGER, and JSON.parse would silently round it. A rounded
+    // ID means a later cancel or modify targets the wrong order, or none.
+    const ORDER_ID = '1234567890123456789';
+
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `{"code":0,"data":{"orderList":[{"orderId":${ORDER_ID},"symbol":"BTCUSDT"}]}}`,
+      json: async () => ({ code: 0, data: { orderList: [{ orderId: Number(ORDER_ID), symbol: 'BTCUSDT' }] } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const request = {
+      json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
+    } as Request;
+
+    // `as unknown as` rather than `as any`: the surrounding tests predate the
+    // lint ratchet, and new code should not add to the backlog.
+    const response = await POST({
+      request,
+    } as unknown as Parameters<typeof POST>[0]);
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+    expect(body).toContain(ORDER_ID);
+    // The rounded form must not appear anywhere in the payload.
+    expect(body).not.toContain('1234567890123456800');
+
+    vi.unstubAllGlobals();
+  });
+
   it('should return 400 if JSON is malformed', async () => {
     const request = {
       json: async () => {

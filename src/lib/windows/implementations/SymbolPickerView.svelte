@@ -76,7 +76,7 @@
     });
 
     let sortedAndFilteredSymbols = $derived.by(() => {
-        let result = [];
+        let result: string[];
 
         // 1. Initial Set: Filter by Search OR Constants (USDT)
         if (searchQuery) {

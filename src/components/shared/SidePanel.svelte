@@ -190,7 +190,7 @@
   });
 
   function exportChat() {
-    let content = "";
+    let content: string;
     if (settingsState.sidePanelMode === "ai") {
       content = aiState.messages
         .map(

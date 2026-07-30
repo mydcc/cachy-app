@@ -922,7 +922,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           }
           break;
         case "setAtrMultiplier":
-        case "setStopLossATR":
+        case "setStopLossATR": {
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
             // parseAiValue returns Decimal, convert to string for tradeState
@@ -930,6 +930,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             tradeState.useAtrSl = true;
           }
           break;
+        }
         case "setUseAtrSl":
           if (typeof action.value === "boolean") {
             tradeState.useAtrSl = action.value;
@@ -963,9 +964,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       case "setSymbol":
         return `Symbol: ${action.value}`;
       case "setAtrMultiplier":
-      case "setStopLossATR":
+      case "setStopLossATR": {
         const mult = action.value || action.atrMultiplier;
         return `ATR SL: ${mult}x`;
+      }
       case "setUseAtrSl":
         return action.value ? "ATR SL: AN" : "ATR SL: AUS";
       default:

@@ -75,6 +75,9 @@ describe('POST /api/sync/positions-history - Security', () => {
   it('should work correctly with valid credentials', async () => {
      fetchMock.mockResolvedValueOnce({
       ok: true,
+      // See readExchangeJson: the route uses text() + safeJsonParse to preserve
+      // numeric precision on exchange data.
+      text: async () => JSON.stringify({ code: 0, data: { positionList: [] } }),
       json: async () => ({ code: 0, data: { positionList: [] } }),
     });
 

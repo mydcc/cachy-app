@@ -77,9 +77,14 @@ coverage/
 dist/
 .env
 .env.*
-! .env.example
+# Must have no space after "!" — `! .env.example` is read as a literal filename,
+# so the negation never applied and .env.example was silently ignored.
+!.env.example
 db/
 test-results/
+playwright-report/
+blob-report/
+.playwright/
 reports/
 target/
 technicals-wasm/target/

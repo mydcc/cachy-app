@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    # main produces stable releases; develop produces `-beta.N` prereleases.
+    # This mirrors the split already used by deploy.sh via .deploy.conf
+    # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app).
+    branches: [main, develop]
+
+# Prevent two releases from racing each other and producing duplicate tags.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: semantic-release
+    runs-on: ubuntu-latest
+    # Skip the release commit semantic-release pushes itself.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write # create tags, releases and the changelog commit
+      issues: write # comment on released issues
+      pull-requests: write # comment on released pull requests
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # semantic-release needs the full history and all tags to work out
+          # which commits are new since the last release.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release

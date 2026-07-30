@@ -16,7 +16,6 @@
  */
 
 import { browser } from "$app/environment";
-// @ts-ignore
 import CryptoJS from "crypto-js";
 
 /**

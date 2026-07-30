@@ -550,7 +550,7 @@ export function getRollingData(
     winRates.push((wins / windowSize) * 100);
 
     // 2. Profit Factor
-    let pf = 0;
+    let pf: number;
     if (grossLoss.isZero()) {
       pf = grossWin.gt(0) ? 10 : 0; // Cap at 10
     } else {

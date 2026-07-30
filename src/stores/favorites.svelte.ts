@@ -70,6 +70,7 @@ class FavoritesManager {
     fn(this.items);
     return $effect.root(() => {
       $effect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.items; // Track
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);

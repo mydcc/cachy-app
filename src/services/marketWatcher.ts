@@ -512,10 +512,12 @@ class MarketWatcher {
                         allNewKlines.push(...batch);
                     }
 
+                    const totalBeforeMerge = currentTotal;
+
                     if (allNewKlines.length > 0) {
                         const filled = this.fillGaps(allNewKlines, intervalMs);
                         marketState.updateSymbolKlines(symbol, tf, filled, "rest");
-                        
+
                         // Re-evaluate state after merge
                         const updatedHistory = marketState.data[symbol]?.klines[tf] || [];
                         currentTotal = updatedHistory.length;
@@ -524,6 +526,22 @@ class MarketWatcher {
 
                     if (reachedEnd || allNewKlines.length === 0) {
                         logger.log("market", `[History] Backfill reached end of history for ${symbol}:${tf} at ${currentTotal}/${limit}.`);
+                        this.exhaustedHistory.add(exhaustKey);
+                        break;
+                    }
+
+                    // Termination guard: batches came back non-empty but the stored
+                    // history did not grow, so another identical round will not help.
+                    // Without this the loop spins forever issuing API requests —
+                    // reachable whenever the upstream ignores our endTime and keeps
+                    // returning the same window, or every candle is a duplicate the
+                    // store discards.
+                    if (currentTotal <= totalBeforeMerge) {
+                        logger.warn(
+                            "market",
+                            `[History] Backfill made no progress for ${symbol}:${tf} at ${currentTotal}/${limit} ` +
+                            `(${allNewKlines.length} candles returned, none new). Marking history exhausted.`,
+                        );
                         this.exhaustedHistory.add(exhaustKey);
                         break;
                     }

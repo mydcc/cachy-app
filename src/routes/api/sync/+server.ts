@@ -23,6 +23,7 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
+import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 // Define Validation Schema
 const SyncRequestSchema = z.object({
@@ -121,7 +122,7 @@ async function fetchBitunixHistory(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

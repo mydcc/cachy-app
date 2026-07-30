@@ -173,7 +173,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             const is429 = msg.includes("429");
             msg = sanitizeErrorMessage(msg);
 
-            if (is429) throw new Error(msg);
+            if (is429) throw new Error(msg, { cause: e });
             console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
             lastError = msg;
             continue;

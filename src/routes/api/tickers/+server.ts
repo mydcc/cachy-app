@@ -47,7 +47,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     const data = await cache.getOrFetch(
       cacheKey,
       async () => {
-        let apiUrl = "";
+        let apiUrl: string;
         if (provider === "bitget") {
           // Bitget Futures API
           if (symbols) {
@@ -77,13 +77,13 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
               data.code === "2" ||
               (data.msg && data.msg.toLowerCase().includes("system error"))
             ) {
-              // eslint-disable-next-line no-throw-literal
+               
               throw { status: 404, message: "Symbol not found" };
             }
           } catch (e: unknown) {
             if (isStatusError(e) && e.status === 404) throw e;
           }
-          // eslint-disable-next-line no-throw-literal
+           
           throw { status: response.status, message: errorText };
         }
 
@@ -96,7 +96,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
             data.code === "2" ||
             (data.msg && data.msg.toLowerCase().includes("system error")))
         ) {
-          // eslint-disable-next-line no-throw-literal
+           
           throw { status: 404, message: "Symbol not found" };
         }
 

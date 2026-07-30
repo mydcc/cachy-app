@@ -2,6 +2,10 @@
 
 This guide walks you through installing **Cachy** on a server running **aaPanel**. Since the app uses server-side functions (API proxies), it is deployed as a Node.js application.
 
+It is the single deployment guide for the project — the former `DEPLOY.md` was
+merged into it (roadmap item 10), because two guides drifted apart and disagreed
+about how to invoke `deploy.sh`.
+
 ## Prerequisites
 
 - A server with **aaPanel** installed.
@@ -16,13 +20,16 @@ It is recommended to run two separate environments:
 
 1. **Staging (`dev.cachy.app`):**
     - For testing new features.
-    - Updated manually or automatically on every push to the `dev` branch.
+    - Tracks the **`develop`** branch, which semantic-release publishes as the `beta` prerelease channel.
     - Runs on a dedicated port (e.g., 3002).
 
 2. **Production (`cachy.app`):**
     - The stable version for end-users.
-    - Updated only after staging has been successfully tested (push to `main`).
+    - Tracks **`main`**, updated only after staging has been successfully tested.
     - Runs on a dedicated port (e.g., 3001).
+
+These two branch names are what `deploy.sh` enforces per mode, via
+`BRANCH_STABLE` / `BRANCH_BETA` in `.deploy.conf`.
 
 ---
 
@@ -68,6 +75,7 @@ The following steps apply to both environments (just adjust directory names).
     - **Name:** `cachy-prod` (or `cachy-dev`)
     - **Run Command:** Select `Custom Command` and enter: `node build/index.js`
       _(By default, aaPanel often looks for `app.js` or `index.js`, but SvelteKit is located in `build/index.js`)_
+      Alternatively `node server.js` — a thin wrapper that defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
     - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._
     - **Node Version:** v18 or higher.
 4. Click **Submit**.
@@ -80,63 +88,64 @@ The following steps apply to both environments (just adjust directory names).
 
 ---
 
-## 3. Automated Deployment Scripts
+## 3. Automated Deployment (`deploy.sh`)
 
-The project includes automated deployment scripts with backup, rollback, and health checks:
-
-### Development Deployment (`deploy.sh`)
-
-Deploy to staging environment:
+There is **one** script, and it defaults to production:
 
 ```bash
-./deploy.sh
+./deploy.sh            # production — cachy.app, branch main, port 3001
+./deploy.sh --beta     # staging    — dev.cachy.app, branch develop, port 3002
 ```
+
+`--beta` is the only argument it recognises. Anything else is ignored and the
+script deploys **production**. Before doing so it prints the target environment,
+offers to switch you to the required branch, and asks for an explicit `y` — so a
+mistyped argument is caught, but do not rely on that: read the banner.
+
+Which domain, branch and port each mode uses comes from `.deploy.conf`
+(`STABLE_*` / `BETA_*`). Copy `.deploy.conf.example` and adjust it before the
+first run; the script generates a default from the template if the file is
+missing.
 
 Features:
 
-- ✅ Automatic backup (last 5 deployments kept)
+- ✅ Automatic backup (last 5 deployments kept, configurable via `MAX_BACKUPS`)
+- ✅ Atomic build in a shadow directory — a failed build never touches the live one
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
-- ✅ Build validation
-- ✅ Health check (10s timeout)
+- ✅ Build artifact validation
+- ✅ Health check against `/api/health`
 - ✅ Auto-rollback on failure
 - ✅ Optional Discord notifications
 
-### Production Deployment (`deploy_prod.sh`)
+### What the script does
 
-Deploy to production environment:
+1. **Check branch and working tree** - offers to switch branch and to stash changes
+2. **Confirm** - production mode requires an explicit `y`
+3. **Create backup** - full build + package-lock.json + Git commit
+4. **Pull latest code** - `git reset --hard && git pull`
+5. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
+6. **Validate build** - checks that `build/index.js` exists
+7. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_old_<timestamp>`, move the new one in
+8. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`
+9. **Health check** - verify the service responds at `/api/health`
+10. **Auto-rollback** - restore the backup if the health check fails
 
-```bash
-./deploy_prod.sh
-```
+### Manual rollback
 
-Same features as `deploy.sh` but for production environment (`cachy.app` on port 3001).
-
-### What the Scripts Do
-
-1. **Check deployment lock** - Prevents concurrent deployments
-2. **Create backup** - Full build + package-lock.json + Git commit
-3. **Pull latest code** - `git reset --hard && git pull`
-4. **Install dependencies** - `npm ci --legacy-peer-deps`
-5. **Build project** - `npm run build` with duration tracking
-6. **Validate build** - Checks for required artifacts
-7. **Set permissions** - `chown www:www` and `chmod 755`
-8. **Graceful restart** - SIGTERM with 10s grace period
-9. **Health check** - Verify service responds at `/api/health`
-10. **Auto-rollback** - Restore backup if health check fails
-
-### Manual Rollback
-
-If you need to manually rollback:
+The script rolls back on its own when the health check fails. To do it by hand:
 
 ```bash
-# Find available backups
-ls -la /backups/cachy/dev/
-# or
-ls -la /backups/cachy/prod/
+# Backups are grouped by mode name — "stable" and "beta", not the domain
+ls -la /backups/cachy/stable/
+ls -la /backups/cachy/beta/
 
-# The scripts automatically rollback on failure, but you can
-# manually restore a backup by copying the build directory
+# The build the last deployment replaced is also still on disk:
+ls -d /www/wwwroot/cachy.app/build_old_*
 ```
+
+Restore by moving the wanted `build/` directory back into place and restarting
+the Node project. `BACKUP_DIR` is set in `.deploy.conf` and falls back to
+`<project>/backups` when the configured path is not writable.
 
 ---
 
@@ -207,20 +216,23 @@ Response:
 {
   "status": "ok",
   "timestamp": 1234567890,
-  "version": "0.94.3",
+  "version": "1.0.0",
   "environment": "production"
 }
 ```
 
-This endpoint is used by the deployment scripts to verify the service started correctly.
+`version` comes from `package.json` through `APP_VERSION`, so it is a reliable
+way to confirm *which* build is actually running. `environment` reflects
+`NODE_ENV`.
+
+The endpoint is unauthenticated by design — `deploy.sh` calls it to verify the
+service started correctly, before any token is in play.
 
 ---
 
-## 6. Manual Updates (Legacy Method)
+## 6. Manual Updates
 
-If you prefer not to use the automated scripts:
-
-**Manually via Terminal:**
+If you prefer not to use `deploy.sh`:
 
 ```bash
 # 1. Switch to directory
@@ -229,27 +241,47 @@ cd /www/wwwroot/cachy.app
 # 2. Get latest code
 git pull
 
-# 3. Rebuild (IMPORTANT!)
-npm ci --legacy-peer-deps  # Use npm ci instead of npm install
+# 3. Rebuild
+npm ci --legacy-peer-deps  # npm ci, not npm install — reproducible installs
 npm run build
 
-# 4. Restart process (via aaPanel GUI or command)
+# 4. Restart the process — NOT optional, see below
 # In aaPanel: Website -> Node project -> cachy-prod -> Restart
 ```
 
+### Why step 4 is not optional: 404s on JS and CSS after a build
+
+If the page breaks after `npm run build`, with the browser reporting 404s for
+asset files, the cause is almost always a skipped restart.
+
+The running Node process still serves the **old** HTML from memory, and that HTML
+references the old hashed asset filenames. `npm run build` has already replaced
+those files on disk with new ones under new names. So the browser asks for assets
+that no longer exist, and every one of them 404s.
+
+Restarting the process is the fix. `deploy.sh` does it for you — and does it in
+the right order, swapping the build in only after it succeeds.
+
 ---
 
-## 7. Environment Variables (Optional)
+## 7. Environment Variables
 
-If you need to change configurations (like ports or API secrets), you can create a `.env` file in the root directory:
+Create a `.env` file in the root directory. `.env.example` is the full reference — copy it and fill it in:
+
+```bash
+cp .env.example .env
+```
 
 ```env
+APP_ACCESS_TOKEN=<openssl rand -hex 32>
 PORT=3001
 ORIGIN=https://cachy.app
 NODE_ENV=production
 ```
 
-_Note: `ORIGIN` is important for SvelteKit Form Actions to avoid CSRF errors._
+> ⚠️ **`APP_ACCESS_TOKEN` is required, not optional.** Authentication fails closed: without it, all 17 guarded API routes answer 401 and the deployed app cannot reach its own backend. Set it on the server **before** deploying, and enter the same value in the running app under **Settings → Connections → App Access Token**. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+
+_Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions._
 
 ---
 
@@ -263,18 +295,22 @@ _Note: `ORIGIN` is important for SvelteKit Form Actions to avoid CSRF errors._
    tail -f /var/log/cachy/deploy_YYYYMMDD.log
    ```
 
-2. **Deployment lock exists:**
+2. **A previous run left work behind:**
 
    ```bash
-   rm /tmp/cachy_deploy_dev.lock
-   # or
-   rm /tmp/cachy_deploy_prod.lock
+   ls -d .deploy_work build_old_*   # shadow build dir and superseded builds
    ```
 
+   `deploy.sh` removes `.deploy_work` itself on both success and build failure.
+   If it is still there, the run was interrupted — it is safe to delete.
+
+   > Note: there is **no concurrency lock**. Two runs at once would race on
+   > `.deploy_work` and on the build swap. Deploy from one shell at a time.
+
 3. **Build fails:**
-   - Check if package.json has `build` script
-   - Ensure all dependencies are in package.json
-   - Try manual build: `npm ci && npm run build`
+   - The full build log path is printed on failure — `logs/build_<timestamp>.log`
+   - The build runs in `.deploy_work`, so a failure leaves the live deployment untouched
+   - Try manually: `npm ci --legacy-peer-deps && npm run build`
 
 ### Health Check Fails
 

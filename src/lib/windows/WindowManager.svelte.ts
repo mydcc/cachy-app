@@ -159,12 +159,14 @@ class WindowManager {
         if (!data || !data.type) return null;
 
         switch (data.type) {
-            case 'chart':
+            case 'chart': {
                 const { ChartWindow } = await import("./implementations/ChartWindow.svelte");
                 return new ChartWindow(data.symbol || "BTCUSDT", { timeframe: data.timeframe });
-            case 'channel':
+            }
+            case 'channel': {
                 const { ChannelWindow } = await import("./implementations/ChannelWindow.svelte");
                 return new ChannelWindow(data.url, data.title, data.id);
+            }
             case 'iframe':
                 return new IframeWindow(data.url, data.title);
             default:
