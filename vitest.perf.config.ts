@@ -30,6 +30,17 @@ const config = mergeConfig(
         "src/tests/performance/dataRepairService_benchmark.test.ts",
         "src/tests/performance/startup_benchmark.test.ts",
       ],
+      // memory_profiling.test.ts measures heap growth, which only means anything
+      // if it can force a collection first. Without --expose-gc, `global.gc` is
+      // undefined, the test's `if (global.gc)` guards did nothing, and it
+      // compared two arbitrary points in V8's allocation cycle against a 10 MB
+      // threshold — which is why CI reported 16 MB of "growth" with the
+      // calculator unchanged. The test skips itself when the flag is absent
+      // rather than reporting a verdict it cannot support.
+      //
+      // In vitest 4 this is a top-level test option; it is NOT read under
+      // `poolOptions.<pool>.execArgv`, where it is silently ignored.
+      execArgv: ["--expose-gc"],
     },
   }),
 );

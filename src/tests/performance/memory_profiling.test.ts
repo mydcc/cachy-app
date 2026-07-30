@@ -53,8 +53,25 @@ function generateKlines(count: number): Kline[] {
   return klines;
 }
 
+/**
+ * Heap growth only means anything if a collection can be forced first.
+ * `global.gc` exists solely under `node --expose-gc`, which vitest.perf.config.ts
+ * passes to the worker. Without it the old `if (global.gc)` guards silently did
+ * nothing and the assertions compared two arbitrary points in V8's allocation
+ * cycle — that is why CI saw 16 MB of "growth" against a 10 MB limit while the
+ * calculator was unchanged. Skipping is the honest outcome: a number nobody can
+ * interpret is worse than no number.
+ */
+const canForceGc = typeof global.gc === "function";
+
+/** Two passes: the first can resurrect objects through finalizers. */
+function forceGc(): void {
+  global.gc!();
+  global.gc!();
+}
+
 describe('Memory Profiling', () => {
-  it('does not leak memory over repeated calculations', () => {
+  it.skipIf(!canForceGc)('does not leak memory over repeated calculations', () => {
     const klines = generateKlines(2000);
     const iterations = 50;
 
@@ -62,7 +79,7 @@ describe('Memory Profiling', () => {
     for (let i = 0; i < 3; i++) {
       calculateAllIndicators(klines);
     }
-    if (global.gc) global.gc();
+    forceGc();
 
     const heapBefore = process.memoryUsage().heapUsed;
 
@@ -70,7 +87,7 @@ describe('Memory Profiling', () => {
       calculateAllIndicators(klines);
     }
 
-    if (global.gc) global.gc();
+    forceGc();
     const heapAfter = process.memoryUsage().heapUsed;
     const heapGrowthMB = (heapAfter - heapBefore) / (1024 * 1024);
 
@@ -84,18 +101,18 @@ describe('Memory Profiling', () => {
     expect(heapGrowthMB).toBeLessThan(10);
   }, 60000);
 
-  it('buffer pool releases buffers correctly', () => {
+  it.skipIf(!canForceGc)('buffer pool releases buffers correctly', () => {
     const klines = generateKlines(1000);
 
     // Run many times — if pool leaks, heap would explode
-    if (global.gc) global.gc();
+    forceGc();
     const heapBefore = process.memoryUsage().heapUsed;
 
     for (let i = 0; i < 100; i++) {
       calculateAllIndicators(klines);
     }
 
-    if (global.gc) global.gc();
+    forceGc();
     const heapAfter = process.memoryUsage().heapUsed;
     const growthMB = (heapAfter - heapBefore) / (1024 * 1024);
 

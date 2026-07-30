@@ -126,13 +126,29 @@ now excluded from `npm test` and run via `npm run test:perf` in a
 `continue-on-error` CI job. `load_testing.test.ts` stays in the gate: it asserts
 shape and finiteness, not timing.
 
-That job then kept reporting red on every run — 9.1x on the latest one — so the
-scaling test was fixed rather than left to cry wolf: both sides are now the
-median of five runs instead of a single measurement. The threshold and the intent
-are unchanged (quadratic behaviour would show as ~25x), but the number now means
-what it claims. The same file's budget test shows why single-shot was hopeless:
-five consecutive runs over 100 candles came out as
-`[3.0, 2.9, 7.0, 2.9, 2.6]` ms — a 2.7x spread with nothing changing.
+That job then kept reporting red on every run, so both offenders were fixed
+rather than left to cry wolf:
+
+- **The scaling test** (9.1x against a limit of 8x) timed a single pass over 1k
+  candles as its baseline. Both sides are now the median of five runs. The
+  threshold and the intent are unchanged — quadratic behaviour would still show
+  as ~25x — but the number now means what it claims. The same file's budget test
+  shows why single-shot was hopeless: five consecutive runs over 100 candles came
+  out as `[3.0, 2.9, 7.0, 2.9, 2.6]` ms, a 2.7x spread with nothing changing.
+- **The memory test** (16 MB against a limit of 10 MB) was worse than noisy: it
+  was never measuring what it claimed. Its `if (global.gc) global.gc()` calls
+  were dead code, because `global.gc` only exists under `node --expose-gc`, which
+  nothing passed. So it compared two arbitrary points in V8's allocation cycle
+  and called the difference a leak. `vitest.perf.config.ts` now passes the flag
+  (a top-level `execArgv` option in vitest 4 — under `poolOptions.<pool>.execArgv`
+  it is silently ignored), and the test skips itself if the flag is ever absent
+  again rather than producing a verdict it cannot support.
+
+With a real collection forced, actual growth is **0.35 MB** over 50 iterations
+and **0.00 MB** for the buffer pool, against thresholds of 10 and 15 MB. There
+was never a leak. Worth noting for later: those thresholds now have ~30x
+headroom, so they would not catch a moderate regression — tightening them is a
+separate call, and only worth making now that the measurement is real.
 
 Five of the fixes were production bugs rather than test problems: an invalid date
 rendering as "just now", fail-open API auth, an unbounded kline backfill loop, an
