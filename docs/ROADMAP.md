@@ -39,7 +39,20 @@ baseline tag is required and there is no manual step left. The hand-written
 | 9 | ~~Audit the rest of the whitepaper against the code~~ — done: all eight chapters checked, every reference resolved, chapter 3 maths now covered by an executable test | 🟢 |
 | 10 | ~~Merge `DEPLOY.md` and `DEPLOYMENT.md` into one guide~~ — done: one guide, and both had the `deploy.sh` invocation wrong | 🟢 |
 | 11 | Consolidate the four brand/design sources into one canonical doc | ⚪ |
-| 11a | Feed the in-app changelog from the generated `CHANGELOG.md` — the app renders `src/lib/assets/content/changelog.{de,en}.md`, which will no longer be updated by releases | ⚪ |
+| 11a | ~~Feed the in-app changelog from the generated `CHANGELOG.md`~~ — done: the generated releases are substituted into the localized document at render time | 🟢 |
+
+**Item 11a is done.** The in-app changelog would have frozen at 0.94.3 the moment
+semantic-release published its first version, because it rendered a hand-written
+copy of the release history. `markdownLoader` now substitutes the generated
+`CHANGELOG.md` into the localized document at a `<!-- CHANGELOG_GENERATED -->`
+marker, so there is no copy to keep in sync — the generated file is the single
+source of truth for releases, and the localized files keep only what a machine
+cannot write: the German and English framing, and the 0.9x history.
+
+No build step and no generated files in the repository: `CHANGELOG.md` is
+imported with `?raw` and merged at render time. The generated part is English
+only, since commit messages are English by project convention; the note above the
+marker says so in the reader's language.
 
 **Item 10 is done.** `DEPLOY.md` is merged into `DEPLOYMENT.md`, which every
 other document already pointed to. The merge was worth more than tidiness: the
@@ -112,6 +125,14 @@ the ratio by more than half. Four files carrying wall-clock or heap thresholds a
 now excluded from `npm test` and run via `npm run test:perf` in a
 `continue-on-error` CI job. `load_testing.test.ts` stays in the gate: it asserts
 shape and finiteness, not timing.
+
+That job then kept reporting red on every run — 9.1x on the latest one — so the
+scaling test was fixed rather than left to cry wolf: both sides are now the
+median of five runs instead of a single measurement. The threshold and the intent
+are unchanged (quadratic behaviour would show as ~25x), but the number now means
+what it claims. The same file's budget test shows why single-shot was hopeless:
+five consecutive runs over 100 candles came out as
+`[3.0, 2.9, 7.0, 2.9, 2.6]` ms — a 2.7x spread with nothing changing.
 
 Five of the fixes were production bugs rather than test problems: an invalid date
 rendering as "just now", fail-open API auth, an unbounded kline backfill loop, an
