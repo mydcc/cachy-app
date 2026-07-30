@@ -37,12 +37,20 @@ vi.mock('../stores/settings.svelte', () => ({
     }
 }));
 
+/** Same internal bookkeeping as bitunixWs.leak.test.ts, named rather than cast. */
+type WsInternals = {
+  syntheticSubs: Map<string, number>;
+  pendingSubscriptions: Set<string>;
+};
+
+const internals = bitunixWs as unknown as WsInternals;
+
 describe('BitunixWS Memory Leak', () => {
     beforeEach(() => {
         // Reset state manually if needed, though bitunixWs is a singleton
         // We can access private members via any cast for testing
-        (bitunixWs as any).syntheticSubs = new Map();
-        (bitunixWs as any).pendingSubscriptions = new Map();
+        internals.syntheticSubs = new Map();
+        internals.pendingSubscriptions = new Map();
     });
 
     it('should accumulate synthetic subscriptions on subscribe', () => {
@@ -52,7 +60,7 @@ describe('BitunixWS Memory Leak', () => {
 
         bitunixWs.subscribe('BTCUSDT', 'kline_2h');
 
-        const synthMap = (bitunixWs as any).syntheticSubs;
+        const synthMap = internals.syntheticSubs;
         expect(synthMap.size).toBe(1);
         expect(synthMap.get('BTCUSDT:2h')).toBe(1);
 
@@ -63,7 +71,7 @@ describe('BitunixWS Memory Leak', () => {
     it('should cleanup synthetic subscriptions on unsubscribe (LEAK REPRODUCTION)', () => {
         // 1. Subscribe
         bitunixWs.subscribe('BTCUSDT', 'kline_2h');
-        const synthMap = (bitunixWs as any).syntheticSubs;
+        const synthMap = internals.syntheticSubs;
         expect(synthMap.get('BTCUSDT:2h')).toBe(1);
 
         // 2. Unsubscribe

@@ -35,6 +35,47 @@ fallbacks, this one is load-bearing, and removing it silently breaks a feature.
 
 ---
 
+## 2. Numbers are stored where the trade state declares strings
+
+**Roadmap item 21.** Surfaced by typing `tradeState.update()` / `set()`, which
+were `(curr: any) => any`. Giving them the real `TradeStateSnapshot` type made
+the typechecker reject three call sites — so the signature was **left as `any`
+with an explicit `eslint-disable` and a comment**, rather than casting the
+disagreement away.
+
+`TradeStateSnapshot` declares:
+
+```ts
+entryPrice: string | null;
+targets: TradeTarget[];        // TradeTarget.price: string | null
+```
+
+Callers pass numbers:
+
+| Site | What it passes |
+| --- | --- |
+| `src/services/app.ts:130` | `targets: [{ price: 120000, percent: 50 }]` |
+| `src/components/shared/MarketOverview.svelte:356` | `newState.entryPrice = new Decimal(...).toNumber()` |
+| `src/lib/presets.ts:97` | a snapshot whose fields disagree the same way |
+
+**Why it is not merely cosmetic.** `trade.svelte.ts` filters targets with:
+
+```ts
+(t) => t.price !== null && t.price !== "0"
+```
+
+`"0" !== "0"` is false, so a string zero is filtered out — as intended. But
+`0 !== "0"` is **true**, so a *numeric* zero price passes a filter written to
+remove zero-price targets. Demonstrated in isolation; **not** demonstrated to
+occur in practice, because no path was traced that puts a numeric `0` there.
+Treat that as the open question, not as a known bug.
+
+**The decision:** either fix the callers to pass strings, or widen the declared
+types to `string | number` and make every comparison go through `Decimal`. The
+second is more honest about what the store actually holds; the first keeps the
+comparisons simple. Both are better than the current state, where the type says
+one thing and three callers do another.
+
 ## Add new items below
 
 <!--

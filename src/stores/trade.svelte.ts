@@ -23,6 +23,7 @@ import { debounce } from "../utils/utils";
 import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../utils/safeJson";
 import { z } from "zod";
+import type { CurrentTradeData } from "./types";
 
 // Re-using types might require importing AppState or redefining what we need
 // Ideally we import AppState, but let's define the shape here for clarity/independence or import if needed.
@@ -58,7 +59,7 @@ export interface TradeStateSnapshot {
   riskAmount: string | null;
   journalSearchQuery: string;
   journalFilterStatus: string;
-  currentTradeData: Record<string, any> | null;
+  currentTradeData: CurrentTradeData | null;
   remoteLeverage: Decimal | undefined;
   remoteMarginMode: string | undefined;
   remoteMakerFee: Decimal | undefined;
@@ -185,14 +186,15 @@ class TradeManager {
    * Holds current active trade data fetched from API/WS.
    * Can be used to sync UI with real position state.
    */
-  currentTradeData = $state<Record<string, any> | null>(INITIAL_TRADE_STATE.currentTradeData);
+  currentTradeData = $state<CurrentTradeData | null>(INITIAL_TRADE_STATE.currentTradeData);
   remoteLeverage = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteLeverage);
   remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
   remoteMakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteMakerFee);
   remoteTakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteTakerFee);
   feeMode = $state(INITIAL_TRADE_STATE.feeMode);
   exitFees = $state<Decimal | undefined>(INITIAL_TRADE_STATE.exitFees);
-  private notifyTimer: any = null;
+  // Number in the browser, Timeout under Node — ReturnType covers both.
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
@@ -256,7 +258,7 @@ class TradeManager {
 
           // Logic for targets
           const hasAnyPrice = data.targets?.some(
-            (t: any) => t.price !== null && t.price !== "0",
+            (t: TradeTarget) => t.price !== null && t.price !== "0",
           );
           if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
             this.targets = structuredClone(INITIAL_TRADE_STATE.targets);
@@ -307,7 +309,7 @@ class TradeManager {
     this.riskAmount = INITIAL_TRADE_STATE.riskAmount;
   }
 
-  private saveDebounced = debounce((snapshot: any) => {
+  private saveDebounced = debounce((snapshot: TradeStateSnapshot) => {
     if (!browser) return;
     try {
       const toSave: any = { ...snapshot };
@@ -393,6 +395,11 @@ class TradeManager {
   }
 
   // Helper for legacy 'update' pattern
+  // Deliberately not `(curr: TradeStateSnapshot) => Partial<TradeStateSnapshot>`
+  // yet: typing it that way surfaces callers passing numbers where the snapshot
+  // declares strings (app.ts, MarketOverview.svelte). That disagreement needs a
+  // decision, not a cast — see docs/TODO.md.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   update(fn: (curr: any) => any) {
     // Create a snapshot object
     const snap = this.getSnapshot();
@@ -429,6 +436,8 @@ class TradeManager {
   }
 
   // Helper for legacy 'set' pattern (useful for tests)
+  // Same reason as update() above.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   set(newState: any) {
     Object.assign(this, newState);
 
@@ -485,16 +494,16 @@ class TradeManager {
   }
 
   // Compatibility
-  private listeners = new Set<(value: any) => void>();
+  private listeners = new Set<(value: TradeStateSnapshot) => void>();
   // private notifyTimer: any = null; // Removed debounce for sync updates
 
-  private notifyListeners(snap?: any) {
+  private notifyListeners(snap?: TradeStateSnapshot) {
     // Synchronous notification to prevent race conditions
     const s = snap || this.getSnapshot();
     this.listeners.forEach((fn) => fn(s));
   }
 
-  subscribe(fn: (value: any) => void): () => void {
+  subscribe(fn: (value: TradeStateSnapshot) => void): () => void {
     fn(this.getSnapshot());
     this.listeners.add(fn);
     return () => {
