@@ -369,7 +369,7 @@ place to "fix" by restoring noise.
 | 24b | ~~Audit remaining `env.*` reads against `.env.example`~~ — done: audited, `PORT` added, and a test now enforces it | 🟢 |
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
 | 24d | ~~Consider the same for `external/cmc`~~ — considered and **declined**, with the reasoning recorded at the call site | 🟢 |
-| 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
+| 24e | **Decide the fate of the committed imgbb API key** — moved to [`docs/TODO.md`](TODO.md), since it needs a person rather than a plan. The key must be rotated at imgbb regardless of the outcome | ⚪ |
 | 24f | ~~Add a concurrency lock to `deploy.sh`~~ — done: `flock` on `.deploy.lock`, proven with concurrent runs | 🟢 |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
