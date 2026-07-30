@@ -238,6 +238,17 @@ rolling back on the health check. A failure one deploy removed from its cause is
 exactly the kind that costs an afternoon, so `DEPLOYMENT.md` now opens the
 deployment section with the backup step.
 
+**Item 23 is done.** The two copies were not near-duplicates to pick between:
+`info/chartpatterns.html` documents **56 chart patterns**, the root copy **4**.
+Commit `b9931450` added 6343 lines to the `info/` copy alone and never touched
+the other, so the root file had been an abandoned early draft since then.
+
+It also had no assets: `info/chartpatterns.html` references a `chartpatterns_files`
+sidecar directory that exists only under `info/`, alongside its sibling
+`candlestick.html`. Nothing anywhere in the repository linked to the root copy.
+Deleted — 226 KB, and one fewer file at the top level pretending to be
+documentation.
+
 ### Code health
 
 | # | Item | Status |
@@ -247,7 +258,7 @@ deployment section with the backup step.
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
-| 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
+| 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |
 | 24b | ~~Audit remaining `env.*` reads against `.env.example`~~ — done: audited, `PORT` added, and a test now enforces it | 🟢 |

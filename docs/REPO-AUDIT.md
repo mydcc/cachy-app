@@ -219,10 +219,12 @@ Left for a decision, deliberately not touched:
   conflict" turned out to be wrong; see section 10.
 - ~~**Four sources for brand/design.**~~ **Resolved** (item 11) — one canonical
   `docs/BRAND.md`, written from `src/themes.css`. See section 11.
-- **`chartpatterns.html` (224 KB) in the repository root** also exists as
-  `info/chartpatterns.html` (272 KB). They are **not** identical — different
-  content hashes — and neither is referenced anywhere in the source. Consolidate
-  only after deciding which one is current.
+- ~~**`chartpatterns.html` (224 KB) in the repository root** also exists as
+  `info/chartpatterns.html` (272 KB).~~ **Resolved** (item 23). The size
+  difference was the whole story: the `info/` copy documents 56 chart patterns,
+  the root copy 4. Commit `b9931450` added 6343 lines to the `info/` copy and
+  left the other untouched, so the root file was an abandoned draft. It also
+  lacked the `chartpatterns_files` sidecar the `info/` copy references. Deleted.
 - ~~**`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
   no secrets, only infrastructure paths and ports, but it is the example file
   filled in.~~ **Resolved** (item 22) — and the description above was too
