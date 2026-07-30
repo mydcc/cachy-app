@@ -101,3 +101,8 @@ build_old_*/
 # .deploy.conf.example; the filled-in file is not — it names that server's paths,
 # ports and start commands. deploy.sh regenerates it from the template if absent.
 .deploy.conf
+
+# Runtime artefacts of deploy.sh: the concurrency lock and the shadow build dir.
+.deploy.lock
+.deploy_work/
+build_old_*/

@@ -565,9 +565,9 @@ rather than carried over:
   `dev` / `prod` as the troubleshooting section claimed.
 - **Deployment lock**: the troubleshooting section told the reader to delete
   `/tmp/cachy_deploy_*.lock`, and the feature list claimed a concurrency check.
-  There is no lock anywhere in `deploy.sh`. Replaced with what actually needs
-  cleaning up (`.deploy_work`, `build_old_*`) and an explicit note that
-  concurrent runs would race.
+  There was no lock anywhere in `deploy.sh`. **Since built** (item 24f) — a
+  `flock` on `.deploy.lock` taken before the first mutating step, so the
+  documentation is true now rather than merely corrected.
 - **Atomic build**: the script builds into a shadow directory and only swaps on
   success, which the old text did not mention. That is the guide's strongest
   safety property and it was undocumented.

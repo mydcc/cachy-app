@@ -249,6 +249,28 @@ sidecar directory that exists only under `info/`, alongside its sibling
 Deleted — 226 KB, and one fewer file at the top level pretending to be
 documentation.
 
+**Item 24f is done.** `deploy.sh` takes a `flock` on `.deploy.lock` before the
+first mutating step. A second run refuses to start rather than interleaving a
+branch checkout, a stash, a pull, an rsync into `.deploy_work` and a build swap
+with the first one's.
+
+`flock` rather than a PID file: the kernel owns it, so nothing stale survives a
+SIGKILL or a power cut — no trap to get right. Proven rather than assumed, and
+the test corrected an assumption: a second run **is** refused while the first
+holds the lock, the lock **is** free once it finishes, but after `kill -9` it was
+still held. The cause is that children inherit the descriptor, and the `sleep`
+standing in for the build was still alive.
+
+That behaviour is right for this script and the comment now says so: the real
+child is the background npm build, which keeps writing into `.deploy_work` after
+its parent dies. A second deployment rsyncing into that directory is exactly the
+race the lock exists to prevent, so the lock should outlive the script for as
+long as the work does.
+
+`.deploy.lock`, `.deploy_work/` and `build_old_*/` are gitignored — verified by
+creating the directories and checking the patterns actually match, since a
+trailing-slash pattern silently matches nothing when the directory is absent.
+
 ### Code health
 
 | # | Item | Status |
@@ -265,7 +287,7 @@ documentation.
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
 | 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
 | 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
-| 24f | Add a concurrency lock to `deploy.sh` — two simultaneous runs would race on the `.deploy_work` shadow directory and on the build swap. The old docs claimed a lock existed; it never did | ⚪ |
+| 24f | ~~Add a concurrency lock to `deploy.sh`~~ — done: `flock` on `.deploy.lock`, proven with concurrent runs | 🟢 |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
 the backlog cannot grow. The ratchet has already earned its place: work on item 18
