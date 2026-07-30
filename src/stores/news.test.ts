@@ -57,9 +57,19 @@ describe("NewsStore", () => {
     vi.useRealTimers();
   });
 
+  // refresh() awaits a deliberate 3s setTimeout unless force=true, so real-time
+  // data gets priority during startup. Under fake timers that promise only
+  // settles once the clock is advanced — awaiting refresh() directly deadlocks
+  // until the test times out, which is what these tests used to do.
+  const refresh = async (symbol?: string, force = false) => {
+    const p = newsStore.refresh(symbol, force);
+    await vi.advanceTimersByTimeAsync(3000);
+    return p;
+  };
+
   it("should not refresh if enableNewsAnalysis is false", async () => {
     settingsState.enableNewsAnalysis = false;
-    await newsStore.refresh("BTC");
+    await refresh("BTC");
     expect(mockFetchNews).not.toHaveBeenCalled();
     expect(newsStore.isLoading).toBe(false);
   });
@@ -68,7 +78,7 @@ describe("NewsStore", () => {
     mockFetchNews.mockResolvedValueOnce([{ title: "Test News", url: "http://test.com", source: "Test", published_at: "2023-01-01" }]);
     mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.8, regime: "BULLISH", summary: "Good", keyFactors: [] });
 
-    await newsStore.refresh("BTC");
+    await refresh("BTC");
 
     expect(mockFetchNews).toHaveBeenCalledWith("BTC");
     expect(mockAnalyzeSentiment).toHaveBeenCalled();
@@ -83,7 +93,7 @@ describe("NewsStore", () => {
   it("should handle error when fetching news", async () => {
     mockFetchNews.mockRejectedValueOnce(new Error("Network Error"));
 
-    await newsStore.refresh("BTC");
+    await refresh("BTC");
 
     expect(mockFetchNews).toHaveBeenCalledWith("BTC");
     expect(mockAnalyzeSentiment).not.toHaveBeenCalled();
@@ -95,35 +105,35 @@ describe("NewsStore", () => {
     mockFetchNews.mockResolvedValueOnce([{ title: "Test News", url: "http://test.com", source: "Test", published_at: "2023-01-01" }]);
     mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.8, regime: "BULLISH", summary: "Good", keyFactors: [] });
 
-    await newsStore.refresh("BTC");
+    await refresh("BTC");
     expect(mockFetchNews).toHaveBeenCalledTimes(1);
 
     // Call again immediately, should respect cooldown and skip because symbol is the same and not forced
-    await newsStore.refresh("BTC");
+    await refresh("BTC");
     expect(mockFetchNews).toHaveBeenCalledTimes(1);
 
     // Force call, should bypass cooldown
     mockFetchNews.mockResolvedValueOnce([{ title: "Test News 2", url: "http://test2.com", source: "Test", published_at: "2023-01-02" }]);
     mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.6, regime: "NEUTRAL", summary: "Ok", keyFactors: [] });
-    await newsStore.refresh("BTC", true);
+    await refresh("BTC", true);
     expect(mockFetchNews).toHaveBeenCalledTimes(2);
 
     // Call with different symbol, should fetch
     mockFetchNews.mockResolvedValueOnce([{ title: "ETH News", url: "http://eth.com", source: "Test", published_at: "2023-01-03" }]);
     mockAnalyzeSentiment.mockResolvedValueOnce({ score: 0.5, regime: "NEUTRAL", summary: "Neutral", keyFactors: [] });
-    await newsStore.refresh("ETH");
+    await refresh("ETH");
     expect(mockFetchNews).toHaveBeenCalledTimes(3);
   });
 
   it("should retry if recent call was empty but cooldown passed", async () => {
       // Mock empty results
       mockFetchNews.mockResolvedValueOnce([]);
-      await newsStore.refresh("XRP");
+      await refresh("XRP");
       expect(mockFetchNews).toHaveBeenCalledTimes(1);
 
       // Still within cooldown
       vi.advanceTimersByTime(30000); // 30s
-      await newsStore.refresh("XRP");
+      await refresh("XRP");
       // Still 1 because cooldown is active and results were empty (error=null, news=[] logic)
       expect(mockFetchNews).toHaveBeenCalledTimes(1);
 
@@ -131,14 +141,14 @@ describe("NewsStore", () => {
       vi.advanceTimersByTime(35000); // 35s
 
       // Should fetch again since cooldown has expired (65s > 60s), so isRecent is false and the early return is not triggered
-      await newsStore.refresh("XRP");
+      await refresh("XRP");
       expect(mockFetchNews).toHaveBeenCalledTimes(2);
   });
 
   it("should handle empty news results", async () => {
     mockFetchNews.mockResolvedValueOnce([]);
 
-    await newsStore.refresh("ETH");
+    await refresh("ETH");
 
     expect(mockFetchNews).toHaveBeenCalledWith("ETH");
     expect(mockAnalyzeSentiment).not.toHaveBeenCalled();
@@ -158,9 +168,15 @@ describe("NewsStore", () => {
       const req1 = newsStore.refresh("XRP");
       const req2 = newsStore.refresh("XRP"); // Should be skipped
 
+      // Both calls are still parked on the deliberate 3s delay at this point, so
+      // isLoading is not set yet. The duplicate is rejected by pendingSymbols,
+      // which is populated before the delay — isLoading could not do that job,
+      // since it is only set after the delay has elapsed.
+      await vi.advanceTimersByTimeAsync(3000);
       expect(newsStore.isLoading).toBe(true);
 
-      vi.advanceTimersByTime(100);
+      // Let the slow (50ms) fetchNews mock resolve.
+      await vi.advanceTimersByTimeAsync(100);
 
       await Promise.all([req1, req2]);
 
