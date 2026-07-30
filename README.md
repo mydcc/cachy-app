@@ -89,7 +89,20 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
    npm install
    ```
 
-3. **Start Development Server:**
+3. **Configure the environment:**
+
+   ```bash
+   cp .env.example .env
+   openssl rand -hex 32   # paste the result as APP_ACCESS_TOKEN in .env
+   ```
+
+   `APP_ACCESS_TOKEN` is **required**. Authentication fails closed: without it, all 17 guarded API routes answer 401 and the app cannot reach its own backend. Put the same value into the running app under **Settings → Connections → App Access Token** so the browser sends it. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+
+   > ⚠️ **Deploying this to an existing instance:** set `APP_ACCESS_TOKEN` on the server **before** deploying, or every API call on the live site starts failing with 401.
+
+   > ⚠️ **Never set the `VITE_*_API_KEY` variables for a production build.** Vite inlines any `VITE_`-prefixed variable into the client bundle, so those AI keys would be served as plain JavaScript to every visitor and billed to you. Let each user enter their own key in Settings → AI instead.
+
+4. **Start Development Server:**
 
    ```bash
    npm run dev

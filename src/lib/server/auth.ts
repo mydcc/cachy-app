@@ -18,11 +18,26 @@ import crypto from "node:crypto";
 export function checkAppAuth(request: Request): Response | null {
   const serverToken = env.APP_ACCESS_TOKEN;
 
-  // Security: Fail open if no token is configured on the server.
-  // This allows the app to work without a .env file as requested by the user.
+  // Security: fail CLOSED when no token is configured. See ADR-0002.
+  //
+  // This previously failed open so the app would run without a .env file. But
+  // checkAppAuth guards 17 routes including /api/orders, /api/tpsl, /api/balance
+  // and the three AI proxies — on a public deployment an unset token turned those
+  // into an open relay, with AI calls billed to the operator. An unconfigured
+  // secret is a misconfiguration, not a permission grant.
   if (!serverToken) {
-    console.warn("WARNING: App Access Token not configured on server. Allowing request (Fail-Open).");
-    return null;
+    // The operator learns about the misconfiguration from the server log. The
+    // response is deliberately identical to the invalid-token case below: telling
+    // an unauthenticated caller "the server has no token configured" would hand
+    // them a useful fact about the deployment.
+    console.error(
+      "APP_ACCESS_TOKEN is not configured. Denying all authenticated API requests. " +
+        "Set it in your environment — see .env.example.",
+    );
+    return json(
+      { error: "Unauthorized: Invalid or missing App Access Token" },
+      { status: 401 },
+    );
   }
 
   const clientToken = request.headers.get("x-app-access-token") || "";

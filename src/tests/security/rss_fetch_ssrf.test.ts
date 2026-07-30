@@ -18,7 +18,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock authentication to bypass security check during test
-vi.mock("../../../lib/server/auth", () => ({
+vi.mock("../../lib/server/auth", () => ({
   checkAppAuth: vi.fn(() => null)
 }));
 

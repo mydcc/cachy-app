@@ -73,18 +73,24 @@ missing is everything around it:
 
 | # | Item | Status |
 | --- | --- | --- |
-| 18 | Fix the 28 pre-existing test failures (see `docs/REPO-AUDIT.md`) | ⚪ |
+| 18 | Fix the pre-existing test failures — **28 → 24 so far** (see `docs/REPO-AUDIT.md`) | 🟡 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
+| 24a | **Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`** — Vite inlines them into the client bundle, so setting them for a production build serves the operator's AI keys to every visitor. Documented as a trap in `.env.example`; the code path should go. | ⚪ |
+| 24b | Audit remaining `env.*` reads against `.env.example` so no required variable is undocumented again | ⚪ |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
-the backlog cannot grow. **Item 18 is now the one thing still holding CI back** —
-28 tests fail on `develop` independently of any change, so a green pull request
-does not yet mean the suite is healthy.
+the backlog cannot grow. **Item 18 is in progress and still holds CI back** — 24
+tests fail on `develop` independently of any change, so a green pull request does
+not yet mean the suite is healthy.
+
+Item 24a is the most serious open finding in this section. It is a build-time
+trap rather than a live bug: the keys only leak if someone sets those variables
+when building for production. But nothing currently stops them.
 
 ---
 

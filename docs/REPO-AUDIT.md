@@ -300,7 +300,65 @@ roadmap item with an unstated architectural cost.
 
 ---
 
-## 7. Verified state after these changes
+## 7. Security findings from the test-failure work
+
+Working through the pre-existing test failures (roadmap 18) surfaced three
+security issues. All three had been invisible because the tests that would have
+caught them were already red and treated as background noise.
+
+### API authentication failed open
+
+`checkAppAuth` guards 17 routes — trading, sync, and three AI proxies that spend
+the operator's money. When `APP_ACCESS_TOKEN` was unset it returned "allow", with
+an explicit comment saying so. Two test files, one named
+`auth_fail_closed.test.ts`, asserted the opposite and had been failing.
+
+`APP_ACCESS_TOKEN` was documented nowhere and there was no `.env.example`, so
+"unset" was the realistic default state of any deployment — including the public
+`cachy.app` and `dev.cachy.app`.
+
+**Resolved** per `docs/adr/0002-api-authentication-fails-closed.md`: fails closed
+with a 401 whose body is indistinguishable from a wrong-token rejection, so the
+caller learns nothing about the deployment. `.env.example` now documents the
+variable. **This requires setting the token on the server before deploying**, or
+the live instance answers 401 to everything.
+
+### Two tests were only green because auth failed open
+
+- `src/tests/security/cmc_proxy.test.ts` supplied no token at all. Its whitelist
+  and path-traversal assertions never reached the code they were testing once
+  auth started rejecting.
+- `src/tests/security/rss_fetch_ssrf.test.ts` mocked
+  `../../../lib/server/auth` — one directory level too high, resolving outside
+  `src/`. The mock silently never applied. Only fail-open kept the test passing.
+
+Both fixed. The second is the more instructive: a mock pointing at a nonexistent
+path fails silently, and the test still passed for the wrong reason.
+
+### `VITE_*_API_KEY` defaults leak to the browser
+
+`src/stores/settings.svelte.ts` reads `import.meta.env.VITE_OPENAI_API_KEY`,
+`VITE_GEMINI_API_KEY` and `VITE_ANTHROPIC_API_KEY` as default values for the
+user's AI key settings. Vite **inlines every `VITE_`-prefixed variable into the
+client bundle at build time**, so setting any of them for a production build
+serves the operator's AI keys as plain JavaScript to every visitor.
+
+This is a trap rather than a live bug — it only fires if someone sets those
+variables when building. Nothing currently prevents that. Documented with an
+explicit warning in `.env.example` and the README; removing the code path is
+roadmap item 24a. Not removed here, since it is plausibly deliberate for local
+development and the project's defensive-deletion rule applies.
+
+### An unrelated `.gitignore` bug found while fixing the above
+
+`.gitignore` contained `! .env.example` — with a space after the `!`. Git reads
+that as a literal filename, so the negation never applied and any `.env.example`
+would have been silently ignored. That is plausibly why the file never existed.
+Corrected to `!.env.example`, verified with `git add --dry-run`.
+
+---
+
+## 8. Verified state after these changes
 
 | Check | Result |
 | --- | --- |

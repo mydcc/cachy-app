@@ -37,5 +37,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [0001](0001-local-first-boundary.md) | Local-First boundary and optional server features | Proposed |
+| [0002](0002-api-authentication-fails-closed.md) | API authentication fails closed | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

@@ -19,6 +19,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- route module import without its generated $types, which are unavailable outside the SvelteKit build
 import { GET } from '../../routes/api/external/cmc/+server';
 
+// checkAppAuth now fails closed (ADR-0002), so this suite must supply a token —
+// otherwise every request is rejected at the auth layer and the whitelist and
+// path-traversal behaviour under test is never reached.
+const mockEnv = vi.hoisted(() => ({ APP_ACCESS_TOKEN: 'test-app-token' }));
+vi.mock('$env/dynamic/private', () => ({ env: mockEnv }));
+
 describe('CMC Proxy Security', () => {
   beforeEach(() => {
     global.fetch = vi.fn();
@@ -34,7 +40,7 @@ describe('CMC Proxy Security', () => {
   it('should allow whitelisted endpoints', async () => {
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest');
     const request = new Request(url, {
-      headers: { 'x-cmc-api-key': 'test-key' }
+      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
     });
 
     (global.fetch as any).mockResolvedValue(new Response(JSON.stringify({ data: 'ok' })));
@@ -49,7 +55,7 @@ describe('CMC Proxy Security', () => {
   it('should block non-whitelisted endpoints', async () => {
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/unknown');
     const request = new Request(url, {
-      headers: { 'x-cmc-api-key': 'test-key' }
+      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
     });
 
     const response = await GET({ request, url } as any);
@@ -63,7 +69,7 @@ describe('CMC Proxy Security', () => {
     const exploitEndpoint = '/v1/global-metrics/quotes/latest/../sensitive';
     const url = new URL(`http://localhost/api/external/cmc?endpoint=${encodeURIComponent(exploitEndpoint)}`);
     const request = new Request(url, {
-      headers: { 'x-cmc-api-key': 'test-key' }
+      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
     });
 
     // Mock successful fetch to simulate successful exploitation if passed through

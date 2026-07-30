@@ -42,8 +42,13 @@ describe("checkAppAuth", () => {
     expect(result).not.toBeNull();
     expect(result?.status).toBe(401);
 
+    // The body must NOT reveal that the server has no token configured — that
+    // is a useful fact about the deployment to hand an unauthenticated caller.
+    // The response is deliberately indistinguishable from a wrong-token
+    // rejection; the operator sees the real reason in the server log. See
+    // ADR-0002.
     const body = await result?.json();
-    expect(body.error).toContain("App Access Token not configured");
+    expect(body.error).toBe("Unauthorized: Invalid or missing App Access Token");
   });
 
   it("should return 401 if APP_ACCESS_TOKEN is configured but header is missing", async () => {
