@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (authError) return authError;
 
   try {
-    const { text, sender, profitFactor, clientId } = await request.json();
+    const { text, clientId } = await request.json();
 
     if (!text || typeof text !== "string") {
       return json({ error: "Message text is required" }, { status: 400 });
@@ -61,7 +61,6 @@ export const POST: RequestHandler = async ({ request }) => {
       text: sanitizedText.slice(0, 500), // Limit length per message
       sender: "user",
       timestamp: Date.now(),
-      profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
       clientId: typeof clientId === "string" && clientId ? clientId : undefined,
     };
 

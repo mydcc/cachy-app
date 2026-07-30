@@ -338,12 +338,7 @@
             {/each}
         {:else}
             <div class="chat-status">--- Connected to Global Chat ---</div>
-            {#each chatState.messages.filter((m) => {
-                if (m.sender === "system") return true;
-                if (m.clientId === chatState.clientId) return true;
-                if (m.profitFactor === undefined) return true;
-                return m.profitFactor >= (settingsState.minChatProfitFactor || 0);
-            }) as msg (msg.id)}
+            {#each chatState.messages as msg (msg.id)}
                 <div class="chat-msg">
                     {#if msg.sender === "system"}
                         <div class="system-msg">--- {msg.text} ---</div>
@@ -354,10 +349,6 @@
                         <div class="flex flex-col">
                             <span class="msg-sender" class:is-me={isMe}>
                                 <span>{isMe ? "You" : "User"}</span>
-                                {#if msg.profitFactor !== undefined}<span
-                                        class="pf-badge"
-                                        >PF {msg.profitFactor.toFixed(2)}</span
-                                    >{/if}
                             </span>
                             <span class="msg-text">{msg.text}</span>
                             <span class="timestamp"
@@ -670,15 +661,6 @@
         background: rgba(255, 255, 255, 0.02);
         border-left: 3px solid var(--accent-color);
         border-radius: 0 4px 4px 0;
-    }
-
-    .pf-badge {
-        background: var(--accent-color);
-        color: white;
-        padding: 1px 4px;
-        border-radius: 3px;
-        font-size: 8px;
-        font-weight: 900;
     }
 
     .input-area {

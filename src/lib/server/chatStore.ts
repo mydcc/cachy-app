@@ -58,7 +58,6 @@ export interface ChatMessage {
   text: string;
   sender: "user" | "system";
   timestamp: number;
-  profitFactor?: number;
   clientId?: string;
 }
 
@@ -67,7 +66,6 @@ const chatMessageSchema = z.object({
   text: z.string(),
   sender: z.enum(["user", "system"]),
   timestamp: z.number(),
-  profitFactor: z.number().nullish().transform(v => v ?? undefined),
   clientId: z.string().nullish().transform(v => v ?? undefined)
 });
 

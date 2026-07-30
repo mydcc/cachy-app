@@ -1015,8 +1015,6 @@ export type TranslationKey =
   | "settings.enableNewsAnalysis"
   | "settings.glassmorphismDesc"
   | "settings.maxPrivateNotes"
-  | "settings.minChatProfitFactor"
-  | "settings.minChatProfitFactorDesc"
   | "settings.pnlViewMode"
   | "settings.positionViewMode"
   | "settings.showMarketActivity"

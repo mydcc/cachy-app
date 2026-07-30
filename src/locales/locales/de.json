@@ -1413,8 +1413,6 @@
     "enableNewsAnalysis": "News-Analyse aktivieren",
     "glassmorphismDesc": "Glaseffekt für Karten und Panels aktivieren",
     "maxPrivateNotes": "Max. private Notizen",
-    "minChatProfitFactor": "Min. Chat Profit Factor",
-    "minChatProfitFactorDesc": "Mindest-Profit-Faktor für Chat-Anzeige",
     "pnlViewMode": "PnL-Anzeigemodus",
     "positionViewMode": "Positions-Ansichtsmodus",
     "showMarketActivity": "Marktaktivität anzeigen",

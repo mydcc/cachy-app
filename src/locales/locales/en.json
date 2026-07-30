@@ -1142,8 +1142,6 @@
     "enableNewsAnalysis": "Enable News Analysis",
     "glassmorphismDesc": "Enable glass effect for cards and panels",
     "maxPrivateNotes": "Max Private Notes",
-    "minChatProfitFactor": "Min Chat Profit Factor",
-    "minChatProfitFactorDesc": "Minimum profit factor to display in chat",
     "pnlViewMode": "PnL Display Mode",
     "positionViewMode": "Position View Mode",
     "showMarketActivity": "Show Market Activity",

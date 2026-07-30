@@ -195,8 +195,8 @@ a required CI check** (`.github/workflows/audit.yml`). Highlights:
   `safeJson.bench.ts` disables `no-loss-of-precision` because its fixtures
   deliberately exceed IEEE 754 precision — that is the thing being benchmarked.
 
-**1365 warnings remain**, dominated by `no-explicit-any` (983) and
-`no-unused-vars` (388). CI enforces `--max-warnings 1365` as a ratchet: the
+**1323 warnings remain**, dominated by `no-explicit-any` (983) and
+`no-unused-vars` (388). CI enforces `--max-warnings 1323` as a ratchet: the
 ceiling may only be lowered, so the backlog can shrink but never grow.
 
 Verified across the whole change: `npm run check` stays at 0 errors and the full
@@ -692,10 +692,39 @@ The journal is Class A. ADR-0001's third condition says Class B payloads must
 carry no Class A data **"auch nicht als Metadaten"** — not even as metadata. A
 statistic derived from the journal is exactly that.
 
-It is not a bug: the filtering is a deliberate feature with a user-facing setting.
-It is a genuine conflict between a shipped feature and the boundary the project
-adopted, so it is recorded here for a decision rather than removed unilaterally.
-Tracked as item 12a.
+**Resolved: removed** (item 12a). Not made opt-in, because the trade was one-sided.
+The journal is Class A and ADR-0001 condition 3 forbids Class A data in a Class B
+payload even as metadata — but the decisive point is what it bought in return.
+The value was computed on the client from the client's own `localStorage` and
+accepted by the server verbatim:
+
+```ts
+profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
+```
+
+Any client could claim any figure. It was an unverifiable trust signal paid for
+with real data, so there was nothing to weigh against the boundary.
+
+Removed end to end: the payload, the server field, the persisted schema, the PF
+badge in both chat views, the transcript export, the incoming filter, and the
+`minChatProfitFactor` setting that no longer had anything to filter.
+`chat.test.ts` now asserts the payload's exact key set — `["clientId", "text"]` —
+so re-adding any derived field fails there rather than in review.
+
+### Retention and erasure now exist in the module (item 15a)
+
+`server/spacetimedb/src/index.ts` gained two things:
+
+- a scheduled table firing an hourly sweep that deletes messages older than
+  90 days, driven by the database so no caller can skip it;
+- `delete_my_messages`, which derives the sender from `ctx.sender` rather than
+  from an argument, making erasure self-service and impossible to aim at someone
+  else.
+
+**Both typecheck; neither has run.** Publishing needs the SpacetimeDB CLI, which
+is not vendored here, so `spacetime publish` and `spacetime generate` are still
+required before `delete_my_messages` is callable from the client. Until then the
+capability exists on the server and is not offered in the interface — item 15b.
 
 ---
 
@@ -704,6 +733,6 @@ Tracked as item 12a.
 | Check | Result |
 | --- | --- |
 | `npm run check` | 1925 files, **0 errors, 0 warnings** |
-| `npm test` | **838 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
-| `npx eslint .` | **0 errors**, 1365 warnings under the CI ratchet |
+| `npm test` | **853 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
+| `npx eslint .` | **0 errors**, 1323 warnings under the CI ratchet |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |

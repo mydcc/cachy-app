@@ -103,23 +103,44 @@ implementation is expected to meet.
 | **What is stored** | Message text, an 8-character sender ID, a timestamp. Nothing else. |
 | **Legal basis** | Consent. The feature is off until the user turns it on, and the settings tab states what leaves the device before they do. |
 | **Retention** | Messages are deleted **90 days** after they are sent. A chat is a conversation, not an archive; nothing in the product reads messages older than the visible history. |
-| **Deletion on request** | A user may ask the operator to delete their messages. The 8-character sender ID identifies them within the module, so deletion is a targeted operation, not a full wipe. |
-| **Export on request** | The same sender ID makes an export possible. Given the data involved — the user's own chat lines — an export is their message text and timestamps. |
-| **Who can act on this** | The operator of the SpacetimeDB module. Cachy the application cannot delete server-side data; it has no privileged reducer. |
+| **Deletion on request** | Self-service: `delete_my_messages` deletes every message belonging to the caller, identified from `ctx.sender` rather than from an argument. No operator involvement, and no way to erase someone else's messages. |
+| **Export on request** | The user's own chat lines, which they can already see in the client. Not a reducer — see below. |
+| **Who can act on this** | The user, for their own messages. The operator, for anything broader. |
 
-### Not yet implemented
+### How it is enforced
 
-**The module enforces none of this today.** `server/spacetimedb/src/index.ts` has
-one reducer, `send_message`, and no scheduled cleanup, no deletion reducer and no
-export. Writing the policy down is the first half; the module needs:
+The module implements both halves (roadmap item 15a):
 
-- a scheduled reducer that deletes rows older than 90 days,
-- a deletion reducer scoped to one sender ID, callable only by the operator,
-- the same for export.
+**Retention** — `message_cleanup_schedule` is a scheduled table that fires
+`delete_expired_messages` hourly. The reducer deletes every row older than
+90 days. It is driven by the database rather than by a client, so no caller can
+skip it and nobody has to remember to run it. It uses `ctx.timestamp` rather than
+`Date.now()`, because reducers must be deterministic.
 
-Tracked as roadmap item 15a. Until it exists, an operator running this module
-must handle deletion requests manually against the database, and should say so in
-their own privacy notice.
+**Erasure** — `delete_my_messages` deletes every message belonging to the caller.
+The sender ID is derived from `ctx.sender`, never taken as an argument, so one
+caller cannot erase another's messages. This makes the right to erasure
+self-service: a user exercises it directly, without going through the operator.
+
+### What still needs a machine this repository does not have
+
+Both reducers typecheck (`npx tsc --noEmit` in `server/spacetimedb`), but they
+have **not been run against a live SpacetimeDB instance** — publishing needs the
+SpacetimeDB CLI, which is not vendored here. Before relying on the policy:
+
+1. `spacetime publish` the module. The retention sweep is armed in `init`, so a
+   module published before this change keeps its old messages until republished.
+2. `spacetime generate` to regenerate `src/lib/spacetimedb/`. The current
+   bindings predate `delete_my_messages`, so the client cannot call it yet.
+3. Add a "delete my messages" control to the Cloud settings tab once the binding
+   exists. Until then the reducer is reachable only through the CLI.
+
+Step 3 is the gap that matters to a user: the capability exists on the server and
+is not yet offered in the interface.
+
+**Export** is not a reducer. Reducers are transactional and return nothing, so an
+export is a client-side operation over the subscribed table — the messages a user
+can already see are the messages they can already copy.
 
 **A deployment that cannot honour a deletion request should not enable Global
 Chat.** The feature is off by default, which makes that the easy choice.

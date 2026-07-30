@@ -216,7 +216,6 @@ export interface Settings {
   confirmBulkDeletion: boolean;
   chatFontSize: number;
   panelIsExpanded: boolean;
-  minChatProfitFactor: number;
   fontFamily: string;
   cryptoPanicApiKey?: string;
   newsApiKey?: string;
@@ -391,7 +390,6 @@ const defaultSettings: Settings = {
   panelIsExpanded: false,
   maxPrivateNotes: 50,
   aiConfirmClear: true,
-  minChatProfitFactor: 0.0,
   fontFamily: "Inter",
   cryptoPanicApiKey: "",
   newsApiKey: "",
@@ -627,7 +625,6 @@ export class SettingsManager {
   confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
   chatFontSize = $state<number>(defaultSettings.chatFontSize);
   panelIsExpanded = $state<boolean>(defaultSettings.panelIsExpanded);
-  minChatProfitFactor = $state<number>(defaultSettings.minChatProfitFactor);
   fontFamily = $state<string>(defaultSettings.fontFamily);
   cryptoPanicApiKey = $state<string | undefined>(
     defaultSettings.cryptoPanicApiKey,
@@ -1295,7 +1292,6 @@ export class SettingsManager {
       this.confirmBulkDeletion = merged.confirmBulkDeletion;
       this.chatFontSize = merged.chatFontSize;
       this.panelIsExpanded = merged.panelIsExpanded;
-      this.minChatProfitFactor = merged.minChatProfitFactor;
       this.fontFamily = merged.fontFamily;
       this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
       this.newsApiKey = merged.newsApiKey;
@@ -1633,7 +1629,6 @@ export class SettingsManager {
       burnSettings: this.burnSettings,
       burnGuide: this.burnGuide,
       fireConfig: $state.snapshot(this.fireConfig),
-      minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,
       newsApiKey: this.newsApiKey,

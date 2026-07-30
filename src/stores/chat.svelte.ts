@@ -10,9 +10,6 @@
 import { browser } from "$app/environment";
 
 import { settingsState } from "./settings.svelte";
-import { journalState } from "./journal.svelte";
-import { calculator } from "../lib/calculator";
-import { Decimal } from "decimal.js";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 
 export interface ChatMessage {
@@ -21,7 +18,6 @@ export interface ChatMessage {
   timestamp: number;
   senderId?: string; // 'me' or 'other'
   sender?: "user" | "system"; // from API
-  profitFactor?: number;
   clientId?: string;
 }
 
@@ -98,29 +94,10 @@ class ChatManager {
       }
     }
 
-    const settings = settingsState;
-    const minPF = settings.minChatProfitFactor || 0;
-
-    // 2. Apply Profit Factor Filter
-    // Allow own messages, system messages, or messages meeting the PF requirement
-    const filteredIncoming = incoming.filter((m) => {
-      // Exclude messages from filtering if they are:
-      // - From system
-      // - From me (by senderId 'me' or matching clientId)
-      // - System messages often have undefined profitFactor, so we should check sender type explicitly
-      const isSystem = m.sender === "system";
-      const isMe = m.senderId === "me" || m.clientId === this.clientId;
-
-      if (isSystem || isMe) return true;
-
-      // Otherwise, enforce PF
-      return (m.profitFactor ?? 0) >= minPF;
-    });
-
+    // The profit-factor filter that used to sit here is gone — see the note on
+    // sendMessage(). Nothing is filtered out on the way in any more.
     const existingIds = new Set(current.map((m) => m.id));
-    const uniqueIncoming = filteredIncoming.filter(
-      (m) => !existingIds.has(m.id),
-    );
+    const uniqueIncoming = incoming.filter((m) => !existingIds.has(m.id));
 
     if (uniqueIncoming.length === 0) return current;
 
@@ -164,21 +141,25 @@ class ChatManager {
       throw new Error("Please wait 2 seconds between messages.");
     }
 
-    // Calculate own PF
-    const stats = calculator.calculateJournalStats(journalState.entries);
-    const pf =
-      stats.profitFactor && new Decimal(stats.profitFactor).isFinite()
-        ? new Decimal(stats.profitFactor).toNumber()
-        : 0;
-
-    // Send to API
+    // This used to compute a profit factor from journalState.entries and send it
+    // with every message, so other clients could filter the chat by trader
+    // performance. It is gone (roadmap 12a), for two reasons:
+    //
+    // 1. The journal is Class A data under ADR-0001, and condition 3 forbids
+    //    Class A data in a Class B payload "not even as metadata". A statistic
+    //    derived from every trade the user has recorded is exactly that.
+    // 2. It bought nothing in return. The value was computed on the client from
+    //    the client's own localStorage and accepted by the server verbatim, so
+    //    any client could claim any figure. It was an unverifiable trust signal
+    //    paid for with real data.
+    //
+    // Only the message text and an opaque client ID leave the device now.
     try {
       const res = await fetch("/api/chat-v2", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...appAuthHeader() },
         body: JSON.stringify({
           text,
-          profitFactor: pf,
           clientId: this.clientId,
         }),
       });

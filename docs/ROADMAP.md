@@ -98,11 +98,12 @@ missing is everything around it:
 | # | Item | Status |
 | --- | --- | --- |
 | 12 | **Two chat backends ship, not one.** Decide which survives: the file-based `/api/chat-v2` behind the side panel, or SpacetimeDB behind the Cloud tab. Needs a product decision — see below | ⚪ |
-| 12a | **Class A leak:** `chat.svelte.ts` sends a profit factor derived from the journal with every message. Deliberate (it powers `minChatProfitFactor` filtering) but contrary to ADR-0001 condition 3 | ⚪ |
+| 12a | ~~**Class A leak:** `chat.svelte.ts` sends a profit factor derived from the journal~~ — done: removed end to end, guarded by a payload-shape test | 🟢 |
 | 13 | ~~Document how a user obtains a connection token~~ — done: `docs/GLOBAL-CHAT.md` section 3 | 🟢 |
 | 14 | ~~Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults~~ — done: `cloudHost` / `cloudDbName` settings | 🟢 |
 | 15 | ~~Message retention and deletion policy~~ — done as policy: `docs/GLOBAL-CHAT.md` section 4 | 🟢 |
-| 15a | **Enforce the retention policy in the module** — no scheduled cleanup, deletion or export reducer exists yet | ⚪ |
+| 15a | ~~Enforce the retention policy in the module~~ — done: scheduled 90-day sweep plus self-service erasure. Needs `spacetime publish` + `generate` to go live | 🟢 |
+| 15b | Wire `delete_my_messages` into the Cloud tab once the client bindings are regenerated — the capability exists on the server but is not offered in the UI | ⚪ |
 | 16 | ~~Make the off-by-default state and the four Class B conditions visible in the Cloud tab~~ — done | 🟢 |
 | 17 | ~~Behaviour when the server is unreachable~~ — done, with a test that breaks the connection and runs the risk engine | 🟢 |
 
@@ -129,6 +130,31 @@ Class B conditions and its off-by-default state, and
 `cloudService.offline.test.ts` proves a dead chat server cannot take the risk
 engine with it.
 
+**Item 12a is done — the profit factor is gone.** It was removed rather than
+made opt-in, because it cost real data and bought nothing:
+
+- The journal is Class A. ADR-0001 condition 3 forbids Class A data in a Class B
+  payload *even as metadata*, and a statistic computed over every trade the user
+  has recorded is exactly that.
+- The value was computed on the client from the client's own `localStorage` and
+  accepted by the server verbatim (`typeof profitFactor === "number"`), so any
+  client could claim any figure. It was an unverifiable trust signal.
+
+Removed end to end: the payload, the server field, the stored schema, the PF
+badge in both chat views, the transcript export, the incoming filter, and the now
+dead `minChatProfitFactor` setting with its i18n keys. `chat.test.ts` asserts the
+payload's exact key set, so re-adding any derived field fails there. Only message
+text and an opaque client ID leave the device now.
+
+**Item 15a is done.** `server/spacetimedb/src/index.ts` gained a scheduled table
+that fires an hourly sweep deleting messages older than 90 days, and
+`delete_my_messages`, which derives the sender from `ctx.sender` rather than from
+an argument — so erasure is self-service and nobody can erase anyone else's
+messages. Both typecheck; neither has run against a live instance, because
+publishing needs the SpacetimeDB CLI. `spacetime publish` and `spacetime generate`
+are required before the erasure reducer is callable from the client, which is
+item 15b.
+
 ### Code health
 
 | # | Item | Status |
@@ -136,7 +162,7 @@ engine with it.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the 1365 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
+| 21 | Burn down the 1323 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |

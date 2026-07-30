@@ -126,7 +126,6 @@ describe("HotkeyService", () => {
       maxPrivateNotes: 50,
       aiConfirmClear: true,
       chatFontSize: 13,
-      minChatProfitFactor: 0.0,
       panelIsExpanded: false,
       isDeepDiveUnlocked: false,
       fontFamily: "Inter", // Added missing prop
