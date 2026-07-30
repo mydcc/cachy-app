@@ -8,9 +8,9 @@ default, authenticated, minimal, and non-essential.
 This document covers the SpacetimeDB implementation: how to run it, how a user
 gets a token, and what happens to messages over time.
 
-> A second, older chat backend also exists — the file-based `/api/chat-v2` behind
-> the side panel. Which of the two survives is an open product decision, tracked
-> as roadmap item 12. This document does not describe it.
+> There used to be a second backend — the file-based `/api/chat-v2`, which wrote
+> messages to JSON on the Cachy server. It is gone (roadmap item 12). The chat
+> window and side panel it fed are unchanged and now run on SpacetimeDB.
 
 ---
 
@@ -85,9 +85,10 @@ an issuance path. **If Global Chat is ever meant to be generally available, that
 path has to be designed and given its own ADR** — it decides who may speak, which
 is precisely the kind of decision the ADR process exists for.
 
-The token is held in component state and is not persisted. It is Class A data:
-it must never be logged or sent anywhere except the SpacetimeDB host the user
-configured.
+The token is stored as the `cloudToken` setting. It is Class A data: it stays in
+`localStorage`, is encrypted along with the other credentials when a master
+password is set, and must never be logged or sent anywhere except the
+SpacetimeDB host the user configured.
 
 ---
 
@@ -147,7 +148,22 @@ Chat.** The feature is off by default, which makes that the easy choice.
 
 ---
 
-## 5. When the server is unreachable
+## 5. Where the chat appears
+
+Two surfaces, one connection:
+
+- **Settings → Cloud** is where it is turned on and configured, and carries a
+  small message log for checking that the connection works.
+- **The side panel and the chat window** are the chat proper. They were built
+  against the old file-based backend and are unchanged — `src/stores/chat.svelte.ts`
+  now adapts SpacetimeDB rows into the same shape they already read.
+
+The store connects only when `cloudEnabled` is on **and** a token is present. It
+never connects on its own.
+
+---
+
+## 6. When the server is unreachable
 
 Nothing else breaks. This is Class B condition 4, and it is tested rather than
 asserted: `src/services/cloudService.offline.test.ts` makes the connection
@@ -165,7 +181,7 @@ Concretely:
 
 ---
 
-## 6. Configuration
+## 7. Configuration
 
 All three settings are Class A and live in `localStorage`:
 
@@ -174,6 +190,7 @@ All three settings are Class A and live in `localStorage`:
 | `cloudEnabled` | `false` | Master switch. Nothing connects while this is off. |
 | `cloudHost` | `http://127.0.0.1:3000` | SpacetimeDB host. |
 | `cloudDbName` | `cachy-server` | Module name. |
+| `cloudToken` | *(empty)* | Connection token. Encrypted with the master password, like the exchange and AI keys. |
 
 The host and module name used to be hardcoded in `cloudService.ts`, which made
 the endpoint Cachy's choice rather than the user's. They are settings now

@@ -23,6 +23,7 @@ const SENSITIVE_KEYS: (keyof Settings)[] = [
   "cmcApiKey",
   "imgbbApiKey",
   "appAccessToken",
+  "cloudToken",
 ];
 
 // Removed MarketDataInterval as it is legacy (WebSockets preferred)
@@ -188,6 +189,12 @@ export interface Settings {
   cloudHost: string;
   /** SpacetimeDB module name the client subscribes to. */
   cloudDbName: string;
+  /**
+   * SpacetimeDB connection token. Class A: it stays in this browser and is only
+   * ever sent to the host configured above. Encrypted with the master password
+   * like every other credential.
+   */
+  cloudToken: string;
   showSidebarActivity: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
   sidePanelLayout: SidePanelLayout;
@@ -358,6 +365,7 @@ const defaultSettings: Settings = {
   cloudEnabled: false,
   cloudHost: "http://127.0.0.1:3000",
   cloudDbName: "cachy-server",
+  cloudToken: "",
   sidePanelMode: "ai",
   sidePanelLayout: "floating",
   chatStyle: "minimal",
@@ -580,6 +588,7 @@ export class SettingsManager {
   cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
   cloudHost = $state<string>(defaultSettings.cloudHost);
   cloudDbName = $state<string>(defaultSettings.cloudDbName);
+  cloudToken = $state<string>(defaultSettings.cloudToken);
   sidePanelMode = $state<"chat" | "notes" | "ai">(
     defaultSettings.sidePanelMode,
   );
@@ -1253,6 +1262,7 @@ export class SettingsManager {
       this.cloudEnabled = merged.cloudEnabled;
       this.cloudHost = merged.cloudHost;
       this.cloudDbName = merged.cloudDbName;
+      this.cloudToken = merged.cloudToken;
       this.sidePanelMode = merged.sidePanelMode;
       this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
@@ -1588,6 +1598,7 @@ export class SettingsManager {
       cloudEnabled: this.cloudEnabled,
       cloudHost: this.cloudHost,
       cloudDbName: this.cloudDbName,
+      cloudToken: this.cloudToken,
       sidePanelMode: this.sidePanelMode,
       sidePanelLayout: this.sidePanelLayout,
       chatStyle: this.chatStyle,

@@ -26,9 +26,8 @@
 
   let messages = $state<GlobalMessage[]>([]);
   let messageText = $state("");
-  let token = $state("");
   let errorMsg = $state("");
-  let status = $state<CloudStatus>({ connected: false, lastError: null });
+  let status = $state<CloudStatus>({ connected: false, lastError: null, mySenderId: null });
 
   const connected = $derived(status.connected);
 
@@ -52,7 +51,7 @@
       await cloudService.connect(
         settingsState.cloudHost,
         settingsState.cloudDbName,
-        token,
+        settingsState.cloudToken,
       );
     } catch (e) {
       errorMsg = e instanceof Error ? e.message : $_("cloud.connectionFailed");
@@ -127,7 +126,7 @@
       {#if !connected}
         <label class="cloud-field">
           <span>{$_("cloud.tokenLabel")}</span>
-          <input bind:value={token} type="password" placeholder="Token" />
+          <input bind:value={settingsState.cloudToken} type="password" placeholder="Token" />
         </label>
         <p class="text-xs" style="color: var(--text-secondary);">
           {$_("cloud.tokenHelp")}

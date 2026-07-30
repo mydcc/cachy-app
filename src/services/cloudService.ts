@@ -31,12 +31,25 @@ export interface CloudStatus {
   connected: boolean;
   /** Last connection or send failure, or null. Shown in the settings tab. */
   lastError: string | null;
+  /**
+   * The caller's own sender ID, or null while disconnected.
+   *
+   * The module publishes `identity.toHexString().substring(0, 8)` as the sender
+   * of each message, so deriving it the same way here is what lets the UI tell
+   * "me" from everyone else without the server having to say so.
+   */
+  mySenderId: string | null;
 }
+
+/** How the module shortens an identity into the `sender` column. */
+const senderIdOf = (identity: { toHexString(): string }): string =>
+  identity.toHexString().substring(0, 8);
 
 class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
   private lastError: string | null = null;
+  private mySenderId: string | null = null;
   private messages: GlobalMessage[] = [];
 
   // Callback for Svelte to update UI
@@ -46,7 +59,15 @@ class CloudService {
   constructor() { }
 
   status(): CloudStatus {
-    return { connected: this.connected, lastError: this.lastError };
+    return {
+      connected: this.connected,
+      lastError: this.lastError,
+      mySenderId: this.mySenderId,
+    };
+  }
+
+  isConnected(): boolean {
+    return this.connected;
   }
 
   /**
@@ -80,10 +101,11 @@ class CloudService {
         .withUri(uri)
         .withModuleName(moduleName)
         .withToken(token) // Enforce token
-        .onConnect((ctx) => {
+        .onConnect((ctx, identity) => {
           logger.log('network', 'Connected to SpacetimeDB!', ctx);
           this.connected = true;
           this.lastError = null;
+          this.mySenderId = identity ? senderIdOf(identity) : null;
           if (this.onStatusCallback) this.onStatusCallback(this.status());
 
           // Subscribe to queries
@@ -98,6 +120,7 @@ class CloudService {
         .onDisconnect((ctx) => {
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
+          this.mySenderId = null;
           if (this.onStatusCallback) this.onStatusCallback(this.status());
         })
         .build();

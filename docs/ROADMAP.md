@@ -97,7 +97,7 @@ missing is everything around it:
 
 | # | Item | Status |
 | --- | --- | --- |
-| 12 | **Two chat backends ship, not one.** Decide which survives: the file-based `/api/chat-v2` behind the side panel, or SpacetimeDB behind the Cloud tab. Needs a product decision — see below | ⚪ |
+| 12 | ~~Two chat backends ship, not one~~ — decided: SpacetimeDB survives, the file-based one is removed, and the existing chat UI now runs on SpacetimeDB | 🟢 |
 | 12a | ~~**Class A leak:** `chat.svelte.ts` sends a profit factor derived from the journal~~ — done: removed end to end, guarded by a payload-shape test | 🟢 |
 | 13 | ~~Document how a user obtains a connection token~~ — done: `docs/GLOBAL-CHAT.md` section 3 | 🟢 |
 | 14 | ~~Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults~~ — done: `cloudHost` / `cloudDbName` settings | 🟢 |
@@ -107,14 +107,26 @@ missing is everything around it:
 | 16 | ~~Make the off-by-default state and the four Class B conditions visible in the Cloud tab~~ — done | 🟢 |
 | 17 | ~~Behaviour when the server is unreachable~~ — done, with a test that breaks the connection and runs the risk engine | 🟢 |
 
-**Item 12's premise was wrong.** It described `chatStore.ts` as orphaned and
-unauthenticated. It is neither: `src/routes/api/chat-v2/+server.ts` uses it, both
-handlers call `checkAppAuth`, and the side panel drives the whole chain. The first
-audit pass grepped for the relative import path and missed the `$lib` alias.
+**Item 12 is decided and done: SpacetimeDB survives.** The file-based backend —
+`src/lib/server/chatStore.ts`, `/api/chat-v2` and `db/chat_messages.json` — is
+removed, along with the `CHAT_DB_PATH` variable that configured it.
 
-So the real question is not what to do with dead code — it is that **two Class B
-chat backends ship side by side**, sharing no storage, schema or UI. That is a
-product decision, not a cleanup.
+The chat window and side panel stay exactly where they were. Only what stands
+behind them changed: `src/stores/chat.svelte.ts` is now an adapter over
+`cloudService`, presenting the same `ChatMessage` shape the UI already consumed,
+so `SidePanel`, `ChatPanel`, `AssistantView` and the chat window needed no
+changes of their own.
+
+Two things the swap required. The connection token became a persisted setting
+(`cloudToken`, in `SENSITIVE_KEYS` so it is encrypted with the master password
+like every other credential) — it previously lived in component state, which
+would have limited the chat to the settings tab. And `cloudService` now captures
+the connection identity in `onConnect`, shortened the same way the module
+shortens it, which is how the UI tells "me" from everyone else.
+
+Item 12's original premise was wrong and is worth recording: it described
+`chatStore.ts` as orphaned and unauthenticated. It was neither — the first audit
+pass grepped for the relative import path and missed the `$lib` alias.
 
 Fixing this uncovered a regression: `chat.svelte.ts` never sent the
 `x-app-access-token` header, so making auth fail closed (ADR-0002) broke the
@@ -162,7 +174,7 @@ item 15b.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the 1323 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
+| 21 | Burn down the 1315 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |

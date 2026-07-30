@@ -45,8 +45,8 @@ const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
  * them in `.env.example` would be misleading rather than helpful.
  */
 const NOT_OPERATOR_CONFIG = new Set([
-  // Set by vitest itself. src/lib/server/chatStore.ts checks it to skip disk
-  // access during tests; an operator never sets it.
+  // Set by vitest itself, never by an operator. Kept as an allowance so a test
+  // helper reading it does not fail the audit.
   "VITEST",
 ]);
 

@@ -15,186 +15,183 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock browser env
+// Mock browser env — false, so the constructor does not open a connection.
 vi.mock("$app/environment", () => ({ browser: false }));
 
 vi.mock("./settings.svelte", () => ({
-  settingsState: { appAccessToken: "test-token" },
+  settingsState: {
+    cloudEnabled: false,
+    cloudHost: "http://127.0.0.1:3000",
+    cloudDbName: "cachy-server",
+    cloudToken: "",
+  },
 }));
-vi.mock("../lib/windows/WindowManager.svelte", () => ({ windowManager: {} }));
 
-// Import the module under test
+const { mockCloud } = vi.hoisted(() => ({
+  mockCloud: {
+    sendMessage: vi.fn(),
+    subscribeMessages: vi.fn(),
+    subscribeStatus: vi.fn(),
+    connect: vi.fn(),
+    isConnected: vi.fn(() => false),
+    status: vi.fn(() => ({
+      connected: false,
+      lastError: null,
+      mySenderId: null,
+    })),
+  },
+}));
+
+vi.mock("../services/cloudService", () => ({ cloudService: mockCloud }));
+
 import { chatState } from "./chat.svelte";
 
-type MutableChat = {
-  messages: unknown[];
-  latestSeenTimestamp: number;
-  lastSentTimestamp: number;
-  loading: boolean;
-  clientId: string;
-  mergeMessages: (current: unknown[], incoming: unknown[]) => unknown[];
+type Internals = {
+  applyRows: (rows: { sender: string; text: string; sentAt: number }[]) => void;
+  applyStatus: (s: {
+    connected: boolean;
+    lastError: string | null;
+    mySenderId: string | null;
+  }) => void;
 };
 
-const internals = chatState as unknown as MutableChat;
+const internals = chatState as unknown as Internals;
 
-describe("ChatManager", () => {
+/**
+ * Global Chat runs on SpacetimeDB (roadmap item 12). The file-based
+ * `/api/chat-v2` backend it used to poll is gone; the window and the panel it
+ * feeds are unchanged, which is why this store still presents the same shape.
+ */
+describe("ChatManager (SpacetimeDB-backed)", () => {
   beforeEach(() => {
-    // chatState is a singleton; reset the fields each test depends on.
-    internals.messages = [];
-    internals.latestSeenTimestamp = 0;
-    internals.clientId = "test-client-id";
+    vi.clearAllMocks();
+    chatState.messages = [];
+    chatState.clientId = "";
+    chatState.connected = false;
+    chatState.lastSentTimestamp = 0;
   });
 
-  describe("no Class A data leaves the device (ADR-0001, roadmap 12a)", () => {
-    const originalFetch = globalThis.fetch;
+  describe("mapping module rows to what the UI reads", () => {
+    it("keeps the fields the panel and the window consume", () => {
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: "aabbccdd",
+      });
+      internals.applyRows([
+        { sender: "aabbccdd", text: "mine", sentAt: 1000 },
+        { sender: "11223344", text: "theirs", sentAt: 2000 },
+      ]);
 
-    afterEach(() => {
-      globalThis.fetch = originalFetch;
-      vi.useRealTimers();
+      const [mine, theirs] = chatState.messages;
+
+      expect(mine.text).toBe("mine");
+      expect(mine.timestamp).toBe(1000);
+      expect(mine.senderId).toBe("me");
+      expect(mine.clientId).toBe("aabbccdd");
+      expect(theirs.senderId).toBe("11223344");
+      expect(theirs.clientId).toBe("11223344");
     });
 
-    it("sends only the message text and an opaque client ID", async () => {
-      // This store used to attach a profit factor computed from the user's
-      // journal to every message. The journal is Class A: it must never reach a
-      // server, "not even as metadata". This asserts the payload's exact shape,
-      // so re-adding any derived field fails here.
-      let sentBody: Record<string, unknown> = {};
+    it("gives every message a stable key, since the module table has no id", () => {
+      internals.applyRows([
+        { sender: "aabbccdd", text: "one", sentAt: 1000 },
+        { sender: "aabbccdd", text: "two", sentAt: 1001 },
+      ]);
 
-      globalThis.fetch = vi.fn(async (_url, init) => {
-        sentBody = JSON.parse((init as RequestInit).body as string);
-        return {
-          ok: true,
-          json: async () => ({
-            message: { id: "1", text: "hello", timestamp: 1 },
-          }),
-        } as Response;
-      }) as unknown as typeof fetch;
+      const ids = chatState.messages.map((m) => m.id);
 
-      internals.lastSentTimestamp = 0;
-      await chatState.sendMessage("hello");
-
-      expect(Object.keys(sentBody).sort()).toEqual(["clientId", "text"]);
-      expect(sentBody.text).toBe("hello");
-      expect(sentBody.clientId).toBe("test-client-id");
-      expect(sentBody).not.toHaveProperty("profitFactor");
+      expect(ids).toEqual(["aabbccdd:1000", "aabbccdd:1001"]);
+      expect(new Set(ids).size).toBe(2);
     });
 
-    it("sends the app access token, which it previously omitted entirely", async () => {
-      // `/api/chat-v2` is guarded by checkAppAuth, which fails closed since
-      // ADR-0002. Without this header every poll and send is a 401.
-      let sentHeaders: Record<string, string> = {};
+    it("sorts by timestamp regardless of the order rows arrive in", () => {
+      internals.applyRows([
+        { sender: "a", text: "late", sentAt: 3000 },
+        { sender: "b", text: "early", sentAt: 1000 },
+      ]);
 
-      globalThis.fetch = vi.fn(async (_url, init) => {
-        sentHeaders = ((init as RequestInit)?.headers ?? {}) as Record<
-          string,
-          string
-        >;
-        return { ok: true, json: async () => ({ messages: [] }) } as Response;
-      }) as unknown as typeof fetch;
-
-      await (chatState as unknown as { poll: () => Promise<void> }).poll();
-
-      expect(sentHeaders["x-app-access-token"]).toBe("test-token");
-    });
-  });
-
-  describe("mergeMessages", () => {
-    it("keeps every incoming message — nothing is filtered by performance", () => {
-      // The profit-factor filter is deliberately gone. Messages that it used to
-      // drop must now arrive.
-      const merged = internals.mergeMessages(
-        [],
-        [
-          { id: "1", text: "a", timestamp: 100 },
-          { id: "2", text: "b", timestamp: 101 },
-          { id: "3", text: "c", timestamp: 102 },
-        ],
-      );
-
-      expect(merged).toHaveLength(3);
+      expect(chatState.messages.map((m) => m.text)).toEqual(["early", "late"]);
     });
 
-    it("advances latestSeenTimestamp to the newest incoming message", () => {
-      internals.latestSeenTimestamp = 100;
+    it("re-marks ownership once the identity is known", () => {
+      // Rows can arrive before onConnect reports the identity, so every message
+      // would otherwise be stuck rendering as someone else's.
+      internals.applyRows([
+        { sender: "aabbccdd", text: "mine", sentAt: 1000 },
+      ]);
+      expect(chatState.messages[0].senderId).toBe("aabbccdd");
 
-      internals.mergeMessages([], [{ id: "1", text: "new", timestamp: 200 }]);
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: "aabbccdd",
+      });
 
-      expect(internals.latestSeenTimestamp).toBe(200);
-    });
-
-    it("does not move latestSeenTimestamp when nothing arrives", () => {
-      internals.latestSeenTimestamp = 50;
-
-      const merged = internals.mergeMessages(
-        [{ id: "old", text: "old", timestamp: 50 }],
-        [],
-      );
-
-      expect(merged).toHaveLength(1);
-      expect(internals.latestSeenTimestamp).toBe(50);
-    });
-
-    it("drops duplicates by id rather than showing a message twice", () => {
-      const merged = internals.mergeMessages(
-        [{ id: "1", text: "first", timestamp: 100 }],
-        [
-          { id: "1", text: "first", timestamp: 100 },
-          { id: "2", text: "second", timestamp: 200 },
-        ],
-      );
-
-      expect(merged).toHaveLength(2);
-    });
-
-    it("sorts by timestamp regardless of arrival order", () => {
-      const merged = internals.mergeMessages(
-        [],
-        [
-          { id: "late", text: "late", timestamp: 300 },
-          { id: "early", text: "early", timestamp: 100 },
-        ],
-      ) as { id: string }[];
-
-      expect(merged.map((m) => m.id)).toEqual(["early", "late"]);
-    });
-
-    it("keeps at most the newest 500 messages", () => {
-      const many = Array.from({ length: 600 }, (_, i) => ({
-        id: String(i),
-        text: "m",
-        timestamp: i,
-      }));
-
-      const merged = internals.mergeMessages([], many) as { id: string }[];
-
-      expect(merged).toHaveLength(500);
-      expect(merged[merged.length - 1].id).toBe("599");
+      expect(chatState.messages[0].senderId).toBe("me");
     });
   });
 
-  it("clears history correctly and leaves other state intact", () => {
-    internals.messages = [
-      { id: "1", text: "Hello", timestamp: 100 },
-      { id: "2", text: "World", timestamp: 200 },
-    ];
-    internals.latestSeenTimestamp = 200;
-    internals.lastSentTimestamp = 150;
-    internals.loading = true;
-    internals.clientId = "existing-client-id";
+  describe("sendMessage", () => {
+    beforeEach(() => {
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: "aabbccdd",
+      });
+    });
+
+    it("sends the text and nothing else", () => {
+      // No profit factor, no journal statistic, no settings — ADR-0001 Class B
+      // condition 3. The module's schema has room for nothing else either.
+      chatState.sendMessage("hello");
+
+      expect(mockCloud.sendMessage).toHaveBeenCalledWith("hello");
+      expect(mockCloud.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("enforces the 2-second rate limit", async () => {
+      await chatState.sendMessage("first");
+
+      await expect(chatState.sendMessage("second")).rejects.toThrow(
+        /2 seconds/,
+      );
+      expect(mockCloud.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects a message longer than the module accepts", async () => {
+      // The module throws above 1000 characters; catching it here avoids a
+      // round trip that can only fail.
+      await expect(
+        chatState.sendMessage("x".repeat(1001)),
+      ).rejects.toThrow(/too long/);
+      expect(mockCloud.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it("refuses to send while disconnected, with an actionable message", async () => {
+      internals.applyStatus({
+        connected: false,
+        lastError: null,
+        mySenderId: null,
+      });
+
+      await expect(chatState.sendMessage("hello")).rejects.toThrow(
+        /Settings → Cloud/,
+      );
+      expect(mockCloud.sendMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  it("clearHistory clears the local view only", () => {
+    internals.applyRows([{ sender: "a", text: "hi", sentAt: 1 }]);
+    chatState.lastSentTimestamp = 150;
 
     chatState.clearHistory();
 
-    expect(internals.messages).toHaveLength(0);
-
-    // Ensure other states remain unaffected
-    expect(internals.lastSentTimestamp).toBe(150);
-    expect(internals.loading).toBe(true);
-    expect(internals.clientId).toBe("existing-client-id");
-
-    // latestSeenTimestamp is intentionally preserved so the next poll
-    // only fetches new messages rather than re-fetching cleared history
-    expect(internals.latestSeenTimestamp).toBe(200);
+    expect(chatState.messages).toHaveLength(0);
+    // Server-side history is governed by the retention policy, not by this.
+    expect(chatState.lastSentTimestamp).toBe(150);
   });
 });
