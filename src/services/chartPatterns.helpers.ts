@@ -16,7 +16,7 @@
  */
 
 
-import type { InteractiveElement, ThemeColors, AddInteractiveElement } from './chartPatterns.types';
+import type { ThemeColors, AddInteractiveElement } from './chartPatterns.types';
 
 export const DEFAULT_PATTERN_COLORS: ThemeColors = {
   text: "#e5e7eb",

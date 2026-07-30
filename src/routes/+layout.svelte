@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import favicon from "../assets/favicon.svg";
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
@@ -42,7 +41,6 @@ import { afterNavigate } from "$app/navigation";
 
   import "../app.css";
 
-  import { CONSTANTS } from "../lib/constants";
 
   import { browser } from "$app/environment";
 
@@ -143,7 +141,7 @@ import { afterNavigate } from "$app/navigation";
                       levelStyle,
                       logEntry.data ? logEntry.data : "",
                     );
-                  } catch (e) {
+                  } catch {
                     console.log(
                       "%cCL:%c [RAW]",
                       "background: #333; color: #00ff9d;",

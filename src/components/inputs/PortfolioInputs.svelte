@@ -23,7 +23,6 @@
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
   import { createEventDispatcher, onMount } from "svelte";
-  import { icons } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";

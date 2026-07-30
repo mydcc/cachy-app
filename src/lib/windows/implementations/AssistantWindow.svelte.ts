@@ -26,8 +26,6 @@ import { settingsState } from "../../../stores/settings.svelte";
 import { aiState } from "../../../stores/ai.svelte";
 import { notesState } from "../../../stores/notes.svelte";
 import { chatState } from "../../../stores/chat.svelte";
-import { _ } from "../../../locales/i18n";
-import { get } from "svelte/store";
 
 export class AssistantWindow extends WindowBase {
     constructor(title = "Assistant") {

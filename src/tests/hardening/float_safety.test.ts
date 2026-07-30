@@ -19,7 +19,6 @@ import { describe, it, expect } from "vitest";
 import { safeJsonParse } from "../../utils/safeJson";
 import { marketState } from "../../stores/market.svelte";
 import { Decimal } from "decimal.js";
-import { get } from "svelte/store";
 
 describe("Hardening: Float Safety & Data Integrity", () => {
 

@@ -312,7 +312,7 @@ export class MarketManager {
              return currentVal; // Reuse existing object
           }
           return new Decimal(val);
-        } catch (e) {
+        } catch {
           return undefined;
         }
       };
@@ -707,7 +707,7 @@ export class MarketManager {
       if (data.fundingRate) update.fundingRate = data.fundingRate;
 
       this.updateSymbol(symbol, update);
-    } catch (e) {
+    } catch {
         // ...
     }
   }
@@ -745,7 +745,7 @@ export class MarketManager {
       }
 
       this.updateSymbol(symbol, update);
-    } catch (e) {
+    } catch {
        // ...
     }
   }
@@ -755,7 +755,7 @@ export class MarketManager {
       this.updateSymbol(symbol, {
         depth: { bids: data.bids, asks: data.asks },
       });
-    } catch (e) {
+    } catch {
        // ...
     }
   }
@@ -779,7 +779,7 @@ export class MarketManager {
         ],
         "ws"
       );
-    } catch (e) {
+    } catch {
        // ...
     }
   }

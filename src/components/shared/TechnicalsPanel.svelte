@@ -21,7 +21,6 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
-  import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
   import { normalizeTimeframeInput } from "../../utils/utils";

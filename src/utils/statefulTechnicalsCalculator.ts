@@ -22,7 +22,7 @@
 
 import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
-import type { TechnicalsData, TechnicalsState, EmaState, RsiState } from "../services/technicalsTypes";
+import type { TechnicalsData, TechnicalsState } from "../services/technicalsTypes";
 import { CircularBuffer } from "./circularBuffer";
 
 export class StatefulTechnicalsCalculator {

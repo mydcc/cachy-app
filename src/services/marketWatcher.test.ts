@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
 import { marketState } from '../stores/market.svelte';
@@ -99,7 +99,7 @@ describe('MarketWatcher Locking & Deduplication', () => {
         // Call that fails
         try {
             await watcher.pollSymbolChannel('BTCUSDT', 'price', 'bitunix');
-        } catch (e) {
+        } catch {
             // Expected
         }
 

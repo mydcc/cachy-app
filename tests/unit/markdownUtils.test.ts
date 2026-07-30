@@ -18,7 +18,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderSafeMarkdown } from '../../src/utils/markdownUtils';
 import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 
 // Mock DOMPurify as we are in a non-browser environment
 vi.mock('dompurify', () => {

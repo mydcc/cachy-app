@@ -22,9 +22,7 @@
     import { settingsState } from "../../stores/settings.svelte";
     import { marketState } from "../../stores/market.svelte";
     import { marketWatcher } from "../../services/marketWatcher"; // Use existing service
-    import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
-    import { fade } from "svelte/transition";
     import { Decimal } from "decimal.js";
 
     // Icons

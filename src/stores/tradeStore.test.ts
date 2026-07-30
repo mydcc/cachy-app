@@ -17,7 +17,7 @@
 
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { tradeState, INITIAL_TRADE_STATE } from "./trade.svelte";
+import { tradeState } from "./trade.svelte";
 import { Decimal } from "decimal.js";
 
 // Mock browser

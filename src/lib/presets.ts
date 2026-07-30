@@ -16,7 +16,6 @@
  */
 
 import { browser } from "$app/environment";
-import { get } from "svelte/store";
 import { presetState } from "../stores/preset.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import type { AppState } from "../stores/types";

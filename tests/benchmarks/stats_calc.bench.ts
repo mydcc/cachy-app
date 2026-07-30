@@ -1,5 +1,4 @@
 import { bench, describe } from "vitest";
-import { Decimal } from "decimal.js";
 import { calculatePerformanceStats } from "../../src/lib/calculators/stats";
 import type { JournalEntry } from "../../src/stores/types";
 

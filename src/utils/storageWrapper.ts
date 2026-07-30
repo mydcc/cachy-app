@@ -164,7 +164,7 @@ class SafeLocalStorage {
       localStorage.setItem(testKey, "test");
       localStorage.removeItem(testKey);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }

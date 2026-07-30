@@ -18,7 +18,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tradeService } from "./tradeService";
-import { settingsState } from "../stores/settings.svelte";
 import { Decimal } from "decimal.js";
 
 // Mock settingsState

@@ -107,8 +107,6 @@ export class EqualizerEngine extends BaseEngine {
         const positions = new Float32Array(numPoints * 3);
         const colors = new Float32Array(numPoints * 3);
         const amplitudes = new Float32Array(numPoints);
-        const colorUp = this.context.colorUp || new THREE.Color(0x00ff00);
-
         let k = 0;
         for (let i = 0; i < width; i++) {
             for (let j = 0; j < length; j++) {

@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fs from 'fs';
-import path from 'path';
 import { URL } from 'url';
 
 // Define ALLOWED_DOMAINS to mirror server-side logic
@@ -70,7 +68,7 @@ function isUrlAllowed(urlStr) {
         url.hostname === domain || url.hostname.endsWith('.' + domain)
     );
 
-  } catch (e) {
+  } catch {
     return false;
   }
 }

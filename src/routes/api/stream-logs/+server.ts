@@ -72,7 +72,7 @@ export const GET: RequestHandler = ({ request, url }) => {
         try {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
-        } catch (err) {
+        } catch {
           cleanup();
           try { controller.close(); } catch { /* already closed */ }
         }

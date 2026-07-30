@@ -15,10 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { technicalsService } from "./technicalsService";
 import { Decimal } from "decimal.js";
-import { getEmptyData } from "../utils/technicalsCalculator";
 import { indicatorState } from "../stores/indicator.svelte";
 
 // Mock worker to force inline calculation or test worker logic

@@ -68,7 +68,7 @@ export async function createBackup(password?: string) {
     try {
       JSON.parse(raw); // Check if valid JSON
       return raw;
-    } catch (e) {
+    } catch {
       console.error(
         `Backup Logic: Detected corrupt JSON for key ${key}. Skipping.`,
       );
@@ -200,7 +200,7 @@ export async function restoreFromBackup(
         }, password);
 
         data = JSON.parse(decryptedJson);
-      } catch (e) {
+      } catch {
         return {
           success: false,
           message: "app.backupWrongPassword",

@@ -20,7 +20,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { tradeService } from './tradeService';
 import { omsService } from './omsService';
 import { Decimal } from 'decimal.js';
-import { marketState } from '../stores/market.svelte';
 
 // Mock dependencies
 vi.mock('./omsService', () => ({

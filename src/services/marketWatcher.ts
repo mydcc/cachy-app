@@ -30,7 +30,7 @@ import { activeTechnicalsManager } from "./activeTechnicalsManager.svelte";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
-import { KlineRawSchema, type KlineRaw, type Kline } from "./technicalsTypes";
+import { type KlineRaw, type Kline } from "./technicalsTypes";
 
 interface MarketWatchRequest {
   symbol: string;

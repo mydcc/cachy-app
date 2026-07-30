@@ -18,7 +18,6 @@
 
 import { bench, describe } from 'vitest';
 import { calculateAllIndicators } from '../utils/technicalsCalculator';
-import { technicalsService } from '../services/technicalsService';
 import { Decimal } from 'decimal.js';
 
 // Generate dummy klines

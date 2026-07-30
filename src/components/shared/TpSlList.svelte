@@ -16,10 +16,6 @@
 -->
 
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { settingsState } from "../../stores/settings.svelte";
-  import { accountState } from "../../stores/account.svelte";
-  import { tradeState } from "../../stores/trade.svelte";
   import { tradeService } from "../../services/tradeService";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";

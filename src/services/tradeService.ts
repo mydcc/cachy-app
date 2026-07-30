@@ -124,7 +124,7 @@ class TradeService {
         let data: any = {};
         try {
             data = safeJsonParse(text);
-        } catch (e) {
+        } catch {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
             // use the status code as the error code. Do NOT expose raw text or statusText.
             if (!response.ok) {

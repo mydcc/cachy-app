@@ -16,7 +16,6 @@
  */
 
 import { browser } from "$app/environment";
-import CryptoJS from "crypto-js";
 
 /**
  * CryptoService using Native Web Crypto API (SubtleCrypto) for performance.
@@ -357,7 +356,7 @@ class CryptoServiceImpl {
           const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
           getReq.onsuccess = () => resolve(getReq.result || null);
           getReq.onerror = () => reject(getReq.error);
-        } catch (e) {
+        } catch {
           resolve(null);
         }
       };

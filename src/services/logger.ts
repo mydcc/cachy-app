@@ -55,7 +55,7 @@ class LoggerService {
         try {
             settings = settingsState;
             if (!settings) return category === "general";
-        } catch (e) {
+        } catch {
             // settingsState not yet initialized
             return category === "general";
         }

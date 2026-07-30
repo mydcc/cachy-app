@@ -27,7 +27,6 @@
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
   import { untrack } from "svelte";
-  import { uiState } from "../../stores/ui.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";

@@ -84,7 +84,7 @@ export async function detectWasmSIMD(): Promise<boolean> {
     }
     
     return hasSIMD;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -111,7 +111,7 @@ export async function detectWasmThreads(): Promise<boolean> {
     ]);
     
     return await WebAssembly.validate(threadsModule);
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -138,7 +138,7 @@ export async function detectWebGPU(): Promise<{ available: boolean; features?: s
     }
     
     return { available: true, features };
-  } catch (e) {
+  } catch {
     return { available: false };
   }
 }
@@ -157,7 +157,7 @@ export async function detectBattery(): Promise<{ charging: boolean; level: numbe
       charging: battery.charging,
       level: battery.level
     };
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }

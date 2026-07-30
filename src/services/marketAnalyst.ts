@@ -393,7 +393,7 @@ export function calculateAnalysisMetrics(
         if (rsiDec.greaterThan(70)) condition = "overbought";
         else if (rsiDec.lessThan(30)) condition = "oversold";
         else if (change24hDec.abs().greaterThan(5)) condition = "trending";
-    } catch (err) {
+    } catch {
         condition = "neutral";
     }
 

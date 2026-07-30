@@ -181,6 +181,38 @@ That leaves the CLI steps as the only thing outstanding, and they need a machine
 with SpacetimeDB installed: `spacetime publish`, then `spacetime generate`. After
 that the button works with no further change.
 
+**Item 21 — first pass done, 1315 → 1124.** The mechanical categories are
+exhausted; what is left needs judgement, so the method matters more than the
+number:
+
+| Category | Was | Now | How |
+| --- | --- | --- | --- |
+| Unused imports | 140 | 14 | Removed. Pure dead weight, no behaviour to change. |
+| Unused `catch` bindings | 65 | 3 | `catch (e)` → `catch` — the ES2019 optional binding, so the binding is gone rather than renamed to be ignored. |
+| Unused locals / params / other | 176 | 174 | Two verified dead leftovers removed; the rest need reading, one at a time. |
+| `no-explicit-any` | 934 | 933 | Untouched. Needs real types, file by file. |
+
+Nothing was suppressed: no `eslint-disable`, no ignore patterns added to the
+config, no rule relaxed. Every warning that went away did so because the code it
+pointed at is gone.
+
+**The remaining work, in the order it is worth doing:**
+
+1. **`no-unused-vars`, 191 left.** Read each one. An "assigned but never used"
+   local is sometimes a leftover and sometimes a bug where a computed value was
+   meant to be used — the two look identical to the linter. Two were checked
+   during this pass: `colorUp` in `EqualizerEngine` and `RaindropsEngine`, both
+   superseded by inline recomputation, both removed.
+2. **`no-explicit-any`, 933 left.** Highest count, lowest mechanical content.
+   Concentrated in `bitunixWs.ts` (36), `market.svelte.ts` (27) and
+   `orders/+server.ts` (19) — the exchange and market-data paths, where a wrong
+   type is a money bug, so this is the part to do slowly and with tests.
+3. Only when both reach zero: flip the rules from `warn` to `error` and drop the
+   ratchet.
+
+Lower the ceiling in `.github/workflows/audit.yml` on every pass, so the backlog
+can only shrink.
+
 ### Code health
 
 | # | Item | Status |
@@ -188,7 +220,7 @@ that the button works with no further change.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the 1315 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
+| 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |

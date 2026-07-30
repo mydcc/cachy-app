@@ -22,7 +22,7 @@ import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs";
 import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
 import { favoritesState } from "../stores/favorites.svelte";
-import { _, locale } from "../locales/i18n";
+import { _ } from "../locales/i18n";
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
 import { apiService } from "./apiService";
@@ -40,8 +40,7 @@ import type {
 } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
-import { trackCustomEvent, addContextProvider } from "./trackingService";
-import { onboardingService } from "./onboardingService";
+import { addContextProvider } from "./trackingService";
 import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
@@ -318,7 +317,7 @@ export const app = {
                CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
                json,
              );
-           } catch (error) {
+           } catch {
              uiState.showError("Speichern fehlgeschlagen.");
            }
         }
@@ -519,7 +518,7 @@ export const app = {
       app.currentMarketPrice = priceVal;
       tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
       app.calculateAndDisplay();
-    } catch (e) {
+    } catch {
       if (!isAuto) uiState.showError("errors.priceFetchFailed");
     } finally {
       if (!isAuto) uiState.isPriceFetching = false;
@@ -557,7 +556,7 @@ export const app = {
       const atr = calculator.calculateATR(klines);
       tradeState.update((s) => ({ ...s, atrValue: new Decimal(atr).toDP(20).toString() }));
       app.calculateAndDisplay();
-    } catch (e) {
+    } catch {
       if (!isAuto) uiState.showError("errors.atrFetchFailed");
     } finally {
       if (!isAuto) uiState.isAtrFetching = false;

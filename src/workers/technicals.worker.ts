@@ -21,7 +21,7 @@
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators, calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 import { BufferPool } from "../utils/bufferPool";
-import type { WorkerMessage, WorkerCalculatePayload, WorkerCalculatePayloadSoA, KlineBuffers } from "../services/technicalsTypes";
+import type { WorkerMessage } from "../services/technicalsTypes";
 
 const ctx: Worker = self as any;
 const bufferPool = new BufferPool();

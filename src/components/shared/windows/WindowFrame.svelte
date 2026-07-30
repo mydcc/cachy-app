@@ -34,7 +34,6 @@
     import { effectsState } from "../../../stores/effects.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
-    import { _ } from "../../../locales/i18n";
     import CachyIcon from "../CachyIcon.svelte";
 
     interface Props {

@@ -16,14 +16,12 @@
 -->
 
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
     import { chatState } from "../../../stores/chat.svelte";
     import { notesState } from "../../../stores/notes.svelte";
     import { aiState } from "../../../stores/ai.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
-    import { icons } from "../../../lib/constants";
     import { markdown } from "../../../actions/markdown";
     import type { WindowBase } from "../WindowBase.svelte";
 

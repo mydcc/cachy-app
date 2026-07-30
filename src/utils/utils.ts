@@ -111,7 +111,7 @@ export function parseDecimal(
 
   try {
     return new Decimal(str);
-  } catch (e) {
+  } catch {
     return new Decimal(0);
   }
 }
@@ -143,7 +143,7 @@ export function formatApiNum(
     // toFixed(20) ensures high precision, then we strip trailing zeros
     const d = val instanceof Decimal ? val : new Decimal(val);
     return d.toFixed(20).replace(/\.?0+$/, "");
-  } catch (e) {
+  } catch {
     return String(val);
   }
 }
@@ -555,7 +555,7 @@ export function parseAiValue(value: string | number | boolean): Decimal {
     const d = new Decimal(str);
     if (d.isNaN()) return new Decimal(0);
     return d.times(multiplier);
-  } catch (e) {
+  } catch {
     return new Decimal(0);
   }
 }

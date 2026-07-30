@@ -22,7 +22,7 @@
  * Hardened version using static assets.
  */
 
-import type { TechnicalsData, IndicatorSettings, IndicatorResult } from './technicalsTypes';
+import type { TechnicalsData, IndicatorSettings } from './technicalsTypes';
 import { getEmptyData } from './technicalsTypes';
 import { toNumFast } from '../utils/fastConversion';
 

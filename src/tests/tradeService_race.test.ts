@@ -17,9 +17,8 @@
 
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { tradeService, BitunixApiError } from '../services/tradeService';
+import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
-import { settingsState } from '../stores/settings.svelte';
 import { Decimal } from 'decimal.js';
 
 // Mocks

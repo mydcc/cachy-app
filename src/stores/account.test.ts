@@ -17,7 +17,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { accountState } from './account.svelte';
-import { Decimal } from 'decimal.js';
 
 describe('AccountManager', () => {
     beforeEach(() => {

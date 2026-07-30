@@ -1,5 +1,4 @@
 import { JSDOM } from 'jsdom';
-import dompurify from 'dompurify';
 
 const window = new JSDOM('').window;
 

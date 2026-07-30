@@ -17,7 +17,6 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
-    import type { Readable } from "svelte/store";
 
     interface Props {
         // Props - Metrics from derived stores

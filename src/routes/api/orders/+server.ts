@@ -56,7 +56,7 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const text = await request.text();
     body = safeJsonParse(text);
-  } catch (e) {
+  } catch {
     return json({ error: ORDER_ERRORS.INVALID_JSON }, { status: 400 });
   }
 
@@ -329,7 +329,7 @@ async function placeBitunixOrder(
         if (jsonError.code) {
              details = `Code: ${jsonError.code}`;
         }
-    } catch (e) {
+    } catch {
         // Ignore JSON parse error, stick to text
     }
 
@@ -411,7 +411,7 @@ function safeDecimal(value: any): Decimal {
   try {
     if (value === null || value === undefined) return new Decimal(0);
     return new Decimal(value);
-  } catch (e) {
+  } catch {
     return new Decimal(0);
   }
 }
