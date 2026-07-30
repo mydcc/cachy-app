@@ -219,10 +219,12 @@ Left for a decision, deliberately not touched:
   conflict" turned out to be wrong; see section 10.
 - ~~**Four sources for brand/design.**~~ **Resolved** (item 11) — one canonical
   `docs/BRAND.md`, written from `src/themes.css`. See section 11.
-- **`chartpatterns.html` (224 KB) in the repository root** also exists as
-  `info/chartpatterns.html` (272 KB). They are **not** identical — different
-  content hashes — and neither is referenced anywhere in the source. Consolidate
-  only after deciding which one is current.
+- ~~**`chartpatterns.html` (224 KB) in the repository root** also exists as
+  `info/chartpatterns.html` (272 KB).~~ **Resolved** (item 23). The size
+  difference was the whole story: the `info/` copy documents 56 chart patterns,
+  the root copy 4. Commit `b9931450` added 6343 lines to the `info/` copy and
+  left the other untouched, so the root file was an abandoned draft. It also
+  lacked the `chartpatterns_files` sidecar the `info/` copy references. Deleted.
 - ~~**`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
   no secrets, only infrastructure paths and ports, but it is the example file
   filled in.~~ **Resolved** (item 22) — and the description above was too
@@ -518,8 +520,11 @@ Two things worth recording about the fix:
   That was checked rather than assumed.
 
 `external/cmc` still uses `response.json()` and returns prices as JSON numbers.
-It feeds display and sentiment, never order handling, so it is recorded as
-roadmap item 24d rather than folded into this change.
+It feeds display and sentiment, never order handling, so it was recorded as
+roadmap item 24d rather than folded into this change — **and then deliberately
+left alone**. Converting it would turn the ~16-character total market cap into a
+string while `cmcService.ts` declares it `number`, breaking a real path to buy
+precision nobody can use. The reasoning is a comment at the call site.
 
 ---
 
@@ -563,9 +568,9 @@ rather than carried over:
   `dev` / `prod` as the troubleshooting section claimed.
 - **Deployment lock**: the troubleshooting section told the reader to delete
   `/tmp/cachy_deploy_*.lock`, and the feature list claimed a concurrency check.
-  There is no lock anywhere in `deploy.sh`. Replaced with what actually needs
-  cleaning up (`.deploy_work`, `build_old_*`) and an explicit note that
-  concurrent runs would race.
+  There was no lock anywhere in `deploy.sh`. **Since built** (item 24f) — a
+  `flock` on `.deploy.lock` taken before the first mutating step, so the
+  documentation is true now rather than merely corrected.
 - **Atomic build**: the script builds into a shadow directory and only swaps on
   success, which the old text did not mention. That is the guide's strongest
   safety property and it was undocumented.

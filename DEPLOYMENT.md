@@ -130,6 +130,7 @@ missing.
 
 Features:
 
+- ✅ Concurrency lock — a second run refuses to start while one is in progress
 - ✅ Automatic backup (last 5 deployments kept, configurable via `MAX_BACKUPS`)
 - ✅ Atomic build in a shadow directory — a failed build never touches the live one
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
@@ -140,16 +141,17 @@ Features:
 
 ### What the script does
 
-1. **Check branch and working tree** - offers to switch branch and to stash changes
-2. **Confirm** - production mode requires an explicit `y`
-3. **Create backup** - full build + package-lock.json + Git commit
-4. **Pull latest code** - `git reset --hard && git pull`
-5. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
-6. **Validate build** - checks that `build/index.js` exists
-7. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_old_<timestamp>`, move the new one in
-8. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`
-9. **Health check** - verify the service responds at `/api/health`
-10. **Auto-rollback** - restore the backup if the health check fails
+1. **Take the concurrency lock** - a second run refuses to start while one is in progress
+2. **Check branch and working tree** - offers to switch branch and to stash changes
+3. **Confirm** - production mode requires an explicit `y`
+4. **Create backup** - full build + package-lock.json + Git commit
+5. **Pull latest code** - `git reset --hard && git pull`
+6. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
+7. **Validate build** - checks that `build/index.js` exists
+8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_old_<timestamp>`, move the new one in
+9. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`
+10. **Health check** - verify the service responds at `/api/health`
+11. **Auto-rollback** - restore the backup if the health check fails
 
 ### Manual rollback
 
@@ -325,8 +327,11 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
    `deploy.sh` removes `.deploy_work` itself on both success and build failure.
    If it is still there, the run was interrupted — it is safe to delete.
 
-   > Note: there is **no concurrency lock**. Two runs at once would race on
-   > `.deploy_work` and on the build swap. Deploy from one shell at a time.
+   > A concurrency lock prevents this: a second `./deploy.sh` refuses to start
+   > while another is running. It is a `flock` on `.deploy.lock`, held for as
+   > long as any process still has it open — including the background build, so
+   > a killed script does not free the lock while its npm build is still writing
+   > into `.deploy_work`.
 
 3. **Build fails:**
    - The full build log path is printed on failure — `logs/build_<timestamp>.log`

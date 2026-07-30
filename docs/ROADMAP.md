@@ -238,6 +238,90 @@ rolling back on the health check. A failure one deploy removed from its cause is
 exactly the kind that costs an afternoon, so `DEPLOYMENT.md` now opens the
 deployment section with the backup step.
 
+**Item 23 is done.** The two copies were not near-duplicates to pick between:
+`info/chartpatterns.html` documents **56 chart patterns**, the root copy **4**.
+Commit `b9931450` added 6343 lines to the `info/` copy alone and never touched
+the other, so the root file had been an abandoned early draft since then.
+
+It also had no assets: `info/chartpatterns.html` references a `chartpatterns_files`
+sidecar directory that exists only under `info/`, alongside its sibling
+`candlestick.html`. Nothing anywhere in the repository linked to the root copy.
+Deleted — 226 KB, and one fewer file at the top level pretending to be
+documentation.
+
+**Item 24f is done.** `deploy.sh` takes a `flock` on `.deploy.lock` before the
+first mutating step. A second run refuses to start rather than interleaving a
+branch checkout, a stash, a pull, an rsync into `.deploy_work` and a build swap
+with the first one's.
+
+`flock` rather than a PID file: the kernel owns it, so nothing stale survives a
+SIGKILL or a power cut — no trap to get right. Proven rather than assumed, and
+the test corrected an assumption: a second run **is** refused while the first
+holds the lock, the lock **is** free once it finishes, but after `kill -9` it was
+still held. The cause is that children inherit the descriptor, and the `sleep`
+standing in for the build was still alive.
+
+That behaviour is right for this script and the comment now says so: the real
+child is the background npm build, which keeps writing into `.deploy_work` after
+its parent dies. A second deployment rsyncing into that directory is exactly the
+race the lock exists to prevent, so the lock should outlive the script for as
+long as the work does.
+
+`.deploy.lock`, `.deploy_work/` and `build_old_*/` are gitignored — verified by
+creating the directories and checking the patterns actually match, since a
+trailing-slash pattern silently matches nothing when the directory is absent.
+
+**Item 24d is closed as a decision not to change it.** The item asked whether
+`external/cmc` should read through `readExchangeJson` like the exchange routes.
+It should not, and the reason is specific rather than a shrug:
+
+`safeJsonParse` quotes numeric literals of 15 or more characters. The total
+crypto market cap is ~16 characters with decimals (`1900000000000.12`), so it
+would arrive as a **string** — while `CmcGlobalMetrics.total_market_cap` in
+`cmcService.ts` declares `number` and `ai.svelte.ts:521` passes it straight into
+the AI context. TypeScript would not catch the mismatch, because the body is
+`any` on both sides of the change. Small-cap prices like `0.00000012345678` are
+16 characters too, and would convert as well.
+
+Against that: nothing here reaches an order. CMC feeds the market overview and
+the AI context, never a position size, and precision past the 17th significant
+digit of a market cap is meaningless. So the change would introduce a real
+runtime/type mismatch to solve a problem that does not exist on this path.
+
+The reasoning lives in a comment at the call site, not only here — the next
+person to notice the inconsistency will be reading that file, not this one. It
+also says what to do if a CMC value ever does feed a calculation: type it
+`string | number` and run it through `Decimal`, rather than switching the one
+line.
+
+**Item 24 is done.** `scripts/README.md` indexes all of it, grouped by the only
+question that matters when you open the directory: **does this run on its own, or
+did someone write it for one afternoon?**
+
+Six scripts are wired into automation — `build_wasm.sh` via `package.json`,
+`lint-i18n.js` and the three translation scripts via CI, `discord-notify.sh` via
+`deploy.sh`. Breaking one of those breaks a build, a deploy or a check. Eight
+more are real manual tools with a stated reason to reach for them.
+
+Three findings worth recording:
+
+- **`pre-commit.sh` and `husky-pre-commit.sh` are not installed.** There is no
+  `.husky/` directory and husky is not a dependency, so neither hook has ever
+  run. The checks they perform now live in `translation-check.yml`, where
+  `--no-verify` cannot skip them. Kept, because installing a local hook is the
+  developer's choice, and `pre-commit.sh` documents its own installation.
+- **`render_build.sh` targets Render.com**, while the project deploys to aaPanel
+  through `deploy.sh`. Nothing references it.
+- **`scripts/maintenance/` holds four one-shot patch scripts** that performed a
+  specific refactor once. They are not idempotent. The README says plainly not to
+  run one to find out what it does — which is exactly what an undocumented
+  directory of `fix_*.py` files invites.
+
+Descriptions were read out of the scripts, not guessed from filenames, and one
+was corrected in the process: `detect_leaks.cjs` checks **timer** cleanup
+specifically (`setInterval` without `clearInterval`), not listeners or
+subscriptions in general.
+
 ### Code health
 
 | # | Item | Status |
@@ -247,14 +331,14 @@ deployment section with the backup step.
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
-| 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
-| 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
+| 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
+| 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |
 | 24b | ~~Audit remaining `env.*` reads against `.env.example`~~ — done: audited, `PORT` added, and a test now enforces it | 🟢 |
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
-| 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
+| 24d | ~~Consider the same for `external/cmc`~~ — considered and **declined**, with the reasoning recorded at the call site | 🟢 |
 | 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
-| 24f | Add a concurrency lock to `deploy.sh` — two simultaneous runs would race on the `.deploy_work` shadow directory and on the build swap. The old docs claimed a lock existed; it never did | ⚪ |
+| 24f | ~~Add a concurrency lock to `deploy.sh`~~ — done: `flock` on `.deploy.lock`, proven with concurrent runs | 🟢 |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
 the backlog cannot grow. The ratchet has already earned its place: work on item 18

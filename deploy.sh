@@ -279,6 +279,38 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 
 # --- 6. Main Process ---
 
+# Concurrency lock.
+#
+# Everything below this point mutates shared state: it checks out branches,
+# stashes, resets and pulls, builds into .deploy_work, swaps build/ aside and
+# restarts the service. Two runs at once would interleave all of that — the
+# second run's rsync into .deploy_work while the first is building there is
+# enough to produce a corrupt deployment that still passes its health check.
+#
+# flock is used rather than a PID file because the kernel owns it: it is held for
+# as long as some process still has the descriptor open, and released when the
+# last one exits — no trap, and nothing stale left behind by SIGKILL or a power
+# cut, which is exactly when a PID file is worst.
+#
+# Children inherit the descriptor, which is deliberate here rather than a leak.
+# The build runs as a background subshell; if this script is killed mid-build,
+# that npm process keeps writing into .deploy_work, and a second deployment
+# rsyncing into the same directory is the race this lock exists to prevent. The
+# lock therefore outlives the script exactly as long as the work does.
+LOCK_FILE="$SCRIPT_DIR/.deploy.lock"
+if command -v flock >/dev/null 2>&1; then
+    exec 200>"$LOCK_FILE"
+    if ! flock -n 200; then
+        echo -e "${RED}❌ Another deployment is already running.${NC}"
+        echo -e "${GREY}   Lock held on $LOCK_FILE. Wait for it to finish, or check for a stuck process.${NC}"
+        exit 1
+    fi
+else
+    # Not fatal: a missing tool should not block a deployment, but the operator
+    # should know the protection is absent.
+    echo -e "${YELLOW}⚠️  flock not found — running without a concurrency lock.${NC}"
+fi
+
 # Change to project root to allow execution from anywhere
 cd "$SCRIPT_DIR" || error_exit "Could not enter script directory"
 
