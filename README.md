@@ -118,6 +118,20 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
   npm test
   ```
 
+  A required CI check, and the whole suite must be green.
+
+- **Performance benchmarks:**
+
+  ```bash
+  npm run test:perf
+  ```
+
+  Excluded from `npm test` and run in a **non-blocking** CI job. They assert
+  wall-clock time and heap growth, which on a shared runner is dominated by noise
+  — the scaling check compares a ~5ms measurement against a ~24ms one, so a GC
+  pause moves the result more than a real regression would. Treat a red run as a
+  hint to investigate, not as a gate.
+
 - **Type check:**
 
   ```bash

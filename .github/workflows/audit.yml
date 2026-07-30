@@ -75,6 +75,29 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+  performance:
+    name: Performance Benchmarks (non-blocking)
+    runs-on: ubuntu-latest
+    # Informational only. These assert wall-clock time and heap growth, which on a
+    # shared runner is dominated by noise — the scaling check compares a ~5ms
+    # measurement against a ~24ms one. A red run here is a hint to look, never a
+    # reason to block a pull request.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run performance benchmarks
+        run: npm run test:perf
+
   type-check:
     name: TypeScript Type Check
     runs-on: ubuntu-latest
