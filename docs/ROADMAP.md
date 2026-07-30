@@ -38,8 +38,22 @@ baseline tag is required and there is no manual step left. The hand-written
 | 8 | Align `CLAUDE.md`, README and both whitepapers with ADR-0001 | 🟢 |
 | 9 | ~~Audit the rest of the whitepaper against the code~~ — done: all eight chapters checked, every reference resolved, chapter 3 maths now covered by an executable test | 🟢 |
 | 10 | ~~Merge `DEPLOY.md` and `DEPLOYMENT.md` into one guide~~ — done: one guide, and both had the `deploy.sh` invocation wrong | 🟢 |
-| 11 | Consolidate the four brand/design sources into one canonical doc | ⚪ |
+| 11 | ~~Consolidate the four brand/design sources into one canonical doc~~ — done: `docs/BRAND.md`, verified against `src/themes.css` | 🟢 |
 | 11a | ~~Feed the in-app changelog from the generated `CHANGELOG.md`~~ — done: the generated releases are substituted into the localized document at render time | 🟢 |
+
+**Item 11 is done.** `docs/BRAND.md` replaces three root-level documents that gave
+three different answers. The palette turned out to be real and correctly
+implemented — every core, highlight, gradient and light/dark value in
+`src/themes.css` matches the designed original — so the canonical document is
+written from the code, with the old files' unverifiable parts labelled as intent
+rather than fact.
+
+The three had to go rather than be cross-referenced: one was OCR output with
+truncated hex values (`#4e21e` for `#4e21e7`), one had empty logo and typography
+placeholders, and one described a different website's routes and contradicted
+itself on the headline font within twenty lines. Details in
+`docs/REPO-AUDIT.md`, section 11. One question is left open for a human:
+which headline typeface is actually the brand's.
 
 **Item 11a is done.** The in-app changelog would have frozen at 0.94.3 the moment
 semantic-release published its first version, because it rendered a hand-written

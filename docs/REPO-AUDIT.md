@@ -213,9 +213,8 @@ Left for a decision, deliberately not touched:
 - ~~**Two deployment guides:** `DEPLOY.md` and `DEPLOYMENT.md`.~~ **Resolved**
   (item 10) — merged into `DEPLOYMENT.md`. The assumption above that "they do not
   conflict" turned out to be wrong; see section 10.
-- **Four sources for brand/design:** `BRAND GUIDELINES.md`,
-  `CORPORATE_DESIGN.md`, `SYSTEM_BRAND_GUIDELINES.md` and `brand_guidelines/`
-  (17 JPGs). Needs one canonical source.
+- ~~**Four sources for brand/design.**~~ **Resolved** (item 11) — one canonical
+  `docs/BRAND.md`, written from `src/themes.css`. See section 11.
 - **`chartpatterns.html` (224 KB) in the repository root** also exists as
   `info/chartpatterns.html` (272 KB). They are **not** identical — different
   content hashes — and neither is referenced anywhere in the source. Consolidate
@@ -571,7 +570,73 @@ themselves.
 
 ---
 
-## 11. Verified state after these changes
+## 11. Three brand documents, three different brands
+
+Item 11 asked for one canonical brand document instead of four sources. The
+sources did not merely overlap — they disagreed, and two of them were not written
+for this project.
+
+**The good news first:** the palette is real and correctly implemented. Every core,
+highlight, gradient and light/dark value in `src/themes.css` matches the designed
+original, and the four brand themes named in the documents —
+`.theme-meteorite`, `.theme-steel`, `.theme-ever`, `.theme-insight` — all exist.
+So `docs/BRAND.md` is written from the code, which is the thing users actually see.
+
+What was wrong with each source:
+
+- **`BRAND GUIDELINES.md`** was text extracted from the `brand_guidelines/` JPGs,
+  and the extraction **truncated most hex values while leaving the RGB triples
+  intact**: `#4e21e` for `#4e21e7`, `#e6f6f` for `#e6f6f5`, `#0f` for `#0f0523`,
+  and in one case just `#`. Anyone copying a colour out of it would have got an
+  invalid value. Deleted — the JPGs remain, and every truncated value is
+  recoverable from the surviving RGB triples, which match `src/themes.css`
+  exactly. That agreement is also the proof that the implemented palette *is* the
+  designed one.
+- **`CORPORATE_DESIGN.md`** had a logo section with blank file names, blank
+  minimum sizes and a blank clear-space value, and a typography section whose
+  headline font was an empty code block. Its verified content — the type scale,
+  the spacing and breakpoint conventions, the logo do-nots — is carried over,
+  labelled as intent, since nothing in the code enforces it.
+- **`SYSTEM_BRAND_GUIDELINES.md`** assigned the four themes to routes that do not
+  exist here (`/services`, `/xr-studio`, `/offer/free-ebook`, `/work/n8n-nodes`),
+  and `BRAND GUIDELINES.md` ended with the footer *"HEINZE MEDIA is a WordPress
+  SEO Plugin for your website"*. Both were written for a different property and
+  reused without adaptation.
+
+### The headline font is genuinely unknown
+
+Three documents, three answers, none matching the app:
+
+| Source | Headline font |
+| --- | --- |
+| `BRAND GUIDELINES.md` | Degular Bold |
+| `CORPORATE_DESIGN.md` | Montserrat Bold |
+| `SYSTEM_BRAND_GUIDELINES.md` | Montserrat on line 234, Degular Bold on line 251 |
+| The app | neither — headings use the user's chosen body font |
+
+Degular is commercial, Montserrat is free, so this is a licensing question as well
+as a design one. Recorded in `docs/BRAND.md` as open rather than guessed.
+
+### Two places where the code departs from the documented brand
+
+Both left alone, because the code is what ships and neither looks accidental:
+
+- `.theme-meteorite` sets its accent to **Blue PRO**, not Purple as documented.
+- `.theme-ever` and `.theme-insight` use literal background gradients
+  (`#052618 → #010f08`, `#3d050e → #0f0505`) instead of their `--gradient-*`
+  tokens — far darker than documented, consistent with a trading UI that runs dark.
+
+### On the 23 non-brand themes
+
+`src/themes.css` ships 27 themes; only four are brand themes. The rest are
+editor-inspired (Dracula, Nord, Tokyo Night, Gruvbox, Solarized, ...). That is not
+brand drift: a tool people keep open next to their editor for hours benefits from
+matching it. `docs/BRAND.md` states the boundary explicitly so the distinction is
+not lost again.
+
+---
+
+## 12. Verified state after these changes
 
 | Check | Result |
 | --- | --- |
