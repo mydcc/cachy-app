@@ -520,8 +520,11 @@ Two things worth recording about the fix:
   That was checked rather than assumed.
 
 `external/cmc` still uses `response.json()` and returns prices as JSON numbers.
-It feeds display and sentiment, never order handling, so it is recorded as
-roadmap item 24d rather than folded into this change.
+It feeds display and sentiment, never order handling, so it was recorded as
+roadmap item 24d rather than folded into this change — **and then deliberately
+left alone**. Converting it would turn the ~16-character total market cap into a
+string while `cmcService.ts` declares it `number`, breaking a real path to buy
+precision nobody can use. The reasoning is a comment at the call site.
 
 ---
 

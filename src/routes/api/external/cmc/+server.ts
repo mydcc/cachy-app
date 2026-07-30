@@ -77,6 +77,23 @@ export const GET: RequestHandler = async ({ url, request }) => {
       );
     }
 
+    // Deliberately `response.json()` and not `readExchangeJson`, unlike the
+    // exchange routes — roadmap item 24d, considered and declined.
+    //
+    // `safeJsonParse` quotes numeric literals of 15+ characters to protect
+    // 19-digit order IDs. Here that would do harm rather than good: the total
+    // crypto market cap is ~16 characters with decimals, so it would arrive as a
+    // string, while `CmcGlobalMetrics.total_market_cap` in `cmcService.ts`
+    // declares `number` and `ai.svelte.ts` passes it straight into the AI
+    // context. TypeScript would not catch the mismatch, because this body is
+    // `any` either way.
+    //
+    // Nothing here reaches an order: CMC feeds market overview and AI context,
+    // never a position size. Precision beyond the 17th significant digit of a
+    // market cap is meaningless, so there is no benefit to weigh against the
+    // breakage. If a CMC value ever feeds a calculation, type it
+    // `string | number` and run it through Decimal — do not switch this line
+    // alone.
     const data = await response.json();
     return json(data);
   } catch (error: any) {

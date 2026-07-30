@@ -271,6 +271,29 @@ long as the work does.
 creating the directories and checking the patterns actually match, since a
 trailing-slash pattern silently matches nothing when the directory is absent.
 
+**Item 24d is closed as a decision not to change it.** The item asked whether
+`external/cmc` should read through `readExchangeJson` like the exchange routes.
+It should not, and the reason is specific rather than a shrug:
+
+`safeJsonParse` quotes numeric literals of 15 or more characters. The total
+crypto market cap is ~16 characters with decimals (`1900000000000.12`), so it
+would arrive as a **string** — while `CmcGlobalMetrics.total_market_cap` in
+`cmcService.ts` declares `number` and `ai.svelte.ts:521` passes it straight into
+the AI context. TypeScript would not catch the mismatch, because the body is
+`any` on both sides of the change. Small-cap prices like `0.00000012345678` are
+16 characters too, and would convert as well.
+
+Against that: nothing here reaches an order. CMC feeds the market overview and
+the AI context, never a position size, and precision past the 17th significant
+digit of a market cap is meaningless. So the change would introduce a real
+runtime/type mismatch to solve a problem that does not exist on this path.
+
+The reasoning lives in a comment at the call site, not only here — the next
+person to notice the inconsistency will be reading that file, not this one. It
+also says what to do if a CMC value ever does feed a calculation: type it
+`string | number` and run it through `Decimal`, rather than switching the one
+line.
+
 ### Code health
 
 | # | Item | Status |
@@ -285,7 +308,7 @@ trailing-slash pattern silently matches nothing when the directory is absent.
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |
 | 24b | ~~Audit remaining `env.*` reads against `.env.example`~~ — done: audited, `PORT` added, and a test now enforces it | 🟢 |
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
-| 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
+| 24d | ~~Consider the same for `external/cmc`~~ — considered and **declined**, with the reasoning recorded at the call site | 🟢 |
 | 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
 | 24f | ~~Add a concurrency lock to `deploy.sh`~~ — done: `flock` on `.deploy.lock`, proven with concurrent runs | 🟢 |
 
