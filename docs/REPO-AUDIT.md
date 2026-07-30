@@ -210,9 +210,9 @@ Fixed:
 
 Left for a decision, deliberately not touched:
 
-- **Two deployment guides:** `DEPLOY.md` (restart-after-build advice) and
-  `DEPLOYMENT.md` (aaPanel install guide). They do not conflict but should be
-  merged or clearly cross-referenced.
+- ~~**Two deployment guides:** `DEPLOY.md` and `DEPLOYMENT.md`.~~ **Resolved**
+  (item 10) — merged into `DEPLOYMENT.md`. The assumption above that "they do not
+  conflict" turned out to be wrong; see section 10.
 - **Four sources for brand/design:** `BRAND GUIDELINES.md`,
   `CORPORATE_DESIGN.md`, `SYSTEM_BRAND_GUIDELINES.md` and `brand_guidelines/`
   (17 JPGs). Needs one canonical source.
@@ -512,11 +512,70 @@ roadmap item 24d rather than folded into this change.
 
 ---
 
-## 10. Verified state after these changes
+## 10. Both deployment guides described a script that does not exist
+
+Roadmap item 10 was filed as tidiness — two guides, merge them. It was not
+tidiness. Neither guide described how `deploy.sh` actually works, and the errors
+pointed in the dangerous direction.
+
+`deploy.sh` recognises exactly one argument, `--beta`. Its default is
+**production**:
+
+```bash
+ENV_TYPE="stable"
+if [[ "$1" == "--beta" ]]; then
+    ENV_TYPE="beta"
+fi
+```
+
+Against that:
+
+| Documented | Actual effect |
+| --- | --- |
+| `DEPLOY.md`: `./deploy.sh cachy-app` for production | correct by accident — the argument is ignored, and the default is production |
+| `DEPLOY.md`: `./deploy.sh devcachyapp` for staging | **deploys production** — the argument is ignored |
+| `DEPLOYMENT.md`: `./deploy.sh` = "Deploy to staging" | **deploys production** |
+| `DEPLOYMENT.md`: `./deploy_prod.sh` for production | the file does not exist |
+
+The staging command in the old `DEPLOY.md` deployed to `cachy.app`. Three guards
+stand in the way — the script prints the target environment in a banner, refuses
+to run unless the working tree is on `main`, and requires an explicit `y` for a
+production deployment — so this was unlikely to go through unnoticed. But the
+documented safe command was the unsafe one, and the guards are the only reason
+that did not matter.
+
+Other corrections made while merging, each checked against the script or a route
+rather than carried over:
+
+- **Branch name**: staging tracks `develop`, not `dev`.
+- **Backup paths**: backups are grouped by mode name (`stable` / `beta`), not by
+  `dev` / `prod` as the troubleshooting section claimed.
+- **Deployment lock**: the troubleshooting section told the reader to delete
+  `/tmp/cachy_deploy_*.lock`, and the feature list claimed a concurrency check.
+  There is no lock anywhere in `deploy.sh`. Replaced with what actually needs
+  cleaning up (`.deploy_work`, `build_old_*`) and an explicit note that
+  concurrent runs would race.
+- **Atomic build**: the script builds into a shadow directory and only swaps on
+  success, which the old text did not mention. That is the guide's strongest
+  safety property and it was undocumented.
+- **Health endpoint**: the example response still showed version `0.94.3`;
+  `/api/health` is unauthenticated by design, which is why `deploy.sh` can use it
+  before any token exists.
+- **`npm ci` vs `npm install`**: the install step now matches what the script
+  runs (`npm ci --legacy-peer-deps`).
+
+`DEPLOY.md`'s one piece of unique content — why 404s appear on JS and CSS after a
+build without a restart — is preserved as a subsection of the manual-update
+section, since that is the only path where the reader has to do the restart
+themselves.
+
+---
+
+## 11. Verified state after these changes
 
 | Check | Result |
 | --- | --- |
-| `npm run check` | 1924 files, **0 errors, 0 warnings** |
-| `npm test` | **828 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
+| `npm run check` | 1925 files, **0 errors, 0 warnings** |
+| `npm test` | **838 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
 | `npx eslint .` | **0 errors**, 1367 warnings under the CI ratchet |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |

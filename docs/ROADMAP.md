@@ -37,9 +37,17 @@ baseline tag is required and there is no manual step left. The hand-written
 | --- | --- | --- |
 | 8 | Align `CLAUDE.md`, README and both whitepapers with ADR-0001 | 🟢 |
 | 9 | ~~Audit the rest of the whitepaper against the code~~ — done: all eight chapters checked, every reference resolved, chapter 3 maths now covered by an executable test | 🟢 |
-| 10 | Merge `DEPLOY.md` and `DEPLOYMENT.md` into one guide | ⚪ |
+| 10 | ~~Merge `DEPLOY.md` and `DEPLOYMENT.md` into one guide~~ — done: one guide, and both had the `deploy.sh` invocation wrong | 🟢 |
 | 11 | Consolidate the four brand/design sources into one canonical doc | ⚪ |
 | 11a | Feed the in-app changelog from the generated `CHANGELOG.md` — the app renders `src/lib/assets/content/changelog.{de,en}.md`, which will no longer be updated by releases | ⚪ |
+
+**Item 10 is done.** `DEPLOY.md` is merged into `DEPLOYMENT.md`, which every
+other document already pointed to. The merge was worth more than tidiness: the
+two guides gave three different `deploy.sh` invocations and none of them matched
+the script. `DEPLOY.md` documented `./deploy.sh devcachyapp` for staging — the
+script only recognises `--beta`, so that command deploys **production**.
+`DEPLOYMENT.md` documented a `deploy_prod.sh` that does not exist. Details in
+`docs/REPO-AUDIT.md`, section 10.
 
 Item 9 is done. The published risk-engine example verified correct against the
 real calculator, and the security chapter turned out to understate the
@@ -85,6 +93,7 @@ missing is everything around it:
 | 24c | ~~Parse exchange responses with `safeJsonParse`, not `response.json()`~~ — done: all 11 exchange sites go through `readExchangeJson`, proven end-to-end | 🟢 |
 | 24d | Consider the same for `external/cmc` — CMC returns prices as JSON numbers. Display and sentiment only, no order handling, so lower priority than 24c was | ⚪ |
 | 24e | **Decide the fate of the committed imgbb API key** — `defaultSettings.imgbbApiKey` holds a real 32-character key, so every user shares one account. Needs a decision, not a deletion: removing it breaks screenshot upload by default, and the key is in git history either way, so it should be rotated at imgbb regardless | ⚪ |
+| 24f | Add a concurrency lock to `deploy.sh` — two simultaneous runs would race on the `.deploy_work` shadow directory and on the build swap. The old docs claimed a lock existed; it never did | ⚪ |
 
 Item 20 is done: lint is a required check at 0 errors, with a warning ratchet so
 the backlog cannot grow. The ratchet has already earned its place: work on item 18
