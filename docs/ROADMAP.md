@@ -390,6 +390,39 @@ Both comments in the code now say this. The lesson is cheap to state and easy to
 forget: **a fix that compiles is not a bug that existed.** Reachability has to be
 shown, and the way to show it is a test that fails without the fix.
 
+**Passes four and five: 1095 → 1029.** Two different kinds of work, worth
+separating because only one of them scales.
+
+*Mechanical, and it scaled:* 58 occurrences of `(fn as any).mockReturnValueOnce()`
+across 17 test files became `vi.mocked(fn).mockReturnValueOnce()`. Not a
+suppression — `vi.mocked` is vitest's own typed accessor, so the mock API is
+checked against the real signature instead of reached through a cast that turns
+checking off. Scriptable and safe: a wrongly rewritten mock does not compile, and
+a mock pointed at the wrong function fails its test.
+
+*Per-file, and it does not:* `src/routes/api/orders/+server.ts` went from 16 to 8
+by naming one thing — an `ExchangeError` interface for the `code` and `details`
+fields this file attaches at throw sites and reads back in the handler. That
+single type removed `any` from six places. Plus `Decimal.Value` for `safeDecimal`
+(which is exactly `string | number | Decimal`) and one index-signature cast in
+`cleanPayload` instead of one per property access.
+
+**What remains does not have a shortcut.** Measured across the whole tree:
+
+| Shape | Count |
+| --- | --- |
+| `x: any` parameters | 219 |
+| `(x as any).prop` | 113 |
+| `: any[]` | 50 |
+| `as any;` | 47 |
+| `let x: any` | 41 |
+| `Record<string, any>` | 20 |
+
+Every one needs the actual type at that spot. 401 of the remaining warnings are
+in tests and scripts, 628 in production code. At roughly 8–60 per file this is
+several sessions of work, not one — and the exchange and market-data files should
+be done slowly, since that is where a wrong type is a money bug.
+
 ### Code health
 
 | # | Item | Status |
@@ -397,7 +430,7 @@ shown, and the way to show it is a test that fails without the fix.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 1037 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 1029 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

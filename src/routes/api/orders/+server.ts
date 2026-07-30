@@ -202,8 +202,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
-    const errorCode = (e as any).code;
-    const details = (e as any).details;
+    const errorCode = (e as ExchangeError).code;
+    const details = (e as ExchangeError).details;
 
     // Enhanced Logging (automatically redacted by logger)
     logger.error(`[API] Order failed: ${(body as any)?.type}`, {
@@ -333,15 +333,16 @@ async function placeBitunixOrder(
         // Ignore JSON parse error, stick to text
     }
 
-    const err = new Error(errorMsg);
-    (err as any).details = details;
+    const err: ExchangeError = new Error(errorMsg);
+    err.details = details;
     throw err;
   }
 
   const text = await response.text();
   const res: BitunixResponse<BitunixOrder> = safeJsonParse(text);
   if (String(res.code) !== "0") {
-    const err: any = new Error(res.msg); // Use msg as main error text for legacy compatibility
+    // msg as the main error text, for legacy compatibility.
+    const err: ExchangeError = new Error(res.msg);
     err.code = String(res.code);
     throw err;
   }
@@ -395,19 +396,33 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
   }));
 }
 
+/**
+ * An Error carrying the exchange's own failure detail alongside the message.
+ *
+ * Both fields are attached at throw sites in this file and read again in the
+ * handler, which is the whole reason `any` was there — naming the shape once
+ * removes it from six places.
+ */
+interface ExchangeError extends Error {
+  code?: string;
+  details?: string;
+}
+
 // --- Helpers ---
 
 function cleanPayload<T extends object>(payload: T): T {
-  const cleaned = { ...payload };
+  // One cast to an index-signature view, rather than one per access.
+  const cleaned = { ...payload } as Record<string, unknown>;
   Object.keys(cleaned).forEach((key) => {
-    if ((cleaned as any)[key] === undefined) {
-      delete (cleaned as any)[key];
+    if (cleaned[key] === undefined) {
+      delete cleaned[key];
     }
   });
-  return cleaned;
+  return cleaned as T;
 }
 
-function safeDecimal(value: any): Decimal {
+// Decimal.Value is string | number | Decimal — exactly what reaches here.
+function safeDecimal(value: Decimal.Value | null | undefined): Decimal {
   try {
     if (value === null || value === undefined) return new Decimal(0);
     return new Decimal(value);
@@ -520,7 +535,7 @@ async function placeBitgetOrder(
     if (!response.ok) {
         const text = await response.text();
         const err = new Error(ORDER_ERRORS.BITGET_API_ERROR);
-        (err as any).details = `${response.status} ${text.slice(0, 100)}`;
+        (err as ExchangeError).details = `${response.status} ${text.slice(0, 100)}`;
         throw err;
     }
 
