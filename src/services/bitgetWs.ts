@@ -236,7 +236,7 @@ class BitgetWebSocketService {
         try {
           const message = safeJsonParse(event.data);
           this.handleMessage(message);
-        } catch (e) {
+        } catch {
           // ignore
         }
       };
@@ -257,7 +257,7 @@ class BitgetWebSocketService {
 
       ws.onerror = (error) => { };
 
-    } catch (e) {
+    } catch {
       this.scheduleReconnect();
     }
   }

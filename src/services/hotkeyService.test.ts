@@ -20,8 +20,6 @@ import * as HotkeyModule from "./hotkeyService"; // Import as module to access e
 import { settingsState } from "../stores/settings.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
-import { get } from "svelte/store";
-import { CONSTANTS } from "../lib/constants";
 
 // Mock dependencies
 vi.mock("../stores/settings.svelte", () => ({
@@ -126,7 +124,6 @@ describe("HotkeyService", () => {
       maxPrivateNotes: 50,
       aiConfirmClear: true,
       chatFontSize: 13,
-      minChatProfitFactor: 0.0,
       panelIsExpanded: false,
       isDeepDiveUnlocked: false,
       fontFamily: "Inter", // Added missing prop

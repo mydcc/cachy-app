@@ -115,7 +115,7 @@ export const POST: RequestHandler = async ({ request }) => {
       try {
         const errJson = JSON.parse(errText);
         errMsg = errJson.error?.message || errMsg;
-      } catch (e) {
+      } catch {
         errMsg = errText.slice(0, 200); // Fallback to text if not JSON
       }
       return json({ error: errMsg }, { status: response.status });

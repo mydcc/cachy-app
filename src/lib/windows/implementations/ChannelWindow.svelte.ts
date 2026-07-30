@@ -65,7 +65,7 @@ export class ChannelWindow extends WindowBase {
             if (event.origin !== expectedOrigin) {
                 return;
             }
-        } catch (e) {
+        } catch {
             // Invalid URL or local file, fail safe
             return;
         }

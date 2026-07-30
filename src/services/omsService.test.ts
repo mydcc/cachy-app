@@ -16,7 +16,7 @@
  */
 
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { omsService } from './omsService';
 import type { OMSOrder } from './omsTypes';
 import Decimal from 'decimal.js';

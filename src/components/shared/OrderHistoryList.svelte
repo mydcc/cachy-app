@@ -99,7 +99,7 @@
             minute: '2-digit',
             hour12: false
         }).format(date);
-    } catch (e) {
+    } catch {
         // Fallback for invalid locale: Force EN-GB for consistent DD/MM/YYYY HH:MM
         return new Intl.DateTimeFormat('en-GB', {
             day: '2-digit',

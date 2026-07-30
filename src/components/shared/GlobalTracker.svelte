@@ -41,7 +41,7 @@
         if (contextStr) {
           try {
             context = JSON.parse(contextStr);
-          } catch (e) {
+          } catch {
             // Silently fail on invalid JSON to prevent console spam
           }
         }

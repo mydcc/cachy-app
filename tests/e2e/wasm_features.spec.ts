@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('WASM & Engine Features', () => {
 

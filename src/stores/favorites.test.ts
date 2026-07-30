@@ -10,7 +10,6 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { flushSync } from 'svelte';
 
 vi.mock('$app/environment', () => ({ browser: true }));
 

@@ -26,8 +26,6 @@ import { settingsState } from "../../../stores/settings.svelte";
 import { aiState } from "../../../stores/ai.svelte";
 import { notesState } from "../../../stores/notes.svelte";
 import { chatState } from "../../../stores/chat.svelte";
-import { _ } from "../../../locales/i18n";
-import { get } from "svelte/store";
 
 export class AssistantWindow extends WindowBase {
     constructor(title = "Assistant") {
@@ -90,7 +88,7 @@ export class AssistantWindow extends WindowBase {
                 .join("\n---\n\n");
         } else {
             content = chatState.messages
-                .map(m => `${m.senderId === "me" ? "YOU" : "USER"} (${m.profitFactor ? "PF: " + m.profitFactor.toFixed(2) : "N/A"}) (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`)
+                .map(m => `${m.senderId === "me" ? "YOU" : "USER"} (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`)
                 .join("\n---\n\n");
         }
 

@@ -22,7 +22,6 @@
  * Orchestrates order state across providers and syncs with UI.
  */
 
-import { tradeState } from "../stores/trade.svelte";
 import type { OMSOrder, OMSPosition } from "./omsTypes";
 import { logger } from "./logger";
 

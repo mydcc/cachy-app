@@ -23,7 +23,6 @@
 
 import { z } from "zod";
 import { Decimal } from "decimal.js";
-import { logger } from "../services/logger";
 
 /**
  * Custom Zod transformer for safe Decimal parsing.
@@ -60,7 +59,7 @@ export const StrictDecimal = z
                 return z.NEVER;
             }
             return d;
-        } catch (e) {
+        } catch {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: `Failed to parse decimal: ${val}`,

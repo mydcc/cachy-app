@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { dataRepairService } from "../services/dataRepairService";
 import { journalState } from "../stores/journal.svelte";
 import { apiService } from "../services/apiService";
-import { settingsState } from "../stores/settings.svelte";
 
 // Mock the dependencies
 vi.mock("../services/apiService", () => {

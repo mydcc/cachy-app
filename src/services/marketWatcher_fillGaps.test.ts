@@ -18,7 +18,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { marketWatcher } from './marketWatcher';
-import { marketState } from '../stores/market.svelte';
 import { Decimal } from 'decimal.js';
 
 // Mock dependencies

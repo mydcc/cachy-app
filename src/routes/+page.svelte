@@ -24,16 +24,13 @@
   import TradeSetupInputs from "../components/inputs/TradeSetupInputs.svelte";
   import TakeProfitTargets from "../components/inputs/TakeProfitTargets.svelte";
   import VisualBar from "../components/shared/VisualBar.svelte";
-  import { CONSTANTS, themes, themeIcons, icons } from "../lib/constants";
+  import { themes, themeIcons, icons } from "../lib/constants";
   import { APP_VERSION } from "../lib/version";
   import { app } from "../services/app";
   import { tradeState } from "../stores/trade.svelte";
   import { resultsState } from "../stores/results.svelte";
   import { presetState } from "../stores/preset.svelte";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
-import { activeTechnicalsManager } from "../services/activeTechnicalsManager.svelte";
-import { marketState } from "../stores/market.svelte";
-import { indicatorState } from "../stores/indicator.svelte";
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { windowManager } from "../lib/windows/WindowManager.svelte";
   import { favoritesState } from "../stores/favorites.svelte";
@@ -43,19 +40,15 @@ import { indicatorState } from "../stores/indicator.svelte";
   import { loadInstruction } from "../services/markdownLoader";
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../lib/actions";
-  import { trackCustomEvent } from "../services/trackingService";
 
-  import type { IndividualTpResult } from "../stores/types";
   import SummaryResults from "../components/results/SummaryResults.svelte";
   import LanguageSwitcher from "../components/shared/LanguageSwitcher.svelte";
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
-  import ModalFrame from "../components/shared/ModalFrame.svelte";
   import MarketOverview from "../components/shared/MarketOverview.svelte";
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
-  import SidePanel from "../components/shared/SidePanel.svelte";
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";

@@ -22,7 +22,7 @@
  * Detects Regular and Hidden Divergences between Price and Indicators.
  */
 
-import type { Kline, NumberArray } from "./indicators";
+import type { NumberArray } from "./indicators";
 
 export type DivergenceType = "Regular" | "Hidden";
 export type DivergenceSide = "Bullish" | "Bearish";

@@ -17,9 +17,8 @@
 
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { tradeService, TradeError, BitunixApiError } from "./tradeService";
+import { tradeService, BitunixApiError } from "./tradeService";
 import { omsService } from "./omsService";
-import { settingsState } from "../stores/settings.svelte";
 import { Decimal } from "decimal.js";
 
 vi.mock('$app/environment', () => ({

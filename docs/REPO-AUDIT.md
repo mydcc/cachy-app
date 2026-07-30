@@ -114,8 +114,10 @@ The code says otherwise:
   `src/lib/windows/implementations/ChatWindow.svelte.ts`,
   `AssistantView.svelte`, `ChatTestView.svelte`, plus the
   `sidePanel.globalChat` i18n key.
-- However, `chatStore` is imported **only by its own test file** — no route or
-  component wires it up.
+- ~~However, `chatStore` is imported **only by its own test file** — no route or
+  component wires it up.~~ **Incorrect — corrected in section 12.** It is reached
+  by `src/routes/api/chat-v2/+server.ts`, which the side panel drives through
+  `src/stores/chat.svelte.ts`. The route authenticates both handlers.
 
 Further investigation found a **second, current** chat backend that the first
 pass missed: `src/services/cloudService.ts` connects to **SpacetimeDB** and is
@@ -141,8 +143,10 @@ GDPR/CCPA claim ("we do not process user data") was removed: chat messages are
 personal data processed on a server, which implies a retention and deletion
 policy that does not yet exist (roadmap item 15).
 
-The orphaned file-based `chatStore.ts` remains untouched and is roadmap item 12 —
-it has no authentication and would violate the boundary's second condition.
+~~The orphaned file-based `chatStore.ts` remains untouched and is roadmap item 12 —
+it has no authentication and would violate the boundary's second condition.~~
+**Both claims were wrong; see section 12.** It is neither orphaned nor
+unauthenticated.
 
 ---
 
@@ -191,8 +195,8 @@ a required CI check** (`.github/workflows/audit.yml`). Highlights:
   `safeJson.bench.ts` disables `no-loss-of-precision` because its fixtures
   deliberately exceed IEEE 754 precision — that is the thing being benchmarked.
 
-**1367 warnings remain**, dominated by `no-explicit-any` (983) and
-`no-unused-vars` (388). CI enforces `--max-warnings 1367` as a ratchet: the
+**1124 warnings remain**, dominated by `no-explicit-any` (983) and
+`no-unused-vars` (388). CI enforces `--max-warnings 1124` as a ratchet: the
 ceiling may only be lowered, so the backlog can shrink but never grow.
 
 Verified across the whole change: `npm run check` stays at 0 errors and the full
@@ -219,9 +223,17 @@ Left for a decision, deliberately not touched:
   `info/chartpatterns.html` (272 KB). They are **not** identical — different
   content hashes — and neither is referenced anywhere in the source. Consolidate
   only after deciding which one is current.
-- **`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
+- ~~**`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
   no secrets, only infrastructure paths and ports, but it is the example file
-  filled in — normally environment-specific and left untracked.
+  filled in.~~ **Resolved** (item 22) — and the description above was too
+  generous: it was not "the example file filled in" but a **divergent** file. It
+  carried two keys nothing reads (`STABLE_WORK_DIR`, `BETA_WORK_DIR`), lacked two
+  the template has, and named a different production start command. It was the
+  live configuration of cachy.app in a public repository. Untracked and ignored;
+  the template now lists exactly the keys `deploy.sh` reads, and `DEPLOYMENT.md`
+  carries the migration step — `deploy.sh` does `git reset --hard && git pull`,
+  so the deploy that pulls the change removes the server's config and the *next*
+  one fails.
 - ~~**Branch mismatch:** no `main` branch exists on the remote.~~ **Incorrect —
   corrected.** `main` does exist, at `d324c32`, two commits behind `develop` and
   fully contained in it. The initial audit relied on `git branch -a`, which in
@@ -636,11 +648,111 @@ not lost again.
 
 ---
 
-## 12. Verified state after these changes
+## 12. Global Chat: the item-12 premise was wrong, and there are two chats
+
+Roadmap item 12 read: *"Decide the fate of the orphaned file-based
+`src/lib/server/chatStore.ts` — it has no authentication and violates Class B
+condition 2."* Both halves are false, and the error originated in this document
+before propagating into ADR-0001 and the roadmap.
+
+**It is not orphaned.** The chain is complete and shipping:
+
+```
+ChatPanel.svelte / SidePanel.svelte
+  → src/stores/chat.svelte.ts
+    → GET/POST /api/chat-v2
+      → src/lib/server/chatStore.ts
+        → db/chat_messages.json
+```
+
+The first audit pass grepped for imports of `chatStore` and found only its own
+test. It missed `src/routes/api/chat-v2/+server.ts`, which imports it as
+`$lib/server/chatStore` — the alias, not the relative path the grep matched.
+
+**It is not unauthenticated.** Both handlers open with `checkAppAuth(request)`,
+and since ADR-0002 that fails closed.
+
+So Cachy ships **two independent Class B chat backends**: the file-based one
+behind the side panel, and the SpacetimeDB one behind the Cloud settings tab.
+They share no storage, no schema and no UI. Which one survives is a product
+decision, so item 12 is reframed rather than executed.
+
+### A regression this uncovered, now fixed
+
+`src/stores/chat.svelte.ts` sent **no `x-app-access-token` header** on either the
+poll or the send. Before ADR-0002, `checkAppAuth` failed open when
+`APP_ACCESS_TOKEN` was unset, so the side-panel chat worked on any deployment
+that had not configured a token — which was all of them, since the variable was
+undocumented.
+
+Making auth fail closed therefore broke that chat everywhere. The fix is the same
+shape `tradeService.ts` already used: send the header when a token is configured,
+omit it otherwise. The route was always meant to be authenticated; the client
+simply never held up its end.
+
+### An open question about Class A data
+
+`chat.svelte.ts` computes a **profit factor from `journalState.entries`** and
+sends it to the server with every message, so other clients can filter the chat
+by trader performance (`minChatProfitFactor`).
+
+The journal is Class A. ADR-0001's third condition says Class B payloads must
+carry no Class A data **"auch nicht als Metadaten"** — not even as metadata. A
+statistic derived from the journal is exactly that.
+
+**Resolved: removed** (item 12a). Not made opt-in, because the trade was one-sided.
+The journal is Class A and ADR-0001 condition 3 forbids Class A data in a Class B
+payload even as metadata — but the decisive point is what it bought in return.
+The value was computed on the client from the client's own `localStorage` and
+accepted by the server verbatim:
+
+```ts
+profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
+```
+
+Any client could claim any figure. It was an unverifiable trust signal paid for
+with real data, so there was nothing to weigh against the boundary.
+
+Removed end to end: the payload, the server field, the persisted schema, the PF
+badge in both chat views, the transcript export, the incoming filter, and the
+`minChatProfitFactor` setting that no longer had anything to filter.
+`chat.test.ts` now asserts the payload's exact key set — `["clientId", "text"]` —
+so re-adding any derived field fails there rather than in review.
+
+### Retention and erasure now exist in the module (item 15a)
+
+`server/spacetimedb/src/index.ts` gained two things:
+
+- a scheduled table firing an hourly sweep that deletes messages older than
+  90 days, driven by the database so no caller can skip it;
+- `delete_my_messages`, which derives the sender from `ctx.sender` rather than
+  from an argument, making erasure self-service and impossible to aim at someone
+  else.
+
+**Both typecheck; neither has run.** Publishing needs the SpacetimeDB CLI, which
+is not vendored here and is not obtainable from npm — `spacetimedb-cli` returns
+404. So `spacetime publish` and `spacetime generate` remain outstanding and need
+a machine with SpacetimeDB installed.
+
+The interface for erasure is in place regardless (item 15b): Settings → Cloud has
+a "delete my messages" control behind a two-click confirmation. The awkward part
+is a deployment state rather than a defect — the reducer is only callable through
+bindings that `spacetime generate` produces, and the committed ones predate it.
+Hand-writing a generated file would have violated `server/CLAUDE.md` hard
+requirement 1 and, worse, could not have been verified here: there is no local
+instance to connect to. So the client asks at runtime
+(`cloudService.canDeleteMyMessages()`), disables the button when the answer is
+no, and names the missing step and who has to take it, rather than failing with
+"deleteMyMessages is not a function". `cloudService.erasure.test.ts` covers both
+states and the disconnected case.
+
+---
+
+## 13. Verified state after these changes
 
 | Check | Result |
 | --- | --- |
 | `npm run check` | 1925 files, **0 errors, 0 warnings** |
-| `npm test` | **838 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
-| `npx eslint .` | **0 errors**, 1367 warnings under the CI ratchet |
+| `npm test` | **847 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
+| `npx eslint .` | **0 errors**, 1124 warnings under the CI ratchet |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |

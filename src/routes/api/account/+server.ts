@@ -16,7 +16,6 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
   generateBitunixSignature,
@@ -42,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const text = await request.text();
     body = safeJsonParse(text);
-  } catch (e) {
+  } catch {
     return jsonError("Invalid JSON body", "INVALID_JSON", 400);
   }
 

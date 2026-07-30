@@ -18,7 +18,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { cryptoService } from "./cryptoService";
 // @ts-expect-error -- crypto-js ships no type declarations; the ambient declare in app.d.ts does not cover test files, which tsconfig excludes
-import CryptoJS from "crypto-js";
 
 // Mock Web Crypto API for tests
 beforeAll(() => {

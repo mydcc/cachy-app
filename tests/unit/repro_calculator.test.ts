@@ -17,7 +17,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { calculateAllIndicators } from '../../src/utils/technicalsCalculator';
-import { getEmptyData } from '../../src/services/technicalsTypes';
 import { Decimal } from 'decimal.js';
 
 describe('calculateAllIndicators Repro', () => {

@@ -16,7 +16,6 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { checkAppAuth } from "../../../lib/server/auth";
@@ -34,7 +33,7 @@ export const POST: RequestHandler = async ({ request }) => {
   let body: unknown;
   try {
     body = safeJsonParse(await request.text());
-  } catch (e) {
+  } catch {
     return jsonError("Invalid JSON body", "INVALID_JSON", 400);
   }
 

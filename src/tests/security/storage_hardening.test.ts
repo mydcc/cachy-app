@@ -16,7 +16,7 @@
  */
 
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SettingsManager } from '../../stores/settings.svelte';
 import { CONSTANTS } from '../../lib/constants';
 

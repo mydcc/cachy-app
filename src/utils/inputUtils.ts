@@ -187,7 +187,7 @@ export function numberInput(
         return;
       }
       performStep(rawValue, operation, cursorPosition);
-    } catch (error) {
+    } catch {
       handleEmptyInputArrow(operation);
     }
   }

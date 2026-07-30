@@ -29,7 +29,6 @@ import { mapToOMSPosition, mapToOMSOrder } from "./mappers";
 import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import { Decimal } from "decimal.js";
-import type { OMSOrder, OMSOrderStatus } from "./omsTypes";
 import type {
   BitunixWSMessage,
   BitunixPriceData,
@@ -465,7 +464,7 @@ class BitunixWebSocketService {
       };
 
       ws.onerror = (error) => { };
-    } catch (e) {
+    } catch {
       this.scheduleReconnect("public");
     }
   }

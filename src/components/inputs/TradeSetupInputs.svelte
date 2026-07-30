@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { icons } from "../../lib/constants";
   import { debounce } from "../../utils/utils";
   import { createEventDispatcher, untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
@@ -399,7 +398,7 @@
         showSmiley = false;
         smileyTimer = undefined;
       }, 1000);
-    } catch (err) {
+    } catch {
       uiState.showError($_("dashboard.tradeSetupInputs.copyFailed"));
     }
   }

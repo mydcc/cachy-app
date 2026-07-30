@@ -95,14 +95,148 @@ Kept per ADR-0001, on SpacetimeDB. The integration already exists —
 bindings in `src/lib/spacetimedb/`, and a wired `CloudTab.svelte`. What is
 missing is everything around it:
 
-| # | Item |
-| --- | --- |
-| 12 | Decide the fate of the orphaned file-based `src/lib/server/chatStore.ts` — it has no authentication and violates Class B condition 2 |
-| 13 | Document how a user obtains a connection token; today `connect()` requires one with no described path to get it |
-| 14 | Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults in `cloudService.ts` with configuration |
-| 15 | Message retention and deletion policy — required by the GDPR consequence named in ADR-0001 |
-| 16 | Make the off-by-default state and the four Class B conditions visible in the Cloud settings tab |
-| 17 | Behaviour when the server is unreachable: core functions must stay fully usable |
+| # | Item | Status |
+| --- | --- | --- |
+| 12 | ~~Two chat backends ship, not one~~ — decided: SpacetimeDB survives, the file-based one is removed, and the existing chat UI now runs on SpacetimeDB | 🟢 |
+| 12a | ~~**Class A leak:** `chat.svelte.ts` sends a profit factor derived from the journal~~ — done: removed end to end, guarded by a payload-shape test | 🟢 |
+| 13 | ~~Document how a user obtains a connection token~~ — done: `docs/GLOBAL-CHAT.md` section 3 | 🟢 |
+| 14 | ~~Replace the hardcoded `http://127.0.0.1:3000` / `cachy-server` defaults~~ — done: `cloudHost` / `cloudDbName` settings | 🟢 |
+| 15 | ~~Message retention and deletion policy~~ — done as policy: `docs/GLOBAL-CHAT.md` section 4 | 🟢 |
+| 15a | ~~Enforce the retention policy in the module~~ — done: scheduled 90-day sweep plus self-service erasure. Needs `spacetime publish` + `generate` to go live | 🟢 |
+| 15b | ~~Wire `delete_my_messages` into the Cloud tab~~ — done: the control exists and degrades honestly until `spacetime generate` has run | 🟢 |
+| 16 | ~~Make the off-by-default state and the four Class B conditions visible in the Cloud tab~~ — done | 🟢 |
+| 17 | ~~Behaviour when the server is unreachable~~ — done, with a test that breaks the connection and runs the risk engine | 🟢 |
+
+**Item 12 is decided and done: SpacetimeDB survives.** The file-based backend —
+`src/lib/server/chatStore.ts`, `/api/chat-v2` and `db/chat_messages.json` — is
+removed, along with the `CHAT_DB_PATH` variable that configured it.
+
+The chat window and side panel stay exactly where they were. Only what stands
+behind them changed: `src/stores/chat.svelte.ts` is now an adapter over
+`cloudService`, presenting the same `ChatMessage` shape the UI already consumed,
+so `SidePanel`, `ChatPanel`, `AssistantView` and the chat window needed no
+changes of their own.
+
+Two things the swap required. The connection token became a persisted setting
+(`cloudToken`, in `SENSITIVE_KEYS` so it is encrypted with the master password
+like every other credential) — it previously lived in component state, which
+would have limited the chat to the settings tab. And `cloudService` now captures
+the connection identity in `onConnect`, shortened the same way the module
+shortens it, which is how the UI tells "me" from everyone else.
+
+Item 12's original premise was wrong and is worth recording: it described
+`chatStore.ts` as orphaned and unauthenticated. It was neither — the first audit
+pass grepped for the relative import path and missed the `$lib` alias.
+
+Fixing this uncovered a regression: `chat.svelte.ts` never sent the
+`x-app-access-token` header, so making auth fail closed (ADR-0002) broke the
+side-panel chat on every deployment. Fixed here.
+
+**Items 13–17 are done** for the SpacetimeDB path, which is unaffected by the
+item-12 decision. `docs/GLOBAL-CHAT.md` is the operator's guide: what is stored
+(three fields), how a token is issued (by the module operator — there is no
+issuance path in this repository, and that is stated plainly rather than papered
+over), the retention policy, and the offline guarantee. The host and module name
+moved out of `cloudService.ts` into settings, the Cloud tab now states the four
+Class B conditions and its off-by-default state, and
+`cloudService.offline.test.ts` proves a dead chat server cannot take the risk
+engine with it.
+
+**Item 12a is done — the profit factor is gone.** It was removed rather than
+made opt-in, because it cost real data and bought nothing:
+
+- The journal is Class A. ADR-0001 condition 3 forbids Class A data in a Class B
+  payload *even as metadata*, and a statistic computed over every trade the user
+  has recorded is exactly that.
+- The value was computed on the client from the client's own `localStorage` and
+  accepted by the server verbatim (`typeof profitFactor === "number"`), so any
+  client could claim any figure. It was an unverifiable trust signal.
+
+Removed end to end: the payload, the server field, the stored schema, the PF
+badge in both chat views, the transcript export, the incoming filter, and the now
+dead `minChatProfitFactor` setting with its i18n keys. `chat.test.ts` asserts the
+payload's exact key set, so re-adding any derived field fails there. Only message
+text and an opaque client ID leave the device now.
+
+**Item 15a is done.** `server/spacetimedb/src/index.ts` gained a scheduled table
+that fires an hourly sweep deleting messages older than 90 days, and
+`delete_my_messages`, which derives the sender from `ctx.sender` rather than from
+an argument — so erasure is self-service and nobody can erase anyone else's
+messages. Both typecheck; neither has run against a live instance, because
+publishing needs the SpacetimeDB CLI. `spacetime publish` and `spacetime generate`
+are required before the erasure reducer is callable from the client, which is
+item 15b.
+
+**Item 15b is done.** Settings → Cloud has a "delete my messages" control behind
+a two-click confirmation. The interesting part is what it does when it cannot
+work: the reducer is only callable through bindings that `spacetime generate`
+produces, and the ones committed here predate it. Hand-editing generated files is
+forbidden by `server/CLAUDE.md`, and there is no SpacetimeDB CLI in this
+environment to regenerate them — so the client asks at runtime whether the
+reducer exists, disables the button when it does not, and names the missing step
+and who has to take it. `cloudService.erasure.test.ts` covers both states plus
+the disconnected case.
+
+That leaves the CLI steps as the only thing outstanding, and they need a machine
+with SpacetimeDB installed: `spacetime publish`, then `spacetime generate`. After
+that the button works with no further change.
+
+**Item 21 — first pass done, 1315 → 1124.** The mechanical categories are
+exhausted; what is left needs judgement, so the method matters more than the
+number:
+
+| Category | Was | Now | How |
+| --- | --- | --- | --- |
+| Unused imports | 140 | 14 | Removed. Pure dead weight, no behaviour to change. |
+| Unused `catch` bindings | 65 | 3 | `catch (e)` → `catch` — the ES2019 optional binding, so the binding is gone rather than renamed to be ignored. |
+| Unused locals / params / other | 176 | 174 | Two verified dead leftovers removed; the rest need reading, one at a time. |
+| `no-explicit-any` | 934 | 933 | Untouched. Needs real types, file by file. |
+
+Nothing was suppressed: no `eslint-disable`, no ignore patterns added to the
+config, no rule relaxed. Every warning that went away did so because the code it
+pointed at is gone.
+
+**The remaining work, in the order it is worth doing:**
+
+1. **`no-unused-vars`, 191 left.** Read each one. An "assigned but never used"
+   local is sometimes a leftover and sometimes a bug where a computed value was
+   meant to be used — the two look identical to the linter. Two were checked
+   during this pass: `colorUp` in `EqualizerEngine` and `RaindropsEngine`, both
+   superseded by inline recomputation, both removed.
+2. **`no-explicit-any`, 933 left.** Highest count, lowest mechanical content.
+   Concentrated in `bitunixWs.ts` (36), `market.svelte.ts` (27) and
+   `orders/+server.ts` (19) — the exchange and market-data paths, where a wrong
+   type is a money bug, so this is the part to do slowly and with tests.
+3. Only when both reach zero: flip the rules from `warn` to `error` and drop the
+   ratchet.
+
+Lower the ceiling in `.github/workflows/audit.yml` on every pass, so the backlog
+can only shrink.
+
+**Item 22 is done, and it was not just a `git rm --cached`.** The two files had
+drifted in both directions:
+
+- The committed `.deploy.conf` carried `STABLE_WORK_DIR` and `BETA_WORK_DIR`,
+  which **nothing in `deploy.sh` reads**, and `PROJECT_NAME` was equally inert in
+  the template.
+- It was missing `HEALTH_CHECK_URL` and `MAX_BACKUPS`, working only because the
+  script has fallbacks for both.
+- Its `STABLE_START_COMMAND` pointed at a different script than the template's
+  (`cachyapp.sh` vs `prodcachyapp.sh`) — so the committed file was the live
+  production configuration of cachy.app, in a public repository. No secrets, but
+  it published internal server paths.
+- The template contained a **duplicated `HEALTH_CHECK_URL` block**, pasted twice.
+
+The template is rewritten to list exactly the keys the script reads, with
+placeholder paths instead of real ones. `.deploy.conf` is untracked and ignored.
+
+The part that needed care is the migration: `deploy.sh` runs
+`git reset --hard HEAD && git pull`, so the deploy that pulls this change deletes
+the live config from the server. That run still succeeds, because the config was
+sourced before the pull — **the next one fails**, regenerating placeholders and
+rolling back on the health check. A failure one deploy removed from its cause is
+exactly the kind that costs an afternoon, so `DEPLOYMENT.md` now opens the
+deployment section with the backup step.
 
 ### Code health
 
@@ -111,8 +245,8 @@ missing is everything around it:
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the 1367 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | ⚪ |
-| 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
+| 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |

@@ -16,10 +16,7 @@
  */
 
 
-import { describe, it, expect, beforeAll } from 'vitest';
-import { StatefulTechnicalsCalculator } from '../../src/utils/statefulTechnicalsCalculator';
-import { WasmTechnicalsCalculator } from '../../src/utils/WasmTechnicalsCalculator';
-import { Decimal } from 'decimal.js';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 

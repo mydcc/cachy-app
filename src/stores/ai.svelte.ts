@@ -428,7 +428,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                   this.messages[idx].content = fullContent;
                 }
               }
-            } catch (e) {
+            } catch {
               // Ignore parse errors
             }
           }
@@ -846,7 +846,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       try {
         const parsed = JSON.parse(match[1]);
         if (Array.isArray(parsed)) return parsed as AiAction[];
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }
@@ -857,7 +857,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       try {
         const parsed = JSON.parse(singleMatch[1]);
         return [parsed as AiAction];
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }

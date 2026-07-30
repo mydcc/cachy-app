@@ -595,7 +595,7 @@ export const apiService = {
         // Ensure intervalMs is set if fallback happened
         if (resolution.intervalMs === 0) resolution.intervalMs = safeTfToMs(interval);
         
-    } catch (e) {
+    } catch {
         // Fallback
     }
 

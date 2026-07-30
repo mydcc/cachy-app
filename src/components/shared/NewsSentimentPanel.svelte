@@ -8,15 +8,13 @@
 -->
 
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { untrack } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { newsStore } from "../../stores/news.svelte";
-  import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
-  import CachyIcon from "./CachyIcon.svelte";
-  import { fade, slide } from "svelte/transition";
+  import { slide } from "svelte/transition";
 
   interface Props {
     symbol?: string; // Optional: filter news by symbol

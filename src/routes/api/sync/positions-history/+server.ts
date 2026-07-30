@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request }) => {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
 

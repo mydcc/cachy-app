@@ -26,7 +26,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { Decimal } from 'decimal.js';
-import { calculator } from '../lib/calculator';
 
 describe('Decimal Enforcement E2E (CRITICAL)', () => {
     it('should preserve precision in risk calculation', () => {

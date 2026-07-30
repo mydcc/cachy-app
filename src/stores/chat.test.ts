@@ -15,152 +15,183 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock browser env
-vi.mock('$app/environment', () => ({ browser: false }));
+// Mock browser env — false, so the constructor does not open a connection.
+vi.mock("$app/environment", () => ({ browser: false }));
 
-// Mock dependencies
-vi.mock('./settings.svelte', () => ({
-  settingsState: { minChatProfitFactor: 2 }
+vi.mock("./settings.svelte", () => ({
+  settingsState: {
+    cloudEnabled: false,
+    cloudHost: "http://127.0.0.1:3000",
+    cloudDbName: "cachy-server",
+    cloudToken: "",
+  },
 }));
-vi.mock('./journal.svelte', () => ({ journalState: {} }));
-vi.mock('../lib/calculator', () => ({ calculator: {} }));
-vi.mock('../lib/windows/WindowManager.svelte', () => ({ windowManager: {} }));
 
-// Import the module under test
-import { chatState } from './chat.svelte';
+const { mockCloud } = vi.hoisted(() => ({
+  mockCloud: {
+    sendMessage: vi.fn(),
+    subscribeMessages: vi.fn(),
+    subscribeStatus: vi.fn(),
+    connect: vi.fn(),
+    isConnected: vi.fn(() => false),
+    status: vi.fn(() => ({
+      connected: false,
+      lastError: null,
+      mySenderId: null,
+    })),
+  },
+}));
 
-describe('ChatManager', () => {
+vi.mock("../services/cloudService", () => ({ cloudService: mockCloud }));
+
+import { chatState } from "./chat.svelte";
+
+type Internals = {
+  applyRows: (rows: { sender: string; text: string; sentAt: number }[]) => void;
+  applyStatus: (s: {
+    connected: boolean;
+    lastError: string | null;
+    mySenderId: string | null;
+  }) => void;
+};
+
+const internals = chatState as unknown as Internals;
+
+/**
+ * Global Chat runs on SpacetimeDB (roadmap item 12). The file-based
+ * `/api/chat-v2` backend it used to poll is gone; the window and the panel it
+ * feeds are unchanged, which is why this store still presents the same shape.
+ */
+describe("ChatManager (SpacetimeDB-backed)", () => {
   beforeEach(() => {
-    // chatState is a singleton. Reset internal state via casting to avoid type errors
-    // Since we can't easily re-instantiate, we mutate the instance.
-    (chatState as any).messages = [];
-    (chatState as any).latestSeenTimestamp = 0;
-    (chatState as any).clientId = "test-client-id";
+    vi.clearAllMocks();
+    chatState.messages = [];
+    chatState.clientId = "";
+    chatState.connected = false;
+    chatState.lastSentTimestamp = 0;
   });
 
-  it('filters incoming messages based on profit factor (minPF=2)', () => {
-    const current: any[] = [];
-    const incoming: any[] = [
-      { id: '1', text: 'Low PF', timestamp: 100, profitFactor: 1 },
-      { id: '2', text: 'High PF', timestamp: 101, profitFactor: 3 },
-      { id: '3', text: 'No PF', timestamp: 102 } // undefined PF -> 0
-    ];
+  describe("mapping module rows to what the UI reads", () => {
+    it("keeps the fields the panel and the window consume", () => {
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: "aabbccdd",
+      });
+      internals.applyRows([
+        { sender: "aabbccdd", text: "mine", sentAt: 1000 },
+        { sender: "11223344", text: "theirs", sentAt: 2000 },
+      ]);
 
-    // Access private method via cast
-    const merged = (chatState as any).mergeMessages(current, incoming);
+      const [mine, theirs] = chatState.messages;
 
-    expect(merged).toHaveLength(1);
-    expect(merged[0].id).toBe('2');
-    expect(merged[0].profitFactor).toBe(3);
+      expect(mine.text).toBe("mine");
+      expect(mine.timestamp).toBe(1000);
+      expect(mine.senderId).toBe("me");
+      expect(mine.clientId).toBe("aabbccdd");
+      expect(theirs.senderId).toBe("11223344");
+      expect(theirs.clientId).toBe("11223344");
+    });
+
+    it("gives every message a stable key, since the module table has no id", () => {
+      internals.applyRows([
+        { sender: "aabbccdd", text: "one", sentAt: 1000 },
+        { sender: "aabbccdd", text: "two", sentAt: 1001 },
+      ]);
+
+      const ids = chatState.messages.map((m) => m.id);
+
+      expect(ids).toEqual(["aabbccdd:1000", "aabbccdd:1001"]);
+      expect(new Set(ids).size).toBe(2);
+    });
+
+    it("sorts by timestamp regardless of the order rows arrive in", () => {
+      internals.applyRows([
+        { sender: "a", text: "late", sentAt: 3000 },
+        { sender: "b", text: "early", sentAt: 1000 },
+      ]);
+
+      expect(chatState.messages.map((m) => m.text)).toEqual(["early", "late"]);
+    });
+
+    it("re-marks ownership once the identity is known", () => {
+      // Rows can arrive before onConnect reports the identity, so every message
+      // would otherwise be stuck rendering as someone else's.
+      internals.applyRows([
+        { sender: "aabbccdd", text: "mine", sentAt: 1000 },
+      ]);
+      expect(chatState.messages[0].senderId).toBe("aabbccdd");
+
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: "aabbccdd",
+      });
+
+      expect(chatState.messages[0].senderId).toBe("me");
+    });
   });
 
-  it('updates latestSeenTimestamp correctly even if filtered', () => {
-    const current: any[] = [];
-    const incoming: any[] = [
-      { id: '1', text: 'New', timestamp: 200, profitFactor: 1 } // filtered out (PF < 2)
-    ];
+  describe("sendMessage", () => {
+    beforeEach(() => {
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: "aabbccdd",
+      });
+    });
 
-    // Set initial state
-    (chatState as any).latestSeenTimestamp = 100;
+    it("sends the text and nothing else", () => {
+      // No profit factor, no journal statistic, no settings — ADR-0001 Class B
+      // condition 3. The module's schema has room for nothing else either.
+      chatState.sendMessage("hello");
 
-    const merged = (chatState as any).mergeMessages(current, incoming);
+      expect(mockCloud.sendMessage).toHaveBeenCalledWith("hello");
+      expect(mockCloud.sendMessage).toHaveBeenCalledTimes(1);
+    });
 
-    // Verify it was filtered
-    expect(merged).toHaveLength(0);
+    it("enforces the 2-second rate limit", async () => {
+      await chatState.sendMessage("first");
 
-    // Verify timestamp was updated based on incoming max
-    expect((chatState as any).latestSeenTimestamp).toBe(200);
+      await expect(chatState.sendMessage("second")).rejects.toThrow(
+        /2 seconds/,
+      );
+      expect(mockCloud.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects a message longer than the module accepts", async () => {
+      // The module throws above 1000 characters; catching it here avoids a
+      // round trip that can only fail.
+      await expect(
+        chatState.sendMessage("x".repeat(1001)),
+      ).rejects.toThrow(/too long/);
+      expect(mockCloud.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it("refuses to send while disconnected, with an actionable message", async () => {
+      internals.applyStatus({
+        connected: false,
+        lastError: null,
+        mySenderId: null,
+      });
+
+      await expect(chatState.sendMessage("hello")).rejects.toThrow(
+        /Settings → Cloud/,
+      );
+      expect(mockCloud.sendMessage).not.toHaveBeenCalled();
+    });
   });
 
-  it('handles empty incoming array gracefully', () => {
-      const current: any[] = [{ id: 'old', timestamp: 50, profitFactor: 5 }];
-      const incoming: any[] = [];
-
-      (chatState as any).latestSeenTimestamp = 50;
-
-      const merged = (chatState as any).mergeMessages(current, incoming);
-
-      expect(merged).toHaveLength(1);
-      expect(merged[0].id).toBe('old');
-      expect((chatState as any).latestSeenTimestamp).toBe(50); // Should not change if no incoming
-  });
-
-  it('handles mixed valid and invalid messages', () => {
-      const current: any[] = [];
-      const incoming: any[] = [
-          { id: '1', text: 'Valid', timestamp: 300, profitFactor: 5 },
-          { id: '2', text: 'Invalid', timestamp: 305, profitFactor: 0.5 }
-      ];
-
-      (chatState as any).latestSeenTimestamp = 290;
-
-      const merged = (chatState as any).mergeMessages(current, incoming);
-
-      expect(merged).toHaveLength(1);
-      expect(merged[0].id).toBe('1');
-      expect((chatState as any).latestSeenTimestamp).toBe(305); // Max of incoming, even if filtered
-  });
-
-  // New Tests for Exemptions
-  it('exempts system messages from profit factor filter', () => {
-    const current: any[] = [];
-    const incoming: any[] = [
-        { id: 'sys1', text: 'System Msg', timestamp: 400, sender: 'system' } // undefined PF
-    ];
-
-    const merged = (chatState as any).mergeMessages(current, incoming);
-
-    expect(merged).toHaveLength(1);
-    expect(merged[0].id).toBe('sys1');
-  });
-
-  it('exempts own messages from profit factor filter (by clientId)', () => {
-    const current: any[] = [];
-    const incoming: any[] = [
-        { id: 'me1', text: 'My Low PF Msg', timestamp: 500, profitFactor: 0.1, clientId: 'test-client-id' }
-    ];
-
-    const merged = (chatState as any).mergeMessages(current, incoming);
-
-    expect(merged).toHaveLength(1);
-    expect(merged[0].id).toBe('me1');
-  });
-
-   it('exempts own messages from profit factor filter (by senderId)', () => {
-    const current: any[] = [];
-    const incoming: any[] = [
-        { id: 'me2', text: 'My Low PF Msg', timestamp: 600, profitFactor: 0.1, senderId: 'me' }
-    ];
-
-    const merged = (chatState as any).mergeMessages(current, incoming);
-
-    expect(merged).toHaveLength(1);
-    expect(merged[0].id).toBe('me2');
-  });
-
-  it('clears history correctly and leaves other state intact', () => {
-    (chatState as any).messages = [
-      { id: '1', text: 'Hello', timestamp: 100 },
-      { id: '2', text: 'World', timestamp: 200 }
-    ];
-    (chatState as any).latestSeenTimestamp = 200;
-    (chatState as any).lastSentTimestamp = 150;
-    (chatState as any).loading = true;
-    (chatState as any).clientId = 'existing-client-id';
+  it("clearHistory clears the local view only", () => {
+    internals.applyRows([{ sender: "a", text: "hi", sentAt: 1 }]);
+    chatState.lastSentTimestamp = 150;
 
     chatState.clearHistory();
 
-    expect((chatState as any).messages).toHaveLength(0);
-
-    // Ensure other states remain unaffected
-    expect((chatState as any).lastSentTimestamp).toBe(150);
-    expect((chatState as any).loading).toBe(true);
-    expect((chatState as any).clientId).toBe('existing-client-id');
-
-    // latestSeenTimestamp is intentionally preserved so the next poll
-    // only fetches new messages rather than re-fetching cleared history
-    expect((chatState as any).latestSeenTimestamp).toBe(200);
+    expect(chatState.messages).toHaveLength(0);
+    // Server-side history is governed by the retention policy, not by this.
+    expect(chatState.lastSentTimestamp).toBe(150);
   });
 });

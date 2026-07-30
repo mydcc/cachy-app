@@ -410,7 +410,7 @@ class TradeManager {
     ) {
       try {
         this.lockedPositionSize = new Decimal(next.lockedPositionSize);
-      } catch (e) { /* ignore */ }
+      } catch { /* ignore */ }
     }
 
     // Ensure reactivity for targets array if replaced completely
@@ -438,7 +438,7 @@ class TradeManager {
     ) {
       try {
         this.lockedPositionSize = new Decimal(newState.lockedPositionSize);
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }

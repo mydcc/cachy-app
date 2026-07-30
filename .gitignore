@@ -96,3 +96,8 @@ build_old_*/
 .last_build_time
 .htaccess
 .well-known/
+
+# Deployment configuration for one specific server. The template is tracked as
+# .deploy.conf.example; the filled-in file is not — it names that server's paths,
+# ports and start commands. deploy.sh regenerates it from the template if absent.
+.deploy.conf

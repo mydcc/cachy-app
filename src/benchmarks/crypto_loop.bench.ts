@@ -1,5 +1,5 @@
 
-import { bench, describe, vi, beforeAll } from 'vitest';
+import { bench, describe, beforeAll } from 'vitest';
 import { cryptoService, type EncryptedBlob } from '../services/cryptoService';
 
 // Ensure crypto is available in Node environment

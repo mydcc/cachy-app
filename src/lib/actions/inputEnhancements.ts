@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { get } from "svelte/store";
 import { settingsState } from "../../stores/settings.svelte";
 import { Decimal } from "decimal.js";
 

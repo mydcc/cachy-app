@@ -20,7 +20,7 @@
 -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import { browser } from "$app/environment";
     import * as THREE from "three";
     import { effectsState } from "../../stores/effects.svelte";

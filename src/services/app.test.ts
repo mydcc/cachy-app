@@ -23,11 +23,8 @@ import { resultsState, INITIAL_RESULTS_STATE } from "../stores/results.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { app } from "./app";
-import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
 import { apiService } from "./apiService";
-import type { Kline } from "./apiService";
-import type { AppState } from "../stores/types";
 import { parseDecimal } from "../utils/utils";
 
 function toggleAtrInputs(enable: boolean) {

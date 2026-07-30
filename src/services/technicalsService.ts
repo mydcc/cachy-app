@@ -325,7 +325,7 @@ export const technicalsService = {
             }
         }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
         return result;
-    } catch (e) {
+    } catch {
         return this.calculateTechnicalsInline(klines, settings);
     }
   },

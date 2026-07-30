@@ -194,7 +194,7 @@ class StorageService {
                 const usedMB = (estimate.usage || 0) / 1024 / 1024;
                 const quotaMB = (estimate.quota || 0) / 1024 / 1024;
                 logger.log('data', `[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
-            } catch (e) {
+            } catch {
                 // ignore
             }
         }

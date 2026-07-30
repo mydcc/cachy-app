@@ -50,7 +50,6 @@ vi.mock('../../services/toastService.svelte', () => ({
 }));
 
 import { technicalsService } from '../../services/technicalsService';
-import type { IndicatorSettings } from '../../types/indicators';
 
 const mockSettings: any = {
     historyLimit: 500,

@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { icons } from "../../lib/constants";
   import { createEventDispatcher } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";

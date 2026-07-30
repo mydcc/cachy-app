@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-    import { settingsState } from "../../../stores/settings.svelte";
 
     interface Props {
         label: string;

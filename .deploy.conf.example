@@ -1,37 +1,64 @@
 # Cachy Deployment Configuration Template
-# Copy this file to .deploy.conf and adjust to your environment
+#
+#   cp .deploy.conf.example .deploy.conf
+#
+# `.deploy.conf` is gitignored: it describes one particular server, so it belongs
+# to that server rather than to the repository. deploy.sh generates it from this
+# template on first run if it is missing.
+#
+# Every key below is read by deploy.sh, and there are no others — a key the
+# script does not read is inert, however plausible it looks.
 
-# Project Identity
-PROJECT_NAME="cachy.app"
+# ---------------------------------------------------------------------------
+# Branches
+# ---------------------------------------------------------------------------
+# deploy.sh refuses to run unless the working tree is on the branch for the
+# selected mode, and offers to switch.
 
-# Branching Strategy
 BRANCH_STABLE="main"
 BRANCH_BETA="develop"
 
-# Environment Settings (Stable)
+# ---------------------------------------------------------------------------
+# Production  —  ./deploy.sh   (no argument; this is the default)
+# ---------------------------------------------------------------------------
+
 STABLE_ENVIRONMENT="cachy.app"
 STABLE_PORT=3001
-STABLE_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/prodcachyapp.sh"
+# Command that starts the Node process. deploy.sh runs it after a graceful
+# shutdown, then waits for the health check.
+STABLE_START_COMMAND="sudo -u www bash /path/to/start-production.sh"
 
-# Environment Settings (Beta)
+# ---------------------------------------------------------------------------
+# Staging  —  ./deploy.sh --beta
+# ---------------------------------------------------------------------------
+
 BETA_ENVIRONMENT="dev.cachy.app"
 BETA_PORT=3002
-BETA_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/devcachyapp.sh"
+BETA_START_COMMAND="sudo -u www bash /path/to/start-staging.sh"
 
-# Global Path & Policy Settings
-# Optional: If paths are not writable, script falls back to $PROJECT_ROOT/logs and /backups
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+# If either path is not writable, deploy.sh falls back to <project>/logs and
+# <project>/backups rather than failing.
+
 LOG_DIR="/var/log/cachy"
 BACKUP_DIR="/backups/cachy"
-# Health Check Policy
-# {{PORT}} will be replaced automatically by the script
+
+# ---------------------------------------------------------------------------
+# Policy
+# ---------------------------------------------------------------------------
+
+# {{PORT}} is replaced with the selected environment's port. If this is unset,
+# deploy.sh falls back to http://localhost:$PORT/api/health.
 HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
+
+# Backups kept per environment. Defaults to 5 when unset.
 MAX_BACKUPS=5
 
-# Health Check Policy
-# {{PORT}} will be replaced automatically by the script
-HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
-
-# Discord Integration
-# The script automatically sources scripts/discord-notify.sh if present.
-# Ensure DISCORD_WEBHOOK_URL is exported in your environment or added below:
+# ---------------------------------------------------------------------------
+# Discord notifications (optional)
+# ---------------------------------------------------------------------------
+# deploy.sh sources scripts/discord-notify.sh if present. Without a webhook the
+# notifications are skipped silently and deployment is unaffected.
 # export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."

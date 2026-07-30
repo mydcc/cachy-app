@@ -30,10 +30,20 @@ None of that is accurate. What the code actually contains:
 files). The single table, `GlobalMessage`, has three fields: `sender`, `text`,
 `sentAt`.
 
-**A second, older chat backend that is orphaned.**
-`src/lib/server/chatStore.ts` persists messages to `db/chat_messages.json` (up
-to 1000, overridable via `CHAT_DB_PATH`). It is imported by nothing except its
-own test file — no route and no component uses it.
+**A second, older chat backend — since removed.**
+`src/lib/server/chatStore.ts` persisted messages to `db/chat_messages.json` (up
+to 1000, overridable via `CHAT_DB_PATH`).
+
+> **Correction, then resolution (July 2026).** This ADR originally stated that
+> `chatStore.ts` was "imported by nothing except its own test file — no route and
+> no component uses it", and that it lacked authentication. **Both claims were
+> wrong:** it was reached by `src/routes/api/chat-v2/+server.ts`, whose handlers
+> both called `checkAppAuth`, and that route was driven by the side panel. Cachy
+> shipped **two** Class B chat backends, not one plus dead code.
+>
+> **Resolved (roadmap item 12): the file-based backend is removed.** There is one
+> Global Chat, on SpacetimeDB. The chat window and side panel are unchanged and
+> now run on it. `db/chat_messages.json` and `CHAT_DB_PATH` no longer exist.
 
 The important finding is what the server component does **not** touch. No
 journal entry, setting, preset, note or API key is present in the SpacetimeDB
@@ -94,12 +104,15 @@ Class B is a breaking change and requires an ADR plus a changelog entry marked
 - "No server at all" was a simpler story to tell, and simpler to audit. The
   four-condition test has to be actually applied in review, which is slower than
   a flat ban and depends on discipline rather than on structure.
-- Two code paths now need to stay honest instead of one. The orphaned
+- ~~Two code paths now need to stay honest instead of one. The orphaned
   file-based `chatStore.ts` is exactly the kind of drift this boundary is meant
-  to prevent, and it already exists.
+  to prevent, and it already exists.~~ **Settled:** there is one path. The
+  file-based backend was removed under roadmap item 12 — and it was never
+  orphaned, which is precisely the drift this warned about.
 - The GDPR/CCPA position becomes a real question rather than a non-issue. Chat
   messages are personal data being processed, which implies a retention policy
-  and a deletion path. Neither exists yet.
+  and a deletion path. **Both now exist** — a 90-day scheduled sweep and a
+  self-service erasure reducer. See `docs/GLOBAL-CHAT.md` section 4.
 
 ### What is now forbidden
 
@@ -123,8 +136,9 @@ wrong trade.
 unwritten exception to a stated rule is how the current contradiction arose. A
 rule with a silent carve-out cannot be enforced in review.
 
-**Route Global Chat through the existing file-based `chatStore.ts` instead of
-SpacetimeDB.** Rejected: it has no authentication, persists to the application's
-own filesystem, and would violate condition 2. Its fate is a separate cleanup
-item on the roadmap — deliberately not resolved here, since deleting code whose
-purpose is unclear is against the project's defensive-deletion rule.
+**Route Global Chat through the file-based `chatStore.ts` instead of
+SpacetimeDB.** Rejected, though the reason first given here was wrong: it was
+claimed to have no authentication, and it did authenticate. The real reasons are
+that it persists to the application server's own filesystem, has no retention or
+erasure path, and would need one built from scratch — while SpacetimeDB was
+already wired up. Resolved under roadmap item 12 by removing it.

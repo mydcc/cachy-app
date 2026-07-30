@@ -112,7 +112,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       try {
         const data = await pendingRequests.get(cacheKey);
         return json(data);
-      } catch (e: any) {
+      } catch {
         // Fallthrough
       }
     }

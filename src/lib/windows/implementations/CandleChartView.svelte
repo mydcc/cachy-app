@@ -29,11 +29,9 @@
     } from "lightweight-charts";
     import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
-    import { settingsState } from "../../../stores/settings.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { marketWatcher } from "../../../services/marketWatcher";
-    import type { WindowBase } from "../WindowBase.svelte";
 
     interface Props {
         symbol: string;

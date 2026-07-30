@@ -18,7 +18,7 @@
 /*
  * Copyright (C) 2026 MYDCT
  */
-import type { ChartPatternDrawFunction, ThemeColors, AddInteractiveElement } from './chartPatterns.types';
+import type { ChartPatternDrawFunction } from './chartPatterns.types';
 import {
   drawLine,
   drawLineWithLabel,

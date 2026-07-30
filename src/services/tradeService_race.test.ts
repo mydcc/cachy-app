@@ -20,7 +20,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tradeService } from './tradeService';
 import { omsService } from './omsService';
 import { Decimal } from 'decimal.js';
-import { settingsState } from '../stores/settings.svelte';
 
 // Mock dependencies
 vi.mock('./omsService', () => ({

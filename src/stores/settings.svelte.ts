@@ -23,6 +23,7 @@ const SENSITIVE_KEYS: (keyof Settings)[] = [
   "cmcApiKey",
   "imgbbApiKey",
   "appAccessToken",
+  "cloudToken",
 ];
 
 // Removed MarketDataInterval as it is legacy (WebSockets preferred)
@@ -178,6 +179,22 @@ export interface Settings {
   isDeepDiveUnlocked?: boolean;
   imgurClientId?: string;
   enableSidePanel: boolean;
+  /**
+   * Global Chat over SpacetimeDB. Class B under ADR-0001, so it is opt-in and
+   * off by default: nothing connects until the user turns this on and supplies
+   * a token.
+   */
+  cloudEnabled: boolean;
+  /** SpacetimeDB host, e.g. `http://127.0.0.1:3000` for a local module. */
+  cloudHost: string;
+  /** SpacetimeDB module name the client subscribes to. */
+  cloudDbName: string;
+  /**
+   * SpacetimeDB connection token. Class A: it stays in this browser and is only
+   * ever sent to the host configured above. Encrypted with the master password
+   * like every other credential.
+   */
+  cloudToken: string;
   showSidebarActivity: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
   sidePanelLayout: SidePanelLayout;
@@ -206,7 +223,6 @@ export interface Settings {
   confirmBulkDeletion: boolean;
   chatFontSize: number;
   panelIsExpanded: boolean;
-  minChatProfitFactor: number;
   fontFamily: string;
   cryptoPanicApiKey?: string;
   newsApiKey?: string;
@@ -344,6 +360,12 @@ const defaultSettings: Settings = {
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
+  // Class B defaults per ADR-0001: off, and pointing at a local module rather
+  // than at any Cachy-operated server. Turning it on is a deliberate act.
+  cloudEnabled: false,
+  cloudHost: "http://127.0.0.1:3000",
+  cloudDbName: "cachy-server",
+  cloudToken: "",
   sidePanelMode: "ai",
   sidePanelLayout: "floating",
   chatStyle: "minimal",
@@ -376,7 +398,6 @@ const defaultSettings: Settings = {
   panelIsExpanded: false,
   maxPrivateNotes: 50,
   aiConfirmClear: true,
-  minChatProfitFactor: 0.0,
   fontFamily: "Inter",
   cryptoPanicApiKey: "",
   newsApiKey: "",
@@ -564,6 +585,10 @@ export class SettingsManager {
   imgurClientId = $state<string | undefined>(defaultSettings.imgurClientId);
 
   enableSidePanel = $state<boolean>(defaultSettings.enableSidePanel);
+  cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
+  cloudHost = $state<string>(defaultSettings.cloudHost);
+  cloudDbName = $state<string>(defaultSettings.cloudDbName);
+  cloudToken = $state<string>(defaultSettings.cloudToken);
   sidePanelMode = $state<"chat" | "notes" | "ai">(
     defaultSettings.sidePanelMode,
   );
@@ -609,7 +634,6 @@ export class SettingsManager {
   confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
   chatFontSize = $state<number>(defaultSettings.chatFontSize);
   panelIsExpanded = $state<boolean>(defaultSettings.panelIsExpanded);
-  minChatProfitFactor = $state<number>(defaultSettings.minChatProfitFactor);
   fontFamily = $state<string>(defaultSettings.fontFamily);
   cryptoPanicApiKey = $state<string | undefined>(
     defaultSettings.cryptoPanicApiKey,
@@ -1235,6 +1259,10 @@ export class SettingsManager {
       this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
       this.imgurClientId = merged.imgurClientId;
       this.enableSidePanel = merged.enableSidePanel;
+      this.cloudEnabled = merged.cloudEnabled;
+      this.cloudHost = merged.cloudHost;
+      this.cloudDbName = merged.cloudDbName;
+      this.cloudToken = merged.cloudToken;
       this.sidePanelMode = merged.sidePanelMode;
       this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
@@ -1274,7 +1302,6 @@ export class SettingsManager {
       this.confirmBulkDeletion = merged.confirmBulkDeletion;
       this.chatFontSize = merged.chatFontSize;
       this.panelIsExpanded = merged.panelIsExpanded;
-      this.minChatProfitFactor = merged.minChatProfitFactor;
       this.fontFamily = merged.fontFamily;
       this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
       this.newsApiKey = merged.newsApiKey;
@@ -1568,6 +1595,10 @@ export class SettingsManager {
       isDeepDiveUnlocked: this.isDeepDiveUnlocked,
       imgurClientId: this.imgurClientId,
       enableSidePanel: this.enableSidePanel,
+      cloudEnabled: this.cloudEnabled,
+      cloudHost: this.cloudHost,
+      cloudDbName: this.cloudDbName,
+      cloudToken: this.cloudToken,
       sidePanelMode: this.sidePanelMode,
       sidePanelLayout: this.sidePanelLayout,
       chatStyle: this.chatStyle,
@@ -1609,7 +1640,6 @@ export class SettingsManager {
       burnSettings: this.burnSettings,
       burnGuide: this.burnGuide,
       fireConfig: $state.snapshot(this.fireConfig),
-      minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,
       newsApiKey: this.newsApiKey,

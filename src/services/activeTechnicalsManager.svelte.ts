@@ -33,7 +33,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { technicalsService } from "./technicalsService";
 import { marketWatcher } from "./marketWatcher";
 import { browser } from "$app/environment";
-import { normalizeTimeframeInput, getIntervalMs, parseTimestamp } from "../utils/utils";
+import { getIntervalMs } from "../utils/utils";
 import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import type { Kline, KlineBuffers } from "./technicalsTypes";

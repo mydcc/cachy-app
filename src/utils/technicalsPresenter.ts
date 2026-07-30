@@ -22,7 +22,6 @@
  * Encapsulates presentation logic for technical indicators to keep UI dumb.
  */
 
-import { Decimal } from "decimal.js";
 
 interface PivotDisplay {
     label: string;

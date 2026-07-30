@@ -18,7 +18,6 @@
 import { journalState } from "../stores/journal.svelte";
 import { apiService, type Kline } from "./apiService";
 import { calculator } from "../lib/calculator";
-import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
@@ -124,7 +123,7 @@ async function fetchSmartKlines(
     }
 
     return await Promise.any(promises);
-  } catch (_e) {
+  } catch {
     return null;
   }
 }

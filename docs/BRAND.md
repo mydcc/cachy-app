@@ -138,25 +138,28 @@ for Inter (the default), IBM Plex Sans, JetBrains Mono, Roboto Mono,
 Source Sans 3, Manrope, Nunito Sans and Red Hat Display; the user's choice is the
 `fontFamily` setting.
 
-**Unresolved — a decision is needed.** The three old documents disagreed about the
-headline typeface and none of them matches the app:
+**Decided: there is no separate headline typeface.** Headings use the same family
+as body text — the one the user picked. That is what the app has always done, and
+it is now the brand rule rather than an accident.
+
+The three old documents each claimed something else, and none matched the app:
 
 | Source | Headline font |
 | --- | --- |
 | `BRAND GUIDELINES.md` | Degular Bold |
 | `CORPORATE_DESIGN.md` | Montserrat Bold |
 | `SYSTEM_BRAND_GUIDELINES.md` | **both** — `--font-heading: "Montserrat"` on line 234, then a type scale specifying Degular Bold on line 251 |
-| The app | no separate headline font — headings use the chosen body font |
+| The app | neither |
 
-The third document contradicted itself within twenty lines, which is a fair
-summary of why these files needed consolidating.
+The third contradicted itself within twenty lines, which is a fair summary of why
+these files needed consolidating. Degular is commercial and Montserrat is free, so
+adopting either would have meant a licensing decision plus a font to load, in
+service of a distinction the product never made. Neither is used.
 
-Degular is a commercial typeface; Montserrat is free. Whichever is correct, it
-should be recorded here and, if it is meant to apply to the app, actually loaded.
-Until then, treat the app's behaviour as the truth: one font family throughout,
-chosen by the user.
+Hierarchy comes from weight and size, not from a second typeface.
 
-**Intent** — the type scale both old documents agreed on, for marketing surfaces:
+**Intent** — the type scale both old documents agreed on, for marketing surfaces.
+Sizes and line heights only; the family is whatever the surface uses:
 
 | Level | Size | Line height |
 | --- | --- | --- |

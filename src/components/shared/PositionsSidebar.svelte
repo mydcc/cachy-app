@@ -137,7 +137,7 @@
           accountState.positions = data.positions;
         }
       }
-    } catch (e) {
+    } catch {
       errorPositions = $_("apiErrors.failedToLoadPositions");
     } finally {
       loadingPositions = false;
@@ -177,7 +177,7 @@
         if (type === "pending") openOrders = data.orders || [];
         else historyOrders = data.orders || [];
       }
-    } catch (e) {
+    } catch {
       const msg = $_("apiErrors.failedToLoadOrders");
       if (type === "pending") errorOrders = msg;
       else errorHistory = msg;
@@ -322,7 +322,7 @@
         );
         // Trigger refresh or wait for WS
       }
-    } catch (e) {
+    } catch {
       uiState.showError($_("dashboard.alerts.failedClose"));
     }
   }

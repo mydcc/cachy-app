@@ -206,7 +206,7 @@
       content = chatState.messages
         .map(
           (m) =>
-            `${m.senderId === "me" ? "YOU" : "USER"} (${m.profitFactor ? "PF: " + m.profitFactor.toFixed(2) : "N/A"}) (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
+            `${m.senderId === "me" ? "YOU" : "USER"} (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
         )
         .join("\n---\n\n");
     }

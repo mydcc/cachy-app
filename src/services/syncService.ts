@@ -558,7 +558,7 @@ export const syncService = {
       if (!success) {
         uiState.showError("storage.journalSaveFailed");
       }
-    } catch (e) {
+    } catch {
       uiState.showError(
         "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.",
       );

@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
+    import { onMount } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
     const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";

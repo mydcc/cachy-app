@@ -144,7 +144,6 @@ export class RaindropsEngine extends BaseEngine {
         const numPoints = width * length;
         const positions = new Float32Array(numPoints * 3);
         const colors = new Float32Array(numPoints * 3);
-        const colorUp = this.context.colorUp || new THREE.Color(0x00ff88);
         let k = 0;
         const spacing = (this.context.settings.spread || 1.0) * 2.0;
         for (let i = 0; i < width; i++) {

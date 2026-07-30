@@ -107,6 +107,27 @@ Which domain, branch and port each mode uses comes from `.deploy.conf`
 first run; the script generates a default from the template if the file is
 missing.
 
+> ⚠️ **One-time migration — read this before the next deploy.**
+> `.deploy.conf` used to be committed. It is now gitignored, because it describes
+> one specific server. `deploy.sh` runs `git reset --hard HEAD && git pull`, so
+> the deploy that pulls this change **removes `.deploy.conf` from the server**.
+>
+> That run still succeeds — the config was sourced before the pull. The *next*
+> one finds no config, regenerates it from the template with placeholder start
+> commands, and fails the health check into a rollback. The failure is one deploy
+> removed from its cause, which is what makes it worth calling out.
+>
+> **Back it up on the server first:**
+>
+> ```bash
+> cp .deploy.conf ~/deploy.conf.backup     # before deploying
+> # after the deploy that pulls this change:
+> cp ~/deploy.conf.backup .deploy.conf
+> ```
+>
+> The previously committed contents remain recoverable from git history if the
+> backup is missed: `git show <commit-before>:.deploy.conf`.
+
 Features:
 
 - ✅ Automatic backup (last 5 deployments kept, configurable via `MAX_BACKUPS`)
