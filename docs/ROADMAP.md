@@ -213,6 +213,31 @@ pointed at is gone.
 Lower the ceiling in `.github/workflows/audit.yml` on every pass, so the backlog
 can only shrink.
 
+**Item 22 is done, and it was not just a `git rm --cached`.** The two files had
+drifted in both directions:
+
+- The committed `.deploy.conf` carried `STABLE_WORK_DIR` and `BETA_WORK_DIR`,
+  which **nothing in `deploy.sh` reads**, and `PROJECT_NAME` was equally inert in
+  the template.
+- It was missing `HEALTH_CHECK_URL` and `MAX_BACKUPS`, working only because the
+  script has fallbacks for both.
+- Its `STABLE_START_COMMAND` pointed at a different script than the template's
+  (`cachyapp.sh` vs `prodcachyapp.sh`) — so the committed file was the live
+  production configuration of cachy.app, in a public repository. No secrets, but
+  it published internal server paths.
+- The template contained a **duplicated `HEALTH_CHECK_URL` block**, pasted twice.
+
+The template is rewritten to list exactly the keys the script reads, with
+placeholder paths instead of real ones. `.deploy.conf` is untracked and ignored.
+
+The part that needed care is the migration: `deploy.sh` runs
+`git reset --hard HEAD && git pull`, so the deploy that pulls this change deletes
+the live config from the server. That run still succeeds, because the config was
+sourced before the pull — **the next one fails**, regenerating placeholders and
+rolling back on the health check. A failure one deploy removed from its cause is
+exactly the kind that costs an afternoon, so `DEPLOYMENT.md` now opens the
+deployment section with the backup step.
+
 ### Code health
 
 | # | Item | Status |
@@ -221,7 +246,7 @@ can only shrink.
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
 | 21 | Burn down the remaining 1124 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
-| 22 | Resolve `.deploy.conf` being committed alongside its own `.example` | ⚪ |
+| 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | Deduplicate `chartpatterns.html` (root and `info/` copies differ — decide which is current) | ⚪ |
 | 24 | Group and document the ~20 ad-hoc scripts in `scripts/`, `verification/`, `plans/` | ⚪ |
 | 24a | ~~Remove the `VITE_*_API_KEY` defaults in `settings.svelte.ts`~~ — done: the fallbacks are gone and two tests guard against their return | 🟢 |

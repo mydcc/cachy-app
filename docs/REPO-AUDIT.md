@@ -223,9 +223,17 @@ Left for a decision, deliberately not touched:
   `info/chartpatterns.html` (272 KB). They are **not** identical — different
   content hashes — and neither is referenced anywhere in the source. Consolidate
   only after deciding which one is current.
-- **`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
+- ~~**`.deploy.conf` is committed** alongside `.deploy.conf.example`. It contains
   no secrets, only infrastructure paths and ports, but it is the example file
-  filled in — normally environment-specific and left untracked.
+  filled in.~~ **Resolved** (item 22) — and the description above was too
+  generous: it was not "the example file filled in" but a **divergent** file. It
+  carried two keys nothing reads (`STABLE_WORK_DIR`, `BETA_WORK_DIR`), lacked two
+  the template has, and named a different production start command. It was the
+  live configuration of cachy.app in a public repository. Untracked and ignored;
+  the template now lists exactly the keys `deploy.sh` reads, and `DEPLOYMENT.md`
+  carries the migration step — `deploy.sh` does `git reset --hard && git pull`,
+  so the deploy that pulls the change removes the server's config and the *next*
+  one fails.
 - ~~**Branch mismatch:** no `main` branch exists on the remote.~~ **Incorrect —
   corrected.** `main` does exist, at `d324c32`, two commits behind `develop` and
   fully contained in it. The initial audit relied on `git branch -a`, which in
