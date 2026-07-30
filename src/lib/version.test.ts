@@ -15,6 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// @vitest-environment node
+//
+// This test reads package.json from disk. Under the happy-dom default set in
+// vite.config.ts, import.meta.url is not a file:// URL and readFileSync rejects
+// it. No DOM is needed here, so pin the node environment.
+
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { APP_VERSION } from "./version";
