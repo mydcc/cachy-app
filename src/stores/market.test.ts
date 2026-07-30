@@ -170,4 +170,5 @@ describe('MarketManager', () => {
     // safePush overwrites. First k2 pushed. Then k2Dup pushed -> safePush sees same time -> overwrites.
     expect(history[1].close.toNumber()).toBe(103);
   });
+
 });

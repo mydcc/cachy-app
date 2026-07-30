@@ -71,6 +71,17 @@ interface CacheMetadata {
   createdAt: number;
 }
 
+/**
+ * A numeric field as it arrives from an exchange, before conversion.
+ *
+ * `safeJsonParse` quotes literals of 15+ characters to preserve precision, so a
+ * price can be a string or a number depending on its length alone. Values that
+ * have already been converted arrive as `Decimal`. This union is the honest
+ * input type for anything coercing exchange data — `any` merely hid that the
+ * three cases exist.
+ */
+type RawNumeric = string | number | Decimal | null | undefined;
+
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
@@ -91,11 +102,13 @@ export class MarketManager {
   private backingBuffers = new Map<string, KlineBuffers>();
   private pendingKlineUpdates = new Map<string, any[]>();
   private bufferPool = new BufferPool();
-  private cleanupIntervalId: any = null;
-  private flushIntervalId: any = null;
-  private telemetryIntervalId: any = null;
-  private notifyTimer: any = null;
-  private statusNotifyTimer: any = null;
+  // `ReturnType<typeof ...>` rather than `number`: the handle is a number in the
+  // browser and a Timeout object under Node, and these run in both.
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private flushIntervalId: ReturnType<typeof setInterval> | null = null;
+  private telemetryIntervalId: ReturnType<typeof setInterval> | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private statusNotifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
@@ -291,7 +304,7 @@ export class MarketManager {
 
       // Optimization: Check for equality before creating new Decimal
       // Re-use Decimal instances if string value hasn't changed.
-      const toDecimal = (val: any, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
+      const toDecimal = (val: RawNumeric, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
         try {
           if (val === undefined) return undefined;
 
@@ -479,7 +492,15 @@ export class MarketManager {
         if (newRaw.time === lastKline.time) {
             // 1. Update History In-Place (Minimizing Decimal Allocations)
             // We use a helper to only create new Decimals if value changed
-            const updateDecimal = (oldVal: Decimal, newVal: any): Decimal => {
+            const updateDecimal = (oldVal: Decimal, newVal: RawNumeric): Decimal => {
+                // Required once the parameter is typed honestly: RawNumeric
+                // includes null/undefined, which `new Decimal(...)` rejects.
+                // Keeping the previous value is what a missing field means.
+                //
+                // Defensive rather than a demonstrated fix — no call path was
+                // found that actually reaches here with a missing field, so do
+                // not read this as a crash that was occurring in production.
+                if (newVal === null || newVal === undefined) return oldVal;
                 if (typeof newVal === "number") {
                      return new Decimal(newVal);
                 }
@@ -502,7 +523,9 @@ export class MarketManager {
             const bufferKey = `${symbol}:${timeframe}`;
             const backing = this.backingBuffers.get(bufferKey);
             if (backing && backing.times.length > lastIdx) {
-                 const getNum = (val: any): number => {
+                 // Raw exchange values reach here as strings (safeJsonParse
+                 // quotes long literals), as numbers, or already as Decimal.
+                 const getNum = (val: RawNumeric): number => {
                     if (typeof val === "number") return val;
                     if (typeof val === "string") return parseFloat(val);
                     return val instanceof Decimal ? val.toNumber() : Number(val);
@@ -830,10 +853,14 @@ export class MarketManager {
       });
     });
     return () => {
-      if (typeof cleanup === 'function') {
-        (cleanup as () => void)();
-      } else if (cleanup && typeof (cleanup as any).stop === 'function') {
-        (cleanup as any).stop();
+      // The subscription helper returns either an unsubscribe function or an
+      // object with .stop(), depending on the path taken. Naming that union
+      // beats casting to any twice.
+      const stoppable = cleanup as (() => void) | { stop?: () => void } | null;
+      if (typeof stoppable === 'function') {
+        stoppable();
+      } else if (stoppable && typeof stoppable.stop === 'function') {
+        stoppable.stop();
       }
     };
   }
@@ -854,10 +881,14 @@ export class MarketManager {
       });
     });
     return () => {
-      if (typeof cleanup === 'function') {
-        (cleanup as () => void)();
-      } else if (cleanup && typeof (cleanup as any).stop === 'function') {
-        (cleanup as any).stop();
+      // The subscription helper returns either an unsubscribe function or an
+      // object with .stop(), depending on the path taken. Naming that union
+      // beats casting to any twice.
+      const stoppable = cleanup as (() => void) | { stop?: () => void } | null;
+      if (typeof stoppable === 'function') {
+        stoppable();
+      } else if (stoppable && typeof stoppable.stop === 'function') {
+        stoppable.stop();
       }
     };
   }
