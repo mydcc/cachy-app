@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return jsonSuccess({ positions });
-  } catch (e: any) {
+  } catch (e) {
     console.error(`Error fetching positions from ${exchange}:`, e);
     return handleApiError(e);
   }

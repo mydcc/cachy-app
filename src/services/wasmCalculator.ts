@@ -58,16 +58,19 @@ class WasmCalculator {
                     console.log(`[WASM] Engine initialized successfully (Attempt ${attempt}).`);
                 }
                 return; // Success!
-            } catch (error: any) {
-                lastError = error;
-                console.warn(`[WASM] Load attempt ${attempt}/${maxRetries} failed:`, error.message);
-                
+            } catch (error) {
+                // `catch` binds unknown; normalise once rather than typing the
+                // binding as any and reaching into it four times.
+                const err = error instanceof Error ? error : new Error(String(error));
+                lastError = err;
+                console.warn(`[WASM] Load attempt ${attempt}/${maxRetries} failed:`, err.message);
+
                 // Classify error
-                const isNetworkError = error.message.includes('fetch') || error.message.includes('network') || error.name === 'TypeError';
-                const isCompileError = error.message.includes('LinkError') || error.message.includes('CompileError');
+                const isNetworkError = err.message.includes('fetch') || err.message.includes('network') || err.name === 'TypeError';
+                const isCompileError = err.message.includes('LinkError') || err.message.includes('CompileError');
                 
                 // If it's a compile error, retrying won't help.
-                if (isCompileError) throw error;
+                if (isCompileError) throw err;
                 
                 // If expected retry, wait with backoff
                 if (attempt < maxRetries) {
@@ -177,9 +180,9 @@ class WasmCalculator {
     // 2. Oscillators
     if (raw.oscillators) {
         data.oscillators = [];
-        const macdGroups: Record<string, any> = {};
-        const stochGroups: Record<string, any> = {};
-        const adxGroups: Record<string, any> = {};
+        const macdGroups: Record<string, Record<string, number>> = {};
+        const stochGroups: Record<string, Record<string, number>> = {};
+        const adxGroups: Record<string, Record<string, number>> = {};
 
         for (const [key, value] of Object.entries(raw.oscillators)) {
             const val = value as number;
@@ -284,8 +287,8 @@ class WasmCalculator {
         if (!data.volatility) data.volatility = { atr: 0, bb: { upper: 0, lower: 0, middle: 0, percentP: 0 }};
         if (!data.advanced) data.advanced = {};
 
-        const bbGroups: Record<string, any> = {};
-        const stGroups: Record<string, any> = {};
+        const bbGroups: Record<string, Record<string, number>> = {};
+        const stGroups: Record<string, Record<string, number>> = {};
 
         for (const [key, value] of Object.entries(raw.volatility)) {
              const val = value as number;

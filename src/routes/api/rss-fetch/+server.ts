@@ -121,7 +121,7 @@ export const POST: RequestHandler = async ({ request }) => {
           throw new Error("Bot-Block");
         }
         return text;
-      } catch (e: any) {
+      } catch (e) {
         clearTimeout(id);
         throw e;
       }

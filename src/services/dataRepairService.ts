@@ -212,7 +212,7 @@ export const dataRepairService = {
             failed++;
           }
         }
-      } catch (e: any) {
+      } catch (e) {
         logger.error(
           "journal",
           `[DataRepair] Failed to repair ${trade.symbol}`,
