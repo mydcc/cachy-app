@@ -26,10 +26,13 @@ export interface FlashCard {
   answer: string;
 }
 
+export type QuizCategory = "trading" | "tech";
+
 class QuizStore {
   questions = $state<FlashCard[]>([]);
   knownQuestionIds = $state<Set<string>>(new Set());
   activeQuestion = $state<FlashCard | null>(null);
+  activeCategory = $state<QuizCategory>("trading");
   isQuizActive = $state(false);
   isLoading = $state(false);
 
@@ -52,6 +55,10 @@ class QuizStore {
           this.knownQuestionIds = new Set(parsed);
         }
       }
+      const storedCat = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY);
+      if (storedCat === "tech" || storedCat === "trading") {
+        this.activeCategory = storedCat;
+      }
     } catch (e) {
       console.warn("Failed to load quiz progress", e);
     }
@@ -64,12 +71,28 @@ class QuizStore {
         CONSTANTS.LOCAL_STORAGE_QUIZ_KEY,
         JSON.stringify(Array.from(this.knownQuestionIds))
       );
+      localStorage.setItem(
+        CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY,
+        this.activeCategory
+      );
     } catch (e) {
       console.error("Failed to save quiz progress", e);
     }
   }
 
-  async loadQuestions(lang: string | null = null) {
+  setCategory(category: QuizCategory) {
+    this.activeCategory = category;
+    if (browser) {
+      try {
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY, category);
+      } catch (e) {
+        console.error("Failed to save quiz category", e);
+      }
+    }
+    this.loadQuestions();
+  }
+
+  async loadQuestions(lang: string | null = null, category: QuizCategory | null = null) {
     try {
       this.isLoading = true;
 
@@ -78,10 +101,18 @@ class QuizStore {
         lang = get(locale);
       }
 
-      // Select path based on language
-      let path = CONSTANTS.FLASHCARDS_CSV_PATH_EN; // Default to English
-      if (lang && lang.startsWith("de")) {
-        path = CONSTANTS.FLASHCARDS_CSV_PATH_DE;
+      const cat = category || this.activeCategory;
+
+      // Select path based on language & category
+      let path: string;
+      if (cat === "trading") {
+        path = (lang && lang.startsWith("de"))
+          ? CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_DE
+          : CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_EN;
+      } else {
+        path = (lang && lang.startsWith("de"))
+          ? CONSTANTS.FLASHCARDS_CSV_PATH_DE
+          : CONSTANTS.FLASHCARDS_CSV_PATH_EN;
       }
 
       const response = await fetch(path);
@@ -128,7 +159,11 @@ class QuizStore {
     return cards;
   }
 
-  startQuiz() {
+  startQuiz(category?: QuizCategory) {
+    if (category && category !== this.activeCategory) {
+      this.setCategory(category);
+    }
+
     if (this.questions.length === 0) return;
 
     // Filter unknown questions
@@ -137,12 +172,6 @@ class QuizStore {
     );
 
     if (unknownQuestions.length === 0) {
-      // All known! Maybe show a specific "Mastered" card?
-      // For now, we might reset or just pick one at random from all
-      // But user wanted "Stack of un-known questions".
-      // If empty, let's just pick any random one to keep playing, or handle "Done" UI.
-      // I'll pick a random one from ALL to allow replay, but user knows they finished.
-      // Or better: Show nothing and return? No, better to replay.
       const randomIndex = Math.floor(Math.random() * this.questions.length);
       this.activeQuestion = this.questions[randomIndex];
     } else {
@@ -155,9 +184,8 @@ class QuizStore {
 
   closeQuiz() {
     this.isQuizActive = false;
-    // Delay clearing active question for animation if needed, but for now immediate
     setTimeout(() => {
-        this.activeQuestion = null;
+      this.activeQuestion = null;
     }, 300);
   }
 
@@ -170,7 +198,6 @@ class QuizStore {
   }
 
   markUnknown() {
-    // Just close, remains in pool
     this.closeQuiz();
   }
 
@@ -180,18 +207,18 @@ class QuizStore {
   }
 
   exportState(): string {
-     return JSON.stringify(Array.from(this.knownQuestionIds));
+    return JSON.stringify(Array.from(this.knownQuestionIds));
   }
 
   importState(json: string) {
     try {
-        const parsed = JSON.parse(json);
-        if (Array.isArray(parsed)) {
-            this.knownQuestionIds = new Set(parsed);
-            this.saveProgress();
-        }
+      const parsed = JSON.parse(json);
+      if (Array.isArray(parsed)) {
+        this.knownQuestionIds = new Set(parsed);
+        this.saveProgress();
+      }
     } catch (e) {
-        console.error("Failed to import quiz state", e);
+      console.error("Failed to import quiz state", e);
     }
   }
 }

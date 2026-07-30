@@ -2122,7 +2122,10 @@
     "answer": "Answer",
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
-    "known": "I knew it"
+    "known": "I knew it",
+    "categoryLabel": "Category",
+    "categoryTrading": "Trading & Strategies",
+    "categoryTech": "Cachy App Knowledge"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
