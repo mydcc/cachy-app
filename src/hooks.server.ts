@@ -23,14 +23,18 @@ import { logger } from "$lib/server/logger";
 
 // --- Global Console Interceptor for CachyLog ---
 // Redirects all server-side console logs to the centralized logger and SSE stream
-if (!(global as any)._isConsolePatched) {
-  (global as any)._isConsolePatched = true;
+const globalWithPatchFlag = globalThis as typeof globalThis & {
+  _isConsolePatched?: boolean;
+};
+
+if (!globalWithPatchFlag._isConsolePatched) {
+  globalWithPatchFlag._isConsolePatched = true;
 
   const originalLog = console.log;
   const originalWarn = console.warn;
   const originalError = console.error;
 
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     const msg = args
       .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
@@ -40,7 +44,7 @@ if (!(global as any)._isConsolePatched) {
     originalLog.apply(console, args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const msg = args
       .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
@@ -48,7 +52,7 @@ if (!(global as any)._isConsolePatched) {
     originalWarn.apply(console, args);
   };
 
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const msg = args
       .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
@@ -95,10 +99,11 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
     }
 
     return response;
-  } catch (err: any) {
+  } catch (err) {
     const duration = Date.now() - start;
+    const message = err instanceof Error ? err.message : String(err);
     logger.error(
-      `[ERR] ${method} ${path} failed (${duration}ms): ${err.message}`,
+      `[ERR] ${method} ${path} failed (${duration}ms): ${message}`,
     );
     throw err;
   }
