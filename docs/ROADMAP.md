@@ -2223,6 +2223,31 @@ technicals loader (dynamic-import glue for the emscripten-built
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped.
 
+**Pass eighty-three: `src/services/workerPool.test.ts`, 501 → 490.**
+With production `any`/unused-vars sites thinning out, the highest-count
+files are now test files — `no-explicit-any`/`no-unused-vars` stay
+`warn` for tests too (only a handful of scaffolding rules are relaxed
+there, see `eslint.config.js`), and `tsconfig.json` excludes test paths
+so `npm run check` doesn't cover them; `npx vitest run` on the changed
+file is the verification bar instead.
+
+- Three unused `const task`/`const tasks` locals (assigned from
+  `pool.execute(...)` purely to trigger the call, never read) — dropped
+  the assignment, kept the call as an expression statement.
+- Five `(pool as any)`/`(w: any)` reads into `WorkerPool`'s private
+  internals (`workers`, `pendingTasks`, `recycleWorker`,
+  `handleMessage`) — replaced with a local `WorkerPoolInternals`
+  interface narrowing only the members the test actually touches, cast
+  via `pool as unknown as WorkerPoolInternals` (the two types don't
+  structurally overlap enough for a direct `as`, same as every other
+  narrow-object-cast in this item). One more site,
+  `{ message: 'error' } as any` standing in for an `ErrorEvent`, became
+  `as unknown as ErrorEvent`.
+
+`npx vitest run src/services/workerPool.test.ts` stays at 9 passing;
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors (unaffected — this file is outside its scope).
+
 ### Code health
 
 | # | Item | Status |
@@ -2230,7 +2255,7 @@ skipped.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 501 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 490 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
