@@ -495,6 +495,31 @@ found by typing rather than assumed:
 
 No production code path changed shape; `npm test` stays at 850 passing.
 
+**Pass eleven: `syncService.ts`, 939 → 928.** The repeated cast was the raw
+Bitunix API payload — positions and orders come back from
+`/api/sync/positions-history`, `/api/sync/positions-pending`, and
+`/api/sync/orders` as untyped JSON, and every downstream `.map`/`.filter`
+callback re-declared its parameter `any` rather than share a shape:
+
+- Named `RawSyncPosition` and `RawSyncOrder` for the two payload shapes
+  actually read in this file (a strict subset of `types/bitunix.ts`'s
+  `BitunixOrder`, which doesn't cover the plan-order `stopPrice`/
+  `triggerPrice` fields this file needs) — 8 `any` parameters and one
+  `Record<string, any[]>` SL-candidate map replaced by these two types plus
+  the existing `Kline` type for the two kline-array callbacks.
+- Removed an unused `batchIndex`/`currentIndex` pair — the progress index was
+  computed and never read.
+- `catch (e: any)` became `catch (e)` with the standard
+  `e instanceof Error ? e.message : String(e)` narrowing. That, in turn,
+  surfaced a real typing gap in the `_()` translator: the code passes a
+  runtime-checked dynamic key (`message.startsWith("apiErrors.") ? message :
+  ...`) that the `TranslationKey` string-union can't express statically.
+  Resolved with `as TranslationKey` at that one call site, matching the same
+  documented pattern already used for dynamic keys in `VisualsTab.svelte` and
+  `CalculationSettings.svelte` — not a new workaround, the established one.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -502,7 +527,7 @@ No production code path changed shape; `npm test` stays at 850 passing.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 939 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 928 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
