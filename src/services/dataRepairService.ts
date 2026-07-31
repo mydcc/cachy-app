@@ -16,7 +16,7 @@
  */
 
 import { journalState } from "../stores/journal.svelte";
-import { apiService, type Kline } from "./apiService";
+import { apiService, ApiStatusError, type Kline } from "./apiService";
 import { calculator } from "../lib/calculator";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { logger } from "./logger";
@@ -77,13 +77,14 @@ async function fetchSmartKlines(
             }
             throw new Error("apiErrors.symbolNotFound");
           })
-          .catch((e: any) => {
+          .catch((e: unknown) => {
             const isNotFound =
-              e.message === "apiErrors.symbolNotFound" || e.status === 404;
+              (e instanceof Error && e.message === "apiErrors.symbolNotFound") ||
+              (e instanceof ApiStatusError && e.status === 404);
             if (!isNotFound) {
               logger.warn(
                 "journal",
-                `[DataRepair] bitunix fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
+                `[DataRepair] bitunix fetch failed for ${symbol}: ${e instanceof Error ? e.message : String(e)}`,
               );
             }
             throw e;
@@ -108,13 +109,14 @@ async function fetchSmartKlines(
             }
             throw new Error("apiErrors.symbolNotFound");
           })
-          .catch((e: any) => {
+          .catch((e: unknown) => {
             const isNotFound =
-              e.message === "apiErrors.symbolNotFound" || e.status === 404;
+              (e instanceof Error && e.message === "apiErrors.symbolNotFound") ||
+              (e instanceof ApiStatusError && e.status === 404);
             if (!isNotFound) {
               logger.warn(
                 "journal",
-                `[DataRepair] bitget fetch failed for ${symbol}: ${e?.message ?? String(e)}`,
+                `[DataRepair] bitget fetch failed for ${symbol}: ${e instanceof Error ? e.message : String(e)}`,
               );
             }
             throw e;
@@ -342,8 +344,9 @@ export const dataRepairService = {
             }
           }
         }
-      } catch (e: any) {
-        if (e.message !== "apiErrors.symbolNotFound") {
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg !== "apiErrors.symbolNotFound") {
           logger.error(
             "journal",
             `[DataRepair] MFE/MAE Err ${trade.symbol}`,
@@ -401,9 +404,7 @@ export const dataRepairService = {
       return;
     }
 
-    let processed = 0;
     for (const trade of targets) {
-      processed++;
       const clean = normalizeSymbol(trade.symbol, "default");
 
       if (clean !== trade.symbol) {

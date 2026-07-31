@@ -195,8 +195,8 @@ a required CI check** (`.github/workflows/audit.yml`). Highlights:
   `safeJson.bench.ts` disables `no-loss-of-precision` because its fixtures
   deliberately exceed IEEE 754 precision — that is the thing being benchmarked.
 
-**565 warnings remain**, dominated by `no-explicit-any` (456) and
-`no-unused-vars` (109). CI enforces `--max-warnings 565` as a ratchet: the
+**561 warnings remain**, dominated by `no-explicit-any` (453) and
+`no-unused-vars` (108). CI enforces `--max-warnings 561` as a ratchet: the
 ceiling may only be lowered, so the backlog can shrink but never grow.
 
 Verified across the whole change: `npm run check` stays at 0 errors and the full
@@ -759,5 +759,5 @@ states and the disconnected case.
 | --- | --- |
 | `npm run check` | 1925 files, **0 errors, 0 warnings** |
 | `npm test` | **850 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
-| `npx eslint .` | **0 errors**, 565 warnings under the CI ratchet |
+| `npx eslint .` | **0 errors**, 561 warnings under the CI ratchet |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |
