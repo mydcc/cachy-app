@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.1...v1.0.0-beta.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **ci:** use Node.js 24 in semantic-release workflow to match server ([3863c2d](https://github.com/mydcc/cachy-app/commit/3863c2d3f0cde2ccf419b5e274684a04c736f245))
+
 # 1.0.0-beta.1 (2026-07-31)
 
 
