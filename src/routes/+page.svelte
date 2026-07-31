@@ -36,10 +36,10 @@
   import { favoritesState } from "../stores/favorites.svelte";
   import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
-  import { get } from "svelte/store"; // Import get
   import { loadInstruction } from "../services/markdownLoader";
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../lib/actions";
+  import type { TranslationKey } from "../locales/schema";
 
   import SummaryResults from "../components/results/SummaryResults.svelte";
   import LanguageSwitcher from "../components/shared/LanguageSwitcher.svelte";
@@ -131,7 +131,7 @@
 
   // Reset content when locale changes to force refetch
   $effect(() => {
-    const _loc = $locale;
+    void $locale;
     guideContent = "";
     changelogContent = "";
     privacyContent = "";
@@ -433,7 +433,7 @@
         class="text-center text-sm font-medium mt-4 md:col-span-2"
         style:color="var(--danger-color)"
       >
-        {$_(uiState.errorMessage as any)}
+        {$_(uiState.errorMessage as TranslationKey)}
       </div>
     {/if}
 

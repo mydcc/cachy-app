@@ -23,9 +23,16 @@
 import { WindowBase } from "../WindowBase.svelte";
 
 export class ModalWindow extends WindowBase {
+    // Left as `any`, matching WindowBase.component's own documented exception:
+    // any Svelte component can be shown as a modal, each with its own
+    // specific prop signature. options is likewise whatever that component's
+    // constructor/props need (WindowManager.openModal() already documents
+    // this at its call site).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private _component: any;
     backdrop = $state(true);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(component: any, title: string, options: any = {}) {
         super({ title, windowType: 'modal', ...options });
         this._component = component;

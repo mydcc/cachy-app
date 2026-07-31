@@ -28,10 +28,14 @@ import { logger } from './logger';
 
 interface PoolTask {
   id: string;
+  // Spread onto the outgoing postMessage() call below; shape depends on
+  // which technicals.worker.ts message type is being sent, matching
+  // WorkerMessage.payload's own documented `any` in technicalsTypes.ts.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   message: any;
   transfer: Transferable[];
   resolve: (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
   timestamp: number;
 }
 
@@ -225,6 +229,7 @@ export class WorkerPool {
    * Submit a task to the pool
    */
   public async execute(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     message: any,
     transfer: Transferable[] = []
   ): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {

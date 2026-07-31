@@ -306,6 +306,66 @@ re-flag it. Left in place and merely typed here per this repo's
 defensive-deletion rule: code whose purpose isn't fully clear doesn't
 get deleted without a person confirming it's safe to.
 
+## 10. `SymbolPickerWindow` can resolve its Promise with `null`, but the Promise's type says `boolean | string`
+
+**Roadmap item 21.** Found while typing this class's `any` casts during a
+lint pass — recording before the typing makes the mismatch invisible
+again.
+
+`stores/modal.svelte.ts`'s `showModal()` constructs `new
+Promise<boolean | string>((resolve) => { ... new SymbolPickerWindow(resolve)
+... })` for the `'symbolPicker'` case. `SymbolPickerWindow` calls that
+`resolve` two ways:
+
+- `closeWith(value)` (called from `SymbolPickerView.svelte`'s
+  `selectSymbol()`) — always a real symbol `string`.
+- `destroy()` — calls `resolve(null)` unconditionally if the window is
+  closed without a selection (e.g. the user clicks away or hits Escape),
+  explicitly to signal "closed without selection."
+
+`null` is not `boolean | string`. Any caller of `showModal(..., 'symbolPicker')`
+that does `const result = await showModal(...)` and treats the result as
+always a `string` (or always truthy/falsy in the `boolean` sense) will get
+a real `null` on cancel instead — a shape the type signature says can't
+happen.
+
+**Consequence, not yet demonstrated:** whether this causes a visible bug
+depends on how each caller of the symbol-picker modal handles the awaited
+result — if a caller does e.g. `result.toUpperCase()` assuming `result` is
+always a string, a cancel would throw.
+
+**The decision:** either widen `showModal()`'s return type for the
+`'symbolPicker'` case to `Promise<boolean | string | null>` (and update
+every caller to handle `null`), or change `SymbolPickerWindow.destroy()`
+to resolve with `false` instead of `null` to match the existing
+`boolean | string` contract. Left as a lint-pass finding rather than
+fixed inline because it changes a return type/call contract other code
+depends on, not something safe to guess at without checking every caller.
+
+## 11. `src/services/workerPool.ts` appears to be unreachable
+
+**Roadmap item 21.** Found while typing this file's `any` casts during a
+lint pass — the same shape of finding as items 5, 8, and 9.
+
+Nothing in `src/` imports or instantiates `WorkerPool` — `grep -rln
+"workerPool\b" src` (excluding the file's own definition and its test)
+comes back empty. Its own test file (`workerPool.test.ts`) exercises it
+directly, but no production code ever constructs a pool or calls
+`execute()`. The class is a complete, generic wrapper for
+`technicals.worker.ts` (a fixed pool of workers, task queuing, timeout-
+based recycling), structurally ready to use but not wired into anything
+that calculates technicals today — that path currently goes through
+different code (see `technicalsService.ts`/`wasmCalculator.ts`, the
+files item 5 already identified as what's actually used).
+
+**The decision:** either wire `WorkerPool` in somewhere (it looks built
+for exactly the multi-symbol-dashboard parallelism `engineBenchmark.ts`'s
+docstring describes), or delete it if the calculation path it was meant
+to accelerate is already covered elsewhere. Left in place and merely
+typed here per this repo's defensive-deletion rule: code whose purpose
+isn't fully clear doesn't get deleted without a person confirming it's
+safe to.
+
 ## Add new items below
 
 <!--

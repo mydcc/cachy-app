@@ -3052,6 +3052,101 @@ files, most tied at 3 warnings — combined 11 into one pass.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred seven: 9 production files, 256 → 229.** Back to
+production code — Svelte components, window implementations, and
+workers. Verified via `npm run check` (covers all 9 directly) plus a
+real dev-server/Playwright pass, since two fixes this time touched
+actual runtime behavior, not just types.
+
+- `TradeFlowBackground.svelte` (3): `onTrade(trade: any)` and the debug
+  `window.__injectTrade` hook's `trade: any` → a shared `RawTradeEvent`
+  interface (all-optional `s`/`side`/`type`/`p`/`price`/`v`/`size`/
+  `amount`, covering both the WS feed's short-key format and the debug
+  hook's longer-key format). Typing this for real surfaced 2 new type
+  errors — `parseFloat()` doesn't accept `string | number` — fixed with
+  `parseFloat(String(...))` at both call sites, preserving behavior for
+  both input shapes.
+- `AiPanel.svelte` (3): `catch (e: any)` normalized. A dynamic i18n
+  lookup, `$_(errorMessage as any)`, → `as TranslationKey`. An unused
+  `const _len = aiState.messages.length` (present only to register a
+  `$effect` dependency) → `void aiState.messages.length` — a bare
+  expression statement tripped `no-unused-expressions`, so `void` was
+  needed, not just dropping the assignment.
+- `WindowFrame.svelte` (3): an unused `handlePointerDown(e: PointerEvent)`
+  param dropped (JS ignores extra listener-callback arguments). 2×
+  `(win.doubleClickBehavior as any) === "minimize"` — traced
+  `doubleClickBehavior`'s real type (`'maximize' | 'pin'`, no
+  `'minimize'`) and its assignment from persisted config
+  (`f.doubleClickBehavior ?? 'maximize'`) to confirm this is a real,
+  possibly-still-reachable legacy-data case (windows saved before that
+  type was narrowed could still carry the old value) rather than
+  provably dead code — widened to `as string` instead of `any`, which
+  needs no `any` at all since comparing a widened `string` against a
+  literal has no "no overlap" restriction.
+- `ChartWindow.svelte.ts` (3): constructor `options: any` →
+  `ChartWindowOptions extends WindowOptions`; `getContextMenuActions():
+  any[]` → `ContextMenuAction[]` (matches the base class's real
+  declared return type exactly); `serialize(): any` →
+  `WindowSerializedState & { symbol: string; timeframe: string }`.
+  Typing `options` for real surfaced a genuine pre-existing bug:
+  `WindowManager.svelte.ts`'s `createFromData()` passes `{ timeframe:
+  d.timeframe }` when restoring a chart window from session data, but
+  the constructor never applied it to `this.timeframe` — it was always
+  silently dropped, so every restored chart window reset to the "1h"
+  default regardless of what was saved. Fixed: `if (options.timeframe)
+  this.timeframe = options.timeframe;`, before `updateHeaderControls()`
+  so the header's active-timeframe button reflects the restored value
+  immediately rather than only after the next interaction.
+- `ModalWindow.svelte.ts` (3): all 3 documented (not typed) — matches
+  `WindowBase.component`'s own already-documented exception (pass
+  twenty-five): any Svelte component can be shown as a modal, each with
+  its own prop signature, and `options` is whatever that component
+  needs.
+- `SymbolPickerWindow.svelte.ts` (3): also documented, for the same
+  component-genericity reason, but tracing `resolve`'s real call chain
+  surfaced a second, independent finding worth recording: `destroy()`
+  calls `resolve(null)`, but the one real caller
+  (`stores/modal.svelte.ts`'s `showModal()`) constructs `Promise<boolean
+  | string>` — a type with no `null` case. Recorded as `docs/TODO.md`
+  item 10 rather than fixed inline, since correcting it means choosing
+  between widening the Promise's type (and updating every caller) or
+  changing what `destroy()` resolves with — a call-contract decision,
+  not a typing nit.
+- `+page.svelte` (3): unused `import { get } from "svelte/store"` and an
+  unused `const _loc = $locale` (same `$effect`-dependency-registration
+  pattern as `AiPanel.svelte`, same `void $locale` fix) removed/fixed;
+  `$_(uiState.errorMessage as any)` → `as TranslationKey`.
+- `src/services/workerPool.ts` (3): documented (not typed) — `grep`
+  confirmed zero production importers of `WorkerPool` anywhere in
+  `src/` (only its own test exercises it), so there's no live call site
+  to type `message: any`'s real shape against; matches
+  `WorkerMessage.payload`'s own already-documented heterogeneity
+  (`technicalsTypes.ts`, passes sixty-eight/seventy-three). Recorded as
+  `docs/TODO.md` item 11. `reject: (reason?: any)` → `unknown` (needed
+  no documentation, straightforward).
+- `src/workers/aggregator.worker.ts` (3): `const ctx: Worker = self as
+  any` → `const ctx = self;` — the same wrong-annotation bug pass
+  sixty-eight found in `technicals.worker.ts` (a dedicated worker's
+  `self` is `DedicatedWorkerGlobalScope`, not `Worker`). `catch (error:
+  any)` normalized. An unused `duration` local, computed for a debug
+  `console.log` that's commented out — kept per CLAUDE.md's "keep debug
+  logs" rule rather than deleting the dead computation, `void
+  duration;` added so a future dev re-enabling that log finds the value
+  still there.
+- Fixing `ChartWindow`'s `options` type also required widening it at
+  its one construction site with extra fields
+  (`WindowManager.svelte.ts`'s `createFromData()`), surfaced by `npm
+  run check` immediately after this pass's edits — resolved by the
+  `ChartWindowOptions` interface above rather than reverting to `any`.
+- Verified via `npm run check` (0 errors after the `ChartWindowOptions`
+  and `parseFloat(String(...))` fixes) and a real dev-server/Playwright
+  pass: booted `npm run dev`, loaded the app, confirmed no JS
+  `pageerror`s or non-network console errors (a legal-disclaimer modal
+  and the app's normal calculator UI rendered correctly).
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3059,7 +3154,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 256 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 229 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

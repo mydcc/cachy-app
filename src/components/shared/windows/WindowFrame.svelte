@@ -71,7 +71,7 @@
      * Stacking & Focus Management
      * Ensures the window is brought to the front when clicked.
      */
-    function handlePointerDown(e: PointerEvent) {
+    function handlePointerDown() {
         windowManager.bringToFront(win.id);
     }
 
@@ -348,7 +348,10 @@
                     win.toggleMaximize();
                 } else if (win.doubleClickBehavior === "pin") {
                     win.togglePin();
-                } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
+                } else if (win.allowMinimize && (win.doubleClickBehavior as string) === "minimize") {
+                    // Widened to string: doubleClickBehavior's declared type no longer
+                    // includes 'minimize', but windows restored from persisted config
+                    // saved before that narrowing can still carry the old value.
                     win.minimize();
                 }
             }
@@ -371,7 +374,7 @@
                         win.toggleMaximize();
                     } else if (win.doubleClickBehavior === "pin") {
                         win.togglePin();
-                    } else if (win.allowMinimize && (win.doubleClickBehavior as any) === "minimize") {
+                    } else if (win.allowMinimize && (win.doubleClickBehavior as string) === "minimize") {
                         win.minimize();
                     }
                 }
