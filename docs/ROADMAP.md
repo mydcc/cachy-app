@@ -1762,6 +1762,23 @@ caller-supplied Promise.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass fifty-nine: `components/shared/OpenOrdersList.svelte`, 589 →
+585.** The open-orders panel in the positions sidebar — sibling to
+`OrderHistoryList.svelte` from pass 44.
+
+- Same fix as that pass: `Props.orders`, `handleMouseEnter`'s and
+  `handleCancel`'s `order` parameters → `NormalizedOrder`, matching what
+  `PositionsSidebar.svelte`'s `openOrders: NormalizedOrder[]` actually
+  passes in. `getTypeLabel`'s `type: any` → `string`, the one field it's
+  called with (`order.type`). No dead-fallback finding this time — every
+  field this file reads (`symbol`, `time`, `side`, `type`, `amount`,
+  `filled`, `price`, `status`, `id`, `orderId`) is a real declared
+  `NormalizedOrder` field, unlike `OrderHistoryList.svelte`'s
+  `realizedPnL` case.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1769,7 +1786,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 589 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 585 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
