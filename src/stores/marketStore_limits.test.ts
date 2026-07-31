@@ -16,11 +16,12 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from "vitest";
+import type { Settings } from "./settings.svelte";
 
 describe("MarketStore Limits", () => {
-  let settingsState: any;
-  let MarketManager: any;
-  let marketState: any;
+  let settingsState: typeof import("./settings.svelte")["settingsState"];
+  let MarketManager: typeof import("./market.svelte")["MarketManager"];
+  let marketState: InstanceType<typeof import("./market.svelte")["MarketManager"]> | undefined;
   let originalCacheSize: number;
 
   beforeAll(async () => {
@@ -67,56 +68,62 @@ describe("MarketStore Limits", () => {
     if (marketState) {
         marketState.destroy();
         // Restore settings
-        settingsState.update((s: any) => ({ ...s, marketCacheSize: originalCacheSize }));
+        settingsState.update((s: Settings) => ({ ...s, marketCacheSize: originalCacheSize }));
     }
     vi.useRealTimers();
   });
 
   it("should enforce market data cache limit based on settings", async () => {
+    // beforeEach always sets marketState once MarketManager has loaded.
+    const market = marketState!;
+
     // Set low limit
-    settingsState.update((s: any) => ({ ...s, marketCacheSize: 2 }));
+    settingsState.update((s: Settings) => ({ ...s, marketCacheSize: 2 }));
 
     // Add 3 symbols
-    marketState.updateTicker("BTCUSDT", { lastPrice: "50000" });
+    market.updateTicker("BTCUSDT", { lastPrice: "50000" });
     await vi.advanceTimersByTimeAsync(300);
 
-    marketState.updateTicker("ETHUSDT", { lastPrice: "3000" });
+    market.updateTicker("ETHUSDT", { lastPrice: "3000" });
     await vi.advanceTimersByTimeAsync(300);
 
-    marketState.updateTicker("SOLUSDT", { lastPrice: "100" });
+    market.updateTicker("SOLUSDT", { lastPrice: "100" });
     await vi.advanceTimersByTimeAsync(300);
 
     // Check size
-    const keys = Object.keys(marketState.data);
+    const keys = Object.keys(market.data);
     expect(keys.length).toBeLessThanOrEqual(2);
 
     // Expect BTCUSDT (oldest) to be evicted
-    expect(marketState.data["BTCUSDT"]).toBeUndefined();
-    expect(marketState.data["ETHUSDT"]).toBeDefined();
-    expect(marketState.data["SOLUSDT"]).toBeDefined();
+    expect(market.data["BTCUSDT"]).toBeUndefined();
+    expect(market.data["ETHUSDT"]).toBeDefined();
+    expect(market.data["SOLUSDT"]).toBeDefined();
   });
 
   it("should respect updated cache limit", async () => {
+    // beforeEach always sets marketState once MarketManager has loaded.
+    const market = marketState!;
+
     // Start with limit 2
-    settingsState.update((s: any) => ({ ...s, marketCacheSize: 2 }));
+    settingsState.update((s: Settings) => ({ ...s, marketCacheSize: 2 }));
 
-    marketState.updateTicker("A", { lastPrice: "1" });
+    market.updateTicker("A", { lastPrice: "1" });
     await vi.advanceTimersByTimeAsync(300);
-    marketState.updateTicker("B", { lastPrice: "2" });
+    market.updateTicker("B", { lastPrice: "2" });
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(Object.keys(marketState.data).length).toBe(2);
+    expect(Object.keys(market.data).length).toBe(2);
 
     // Increase limit to 3
-    settingsState.update((s: any) => ({ ...s, marketCacheSize: 3 }));
+    settingsState.update((s: Settings) => ({ ...s, marketCacheSize: 3 }));
 
-    marketState.updateTicker("C", { lastPrice: "3" });
+    market.updateTicker("C", { lastPrice: "3" });
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(Object.keys(marketState.data).length).toBe(3);
+    expect(Object.keys(market.data).length).toBe(3);
 
-    expect(marketState.data["A"]).toBeDefined();
-    expect(marketState.data["B"]).toBeDefined();
-    expect(marketState.data["C"]).toBeDefined();
+    expect(market.data["A"]).toBeDefined();
+    expect(market.data["B"]).toBeDefined();
+    expect(market.data["C"]).toBeDefined();
   });
 });

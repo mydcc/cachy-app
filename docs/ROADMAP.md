@@ -2547,6 +2547,33 @@ applied the identical fix.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass ninety-three: `src/stores/marketStore_limits.test.ts`, 409 →
+402.** LRU eviction tests for the market-data cache, loading
+`settingsState`/`MarketManager` via dynamic import after stubbing
+`localStorage`/`window`.
+
+- `settingsState`/`MarketManager`/`marketState: any` → the dynamic-
+  import-type trick (`typeof import("./settings.svelte")
+  ["settingsState"]`, `typeof import("./market.svelte")
+  ["MarketManager"]`, `InstanceType<...> | undefined` for the per-test
+  instance) — same pattern as pass eighty-five/ninety-two's
+  `storageService` local. `marketState`'s new `| undefined` meant every
+  read of it inside the two `it()` blocks became "possibly undefined"
+  under strict mode (invisible before, since `any` swallowed the check)
+  — resolved by asserting once per test (`const market = marketState!;`,
+  with a comment noting `beforeEach` always sets it once
+  `MarketManager` has loaded) instead of an assertion at every one of
+  the dozen-plus read sites.
+- Four `settingsState.update((s: any) => ...)` → `(s: Settings) => ...`,
+  `Settings` imported as a type from `./settings.svelte`, matching
+  `update()`'s real declared parameter type.
+- Verified under the same scratch-`tsconfig` technique as the last nine
+  passes — 0 errors.
+
+`npx vitest run src/stores/marketStore_limits.test.ts` stays at 2
+passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
+stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2554,7 +2581,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 409 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 402 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
