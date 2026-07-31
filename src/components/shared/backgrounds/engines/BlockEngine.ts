@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { BaseEngine, type EngineContext } from './BaseEngine';
+import { BaseEngine } from './BaseEngine';
 
 export class BlockEngine extends BaseEngine {
     private blockMesh: THREE.InstancedMesh | null = null;
@@ -161,7 +161,7 @@ export class BlockEngine extends BaseEngine {
         this.isInitialized = true;
     }
 
-    public update(time: number, delta: number): void {
+    public update(time: number): void {
         if (!this.blockMesh || !this.fibonacciPlanes || !this.priceSpine) {
             return;
         }
@@ -309,6 +309,9 @@ export class BlockEngine extends BaseEngine {
         this.nextBlockIdx = (this.nextBlockIdx + 1) % this.MAX_BLOCK_POINTS;
     }
 
+    // `any` matches BaseEngine.context.settings' own declared type ("Generic settings
+    // for flexibility") — every sibling engine's updateSettings() does the same.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public updateSettings(newSettings: any): void {
         if (this.shouldReinit(newSettings)) {
             this.cleanupResources();
