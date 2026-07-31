@@ -1914,7 +1914,28 @@ Tag Manager event tracker.
   `window._mtm: unknown[]` (from `app.d.ts`) accepts it without friction.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
-skipped.
+skipped; `npm run build` succeeds.
+
+**Pass sixty-seven: `utils/utils.ts`, 557 → 553.** Shared calculation and
+formatting helpers.
+
+- `(value as any) instanceof Decimal` in `parseDecimal()` needed no cast
+  at all — `value`'s declared type already includes `Decimal` in its
+  union, and `instanceof` narrows unions natively.
+- `normalizeJournalEntry(trade: any)` and its two internal `.map((tp:
+  any) => ...)` sites (normalizing `targets`/`calculatedTpDetails`)
+  stayed `any`, documented: this function defensively reshapes untrusted
+  external data (localStorage, CSV import) of genuinely unknown shape,
+  touched by name, by a dynamic-key loop over `decimalFields`, and by
+  both nested maps — the real type safety here is the `JournalEntry`
+  return type, not the input. Tried `unknown` first: removing the two
+  map callbacks' `: any` annotations produced two
+  "implicitly has an 'any' type" errors, confirming `newTrade`'s shape
+  genuinely can't be narrowed without typing the whole function's
+  internals, a disproportionate change for this pass.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
 
 ### Code health
 
@@ -1923,7 +1944,7 @@ skipped.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 557 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 553 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
