@@ -1048,6 +1048,49 @@ touched so far — the trading journal's dashboard shell.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty-one: `VisualsTab.svelte`, 757 → 746.** The theming/background
+settings tab — six of its eleven `any` casts were the same repeated
+shape: a `{#each}` over a literal array of mode names, assigning the loop
+variable to a `settingsState` field typed as the exact matching string
+literal union, cast away because the array literal widens to plain
+`string` by default.
+
+- All six became `{#each [...] as const as x}` instead of a cast at the
+  assignment — `as const` narrows each array element to its literal type,
+  so the loop variable already matches the target field's union and no
+  cast is needed at all. Verified each target field's declared type
+  against the array's contents before applying (`borderEffectColorMode`,
+  `burningBordersIntensity`, `backgroundType`, `tradeFlowSettings.flowMode`,
+  `.colorMode` — five distinct settings, same pattern each time).
+- **Found and fixed a real, demonstrable bug, not a maybe:** the "Enable
+  Side Panel" toggle's `onchange={(e: any) => uiState.toggleAssistant(e.detail)}`
+  read `.detail` off a plain DOM `Event` — a property that has never
+  existed on `Event` (only on `CustomEvent`), which is presumably why this
+  was cast to `any` in the first place, to dodge the compile error that
+  typing `e` honestly would have produced immediately.
+  `toggleAssistant(show: boolean)` takes `show` falsy on every call as a
+  result, and its body is `if (show) { open } else { close }` — so this
+  toggle could only ever close the assistant window, never open it,
+  regardless of which way the user clicked it. Fixed to read
+  `(e.currentTarget as HTMLInputElement).checked`. Unlike the pass twelve
+  and pass twenty-two findings, this needed no revert-test: `Event.detail`
+  not existing is a static fact about the DOM type, not a claim about
+  which runtime path executes.
+- iOS's `DeviceOrientationEvent.requestPermission` — a Safari-only
+  extension absent from the standard DOM lib types — got a named
+  `DeviceOrientationEventiOS` interface instead of two `as any` casts.
+- Removed `layoutModes`, an options array with prepared translation keys
+  but no reader anywhere in the file (checked: the "layout" sub-tab renders
+  plain toggles, not a mode selector) — unlike `forceRecalculateAtr` in the
+  previous pass, this carries no working side effect when unused, so it's
+  inert leftover data rather than a finished-but-unwired feature; removed
+  rather than documented.
+- Verified with `npm run build` in addition to check/eslint/test, per the
+  UI-component convention this item has followed since pass twenty-nine,
+  and specifically relevant here given the toggle behavior fix.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1055,7 +1098,7 @@ touched so far — the trading journal's dashboard shell.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 757 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 746 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

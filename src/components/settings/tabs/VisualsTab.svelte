@@ -28,6 +28,11 @@
         themes: Array<{ value: string; label: string }>;
     }>();
 
+    // iOS 13+ Safari-specific extension, not in the standard DOM lib types.
+    interface DeviceOrientationEventiOS {
+        requestPermission?: () => Promise<"granted" | "denied">;
+    }
+
     // Font Options
     const fonts = [
         { value: "Inter", label: "Inter" },
@@ -50,12 +55,6 @@
         { value: "breathing", label: "Breathing" },
         { value: "waves", label: "Waves" },
         { value: "aurora", label: "Aurora" },
-    ];
-
-    // Layout Options
-    const layoutModes = [
-        { value: "standard", label: $_("settings.visuals.layoutModes.standard") },
-        { value: "floating", label: $_("settings.visuals.layoutModes.floating") },
     ];
 
     const colorModeLabels: Record<string, string> = {
@@ -103,14 +102,16 @@
 
         if (!isEnabled) {
             // Check for iOS permission requirement
+            const deviceOrientationEventiOS =
+                DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
             if (
                 typeof DeviceOrientationEvent !== "undefined" &&
-                typeof (DeviceOrientationEvent as any).requestPermission ===
+                typeof deviceOrientationEventiOS.requestPermission ===
                     "function"
             ) {
-                (DeviceOrientationEvent as any)
+                deviceOrientationEventiOS
                     .requestPermission()
-                    .then((response: string) => {
+                    .then((response) => {
                         if (response === "granted") {
                             settingsState.galaxySettings.enableGyroscope = true;
                         } else {
@@ -119,7 +120,7 @@
                             );
                         }
                     })
-                    .catch((err: any) => {
+                    .catch((err: unknown) => {
                         console.error(err);
                     });
             } else {
@@ -146,7 +147,7 @@
     ];
 
     // Added labels for TradeFlow modes
-    const tfModeLabels: any = {
+    const tfModeLabels: Record<string, string> = {
         equalizer: "Equalizer",
         raindrops: "Raindrops",
         city: "Digital City",
@@ -385,7 +386,7 @@
                                     {$_("settings.visuals.colorMode")}
                                 </span>
                                 <div class="flex flex-wrap gap-2">
-                                    {#each ["theme", "interactive", "custom", "classic"] as mode}
+                                    {#each ["theme", "interactive", "custom", "classic"] as const as mode}
                                         <button
                                             class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffectColorMode ===
                                             mode
@@ -393,7 +394,7 @@
                                                 : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                             onclick={() =>
                                                 (settingsState.borderEffectColorMode =
-                                                    mode as any)}
+                                                    mode)}
                                         >
                                             {$_(
                                                 colorModeLabels[
@@ -436,7 +437,7 @@
                                     {$_("settings.visuals.intensity")}</span
                                 >
                                 <div class="flex gap-2">
-                                    {#each ["low", "medium", "high"] as intensity}
+                                    {#each ["low", "medium", "high"] as const as intensity}
                                         <button
                                             class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.burningBordersIntensity ===
                                             intensity
@@ -444,7 +445,7 @@
                                                 : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                             onclick={() =>
                                                 (settingsState.burningBordersIntensity =
-                                                    intensity as any)}
+                                                    intensity)}
                                         >
                                             {$_(
                                                 `settings.profile.background.intensity${intensity.charAt(0).toUpperCase() + intensity.slice(1)}` as TranslationKey,
@@ -617,8 +618,8 @@
                         </div>
                         <Toggle
                             checked={uiState.showAssistant}
-                            onchange={(e: any) =>
-                                uiState.toggleAssistant(e.detail)}
+                            onchange={(e) =>
+                                uiState.toggleAssistant((e.currentTarget as HTMLInputElement).checked)}
                         />
                     </label>
                 </div>
@@ -630,7 +631,7 @@
             <section class="settings-section animate-fade-in">
                 <!-- Type Selector -->
                 <div class="flex gap-2 mb-4 flex-wrap">
-                    {#each [{ v: "none", l: $_("settings.profile.background.typeNone") }, { v: "image", l: $_("settings.profile.background.typeMedia") }, { v: "animation", l: $_("settings.profile.background.typeAnimation") }, { v: "threejs", l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow", l: "Trade Flow" }] as type}
+                    {#each [{ v: "none" as const, l: $_("settings.profile.background.typeNone") }, { v: "image" as const, l: $_("settings.profile.background.typeMedia") }, { v: "animation" as const, l: $_("settings.profile.background.typeAnimation") }, { v: "threejs" as const, l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow" as const, l: "Trade Flow" }] as type}
                         <button
                             class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
                                 type.v ||
@@ -642,7 +643,7 @@
                                 if (type.v === "image") {
                                     settingsState.backgroundType = "image";
                                 } else {
-                                    settingsState.backgroundType = type.v as any;
+                                    settingsState.backgroundType = type.v;
                                     
                                     // Auto-adjust opacity for 3D backgrounds if they are too faint
                                     if ((type.v === "threejs" || type.v === "tradeflow" || type.v === "animation") && settingsState.backgroundOpacity <= 0.3) {
@@ -1150,12 +1151,12 @@
                         <div class="field-group mb-4">
                             <label for="tf-mode">{$_("settings.visuals.tradeFlow.mode")}</label>
                             <div class="flex flex-wrap gap-2">
-                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as mode}
+                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as const as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                             : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}"
-                                        onclick={() => settingsState.tradeFlowSettings.flowMode = mode as any}
+                                        onclick={() => settingsState.tradeFlowSettings.flowMode = mode}
                                     >
                                         {tfModeLabels[mode] || mode.charAt(0).toUpperCase() + mode.slice(1)}
                                     </button>
@@ -1204,7 +1205,7 @@
                             <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
                             <div class="flex items-center justify-between">
                                 <div class="flex flex-wrap gap-2">
-                                    {#each ["theme", "custom"] as mode}
+                                    {#each ["theme", "custom"] as const as mode}
                                         <button
                                             class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode ===
                                             mode
@@ -1212,7 +1213,7 @@
                                                 : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                             onclick={() =>
                                                 (settingsState.tradeFlowSettings.colorMode =
-                                                    mode as any)}
+                                                    mode)}
                                         >
                                             {$_(
                                                 colorModeLabels[
