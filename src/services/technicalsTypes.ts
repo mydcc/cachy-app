@@ -222,7 +222,7 @@ export interface WorkerCalculatePayload {
     close: string;
     volume: string;
   }[];
-  settings: any; // IndicatorSettings
+  settings: IndicatorSettings;
 }
 
 export interface WorkerCalculatePayloadSoA {
@@ -232,13 +232,17 @@ export interface WorkerCalculatePayloadSoA {
   lows: Float64Array;
   closes: Float64Array;
   volumes: Float64Array;
-  settings: any;
+  settings: IndicatorSettings;
 }
 
 export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR" | "INITIALIZE" | "UPDATE" | "SHIFT" | "CLEANUP";
 
 export interface WorkerMessage {
   type: WorkerMessageType;
+  // Shape varies by `type` (SoA arrays for CALCULATE/INITIALIZE/UPDATE,
+  // a single kline for UPDATE, a cacheKey for CLEANUP, ...) — see
+  // technicals.worker.ts's onmessage handler for the actual per-type reads.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload?: any;
   error?: string;
   id?: string;

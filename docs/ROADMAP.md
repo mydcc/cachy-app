@@ -2038,6 +2038,24 @@ order blocks, fair value gaps) — all unused-vars, no `any` sites.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped.
 
+**Pass seventy-three: `services/technicalsTypes.ts`, 537 → 534.** The
+shared type definitions for indicator results and worker messages.
+
+- `WorkerCalculatePayload.settings: any` and
+  `WorkerCalculatePayloadSoA.settings: any` → `IndicatorSettings`. The
+  first field's own comment already named the type (`// IndicatorSettings`)
+  — and the file already imports and re-exports `IndicatorSettings` from
+  `types/indicators.ts` two lines above, just never applied it here. No
+  circular-dependency risk: `types/indicators.ts` has no imports of its
+  own.
+- `WorkerMessage.payload?: any` stayed `any`, documented — same
+  heterogeneous-by-message-type reasoning as pass 68's
+  `technicals.worker.ts` finding (this is that same field's declaration
+  site).
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -2045,7 +2063,7 @@ skipped.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 537 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 534 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
