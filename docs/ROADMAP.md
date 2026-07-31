@@ -1333,6 +1333,27 @@ plus an AI sentiment summarizer).
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass forty-two: `stores/ui.svelte.ts`, 676 → 670.** The window/modal/toast
+UI-state store, including the legacy `subscribe()`/`update()` pair kept for
+non-Svelte-context callers.
+
+- New `UiSnapshot` interface, matching the object literal `subscribe()`'s
+  `getSnapshot()` and `update()`'s `stateSnapshot` both already build
+  field-for-field — replaces the `(value: any) => void` /
+  `(state: any) => any` signatures on both legacy methods, and both
+  internal snapshot builders.
+- `tooltip.data` (the `$state` field) and `showTooltip()`'s `data`
+  parameter → `unknown`. This store never reads into the object — it's
+  handed through to whichever of `PositionTooltip`/`OrderDetailsTooltip`
+  the `tooltip.type` discriminant selects, which is exactly the "opaque
+  payload, never inspected here" shape `unknown` describes; both
+  consumers still type their own prop as `any`, out of scope for this
+  file.
+- `private notifyTimer: any` → `ReturnType<typeof setTimeout> | null`,
+  matching the two `setTimeout`/`clearTimeout` sites managing it.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1340,7 +1361,7 @@ plus an AI sentiment summarizer).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 676 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 670 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
