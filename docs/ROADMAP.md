@@ -2474,6 +2474,38 @@ stays at 0 errors.
 stays at 2 passing; `npm test` stays at 850 passing, 6 skipped; `npm run
 check` stays at 0 errors.
 
+**Pass ninety-one: `src/tests/flash-close.test.ts`, 425 → 417.**
+Critical-path regression tests asserting flash-close binds to the exact
+OMS position amount, never a "safe max" fallback.
+
+- `vi.spyOn(tradeService as any, 'signedRequest')` → `vi.spyOn
+  (tradeService, 'signedRequest')` — the cast was never needed,
+  `signedRequest` is `public` on the real class.
+- `signedRequestSpy: any` → `MockInstance<(method: string, endpoint:
+  string, payload: Record<string, unknown>) => Promise<unknown>>`,
+  matching `signedRequest`'s real (generic) signature collapsed to one
+  concrete instantiation for the spy's purposes. This made every
+  downstream `.mock.calls.find((c: any) => ...)` callback's annotation
+  removable — `c`/`call` now infer as the real tuple type — but also
+  surfaced 3 real narrowing gaps `tsc` had been silently permitted by
+  the old `any`: two `.find()` results used directly (`callArgs[2]`,
+  `calls.indexOf(cancelCall)`/`(closeCall)`) without the guard the
+  first two tests already had (an explicit `if (!callArgs) throw`).
+  Fixed with `!` non-null assertions at the 3 sites — each test already
+  implicitly depends on the call being found (the very next line reads
+  a field off it, or asserts `.toBeDefined()` first), so this doesn't
+  change what the test verifies, only makes the existing assumption
+  explicit.
+- Two `global.fetch = vi.fn().mockResolvedValue({...} as any)` →
+  `as unknown as Response`, the standard two-step narrowing for a
+  partial `Response`-shaped stub (only `ok`/`text` are set).
+- Verified under the same scratch-`tsconfig` technique as the last seven
+  passes — 0 errors.
+
+`npx vitest run src/tests/flash-close.test.ts` stays at 6 passing; `npm
+test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2481,7 +2513,7 @@ check` stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 425 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 417 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
