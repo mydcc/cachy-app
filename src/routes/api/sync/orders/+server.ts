@@ -68,24 +68,29 @@ export const POST: RequestHandler = async ({ request }) => {
       return false;
     };
 
+    const pageLimit = limit ?? 100;
+
     // Execute all fetches in parallel
     const [regularResult, tpslResult, planResult] = await Promise.allSettled([
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/trade/get_history_orders",
+        pageLimit,
         checkTimeout,
       ),
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/tpsl/get_history_orders",
+        pageLimit,
         checkTimeout,
       ),
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/plan/get_history_plan_orders",
+        pageLimit,
         checkTimeout,
       ),
     ]);
@@ -149,6 +154,7 @@ async function fetchAllPages(
   apiKey: string,
   apiSecret: string,
   path: string,
+  pageLimit: number,
   checkTimeout: () => boolean,
 ): Promise<BitunixOrder[]> {
   const maxPages = 50; // Reduced from 100 to prevent long waits
@@ -163,7 +169,7 @@ async function fetchAllPages(
       apiKey,
       apiSecret,
       path,
-      100,
+      pageLimit,
       currentEndTime,
     );
 

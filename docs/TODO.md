@@ -419,6 +419,46 @@ inline because Klasse-A credential decryption needs a verified fix
 with a test reproducing a real legacy blob, not a drive-by guess at
 the missing fallback's exact shape.
 
+## 13. `src/service-worker.ts` declares a runtime cache with a size bound that's never used
+
+**Roadmap item 21.** Found while looking for a home for an unused
+`MAX_RUNTIME_CACHE_ENTRIES` constant flagged by a lint pass.
+
+The service worker declares two cache names: `CACHE` (build-time
+assets) and `RUNTIME_CACHE` (for presumably dynamically-fetched,
+non-build assets), plus `MAX_RUNTIME_CACHE_ENTRIES = 50` clearly meant
+to bound the runtime cache's size (an LRU-style eviction policy is the
+usual reason to track an entry-count cap). In the code as it stands:
+
+- `RUNTIME_CACHE` is referenced exactly once — in `deleteOldCaches()`,
+  to *exclude* it from deletion (`key !== CACHE && key !== RUNTIME_CACHE`).
+  Nothing ever calls `caches.open(RUNTIME_CACHE)` or writes to it.
+- `MAX_RUNTIME_CACHE_ENTRIES` is never read anywhere.
+- The `fetch` handler's `respond()` function only ever opens `CACHE`,
+  and only caches a response when `ASSETS.includes(url.pathname)` —
+  i.e. only build-time assets get cached at all. Anything fetched at
+  runtime that isn't in the build's static asset list (API responses
+  aside, which are explicitly excluded) is never cached, runtime or
+  otherwise.
+
+**Consequence:** this reads like scaffolding for a runtime-caching
+feature (cache dynamically-fetched assets too, bounded to the last N
+entries) that was named and half-wired but never finished — not a bug
+in the sense of wrong behavior, since nothing currently claims to
+provide runtime caching, but a dead declaration next to an empty
+implementation.
+
+**The decision:** either implement the runtime cache (open
+`RUNTIME_CACHE` in `respond()` for non-build-asset GET responses,
+trim it to `MAX_RUNTIME_CACHE_ENTRIES` on write), or remove both
+constants if build-time-only caching is intentional and sufficient.
+Left as a lint-pass finding rather than fixed inline: service-worker
+caching behavior affects offline support and cache staleness across
+every user's PWA install, which needs deliberate design and testing
+(does eviction go by insertion order or last-access order? does a
+100th write evict silently or reject?), not a guess made while
+clearing an unused-variable warning.
+
 ## Add new items below
 
 <!--

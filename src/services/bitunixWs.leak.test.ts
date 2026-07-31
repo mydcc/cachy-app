@@ -27,7 +27,7 @@ class MockWebSocket {
     removeEventListener = vi.fn();
 }
 
-global.WebSocket = MockWebSocket as any;
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
 /**
  * These tests assert on the service's internal bookkeeping — the point of a leak

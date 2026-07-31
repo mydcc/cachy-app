@@ -3734,6 +3734,87 @@ files are down to 1 warning each now.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred fifteen: 15-file batch, 74 → 59.** All files down to
+1 warning. Includes a real, confirmed, and fixed bug in a live sync
+endpoint — a user-requested value silently discarded server-side.
+
+- `src/routes/api/ai/anthropic/+server.ts`, `ai/gemini/+server.ts`,
+  `external/cmc/+server.ts`: the usual `catch (e: any)` →
+  `instanceof Error` guard, same treatment as passes 111/112.
+- `src/routes/api/sentiment/+server.ts`: `(e as any).message` inside a
+  `typeof e === 'object' && e !== null && 'message' in e` guard →
+  `(e as { message: unknown }).message` — the `in` check already does
+  the real narrowing work, the cast just needed to be honest about it.
+- `src/routes/api/stream-logs/+server.ts`: an unused destructured
+  `url` (only `request` is read) dropped from the handler's params.
+- `src/routes/api/sync/orders/+server.ts` — **real bug**: the request
+  body's `limit` field (`z.number().optional()`) was destructured but
+  never used — `fetchAllPages()` always hardcoded `100` as the
+  per-page size passed to `fetchBitunixData()`. Traced the client side
+  first (`syncService.ts` sends `limit: 500` on every sync call) and
+  the sibling routes fixed in pass 111
+  (`positions-history/+server.ts`, `positions-pending/+server.ts`),
+  which already thread their own `limit` field through correctly —
+  confirming this is the one route in the family that regressed.
+  Fixed by adding a `pageLimit` parameter to `fetchAllPages()` and
+  passing `limit ?? 100` from the handler. Verified the route's
+  existing `security.test.ts` (4 tests, HTTP-level only, doesn't touch
+  the private helpers) still passes unchanged.
+- `src/service-worker.ts`: an unused `MAX_RUNTIME_CACHE_ENTRIES`
+  constant traced to a half-built feature — `RUNTIME_CACHE` is
+  declared and protected from cache-cleanup deletion, but nothing ever
+  writes to it or enforces the entry-count cap; only build-time assets
+  get cached at all today. Documented as `docs/TODO.md` item 13
+  (service-worker caching behavior needs deliberate design/testing,
+  not a lint-pass guess) rather than fixed inline.
+- `src/services/apiService.test.ts`: an `AbortController`/`signal`
+  pair created but never passed to the call under test (the test mocks
+  `fetch` directly to throw `AbortError` regardless) — confirmed dead,
+  both lines removed.
+- `src/services/apiService_infinity.test.ts`: `vi.importActual(...) as
+  any` → the standard `vi.importActual<typeof import("../utils/utils")>
+  (...)` generic form.
+- `src/services/bitunixWs.leak.test.ts`: `global.WebSocket =
+  MockWebSocket as any` → `as unknown as typeof WebSocket`.
+- `src/services/calculationStrategy.ts`: `exportTelemetry()`'s
+  `circuitBreaker: {} as Record<string, any>` placeholder (its own
+  comment: "Mock other fields expected by DebugPanel for now") → a new
+  `EngineCircuitBreakerHealth` interface (`healthy`, `lastError`,
+  `failures`) typed against what `EngineDebugPanel.svelte` actually
+  reads — still always empty at runtime, but now the eventual
+  circuit-breaker implementation has a real contract instead of `any`.
+- `src/services/cmcService.ts`: `CmcCoinMetadata.platform: any` →
+  `unknown` (CMC's raw field, null for native coins or an object for
+  tokens — confirmed nothing in this codebase reads through it yet).
+- `src/services/dbService.ts`: the generic IndexedDB `put(storeName,
+  value: any, key?)` helper → `value: unknown` (genuinely stores
+  arbitrary shapes across news/sentiment/kv_store object stores; the
+  browser's `IDBObjectStore.put()` itself accepts anything).
+- `src/services/engineBenchmark.ts`: `benchmarkEngine(..., klines:
+  any[], ...)` → `Kline[]`. This surfaced a real mismatch in its one
+  caller: `generateTestKlines()` built plain `{ open: number, ... }`
+  objects, not real `Kline`s with `Decimal` fields — every downstream
+  consumer (`technicalsService`, `wasmCalculator`, `webGpuCalculator`)
+  expects `Decimal`. Fixed the generator to wrap each OHLCV field in
+  `new Decimal(...)`, matching CLAUDE.md's "decimal.js for all
+  prices" rule that this benchmark utility had quietly been violating.
+- `src/services/hotkeyService.test.ts`: a mocked `settingsState.update`
+  had `fn: any` → `fn: (s: Settings) => Partial<Settings>`, matching
+  the real store method's signature.
+- Verified: all 15 files (+2 ripple files — `calculationStrategy.ts`
+  ripple into `EngineDebugPanel.svelte`, `engineBenchmark.ts`'s own
+  `Kline` fix) pass `npm run check`. The 4 excluded-from-`tsconfig.json`
+  test files checked via the scratch-tsconfig technique; 3 pre-existing
+  errors in `apiService_infinity.test.ts`, `bitunixWs.leak.test.ts`,
+  and `hotkeyService.test.ts` confirmed identical against each file's
+  untouched `git show HEAD:...` baseline before being left alone.
+  `npm test` unchanged at 850 passing, 6 skipped, plus a targeted run
+  of `sync/orders/security.test.ts` (4/4 passing) to double-check the
+  real behavioral fix there.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3741,7 +3822,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 74 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 59 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

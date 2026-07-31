@@ -16,7 +16,7 @@ vi.mock("./requestManager", () => ({
 // Actually, fetch was returning {ok: true, text: ...}. safeJson calls text() and parses.
 
 vi.mock("../utils/utils", async () => {
-    const original = await vi.importActual("../utils/utils") as any;
+    const original = await vi.importActual<typeof import("../utils/utils")>("../utils/utils");
     return {
         ...original,
         // Optional: mock anything needed
