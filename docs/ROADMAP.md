@@ -1142,6 +1142,32 @@ performance/cost chart grid in the journal's deep-dive dashboard.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty-four: `TpSlList.svelte`, 726 → 719.** The TP/SL order list —
+directly financial UI, showing and cancelling live take-profit/stop-loss
+orders.
+
+- `TpSlOrder` (already exported from `tradeService.ts`) replaces 5 `any`
+  sites (`orders`, `editingOrder`, and three handler parameters). Two
+  `catch (e: any)` blocks normalized to the standard
+  `e instanceof Error ? e.message : String(e)` pattern, with the dynamic
+  i18n-key lookup cast to `TranslationKey` where the message starts with
+  `"dashboard.alerts"`.
+- Typing `order: TpSlOrder` surfaced two real gaps `any` had papered over:
+  `order.qty || order.amount` — `TpSlOrder` declares `qty?: string` but
+  not `amount`, which only exists via the interface's `[key: string]:
+  unknown` index signature, so the fallback's type was `unknown`, not
+  assignable to `formatDynamicDecimal`'s parameter; and
+  `order.ctime || order.createTime`, both individually `number |
+  undefined`, passed to `formatDate(ts: number)` which doesn't accept
+  `undefined`. Fixed with a narrowing cast on the first (the index
+  signature's `unknown` is honestly no more specific than that without
+  changing the shared type) and an explicit `|| 0` fallback on the second,
+  matching `formatDate`'s own `if (!ts) return "-"` handling of falsy input.
+- Verified with `npm run build` in addition to check/eslint/test, per the
+  UI-component convention.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1149,7 +1175,7 @@ performance/cost chart grid in the journal's deep-dive dashboard.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 726 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 719 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

@@ -16,8 +16,9 @@
 -->
 
 <script lang="ts">
-  import { tradeService } from "../../services/tradeService";
+  import { tradeService, type TpSlOrder } from "../../services/tradeService";
   import { _ } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/schema";
   import { formatDynamicDecimal } from "../../utils/utils";
   import TpSlEditModal from "./TpSlEditModal.svelte";
   import { toastService } from "../../services/toastService.svelte";
@@ -29,13 +30,13 @@
   let { isActive = false }: Props = $props();
 
   let view: "pending" | "history" = $state("pending");
-  let orders: any[] = $state([]);
+  let orders: TpSlOrder[] = $state([]);
   let loading = $state(false);
   let error = $state("");
 
   // Modal State
   let showEditModal = $state(false);
-  let editingOrder: any = $state(null);
+  let editingOrder: TpSlOrder | null = $state(null);
 
   async function fetchOrders() {
     if (!isActive) return;
@@ -44,11 +45,12 @@
     error = "";
     try {
       orders = await tradeService.fetchTpSlOrders(view);
-    } catch (e: any) {
+    } catch (e) {
       console.error("TP/SL Global Error:", e);
       // Map error message using i18n key if available
-      if (e.message && e.message.startsWith("dashboard.alerts")) {
-        error = $_(e.message);
+      const message = e instanceof Error ? e.message : String(e);
+      if (message.startsWith("dashboard.alerts")) {
+        error = $_(message as TranslationKey);
       } else {
         error = $_("apiErrors.failedToLoadOrders");
       }
@@ -57,23 +59,24 @@
     }
   }
 
-  async function handleCancel(order: any) {
+  async function handleCancel(order: TpSlOrder) {
     if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
 
     try {
       await tradeService.cancelTpSlOrder(order);
       toastService.success($_("dashboard.alerts.orderCancelled"));
       fetchOrders(); // Refresh
-    } catch (e: any) {
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
       const msg =
-        e.message && e.message.startsWith("dashboard.alerts")
-          ? $_(e.message)
+        message.startsWith("dashboard.alerts")
+          ? $_(message as TranslationKey)
           : $_("dashboard.alerts.cancelFailed");
       toastService.error(msg);
     }
   }
 
-  function openEdit(order: any) {
+  function openEdit(order: TpSlOrder) {
     editingOrder = order;
     showEditModal = true;
   }
@@ -100,7 +103,7 @@
   }
 
   // Helper to determine type label
-  function getTypeLabel(o: any) {
+  function getTypeLabel(o: TpSlOrder) {
     if (o.planType === "PROFIT") return "TP";
     if (o.planType === "LOSS") return "SL";
     return "Plan";
@@ -175,7 +178,7 @@
               </div>
               <div class="text-right">
                 {$_("dashboard.tpslManager.amount")} <span class="text-[var(--text-primary)]"
-                  >{formatDynamicDecimal(order.qty || order.amount)}</span
+                  >{formatDynamicDecimal(order.qty || (order.amount as string | number | undefined))}</span
                 >
               </div>
             </div>
@@ -184,7 +187,7 @@
               class="flex justify-between items-center mt-1 pt-1 border-t border-[var(--border-color)] border-opacity-30"
             >
               <span class="text-[9px] text-[var(--text-tertiary)]"
-                >{formatDate(order.ctime || order.createTime)}</span
+                >{formatDate(order.ctime || order.createTime || 0)}</span
               >
 
               {#if view === "pending"}
