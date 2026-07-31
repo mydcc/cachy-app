@@ -18,7 +18,7 @@
 export function getErrorMessage(e: unknown): string {
     if (e instanceof Error) return e.message;
     if (typeof e === 'string') return e;
-    if (e && typeof e === 'object' && 'message' in e) return String((e as any).message);
+    if (e && typeof e === 'object' && 'message' in e) return String((e as { message?: unknown }).message);
     return String(e);
 }
 
@@ -48,8 +48,8 @@ export function getBitunixErrorKey(code: number | string): string {
 export function mapApiErrorToLabel(error: unknown): string {
     // Use rawMessage from BitunixApiError for classification if available
     let msg = getErrorMessage(error);
-    if (error && typeof error === 'object' && 'rawMessage' in error && typeof (error as any).rawMessage === 'string') {
-        msg = (error as any).rawMessage || msg;
+    if (error && typeof error === 'object' && 'rawMessage' in error && typeof (error as { rawMessage?: unknown }).rawMessage === 'string') {
+        msg = (error as { rawMessage?: string }).rawMessage || msg;
     }
     const lowerMsg = msg.toLowerCase();
 
