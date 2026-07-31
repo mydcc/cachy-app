@@ -2129,6 +2129,29 @@ migration path for adding `enabled` flags to older saved settings).
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass seventy-eight: `types/bitunix.ts`, 516 → 513.** Shared Bitunix
+API/WS types.
+
+- `BitunixOrderListWrapper`'s and `BitunixOrderPayload`'s index
+  signatures, `[key: string]: any`, → `unknown`. Traced every read: the
+  wrapper's only real consumer (`routes/api/orders/+server.ts`) reads
+  just the named `orderList` field, never a dynamic pagination key, and
+  the payload's index signature is only ever *written* to
+  (`triggerPrice: payload.triggerPrice || payload.stopPrice`) — except
+  one read, `formatApiNum(orderData.triggerPrice)`, which needed an `as
+  string | number | undefined` cast once `unknown` stopped flowing
+  through freely (caught immediately by `npm run check`: "Argument of
+  type '{}' is not assignable...").
+- `BitunixWSMessage.data?: any` stayed `any`, documented — `bitunixWs.ts`'s
+  `handleMessage()` reads named fields off it directly
+  (`message.data.symbol`) ahead of its own per-channel schema
+  validation, and that file already carries extensive comments about the
+  reachability subtleties there; narrowing the declaration alone would
+  just push the same `any` onto several already-documented call sites.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -2136,7 +2159,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 516 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 513 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

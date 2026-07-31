@@ -315,7 +315,7 @@ async function placeBitunixOrder(
   }
 
   if (orderData.triggerPrice) {
-    const safeTrigger = formatApiNum(orderData.triggerPrice);
+    const safeTrigger = formatApiNum(orderData.triggerPrice as string | number | undefined);
     if (!safeTrigger) throw new Error(ORDER_ERRORS.INVALID_TRIGGER);
     payload.triggerPrice = safeTrigger;
   }
