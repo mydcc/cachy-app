@@ -54,7 +54,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       json: async () => ({ apiKey, apiSecret, limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     // Verify fetch was called
@@ -85,7 +85,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       json: async () => ({ apiKey: 'validApiKey', apiSecret: 'validSecret', limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data).toEqual([]);

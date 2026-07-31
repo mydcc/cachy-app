@@ -3343,6 +3343,81 @@ tier at 2 warnings each, dominated by shared/chart components.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred eleven: 15-file batch, 173 → 143.** The next tier at
+2 warnings each, dominated by server route handlers (`+server.ts`).
+
+- `src/lib/server/cache.ts`: the generic `MemoryCache`'s internal
+  `Map<string, { value: any; expiry: number }>` / `Map<string,
+  Promise<any>>` → `unknown` in both spots — `getOrFetch<T>()` already
+  casts back to `T` on read (`entry.value as T`), and casting from
+  `unknown` is exactly as legal as from `any` there, so no behavior or
+  type-safety changes, just a narrower starting point.
+- `src/lib/windows/implementations/ChannelWindow.svelte.ts` +
+  `IframeWindow.svelte.ts`: both had `options: any = {}` constructor
+  params and `serialize(): any` — unlike the ~15-window-types
+  `WindowBase.component`-style exception, these two only ever construct
+  from the real `WindowOptions` type (confirmed every field each reads
+  — `id`, `closeOnBlur` — exists on it), so they got the precise type
+  instead of a documented `any`; `serialize()` → `WindowSerializedState
+  & { url: string }`, matching pass 107's `ChartWindow` precedent.
+- `src/routes/+layout.svelte`: `catch (e: any)` → normalized with an
+  `instanceof Error` guard around the one field read (`e.name`); a
+  reactivity-trigger-only `const _limit = ...` → `void
+  settingsState.chartHistoryLimit;`, the same pattern pass 107 used in
+  `AiPanel.svelte`/`+page.svelte`.
+- `src/routes/api/account/+server.ts`: both `fetchBitunixAccount`/
+  `fetchBitgetAccount` returned `Promise<any>` — added one
+  `ExchangeAccountData` interface covering the union of fields either
+  function's return object literal actually has, typed against
+  `formatApiNum`'s real `string | undefined` return.
+- `src/routes/api/balance/+server.ts`: `catch (e: any)` normalized;
+  an explicit `(a: any)` on an `Array.prototype.find` callback removed
+  outright — the array itself (`accountInfo`) is already `any` (from
+  untyped exchange JSON), so the callback parameter was already
+  implicitly `any` without the annotation, making it pure dead weight.
+- `src/routes/api/sync/+server.ts`, `sync/order-detail/+server.ts`,
+  `sync/positions-history/+server.ts`, `sync/positions-pending/+server.ts`:
+  each had a `catch (e: any)` (one, `positions-history`, already
+  narrowed with `instanceof Error` inside the block but left the catch
+  param itself typed `any` — just dropped the annotation there) plus an
+  `any`/`any[]` return type on its raw-exchange-data fetch helper →
+  `Record<string, unknown>[]` or `unknown[]`, since none of these
+  helpers' callers do anything with the data beyond passing it straight
+  through to `json({ data: ... })`.
+- `src/routes/api/tickers/+server.ts`: two `(error as any).status` /
+  `.message` inside a user-defined type guard (`isStatusError`) →
+  `(error as { status: unknown }).status` / `{ message: unknown }` —
+  narrower casts that still let the adjacent `typeof ... === "number"`
+  checks do the real narrowing work the guard exists for.
+- `src/routes/api/external/cmc/cmc_auth.test.ts`,
+  `external/news/news_service_memory.test.ts`,
+  `sync/positions-history/positions_history_security.test.ts`: the
+  usual `HANDLER({...} as any)` → `Parameters<typeof HANDLER>[0]`
+  fix from passes 103/104/106; the news test needed the `as unknown as`
+  variant (direct cast rejected — "neither type sufficiently overlaps"
+  — same as pass 103's `Response` casts).
+- `src/services/bitunixWs.test.ts`: `bitunixWs as any` → a
+  `BitunixWsInternals` interface covering the dozen-plus private
+  members this file's batching/throttling tests reach into directly
+  (`handleMessage`, `subscribe`/`unsubscribe`, `pendingSubscriptions`,
+  `wsPublic`, timers, queues, ...), typed against the real class in
+  `bitunixWs.ts`; a `mockWs: any` typed to its real shape. The mock
+  WebSocket's `send: vi.fn()` didn't structurally satisfy a plain
+  `(data: string) => void` field on the interface (Vitest's `Mock` type
+  carries a constructor-signature intersection tsc won't unify with a
+  bare function type), so `wsPublic` stayed at its real `WebSocket |
+  null` type and the one assignment got its own `as unknown as
+  WebSocket` cast instead of loosening the shared interface.
+- Verified: all 15 files pass `npm run check` directly, except the 4
+  `.test.ts` files (excluded from `tsconfig.json`, checked via the
+  usual scratch-tsconfig technique — 0 errors, after ignoring the same
+  handful of pre-existing scratch-config-only artifacts passes 106/108
+  already documented, e.g. `crypto-js`'s missing type declarations).
+  `npm test` unchanged at 850 passing, 6 skipped.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3350,7 +3425,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 173 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 143 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

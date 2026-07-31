@@ -52,13 +52,13 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const order = await fetchBitunixOrderDetail(apiKey, apiSecret, orderId);
     return json({ data: order });
-  } catch (e: any) {
+  } catch (e) {
     console.error(
       `Error fetching order detail from Bitunix for ${orderId}:`,
       e,
     );
     return json(
-      { error: e.message || "Failed to fetch order detail" },
+      { error: (e instanceof Error ? e.message : null) || "Failed to fetch order detail" },
       { status: 500 },
     );
   }
@@ -68,7 +68,7 @@ async function fetchBitunixOrderDetail(
   apiKey: string,
   apiSecret: string,
   orderId: string,
-): Promise<any> {
+): Promise<unknown> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_order_detail";
 

@@ -44,9 +44,9 @@ describe('News Service Cache Memory', () => {
                     apiKey: 'test-key',
                     params: { q: `test-${i}` }
                 })
-            } as any;
+            };
 
-            await POST({ request, fetch: fetchMock } as any);
+            await POST({ request, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
         }
 
         // Optimization: Cache size should be capped at 50

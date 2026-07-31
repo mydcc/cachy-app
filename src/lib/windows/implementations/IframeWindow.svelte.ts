@@ -20,13 +20,14 @@
   Iframe Window Implementation - All Flags Prepared
 */
 
-import { WindowBase } from "../WindowBase.svelte";
+import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
+import type { WindowOptions } from "../types";
 import IframeView from "./IframeView.svelte";
 
 export class IframeWindow extends WindowBase {
     url: string;
 
-    constructor(url: string, title: string, options: any = {}) {
+    constructor(url: string, title: string, options: WindowOptions = {}) {
         super({
             title,
             windowType: 'iframe',
@@ -51,7 +52,7 @@ export class IframeWindow extends WindowBase {
         };
     }
 
-    public serialize(): any {
+    public serialize(): WindowSerializedState & { url: string } {
         return {
             ...super.serialize(),
             url: this.url
