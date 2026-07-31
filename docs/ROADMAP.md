@@ -2643,6 +2643,36 @@ preparation strategies (current, optimized, cached, cached-copy).
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass ninety-six: `src/benchmarks/marketWatcher_backfill.test.ts`,
+388 → 382.** Benchmarks `ensureHistory()`'s parallel backfill against a
+mocked `marketState`/`apiService`.
+
+- Mock `updateSymbolKlines(sym, tf, klines, src)`'s unused `src` param
+  dropped; `sym`/`tf`/`klines` typed `string`/`string`/`Kline[]`
+  (imported from `technicalsTypes.ts`, matching what
+  `MarketData.klines: Record<string, Kline[]>` actually declares).
+  Typing `klines` this way meant `marketState.data[sym].klines[tf]`'s
+  two `as any` reads/writes needed no cast at all — `marketState`
+  imported at the top of the file is the real store's type, and once
+  the mock's own `sym` local carries a real `string` type instead of
+  implicit `any`, indexing into `Record<string, MarketData>` resolves
+  cleanly on its own.
+- `(marketWatcher as any).historyLocks`/`.isPolling` (private polling-
+  guard fields reset before each benchmark run) → one shared
+  `MarketWatcherInternals` type (`{ historyLocks: Set<string>; isPolling:
+  boolean }`) plus a `marketWatcherInternals` cast local, matching the
+  narrow-object-cast pattern used throughout this item.
+- `calls.forEach((c: any[]) => ...)` needed no annotation once
+  `updateSymbolKlines`'s mock had a real signature — `c` now infers as
+  the actual argument tuple.
+- Verified under the same scratch-`tsconfig` technique as the last
+  twelve passes — 0 errors on the first attempt, no follow-up fixes
+  needed this time.
+
+`npx vitest run src/benchmarks/marketWatcher_backfill.test.ts` stays at
+1 passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
+stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2650,7 +2680,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 388 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 382 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

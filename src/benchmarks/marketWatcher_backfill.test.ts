@@ -20,6 +20,12 @@ import { marketWatcher } from '../services/marketWatcher';
 import { apiService } from '../services/apiService';
 import { Decimal } from 'decimal.js';
 import { marketState } from '../stores/market.svelte';
+import type { Kline } from '../services/technicalsTypes';
+
+// Reaches into marketWatcher's private polling-guard fields to force a
+// clean, already-initialized state before each benchmark run.
+type MarketWatcherInternals = { historyLocks: Set<string>; isPolling: boolean };
+const marketWatcherInternals = marketWatcher as unknown as MarketWatcherInternals;
 
 // Mock dependencies
 vi.mock('../stores/settings.svelte', () => ({
@@ -33,7 +39,7 @@ vi.mock('../stores/settings.svelte', () => ({
 vi.mock('../stores/market.svelte', () => ({
     marketState: {
         data: {},
-        updateSymbolKlines: vi.fn((sym, tf, klines, src) => {
+        updateSymbolKlines: vi.fn((sym: string, tf: string, klines: Kline[]) => {
              if (!marketState.data[sym]) marketState.data[sym] = {
                  symbol: sym,
                  lastPrice: null,
@@ -42,9 +48,9 @@ vi.mock('../stores/market.svelte', () => ({
                  nextFundingTime: null,
                  klines: {}
              };
-             const existing = (marketState.data[sym] as any).klines[tf] || [];
+             const existing = marketState.data[sym].klines[tf] || [];
              // Simulate simple append for mock
-             (marketState.data[sym] as any).klines[tf] = existing.concat(klines);
+             marketState.data[sym].klines[tf] = existing.concat(klines);
         }),
     }
 }));
@@ -59,8 +65,8 @@ vi.mock('../services/storageService', () => ({
 describe('MarketWatcher Backfill Performance', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (marketWatcher as any).historyLocks.clear();
-        (marketWatcher as any).isPolling = true;
+        marketWatcherInternals.historyLocks.clear();
+        marketWatcherInternals.isPolling = true;
         marketState.data = {};
     });
 
@@ -100,7 +106,7 @@ describe('MarketWatcher Backfill Performance', () => {
 
         // Calculate total items pushed
         let totalItems = 0;
-        calls.forEach((c: any[]) => totalItems += c[2].length);
+        calls.forEach((c) => totalItems += c[2].length);
 
         // Should be at least 5000 (initial 1000 + 4 batches of 1000)
         expect(totalItems).toBeGreaterThanOrEqual(5000);
