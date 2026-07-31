@@ -283,6 +283,29 @@ meant for. Left in place and merely typed here per this repo's
 defensive-deletion rule: code whose purpose isn't fully clear doesn't get
 deleted without a person confirming it's safe to.
 
+## 9. `src/utils/wasmTechnicals.ts` appears to be unreachable
+
+**Roadmap item 21.** Found while typing this file's `any` casts during a
+lint pass — the same shape of finding as items 5 and 8
+(`WasmTechnicalsCalculator.ts`, `ContentWindow.svelte.ts`).
+
+Nothing in `src/` imports `loadWasm()`, `isWasmAvailable()`, or
+`WASM_SUPPORTED_INDICATORS` from this file — a `grep -rln` for both
+`from ".../wasmTechnicals"` and a bare `wasmTechnicals\b` (excluding the
+file's own definition line) both come back empty. The project's actual
+WASM-accelerated technicals path goes through `src/services/wasmCalculator.ts`
+(see item 5's note that this is the file that's actually wired into
+`technicalsService.ts`) — this file reads like an earlier or
+alternative loader for the same `technicals_wasm.js`/`.wasm` static
+assets, superseded and never removed.
+
+**The decision:** either delete `src/utils/wasmTechnicals.ts`, or, if
+it's kept intentionally (e.g. as a planned entry point for a future
+loader consolidation), say what that reason is so the next pass doesn't
+re-flag it. Left in place and merely typed here per this repo's
+defensive-deletion rule: code whose purpose isn't fully clear doesn't
+get deleted without a person confirming it's safe to.
+
 ## Add new items below
 
 <!--

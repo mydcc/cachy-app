@@ -2197,6 +2197,32 @@ The incremental (O(1)-update) technicals calculator.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass eighty-two: `utils/wasmTechnicals.ts`, 504 → 501.** The ACE WASM
+technicals loader (dynamic-import glue for the emscripten-built
+`technicals_wasm.js`/`.wasm` pair).
+
+- `wasmModule`/`loadingPromise: Promise<any> | null` → a local
+  `WasmTechnicalsGlueModule` interface declaring only the one member
+  this file itself calls, `default: (wasmBinaryPath: string) =>
+  Promise<unknown>`. The dynamic `import(/* @vite-ignore */ wasmJsPath)`
+  result stays structurally `any` (the path isn't statically resolvable,
+  so TS can't infer a shape for it) — assigning and returning that raw
+  `mod` value directly (instead of the narrowed `wasmModule` local, which
+  TS won't re-narrow to non-null across the closure) keeps the async
+  IIFE's return type matching `Promise<WasmTechnicalsGlueModule>`
+  without an explicit cast.
+- `catch (e: any)` normalized to `catch (e)` with
+  `e instanceof Error ? e.message : String(e)`, the same pattern used
+  throughout this effort.
+- **Zero importers found anywhere in `src/`** (`grep -rln` for both
+  `from ".../wasmTechnicals"` and a bare `wasmTechnicals\b` outside the
+  file itself both come back empty) — same apparently-dead-module
+  pattern as items 5 and 8. Not deleted per Defensive Deletion; recorded
+  as `docs/TODO.md` item 9 instead.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -2204,7 +2230,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 504 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 501 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

@@ -22,8 +22,14 @@
  * Uses static assets for maximum compatibility with ACE.
  */
 
-let wasmModule: any = null;
-let loadingPromise: Promise<any> | null = null;
+// The glue module's real shape depends on what emscripten generated; the
+// only member this file itself calls is the default init function.
+interface WasmTechnicalsGlueModule {
+    default: (wasmBinaryPath: string) => Promise<unknown>;
+}
+
+let wasmModule: WasmTechnicalsGlueModule | null = null;
+let loadingPromise: Promise<WasmTechnicalsGlueModule> | null = null;
 
 export const WASM_SUPPORTED_INDICATORS = [
     'ema', 'rsi', 'macd', 'bb', 'atr', 'stochastic', 'cci', 'adx', 'supertrend',
@@ -50,9 +56,9 @@ export async function loadWasm() {
             await mod.default(wasmBinaryPath);
             
             wasmModule = mod;
-            return wasmModule;
-        } catch (e: any) {
-            console.error(`[WASM] ACE Engine Load Failed:`, e.message);
+            return mod;
+        } catch (e) {
+            console.error(`[WASM] ACE Engine Load Failed:`, e instanceof Error ? e.message : String(e));
             loadingPromise = null;
             throw e;
         }
