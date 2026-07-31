@@ -24,9 +24,17 @@ import { browser } from "$app/environment";
 
 
 const STRONG_ITERATIONS = 600000;
+// Not read by attemptDecrypt()'s AES-CBC branch, which always uses
+// STRONG_ITERATIONS — see docs/TODO.md item 12: the pre-Web-Crypto
+// implementation retried legacy blobs at this iteration count, and that
+// fallback was lost in the rewrite. Kept, not deleted, until a person
+// confirms no real blob still needs it.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LEGACY_ITERATIONS = 10000;
 const SALT_SIZE = 16;
 const IV_SIZE_GCM = 12; // GCM standard
+// See docs/TODO.md item 12, same reasoning as LEGACY_ITERATIONS above.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const IV_SIZE_CBC = 16; // CBC standard
 const KEY_SIZE = 256;
 

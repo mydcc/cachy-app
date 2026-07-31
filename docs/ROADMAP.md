@@ -3418,6 +3418,116 @@ errors.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred twelve: 15-file batch, 143 → 113.** The next tier at
+2 warnings each. Includes one real finding worth its own `docs/TODO.md`
+entry, traced back through git history rather than guessed at.
+
+- `src/services/cryptoService.ts`: two unused consts
+  (`LEGACY_ITERATIONS`, `IV_SIZE_CBC`) led to `git log`/`git show` on the
+  file's history. Commit `560a15c7` rewrote this file from a CryptoJS
+  implementation (which retried legacy AES-CBC blobs at
+  `LEGACY_ITERATIONS` if the current `STRONG_ITERATIONS` key failed) to
+  today's Web Crypto API version — and dropped that retry entirely,
+  leaving `attemptDecrypt()`'s `AES-CBC` branch always deriving the key
+  at `STRONG_ITERATIONS`. Since AES-CBC has no auth tag, a wrong key
+  doesn't throw, it silently returns garbage (the file's own comment
+  already says as much). Documented as `docs/TODO.md` item 12 with the
+  exact commit and old/new code side by side; both constants kept with
+  an `eslint-disable-next-line` pointing at the item rather than
+  deleted, matching `JournalContent.svelte`'s `forceRecalculateAtr()`
+  precedent (item 6) for "purpose clear, not wired up."
+- `src/services/chartPatterns.test.ts`: two `as any` on Node-environment
+  `Path2D`/`CanvasRenderingContext2D` polyfill stubs → `as unknown as
+  typeof Path2D` / `typeof CanvasRenderingContext2D`.
+- `src/services/mappers.ts`: `mapToOMSPosition`/`mapToOMSOrder`'s
+  `data: any` documented — both duck-type across Bitunix/Bitget REST
+  and WS payloads with different field names for the same value
+  (`avgOpenPrice` vs `averagePrice`, `qty` vs `size` vs `amount`, ...),
+  the same reasoning `BitunixWSMessage.data` already has (passes
+  68/73).
+- `src/services/markdownLoader.ts`: a `marked` custom renderer's
+  `heading(args: any)` plus a `} as any` on the whole renderer object →
+  `heading({ text, depth, raw }: Tokens.Heading)` typed against
+  `marked`'s real `Tokens.Heading`/`RendererObject` types, no cast
+  needed at all once the callback's own parameter is precisely typed.
+- `src/services/marketWatcher.bench.ts`: `klines: any[]` and
+  `(marketWatcher as any).fillGaps(...)` → `Kline[]` and the same
+  `MarketWatcherInternals` shape pass 106's
+  `marketWatcher_fillGaps.test.ts` already established for this exact
+  private method.
+- `src/services/marketWatcher.ts`: an unused `KlineRaw` type import and
+  an unused `MarketWatchRequest` interface — the latter describes a
+  `{ symbol, channels: Set<string> }` shape that doesn't match the
+  class's real `requests: Map<string, Map<string, Map<string, number>>>`
+  field (the same three-level map pass 106's
+  `marketWatcher_hardening.test.ts` finding was about), reading like
+  scaffolding from before that field was redesigned. Both confirmed via
+  `grep` to have zero other references in the file — deleted.
+- `src/services/marketWatcher_perf.test.ts`: `watcher: any` → a
+  `MarketWatcherInternals` interface covering the methods/fields this
+  performance test drives directly (`startPolling`, `stopPolling`,
+  `syncSubscriptions`, `register`, `requests`, `pendingRequests`,
+  `_subscriptionsDirty`), typed against the real private members in
+  `marketWatcher.ts`.
+- `src/services/mdaService.ts` + `mdaTypes.ts`: `normalizeTicker`/
+  `normalizeKlines`'s `raw: any` documented (same duck-typing
+  reasoning as `mappers.ts` — this file's whole job is normalizing
+  differently-shaped exchange payloads); the never-implemented
+  `MarketDataAdapter` interface's two `raw: any` params tightened to
+  `unknown` instead — a real fix, not documentation, since nothing
+  implements this interface yet and `unknown` is honestly stricter for
+  a contract with no current callers to break.
+- `src/services/storageService.ts`: two `(event.target as
+  any).error` in an `IDBOpenDBRequest.onerror` handler → `as
+  IDBOpenDBRequest` (the concrete type with a real `.error` field).
+- `src/services/technicalsWorker.ts`: `WorkerState.settings: any` →
+  `IndicatorSettings` (the real settings type, imported from
+  `types/indicators`); a `(k: any)` on a `.map()` callback needed a
+  real type rather than a bare removal here — unlike the usual
+  "receiver is already `any`, so the annotation is dead weight"
+  pattern (pass 106's precedent), this file's `const parsedKlines:
+  Kline[] = klines.map(...)` left-hand-side annotation triggers
+  contextual typing that `svelte-check` flags as "implicitly has an
+  `any` type" once the redundant annotation is gone — confirmed by
+  testing the bare removal first and getting a real `npm run check`
+  error, not assumed. Fixed with `WorkerCalculatePayload["klines"][number]`,
+  an indexed-access type off the already-declared raw-kline shape.
+- `src/services/tradeService_flashClose.test.ts`: an unused
+  `importOriginal` mock-factory parameter dropped (the mock body never
+  calls it); a fetch-mock's `options: any` → `{ body: string }` (only
+  field actually read). Verified via the scratch-tsconfig technique
+  that this file has several **pre-existing** type errors unrelated to
+  either warning (a fixture missing `OMSPosition` fields, `mock.calls[]`
+  optional-index/`BodyInit` mismatches) — confirmed by running the same
+  scratch check against the untouched `git show HEAD:...` version of
+  the file, which reproduces the identical errors verbatim. Same
+  "scratch-config-only artifact, out of scope" treatment as passes
+  106/108/111.
+- `src/stores/fireStore.svelte.ts`: a dynamic-key comparison loop's
+  two `(x as any)[key]` → `(x as unknown as Record<string, unknown>)[key]`
+  (direct `as Record<...>` was rejected — insufficient overlap with the
+  concrete `BurningElement` type, same as pass 103's `Response` casts).
+- `src/stores/journal.svelte.ts`: a `.map((trade: any) => ...)`
+  annotation removed as dead weight (`sliced`'s source is
+  `safeJsonParse()`'s default `any` return, already unchecked);
+  `notifyTimer: any` → `ReturnType<typeof setTimeout> | null`, matching
+  the timer-typing convention already used elsewhere in this codebase
+  (e.g. `marketWatcher.ts`'s `pollingTimeout`).
+- `src/stores/market.test.ts`: two `(market as any).flushUpdates()` →
+  the same `{ flushUpdates: () => void }` cast shape pass 104's
+  `float_safety.test.ts` already established for this exact private
+  method on the sibling `marketState` singleton.
+- Verified: all 15 files pass `npm run check` (2 files needed follow-up
+  fixes after the first attempt — `fireStore.svelte.ts`'s cast and
+  `technicalsWorker.ts`'s contextual-typing gap, both caught by
+  `npm run check` before commit, not left for CI to find); the 4
+  `.test.ts` files excluded from `tsconfig.json` checked via the usual
+  scratch-tsconfig technique. `npm test` unchanged at 850 passing, 6
+  skipped.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3425,7 +3535,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 143 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 113 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

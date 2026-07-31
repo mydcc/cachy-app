@@ -366,6 +366,59 @@ typed here per this repo's defensive-deletion rule: code whose purpose
 isn't fully clear doesn't get deleted without a person confirming it's
 safe to.
 
+## 12. Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
+
+**Roadmap item 21.** Found while looking for a home for two newly-unused
+constants (`LEGACY_ITERATIONS`, `IV_SIZE_CBC`) flagged by a lint pass —
+`git log`/`git show` on the file traced the regression before deciding
+whether the constants were safe to delete.
+
+`src/services/cryptoService.ts` predates commit `560a15c7` ("feat:
+Implementation of a new crypto service with Web Crypto API...") as a
+CryptoJS-based implementation. That old version's decrypt path tried
+**three** PBKDF2 configurations in order before giving up:
+
+```ts
+const attempts = [
+  { iter: STRONG_ITERATIONS, hash: "SHA-256" },
+  { iter: STRONG_ITERATIONS, hash: "SHA-1" },
+  { iter: LEGACY_ITERATIONS, hash: "SHA-1" },  // for blobs older still
+];
+```
+
+Commit `560a15c7` rewrote the file to use `window.crypto.subtle`
+directly and kept the `AES-CBC` blob-format tag (`EncryptedBlob.method
+=== "AES-CBC"`) as the marker for "this is a legacy blob," but dropped
+the iteration-count fallback entirely. Today's `attemptDecrypt()`
+(the `blob.method !== "AES-GCM"` branch) always derives the key with
+`STRONG_ITERATIONS` (600000), regardless of the blob's age. The
+`LEGACY_ITERATIONS` (10000) and `IV_SIZE_CBC` constants are what's left
+of the old fallback — declared, never read by the new implementation.
+
+**Consequence, not yet demonstrated against a real old blob.** `encrypt()`
+only ever produces `method: "AES-GCM"` today, so this only affects
+pre-rewrite `AES-CBC` blobs a user might still be carrying around (e.g.
+in an old exported backup file, or migrated `localStorage` that was
+never re-encrypted since). If such a blob was originally encrypted at
+`LEGACY_ITERATIONS`, decrypting it now derives the wrong key at
+`STRONG_ITERATIONS` — for AES-CBC specifically, which has no
+authentication tag, a wrong key does not throw, it silently produces
+garbage plaintext (the file's own comment on `decrypt()` already notes
+this: *"AES-CBC lacks an authentication tag, so decrypting with the
+wrong key can silently return garbage instead of throwing"*).
+
+**The decision:** either restore a `LEGACY_ITERATIONS` retry inside the
+`AES-CBC` branch of `attemptDecrypt()` (mirroring the old
+`STRONG_ITERATIONS` → `LEGACY_ITERATIONS` fallback order, now via
+`crypto.subtle.deriveKey` instead of CryptoJS), or confirm no
+production blob still uses the pre-rewrite iteration count (e.g.
+because every user has since re-saved their credentials, which
+re-encrypts at `STRONG_ITERATIONS`/`AES-GCM`) and delete both constants
+as confirmed-dead. Left as a lint-pass finding rather than fixed
+inline because Klasse-A credential decryption needs a verified fix
+with a test reproducing a real legacy blob, not a drive-by guess at
+the missing fallback's exact shape.
+
 ## Add new items below
 
 <!--

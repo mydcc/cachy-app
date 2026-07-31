@@ -30,12 +30,7 @@ import { activeTechnicalsManager } from "./activeTechnicalsManager.svelte";
 import { getChannelsForRequirement } from "../types/dataRequirements";
 import { safeTfToMs } from "../utils/timeUtils";
 import { Decimal } from "decimal.js";
-import { type KlineRaw, type Kline } from "./technicalsTypes";
-
-interface MarketWatchRequest {
-  symbol: string;
-  channels: Set<string>; // "price", "ticker", "kline_1m", "kline_1h", etc.
-}
+import { type Kline } from "./technicalsTypes";
 
 class MarketWatcher {
   // Optimization: Module-level constant to reduce allocation

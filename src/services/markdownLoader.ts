@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { marked } from "marked";
+import { marked, type Tokens } from "marked";
 import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
@@ -101,12 +101,11 @@ marked.use(
   }),
   {
     renderer: {
-      heading(args: any) {
-        const { text, depth, raw } = args;
+      heading({ text, depth, raw }: Tokens.Heading) {
         const id = slugify(raw);
         return `<h${depth} id="${id}">${text}</h${depth}>\n`;
       },
-    } as any,
+    },
   },
 );
 

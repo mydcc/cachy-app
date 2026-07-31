@@ -42,7 +42,7 @@ vi.mock('../stores/settings.svelte', () => ({
   }
 }));
 
-vi.mock('../stores/market.svelte', async (importOriginal) => {
+vi.mock('../stores/market.svelte', async () => {
     const { Decimal } = await import('decimal.js');
     return {
         marketState: {
@@ -83,7 +83,7 @@ describe('TradeService Flash Close Reproduction', () => {
 
     // Mock fetch to simulate cancelAllOrders failure
     // The first call will be "cancel-all"
-    vi.mocked(global.fetch).mockImplementation(async (url: string, options: any) => {
+    vi.mocked(global.fetch).mockImplementation(async (url: string, options: { body: string }) => {
         const body = JSON.parse(options.body);
 
         if (body.type === 'cancel-all') {
