@@ -1937,6 +1937,33 @@ formatting helpers.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass sixty-eight: `workers/technicals.worker.ts`, 553 → 549.** The
+background thread offloading indicator calculation
+(`CALCULATE`/`INITIALIZE`/`UPDATE`/`CLEANUP` message handling).
+
+- `const ctx: Worker = self as any;` → `const ctx = self;` — the
+  explicit `Worker` annotation was wrong (a dedicated worker's `self` is
+  `DedicatedWorkerGlobalScope`, not `Worker`), which is exactly why the
+  `as any` was needed; dropping the annotation and letting TS infer the
+  real global-scope type from `self` needs no cast at all, matching how
+  the sibling `tradeFlow.worker.ts` already does `self.onmessage = ...`
+  directly.
+- Removed a dead `bufferPool` — instantiated, never used. The indicator
+  functions this worker actually calls, `calculateAllIndicators`/
+  `calculateIndicatorsFromArrays` (typed in pass 43), already manage
+  their own pooling internally; this was a separate, unused instance.
+- `catch (err: any) { ... err.message ... }` → the standard `err
+  instanceof Error` guard.
+- The one CALCULATE-payload `.map((k: any) => ...)` stayed `any`,
+  documented: `WorkerMessage.payload` (`technicalsTypes.ts`) is itself
+  `any` because its shape varies by message type — tried removing the
+  annotation first, got "implicitly has an 'any' type" since the
+  payload's looseness runs deeper than this one call site, same
+  discovery as pass 67's `normalizeJournalEntry`.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1944,7 +1971,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 553 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 549 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
