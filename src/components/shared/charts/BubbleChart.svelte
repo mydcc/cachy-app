@@ -23,6 +23,7 @@
     Legend,
     PointElement,
     LinearScale,
+    type TooltipItem,
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
@@ -30,6 +31,10 @@
   Chart.register(LinearScale, PointElement, ChartTooltip, Legend);
 
   interface Props {
+    // Reused across several call sites with differently-shaped bubble
+    // datasets (risk/reward scatter, asset bubbles, ...) — no single
+    // ChartData<'bubble'> shape covers all of them.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     title?: string;
     xLabel?: string;
@@ -62,8 +67,10 @@
       },
       tooltip: {
         callbacks: {
-          label: function (context: any) {
-            return context.raw.l || "";
+          label: function (context: TooltipItem<"bubble">) {
+            // `raw` is Chart.js's own point shape plus an app-specific
+            // `.l` label field it doesn't know about.
+            return (context.raw as { l?: string }).l || "";
           },
         },
       },

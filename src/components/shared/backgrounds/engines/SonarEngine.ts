@@ -185,7 +185,7 @@ export class SonarEngine extends BaseEngine {
         return geometry;
     }
 
-    public update(time: number, delta: number): void {
+    public update(time: number): void {
         if (!this.material) return;
         const s = this.context.settings;
         const sweepSpeed = (s.speed || 1.0) * 0.5;
@@ -222,6 +222,7 @@ export class SonarEngine extends BaseEngine {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reasoning as EngineContext.settings in BaseEngine.ts
     public updateSettings(newSettings: any): void {
         if (this.shouldReinit(newSettings)) {
             if (this.pointCloud) {

@@ -376,6 +376,8 @@
     let performanceData = $derived({
         ...filteredPerformance,
         totalPnl: filteredJournal.totalNetProfit?.toNumber() || 0,
+        profitFactor: filteredPerformance.profitFactor?.toNumber() || 0,
+        maxDrawdown: filteredPerformance.maxDrawdown?.toNumber() || 0,
     });
     let qualityData = $derived({
         avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,

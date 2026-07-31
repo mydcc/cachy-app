@@ -18,13 +18,11 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
-    import {
-        CANDLESTICK_PATTERNS,
-        type PatternDefinition,
-    } from "../../services/candlestickPatterns";
+    import { CANDLESTICK_PATTERNS } from "../../services/candlestickPatterns";
     import CandlestickChart from "./CandlestickChart.svelte";
     import { markdown } from "../../actions/markdown";
     import { safeJsonParse } from "../../utils/safeJson";
+    import type { TranslationKey } from "../../locales/schema";
     import "katex/dist/katex.min.css";
 
     let searchQuery = $state("");
@@ -111,7 +109,8 @@
 
     function getLocalizedText(patternId: string, key: string): string {
         // Use candlestickPatterns root key for specific patterns
-        const i18nKey = `candlestickPatterns.${patternId}.${key}` as any;
+        const i18nKey =
+            `candlestickPatterns.${patternId}.${key}` as TranslationKey;
         const text = $_(i18nKey);
         if (text === i18nKey) {
             return "Translation missing...";

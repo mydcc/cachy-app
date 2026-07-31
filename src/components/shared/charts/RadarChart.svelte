@@ -26,6 +26,7 @@
     LineElement,
     Filler,
     RadarController,
+    type TooltipItem,
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
@@ -42,7 +43,7 @@
   );
 
   interface Props {
-    data: any;
+    data: { labels?: string[]; data?: number[] };
     title?: string;
     description?: string;
     labels?: string[];
@@ -67,10 +68,10 @@
       },
       tooltip: {
         callbacks: {
-          label: function (context: any) {
+          label: function (context: TooltipItem<"radar">) {
             // If raw values are attached, show them?
             // Currently data is normalized 0-100.
-            return `${context.label}: ${context.raw.toFixed(1)}/100`;
+            return `${context.label}: ${(context.raw as number).toFixed(1)}/100`;
           },
         },
       },

@@ -21,12 +21,17 @@
   import "../../../lib/chartSetup";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
+  import type { ChartOptions } from "chart.js";
 
   interface Props {
+    // Reused across several call sites with differently-shaped
+    // datasets (win/loss, fee breakdown, six-segment, ...) — no single
+    // ChartData<'doughnut'> shape covers all of them.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     title?: string;
     description?: string;
-    options?: any;
+    options?: ChartOptions<"doughnut">;
   }
 
   let { data, title = "", description = "", options = {} }: Props = $props();

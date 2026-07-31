@@ -3261,6 +3261,88 @@ mostly Settings-tab Svelte components.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred ten: 15-file batch (+1 ripple), 203 → 173.** The next
+tier at 2 warnings each, dominated by shared/chart components.
+
+- `src/components/shared/CandlestickPatternsView.svelte`: unused
+  `PatternDefinition` type import removed; a dynamic i18n key `as any`
+  → `as TranslationKey`.
+- `src/components/shared/DepthBar.svelte`: two `(acc, [_, qty]) => ...`
+  reduce callbacks — array-destructure elision (`[, qty]`) instead of
+  naming the unused first element, since a named-but-unused destructured
+  array element is still flagged (unlike an unused trailing function
+  argument, which the rule's `args: "after-used"` default exempts).
+- `src/components/shared/FXOverlay.svelte`: an unused `t: number` param
+  on `updateBolt` removed (call site updated); an unused destructured
+  `id` from `effectsState.smashTarget` dropped, keeping only `rect`.
+- `src/components/shared/MarketOverview.svelte`: a dead `isVisible`
+  lazy-load flag — set by an `IntersectionObserver` in `onMount` but,
+  per `grep`, never read anywhere — removed along with the now-pointless
+  `onMount` block, the `rootElement` ref, and its `bind:this`; a dead
+  `{@const plotId = ...}` template binding (the button that would have
+  used it calls `openChannel()`, which already recomputes its own
+  `plotId` locally) removed along with the `config` const it was
+  the only reader of.
+- `src/components/shared/PositionTooltip.svelte`: `position`/`pos: any`
+  → a documented `LoosePosition` alias, mirroring
+  `OrderDetailsTooltip.svelte`'s existing `LooseOrder` precedent (same
+  `UiState.tooltip.data: unknown` source, same varying-shape reasoning).
+- `src/components/shared/backgrounds/engines/RaindropsEngine.ts` +
+  `SonarEngine.ts`: both `update(time, delta)` had an unused trailing
+  `delta` — dropped from the override signature (TS allows a subclass
+  method to accept fewer parameters than the abstract base's, since JS
+  ignores extra call arguments); both `updateSettings(newSettings: any)`
+  documented with the same reasoning `BaseEngine.ts` already states for
+  its own `settings: any` and `updateSettings(settings: any)`.
+- `src/components/shared/charts/BarChart.svelte`: `data: any` documented
+  (reused across ~15 differently-shaped Chart.js datasets in
+  `JournalCharts.svelte` / `JournalDeepDive.svelte`); `options?: any` →
+  `ChartOptions<"bar">` (no caller currently passes it, so no cascading
+  mismatch).
+- `src/components/shared/charts/BubbleChart.svelte`: `data: any`
+  documented (same multi-shape reasoning); the tooltip callback's
+  `context: any` → `TooltipItem<"bubble">`, with `context.raw` (Chart.js
+  types this as `unknown`) cast to `{ l?: string }` for the one
+  app-specific label field Chart.js's own types don't model.
+- `src/components/shared/charts/CalendarHeatmap.svelte`: two
+  unused-each-block-item warnings on calendar spacer/day loops — the
+  no-index one now keys itself off a generated index
+  (`Array.from({ length }, (_, i) => i) as i (i)`, since referencing the
+  bound variable in the each-block's key expression counts as a "use");
+  the other follows pass 109's `.map((_, i) => i)` pattern.
+- `src/components/shared/charts/DoughnutChart.svelte`: `data: any`
+  documented; `options?: any` → `ChartOptions<"doughnut">` (the one real
+  caller only sets `plugins.legend`, well within the type).
+- `src/components/shared/charts/RadarChart.svelte`: `data: any` → a
+  precise `{ labels?: string[]; data?: number[] }` (unlike the other
+  three chart wrappers, this one doesn't forward Chart.js's own
+  `ChartData` shape — it repackages a single normalized-metrics object
+  from `getVisualRiskRadarData()` internally, so one concrete interface
+  covers its one real caller); the tooltip callback's `context: any` →
+  `TooltipItem<"radar">` with `context.raw as number`.
+- `src/components/shared/journal/JournalStatistics.svelte`:
+  `performanceData`/`qualityData: any` → `PerformanceData`/`QualityData`
+  interfaces built from what the template actually reads
+  (`totalPnl`/`winRate`/`profitFactor`/`totalTrades`/`maxDrawdown`,
+  `avgR`). First pass typed `profitFactor`/`maxDrawdown` as `Decimal`
+  (their real type in `PerformanceStats`), but that broke the
+  `>= 1.5`/`< 1.5` comparisons in the template — TS doesn't allow
+  relational operators on a class instance. Normalized at the source
+  instead: `JournalContent.svelte`'s `performanceData` now calls
+  `.toNumber()` on both fields, the same treatment `totalPnl` already
+  got there, keeping this component's props plain numbers.
+- `src/components/shared/sidepanel/ChatPanel.svelte` +
+  `NotesPanel.svelte`: both had the exact `const _len = ...; setTimeout(...)`
+  reactivity-trigger-only pattern from pass 107's `AiPanel.svelte` fix →
+  `void messages.length;`; both had `catch (e: any)` → normalized with
+  an `instanceof Error` guard.
+- Verified: all 16 touched files (15 planned + the `JournalContent.svelte`
+  ripple) are production files covered directly by `npm run check` — 0
+  errors. `npm test` unchanged at 850 passing, 6 skipped.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3268,7 +3350,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 203 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 173 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
