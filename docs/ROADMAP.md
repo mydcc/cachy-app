@@ -2739,6 +2739,30 @@ inputs.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred: `src/services/marketWatcher.test.ts`, 364 → 359.**
+Request-deduplication/locking tests for `pollSymbolChannel()`.
+
+- `const watcher = marketWatcher as any` (reaching into 3 private
+  members — `pendingRequests`, `requests`, `pollSymbolChannel`) → a
+  `MarketWatcherInternals` type declaring just those three, matching
+  each one's real shape (`RequestDeduplicator`/`Map`'s own `.clear()`,
+  and `pollSymbolChannel`'s real 3-arg signature) — same narrow-cast
+  pattern as passes eighty-nine/ninety-six.
+- `resolveApi: (value: any) => void` and two `.mockResolvedValue({...}
+  as any)` sites → typed against `Ticker24h` (`apiService.ts`'s real
+  return type for `fetchTicker24h`). The fixtures only set `lastPrice`,
+  a small slice of `Ticker24h`'s 7 required fields, so the object
+  literals still need `as unknown as Ticker24h` rather than a direct
+  `as Ticker24h` — this is a polling-behavior test, not a payload-shape
+  test, so populating the other 6 fields would add noise without
+  changing what's verified.
+- Verified under the same scratch-`tsconfig` technique as the last
+  sixteen passes — 0 errors.
+
+`npx vitest run src/services/marketWatcher.test.ts` stays at 3 passing;
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2746,7 +2770,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 364 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 359 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
