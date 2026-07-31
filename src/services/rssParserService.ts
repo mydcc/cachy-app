@@ -10,6 +10,13 @@
 import type { NewsItem } from "./newsService";
 import { logger } from "./logger";
 
+interface RawRssItem {
+  title: string;
+  url?: string;
+  source: string;
+  published_at: string;
+}
+
 export const rssParserService = {
   async parseRssFeed(input: string): Promise<NewsItem[]> {
     try {
@@ -34,7 +41,7 @@ export const rssParserService = {
 
       const data = await response.json();
 
-      return data.items.map((item: any) => ({
+      return data.items.map((item: RawRssItem) => ({
         title: item.title,
         url: item.url || input, // Fallback to feed URL if item URL is missing
         source: item.source,

@@ -22,8 +22,8 @@ import type { OMSOrder } from './omsTypes';
 import Decimal from 'decimal.js';
 
 describe('OrderManagementSystem', () => {
-  // Access private methods/properties via any cast for testing internals
-  const oms = omsService as any;
+  // Access private methods/properties via a typed cast for testing internals
+  const oms = omsService as unknown as { MAX_ORDERS: number };
 
   beforeEach(() => {
     // Reset state

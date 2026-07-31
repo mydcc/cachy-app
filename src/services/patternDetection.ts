@@ -127,7 +127,7 @@ export class PatternDetector {
     return detected;
   }
 
-  public checkPattern(pattern: PatternDefinition, candles: CandleData[], cache?: Map<number, CandleData[]>): boolean {
+  public checkPattern(pattern: PatternDefinition, candles: CandleData[]): boolean {
     const patternLen = pattern.candles.length;
     if (candles.length < patternLen) return false;
 

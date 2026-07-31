@@ -43,7 +43,7 @@ describe("TradeService - Error Constants", () => {
     // Both cache check and fallback throw if no position exists
     vi.mocked(omsService.getPositions).mockReturnValue([]);
     // Mock the API fallback to also return empty positions
-    vi.spyOn(tradeService as any, "fetchOpenPositionsFromApi").mockResolvedValue(undefined);
+    vi.spyOn(tradeService as unknown as { fetchOpenPositionsFromApi: () => Promise<void> }, "fetchOpenPositionsFromApi").mockResolvedValue(undefined);
 
     await expect(tradeService.closePosition({ symbol: "BTCUSDT", positionSide: "long" }))
       .rejects.toThrow(TRADE_ERRORS.POSITION_NOT_FOUND);

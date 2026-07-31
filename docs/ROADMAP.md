@@ -3815,6 +3815,112 @@ endpoint — a user-requested value silently discarded server-side.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred sixteen: 15-file batch, 59 → 44.** Two more
+`docs/TODO.md` findings in live trading-state code, both left
+undecided rather than guessed at.
+
+- `src/services/omsService.ts` — a `PRESERVE_LATEST = 20` constant,
+  commented *"Protect recent orders from being pruned immediately"*,
+  that neither of `pruneOrders()`'s two eviction steps actually reads.
+  Step 2's own comment even says *"unless we are inside the protected
+  buffer"* while doing no such check — it unconditionally evicts the
+  single oldest order once the ring buffer is full. Documented as
+  `docs/TODO.md` item 14: the exact intended rule isn't fully spelled
+  out by the comments, and this is live order-tracking state for a
+  real-money trading engine, so it needs a person to pick the rule and
+  a test proving a just-inserted order survives eviction — not a
+  guess made while clearing an unused-const warning.
+- `src/stores/modal.svelte.ts` — `ModalManager.show()`'s `extraClasses`
+  parameter is accepted but never applied to anything. Traced to
+  `uiManager.ts`'s `showReadme()`, which passes
+  `"modal-size-instructions"` with a comment explaining exactly why
+  ("...ensure it uses the updated 80vw width") — a real, working CSS
+  class elsewhere (`ModalFrame.svelte`'s own `extraClasses` prop, used
+  directly by `AcademyModal.svelte`), just never wired into the
+  `DialogWindow`/`DialogView.svelte` path `modalState.show()` actually
+  renders through. Documented as `docs/TODO.md` item 15: wiring it
+  touches the shared window-rendering path every alert/confirm/prompt
+  goes through, more than a lint pass should touch. Parameter kept
+  (not deleted) since `uiManager.ts` already depends on its position
+  in the call signature.
+- `src/services/incrementalCache.test.ts`: `mockSettings: IndicatorSettings
+  = {...} as any` — the declared-type-then-cast-past-it pattern → moved
+  the cast to the value (`= {...} as unknown as IndicatorSettings`),
+  dropping the now-redundant variable annotation.
+- `src/services/omsService.test.ts`: `omsService as any` → `as unknown
+  as { MAX_ORDERS: number }`, the one private member this file's tests
+  actually reach into.
+- `src/services/patternDetection.ts`: an unused `cache?: Map<...>`
+  parameter on `checkPattern()` — confirmed via `grep` that this
+  public method has zero callers anywhere in the codebase (its sibling
+  `.detect()` is what's actually used and tested), so the parameter
+  was dropped outright rather than typed; unlike items 5/8/9/11's
+  whole-file "appears unreachable" findings, this is one unused
+  parameter on an otherwise-reachable class, a small enough and
+  zero-blast-radius enough change not to need its own TODO entry.
+- `src/services/rmsService.ts`: `const pnlAbs = pos.unrealizedPnl.abs()`
+  in the risk-monitor's danger-zone check, followed immediately by its
+  own comment: *"Let's keep it placeholder as in the original but with
+  safe checks."* Matches `JournalContent.svelte`'s `forceRecalculateAtr()`
+  precedent (item 6) exactly — purpose already stated as incomplete by
+  the code itself, documented rather than deleted or guessed at.
+- `src/services/rssParserService.ts`: a redundant `(item: any)` on a
+  `.map()` callback whose receiver (`data.items`, from
+  `response.json()`) is already untyped — removing the annotation bare
+  triggered `npm run check`'s "implicitly has an any type" (the
+  function's declared `Promise<NewsItem[]>` return type drives
+  contextual typing into the callback even though the source is
+  `any`, the same interaction pass 112's `technicalsWorker.ts` hit).
+  Fixed with a real `RawRssItem` interface instead of reintroducing
+  `any` or leaving it bare.
+- `src/services/smc/smcService.test.ts`: an unused `let time = 1000;`
+  — the test's candles all use literal `time: 1`/`2`/`3` instead,
+  confirmed dead and removed.
+- `src/services/tradeService.repro.test.ts`: `tradeService as any` for
+  `vi.spyOn(..., "signedRequest")` → cast dropped entirely, since
+  `signedRequest` is `public` (matches pass 104's precedent for the
+  same method).
+- `src/services/tradeService_errors.test.ts`: the same pattern for
+  `fetchOpenPositionsFromApi`, which is `private` → a typed cast
+  instead of a dropped one.
+- `src/services/tradeService_race.test.ts`: `stalePosition as any` →
+  `as OMSPosition` — the fixture already had every required field;
+  the cast was only needed because `side: 'long'` widens to `string`
+  in a plain object literal without a contextual type to narrow it.
+- `src/services/tradeService_serialization.test.ts`: `fetchSpy: any`
+  → `MockInstance<typeof fetch>`. This surfaced 2 real
+  `npm run check` errors on an untouched line further down
+  (`call[1].body` — `call[1]` is now correctly `RequestInit |
+  undefined`) — fixed with `call[1]?.body as string`.
+- `src/services/uiManager.ts`: `get(_)(titleKey as any)` → typed
+  `titleKey: TranslationKey` at its declaration instead (it's always
+  assigned one of three real translation keys), removing the need for
+  a cast at the call site entirely.
+- `src/stores/favorites.svelte.ts`: `notifyTimer: any` →
+  `ReturnType<typeof setTimeout> | null`, the same timer convention
+  as `journal.svelte.ts` (pass 112).
+- `src/stores/modal.test.ts`: `let env: any` →
+  `typeof import("$app/environment")`. This surfaced 3 real
+  `npm run check` errors on untouched lines: `env.browser = ...`
+  writes, since SvelteKit's `$app/environment` exports are `readonly`
+  by type (even though this test's mock allows the mutation at
+  runtime) — fixed with `(env as { browser: boolean }).browser = ...`
+  at each write site, leaving the one read (`env.browser` on the
+  right-hand side) untouched.
+- Verified: all 15 files pass `npm run check` (3 needed follow-up
+  fixes after typing surfaced real gaps on untouched lines —
+  `rssParserService.ts`'s contextual-typing gap,
+  `tradeService_serialization.test.ts`'s `call[1].body` access, and
+  `modal.test.ts`'s readonly `env.browser` writes — all caught and
+  fixed before commit, not left for CI). The 8 excluded-from-
+  `tsconfig.json` test files checked via the scratch-tsconfig
+  technique; the remaining errors on 4 of them confirmed identical to
+  each file's untouched `git show HEAD:...` baseline and left alone.
+  `npm test` unchanged at 850 passing, 6 skipped.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3822,7 +3928,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 59 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 44 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

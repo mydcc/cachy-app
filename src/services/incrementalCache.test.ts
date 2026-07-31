@@ -49,11 +49,11 @@ function generateMockResult(): TechnicalsData {
   } as TechnicalsData;
 }
 
-const mockSettings: IndicatorSettings = {
+const mockSettings = {
   ema: { enabled: true, lengths: [9, 21], source: 'close' },
   rsi: { enabled: true, length: 14, source: 'close', overbought: 70, oversold: 30 },
   historyLimit: 750
-} as any;
+} as unknown as IndicatorSettings;
 
 describe('IncrementalCache', () => {
   let cache: IncrementalCache;

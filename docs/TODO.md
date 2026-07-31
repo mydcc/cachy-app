@@ -459,6 +459,82 @@ every user's PWA install, which needs deliberate design and testing
 100th write evict silently or reject?), not a guess made while
 clearing an unused-variable warning.
 
+## 14. `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
+
+**Roadmap item 21.** Found while tracing an unused `PRESERVE_LATEST`
+constant flagged by a lint pass.
+
+`omsService.ts`'s `pruneOrders(forceOne = false)` has two steps once
+`this.orders.size > this.MAX_ORDERS`:
+
+1. **Safe Prune:** remove the oldest *finalized* orders (`filled`,
+   `cancelled`, `rejected`, `expired`), iterating oldest-first.
+2. **Force Prune** (only if step 1 wasn't enough): delete the
+   single absolute-oldest order, active or not. Its own comment says
+   *"unless we are inside the protected buffer"*.
+
+`const PRESERVE_LATEST = 20;` is declared right above both steps with
+the comment *"Protect recent orders from being pruned immediately (UI
+needs to see them)"* — but neither step reads it. Step 2 deletes
+`this.orders.keys().next().value` (the literal oldest) unconditionally
+whenever the map is over `MAX_ORDERS`, with no check for how recently
+it was inserted.
+
+**Consequence, not yet demonstrated against a live session:** under
+sustained order volume, Force Prune can evict an order inserted only
+moments ago (well inside the last 20) once the map fills past
+`MAX_ORDERS`, even though the code's own comments say that shouldn't
+happen. Whether this is visible to a user depends on `MAX_ORDERS`'s
+value relative to real trading volume and how quickly orders finalize
+— not evaluated here.
+
+**The decision:** the exact intended rule isn't fully spelled out by
+the comments (skip Force-Prune entirely while `orders.size <=
+PRESERVE_LATEST`? Or always keep the most-recently-inserted
+`PRESERVE_LATEST` orders untouched regardless of map size, falling
+back to some other eviction candidate when everything left is
+"recent"?) — needs a person to pick the rule, then implement it with a
+test that fills the ring buffer and asserts a just-inserted order
+survives. Left as a lint-pass finding rather than guessed at inline:
+this is live order-tracking state for a real-money trading engine: a
+wrong guess about the eviction rule is worse than the current gap.
+
+## 15. `modalState.show()`'s `extraClasses` parameter is accepted but never applied
+
+**Roadmap item 21.** Found while typing/cleaning an unused-parameter
+warning on `ModalManager.show()`.
+
+`show(title, message, type, defaultValue, extraClasses)` in
+`modal.svelte.ts` takes an `extraClasses` string but never reads it —
+neither `DialogWindow`'s constructor call nor `SymbolPickerWindow`'s
+gets it passed through. `uiManager.ts`'s `showReadme()` calls `show(
+..., "modal-size-instructions")` with a comment explaining exactly why:
+*"Pass the 'modal-size-instructions' class here to ensure it uses the
+updated 80vw width."* That class is a real, working mechanism
+elsewhere — `ModalFrame.svelte` has its own `extraClasses` prop
+(`class="modal-content glass-panel {extraClasses}"`) that
+`AcademyModal.svelte` uses directly. But `modalState.show()`'s dialogs
+render through `DialogWindow` → `DialogView.svelte`, which doesn't use
+`ModalFrame.svelte` and has no `extraClasses`/sizing mechanism of its
+own to receive it.
+
+**Consequence:** the instructions modal (dashboard/journal/changelog
+readme, opened via `uiManager.showReadme()`) never gets the wider
+80vw layout the comment says it should — it renders at whatever
+`DialogView.svelte`'s own fixed/default width is instead.
+
+**The decision:** wiring this through means picking where the class
+should land — `DialogWindow` would need a new field (mirroring how it
+already threads `title`/`message`/`type`/`defaultValue`), and
+`DialogView.svelte` would need to actually apply it to its root
+element the way `ModalFrame.svelte` does. Left as a lint-pass finding
+rather than fixed inline: it touches the shared window-rendering path
+every `modalState.show()` alert/confirm/prompt goes through, so a
+rushed change risks affecting more than the one instructions-modal
+call site it was written for. The parameter itself is kept (not
+deleted) with a `docs/TODO.md` pointer, since `uiManager.ts` still
+depends on its position in the call signature.
+
 ## Add new items below
 
 <!--

@@ -63,7 +63,7 @@ class FavoritesManager {
     this.save();
   }
 
-  private notifyTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Compatibility
   subscribe(fn: (value: string[]) => void) {
