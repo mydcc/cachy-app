@@ -1964,6 +1964,27 @@ background thread offloading indicator calculation
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass sixty-nine: `services/aggregatorService.ts`, 549 → 546.** The
+journal-analysis worker wrapper (offloads `getJournalAnalysis` to a
+background thread, with a synchronous SSR/failure fallback).
+
+- `type AnalysisResult = any;` had its own comment explaining the
+  workaround: "to avoid circular type deps... in a real scenario we'd
+  import the return type of getJournalAnalysis." That real scenario was
+  available the whole time — `getJournalAnalysis` is already imported
+  (dynamically) two lines below, at the SSR-fallback call site. Fixed to
+  `ReturnType<typeof getJournalAnalysis>` via a `import type` (type-only,
+  so it can't create the runtime circular dependency the comment was
+  guarding against) — confirmed no cycle exists at all: `aggregator.ts`
+  doesn't import from this file in either direction.
+- `pendingRejects: Map<string, (err: any) => void>` → `(err: Error) =>
+  void` — every call site (`new Error(error)`, `new Error("Worker
+  Error")`, `new Error("Analysis Timed Out")`) already only ever passes
+  an `Error`.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1971,7 +1992,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 549 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 546 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

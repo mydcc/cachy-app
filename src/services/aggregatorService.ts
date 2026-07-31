@@ -9,16 +9,14 @@
 
 import { browser } from "$app/environment";
 import type { JournalEntry } from "../stores/types";
+import type { getJournalAnalysis } from "../lib/calculators/aggregator";
 
-// Types for the analysis result (inferred or imported)
-// We treat it as 'any' here to avoid circular type deps or complex imports,
-// but in a real scenario we'd import the return type of getJournalAnalysis.
-type AnalysisResult = any;
+type AnalysisResult = ReturnType<typeof getJournalAnalysis>;
 
 class AggregatorService {
     private worker: Worker | null = null;
-    private pendingResolves = new Map<string, (val: any) => void>();
-    private pendingRejects = new Map<string, (err: any) => void>();
+    private pendingResolves = new Map<string, (val: AnalysisResult) => void>();
+    private pendingRejects = new Map<string, (err: Error) => void>();
 
     constructor() {
         if (browser) {
