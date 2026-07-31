@@ -1638,6 +1638,29 @@ implementations (Three.js instanced-mesh "city" trade visualization).
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass fifty-four: `components/shared/backgrounds/galaxy.worker.ts`, 611 →
+606.** The dedicated worker driving the galaxy/stardust Three.js
+background (message-passed init/resize/settings/color updates).
+
+- New `GalaxySettings` interface (the two fields this worker actually
+  reads, `camPos`/`autoCenter`, plus an index signature for whatever
+  other engine-specific tunables `GalaxyEngine`/`StarDustEngine` read
+  from `context.settings` themselves — both take it as `any`, matching
+  `BaseEngine`'s own declared field type) replaces the module-level
+  `settings: any` and both `init`/`updateSettings` message payload `any`
+  parameters.
+- `InitMessageData`, `ResizeMessageData`, `UpdateColorsMessageData` type
+  the other three `self.onmessage` payload shapes, all previously `any`.
+- Typing `colors.blending` as `THREE.Blending` (the field
+  `UpdateColorsMessageData.blending` needs to assign into) surfaced that
+  the object literal's inferred type had narrowed `blending` down to the
+  single literal value of `THREE.AdditiveBlending`, rejecting any other
+  valid `Blending` constant — fixed by giving `colors` an explicit type
+  annotation instead of leaving it inferred from the initializer.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1645,7 +1668,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 611 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 606 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
