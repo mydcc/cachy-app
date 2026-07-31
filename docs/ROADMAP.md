@@ -1230,6 +1230,29 @@ chart-data calculators feeding `JournalCharts.svelte`/`JournalDeepDive.svelte`.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty-eight: `routes/api/positions/+server.ts`, 700 → 694.** The
+open-positions proxy route, fronting both exchanges.
+
+- New `NormalizedPosition` (added to `types/bitunix.ts` alongside the
+  existing `NormalizedOrder`, the shared output shape both exchanges map
+  into) plus two local raw input types, `BitunixRawPosition` and
+  `BitgetRawPosition`, replace 6 `any` sites.
+- One site needed care: Bitunix's chain is `.map(raw → normalized)`
+  `.filter(...)`, so the `.filter()` callback's `p` is the *normalized*
+  object, not the raw exchange payload — confirmed by reading the map
+  body's return statement before typing it, not assumed from position in
+  the chain. Bitget's chain runs the other order, `.filter(raw)`
+  `.map(raw → normalized)`, so both of its callbacks take the raw type.
+  Getting this backwards on the Bitunix side would have shipped code
+  checking `BitunixRawPosition.size`, a field that raw shape doesn't have.
+- TypeScript's contextual typing doesn't reach into `.filter()` callbacks
+  through a function's declared return type across a chained `.map()` —
+  the first attempt (`(p) => ...` on the Bitunix filter) came back
+  "implicitly has an 'any' type"; typed explicitly against
+  `NormalizedPosition` instead.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1237,7 +1260,7 @@ chart-data calculators feeding `JournalCharts.svelte`/`JournalDeepDive.svelte`.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 700 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 694 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

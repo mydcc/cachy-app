@@ -88,6 +88,21 @@ export interface NormalizedOrder {
   role?: string;
 }
 
+// Normalized Internal Position Interface — shared shape both exchanges'
+// /api/positions routes map their raw responses into.
+export interface NormalizedPosition {
+  symbol: string;
+  side: string;
+  size?: string;
+  entryPrice?: string;
+  liquidationPrice?: string;
+  markPrice?: string;
+  margin?: string;
+  unrealizedPnL?: string;
+  leverage?: string;
+  marginMode: string;
+}
+
 export interface BitunixOrderPayload {
   symbol: string;
   side: string;
