@@ -2326,6 +2326,40 @@ backing `storageService`'s own optimization tests.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass eighty-six: `src/tests/performance/startup_benchmark.test.ts`,
+470 → 460.** A benchmark under `npm run test:perf` (the non-blocking
+job), not `npm test` — it's excluded from the default Vitest `include`
+glob entirely, so it needed its own config to run.
+
+- `MockWebSocket`'s 4 `onopen`/`onmessage`/`onclose`/`onerror: any`
+  fields → optional handler types matching each real WebSocket event
+  callback's payload (`MessageEvent`/`Event`/none). The class is
+  installed as `global.WebSocket`, but both WS services this benchmark
+  touches (`bitunixWs`, `bitgetWs`) are separately mocked out via
+  `vi.mock`, so nothing actually constructs or calls into
+  `MockWebSocket` today — typed it correctly anyway rather than leaving
+  a live `any` on a class that's one refactor away from being used.
+- Mock logger's `error`/`warn(...args: any[])` → `unknown[]`, matching
+  the pattern used everywhere else in this item for pass-through log
+  args.
+- `fetchSpy: any` → `MockInstance<typeof fetch>` (from `vitest`), and
+  its `mockImplementation`'s `url: any` param → `string | URL | Request`.
+  The two downstream `.filter((c: any) => ...)` reads needed their
+  annotations dropped entirely once `fetchSpy` had a real type — but
+  bare `ReturnType<typeof vi.spyOn>` (tried first) wasn't concrete
+  enough to carry a `.mock.calls` element type through, still leaving
+  `c` an implicit `any` (`tsc` catches this even though `no-explicit-any`
+  doesn't, since there's no `: any` token) — `MockInstance<typeof
+  fetch>` fixed it by anchoring the spy to fetch's own real signature.
+- Verified with the same scratch-`tsconfig` technique as passes
+  eighty-four/-five (`src/tests/**` is excluded from `npm run check`
+  too) — 0 errors. Ran via `npx vitest run --config vitest.perf.config.ts
+  src/tests/performance/startup_benchmark.test.ts` since the default
+  config's `include` glob skips this directory; 1 passing, unchanged.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2333,7 +2367,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 470 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 460 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
