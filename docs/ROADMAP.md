@@ -2056,6 +2056,23 @@ shared type definitions for indicator results and worker messages.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass seventy-four: `routes/api/rss-fetch/+server.ts`, 534 → 531.** The
+SSRF-guarded RSS proxy (domain allowlist, bot-block detection, memory
+cache).
+
+- `CachedFeed.data: any` → `unknown` — an opaque cache payload replayed
+  verbatim via `json(cached.data)`, never inspected by this file.
+- `.map((item: any) => ...)` needed no annotation — `rss-parser`'s own
+  `Parser.Output<U>.items: (U & Item)[]` already types every field this
+  callback reads (`title`, `link`, `isoDate`, `pubDate`,
+  `contentSnippet`, `content`); the explicit `any` was overriding a type
+  the library already provided.
+- `catch (error: any) { error.message }` → the standard `error
+  instanceof Error` guard.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -2063,7 +2080,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 534 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 531 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
