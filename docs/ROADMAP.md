@@ -3147,6 +3147,42 @@ actual runtime behavior, not just types.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred eight: `src/workers/technicals.worker.test.ts` +
+`tests/integration/wasm_parity.test.ts`, 229 → 223.** The last two files
+at 3 warnings; combined since both are WASM/worker-adjacent test
+scaffolding.
+
+- `technicals.worker.test.ts`: a mock `self = { onmessage: null as any,
+  postMessage: null as any }` — `grep` confirmed it's declared and never
+  read anywhere in the file (the test suite pivoted to testing
+  `calculateAllIndicators` directly instead of emulating the worker
+  context, per the file's own comment, leaving this mock behind).
+  Deleted. The scratch check then surfaced the same dead-third-argument
+  pattern as pass one-hundred-six's `technicalsCalculator.test.ts` — 2
+  calls passing a nonexistent settings-flags 3rd argument to a
+  2-parameter function — dropped, including cleaning up a comment
+  ("Disable others to focus") that referred to the dead argument's
+  intended-but-never-implemented effect.
+- `wasm_parity.test.ts`: `wasmModule.instance.exports as any` documented
+  (raw `WebAssembly.Exports` is inherently untyped without the missing
+  wasm-bindgen JS glue this file's own extensive comments already
+  explain). An unused `retPtr` local, computed but never decoded per an
+  adjacent "this path is brittle without the generated JS" comment →
+  dropped the assignment, kept the call for its side effect. An unused
+  `loadWasmModule` function — unlike this session's usual "confirmed
+  dead, remove it" treatment, this one is substantial WASM-binding
+  scaffolding the file's surrounding comments say is intentionally
+  blocked pending `wasm-pack` tooling, not abandoned — so instead of
+  deleting it, wired it into the one `it.skip`'d test's body (`await
+  loadWasmModule();`), restoring what the skipped test clearly meant to
+  do once unblocked, with zero runtime cost while skipped.
+- Verified under the same scratch-`tsconfig` technique as the last
+  twenty passes — 0 errors. `npx vitest run` on both: 5 passing, 1
+  skipped (unchanged).
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3154,7 +3190,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 229 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 223 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
