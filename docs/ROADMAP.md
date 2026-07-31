@@ -2673,6 +2673,33 @@ mocked `marketState`/`apiService`.
 1 passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
 stays at 0 errors.
 
+**Pass ninety-seven: `src/services/cryptoService.test.ts`, 382 → 376.**
+A minimal Web Crypto API shim (`window.crypto`,
+`subtle.importKey`/`deriveKey`/`encrypt`/`decrypt`) backing the file's
+three currently-`it.skip`'d encryption tests.
+
+- 6 `any` sites (`window = {} as any`, `getRandomValues(buffer: any)`,
+  4 inner `subtle` method/object casts) collapsed to 2: `window = {} as
+  unknown as Window & typeof globalThis`, `getRandomValues`'s param
+  typed `ArrayBufferView` (the real `Crypto.getRandomValues`
+  parameter type), and the whole `subtle`/`crypto` object built without
+  any inner casts, with a single `as unknown as Crypto` at the outer
+  assignment — once the outer cast is in place, TypeScript doesn't
+  structurally check the object literal against `Crypto` at all, so the
+  4 inner per-method casts were pure duplication.
+- The scratch-`tsconfig` check surfaced a stale `@ts-expect-error --
+  crypto-js ships no type declarations...` comment sitting right after
+  the imports with nothing under it but a blank line — `grep` confirmed
+  `crypto-js` isn't referenced anywhere else in the file, so whatever it
+  was suppressing predates the file's current shape. Removed.
+- Verified under the same scratch-`tsconfig` technique as the last
+  thirteen passes — 0 errors after the removal.
+
+`npx vitest run src/services/cryptoService.test.ts` stays at 3 skipped
+(unchanged — the tests were already `it.skip`'d before this pass, for
+reasons unrelated to typing); `npm test` stays at 850 passing, 6
+skipped; `npm run check` stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2680,7 +2707,7 @@ stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 382 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 376 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
