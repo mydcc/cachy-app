@@ -160,7 +160,7 @@ describe("Calculator - Deep Dive & Dashboard Charts", () => {
           totalNetProfit: new Decimal(50),
         }),
         createTrade({
-          riskAmount: undefined as any,
+          riskAmount: undefined as unknown as Decimal,
           totalNetProfit: new Decimal(50),
         }), // Simulate runtime missing field
       ];

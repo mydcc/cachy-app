@@ -3631,6 +3631,109 @@ not just dead arguments this time.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred fourteen: 15-file batch, 89 → 74.** All remaining
+files are down to 1 warning each now.
+
+- `src/components/shared/TakeProfitRow.svelte`: `formatProfit(val:
+  any)` → `Decimal`, its one caller's real type
+  (`tpDetail.netProfit: Decimal`).
+- `src/components/shared/TakeProfitTargets.svelte`: the same dead `as
+  any` on a literal translation key this file already had fixed in
+  pass 109 — reintroduced by an unrelated merge from `develop`
+  (`git log` shows "Restore TP section header/layout styling" commits
+  landing after that fix). Re-applied the identical fix.
+- `src/components/shared/TpSlEditModal.svelte`: `order: any` →
+  `TpSlOrder | null` (the real prop type, traced from its one caller
+  in `TpSlList.svelte`). Typing it properly surfaced 6 real
+  `npm run check` errors this file's `any` had been masking: every
+  field read in `handleSave()` assumed `order` was non-null with no
+  guard, and one derived value (`order.qty || order.amount`) mixed a
+  declared `string | undefined` field with an index-signature
+  `unknown` one. Fixed with an early `if (!order) return;` guard (the
+  function is only ever invoked from a form whose modal only renders
+  when an order is set, but the type couldn't know that without the
+  guard) and `String(order.qty ?? order.amount ?? "")`.
+- `src/components/shared/charts/LineChart.svelte`: `data: any`
+  documented — the fourth and last of this chart-wrapper family (after
+  Bar/Bubble/Doughnut in pass 110) to get the same "reused across many
+  differently-shaped datasets" treatment.
+- `src/hooks.client.ts` + `.test.ts`: an unused destructured `event`
+  in `handleError`'s single object param dropped; the test's `mockEvent
+  = {} as any` → cast through `Parameters<HandleClientError>[0]['event']`
+  instead, since the real hook no longer references it either.
+- `src/hooks.server.test.ts`: `(global as any)._isConsolePatched` →
+  `typeof global & { _isConsolePatched?: boolean }`, the same
+  extend-the-real-global-type pattern as `GlobalTracker.svelte`'s
+  `__tracking_handled` (pass 105). Verified via the scratch-tsconfig
+  technique that this file's several OTHER pre-existing implicit-`any`
+  errors (unrelated mock-handler parameters) are identical in the
+  untouched `git show HEAD:...` baseline — not a regression, left
+  alone.
+- `src/lib/actions.ts`: `(event as any).__tracking_handled` → `Event &
+  { __tracking_handled?: boolean }`, the write side of the same
+  `GlobalTracker.svelte` convention referenced above.
+- `src/lib/actions/tooltip.ts`: `let timer: any` →
+  `ReturnType<typeof setTimeout> | null`, the timer-typing convention
+  used throughout this codebase.
+- `src/lib/calculator_charts.test.ts`: a deliberately-invalid
+  `riskAmount: undefined as any` (simulating a runtime-missing field)
+  → `as unknown as Decimal`, matching the fixture-typing precedent from
+  passes 106/113.
+- `src/lib/calculators/aggregator.ts`: an unused `getMonteCarloData`
+  import — traced its real usage first (`calculator.ts` re-exports it
+  independently from the same `./charts` module, and
+  `JournalDeepDive.svelte` calls `calculator.getMonteCarloData(journal)`
+  directly with a different argument shape than every function
+  `aggregator.ts`'s `getJournalAnalysis()` actually batches) — confirmed
+  genuinely unused within this one file, not a missing-wiring bug like
+  earlier finds, and removed.
+- `src/lib/server/logger.test.ts`: `captureLog()`'s `Promise<any>` →
+  `Promise<LogEntry>` (the real event-emitter payload type). This
+  surfaced 12 real `entry.data` property-access errors across 4 tests,
+  since `LogEntry.data` is correctly `unknown` — each test reads it as
+  a different shape (object, JSON string, plain string) depending on
+  what it logged. Fixed with a local `as Record<string, unknown>` cast
+  per test block rather than widening the shared type.
+- `src/lib/server/sanitizer.ts`: `DOMPurify(window as unknown as any)`
+  → `as unknown as WindowLike`, DOMPurify's own exported type for
+  exactly this JSDOM-window-standing-in-for-a-real-window case, instead
+  of the doubled-up `any` the previous cast (from an earlier pass) left
+  behind.
+- `src/lib/windows/implementations/ChatTestView.svelte`: an unused
+  destructured `window` prop. This is a placeholder/mock chat view
+  (hardcoded messages, class `chat-mock`) that doesn't read its
+  `window` prop yet, but `WindowFrame.svelte`'s universal
+  `<win.component window={win} {...win.componentProps} />` convention
+  means every window component's `Props` must still declare it. Tried
+  `void window;` first (matching the pass-107/113 reactivity-trigger
+  pattern) — `npm run check` flagged it as a Svelte-compiler warning
+  ("only captures the initial value... reference it inside a
+  closure"), since that pattern is for `$effect` bodies, not
+  module-level reads. Settled on `let {}: Props = $props();` with a
+  targeted `eslint-disable-next-line no-empty-pattern` (ESLint's core
+  rule, not the TS one) — keeps the prop in the type contract without
+  binding an unused local.
+- `src/lib/windows/implementations/MarkdownWindow.svelte.ts`:
+  `options: any = {}` → `WindowOptions`, the fourth window
+  implementation this item has typed precisely instead of documenting
+  (after `ChartWindow`, `ChannelWindow`, `IframeWindow`).
+- Also, while re-verifying the 4 excluded-from-`tsconfig.json` test
+  files touched this pass: `tests/benchmarks` stays clean, but this is
+  the pass where `logger.test.ts`'s real regression above was caught —
+  a reminder that "0 warnings" and "0 type errors" are different
+  gates, and the scratch-tsconfig step is what catches the second one
+  for files `npm run check` never sees.
+- Verified: all 15 files pass `npm run check` (2 needed follow-up
+  fixes — `TpSlEditModal.svelte`'s null-safety gap and
+  `ChatTestView.svelte`'s empty-pattern reroute, both resolved before
+  commit); the excluded `.test.ts` files checked via the scratch
+  -tsconfig technique. `npm test` unchanged at 850 passing, 6 skipped.
+  A real dev-server/Playwright pass on the dashboard (touched by
+  `TakeProfitTargets.svelte`) showed no console errors.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3638,7 +3741,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 89 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 74 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

@@ -22,7 +22,11 @@
         window: WindowBase;
     }
 
-    let { window }: Props = $props();
+    // Placeholder/mock view (see the "chat-mock" markup below) — doesn't
+    // read the window prop yet, but the shared window-mounting convention
+    // in WindowFrame.svelte passes it to every window's component.
+    // eslint-disable-next-line no-empty-pattern
+    let {}: Props = $props();
 </script>
 
 <div class="chat-mock">
