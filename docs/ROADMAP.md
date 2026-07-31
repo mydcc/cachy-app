@@ -2506,6 +2506,47 @@ OMS position amount, never a "safe max" fallback.
 test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass ninety-two: `tests/benchmarks/storage.bench.ts`, 417 → 409.**
+Same hand-rolled IndexedDB mock shape as `storageService.test.ts` (pass
+eighty-five), duplicated here for the benchmark's own isolated setup —
+applied the identical fix.
+
+- Reused the `StoredRecord`/`MockRequest<T>` interfaces verbatim from
+  pass eighty-five, typing `mockStore` as `Map<string, StoredRecord>`
+  and every mock IDB method's request local against them instead of
+  `any`.
+- Dropped 3 unused mock-method params (`transaction(storeName, mode)`,
+  `objectStore(name)`) the same way as prior passes — JS ignores extra
+  call-site arguments.
+- `globalThis.IDBKeyRange = {...} as any` → `as unknown as typeof
+  IDBKeyRange`, with `bound`/`lowerBound`/`upperBound`'s params typed
+  `IDBValidKey` (again matching pass eighty-five, including the same
+  "implicit-any parameters once the blanket `any` stops supplying a
+  contextual type" gotcha).
+- `window.indexedDB = {...}` carried a `// @ts-expect-error --
+  window.indexedDB is readonly` comment guarding an untyped stub;
+  concretely typing the stub surfaced that the real error TypeScript
+  had been reporting on that line was never the readonly assignment —
+  it was a structural mismatch between the untyped stub and
+  `IDBFactory`. Casting the stub `as unknown as IDBFactory` resolved
+  it, at which point the `@ts-expect-error` itself became a real error
+  ("Unused '@ts-expect-error' directive" — nothing left on that line to
+  suppress) and came out.
+- `let storageService;`/`let newKline;` (implicit `any` under `strict`,
+  invisible to `no-explicit-any` since there's no literal `any` token,
+  but a real `tsc` error once checked) → `typeof
+  import('../../src/services/storageService')['storageService'] |
+  undefined` (pass eighty-five's dynamic-import-type trick) and
+  `ReturnType<typeof generateKlines>`.
+- Verified under the same scratch-`tsconfig` technique as the last eight
+  passes (`tests/**` is excluded from `npm run check` the same way
+  `src/tests/**` is) — 0 errors. Ran via `npx vitest bench --run
+  tests/benchmarks/storage.bench.ts` since `bench()` blocks don't run
+  under plain `vitest run`; completed successfully.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2513,7 +2554,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 417 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 409 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
