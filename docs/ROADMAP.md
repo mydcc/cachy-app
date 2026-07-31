@@ -2763,6 +2763,30 @@ Request-deduplication/locking tests for `pollSymbolChannel()`.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred one: `tests/unit/markdownUtils.test.ts`, 359 → 354.**
+Tests `renderSafeMarkdown()`'s SSR/empty-input/error-fallback behavior
+against a mocked `DOMPurify`.
+
+- `let originalWindow: any` (saved/restored around the SSR test) →
+  `Window & typeof globalThis`, matching what `global.window` actually
+  is; its assignment site `global.window = {} as any` →
+  `as unknown as Window & typeof globalThis`.
+- `renderSafeMarkdown(null as any)`/`(undefined as any)` — deliberately
+  invalid input, testing the function's own empty-string guard — →
+  `as unknown as string`, since `renderSafeMarkdown`'s real parameter
+  type is `string` and neither `null` nor `undefined` is directly
+  assignable to it.
+- `(result as any)._isFragment` → `(result as unknown as { _isFragment?:
+  boolean })._isFragment`, the standard narrow-object-cast pattern for
+  a field that exists only on the test's own mock return value, not on
+  the real `DocumentFragment` type `renderSafeMarkdown` declares.
+- Verified under the same scratch-`tsconfig` technique as the last
+  seventeen passes — 0 errors.
+
+`npx vitest run tests/unit/markdownUtils.test.ts` stays at 4 passing;
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2770,7 +2794,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 359 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 354 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
