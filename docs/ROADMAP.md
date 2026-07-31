@@ -2111,6 +2111,24 @@ parameter wasn't cost-free.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass seventy-seven: `stores/indicator.svelte.ts`, 519 → 516.** The
+indicator-settings store (per-indicator config plus a `localStorage`
+migration path for adding `enabled` flags to older saved settings).
+
+- `saveTimer`/`notifyTimer: any` → `ReturnType<typeof setTimeout> |
+  null`.
+- `load()`'s local `merge(key, fallback: any)` helper (used ~28 times to
+  backfill a missing `enabled` key on every indicator's saved config) →
+  a generic `<T extends { enabled?: boolean }>(key, fallback: T): T`.
+  Verified every one of the ~28 call sites passes a `defaultSettings.X`
+  object that really does declare `enabled: boolean` (confirmed against
+  `types/indicators.ts`'s `IndicatorSettings` interface), so the
+  constraint holds for all of them and each call now infers its own
+  return type instead of the previous untyped passthrough.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -2118,7 +2136,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 519 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 516 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

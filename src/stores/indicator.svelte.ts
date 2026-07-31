@@ -226,8 +226,8 @@ class IndicatorManager {
   pivots = $state(defaultSettings.pivots);
 
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
-  private saveTimer: any = null;
-  private notifyTimer: any = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Cache the snapshot using $derived to avoid expensive re-cloning on every access
   private _snapshot = $derived({
@@ -302,8 +302,8 @@ class IndicatorManager {
       const parsed = JSON.parse(stored);
 
       // Migration for enabled flags (if missing)
-      const merge = (key: keyof IndicatorSettings, fallback: any) => {
-          const val = parsed[key] || {};
+      const merge = <T extends { enabled?: boolean }>(key: keyof IndicatorSettings, fallback: T): T => {
+          const val: Partial<T> = parsed[key] || {};
           // Ensure enabled key exists
           if (val.enabled === undefined && fallback.enabled !== undefined) {
              val.enabled = fallback.enabled;
