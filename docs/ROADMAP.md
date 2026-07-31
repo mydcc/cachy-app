@@ -1404,6 +1404,39 @@ The order-history panel in the positions sidebar.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds (extra gate for UI-component passes).
 
+**Pass forty-five: `components/shared/journal/JournalDeepDive.svelte`, 658
+→ 652.** The journal's expanded analytics panel (performance/market/
+strategy/behavior chart tiles).
+
+- `themeColors: any` → a local `ThemeColors` interface, matching the
+  5-field object `JournalContent.svelte` builds and passes into both this
+  component and `JournalCharts.svelte` (pass 33 already named the same
+  shape there — declared locally again here rather than shared across
+  files, since it's a small `<script>`-local prop type, consistent with
+  how this codebase already has an unrelated, differently-shaped
+  `ThemeColors` in `chartPatterns.types.ts`).
+- Two dynamic i18n key reads, `$_(("journal.days." + ...) as any)`, → `as
+  TranslationKey`.
+- `(ds.data || []).map((d: any) => ...)` needed no annotation — `d`'s
+  shape (`{x: string, y: number}`) already flows through from
+  `getTagEvolution()`'s inferred return type, the same pattern pass 33
+  found repeatedly in the sibling chart component.
+- The confluence-matrix hour-label loop, `{#each Array(24) as _, i}`,
+  flagged its unused item binding — Svelte's each-block bindings aren't
+  covered by `no-unused-vars`' default "after-used" leniency for trailing
+  used parameters (which is why a plain `(_, i) => i` callback elsewhere
+  in the same file is fine). Replaced with a precomputed `hoursOfDay =
+  Array.from({length: 24}, (_, i) => i)` array iterated by value
+  (`{#each hoursOfDay as hour}`), removing the unused binding entirely
+  instead of just renaming it.
+- Removed a dead local, `dirData` — computed via
+  `calculator.getDirectionData(journal)` but never read anywhere in the
+  file; `journalState.directionMetrics` (same underlying calculator,
+  different call site) is what the rest of the codebase actually uses.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1411,7 +1444,7 @@ skipped; `npm run build` succeeds (extra gate for UI-component passes).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 658 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 652 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
