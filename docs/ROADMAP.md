@@ -914,6 +914,26 @@ removed 6 `any` casts); this one cleared the 8 left behind.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-seven: `calculatorService.ts`, 793 → 786.** The position-size
+calculator's orchestration service — the file that turns form values into
+the numbers shown on screen.
+
+- Three of the five `any` sites were annotations on parameters whose types
+  were already fully known from context (`values.targets`'s array element,
+  twice) or from the real `calculateTotalMetrics` implementation in
+  `lib/calculators/core.ts` (`Array<{ price: Decimal; percent: Decimal }>`,
+  returning the existing `TotalMetrics` type) — removing the redundant
+  `any` let TypeScript's own inference (or the real signature) take over,
+  no new type needed.
+- The fourth, `currentTradeState.targets.map((t: any) => ...)`, became
+  `TradeTarget` (already exported from `trade.svelte.ts`) — the import had
+  looked unused at first glance (only one of its two use sites was visible
+  before reading further into the file) and was removed, then re-added
+  once this second site turned up.
+- One truly-unused type import (`CalculatedTpDetail`) removed.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -921,7 +941,7 @@ removed 6 `any` casts); this one cleared the 8 left behind.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 793 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 786 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

@@ -14,12 +14,12 @@ import type {
   TradeValues,
   IndividualTpResult,
   BaseMetrics,
+  TotalMetrics,
 } from "../stores/types";
 import { tradeState, type TradeTarget, type TradeStateSnapshot } from "../stores/trade.svelte";
 import {
   resultsState,
   type ResultsState,
-  type CalculatedTpDetail,
 } from "../stores/results.svelte";
 import { trackCustomEvent } from "./trackingService";
 import { onboardingService } from "./onboardingService";
@@ -40,11 +40,11 @@ interface Calculator {
     index: number,
   ) => IndividualTpResult;
   calculateTotalMetrics: (
-    targets: any[],
+    targets: Array<{ price: Decimal; percent: Decimal }>,
     baseMetrics: BaseMetrics,
     values: TradeValues,
     tradeType: string,
-  ) => any;
+  ) => TotalMetrics;
 }
 
 interface UiManager {
@@ -286,7 +286,7 @@ export class CalculatorService {
 
     // --- TP Details ---
     const calculatedTpDetails: IndividualTpResult[] = [];
-    values.targets.forEach((tp: any, index: number) => {
+    values.targets.forEach((tp, index: number) => {
       if (tp.price.gt(0) && tp.percent.gt(0)) {
         const details = this.calculator.calculateIndividualTp(
           tp.price,
@@ -401,7 +401,7 @@ export class CalculatorService {
         CONSTANTS.DEFAULT_ATR_MULTIPLIER,
       ),
       stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
-      targets: currentTradeState.targets.map((t: any) => ({
+      targets: currentTradeState.targets.map((t: TradeTarget) => ({
         price: parseDecimal(t.price),
         percent: parseDecimal(t.percent),
         isLocked: t.isLocked,
@@ -523,7 +523,7 @@ export class CalculatorService {
     }
 
     values.totalPercentSold = values.targets.reduce(
-      (sum: Decimal, t: any) => sum.plus(t.percent),
+      (sum: Decimal, t) => sum.plus(t.percent),
       new Decimal(0),
     );
     if (values.totalPercentSold.gt(100)) {
