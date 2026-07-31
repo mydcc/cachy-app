@@ -2360,6 +2360,40 @@ glob entirely, so it needed its own config to run.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass eighty-seven: `src/services/cloudService.test.ts`, 460 → 451.**
+The mock SpacetimeDB builder backing `cloudService`'s tests — the same
+generated-bindings shape that made `cloudService.ts` itself an
+`any`-documented file back in pass forty-eight, but here it's a hand-
+rolled mock the test file fully owns, so typing it directly was
+tractable.
+
+- `mockCallbacks`'s 4 `undefined as any` fields → a local
+  `MockCallback = ((...args: unknown[]) => unknown) | undefined` type
+  alias, reused across all four. The two `expect(mockCallbacks.onX)
+  .toBeDefined()` + immediate-call pairs needed a `!` non-null assertion
+  at each of the 4 call sites once the field stopped being `any` —
+  `tsc` can't see that a Vitest `.toBeDefined()` assertion narrows a
+  later read, only a real narrowing construct does.
+- `onConnect`/`onDisconnect`'s `function(this: any, cb)` → a new local
+  `MockDbBuilder` interface (mirrors the real chain order:
+  `withUri → withModuleName → withToken → onConnect → onDisconnect →
+  build`, matching `cloudService.ts`'s own call site) applied to
+  `const builder: MockDbBuilder = {...}` and each method's `this`/`cb`
+  parameter — resolved by declaring the interface before the object
+  literal so the mutually-recursive `this: MockDbBuilder` reference
+  has something to point to.
+- Three `(cloudService as any).field = ...` singleton-reset writes
+  (`connected`, `messages`, `conn`, all private on the real class) →
+  one narrow-object cast, `cloudService as unknown as { connected:
+  boolean; messages: unknown[]; conn: unknown }`, matching each field's
+  real declared type.
+- Verified under the same scratch-`tsconfig` technique as the last three
+  passes — 0 errors.
+
+`npx vitest run src/services/cloudService.test.ts` stays at 2 passing;
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2367,7 +2401,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 460 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 451 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

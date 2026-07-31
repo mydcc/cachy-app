@@ -17,6 +17,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+type MockCallback = ((...args: unknown[]) => unknown) | undefined;
+
 // 1. Hoisted variables for capturing callbacks and logger mocks
 const {
   mockLogger,
@@ -29,10 +31,10 @@ const {
     debug: vi.fn(),
   },
   mockCallbacks: {
-    onConnect: undefined as any,
-    onDisconnect: undefined as any,
-    onApplied: undefined as any,
-    onInsert: undefined as any,
+    onConnect: undefined as MockCallback,
+    onDisconnect: undefined as MockCallback,
+    onApplied: undefined as MockCallback,
+    onInsert: undefined as MockCallback,
   }
 }));
 
@@ -44,21 +46,33 @@ vi.mock('./logger', () => ({
 // 3. Mock SpacetimeDB
 vi.mock('../lib/spacetimedb', () => {
   const subscriptionBuilder = {
-    onApplied: vi.fn((cb) => {
+    onApplied: vi.fn((cb: (...args: unknown[]) => unknown) => {
       mockCallbacks.onApplied = cb;
       return { subscribeToAllTables: vi.fn() };
     })
   };
 
-  const builder = {
+  // Mirrors DbConnectionBuilder's fluent chain (withUri -> withModuleName ->
+  // withToken -> onConnect -> onDisconnect -> build) closely enough for
+  // cloudService.ts's own call chain to type-check against.
+  interface MockDbBuilder {
+    withUri: (...args: unknown[]) => MockDbBuilder;
+    withModuleName: (...args: unknown[]) => MockDbBuilder;
+    withToken: (...args: unknown[]) => MockDbBuilder;
+    onConnect: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
+    onDisconnect: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
+    build: () => { subscriptionBuilder: () => typeof subscriptionBuilder };
+  }
+
+  const builder: MockDbBuilder = {
     withUri: vi.fn().mockReturnThis(),
     withModuleName: vi.fn().mockReturnThis(),
     withToken: vi.fn().mockReturnThis(),
-    onConnect: vi.fn(function(this: any, cb) {
+    onConnect: vi.fn(function (this: MockDbBuilder, cb: (...args: unknown[]) => unknown) {
       mockCallbacks.onConnect = cb;
       return this;
     }),
-    onDisconnect: vi.fn(function(this: any, cb) {
+    onDisconnect: vi.fn(function (this: MockDbBuilder, cb: (...args: unknown[]) => unknown) {
       mockCallbacks.onDisconnect = cb;
       return this;
     }),
@@ -91,10 +105,15 @@ import { cloudService } from './cloudService';
 describe('CloudService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset singleton state
-    (cloudService as any).connected = false;
-    (cloudService as any).messages = [];
-    (cloudService as any).conn = null;
+    // Reset singleton state (private fields on the real class)
+    const internals = cloudService as unknown as {
+      connected: boolean;
+      messages: unknown[];
+      conn: unknown;
+    };
+    internals.connected = false;
+    internals.messages = [];
+    internals.conn = null;
 
     // Reset callback holders
     mockCallbacks.onConnect = undefined;
@@ -120,7 +139,7 @@ describe('CloudService', () => {
     // 2. Simulate connection success
     expect(mockCallbacks.onConnect).toBeDefined();
     const ctx = { id: 1 };
-    mockCallbacks.onConnect(ctx);
+    mockCallbacks.onConnect!(ctx);
 
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Connected to SpacetimeDB!', ctx);
 
@@ -135,20 +154,20 @@ describe('CloudService', () => {
 
     expect(mockCallbacks.onApplied).toBeDefined();
     const appliedCtx = { table: 'all' };
-    mockCallbacks.onApplied(appliedCtx);
+    mockCallbacks.onApplied!(appliedCtx);
 
     expect(mockLogger.debug).toHaveBeenCalledWith('network', 'Subscription applied', appliedCtx);
 
     // 4. Simulate message received
     expect(mockCallbacks.onInsert).toBeDefined();
     const msg = { text: 'hello' };
-    mockCallbacks.onInsert(ctx, msg);
+    mockCallbacks.onInsert!(ctx, msg);
 
     expect(mockLogger.debug).toHaveBeenCalledWith('network', 'New Message Received:', msg);
 
     // 5. Simulate disconnect
     expect(mockCallbacks.onDisconnect).toBeDefined();
-    mockCallbacks.onDisconnect(ctx);
+    mockCallbacks.onDisconnect!(ctx);
 
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Disconnected from SpacetimeDB', ctx);
   });
