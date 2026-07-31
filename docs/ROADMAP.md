@@ -934,6 +934,27 @@ the numbers shown on screen.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-eight: `routes/api/klines/+server.ts`, 786 → 779.** The
+public candle-data proxy route, fronting both exchanges.
+
+- `BitunixRawKline` (a dual-named field set — `open`/`o`, `id`/`time`/`ts`,
+  ... — reflecting that Bitunix's kline shape has varied across API
+  versions/endpoints) and `BitgetCandleTuple` (the documented
+  `[timestamp, open, high, low, close, volume, quoteVol]` array shape)
+  replace 4 `any` sites across both exchanges' fetch functions.
+- Two `params: any` query-builder objects became `Record<string, string>`,
+  matching what they're actually built from (`.toString()`ed values) and
+  handed to `URLSearchParams`.
+- One `(e as any).message` inside an already-narrowed
+  `typeof e === 'object' && 'message' in e` branch became
+  `(e as { message: unknown }).message` — the narrowing had already done
+  the real work, the cast just needed to say what it was casting to.
+- A `.sort((a: any, b: any) => ...)` on an already-mapped array needed no
+  annotation at all — removing it let TypeScript infer both parameters
+  from the `.map()` call immediately above.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -941,7 +962,7 @@ the numbers shown on screen.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 786 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 779 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
