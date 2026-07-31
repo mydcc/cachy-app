@@ -452,12 +452,7 @@
 >
     <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
 
-    <JournalCharts
-        {activePreset}
-        isPro={true}
-        isDeepDiveUnlocked={true}
-        {themeColors}
-    />
+    <JournalCharts {activePreset} {themeColors} />
 
     <JournalFilters
         bind:searchQuery={tradeState.journalSearchQuery}

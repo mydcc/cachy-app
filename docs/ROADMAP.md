@@ -1113,6 +1113,35 @@ established in `syncService.ts` (pass eleven).
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty-three: `JournalCharts.svelte`, 736 → 726.** The
+performance/cost chart grid in the journal's deep-dive dashboard.
+
+- Most of the `.map((d: any) => ...)` sites needed no type at all —
+  `equityCurve`/`drawdownSeries`/`feeCurve` all come from calculator
+  functions (`lib/calculators/charts.ts`) with no explicit return type
+  annotation, so TypeScript already infers their element shape
+  end-to-end through the `journalState` derived chain; removing the
+  redundant `any` let that inference take over.
+- `themeColors?: any` became a named `ThemeColors` interface matching the
+  prop's own default-value shape (five hex-color strings).
+- Removed two unused props, `isPro`/`isDeepDiveUnlocked`: the one caller
+  (`JournalContent.svelte`) passed them as hardcoded `isPro={true}
+  isDeepDiveUnlocked={true}` — not bound to the real
+  `settingsState.isPro`/`.isDeepDiveUnlocked` — and this component never
+  read either one. Removed on both sides (the prop declarations here, the
+  hardcoded attributes at the call site) rather than wiring up gating
+  logic that was never implemented and that I have no basis for designing
+  correctly — access control for this dashboard already happens via a
+  sibling component's own `{#if settingsState.isPro}` gate.
+- Removed `execData`/`scatterData`, a duplicate MFE-vs-MAE scatter-chart
+  computation with no `<ScatterChart>` consumer in this file — confirmed
+  the real one lives in the sibling `JournalDeepDive.svelte`
+  (`ScatterChart` import, `mfeVsMae` title, at that file's line 561).
+- Verified with `npm run build` in addition to check/eslint/test, given
+  the cross-file prop removal.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1120,7 +1149,7 @@ established in `syncService.ts` (pass eleven).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 736 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 726 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
