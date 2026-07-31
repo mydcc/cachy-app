@@ -2700,6 +2700,21 @@ three currently-`it.skip`'d encryption tests.
 reasons unrelated to typing); `npm test` stays at 850 passing, 6
 skipped; `npm run check` stays at 0 errors.
 
+**Pass ninety-eight: `src/tests/security/log_stream_auth.test.ts`,
+376 → 370.** Regression tests for the `/api/stream-logs` SSE endpoint's
+dev/prod auth gate.
+
+- 6 `{ request, url } as any` call-site casts, one per test, calling
+  `GET` (a SvelteKit `RequestHandler`) with a hand-built partial
+  `RequestEvent` → `as unknown as Parameters<typeof GET>[0]`, the same
+  pattern used for `POST` in pass ninety's `news_security.test.ts`.
+- Verified under the same scratch-`tsconfig` technique as the last
+  fourteen passes — 0 errors on the first attempt.
+
+`npx vitest run src/tests/security/log_stream_auth.test.ts` stays at 6
+passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
+stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2707,7 +2722,7 @@ skipped; `npm run check` stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 376 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 370 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
