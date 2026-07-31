@@ -24,7 +24,7 @@ describe('MFI Optimization Correctness', () => {
     const high = new Float64Array(len).map((_, i) => 100 + Math.sin(i) * 10);
     const low = new Float64Array(len).map((_, i) => 90 + Math.sin(i) * 10);
     const close = new Float64Array(len).map((_, i) => 95 + Math.sin(i) * 10);
-    const vol = new Float64Array(len).map((_, i) => 1000 + Math.random() * 500);
+    const vol = new Float64Array(len).map(() => 1000 + Math.random() * 500);
 
     // Baseline (Full Series)
     const tp = new Float64Array(len);

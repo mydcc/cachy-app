@@ -18,6 +18,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateAllIndicators } from '../../src/utils/technicalsCalculator';
 import { Decimal } from 'decimal.js';
+import type { IndicatorSettings } from '../../src/types/indicators';
 
 describe('calculateAllIndicators Repro', () => {
     it('should return 0 for EMA 200 when insufficient data (current behavior)', () => {
@@ -40,7 +41,7 @@ describe('calculateAllIndicators Repro', () => {
             }
         };
 
-        const result = calculateAllIndicators(klines, settings as any);
+        const result = calculateAllIndicators(klines, settings as unknown as IndicatorSettings);
 
         // This test was written to document a bug: EMA 200 over only 100 candles
         // reported a value of 0, which is indistinguishable from a real price
@@ -78,7 +79,7 @@ describe('calculateAllIndicators Repro', () => {
             }
         };
 
-        const result = calculateAllIndicators(klines, settings as any);
+        const result = calculateAllIndicators(klines, settings as unknown as IndicatorSettings);
         const ema200 = result.movingAverages.find(ma => ma.params === '200');
 
         expect(ema200).toBeDefined();

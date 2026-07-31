@@ -3528,6 +3528,109 @@ entry, traced back through git history rather than guessed at.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred thirteen: 15-file batch (+1 ripple), 113 → 89.** The
+last tier at 2 warnings, plus six 1-warning files. Includes a real bug
+found and fixed in two performance benchmarks — wrong argument order,
+not just dead arguments this time.
+
+- `src/stores/trade.svelte.ts`: `currentTradeData: null as any` in
+  `INITIAL_TRADE_STATE` → `null as CurrentTradeData | null`, matching
+  the real field's declared type and the sibling fields' own `as`
+  pattern. A `const toSave: any = { ...snapshot }` (which then deletes
+  several fields before persisting to localStorage) → `Partial<Omit<
+  TradeStateSnapshot, "lockedPositionSize">> & { lockedPositionSize?:
+  Decimal | string | null }` — `Partial` because `delete` requires
+  optional properties, the `lockedPositionSize` override because the
+  code converts it to a string a few lines later.
+- `src/tests/unit/indicators_mfi.test.ts`: a `.map((_, i) => ...)`
+  fixture generator where neither `_` nor `i` end up used (unlike its
+  three neighbors on the lines above, which do use `i`) → dropped both
+  params.
+- `src/utils/networkMonitor.ts`: `private connection: any` plus
+  `(navigator as any).connection` → a minimal `NetworkInformation`
+  interface (`saveData`, `effectiveType`, `rtt`, `EventTarget` for
+  `addEventListener`) for the real but non-standard Navigator Network
+  Information API, which has no DOM lib typings.
+- `src/utils/safeJson.ts`: `<T = any>`'s generic default documented
+  (37 call sites across the codebase, 33 of them relying on the loose
+  default with no type argument — narrowing it would need a cast at
+  every one); the one real `return jsonString as any` → `as unknown as
+  T`, resolved independently of the generic default.
+- `tests/benchmarks/market_dedup.bench.ts`: `rawBatch`/`multiBatch:
+  any[]` → `RawKline[]`, exporting that interface from
+  `market.svelte.ts` (previously module-private) since nothing else in
+  the codebase already had a name for this shape.
+- `tests/benchmarks/stochrsi.bench.ts` + `technicals.bench.ts`: both
+  called `calculateIndicatorsFromArrays(times, opens, highs, lows,
+  closes, volumes, settings as any, enabledIndicators[, pool])`. The
+  real signature is `(highs, lows, closes, opens, volumes, times,
+  settings?)` — **completely different argument order**, plus two
+  parameters (`enabledIndicators`, `pool`) the function has never
+  accepted (it uses an internal buffer-pool singleton and always
+  calculates every configured indicator). This was invisible before:
+  `settings as any` didn't suppress the arity/order checking that
+  found it — nothing had ever type-checked these files, since
+  `tests/benchmarks/**` is excluded from `tsconfig.json` and this is
+  the first time this session's scratch-tsconfig technique was pointed
+  at them. Fixed the argument order, dropped the two nonexistent
+  params (and the now-pointless "With Pool" duplicate benchmark that
+  depended on them), verified both files still execute correctly via
+  `npx tsx` afterward — real timing output, not just a clean
+  type-check.
+- `tests/e2e/wasm_features.spec.ts`: `wasmLoaded`/`retryAttempts` were
+  tracked but never asserted on — both `test()` blocks end without a
+  single `expect()` call, and the surrounding comments read like the
+  author intended to assert but stopped ("Let's assume the console log
+  check is sufficient..."). Added `expect(wasmLoaded).toBe(true)` and
+  `expect(retryAttempts).toBeGreaterThan(0)`, completing what the
+  tracking variables were evidently for. Lower-risk than similar calls
+  elsewhere this session: `tests/e2e/**` isn't part of any CI job in
+  `.github/workflows/audit.yml`, so a wrong guess here can't turn CI
+  red — but it hasn't been run against a live WASM build to confirm
+  the assertions actually pass, only verified to type-check.
+- `tests/unit/repro_calculator.test.ts`: two `settings as any` →
+  `as unknown as IndicatorSettings`, the same fixture-typing pattern
+  used throughout this item.
+- `src/components/shared/CachyIcon.svelte`: `[key: string]: any`
+  documented — a generic pass-through component spreading arbitrary
+  SVG/HTML attributes plus two custom shortcuts (`ariaLabel`, `title`)
+  onto the root `<svg>`.
+- `src/components/shared/ChartPatternsView.svelte`: `getLocalizedText
+  (pattern: any, key: string)` → `pattern: ChartPatternDefinition |
+  null | undefined`, `key` narrowed to the exact four string-valued
+  field names it's ever called with (`description`, `trading`,
+  `advancedConsiderations`, `performanceStats`) — checked against all
+  4 call sites first.
+- `src/components/shared/ConnectionStatus.svelte`: `isAnimated`
+  computed (`wsStatus !== "connected"`) but never read — the
+  status-dot `<div>` had no class bound to it at all. Wired in
+  `class:animate-pulse={isAnimated}`, the same Tailwind utility class
+  already used for attention-drawing states in five other components
+  in this codebase (`MarketOverview.svelte`, `AiPanel.svelte`, ...).
+- `src/components/shared/FireOverlay.svelte`: an unused destructured
+  `id` in `for (const [id, data] of fireStore.elements)` → `[, data]`
+  elision, the same each-loop-unused-item pattern from passes 109/110
+  adapted to a plain `for...of`.
+- `src/components/shared/NewsSentimentPanel.svelte`: an unused
+  `_title` parameter on `handleArticleClick` (the function only opens
+  the URL) removed, along with the `item.title` argument at its two
+  call sites.
+- `src/components/shared/PositionsList.svelte`: `handleMouseEnter(...,
+  pos: any)` → `pos: OMSPosition`, the type already imported and used
+  by every other function in this file; `uiState.showTooltip`'s
+  `data: unknown` param accepts it without a cast.
+- Verified: all 16 touched files (15 planned + the `market.svelte.ts`
+  `RawKline` export) pass `npm run check`; the 6 excluded-from-
+  `tsconfig.json` files (`.test.ts`/`.bench.ts`/`.spec.ts`) checked via
+  the scratch-tsconfig technique, 0 errors after the benchmark
+  argument-order fix. `npm test` unchanged at 850 passing, 6 skipped.
+  A real dev-server/Playwright pass on the dashboard (touched by
+  `ConnectionStatus.svelte`, `CachyIcon.svelte`) showed no console
+  errors.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3535,7 +3638,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 113 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 89 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

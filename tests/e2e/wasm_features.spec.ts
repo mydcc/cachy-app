@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('WASM & Engine Features', () => {
 
@@ -44,6 +44,7 @@ test.describe('WASM & Engine Features', () => {
     // Actually, EngineDebugPanel is a component. Is it always visible?
     // It's likely under Settings -> Debug or similar.
     // Let's assume the console log check is sufficient for basic verification.
+    expect(wasmLoaded).toBe(true);
   });
 
   test('should handle WASM loading failure with retry', async ({ page }) => {
@@ -68,10 +69,11 @@ test.describe('WASM & Engine Features', () => {
      // We expect at least 1 attempt to fail
      // Note: If console logs are stripped in production build, this test might be flaky.
      // But in test environment (usually DEV or persistent logs), it should work.
-     
+     expect(retryAttempts).toBeGreaterThan(0);
+
      // Also check for Error Toast?
      // ToastService.error("Engine Error: ...")
      // Expect toast to appear.
-     // await expect(page.locator('.toast-error')).toBeVisible(); 
+     // await expect(page.locator('.toast-error')).toBeVisible();
   });
 });
