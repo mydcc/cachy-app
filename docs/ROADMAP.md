@@ -624,6 +624,40 @@ relied on `any`'s implicit coercion.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass sixteen: `account.svelte.ts`, 887 → 877.** The repeated cast was the
+raw WS position/order/balance payload forwarded from both exchange
+services into the three `updateXFromWs` methods.
+
+- `RawWsPosition`, `RawWsOrder`, `RawWsBalance` (exported) replace 10 `any`
+  sites — the three `updateXFromWs` methods, their three `*Batch` wrappers,
+  and the `listeners`/`notifyTimer` compatibility fields, the latter two
+  now `Set<(value: AccountSnapshot) => void>` and
+  `ReturnType<typeof setTimeout> | null`.
+- Hoisted the `safeDecimal` helper, defined identically inline in both
+  `updatePositionFromWs` and `updateOrderFromWs`, to module scope instead
+  of duplicating it.
+- Typing `data` from `any` to a real (if all-optional) interface turned
+  four previously-silent assignments into real type errors:
+  `Position.side: "long" | "short"` and `OpenOrder.side/type` are string
+  literal unions, but the values assigned to them are `.toLowerCase()`
+  results typed as plain `string`. This was already true before — `any`
+  just hid it. Cast at the assignment (`as "long" | "short"`, etc.)
+  rather than widening the `Position`/`OpenOrder` interfaces, since this
+  is exchange data whose values are runtime-trusted, not statically
+  provable, and widening those two interfaces would ripple into every
+  other place they're read across the app.
+- **This is the same pair of functions documented in pass thirteen's TODO
+  entry.** Typing them here made the mismatch appear a second time, now as
+  a compile error at `bitgetWs.ts`'s two call sites (excess/missing
+  properties against `RawWsOrder`/`RawWsPosition`) rather than a silent
+  runtime no-op. Preserved the current (buggy) behavior with an explicit
+  `as RawWsOrder`/`as RawWsPosition` cast and a comment at each site,
+  rather than fixing the field names as a rider on this pass — same
+  reasoning as pass thirteen: a live-trading correctness fix needs its own
+  test, not a drive-by inside item 21.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -631,7 +665,7 @@ relied on `any`'s implicit coercion.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 887 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 877 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

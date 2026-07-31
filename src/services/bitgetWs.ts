@@ -8,7 +8,7 @@
  */
 
 import { marketState } from "../stores/market.svelte";
-import { accountState } from "../stores/account.svelte";
+import { accountState, type RawWsOrder, type RawWsPosition } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
@@ -510,6 +510,11 @@ class BitgetWebSocketService {
       if (Array.isArray(msg.data)) {
         msg.data.forEach((o: BitgetWSOrderData) => {
           // Map to internal format
+          //
+          // NOTE: these field names (status, filled, avgPrice) don't match
+          // what updateOrderFromWs actually reads (orderStatus, dealAmount,
+          // price/qty) — cast preserves the existing (buggy) behavior rather
+          // than silently "fixing" it here. See docs/TODO.md item 3.
           accountState.updateOrderFromWs({
             orderId: o.orderId,
             symbol: o.instId,
@@ -518,7 +523,7 @@ class BitgetWebSocketService {
             price: o.price,
             avgPrice: o.priceAvg,
             // etc
-          });
+          } as RawWsOrder);
         });
       }
     }
@@ -526,6 +531,11 @@ class BitgetWebSocketService {
     else if (channel === "positions") {
       if (Array.isArray(msg.data)) {
         msg.data.forEach((p: BitgetWSPositionData) => {
+          // NOTE: no positionId, and these field names (size, marginType,
+          // unrealizedPnl) don't match what updatePositionFromWs actually
+          // reads (qty, positionId, marginMode, unrealizedPNL) — cast
+          // preserves the existing (buggy) behavior rather than silently
+          // "fixing" it here. See docs/TODO.md item 3.
           accountState.updatePositionFromWs({
             symbol: p.instId,
             size: p.total, // or available? total usually
@@ -533,7 +543,7 @@ class BitgetWebSocketService {
             marginType: p.marginMode,
             leverage: p.leverage,
             unrealizedPnl: p.unrealizedPL
-          });
+          } as RawWsPosition);
         });
       }
     }

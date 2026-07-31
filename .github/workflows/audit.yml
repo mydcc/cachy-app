@@ -138,4 +138,4 @@ jobs:
       #    lowered, never raised, so the backlog cannot grow silently.
       #    Lower it as warnings are fixed; see docs/ROADMAP.md item 21.
       - name: Run ESLint
-        run: npx eslint . --max-warnings 887
+        run: npx eslint . --max-warnings 877
