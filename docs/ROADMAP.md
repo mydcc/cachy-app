@@ -2085,6 +2085,32 @@ any)` with the same `eslint-disable-next-line` and comment pointing at
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass seventy-six: the last three `BaseEngine` siblings —
+`EqualizerEngine.ts`, `GalaxyEngine.ts`, `StarDustEngine.ts` — 528 →
+519.** Same three findings each (unused `EngineContext` import, unused
+`delta` parameter, documented `updateSettings(...: any)`) as passes 53
+and 75, applied identically — except this time the dropped `delta`
+parameter wasn't cost-free.
+
+- `StarDustEngine.update()`'s body is an empty stub ("StarDust
+  implementation", no code) — both `time` and `delta` were unused,
+  so the signature dropped to zero parameters.
+- `galaxy.worker.ts`'s `animate()` calls `galaxyEngine.update(t,
+  0.016)` and `starDustEngine.update(t, 0.016)` through the *concrete*
+  `GalaxyEngine`/`StarDustEngine` types (not the `BaseEngine` abstract
+  type `tradeFlow.worker.ts`'s engine registry uses) — TypeScript checks
+  a call against the statically-known type's own signature, and unlike
+  an override declaring fewer parameters than its abstract method
+  (allowed), a *caller* passing more arguments than a concrete method
+  accepts is a real compile error. `npm run check` caught this
+  immediately (`"Expected 1 arguments, but got 2"` /
+  `"Expected 0 arguments, but got 2"`) — fixed by dropping the
+  now-unused `0.016` argument at both call sites, since `delta` was
+  already unused by the callees.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -2092,7 +2118,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 528 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 519 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

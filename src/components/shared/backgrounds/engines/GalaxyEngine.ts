@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { BaseEngine, type EngineContext } from './BaseEngine';
+import { BaseEngine } from './BaseEngine';
 
 export class GalaxyEngine extends BaseEngine {
     private galaxyPoints: THREE.Points | null = null;
@@ -190,7 +190,7 @@ export class GalaxyEngine extends BaseEngine {
         this.container.add(this.galaxyPoints);
     }
 
-    public update(time: number, delta: number): void {
+    public update(time: number): void {
         if (!this.galaxyMaterial) return;
         this.galaxyMaterial.uniforms.uTime.value = time;
 
@@ -201,6 +201,9 @@ export class GalaxyEngine extends BaseEngine {
         this.currentColors.out3.lerp(this.targetColors.out3, this.lerpAlpha);
     }
 
+    // `any` matches BaseEngine.context.settings' own declared type ("Generic settings
+    // for flexibility") — every sibling engine's updateSettings() does the same.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public updateSettings(settings: any): void {
         super.updateSettings(settings);
         if (this.galaxyMaterial) {
