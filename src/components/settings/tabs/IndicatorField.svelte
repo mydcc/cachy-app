@@ -21,12 +21,11 @@
     interface Props {
         label: string;
         id: string;
-        value: any;
+        value: number;
         type?: string;
         min?: number;
         max?: number;
         step?: number;
-        alwaysEnabled?: boolean;
     }
 
     let {
@@ -37,7 +36,6 @@
         min,
         max,
         step,
-        alwaysEnabled = false,
     }: Props = $props();
 </script>
 

@@ -3183,6 +3183,84 @@ scaffolding.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred nine: 15-file batch, 223 → 203.** The next tier of
+files at 1-2 warnings each, spanning benchmarks, a Node script, and
+mostly Settings-tab Svelte components.
+
+- `scripts/profile_worker_cdp.js`: unused destructured `url` in a
+  `for...of` loop → `for (const [, worker] of workers.entries())`.
+- `src/benchmarks/crypto_loop.bench.ts`: `(global as any).window/.browser`
+  → `(global as unknown as { window: unknown }).window` /
+  `{ browser: boolean }` — no scratch tsconfig needed for the type-check
+  since `npx tsc --noEmit` against a one-off scratch config confirmed 0
+  errors (this dir is excluded from the real `tsconfig.json`).
+- `src/benchmarks/daily_perf_technicals.bench.ts`: the large inline
+  settings fixture's `} as any` → `} as unknown as IndicatorSettings`;
+  also dropped a dead 3rd argument to `calculateAllIndicators` (same
+  pattern as passes 106/108 — the function only takes 2 parameters).
+- `src/components/inputs/PortfolioInputs.svelte`: `catch (e: any)`
+  normalized; `e.message` access guarded with `e instanceof Error`.
+- `src/components/inputs/TakeProfitTargets.svelte`: a dead
+  `as any` cast on a translation key that's a plain string literal
+  already present in `schema.d.ts` — removed the cast outright (same
+  "dead weight" pattern as pass 71's `csvService.ts`).
+- `src/components/settings/ApiQuotaStatus.svelte`: `getStatusColor(stats:
+  any)` → `QuotaEntry | null`, the real return type of
+  `apiQuotaTracker.getStats()`.
+- `src/components/settings/SettingsContent.svelte`: an unused
+  `appVersion` const (and, once dead, its now-unused `APP_VERSION`
+  import) removed; `$_(result.message as any)` → `as TranslationKey`
+  for the dynamic app.\*-prefixed-or-literal restore-status message.
+- `src/components/settings/tabs/AiTab.svelte`: `provider.value as any`
+  → `as AiProvider`; an unused each-block `channel` binding (only the
+  index was used) restructured to
+  `settingsState.discordChannels.map((_, i) => i)` so the loop declares
+  only the used `i` — `<!-- eslint-disable-next-line -->` HTML comments
+  were tried first but don't suppress warnings that originate from the
+  virtual script svelte-eslint-parser generates for each-block bindings,
+  so the array-of-indices rewrite was used instead (an unused function
+  *argument* before a used one is exempted by the rule's default
+  `args: "after-used"`, unlike an unused each-block *variable*, which
+  isn't).
+- `src/components/settings/tabs/ConnectionsTab.svelte`: the same
+  unused-each-block-item pattern on `customRssFeeds`, same fix.
+- `src/components/settings/tabs/IndicatorField.svelte`: `value: any` →
+  `number` (every call site across `IndicatorSettings.svelte` binds a
+  number); a confirmed-dead `alwaysEnabled` prop (declared, never read
+  in the component body, never passed by its one caller) removed.
+- `src/components/settings/tabs/IndicatorSelect.svelte`: `value: any`
+  documented — the component is bound to a different string-literal
+  union at every call site (engine, mode, source, maType, anchor, ...),
+  matching the established generic-reusable-component exception.
+- `src/components/settings/tabs/IndicatorSettings.svelte`:
+  `mode.value as any` → `as PnlViewMode`; `pType.value as any` → `as
+  IndicatorSettings['pivots']['type']` (indexed-access type off the
+  real store interface, avoiding a duplicate literal union).
+- `src/components/settings/tabs/TradingTab.svelte`: a dead `intervals`
+  const (defined, never referenced in the template) removed.
+- `src/components/shared/AccountTooltip.svelte`: `account: any` →
+  a new `AccountData` interface mirroring the inline object literal
+  `AccountSummary.svelte` actually passes in (traced the one caller's
+  `Props` interface for the field types).
+- `src/components/shared/BackgroundAnimations.svelte`: the same
+  unused-each-block-item pattern on a particle-count loop, same
+  `Array.from({ length }, (_, i) => i)` fix.
+- Verified: all 15 files are production `.svelte`/`.ts`/`.js` files
+  directly covered by `npm run check` except the two `.bench.ts` files
+  (excluded from `tsconfig.json`'s `src/benchmarks/**`), checked via the
+  usual scratch-tsconfig technique — 0 errors both ways. Also did a real
+  dev-server/Playwright pass through the Settings modal specifically
+  because this batch changed each-block behavior and several
+  bind:value types: opened AI Chat → Autonomous Agents (added two
+  Discord channel rows), Connections → RSS Feeds (added a custom feed
+  row), and Trading & Market → Chart & Data → Indicator Configuration
+  (edited the RSI length field, changed its source dropdown, and
+  switched Pivot Points from Classic to Woodie) — all rendered and
+  updated correctly with zero non-network console errors.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -3190,7 +3268,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 223 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 203 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

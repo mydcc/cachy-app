@@ -8,7 +8,7 @@
 -->
 
 <script lang="ts">
-    import { apiQuotaTracker } from "../../services/apiQuotaTracker.svelte";
+    import { apiQuotaTracker, type QuotaEntry } from "../../services/apiQuotaTracker.svelte";
     import { _, locale } from "../../locales/i18n";
 
     // Reactive derived state (no polling needed)
@@ -24,7 +24,7 @@
         });
     }
 
-    function getStatusColor(stats: any): string {
+    function getStatusColor(stats: QuotaEntry | null): string {
         if (!stats) return "var(--text-secondary)";
         if (stats.last429At) {
             const hoursSince =

@@ -46,7 +46,7 @@
     ></div>
 {:else if settingsState.backgroundAnimationPreset === "particles"}
     <div class="animation-particles">
-        {#each Array(particleCount) as _, i}
+        {#each Array.from({ length: particleCount }, (_, i) => i) as i}
             <div
                 class="particle"
                 style="--delay: {i * 0.5}s; --x: {Math.random() * 100}%"

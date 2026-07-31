@@ -4,14 +4,14 @@ import { cryptoService, type EncryptedBlob } from '../services/cryptoService';
 
 // Ensure crypto is available in Node environment
 if (typeof window === 'undefined') {
-    (global as any).window = {
+    (global as unknown as { window: unknown }).window = {
         crypto: globalThis.crypto,
         TextEncoder: globalThis.TextEncoder,
         TextDecoder: globalThis.TextDecoder,
         atob: (str: string) => Buffer.from(str, 'base64').toString('binary'),
         btoa: (str: string) => Buffer.from(str, 'binary').toString('base64'),
     };
-    (global as any).browser = true;
+    (global as unknown as { browser: boolean }).browser = true;
 }
 
 const SENSITIVE_KEYS = [

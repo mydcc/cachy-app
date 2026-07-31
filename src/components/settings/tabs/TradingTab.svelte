@@ -29,29 +29,6 @@
         type HotkeyAction,
     } from "../../../services/hotkeyService";
 
-    const intervals = [
-        {
-            value: 1000,
-            label: $_("settings.calculation.interval1s"),
-            tooltip: $_("settings.calculation.interval1sTooltip"),
-        },
-        {
-            value: 2000,
-            label: $_("settings.calculation.interval2s"),
-            tooltip: $_("settings.calculation.interval2sTooltip"),
-        },
-        {
-            value: 5000,
-            label: $_("settings.calculation.interval5s"),
-            tooltip: $_("settings.calculation.interval5sTooltip"),
-        },
-        {
-            value: 10000,
-            label: $_("settings.calculation.interval10s"),
-            tooltip: $_("settings.calculation.interval10sTooltip"),
-        },
-    ];
-
     const activeSubTab = $derived(uiState.settingsTradingSubTab);
 
     const subTabs = [

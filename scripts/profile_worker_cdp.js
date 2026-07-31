@@ -110,7 +110,7 @@ async function runProfile() {
 
     // Get Worker Metrics
     let totalThroughput = 0;
-    for (const [url, worker] of workers.entries()) {
+    for (const [, worker] of workers.entries()) {
         try {
             const res = await worker.session.send('Runtime.evaluate', {
                 expression: 'self.__msgCount',
