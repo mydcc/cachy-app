@@ -49,9 +49,9 @@ describe('GET /api/klines', () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
-    });
+    } as unknown as Response);
     const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
-    const response = await GET({ url } as any);
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
     const json = await response.json();
     expect(json).toHaveLength(2);
     expect(json[0].open).toBe("100.5");
@@ -79,9 +79,9 @@ describe('GET /api/klines', () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
-    });
+    } as unknown as Response);
     const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
-    const response = await GET({ url } as any);
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
     const json = await response.json();
     expect(json[0].open).toBe("100.5");
     expect(json[0].high).toBe("101"); // Number(101.0).toString() is "101"
@@ -107,9 +107,9 @@ describe('GET /api/klines', () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
-    });
+    } as unknown as Response);
     const url = new URL('http://localhost/api/klines?symbol=PEPEUSDT&provider=bitunix');
-    const response = await GET({ url } as any);
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
     const json = await response.json();
     expect(json[0].open).toBe("0.0000001");
     // If it was Decimal(x).toString(), it would likely be "1e-7"
@@ -123,9 +123,9 @@ describe('GET /api/klines', () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
-    });
+    } as unknown as Response);
     const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitget');
-    const response = await GET({ url } as any);
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
     const json = await response.json();
     expect(json).toHaveLength(2);
     expect(json[0].open).toBe("100.5");

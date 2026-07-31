@@ -2809,6 +2809,51 @@ happy paths).
 passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
 stays at 0 errors.
 
+**Pass one hundred three: 4 files tied at 4 warnings each, 349 → 333.**
+With most remaining files down to a handful of warnings apiece,
+combined four unrelated small files into one pass (same precedent as
+pass seventy-six's 3-file combination):
+
+- `src/lib/server/sanitizer.test.ts` (4): mocks `dompurify`'s CJS
+  import, which is where a real type/runtime mismatch lives — the
+  package's `.d.ts` describes the pre-instantiated browser export, but
+  importing it in this test environment (no global `window`) resolves
+  to a window-taking factory function instead, a shape no type in the
+  package covers. Documented `actual`'s `any` with an
+  `eslint-disable-next-line` and a comment explaining the mismatch,
+  rather than writing a type that wouldn't actually describe the
+  runtime value — same discipline as the `WindowBase.component`/
+  `cloudService.ts` precedents. The one downstream `as unknown as any`
+  (passing a JSDOM window into the now-still-`any`-typed factory) turned
+  out unnecessary once traced — removed rather than kept. The mocked
+  `sanitize(dirty, config: any)`'s `config` → `Config` (imported as a
+  type from `dompurify`, which does export it correctly). Also removed
+  a dead top-level `const window = new JSDOM('').window` — confirmed
+  via `grep` that nothing reads the outer binding; the one real usage
+  the file needs constructs its own separate JSDOM window inline.
+- `src/routes/api/account/account.test.ts` (4): 3
+  `POST({ request } as any)` → `as unknown as Parameters<typeof
+  POST>[0]`; a `const body = await response.json()` whose `body` was
+  never read (the one assertion using it was already commented out) →
+  dropped the assignment, kept the `await` so a JSON-parse failure
+  still fails the test.
+- `src/routes/api/klines/klines.test.ts` (4): 4 `GET({ url } as any)` →
+  the same `Parameters<typeof GET>[0]` pattern. The scratch-`tsconfig`
+  check then surfaced 4 more latent errors, one per test's
+  `vi.mocked(global.fetch).mockResolvedValue({ ok, text })` fixture not
+  structurally satisfying `Response` — fixed with `as unknown as
+  Response` at all 4, matching pass one-hundred-two's identical finding
+  in a sibling route test.
+- `src/routes/api/sentiment/sentiment.test.ts` (4): 4
+  `POST({ request } as any)` → the same `Parameters<typeof POST>[0]`
+  pattern; no further issues.
+- Verified all four together under one scratch-`tsconfig` (`include`
+  listing all four paths) — 0 errors after the klines.test.ts fetch-mock
+  fix.
+
+`npx vitest run` across all four files: 22 passing; `npm test` stays at
+850 passing, 6 skipped; `npm run check` stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2816,7 +2861,7 @@ stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 349 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 333 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

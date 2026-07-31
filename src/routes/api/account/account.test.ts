@@ -44,7 +44,7 @@ describe('POST /api/account Security', () => {
       text: vi.fn().mockResolvedValue('{ "broken": '),
     } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -57,7 +57,7 @@ describe('POST /api/account Security', () => {
       text: vi.fn().mockResolvedValue('null'),
     } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -81,8 +81,8 @@ describe('POST /api/account Security', () => {
         json: async () => ({ code: 0, data: [{ available: "100" }] })
     });
 
-    const response = await POST({ request } as any);
-    const body = await response.json();
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    await response.json();
 
     expect(response.status).not.toBe(400);
     // expect(body).toHaveProperty('available'); // Assuming mocks work fully
