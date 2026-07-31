@@ -17,13 +17,15 @@
 
 <script lang="ts">
   import { _, locale } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/schema";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
   import { OrderType } from "../../types/orderTypes";
+  import type { NormalizedOrder } from "../../types/bitunix";
   import Decimal from "decimal.js";
 
   interface Props {
-    orders?: any[];
+    orders?: NormalizedOrder[];
     loading?: boolean;
     error?: string;
   }
@@ -50,7 +52,7 @@
 
   // Removed local tooltip state in favor of uiStore
 
-  function handleMouseEnter(event: MouseEvent, order: any) {
+  function handleMouseEnter(event: MouseEvent, order: NormalizedOrder) {
     const pos = getTooltipPosition(event);
     uiState.showTooltip("order", order, pos.x, pos.y);
   }
@@ -59,7 +61,7 @@
     uiState.hideTooltip();
   }
 
-  function handleKeyDown(event: KeyboardEvent, order: any) {
+  function handleKeyDown(event: KeyboardEvent, order: NormalizedOrder) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       // Calculate generic center position as we don't have mouse coordinates
@@ -112,17 +114,17 @@
   }
 
   // Helper to get Fee String
-  function getFeeDisplay(order: any) {
+  function getFeeDisplay(order: NormalizedOrder) {
     if (order.fee === undefined || order.fee === null) return $_("dashboard.orderHistory.noFee");
     const roleMap: Record<string, string> = {
         MAKER: ` (${$_("dashboard.orderHistory.maker")})`,
         TAKER: ` (${$_("dashboard.orderHistory.taker")})`
     };
-    const role = roleMap[order.role] || "";
+    const role = roleMap[order.role || ""] || "";
     return `${formatDynamicDecimal(order.fee)}${role}`;
   }
 
-  function getTypeLabel(type: any) {
+  function getTypeLabel(type: string) {
     const t = String(type || "").toUpperCase();
     if ([OrderType.LIMIT, "1"].includes(t)) return $_("dashboard.orderHistory.type.limit");
     if ([OrderType.MARKET, "2"].includes(t)) return $_("dashboard.orderHistory.type.market");
@@ -152,7 +154,7 @@
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
-      {(error.startsWith("apiErrors.") || error.startsWith("bitunixErrors.")) && typeof $_ === "function" ? $_(error as any) : error}
+      {(error.startsWith("apiErrors.") || error.startsWith("bitunixErrors.")) && typeof $_ === "function" ? $_(error as TranslationKey) : error}
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
@@ -222,15 +224,15 @@
               </span>
 
               <!-- PnL -->
-              {#if (order.realizedPNL || order.realizedPnL) && !(new Decimal(order.realizedPNL || order.realizedPnL || 0).isZero())}
+              {#if order.realizedPNL && !(new Decimal(order.realizedPNL || 0).isZero())}
                 <span
                   class="text-[10px] font-bold"
-                  class:text-[var(--success-color)]={new Decimal(order.realizedPNL || order.realizedPnL || 0).gt(0)}
-                  class:text-[var(--danger-color)]={new Decimal(order.realizedPNL || order.realizedPnL || 0).lt(0)}
+                  class:text-[var(--success-color)]={new Decimal(order.realizedPNL || 0).gt(0)}
+                  class:text-[var(--danger-color)]={new Decimal(order.realizedPNL || 0).lt(0)}
                 >
-                  {new Decimal(order.realizedPNL || order.realizedPnL || 0).gt(0)
+                  {new Decimal(order.realizedPNL || 0).gt(0)
                     ? "+"
-                    : ""}{formatDynamicDecimal(order.realizedPNL || order.realizedPnL)}
+                    : ""}{formatDynamicDecimal(order.realizedPNL)}
                 </span>
               {/if}
 

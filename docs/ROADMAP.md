@@ -1380,6 +1380,30 @@ technicals worker.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass forty-four: `components/shared/OrderHistoryList.svelte`, 664 → 658.**
+The order-history panel in the positions sidebar.
+
+- `Props.orders`, and the `order` parameter of `handleMouseEnter`,
+  `handleKeyDown`, and `getFeeDisplay`, all typed as `NormalizedOrder`
+  (the same type `PositionsSidebar.svelte` already declares its
+  `historyOrders`/`filteredHistoryOrders` as — this component just never
+  had it on the receiving end). `getTypeLabel`'s `type: any` →
+  `string`, matching the one field it's ever called with, `order.type`.
+- The dynamic i18n key read, `$_(error as any)`, → `as TranslationKey`,
+  the pattern established since pass 11.
+- Typing surfaced a dead fallback: four PnL reads did
+  `order.realizedPNL || order.realizedPnL`, but `NormalizedOrder` only
+  ever declares `realizedPNL` (capital PNL) — `realizedPnL` doesn't exist
+  on the type, so the fallback never contributed. Removed the dead half
+  of all four reads; behavior is unchanged since `undefined || 0` and
+  `x || undefined || 0` evaluate identically.
+- One follow-on fix typing required: `roleMap[order.role]` failed since
+  `role` is `string | undefined` on `NormalizedOrder` and can't index a
+  `Record<string, string>` as `undefined` — `roleMap[order.role || ""]`.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds (extra gate for UI-component passes).
+
 ### Code health
 
 | # | Item | Status |
@@ -1387,7 +1411,7 @@ technicals worker.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 664 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 658 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
