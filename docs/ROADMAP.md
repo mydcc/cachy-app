@@ -2003,6 +2003,23 @@ tuning.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass seventy-one: `services/csvService.ts`, 543 → 540.** The journal
+CSV import parser's error-message translation calls.
+
+- All three `translate("journal.csvXxx" as any, ...) as string` sites
+  needed neither cast. `translate` (`get(_)` from `locales/i18n.ts`) is
+  already typed `(key: TranslationKey, vars?) => string`, and all three
+  keys — `journal.csvTooManyLines`, `journal.csvEmpty`,
+  `journal.csvMissingColumns` — are real, present members of
+  `TranslationKey` (confirmed in `schema.d.ts` and both `en.json`/
+  `de.json`). Unlike the dynamic-key pattern seen throughout this item
+  (`` `prefix.${var}` as TranslationKey ``), these are static literals
+  that were always valid without a cast — both the input cast and the
+  output `as string` were dead weight from the start.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -2010,7 +2027,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 543 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 540 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
