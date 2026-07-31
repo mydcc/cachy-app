@@ -2248,6 +2248,42 @@ file is the verification bar instead.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors (unaffected — this file is outside its scope).
 
+**Pass eighty-four: `src/lib/calculator.test.ts`, 490 → 480.** All 10
+warnings were `as any` casts on fixture objects passed to
+`calculator`'s core/stats functions.
+
+- `calculateBaseMetrics`/`calculateIndividualTp`/`calculateTotalMetrics`'s
+  `values as any` (4 sites) and `calculateTotalMetrics`'s
+  `targets as any` (1 site): the fixture object literals already declare
+  every field `TradeValues`/the target-array shape requires — the casts
+  were dead weight, removed with no other change.
+- `calculateATR`'s two `klines as any` casts: the fixtures only set
+  `high`/`low`/`close` (the fields the ATR formula reads), missing
+  `Kline`'s `open`/`volume`/`time`. Added those with inert values
+  (`volume: new Decimal(0)`, sequential `time`, `open` equal to `close`)
+  so the fixtures satisfy `Kline` for real instead of casting past the
+  gap.
+- `calculatePerformanceStats`/`calculateSymbolPerformance`'s two
+  `journalData as any`: these fixtures deliberately fill only the ~8
+  fields each function reads, not all ~19 `JournalEntry` fields (a
+  pre-existing comment already called this out: "Cast to JournalEntry
+  for test") — fully populating fake trades for a stats test isn't
+  worth the noise, so kept the partial fixture and swapped the cast to
+  `as unknown as JournalEntry[]`, the same two-step narrowing used
+  throughout this item to escape a real shape mismatch without the
+  literal `any` keyword.
+- Verified this file's edits under a scratch `tsconfig` (`tsconfig.json`
+  excludes `**/*.test.ts` from `npm run check`, so this file is never
+  covered by it) that included only this file plus the project's own
+  base config — 0 errors attributable to `calculator.test.ts` itself
+  (some pre-existing, unrelated errors surface in files it transitively
+  imports, e.g. missing `crypto-js` types, `GPUBufferUsage` — both
+  predate this pass and are out of scope).
+
+`npx vitest run src/lib/calculator.test.ts` stays at 9 passing; `npm
+test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2255,7 +2291,7 @@ errors (unaffected — this file is outside its scope).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 490 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 480 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
