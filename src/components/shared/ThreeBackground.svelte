@@ -40,7 +40,6 @@
     let worker: Worker | null = null;
     let observer: IntersectionObserver | null = null;
     let themeObserver: MutationObserver | null = null;
-    let isVisible = true;
 
     // ========================================
     // THEME & COLOR RESOLUTION
@@ -67,10 +66,7 @@
         const out3 = resolveColor("--galaxy-stars-edge-3") || "#6366f1";
 
         const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
-        const bgCol = { r: 0, g: 0, b: 0 }; // Temporary for HSL check
-        // We just need to know if it's light/dark. Simplified check:
-        const isLight = bgStr.includes("white") || bgStr.includes("#ffffff"); // Real check happens in main thread normally, but let's be more robust:
-        
+
         // Proper HSL check in main thread
         const tempDiv = document.createElement('div');
         tempDiv.style.color = bgStr;
@@ -113,7 +109,7 @@
             canvas.style.height = "100%";
             container.appendChild(canvas);
 
-            const offscreen = (canvas as any).transferControlToOffscreen();
+            const offscreen = canvas.transferControlToOffscreen();
             worker = new GalaxyWorker();
             
             worker.postMessage({
@@ -135,8 +131,7 @@
             themeObserver = new MutationObserver(() => updateColors());
             themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-mode", "style"] });
 
-            observer = new IntersectionObserver(([entry]) => {
-                isVisible = entry.isIntersecting;
+            observer = new IntersectionObserver(() => {
                 // Optimization: Tell worker to pause/resume? (Not implemented in worker yet)
             });
             observer.observe(container);
