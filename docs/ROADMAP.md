@@ -1274,6 +1274,29 @@ rate limiter, and in-flight-request dedup).
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass forty: `services/marketAnalyst.ts`, 688 → 682.** The favorites-symbol
+multi-timeframe technical-analysis background loop.
+
+- New `AnalystTechEntry` interface for the per-timeframe cache entries
+  this file builds (raw indicator arrays plus `_maMap`/`_oscMap`, Maps
+  pre-indexed by indicator name for O(1) lookups instead of re-scanning
+  the arrays on every read) — used for both the internal `techMap` and
+  the exported `calculateAnalysisMetrics()`'s parameter, replacing 3
+  `Record<string, any>` sites.
+- `private timeoutId: any` → `ReturnType<typeof setTimeout> | null`,
+  matching what `setTimeout`/`clearTimeout` actually exchange.
+- Removed three dead locals surfaced once nothing dereferenced them:
+  `requiredIndicators` (assigned from a module-level
+  `REQUIRED_INDICATORS` object, itself never read anywhere else —
+  removed both, a leftover from before `getAnalystSettings()` took over
+  building the indicator-enable settings actually passed downstream),
+  and `ema200_4h`/`tech4h` plus `rsiObj` (computed then never read —
+  `calculateAnalysisMetrics()` already re-derives both the EMA-200 trend
+  and RSI from the same `techMap` it's handed, so these were leftover
+  from before that extraction).
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1281,7 +1304,7 @@ rate limiter, and in-flight-request dedup).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 688 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 682 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
