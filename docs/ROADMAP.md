@@ -1661,6 +1661,41 @@ background (message-passed init/resize/settings/color updates).
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass fifty-five: `components/shared/journal/JournalTable.svelte`, 606 →
+601.** The journal trade table (flat and grouped-by-symbol modes).
+
+- `onUpdateTrade`'s `data: any` → `Partial<JournalEntry>`, matching what
+  `app.updateTrade()` (its one real caller, via `JournalContent.svelte`)
+  actually declares and what both call sites (`{tags: newTags}`,
+  `{screenshot: url}`) already pass.
+- `sortTradesList()` rebuilt around the exact pattern
+  `JournalContent.svelte`'s `sortTrades()` already established in an
+  earlier pass for this same "rows might be a real trade or a synthetic
+  group-summary object" problem: the list param is `unknown[]`, each row
+  is cast to `Record<string, string | number | Decimal | undefined |
+  null>` at the point of dynamic-field access, and the `.toNumber` duck
+  check became a real `instanceof Decimal` guard. `getSlAtr()`'s `item:
+  any` got the same row-record type, with `as Decimal.Value` casts on
+  its three field reads to preserve the prior unchecked (possibly-NaN,
+  guarded by the adjacent `if` above it) behavior.
+- `Props.trades` and the `{#snippet tableTemplate(items: any[], ...)}`
+  parameter stayed `any[]`, documented: unlike the sort helper, these
+  flow directly into ~250 lines of template that duck-types both
+  `JournalEntry` fields and group-summary fields (`isGroup`,
+  `totalTrades`, `totalProfitLoss`, `wonTrades`, nested `trades`) off the
+  same `item` — typing that properly means auditing every read in the
+  template against a discriminated union, a separate and larger pass.
+  Discovered along the way: an HTML-comment `<!-- eslint-disable-next-line
+  -->` placed before a `{#snippet ...}` tag does *not* suppress warnings
+  inside that tag's TypeScript parameter list (svelte-eslint-parser
+  doesn't expose template comments as directives to the embedded
+  TS sub-parse) — a `/* eslint-disable-line */` block comment placed
+  inside the parameter list itself does work, since it's parsed as a
+  real TS comment in that sub-parse.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1668,7 +1703,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 606 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 601 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
