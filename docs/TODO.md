@@ -193,6 +193,36 @@ in place and merely typed here per this repo's defensive-deletion rule:
 code whose purpose isn't fully clear doesn't get deleted without a person
 confirming it's safe to.
 
+## 6. `forceRecalculateAtr()` in JournalContent.svelte has no trigger
+
+**Roadmap item 21.** Found while typing/cleaning this file's unused-var
+warnings. Small, low-risk gap — a maintenance action, not a correctness
+bug — left in place rather than guessed at.
+
+`JournalContent.svelte` defines a complete, working
+`forceRecalculateAtr()`: it confirms with the user
+(`journal.confirmRecalculateAtr`), shows loading/progress feedback
+(`journal.messages.atrRecalcStart`), calls
+`dataRepairService.repairMissingAtr(..., true)` — the `true` forces a
+recalculation even for trades the scan doesn't flag as missing ATR — and
+reports success or failure. Dedicated i18n strings exist for all of it.
+But nothing in the file calls it: no button, no menu entry, no keyboard
+shortcut.
+
+For context, `journal.svelte.ts`'s `autoCalculateMissingAtr()` already
+runs a silent background repair automatically on load for trades the scan
+detects as missing ATR (`repairMissingAtr(callback)`, no force flag, no
+UI feedback by design). `forceRecalculateAtr` reads like the manual
+escape hatch for cases the automatic scan misses — useful, but only if a
+person can actually reach it.
+
+**The decision:** add a trigger (a button, likely near the other journal
+maintenance/import actions) and decide the copy, or decide the automatic
+repair is sufficient and remove this function. Left in place, not
+removed, since a fully-built feature with prepared translations is not
+"purpose unclear" — it's "purpose clear, UI incomplete," which needs a
+placement decision, not deletion.
+
 ## Add new items below
 
 <!--

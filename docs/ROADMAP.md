@@ -994,6 +994,60 @@ has followed throughout (money-relevant code first).
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty: `JournalContent.svelte`, 768 → 757.** The largest UI file
+touched so far — the trading journal's dashboard shell.
+
+- `WindowBase` (the abstract class typed in pass twenty-five) replaces the
+  `window?: any` prop; the component's only use of it,
+  `win.headerSnippet = snippet`, already matches the `Snippet | null`
+  field that pass gave it. `setHeaderSnippet`'s own `snippet: any`
+  parameter becomes `Snippet` from `svelte`.
+- `sortTrades()` sorts a genuine mix of two shapes — individual
+  `JournalEntry` rows and synthetic grouped-by-symbol summary rows — by an
+  arbitrary field name. `Record<string, unknown>` doesn't fit as the
+  parameter type here (`JournalEntry` has no index signature, so it isn't
+  structurally assignable to it — confirmed by `npm run check`, not
+  assumed); the array stays `unknown[]` and each row is cast once, at the
+  point it's read by dynamic key, rather than at the function boundary.
+  `handleSort`'s `field: any` becomes a named `SortField` type shared with
+  the existing `sortField` state.
+- Two `catch (e: any)` sites normalized to the standard
+  `e instanceof Error ? e.message : ...` pattern used throughout this item.
+- **Found real, un-displayed user feedback, and fixed it — not by adding
+  new UI, but by routing through UI that already exists.** Three cheat-code
+  handlers (`unlockDeepDive`, `lockDeepDive`, `activateVipSpace`) built a
+  parallel "overlay" state machine — `showUnlockOverlay`/
+  `unlockOverlayMessage`, set on every path — that no template markup ever
+  read; the feature-flag flips they perform (`isDeepDiveUnlocked`, opening
+  the VIP space URL) worked, but the user got zero visual confirmation.
+  Replaced the dead state with `uiState.showToast()`, the same toast
+  system already used elsewhere in this codebase (confirmed in
+  `PositionsSidebar.svelte`, pass twenty-nine) — this restores the
+  intended feedback using existing, tested infrastructure instead of
+  building new UI to satisfy a lint rule.
+- Two more `$effect`s read a value (or, in one case, an array of eight
+  values) purely to register it as a reactive dependency, never using the
+  local binding itself — Svelte 5's standard "track without using"
+  pattern. `void`-prefixed the reads instead of binding them to unused
+  `const`s, which satisfies `no-unused-vars` without changing what the
+  effect tracks. (A bare, non-`void`-prefixed property-read statement was
+  tried first and rejected by a different rule, `no-unused-expressions` —
+  `void` is exempted from that rule where a bare expression isn't.)
+- **Found and left in place, documented in `docs/TODO.md` item 6:**
+  `forceRecalculateAtr()` is a complete, working manual data-repair
+  trigger with prepared i18n strings for its confirm dialog and progress
+  messages, but no button, menu entry, or other caller anywhere in the
+  file — a finished feature missing its UI trigger, not dead code.
+  Suppressed narrowly (`eslint-disable-next-line`, pointing at the TODO)
+  rather than deleted, since "purpose is clear, wiring is incomplete" is
+  exactly what this repo's defensive-deletion rule protects.
+- Verified with `npm run build` in addition to check/eslint/test, same as
+  the previous UI-component pass, since the toast substitution changes
+  user-visible behavior (in the intended direction — restoring feedback
+  that was silently missing).
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1001,7 +1055,7 @@ has followed throughout (money-relevant code first).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 768 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 757 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
