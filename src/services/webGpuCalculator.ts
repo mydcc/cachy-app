@@ -32,7 +32,7 @@ import chopShader from '../shaders/choppiness.wgsl?raw';
 import wrShader from '../shaders/williams_r.wgsl?raw';
 import momShader from '../shaders/momentum.wgsl?raw';
 
-import type { TechnicalsData } from './technicalsTypes';
+import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 import type { IndicatorSettings } from '../types/indicators';
 import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator'; // Fallback
 import { toNumFast } from '../utils/fastConversion';
@@ -201,11 +201,11 @@ export class WebGpuCalculator {
           });
           
           if (params instanceof ArrayBuffer) {
-              this.device.queue.writeBuffer(paramsBuffer, 0, params as any);
+              this.device.queue.writeBuffer(paramsBuffer, 0, params);
           } else if (params instanceof Float32Array) {
-              this.device.queue.writeBuffer(paramsBuffer, 0, params as any);
+              this.device.queue.writeBuffer(paramsBuffer, 0, params);
           } else if (params instanceof Uint32Array) {
-               this.device.queue.writeBuffer(paramsBuffer, 0, params as any);
+               this.device.queue.writeBuffer(paramsBuffer, 0, params);
           } else {
               // Default to Uint32Array for number[] for backward compatibility
               this.device.queue.writeBuffer(paramsBuffer, 0, new Uint32Array(params as number[]));
@@ -277,7 +277,7 @@ export class WebGpuCalculator {
    * Main entry point for hybrid calculation
    */
   async calculate(
-    klines: any[],
+    klines: Kline[],
     settings: IndicatorSettings
   ): Promise<TechnicalsData> {
     await this.init();
@@ -553,23 +553,18 @@ export class WebGpuCalculator {
   }
 
   private injectResult(result: TechnicalsData, name: string, values: Float32Array, closes: Float64Array, category: 'movingAverages' | 'oscillators' | 'volatility') {
-      if (!result[category]) {
-          if (category === 'movingAverages') result[category] = [];
-          else if (category === 'oscillators') result[category] = [];
-          else (result as any)[category] = {};
-      }
-      
       const lastIdx = values.length - 1;
       const val = values[lastIdx];
-      
+
       if (category === 'movingAverages' || category === 'oscillators') {
-          const arr = result[category] as any[];
+          if (!result[category]) result[category] = [];
+          const arr = result[category];
           const existing = arr.find(x => x.name === name);
           if (existing) {
               existing.value = val;
               if (category === 'movingAverages') existing.price = closes[lastIdx];
           } else {
-              const entry: any = {
+              const entry: IndicatorResult = {
                   name: name,
                   value: val,
                   signal: 0,
@@ -579,7 +574,13 @@ export class WebGpuCalculator {
               arr.push(entry);
           }
       } else {
-          (result as any)[category][name] = val;
+          // 'volatility' category. TechnicalsData.volatility only declares
+          // atr/bb — this writes an undeclared key (currently only "CHOP",
+          // which the WASM/CPU path puts under result.advanced.choppiness
+          // instead, not result.volatility.CHOP). Cast preserves the
+          // existing (inconsistent) behavior; see docs/TODO.md item 4.
+          if (!result.volatility) result.volatility = {};
+          (result.volatility as Record<string, number>)[name] = val;
       }
   }
 

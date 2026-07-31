@@ -142,6 +142,35 @@ non-functional rather than merely wrong. Needs the same treatment: confirm
 against a real Bitget login response, then fix the schema (or the check)
 with a test.
 
+## 4. GPU-accelerated CHOP (Choppiness) indicator writes to a field nobody reads
+
+**Roadmap item 21.** Found while typing `webGpuCalculator.ts`'s
+`injectResult()`. Low severity (WebGPU is the optional acceleration path,
+most users run the WASM/CPU calculator), not fixed here — needs the same
+"confirm with a test" treatment as everything else in this file.
+
+`injectResult(..., category: 'volatility')` is only ever called for one
+indicator: `this.injectResult(result, 'CHOP', chop, closes, 'volatility')`
+(`webGpuCalculator.ts:526`). It writes the value to
+`result.volatility['CHOP']` — a key `TechnicalsData.volatility` doesn't
+declare (only `atr`/`bb` are declared fields).
+
+The WASM/CPU reference implementation computes the same indicator
+differently: `wasmCalculator.ts:320-324` puts it under
+`result.advanced.choppiness = { value, state }`, a completely different
+location with a completely different shape (an object with `value`/`state`,
+not a bare number).
+
+**Consequence, not yet confirmed against a running app:** whatever UI reads
+Choppiness data presumably reads `result.advanced.choppiness` (matching the
+WASM path, the one most users run) — if so, the GPU path's CHOP value is
+computed and then written somewhere nothing reads, i.e. the Choppiness
+indicator silently doesn't update for users on the GPU acceleration path.
+**The decision:** confirm what the UI actually reads, then either move the
+GPU path's CHOP output to `result.advanced.choppiness` to match, or decide
+`volatility.CHOP` is the intended home and update the WASM path and the
+`TechnicalsData` type to match instead.
+
 ## Add new items below
 
 <!--

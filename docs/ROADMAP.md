@@ -752,6 +752,38 @@ unused type imports.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-one: `webGpuCalculator.ts`, 841 → 833.** The repeated cast
+was `TechnicalsData`'s result-building helper, `injectResult()`, which
+built moving-average/oscillator/volatility entries through `any` at every
+step.
+
+- Three `writeBuffer(..., params as any)` calls turned out to need no cast
+  at all: each is already behind an `instanceof ArrayBuffer` /
+  `Float32Array` / `Uint32Array` check, and all three satisfy WebGPU's
+  `BufferSource` parameter type directly.
+- `calculate()`'s `klines: any[]` parameter became `Kline[]`, matching
+  every other calculator in this codebase.
+- `injectResult()`'s `result[category] as any[]`, `entry: any`, and
+  `(result as any)[category]` became `IndicatorResult[]`/`IndicatorResult`
+  once `IndicatorResult` gained a `price?: number` field — the GPU path
+  was already writing `.price` onto moving-average entries, a field the
+  type didn't declare and (as far as a codebase-wide search found) nothing
+  reads. Documented as such rather than silently dropped, since removing
+  an assignment because it "looks unused" is a claim about behavior, not
+  about types.
+- The `'volatility'` branch's `(result as any)[category][name] = val`
+  writes to a key `TechnicalsData.volatility` doesn't declare — currently
+  only `name === 'CHOP'` reaches it. Typing it surfaced that the WASM/CPU
+  reference implementation puts the same indicator under a different
+  field entirely (`result.advanced.choppiness`, not `result.volatility`),
+  which would mean the GPU-accelerated Choppiness indicator never reaches
+  wherever the UI actually reads it. Cast preserves current behavior; see
+  `docs/TODO.md` item 4 — lower severity than the Bitget findings (WebGPU
+  is the optional acceleration path), but the same "confirm with a test,
+  don't fix as a lint-pass rider" reasoning applies.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -759,7 +791,7 @@ unused type imports.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 841 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 833 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
