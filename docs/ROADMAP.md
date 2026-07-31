@@ -579,6 +579,30 @@ pass nine, but this pass surfaced something bigger than a cast.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass fourteen: `technicalsService.ts`, 907 → 897.** The repeated cast was
+`Kline[]`/`Kline` again — every worker-routing method (`calculateTechnicals`,
+`calculateWithWorker`, `initializeTechnicals`, `updateTechnicals`,
+`calculateTechnicalsInline`) re-declared its kline parameter `any` even
+though the file already imports `Kline` from `technicalsTypes` for its own
+return type.
+
+- 5 `Kline[]`/`Kline` parameters, one `IndicatorSettings` parameter (was
+  `any`, already imported and used by every sibling method), one
+  `(reason?: unknown)` promise-reject type, and one named
+  `{ type: string; payload: Record<string, unknown> }` for
+  `postMessage()`'s argument — 8 `any` sites total.
+- Removed `indicatorsCache`, a `WeakMap` declared next to `settingsCache`
+  and never read anywhere in the file — a leftover from whatever used to
+  cache indicator results separately from settings.
+- Typing `generateCacheKey`'s `settings` parameter surfaced one real type
+  error: `sPart`'s type was inferred `string | undefined` from
+  `settings?._cachedJson`, then reassigned a `string | null` on the next
+  branch. `null` was never a semantically meaningful signal here (the
+  three subsequent checks only ever ask "is this falsy", never distinguish
+  the two) — changed the `: null` fallback to `: undefined` to match.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -586,7 +610,7 @@ pass nine, but this pass surfaced something bigger than a cast.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 907 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 897 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
