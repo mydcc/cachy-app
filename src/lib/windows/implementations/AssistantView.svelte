@@ -22,6 +22,7 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
+    import type { TranslationKey } from "../../../locales/schema";
     import { markdown } from "../../../actions/markdown";
     import type { WindowBase } from "../WindowBase.svelte";
 
@@ -76,8 +77,8 @@
                 await chatState.sendMessage(messageText);
             }
             messageText = "";
-        } catch (e: any) {
-            errorMessage = e.message || "Error";
+        } catch (e) {
+            errorMessage = e instanceof Error ? e.message : "Error";
         } finally {
             isSending = false;
             // Keep focus only if not error?
@@ -125,18 +126,10 @@
         }
     });
 
-    function changeFontSize(delta: number) {
-        win.setFontSize(win.fontSize + delta);
-    }
-
     function copyToClipboard(text: string) {
         if (typeof navigator !== "undefined") {
             navigator.clipboard.writeText(text);
         }
-    }
-
-    function cycleMode() {
-        win.onHeaderTitleClick();
     }
 </script>
 
@@ -466,7 +459,7 @@
                             later.</span
                         >
                     </div>
-                {:else}{$_(errorMessage as any) ||
+                {:else}{$_(errorMessage as TranslationKey) ||
                         errorMessage ||
                         aiState.error}{/if}
             </div>
