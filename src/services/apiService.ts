@@ -54,6 +54,48 @@ export interface Ticker24h {
   quoteVolume?: Decimal;
 }
 
+// Raw Bitget kline shape when the endpoint returns objects instead of
+// tuples — field names vary by endpoint version, hence the fallback chains.
+interface BitgetRawKlineObject {
+  timestamp?: string | number;
+  time?: string | number;
+  t?: string | number;
+  ts?: string | number;
+  open?: string | number;
+  o?: string | number;
+  high?: string | number;
+  h?: string | number;
+  low?: string | number;
+  l?: string | number;
+  close?: string | number;
+  c?: string | number;
+  volume?: string | number;
+  vol?: string | number;
+  v?: string | number;
+}
+
+interface BitunixRawTicker {
+  symbol: string;
+  open?: string | number;
+  lastPrice?: string | number;
+  high?: string | number;
+  low?: string | number;
+  baseVol?: string | number;
+  quoteVol?: string | number;
+}
+
+interface BitgetRawTicker {
+  instId?: string;
+  symbol?: string;
+  last?: string | number;
+  high24h?: string | number;
+  low24h?: string | number;
+  volume24h?: string | number;
+  quoteVolume?: string | number;
+  usdtVolume?: string | number;
+  priceChangePercent?: string | number;
+}
+
 // --- Rate Limiter (Token Bucket) ---
 export class RateLimiter {
   private tokens: number;
@@ -516,17 +558,18 @@ export const apiService = {
           }
 
           // Use Bitget Schema
-          return res.map((k: any) => {
+          return res.map((k: unknown) => {
             // Bitget returns array of strings/numbers or objects depending on endpoint version.
             // If it's an object with keys:
             if (k && typeof k === 'object' && !Array.isArray(k)) {
                try {
-                  const time = parseTimestamp(k.timestamp || k.time || k.t || k.ts);
-                  const open = new Decimal(k.open || k.o);
-                  const high = new Decimal(k.high || k.h);
-                  const low = new Decimal(k.low || k.l);
-                  const close = new Decimal(k.close || k.c);
-                  const volume = new Decimal(k.volume || k.vol || k.v || 0);
+                  const obj = k as BitgetRawKlineObject;
+                  const time = parseTimestamp(obj.timestamp || obj.time || obj.t || obj.ts);
+                  const open = new Decimal((obj.open || obj.o) as Decimal.Value);
+                  const high = new Decimal((obj.high || obj.h) as Decimal.Value);
+                  const low = new Decimal((obj.low || obj.l) as Decimal.Value);
+                  const close = new Decimal((obj.close || obj.c) as Decimal.Value);
+                  const volume = new Decimal(obj.volume || obj.vol || obj.v || 0);
                   if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
                       logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
                       return null;
@@ -628,7 +671,7 @@ export const apiService = {
           }
           if (!response.ok) {
             // Try to parse error details
-            let errData: any = {};
+            let errData: { error?: string } = {};
             try {
               errData = await response.json();
             } catch {
@@ -664,7 +707,7 @@ export const apiService = {
 
           // Map the response data to the required Kline interface
           const mapped = res
-            .map((kline: any) => {
+            .map((kline: unknown) => {
               const validation = BitunixKlineSchema.safeParse(kline);
               if (!validation.success) {
                 logger.warn("network", "Skipping invalid kline", { kline, error: validation.error.issues });
@@ -786,7 +829,7 @@ export const apiService = {
             if (!res.data || !Array.isArray(res.data)) {
               throw new Error("apiErrors.invalidResponse");
             }
-            return res.data.map((ticker: any) => {
+            return res.data.map((ticker: BitunixRawTicker) => {
               const open = new Decimal(ticker.open || 0);
               const last = new Decimal(ticker.lastPrice || 0);
               const change = !open.isZero()
@@ -809,7 +852,7 @@ export const apiService = {
             const data = res.data || [];
             if (!Array.isArray(data)) throw new Error("apiErrors.invalidResponse");
 
-            return data.map((t: any) => ({
+            return data.map((t: BitgetRawTicker) => ({
               provider: "bitget",
               symbol: t.instId || t.symbol,
               lastPrice: new Decimal(t.last || 0),

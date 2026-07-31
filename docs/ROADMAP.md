@@ -1472,6 +1472,30 @@ skipped; `npm run build` succeeds.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass forty-seven: `services/apiService.ts`, 646 → 641.** The
+Bitunix/Bitget kline and ticker HTTP client.
+
+- New `BitgetRawKlineObject` (Bitget's object-format kline, endpoint
+  version dependent, hence the multi-field fallback chains already in the
+  code), `BitunixRawTicker`, and `BitgetRawTicker` — replace 4 of the 5
+  `any` sites, each a mapper callback parameter for a raw exchange
+  payload.
+- Two of the four `new Decimal(obj.field || obj.altField)` calls in the
+  Bitget kline object branch needed `as Decimal.Value` casts to preserve
+  the prior unchecked (possibly-throwing, caught by the surrounding
+  `try`) behavior — same reasoning as pass 17's identical situation:
+  `obj.open || obj.o` can resolve to `undefined` if the payload has
+  neither field, and `Decimal.Value` doesn't include `undefined`.
+- The remaining two `any` sites, a Bitget-kline-array `.map()` parameter
+  and a Bitunix-kline `.map()` parameter, both feed straight into a Zod
+  `.safeParse()` (which accepts `unknown` natively) → `unknown` instead
+  of a named type.
+- `let errData: any = {}` (parsed from a failed Bitunix kline response,
+  read only for `.error`) → `{ error?: string }`.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1479,7 +1503,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 646 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 641 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
