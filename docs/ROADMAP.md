@@ -2018,7 +2018,25 @@ CSV import parser's error-message translation calls.
   output `as string` were dead weight from the start.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
-skipped; `npm run build` succeeds.
+skipped.
+
+**Pass seventy-two: `services/smc/smcService.ts`, 540 → 537.** The
+Smart-Money-Concepts pattern detector (swing points, structure breaks,
+order blocks, fair value gaps) — all unused-vars, no `any` sites.
+
+- Removed an unused type import, `Structure` (only appears in an
+  unrelated comment, "Structure Breaks (BOS / CHoCH)").
+- Removed `prevCandle`, read nowhere after declaration.
+- Removed `swingCandle` — declared as `candles[swingIndex]` and never
+  used in code, only referenced in the comment directly below it; the
+  code a few lines down instead recomputes the identical value under a
+  second name, `candidateIndex = i - this.length` (the same expression
+  as `swingIndex`), and uses that one throughout. Left the comment in
+  place since it still documents real intent, just removed the unused
+  variable it named.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped.
 
 ### Code health
 
@@ -2027,7 +2045,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 540 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 537 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
