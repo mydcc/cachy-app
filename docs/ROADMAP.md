@@ -2854,6 +2854,68 @@ pass seventy-six's 3-file combination):
 `npx vitest run` across all four files: 22 passing; `npm test` stays at
 850 passing, 6 skipped; `npm run check` stays at 0 errors.
 
+**Pass one hundred four: 8 files, 333 → 301.** All remaining production
+files with `any`/unused-vars were already picked clean; this pass and
+onward is entirely tests/benchmarks, most tied at 4 warnings apiece —
+combined 8 unrelated small files into one pass, same approach as pass
+one-hundred-three.
+
+- `src/routes/api/stream-logs/server.test.ts` /
+  `src/routes/api/sync/sync_security.test.ts` (4 each): the now-familiar
+  `GET`/`POST({...} as any)` → `as unknown as Parameters<typeof
+  GET/POST>[0]` pattern, 4 sites each.
+- `src/services/app.test.ts` (4): `const state: any =
+  JSON.parse(JSON.stringify(INITIAL_TRADE_STATE))` → `typeof
+  INITIAL_TRADE_STATE` (assigning `JSON.parse`'s `any` result to a
+  concretely-typed local needs no cast, since `any` satisfies any
+  target type). `(apiService.fetchBitunixKlines as any) = vi.fn()...`
+  → the cast was dead weight, direct assignment works since both sides
+  are function-shaped. Two `{...} as any` journal-entry array elements
+  → one `as unknown as JournalEntry[]` at the array level, the
+  intentionally-partial-fixture pattern from passes eighty-four/
+  ninety-four.
+- `src/services/tradeService_safety.test.ts` (4): 3
+  `vi.spyOn(tradeService as any, "signedRequest")` → the cast was
+  unneeded (`signedRequest` is `public`, established in pass
+  ninety-one); one unused `const spy = ` (never read, only its
+  mocking side effect mattered) → dropped the assignment.
+- `src/stores/news.test.ts` (4): the mock `newsService`'s
+  `fetchNews`/`analyzeSentiment` wrappers, `(...args: any[]) =>
+  mockX(...args)` → typed against each real method's actual signature
+  (`(symbol?: string)`, `(news: NewsItem[])`) instead of a generic rest-
+  any forward. `newsStore`/`settingsState: any` → the dynamic-import-
+  type trick (pass eighty-five's pattern), pointed at this file's own
+  `await import("./news.svelte")`/`("./settings.svelte")` sites.
+- `src/tests/flash_close_race_repro.test.ts` (4): same
+  `signedRequestSpy`/`tradeService`-cast treatment as pass ninety-one's
+  `flash-close.test.ts` — `MockInstance<(method, endpoint, payload) =>
+  Promise<unknown>>`, the unneeded `as any` on `tradeService` dropped,
+  and the mock implementation's/downstream `.find()`'s params typed
+  through instead of annotated `any`.
+- `src/tests/hardening/float_safety.test.ts` (4): `lastPrice: priceStr
+  as any` needed no cast at all — `MarketUpdatePayload` (the real
+  `updateSymbol()` param type) already allows `string` for every
+  `Decimal` field, so the cast was pure dead weight. 3×
+  `(marketState as any).flushUpdates()` (a private, debounced-flush
+  method) → one shared `marketStateInternals` cast local, reused at all
+  3 call sites.
+- `tests/benchmarks/kline_string_optimization.bench.ts` (4): not a
+  Vitest file at all — a standalone script run directly (verified via
+  `npx tsx`, since it has no `bench()`/`describe()` calls to run under
+  `vitest bench`). 2 unused `const mapped = rawData.map(...)` locals
+  (the benchmark only needs the computation's cost, never reads the
+  mapped array) → dropped the assignments, kept the `.map()` calls as
+  expression statements so the work still happens. 2 `(k: any)` map
+  callback params → `typeof rawData[number]`.
+- Verified all 8 together under one scratch-`tsconfig` — 0 errors.
+  7 files run under `npx vitest run` (42 passing, 1 pre-existing skip,
+  unrelated to this pass); the 8th (the standalone script) verified via
+  `npx tsx`, producing its expected "String conversion is faster"
+  result.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2861,7 +2923,7 @@ pass seventy-six's 3-file combination):
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 333 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 301 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

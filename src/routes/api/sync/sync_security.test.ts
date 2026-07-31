@@ -34,7 +34,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiSecret: 'secret123' }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toContain('Validation Error'); // Or specific Zod error
@@ -45,7 +45,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiKey: 'key123' }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
   });
 
@@ -54,7 +54,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiKey: '123', apiSecret: 'secret123' }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     // Before fix: likely 500 or 200 (if upstream accepts it, but here we expect validation)
     // After fix: 400
     expect(response.status).toBe(400);
@@ -74,7 +74,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
