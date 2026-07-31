@@ -474,6 +474,27 @@ All 28 tests across the file's six spec files still pass. Nothing here changed
 behaviour except the duplication removal, which is byte-for-byte the same
 computation in one place instead of two.
 
+**Pass ten: `activeTechnicalsManager.svelte.ts`, 950 → 939.** Three things,
+found by typing rather than assumed:
+
+- Two `requestIdleCallback` call sites and the polyfill inside
+  `getRequestIdleCallback` all cast their timer handle `as any`. The actual
+  cause was a return type declared as plain `number`, when the polyfill
+  branch returns whatever `setTimeout` returns — a `Timeout` object under
+  Node. Widened the declared return type to
+  `ReturnType<typeof setTimeout> | number` and the `throttles` map alongside
+  it; `clearTimeout` already accepted both, so nothing downstream changed.
+- `isTechnicalsEqual(a: any, b: any)` and `handleResult(..., marketData: any,
+  result: any)` compare and consume real, already-defined types
+  (`TechnicalsData`, `MarketData`) that simply were not imported into this
+  file.
+- `injectRealtimePrice` took a `symbol` parameter it never read — removed at
+  the one call site — and assigned a local `close` that was never used
+  because the code below it reads `price` directly. Both were dead, not
+  disguised bugs; removed.
+
+No production code path changed shape; `npm test` stays at 850 passing.
+
 ### Code health
 
 | # | Item | Status |
@@ -481,7 +502,7 @@ computation in one place instead of two.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 950 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 939 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
