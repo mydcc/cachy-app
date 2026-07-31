@@ -713,6 +713,26 @@ and returned it as `T` unchecked, and two TP/SL fetch call sites used
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass nineteen: `src/locales/i18n.ts`, 858 → 849.** The repeated cast was
+the dot-notation dictionary walker (`getNestedValue`/`setNestedValue`) used
+to build the `de-tech` locale (German UI text with English technical
+terms substituted in).
+
+- `Record<string, unknown>` for both functions' object parameters and
+  `unknown` for their value types, with one explicit
+  `as Record<string, unknown>` where `setNestedValue` descends a level
+  (narrowing `unknown` back down — the walk is inherently untyped, since
+  it's indexing a JSON tree by a runtime string path).
+- 3 unused named imports from `svelte-i18n`
+  (`getLocaleFromNavigator`, `dictionary`, `getLocaleFromHostname`) and one
+  unused local function (`getSafeLocale`) removed — none referenced
+  anywhere in the file or elsewhere in the codebase.
+- The `_` store's cast-through type had `vars?: Record<string, any>`;
+  changed to `unknown`, the values side of a translation-interpolation map
+  that's only ever read, never operated on structurally.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -720,7 +740,7 @@ and returned it as `T` unchecked, and two TP/SL fetch call sites used
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 858 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 849 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
