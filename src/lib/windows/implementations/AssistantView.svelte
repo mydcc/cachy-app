@@ -391,19 +391,19 @@
                 <div
                     class="indicator"
                     title="Market Data Available"
-                    class:active={contextData?.cmc?.global ||
+                    class:active={contextData?.marketIntelligence?.global ||
                         contextData?.technicals}
                 >
-                    <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+                    <span>{contextData?.marketIntelligence?.global ? "🟢" : "⚪"}</span> Market
                 </div>
                 <div
                     class="indicator"
                     title="News Data Available"
-                    class:active={contextData?.news &&
-                        contextData.news.length > 0}
+                    class:active={contextData?.latestNews &&
+                        contextData.latestNews.length > 0}
                 >
                     <span
-                        >{contextData?.news && contextData.news.length > 0
+                        >{contextData?.latestNews && contextData.latestNews.length > 0
                             ? "🟢"
                             : "⚪"}</span
                     > News

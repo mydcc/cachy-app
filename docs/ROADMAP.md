@@ -520,6 +520,34 @@ callback re-declared its parameter `any` rather than share a shape:
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twelve: `ai.svelte.ts`, 928 → 917.** The repeated cast was
+`gatherContext()`'s return value — the object assembled from portfolio
+stats, market depth, technicals, CMC data and news, exposed to the UI as
+`aiState.lastContext` for the context-gathered indicators, was `any` at
+every one of its 8 use sites in this file (the field itself, a WS depth
+tuple used four times, a position mapper, a pending-action queue, and two
+`catch (e: any)` blocks).
+
+- Named `AiContext` for the shape `gatherContext()` actually returns, with
+  all fields optional because the 5-second-timeout fallback path returns
+  only `{ error }`. `marketData.depth.bids`/`.asks` are the existing
+  `[string, string]` tuple type from `MarketData`, not `any`; `openPositions`
+  reuses the existing `Position` type from `account.svelte.ts`.
+- Giving `lastContext` a real type instead of `any` turned a silent mismatch
+  into a compile error: `AiPanel.svelte` and `AssistantView.svelte` read
+  `contextData?.cmc?.global` and `contextData?.news` to light up two "context
+  gathered" indicator dots, but `gatherContext()` has never returned fields
+  named `cmc` or `news` — it returns `marketIntelligence` and `latestNews`.
+  Unlike the two reachability claims from pass one and pass nine, this one
+  needed no revert-test: the mismatch is a static fact about the object
+  literal's shape, provable by reading the return statement, not a claim
+  about which runtime path executes. Both indicators have silently shown
+  "not gathered" regardless of whether CMC/news context was actually
+  fetched, since whichever commit last renamed those two fields. Fixed at
+  both read sites to the field names `gatherContext()` actually produces.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -527,7 +555,7 @@ callback re-declared its parameter `any` rather than share a shape:
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 928 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 917 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
