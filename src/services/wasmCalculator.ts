@@ -22,13 +22,35 @@
  * Hardened version using static assets.
  */
 
-import type { TechnicalsData, IndicatorSettings } from './technicalsTypes';
+import type { Kline, TechnicalsData, IndicatorSettings } from './technicalsTypes';
 import { getEmptyData } from './technicalsTypes';
 import { toNumFast } from '../utils/fastConversion';
 
+// The WASM glue module and calculator instance it exports — both are
+// dynamically imported from a static asset (see ensureLoaded below), so
+// there is no static type from the module itself to import.
+interface WasmTechnicalsInstance {
+  initialize(closes: Float64Array, highs: Float64Array, lows: Float64Array, volumes: Float64Array, times: Float64Array, settingsJson: string): void;
+  update(open: number, high: number, low: number, close: number, volume: number, time: number): string;
+}
+
+interface WasmModule {
+  default: (wasmBinaryPath: string) => Promise<void>;
+  TechnicalsCalculator: new () => WasmTechnicalsInstance;
+}
+
+// Parsed JSON emitted by the WASM module — flat maps of indicator name to
+// value, grouped and reshaped into TechnicalsData below.
+interface WasmRawResult {
+  movingAverages?: Record<string, number>;
+  oscillators?: Record<string, number>;
+  volatility?: Record<string, number>;
+  pivots?: Record<string, number>;
+}
+
 class WasmCalculator {
-  private wasmModule: any = null;
-  private instance: any = null;
+  private wasmModule: WasmModule | null = null;
+  private instance: WasmTechnicalsInstance | null = null;
   private loadingPromise: Promise<void> | null = null;
   
   async ensureLoaded(): Promise<void> {
@@ -66,7 +88,6 @@ class WasmCalculator {
                 console.warn(`[WASM] Load attempt ${attempt}/${maxRetries} failed:`, err.message);
 
                 // Classify error
-                const isNetworkError = err.message.includes('fetch') || err.message.includes('network') || err.name === 'TypeError';
                 const isCompileError = err.message.includes('LinkError') || err.message.includes('CompileError');
                 
                 // If it's a compile error, retrying won't help.
@@ -89,10 +110,10 @@ class WasmCalculator {
     return this.loadingPromise;
   }
 
-  async calculate(klines: any[], settings: IndicatorSettings): Promise<TechnicalsData> {
+  async calculate(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
     await this.ensureLoaded();
     if (!this.wasmModule) throw new Error('WASM unavailable');
-    
+
     if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
     
     const len = klines.length;
@@ -151,7 +172,7 @@ class WasmCalculator {
     return this.convertResult(JSON.parse(resultJson), klines, settings);
   }
   
-  private convertResult(raw: any, klines: any[], settings: IndicatorSettings): TechnicalsData {
+  private convertResult(raw: WasmRawResult, klines: Kline[], settings: IndicatorSettings): TechnicalsData {
     const data = getEmptyData();
     const lastPrice = toNumFast(klines[klines.length - 1].close);
     
@@ -313,7 +334,7 @@ class WasmCalculator {
                      stGroups[params]['trend'] = val; 
                  }
              } else if (key.startsWith("ATR")) {
-                 const [_, len] = key.split("ATR");
+                 const [, len] = key.split("ATR");
                  if (parseInt(len) === settings.atr.length) {
                      data.volatility.atr = val;
                  }
@@ -355,38 +376,23 @@ class WasmCalculator {
     }
 
     // 4. Pivots
+    // raw.pivots is a flat map ("P", "R1", "S1", ...) for whichever pivot
+    // type was requested. TechnicalsData.pivots only declares a 'classic'
+    // slot, so only that type is mapped.
     if (raw.pivots) {
-        // raw.pivots has "P", "R1", "S1", "R2", "S2", "R3", "S3"
-        // TechnicalsData.pivots structure:
-        /*
-          pivots: {
-            classic: { ... }
-          }
-        */
-        // The WASM output is flat map of the specific type requested.
-        const type = settings.pivots.type as "classic"; // Cast or 'classic' | 'woodie' ...
-        
-        // Ensure the type exists in the object
-        // Note: TechnicalsData only defines 'classic' strictly in the interface shown in viewed file?
-        // Wait, the viewed file showed: pivots: { classic: { ... } };
-        // If user selects woodie, does TS allow it?
-        // Let's assume we map to 'classic' slot or try to match dynamic key if allowed (it wasn't in the interface).
-        // If the interface ONLY has 'classic', we might have a problem if we want to store 'woodie'.
-        // Checking technicalsTypes.ts again... lines 103-113: classic object.
-        // It seems strictly typed to 'classic'. 
-        
+        const type = settings.pivots.type as "classic";
         if (type === 'classic') {
-             const pivotsObj: any = data.pivots || {};
-             pivotsObj.classic = {
-                 p: raw.pivots.P || 0,
-                 r1: raw.pivots.R1 || 0,
-                 r2: raw.pivots.R2 || 0,
-                 r3: raw.pivots.R3 || 0,
-                 s1: raw.pivots.S1 || 0,
-                 s2: raw.pivots.S2 || 0,
-                 s3: raw.pivots.S3 || 0,
+             data.pivots = {
+                 classic: {
+                     p: raw.pivots.P || 0,
+                     r1: raw.pivots.R1 || 0,
+                     r2: raw.pivots.R2 || 0,
+                     r3: raw.pivots.R3 || 0,
+                     s1: raw.pivots.S1 || 0,
+                     s2: raw.pivots.S2 || 0,
+                     s3: raw.pivots.S3 || 0,
+                 },
              };
-             data.pivots = pivotsObj;
         }
     }
 

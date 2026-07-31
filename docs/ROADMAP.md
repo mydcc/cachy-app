@@ -784,6 +784,30 @@ step.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-two: `wasmCalculator.ts`, 833 → 825.** A second pass over
+this file (the first, in an earlier session, normalized its catch
+bindings); this one cleared the 8 warnings that pass left behind — the
+WASM bridge's own module/instance/result types.
+
+- `WasmModule`/`WasmTechnicalsInstance` name the dynamically-imported glue
+  module's shape (there's no static type to import — see the comment on
+  why), replacing `wasmModule: any`/`instance: any`.
+- `WasmRawResult` names the flat `Record<string, number>` maps the WASM
+  module's JSON output actually has (`movingAverages`, `oscillators`,
+  `volatility`, `pivots`), replacing `convertResult(raw: any, ...)`.
+  `calculate()`/`convertResult()`'s `klines: any[]` become `Kline[]`,
+  matching every other calculator in this codebase.
+- Removed `isNetworkError`, computed alongside `isCompileError` but never
+  read (`isCompileError` gates the immediate-throw decision; the network
+  classification has no reader).
+- The pivots-building block's `pivotsObj: any` intermediate variable is
+  gone — it only ever held `{ classic: {...} }` before being assigned
+  straight to `data.pivots`, so the object is now built and assigned in
+  one step. Also trimmed six lines of resolved "does TS allow this?"
+  exploratory comments down to the two-line conclusion they reached.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -791,7 +815,7 @@ step.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 833 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 825 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
