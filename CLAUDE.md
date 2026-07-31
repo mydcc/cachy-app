@@ -70,3 +70,9 @@ npm run test:e2e     # Playwright-E2E-Tests (tests/e2e)
 ## Commits
 
 Conventional Commits (semantic-release): `feat:` (Minor), `fix:` (Patch), `refactor:` (kein Release), `BREAKING CHANGE:` im Footer für Major.
+
+## Branch-Workflow
+
+- **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request.
+- Der Conventional-Commits-Check (`commit-lint.yml`) läuft nur auf `pull_request`-Events — direktes Pushen auf `develop` umgeht ihn. PRs sind die einzige Möglichkeit, den Check vor dem Merge zu erzwingen.
+- Target-Branch für PRs ist immer **`develop`**, nie `main`.
