@@ -2574,6 +2574,46 @@ errors.
 passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
 stays at 0 errors.
 
+**Pass ninety-four: `src/tests/closeAllPositions.bench.ts`, 402 → 395.**
+Benchmarks `closeAllPositions()`'s pre-fetch optimization by monkey-
+patching two of `tradeService`'s private methods.
+
+- Typing `(tradeService as any)._doFetchOpenPositionsFromApi` surfaced
+  that the method doesn't exist — `grep` for it anywhere in
+  `tradeService.ts` came back empty. The real private method
+  `closeAllPositions()` calls is `fetchOpenPositionsFromApi` (no `_do`
+  prefix, no leading underscore). The benchmark's stub was silently
+  assigning to a property the real code never reads, meaning the "Force
+  a stale environment for the original code path" / "Simulate that
+  fetchOpenPositionsFromApi updates the cache correctly" comments were
+  never actually exercised — the benchmark still produced a number, but
+  not one measuring what its own comments claim. Fixed the name to
+  match the real method (a one-word rename, not a behavior redesign) and
+  typed it through a `TradeServiceInternals` cast, the same private-
+  field pattern as pass eighty-nine. `closeAllPositions()` itself is
+  `public`, so `(tradeService as any).closeAllPositions()` → a plain,
+  uncast `tradeService.closeAllPositions()`.
+- The scratch-`tsconfig` check surfaced 10 more latent errors: 2 fixture
+  arrays of 5 minimal `{symbol, side, amount, lastUpdated}` objects each,
+  passed to `vi.mocked(omsService.getPositions).mockReturnValue(...)`,
+  missing 4 of `OMSPosition`'s required fields
+  (`entryPrice`/`unrealizedPnl`/`leverage`/`marginMode`). Same "surfaced
+  inside the file already being edited" call as pass eighty-eight —
+  fixed rather than left, via a small `mkPosition(symbol, side,
+  lastUpdated)` helper filling the 4 fields the benchmark doesn't vary
+  with inert defaults, applied at all 3 array-literal sites (including
+  the `vi.mock` factory's own array, which `tsc` hadn't flagged but was
+  the same shape). Verified the helper doesn't trip Vitest's `vi.mock`
+  factory-hoisting restriction (factories can't safely reference
+  arbitrary outer-scope state) by actually running the benchmark, not
+  just type-checking it — it completed cleanly.
+- Verified under the same scratch-`tsconfig` technique as the last ten
+  passes — 0 errors after the two fixes above.
+
+`npx vitest bench --run src/tests/closeAllPositions.bench.ts` completes
+successfully; `npm test` stays at 850 passing, 6 skipped; `npm run
+check` stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2581,7 +2621,7 @@ stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 402 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 395 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

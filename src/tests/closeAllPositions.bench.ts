@@ -1,16 +1,32 @@
 import { bench, describe, vi } from 'vitest';
 import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
+import type { OMSPosition } from '../services/omsTypes';
 import { Decimal } from 'decimal.js';
+
+// Fills the OMSPosition fields this benchmark doesn't vary (entryPrice,
+// unrealizedPnl, leverage, marginMode) with inert defaults.
+function mkPosition(symbol: string, side: OMSPosition["side"], lastUpdated: number): OMSPosition {
+    return {
+        symbol,
+        side,
+        amount: new Decimal('1'),
+        entryPrice: new Decimal('0'),
+        unrealizedPnl: new Decimal('0'),
+        leverage: new Decimal('1'),
+        marginMode: 'cross',
+        lastUpdated
+    };
+}
 
 vi.mock('../services/omsService', () => ({
     omsService: {
         getPositions: vi.fn(() => [
-            { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
-            { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 }
+            mkPosition('BTCUSDT', 'long', 0),
+            mkPosition('ETHUSDT', 'short', 0),
+            mkPosition('XRPUSDT', 'long', 0),
+            mkPosition('SOLUSDT', 'short', 0),
+            mkPosition('DOGEUSDT', 'long', 0)
         ])
     }
 }));
@@ -32,38 +48,47 @@ vi.mock('../stores/settings.svelte', () => ({
     }
 }));
 
+// Reaches into tradeService's private prefetch/request methods to stub them
+// out for the benchmark. Named after fetchOpenPositionsFromApi, the real
+// private method closeAllPositions() calls internally.
+type TradeServiceInternals = {
+    fetchOpenPositionsFromApi: () => Promise<void>;
+    signedRequest: (method: string, endpoint: string, payload: Record<string, unknown>) => Promise<unknown>;
+};
+const internals = tradeService as unknown as TradeServiceInternals;
+
 describe('tradeService benchmark (Optimized)', () => {
     bench('closeAllPositions with pre-fetch', async () => {
-        const origFetch = (tradeService as any)._doFetchOpenPositionsFromApi;
-        const origSignedReq = (tradeService as any).signedRequest;
+        const origFetch = internals.fetchOpenPositionsFromApi;
+        const origSignedReq = internals.signedRequest;
         try {
-            (tradeService as any)._doFetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
+            internals.fetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
                 await new Promise(resolve => setTimeout(resolve, 50));
                 // Simulate that fetchOpenPositionsFromApi updates the cache correctly!
                 vi.mocked(omsService.getPositions).mockReturnValue([
-                    { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() },
-                    { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: Date.now() },
-                    { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() },
-                    { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: Date.now() },
-                    { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: Date.now() }
+                    mkPosition('BTCUSDT', 'long', Date.now()),
+                    mkPosition('ETHUSDT', 'short', Date.now()),
+                    mkPosition('XRPUSDT', 'long', Date.now()),
+                    mkPosition('SOLUSDT', 'short', Date.now()),
+                    mkPosition('DOGEUSDT', 'long', Date.now())
                 ]);
             });
 
-            (tradeService as any).signedRequest = vi.fn().mockResolvedValue({ code: 0 });
+            internals.signedRequest = vi.fn().mockResolvedValue({ code: 0 });
 
             // Force a stale environment for the original code path:
             vi.mocked(omsService.getPositions).mockReturnValue([
-                { symbol: 'BTCUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
-                { symbol: 'ETHUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
-                { symbol: 'XRPUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 },
-                { symbol: 'SOLUSDT', side: 'short', amount: new Decimal('1'), lastUpdated: 0 },
-                { symbol: 'DOGEUSDT', side: 'long', amount: new Decimal('1'), lastUpdated: 0 }
+                mkPosition('BTCUSDT', 'long', 0),
+                mkPosition('ETHUSDT', 'short', 0),
+                mkPosition('XRPUSDT', 'long', 0),
+                mkPosition('SOLUSDT', 'short', 0),
+                mkPosition('DOGEUSDT', 'long', 0)
             ]);
 
-            await (tradeService as any).closeAllPositions();
+            await tradeService.closeAllPositions();
         } finally {
-            (tradeService as any)._doFetchOpenPositionsFromApi = origFetch;
-            (tradeService as any).signedRequest = origSignedReq;
+            internals.fetchOpenPositionsFromApi = origFetch;
+            internals.signedRequest = origSignedReq;
         }
     });
 });
