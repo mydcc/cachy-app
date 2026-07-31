@@ -2394,6 +2394,38 @@ tractable.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass eighty-eight: `src/services/engineBenchmark.test.ts`, 451 → 442.**
+Exercises the TS/WASM/GPU engine-selection switch in
+`benchmarkEngine()`/`runBenchmark()`.
+
+- `mockSettings as any` at 7 call sites → typed the fixture itself once
+  (`as unknown as IndicatorSettings`, the same "fixture only fills what
+  the mocked path reads" reasoning as passes eighty-four/-five) and
+  dropped every per-call-site cast, since a correctly-typed local no
+  longer needs re-casting at each use.
+- `'quantum' as any` (deliberately not a valid `'ts' | 'wasm' | 'gpu'`
+  engine, testing the fallback branch) → `'quantum' as unknown as
+  Parameters<typeof benchmarkEngine>[0]`, pulling the union type off the
+  real function signature instead of redeclaring it, since
+  `benchmarkEngine` doesn't export a named type for it.
+- The scratch-`tsconfig` check (same technique as the last four passes)
+  surfaced 3 **pre-existing, unrelated** errors this file's exclusion
+  from `npm run check` had been hiding: `wasmCalculator.calculate`/
+  `webGpuCalculator.calculate` are typed `Promise<TechnicalsData>`, but
+  three tests stub them with `.mockResolvedValue(undefined)` — fine at
+  runtime (Vitest doesn't type-check, and the tests only assert call
+  counts, never read the resolved value), but not fine once actually
+  type-checked. Since this surfaced directly inside the file already
+  being edited (not a transitively-imported file, unlike pass
+  eighty-four's `crypto-js`/`GPUBufferUsage` case), fixed it in the same
+  pass rather than leaving it: `undefined as unknown as TechnicalsData`
+  at each of the 3 sites, with a comment noting the resolved value is
+  never read.
+
+`npx vitest run src/services/engineBenchmark.test.ts` stays at 9
+passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
+stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2401,7 +2433,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 451 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 442 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
