@@ -548,6 +548,37 @@ tuple used four times, a position mapper, a pending-action queue, and two
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirteen: `bitgetWs.ts`, 917 → 907.** The repeated cast was the raw
+private-channel WS payload — the same class of problem as `bitunixWs.ts` in
+pass nine, but this pass surfaced something bigger than a cast.
+
+- `BitgetLoginResponse`, `BitgetCandleTuple`, `BitgetWSOrderData`,
+  `BitgetWSPositionData` replace 6 `any` casts across the login check, the
+  candle mapper, and the order/position forEach callbacks.
+- Two unused imports (`isAllowedBitgetChannel`, `validateBitgetSymbol`)
+  removed — `subscribe()`/`unsubscribe()` already gate on
+  `getBitgetChannel()`'s allow-list, so these were never called. One dead
+  local (`timeSince`, computed and never read — the staleness check that
+  presumably used it is gone, per the "No autonomous reconnections here"
+  comment two lines below) and one unused `onerror` parameter removed.
+- **Found, documented, not fixed here — `docs/TODO.md` item 3.** Naming the
+  order/position payload types made two things visible that a plain `any`
+  had been hiding: `accountState.updatePositionFromWs`/`.updateOrderFromWs`
+  (shared with Bitunix) read field names — `qty`, `positionId`,
+  `orderStatus`, `dealAmount`, `ctime` — that Bitget's handler never sends
+  (it sends `size`, `status`, `filled`, no position id, no create time at
+  all), and the login-ack check three lines above passes its input through
+  a zod schema that requires `action` and doesn't declare `event`/`code`,
+  so a real login acknowledgement may never reach the check meant to read
+  it. Both are provable by reading the two sides of each call side by side
+  — no revert-test needed, the mismatch is a static fact about the object
+  shapes — but neither is confirmed against a live Bitget account, and a
+  fix this size needs its own test and its own commit, not a rider on a
+  lint pass. Left as `any`-free but behaviourally unchanged; see the TODO
+  entry for what "fixed" would require.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -555,7 +586,7 @@ tuple used four times, a position mapper, a pending-action queue, and two
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 917 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 907 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
