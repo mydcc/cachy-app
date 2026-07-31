@@ -1437,6 +1437,41 @@ strategy/behavior chart tiles).
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass forty-six: `lib/windows/implementations/CandleChartView.svelte`, 652
+→ 646.** The Lightweight Charts candle view rendered inside `ChartWindow`.
+
+- `window: any // Type ChartWindow` → `window: WindowBase`, matching the
+  precedent already set by `AssistantView.svelte`, `ChatTestView.svelte`,
+  and `IframeView.svelte` (`window: WindowBase`, or `WindowBase & {...}`
+  for extra fields) — the fields this file actually reads/writes off it,
+  `showRightScale` and `currentPrice`, are both declared on `WindowBase`
+  itself, not on `ChartWindow`.
+- `let debounceTimer: any` → `ReturnType<typeof setTimeout>`.
+- The `subscribeVisibleLogicalRangeChange` handler's `newVisibleLogicalRange:
+  any` → `LogicalRange | null`, lightweight-charts' own
+  `LogicalRangeChangeEventHandler` parameter type.
+- `klines.map((k: any) => ...)` needed no annotation — `klines` already
+  resolves to `Kline[] | undefined` through `marketState`'s typed
+  `Record<string, Kline[]>`, so `k` infers correctly once the cast is
+  gone.
+- Removed two unused props, `showPriceInTitle` and `setTimeframe` — both
+  destructured, neither read anywhere in the file. Traced both to confirm
+  they're genuinely dead, not a missing wire-up: `showPriceInTitle` is
+  redundant because `WindowFrame.svelte` already reads
+  `win.showPriceInTitle`/`win.currentPrice` directly off the same live
+  window instance to render the title-bar price (confirmed at
+  `WindowFrame.svelte:419`), and `setTimeframe` is redundant because
+  timeframe switching already works end-to-end through
+  `ChartWindow.updateHeaderControls()`'s header buttons, which mutate
+  `this.timeframe` directly rather than through this callback.
+  `ChartWindow.svelte.ts`'s `componentProps` still passes both — left
+  as-is since the render site (`WindowFrame.svelte:638`) spreads props
+  through an untyped `win.component`, so the extra keys are harmlessly
+  ignored, not a type error.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1444,7 +1479,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 652 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 646 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
