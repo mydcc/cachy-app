@@ -20,8 +20,25 @@
   Robust Base Class for UI Windows using Svelte 5 Runes
 */
 
-import type { WindowType, WindowOptions } from "./types";
+import type { Snippet } from "svelte";
+import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
+
+/** A custom control rendered in the window header (e.g. a timeframe picker). */
+export interface HeaderControl {
+    label: string;
+    active: boolean;
+    action: () => void;
+    title?: string;
+    icon?: string;
+}
+
+/** Data returned by serialize() to recreate a window in a new session. */
+export interface WindowSerializedState {
+    type: WindowType;
+    id: string;
+    title: string;
+}
 
 /**
  * WindowBase is the abstract foundation for all windows in the application.
@@ -106,7 +123,7 @@ export abstract class WindowBase {
     pinSide: 'left' | 'right' | 'top' | 'bottom' | 'none' = $state('none');
     doubleClickBehavior: 'maximize' | 'pin' = $state('maximize');
     /** Dynamic custom controls (e.g., Period Selectors in Charts). */
-    headerControls = $state<any[]>([]);
+    headerControls = $state<HeaderControl[]>([]);
 
     // --- VISUAL REFINEMENTS ---
     enableGlassmorphism = $state(true);
@@ -126,7 +143,7 @@ export abstract class WindowBase {
     /** Fixed aspect ratio (width/height) to maintain during resizing. */
     aspectRatio: number | null = $state(null);
     /** Svelte Snippet for custom header content. */
-    headerSnippet = $state<any>(null);
+    headerSnippet = $state<Snippet | null>(null);
     minWidth = 200;
     minHeight = 150;
 
@@ -289,7 +306,7 @@ export abstract class WindowBase {
     }
 
     /** Returns data necessary to recreate this window in a new session. */
-    public serialize(): any {
+    public serialize(): WindowSerializedState {
         return {
             type: this.windowType,
             id: this.id,
@@ -298,7 +315,7 @@ export abstract class WindowBase {
     }
 
     /** Mapping of registry config to internal state. */
-    private applyConfig(config: any) {
+    private applyConfig(config: WindowConfig) {
         const f = config.flags;
         this.isResizable = f.isResizable ?? true;
         this.isDraggable = f.isDraggable ?? true;
@@ -325,7 +342,7 @@ export abstract class WindowBase {
         this.hasContextMenu = f.hasContextMenu ?? false;
         this.doubleClickAction = f.doubleClickAction ?? 'maximize';
         this.maxInstances = f.maxInstances ?? 0;
-        this.closeOnBlur = f.closeOnBlur ?? f.closeOnOutsideClick ?? this.closeOnBlur;
+        this.closeOnBlur = f.closeOnBlur ?? this.closeOnBlur;
         this.autoScaling = f.autoScaling ?? false;
         this.showRightScale = f.showRightScale ?? false;
 
@@ -345,11 +362,20 @@ export abstract class WindowBase {
         if (config.defaultTitle && !this.title) this.title = config.defaultTitle;
     }
 
-    /** Must be implemented by subclasses to specify the Svelte component used as content. */
+    /**
+     * Must be implemented by subclasses to specify the Svelte component used
+     * as content. Left as `any`: ~15 window implementations each return a
+     * different concrete component with its own specific (often required,
+     * non-optional) prop signature, so Svelte's `Component<Props>` type is
+     * not variant-compatible across all of them without widening every
+     * implementation's props to match — a much larger, unrelated change
+     * than this lint pass.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     abstract get component(): any;
 
     /** Hook for subclasses to pass additional props to the internal component. */
-    get componentProps(): Record<string, any> {
+    get componentProps(): Record<string, unknown> {
         return {};
     }
 
@@ -482,8 +508,8 @@ export abstract class WindowBase {
      * Returns a list of actions for the right-click settings menu.
      * Subclasses should call super.getContextMenuActions() and merge their own.
      */
-    public getContextMenuActions(): any[] {
-        const actions: any[] = [];
+    public getContextMenuActions(): ContextMenuAction[] {
+        const actions: ContextMenuAction[] = [];
 
         // Base "Smash" (Close) action.
         actions.push({

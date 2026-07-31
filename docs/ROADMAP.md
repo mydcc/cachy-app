@@ -852,6 +852,37 @@ driving the animated trade-flow background (Three.js particle scenes).
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-five: `WindowBase.svelte.ts`, 809 → 801.** The abstract base
+class for all ~15 window implementations (charts, journal, chat, settings,
+...).
+
+- `HeaderControl`, `WindowSerializedState`, and the codebase's existing
+  `WindowConfig`/`ContextMenuAction` types replace 6 `any` sites
+  (`headerControls`, `serialize()`, `applyConfig()`, `getContextMenuActions()`)
+  plus `Snippet` from `svelte` for `headerSnippet`. `componentProps()`'s
+  `Record<string, any>` becomes `Record<string, unknown>`.
+- Typing `HeaderControl` from what `WindowFrame.svelte` actually reads
+  (`ctrl.title`, `ctrl.icon`, not just the two fields `ChartWindow.svelte.ts`,
+  the only current populator, sets) caught a mismatch before it shipped
+  rather than after — the initial interface only had `label`/`active`/
+  `action`, which `npm run check` immediately rejected against the
+  template's real reads.
+- Typing `applyConfig(config: any)` to the real `WindowConfig` surfaced a
+  dead fallback: `f.closeOnBlur ?? f.closeOnOutsideClick ?? this.closeOnBlur`
+  reads a `closeOnOutsideClick` field `WindowFlags` has never declared and
+  no window registration anywhere in `WindowRegistry.svelte.ts` sets —
+  confirmed by grep before removing, not assumed.
+- **Left as `any`, with an explicit `eslint-disable-next-line` and a
+  comment:** the abstract `component` getter. Each of ~15 subclasses
+  returns a different concrete Svelte component with its own specific prop
+  signature; making this precisely typed would mean widening every
+  implementation's props to a common shape, a much larger and unrelated
+  change. Same treatment as `trade.svelte.ts`'s `update()`/`set()` from an
+  earlier pass — a documented exception, not a silent gap, and it still
+  drops out of the warning count instead of counting against the ratchet.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -859,7 +890,7 @@ driving the animated trade-flow background (Three.js particle scenes).
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 809 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 801 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
