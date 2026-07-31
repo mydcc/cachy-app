@@ -445,6 +445,35 @@ now clear enough to state, because it produced every one of those passes:
    terminal: it needs a browser and WASM. A hasty declaration here would look
    like progress and not be any.
 
+**Pass nine: `bitunixWs.ts` is now free of `any`, 966 → 950.** This closes the
+file the item-21 write-up singled out as "worth doing slowly" — it is where the
+force-reconnect and depth-validation bugs were found, and every remaining site
+was a real payload shape, not boilerplate.
+
+- `isTradeData` took `d: any` and returned a type predicate promising `{ p: any,
+  v: any, s: any, t: any }` — a type guard that told the compiler nothing.
+  Retyped to `(d: unknown): d is SafeTradeShape`, the actual two fields it
+  checks.
+- Two identical inline `safeString` closures (price and ticker handlers, ~15
+  lines each, differing only in one log string) became one shared method.
+  Duplication was the actual defect here; `any` was just how it was spelled.
+- Four sites handed a raw pre-validation WebSocket item to sinks that already
+  accept `any` (`accountState.*FromWs`, `mapToOMSPosition/Order`). The position
+  handler validates with `BitunixPositionSchema.safeParse` and then uses the raw
+  item **regardless of the result** — worth flagging, but not a bug: a comment
+  states it as deliberate ("best effort for positions, IDs are less critical
+  than Orders"). Typed as `Record<string, unknown>`, the honest shape, not
+  papered over.
+- `bucketCandles: any[]` building a synthetic kline from `marketState.data`
+  became `Kline[]`, and the `synthKline as any` three lines later came off with
+  it — the object satisfied `Kline` once the compiler could check it.
+- `sendPublicMessage(payload: any)` only ever reaches `JSON.stringify`; `unknown`
+  says that honestly.
+
+All 28 tests across the file's six spec files still pass. Nothing here changed
+behaviour except the duplication removal, which is byte-for-byte the same
+computation in one place instead of two.
+
 ### Code health
 
 | # | Item | Status |
@@ -452,7 +481,7 @@ now clear enough to state, because it produced every one of those passes:
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 966 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 950 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

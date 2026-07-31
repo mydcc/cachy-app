@@ -16,6 +16,7 @@
  */
 
 import { marketState } from "../stores/market.svelte";
+import type { Kline } from "./technicalsTypes";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
@@ -150,6 +151,24 @@ class BitunixWebSocketService {
   private readonly MAX_VALIDATION_ERRORS = 50; // [HYBRID FIX] Increased from 5 to 50 to prevent cascading reconnects on minor API drifts
   private readonly VALIDATION_ERROR_WINDOW = 60000; // [HYBRID FIX] Increased window to 1m
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
+
+  /**
+   * Warns (throttled) when a field the exchange should send as a string
+   * arrives as a number, then normalises it. Two call sites (price and ticker
+   * handlers) each defined this inline as `(val: any, fieldName: string) => ...`;
+   * named and shared here instead.
+   */
+  private safeString(val: string | number, symbol: string, fieldName: string): string {
+    if (typeof val === 'number') {
+      const now = Date.now();
+      if (now - this.lastNumericWarning > 60000) {
+        logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Precision loss possible.`);
+        this.lastNumericWarning = now;
+      }
+      return String(val);
+    }
+    return val;
+  }
 
   private readonly MAX_PUBLIC_SUBSCRIPTIONS = 50;
 
@@ -872,25 +891,13 @@ class BitunixWebSocketService {
                 if (symbol && priceRes.success) {
                   try {
                     // HARDENING: Direct property access + Warning on Numeric Types
-                    const safeString = (val: any, fieldName: string) => {
-                        if (typeof val === 'number') {
-                            const now = Date.now();
-                            if (now - this.lastNumericWarning > 60000) {
-                                logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Value: ${val}. Precision loss possible.`);
-                                this.lastNumericWarning = now;
-                            }
-                            return String(val);
-                        }
-                        return val;
-                    };
-
-                    const ip = safeString(data.ip, 'indexPrice');
-                    const fr = safeString(data.fr, 'fundingRate');
+                    const ip = data.ip !== undefined ? this.safeString(data.ip, symbol, 'indexPrice') : undefined;
+                    const fr = data.fr !== undefined ? this.safeString(data.fr, symbol, 'fundingRate') : undefined;
                     const nft = data.nft ? String(data.nft) : undefined;
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                         safeString(data.lastPrice || data.lp, 'lastPrice');
+                         this.safeString(data.lastPrice ?? data.lp, symbol, 'lastPrice');
                     }
 
                     if (!this.shouldThrottle(`${symbol}:price`)) {
@@ -915,27 +922,15 @@ class BitunixWebSocketService {
                 const tickerRes = StrictTickerDataSchema.safeParse(data);
                 if (symbol && tickerRes.success) {
                   try {
-                    const safeString = (val: any, fieldName: string) => {
-                        if (typeof val === 'number') {
-                            const now = Date.now();
-                            if (now - this.lastNumericWarning > 60000) {
-                                logger.warn("network", `[BitunixWS] PRECISION RISK: Received numeric ${fieldName} for ${symbol}. Casting to string.`);
-                                this.lastNumericWarning = now;
-                            }
-                            return String(val);
-                        }
-                        return val;
-                    };
-
                     // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
                     // Avoiding full object allocation/clone for high frequency ticker
-                    if (typeof data.lastPrice === 'number') data.lastPrice = safeString(data.lastPrice, 'lastPrice');
-                    if (typeof data.high === 'number') data.high = safeString(data.high, 'high');
-                    if (typeof data.low === 'number') data.low = safeString(data.low, 'low');
-                    if (typeof data.volume === 'number') data.volume = safeString(data.volume, 'volume');
-                    if (typeof data.quoteVolume === 'number') data.quoteVolume = safeString(data.quoteVolume, 'quoteVolume');
-                    if (typeof data.v === 'number') data.v = safeString(data.v, 'v');
-                    if (typeof data.close === 'number') data.close = safeString(data.close, 'close');
+                    if (typeof data.lastPrice === 'number') data.lastPrice = this.safeString(data.lastPrice, symbol, 'lastPrice');
+                    if (typeof data.high === 'number') data.high = this.safeString(data.high, symbol, 'high');
+                    if (typeof data.low === 'number') data.low = this.safeString(data.low, symbol, 'low');
+                    if (typeof data.volume === 'number') data.volume = this.safeString(data.volume, symbol, 'volume');
+                    if (typeof data.quoteVolume === 'number') data.quoteVolume = this.safeString(data.quoteVolume, symbol, 'quoteVolume');
+                    if (typeof data.v === 'number') data.v = this.safeString(data.v, symbol, 'v');
+                    if (typeof data.close === 'number') data.close = this.safeString(data.close, symbol, 'close');
 
                     // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
                     const normalized = mdaService.normalizeTicker(message, "bitunix");
@@ -988,7 +983,7 @@ class BitunixWebSocketService {
                 // Klines (dynamic channel names)
                 if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
                     try {
-                        const d = data as any;
+                        const d = data as { close?: unknown; c?: unknown; open?: unknown; o?: unknown } | undefined;
                         if (d && (d.close || d.c || d.open || d.o)) {
                           let timeframe = "1h";
                           if (channel === "mark_kline_1day") timeframe = "1d";
@@ -1073,7 +1068,7 @@ class BitunixWebSocketService {
                                           const msBucket = resolved.intervalMs;
                                           const bucketStart = Math.floor(candleStart / msBucket) * msBucket;
                                           
-                                          const bucketCandles: any[] = [];
+                                          const bucketCandles: Kline[] = [];
                                           for (let i = mk.length - 1; i >= 0; i--) {
                                               if (mk[i].time < bucketStart) break;
                                               if (mk[i].time >= bucketStart) {
@@ -1096,7 +1091,7 @@ class BitunixWebSocketService {
                                                   vol = vol.plus(c.volume);
                                               }
                                               
-                                              const synthKline = {
+                                              const synthKline: Kline = {
                                                   time: bucketStart,
                                                   open: first.open,
                                                   high: high,
@@ -1105,7 +1100,7 @@ class BitunixWebSocketService {
                                                   volume: vol
                                               };
                                               
-                                              marketState.updateSymbolKlines(symbol, subTf, [synthKline as any], "ws");
+                                              marketState.updateSymbolKlines(symbol, subTf, [synthKline], "ws");
                                           }
                                       }
                                   }
@@ -1365,7 +1360,7 @@ class BitunixWebSocketService {
         const data = validatedMessage.data;
         if (data) {
           const items = Array.isArray(data) ? data : [data];
-          items.forEach((item: any) => {
+          items.forEach((item: Record<string, unknown>) => {
             const val = BitunixPositionSchema.safeParse(item);
             if (!val.success) {
               logger.warn("network", "[BitunixWS] Position schema validation failed", val.error);
@@ -1378,7 +1373,7 @@ class BitunixWebSocketService {
       } else if (validatedChannel === "order") {
         const data = validatedMessage.data;
         if (data) {
-          const sanitize = (item: any) => {
+          const sanitize = (item: Record<string, unknown>) => {
              if (typeof item.orderId === 'number') {
                  // Precision loss only happens > 15 digits, but we enforce string for consistency
                  // safeJsonParse handles >15 digits, so this catches smaller IDs or edge cases
@@ -1391,7 +1386,7 @@ class BitunixWebSocketService {
           };
 
           if (Array.isArray(data))
-            data.forEach((item: any) => {
+            data.forEach((item: Record<string, unknown>) => {
               const safeItem = sanitize(item);
               accountState.updateOrderFromWs(safeItem);
               omsService.updateOrder(mapToOMSOrder(safeItem));
@@ -1406,7 +1401,7 @@ class BitunixWebSocketService {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))
-            data.forEach((item: any) => accountState.updateBalanceFromWs(item));
+            data.forEach((item: Record<string, unknown>) => accountState.updateBalanceFromWs(item));
           else accountState.updateBalanceFromWs(data);
         }
       }
@@ -1726,7 +1721,8 @@ class BitunixWebSocketService {
     }
   }
 
-  private sendPublicMessage(payload: any) {
+  // Only serialised, never read — the honest input type is unknown, not any.
+  private sendPublicMessage(payload: unknown) {
     this.publicMessageQueue.push(JSON.stringify(payload));
     this.processPublicMessageQueue();
   }
@@ -1807,20 +1803,27 @@ export const bitunixWs = new BitunixWebSocketService();
 
 // --- Type Guards for Fast Path ---
 // Helper to check for safe primitives (string or number)
-const isSafe = (v: any) => {
+const isSafe = (v: unknown): v is string | number => {
   if (typeof v === 'string') return true;
   if (typeof v === 'number') return !isNaN(v) && isFinite(v);
   return false;
 };
 
-export function isTradeData(d: any): d is { p: any; v: any; s: any; t: any; } {
+/** What handleMessage's fast path actually reads off a trade payload. */
+interface SafeTradeShape {
+  p: string | number;
+  v: string | number;
+}
+
+export function isTradeData(d: unknown): d is SafeTradeShape {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+  const obj = d as Record<string, unknown>;
   // Bitunix trade format: { p: "price", v: "vol", s: "side", t: ts }
   // OR { lastPrice, volume, side } fallbacks
   
   // Strict Safety Checks
-  const p = d.p ?? d.lastPrice ?? d.price;
-  const v = d.v ?? d.volume ?? d.amount;
+  const p = obj.p ?? obj.lastPrice ?? obj.price;
+  const v = obj.v ?? obj.volume ?? obj.amount;
   // Side can be anything truthy usually, but safer to check existence
   // const s = d.s ?? d.side; // Unused but good to know it exists
 
