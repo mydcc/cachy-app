@@ -20,22 +20,13 @@ import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
 import { calculateAnalysisMetrics } from "./marketAnalyst";
 
-// Helper to mock the complex structure expected by calculateAnalysisMetrics
-function createTechMap(ema200?: number, rsi?: number) {
-    return {
-        "4h": {
-            movingAverages: ema200 !== undefined ? [{ name: "EMA", params: "200", value: ema200 }] : [],
-            oscillators: []
-        },
-        "1h": {
-            movingAverages: [],
-            oscillators: rsi !== undefined ? [{ name: "RSI", value: rsi }] : []
-        }
-    };
-}
-
-function mockTechMap(ema200: number | string | null, rsi: number | string | null): Record<string, any> {
-    const map: Record<string, any> = {};
+// Helper to mock the complex structure expected by calculateAnalysisMetrics.
+// The fixtures below only fill the fields calculateAnalysisMetrics reads
+// (movingAverages/oscillators name+value), not the full IndicatorResult
+// shape (e.g. value here is a Decimal, not IndicatorResult's `number`),
+// hence the cast on return rather than a precise match.
+function mockTechMap(ema200: number | string | null, rsi: number | string | null): Parameters<typeof calculateAnalysisMetrics>[2] {
+    const map: Record<string, unknown> = {};
     const periods = ["15m", "1h", "4h", "1d"];
 
     periods.forEach(p => {
@@ -49,7 +40,7 @@ function mockTechMap(ema200: number | string | null, rsi: number | string | null
         };
     });
 
-    return map;
+    return map as unknown as Parameters<typeof calculateAnalysisMetrics>[2];
 }
 
 describe("calculateAnalysisMetrics", () => {

@@ -45,7 +45,7 @@ describe('CMC Proxy Security', () => {
 
     vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({ data: 'ok' })));
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -58,7 +58,7 @@ describe('CMC Proxy Security', () => {
       headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(403);
     const body = await response.json();
@@ -75,7 +75,7 @@ describe('CMC Proxy Security', () => {
     // Mock successful fetch to simulate successful exploitation if passed through
     vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({ secret: 'exposed' })));
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     // If vulnerable, this will be 200. We want 403.
     expect(response.status).toBe(403);

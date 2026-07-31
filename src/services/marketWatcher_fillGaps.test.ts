@@ -19,6 +19,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { Decimal } from 'decimal.js';
+import type { Kline } from './technicalsTypes';
+
+// Reaches into marketWatcher's private gap-filling logic directly.
+const marketWatcherInternals = marketWatcher as unknown as {
+    fillGaps: (klines: Kline[], intervalMs: number) => Kline[];
+};
 
 // Mock dependencies
 vi.mock('./bitunixWs', () => ({ bitunixWs: { subscribe: vi.fn(), unsubscribe: vi.fn(), pendingSubscriptions: new Map() } }));
@@ -48,7 +54,7 @@ describe('MarketWatcher Data Integrity', () => {
         ];
 
         // Access private method
-        const filled = (marketWatcher as any).fillGaps(klines, intervalMs);
+        const filled = marketWatcherInternals.fillGaps(klines, intervalMs);
 
         // Expected:
         // 0: T
@@ -83,9 +89,9 @@ describe('MarketWatcher Data Integrity', () => {
         const klines = [
             { time: start + 60000, close: new Decimal("100"), open: new Decimal(100) },
             { time: start, close: new Decimal("100"), open: new Decimal(100) }
-        ] as any[];
+        ] as unknown as Kline[];
 
-        const filled = (marketWatcher as any).fillGaps(klines, intervalMs);
+        const filled = marketWatcherInternals.fillGaps(klines, intervalMs);
 
         // Should not hang and return same length (no gaps filled because diff is negative)
         expect(filled.length).toBe(2);

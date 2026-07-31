@@ -41,7 +41,7 @@ describe('POST /api/sync/orders', () => {
 
     const request = {
       json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
-    } as Request;
+    } as unknown as Request;
 
     // `as unknown as` rather than `as any`: the surrounding tests predate the
     // lint ratchet, and new code should not add to the backlog.
@@ -63,9 +63,9 @@ describe('POST /api/sync/orders', () => {
       json: async () => {
         throw new Error('Unexpected end of JSON input');
       },
-    } as Request;
+    } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid JSON');
@@ -74,9 +74,9 @@ describe('POST /api/sync/orders', () => {
   it('should return 400 if credentials are missing', async () => {
     const request = {
       json: async () => ({ limit: 10 }),
-    } as Request;
+    } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid request data');
@@ -85,9 +85,9 @@ describe('POST /api/sync/orders', () => {
   it('should return 400 if limit is not a number', async () => {
     const request = {
       json: async () => ({ apiKey: 'key', apiSecret: 'secret', limit: 'invalid' }),
-    } as Request;
+    } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
   });
 });

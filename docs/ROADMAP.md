@@ -2964,6 +2964,94 @@ config technique.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred six: 11 test files, 289 → 256.** Back to `.test.ts`
+files, most tied at 3 warnings — combined 11 into one pass.
+
+- `src/routes/api/sync/orders/security.test.ts`: 3 `POST({request} as
+  any)` → the established `Parameters<typeof POST>[0]` pattern. Also
+  found and fixed 4 `as Request` casts (present before this pass, one
+  of them already following the file's own precedent comment about
+  preferring `as unknown as`) → `as unknown as Request` uniformly,
+  after the scratch check flagged one of them ("neither type
+  sufficiently overlaps") once real typing made TS actually check it.
+- `src/services/logger.test.ts`: `consoleErrorSpy`/`consoleLogSpy: any`
+  → `MockInstance<typeof console.error>` for the one actually asserted
+  on; `consoleLogSpy`'s assignment was never read (only its mocking
+  side effect — silencing `console.log` during tests — mattered), so
+  dropped to a bare `vi.spyOn(...)` call.
+- `src/services/marketAnalyst.test.ts`: deleted `createTechMap`, a dead
+  helper superseded by `mockTechMap` (confirmed zero callers via
+  `grep`). `mockTechMap`'s `Record<string, any>` return/local → typed
+  against `calculateAnalysisMetrics`'s own real 3rd-parameter type via
+  `Parameters<...>[2]`, with one `as unknown as` cast on return since
+  the fixtures' `value: Decimal` doesn't match `IndicatorResult.value:
+  number` — an intentionally-partial fixture, not a fixable mismatch.
+- `src/services/marketWatcher_fillGaps.test.ts`: 2
+  `(marketWatcher as any).fillGaps(...)` → one shared internals cast
+  (`{ fillGaps: (klines: Kline[], intervalMs: number) => Kline[] }`);
+  one `as any[]` unsorted-klines fixture → `as unknown as Kline[]`.
+- `src/services/marketWatcher_hardening.test.ts`: 3
+  `const mw = marketWatcher as any` → one `MarketWatcherInternals` type
+  covering both the private members this file reaches into
+  (`requests`, `pendingRequests`, `staggerTimeouts`,
+  `performPollingCycle`, `pollSymbolChannel`) and the public ones it
+  also calls through the same `mw` local (`stopPolling`,
+  `forceCleanup`, `ensureHistory`) for consistency. Typing `requests`
+  for real (`Map<string, Map<string, Map<string, number>>>`, matching
+  the field's own declared type and doc comment) surfaced a genuine
+  pre-existing test bug: the fixture set a 2-level map
+  (`'BTCUSDT' -> Map<channel, count>`) where the real structure is
+  3-level (`symbol -> channel -> requirement -> count`) — invisible
+  under the old `any`. Traced `performPollingCycle()`'s actual read
+  path (`channels.forEach((_, channel) => ...)`, which only reads
+  channel *keys*, never the requirement-level map's contents) to
+  confirm the fix — `new Map([['price', new Map([['stateless', 1]])]])`
+  — doesn't change what the test exercises. A second latent mismatch,
+  the invalid/valid-kline fixture not satisfying `Kline[]`, got the
+  same `as unknown as Kline[]` treatment as pass one-hundred-four's
+  identical finding.
+- `src/services/newsService_limit.test.ts`: unused `type Mock` import
+  removed (confirmed zero references); 2 `mockResponse as any` →
+  `as unknown as Response`.
+- `src/tests/security/cmc_proxy.test.ts`: 3 `GET({request, url} as
+  any)` → `Parameters<typeof GET>[0]`. The scratch-`tsconfig` check
+  flagged the file's own `@ts-expect-error` above the `GET` import as
+  now-unused — traced this one down rather than removing it: it
+  reproduces identically with or without the `$types` glob in the
+  scratch config, on a line this pass never touched, so it's most
+  likely an artifact of the scratch config lacking some project-wide
+  resolution context the file's real (excluded-from-`npm run check`)
+  environment has — left untouched rather than risk removing a
+  directive still needed under conditions this sandboxed check can't
+  fully replicate.
+- `src/utils/retryPolicy.test.ts`: 3 unused `const promise = ` locals
+  (the timer-advancement + assertion flow never reads the promise
+  itself) → dropped the assignments, kept the `.catch(() => {})` calls.
+  The scratch check also surfaced 2 `vi.spyOn(Math, 'random')
+  .mockReturnValue(...)` type errors on lines this pass never touched —
+  same "scratch-config artifact" reasoning as the `cmc_proxy.test.ts`
+  finding, left alone.
+- `src/utils/technicalsCalculator.test.ts`: 3 `{...} as any` settings
+  fixtures → `as unknown as IndicatorSettings`. This surfaced a real,
+  config-independent arity error: all 3 calls passed
+  `calculateAllIndicators` a 3rd argument (`{ ema: true, bb: true }` /
+  `{ bollingerBands: true }`) the function's real 2-parameter signature
+  has never accepted — JS silently discards excess call arguments at
+  runtime, so this was always dead weight, not a working feature the
+  typing change broke. Dropped the 3rd argument at all 3 sites.
+- `src/utils/timeUtils.test.ts` / `src/utils/utils.test.ts`: deliberately
+  -invalid `null`/`undefined as any` inputs testing each function's own
+  guard clause → `as unknown as string`, matching pass one-hundred-one's
+  `renderSafeMarkdown` treatment. `utils.test.ts` also had one dead
+  `const NOW = Date.now()` (declared, never read) — removed.
+- Verified all 11 together under one scratch-`tsconfig` — 0 errors
+  attributable to any line this pass touched (the 3 remaining findings
+  above are pre-existing and reproduce independent of this pass's
+  edits). `npx vitest run` across all 11: 81 passing.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2971,7 +3059,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 289 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 256 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
