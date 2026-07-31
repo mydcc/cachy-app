@@ -2284,6 +2284,48 @@ warnings were `as any` casts on fixture objects passed to
 test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass eighty-five: `src/services/storageService.test.ts`, 480 → 470.**
+A hand-rolled IndexedDB mock (`mockStore`/`mockTx`/`mockDB`/`mockIDB`)
+backing `storageService`'s own optimization tests.
+
+- 4 unused params on mock methods that never read them
+  (`getAll(_range?)`, `objectStore(name)`, `open(name, version)` ×2
+  params) — dropped entirely; JS ignores extra call-site arguments, so
+  `store.getAll(range)`/`indexedDB.open(DB_NAME, DB_VERSION)` calling
+  through the mock at runtime is unaffected.
+- The file's own pre-existing `MockRequest<T>` interface (already used
+  to type the `get`/`put`/`getAll` mock requests) had an `onsuccess?: ()
+  => void` with no parameter; the `indexedDB.open` mock's request calls
+  its `onsuccess` with an event-shaped argument
+  (`{ target: req }`, matching real code's `(event.target as
+  IDBOpenDBRequest).result` read), so widened it to `onsuccess?:
+  (event?: { target: MockRequest<T> }) => void` — the parameter being
+  optional keeps every other call site (`req.onsuccess()`, no argument)
+  compiling unchanged. Applied `MockRequest<typeof mockDB>` to type the
+  previously-`any` open-request local instead of a fifth ad-hoc `any`.
+- Three `global.X = ... as any` overrides (`indexedDB`, `IDBKeyRange`,
+  `window`) → `as unknown as <RealType>`, the standard two-step
+  narrowing this item uses whenever a mock's shape doesn't (and isn't
+  meant to) structurally satisfy the real DOM type. Doing this on
+  `IDBKeyRange`'s inline `bound(l, h)` surfaced a second, previously
+  latent problem: without the contextual type a bare `as any` used to
+  supply, `l`/`h` lost their inferred type and became implicit `any`
+  errors — fixed by typing them `IDBValidKey` directly.
+- `let storageService: any` → `typeof
+  import('./storageService')['storageService']`, a type-only dynamic
+  import query that recovers the real instance type without needing to
+  export the (currently unexported) `StorageService` class. Its one
+  private-field poke, `(storageService as any).isSupported = true`,
+  became the narrow-object-cast pattern used throughout this item:
+  `as unknown as { isSupported: boolean }`.
+- Verified under the same scratch-`tsconfig` technique as pass
+  eighty-four (this file is also outside `npm run check`'s `**/*.test.ts`
+  exclusion) — 0 errors attributable to this file.
+
+`npx vitest run src/services/storageService.test.ts` stays at 3 passing;
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2291,7 +2333,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 480 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 470 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

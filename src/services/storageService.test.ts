@@ -33,7 +33,7 @@ interface StoredRecord {
  */
 interface MockRequest<T> {
   result?: T;
-  onsuccess?: () => void;
+  onsuccess?: (event?: { target: MockRequest<T> }) => void;
   onerror?: () => void;
 }
 
@@ -55,7 +55,7 @@ const mockStore = {
         storeMap.set(val.id, val);
         return undefined;
     }),
-    getAll: (_range?: IDBKeyRange) =>
+    getAll: () =>
         resolveLater(() =>
             Array.from(storeMap.values()).sort((a, b) => a.id.localeCompare(b.id)),
         ),
@@ -65,7 +65,7 @@ const mockStore = {
 };
 
 const mockTx = {
-    objectStore: (name: string) => mockStore
+    objectStore: () => mockStore
 };
 
 const mockDB = {
@@ -78,8 +78,8 @@ const mockDB = {
 };
 
 const mockIDB = {
-    open: (name: string, version: number) => {
-        const req: any = {};
+    open: () => {
+        const req: MockRequest<typeof mockDB> = {};
         setTimeout(() => {
             req.result = mockDB;
             if (req.onsuccess) req.onsuccess({ target: req });
@@ -88,12 +88,12 @@ const mockIDB = {
     }
 };
 
-global.indexedDB = mockIDB as any;
-global.IDBKeyRange = { bound: (l, h) => ({ lower: l, upper: h }) } as any;
+global.indexedDB = mockIDB as unknown as IDBFactory;
+global.IDBKeyRange = { bound: (l: IDBValidKey, h: IDBValidKey) => ({ lower: l, upper: h }) } as unknown as typeof IDBKeyRange;
 
 // Mock Window
 // We must ensure 'indexedDB' in window works
-global.window = { indexedDB: mockIDB } as any;
+global.window = { indexedDB: mockIDB } as unknown as Window & typeof globalThis;
 
 // Mock Navigator
 Object.defineProperty(global, 'navigator', {
@@ -116,7 +116,7 @@ vi.mock('./logger', () => ({
 
 // --- Test ---
 
-let storageService: any;
+let storageService: typeof import('./storageService')['storageService'];
 
 function generateKlines(count: number, startTimestamp: number): Kline[] {
     const klines: Kline[] = [];
@@ -141,7 +141,7 @@ describe('StorageService Optimization', () => {
         const mod = await import('./storageService');
         storageService = mod.storageService;
         // Force support since we mocked everything
-        (storageService as any).isSupported = true;
+        (storageService as unknown as { isSupported: boolean }).isSupported = true;
         await storageService.clearAll();
     });
 
