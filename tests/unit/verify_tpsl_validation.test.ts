@@ -62,7 +62,7 @@ describe('TP/SL API Validation', () => {
       })
     };
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toBe('Validation Error');
@@ -83,7 +83,7 @@ describe('TP/SL API Validation', () => {
       })
     };
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toBe('Validation Error');
@@ -107,7 +107,7 @@ describe('TP/SL API Validation', () => {
       })
     };
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toBe('Validation Error');
@@ -138,9 +138,9 @@ describe('TP/SL API Validation', () => {
         // both to stand in for a real Response.
         json: async () => ({ code: 0, data: [] }),
         text: async () => JSON.stringify({ code: 0, data: [] })
-    });
+    } as unknown as Response);
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
   });
 
@@ -170,9 +170,9 @@ describe('TP/SL API Validation', () => {
         ok: true,
         json: async () => ({ code: 0, data: {} }),
         text: async () => JSON.stringify({ code: 0, data: {} })
-    });
+    } as unknown as Response);
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
   });
 });

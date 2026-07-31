@@ -2787,6 +2787,28 @@ against a mocked `DOMPurify`.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred two: `tests/unit/verify_tpsl_validation.test.ts`,
+354 → 349.** Validation-branch regression tests for the `/api/tpsl`
+route (missing fields, invalid enum, missing modify params, and two
+happy paths).
+
+- 5 `POST({ request } as any)` call-site casts → `as unknown as
+  Parameters<typeof POST>[0]`, the same pattern as passes ninety and
+  ninety-eight.
+- The scratch-`tsconfig` check surfaced 2 latent errors once the `any`
+  stopped hiding them: both happy-path tests'
+  `vi.mocked(global.fetch).mockResolvedValue({ ok, json, text })`
+  fixtures don't structurally satisfy `Response` (missing `headers`,
+  `status`, etc.) — fixed in the same pass, `as unknown as Response` at
+  both sites, matching the file's own existing comment on why the mock
+  needs both `json()` and `text()` in the first place.
+- Verified under the same scratch-`tsconfig` technique as the last
+  eighteen passes — 0 errors after the two fixes.
+
+`npx vitest run tests/unit/verify_tpsl_validation.test.ts` stays at 5
+passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
+stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2794,7 +2816,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 354 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 349 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
