@@ -955,6 +955,45 @@ public candle-data proxy route, fronting both exchanges.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-nine: `PositionsSidebar.svelte`, 779 → 768.** First Svelte UI
+component in this item — everything ahead of it in the warning count was
+a production service, store, or route handler, per the priority this item
+has followed throughout (money-relevant code first).
+
+- `NormalizedOrder` (existing type) and a new `AccountInfo` interface
+  matching this component's own initial-state object field-for-field
+  replace 3 `any` state declarations. `translateError()`'s `data: any`
+  became a small inline shape; its dynamic-key `$_(key as any)` became
+  `as TranslationKey`, the same established pattern as `syncService.ts`.
+- `handleClosePosition()` built its `positionSide` argument as
+  `String(pos.side).toLowerCase() as any` — but `pos.side` (from
+  `OMSPosition`) is already the literal union `"long" | "short"`;
+  `.toLowerCase()` was a no-op on an already-lowercase value that only
+  existed to justify the cast. Passing `pos.side` directly removes both.
+  Its and `handleCancelOrder()`'s `as any` response casts became
+  `{ error?: string } | undefined`, matching what's actually read off them.
+- Typing `historyOrders: NormalizedOrder[]` surfaced a dead fallback:
+  `Number(o.filled || o.dealAmount || 0)` reads a `dealAmount` field
+  `NormalizedOrder` has never declared — `filled` is the one canonical,
+  always-present field the `/api/orders` route normalizes both
+  exchanges' responses into. Removed the fallback.
+- Removed three genuinely-dead symbols after checking each had no
+  consumer anywhere (prop, template, or otherwise): the `isMobile` prop
+  (no caller ever passes it, and the two call sites in `+page.svelte`
+  both use the bare `<PositionsSidebar />`), `loadingAccount` (assigned in
+  two places, read in none — unlike its three siblings
+  `loadingPositions`/`loadingOrders`/`loadingHistory`, which are each
+  passed to a sub-component's `loading` prop, this one wasn't even
+  declared with `$state()`, so it couldn't have driven reactive UI even
+  if something had read it), and `refreshAll()`, a complete, working
+  function with no caller and no dangling UI hook (button, keybinding)
+  that looked like it was meant to invoke it.
+- Verified with `npm run build` in addition to the usual `npm run check`/
+  `npx eslint`/`npm test`, since this is the first UI file touched in this
+  item and a prop removal changes this component's external interface.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -962,7 +1001,7 @@ public candle-data proxy route, fronting both exchanges.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 779 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 768 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
