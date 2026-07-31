@@ -1496,6 +1496,30 @@ Bitunix/Bitget kline and ticker HTTP client.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped.
 
+**Pass forty-eight: `services/cloudService.ts`, 641 → 636.** The Global
+Chat (SpacetimeDB) client — Class B data per ADR-0001, opt-in and
+authenticated only.
+
+- All 5 remaining `any` sites in this file are the same class of problem
+  the file already had one documented instance of:
+  `canDeleteMyMessages()`'s `(reducers as any).deleteMyMessages` (kept
+  `any` with an `eslint-disable-next-line` and a comment explaining that
+  the generated SpacetimeDB bindings in `src/lib/spacetimedb/` can predate
+  a server-side schema change, since editing generated files by hand is
+  forbidden and a build isn't guaranteed to have re-run `spacetime
+  generate`). The other 5 sites are the identical situation —
+  `(tables as any).globalMessage || (tables as any).global_message` (the
+  snake_case/camelCase accessor-name fallback, already explained by the
+  comment directly above it), the `onInsert((ctx: any, row: any) => ...)`
+  callback whose shape depends on that same untyped handle, and
+  `(reducers as any).sendMessage(text)` — given the matching
+  `eslint-disable-next-line` treatment with a comment pointing back at the
+  established precedent, rather than forcing a type onto something the
+  file's own comments already document as runtime-uncertain.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1503,7 +1527,7 @@ skipped.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 641 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 636 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
