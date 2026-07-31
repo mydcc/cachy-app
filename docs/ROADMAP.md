@@ -2614,6 +2614,35 @@ patching two of `tradeService`'s private methods.
 successfully; `npm test` stays at 850 passing, 6 skipped; `npm run
 check` stays at 0 errors.
 
+**Pass ninety-five: `tests/benchmarks/technicals_prep.bench.ts`,
+395 → 388.** Compares four candle-array-to-`Float64Array`
+preparation strategies (current, optimized, cached, cached-copy).
+
+- `prepareCurrent`/`prepareOptimized`'s `klinesInput: any[]` →
+  `MockKline[]` (the file's own pre-existing local interface, already
+  used for `generateKlines()`'s return type but never applied to these
+  two functions' params).
+- `toNumFast`/`toNumOptimized`'s `val: any` → `val: unknown`, matching
+  this item's established number-coercion-helper pattern (pass eighty's
+  `fastConversion.ts`). Each function's `new Decimal(val)` fallback
+  branch needed `val as Decimal.Value` once `unknown` stopped implicitly
+  satisfying `Decimal`'s constructor parameter type.
+- `prepareCachedCopy`'s `cached: any` → `typeof cachedBuffers1k`
+  (`cachedBuffers1k`/`cachedBuffers10k` share an identical
+  `Float64Array`-fields shape, so either serves as the type source).
+- Deleted `prepareCached`, a genuinely dead sibling function next to
+  `prepareCachedCopy` — defined, never called by any `bench()` in the
+  file (only `prepareCachedCopy` is benched), and its own comment
+  ("simulate just passing reference") describes a no-op variant that
+  was apparently superseded by the copy version without being removed.
+- Verified under the same scratch-`tsconfig` technique as the last
+  eleven passes — 0 errors. Ran via `npx vitest bench --run
+  tests/benchmarks/technicals_prep.bench.ts`; all 6 benchmark cases
+  completed.
+
+`npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
+errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2621,7 +2650,7 @@ check` stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 395 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 388 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
