@@ -171,6 +171,28 @@ GPU path's CHOP output to `result.advanced.choppiness` to match, or decide
 `volatility.CHOP` is the intended home and update the WASM path and the
 `TechnicalsData` type to match instead.
 
+## 5. `src/utils/WasmTechnicalsCalculator.ts` appears to be unreachable
+
+**Roadmap item 21.** Found while typing this file's `any` casts — worth
+recording before the typing work makes it look more alive than it is.
+
+Nothing in `src/` imports or instantiates `WasmTechnicalsCalculator`. The
+only other reference in the repository is
+`tests/integration/wasm_parity.test.ts`, which mentions it in comments
+only (never imports it) and whose one real test is `it.skip(...)`. The
+class this project actually uses for WASM-accelerated technicals is a
+different file, `src/services/wasmCalculator.ts` (wired into
+`technicalsService.ts`, cleaned in the same pass as this one) — this looks
+like an earlier implementation that was superseded and never removed.
+
+**The decision:** either delete `src/utils/WasmTechnicalsCalculator.ts`
+(and update or remove the comments in `wasm_parity.test.ts` that refer to
+it), or, if it's kept intentionally for a reason not visible from the code
+alone, say what that reason is so the next pass doesn't re-flag it. Left
+in place and merely typed here per this repo's defensive-deletion rule:
+code whose purpose isn't fully clear doesn't get deleted without a person
+confirming it's safe to.
+
 ## Add new items below
 
 <!--
