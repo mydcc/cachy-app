@@ -1696,6 +1696,29 @@ skipped; `npm run build` succeeds.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass fifty-six: `components/shared/backgrounds/engines/BaseEngine.ts`,
+601 → 597.** The abstract base class all seven Three.js background
+engines extend.
+
+- Removed `BaseEngineSettings` — an interface with its own `[key:
+  string]: any` index signature, declared but referenced nowhere in the
+  codebase, not even in this file. `EngineContext.settings` was already
+  typed `any` directly rather than via this interface.
+- The other three `any` sites — `EngineContext.settings`,
+  `updateSettings(settings: any)`, `shouldReinit(newSettings: any)` — all
+  documented with `eslint-disable-next-line` rather than narrowed.
+  `context.settings` is read by every subclass (`CityEngine`,
+  `BlockEngine`, `EqualizerEngine`, `GalaxyEngine`, `RaindropsEngine`,
+  `SonarEngine`, `StarDustEngine`) and by `galaxy.worker.ts` via
+  free-form field access (`s.gridWidth || 80`, etc.) with no shared
+  settings shape across engines — narrowing it here would cascade type
+  errors through all of them, confirmed by CityEngine's pass already
+  leaving its own `updateSettings` override `any` for exactly this
+  reason.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1703,7 +1726,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 601 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 597 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

@@ -146,7 +146,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
   > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build.
   >
-  > Warnings are capped by a **ratchet**: CI runs `eslint . --max-warnings 601`, the size of the pre-existing `no-explicit-any` / `no-unused-vars` backlog. That number may only ever be *lowered*, never raised, so the backlog can shrink but cannot grow. When you fix warnings, lower the ceiling in `.github/workflows/audit.yml` to match. See `docs/ROADMAP.md` item 21.
+  > Warnings are capped by a **ratchet**: CI runs `eslint . --max-warnings 597`, the size of the pre-existing `no-explicit-any` / `no-unused-vars` backlog. That number may only ever be *lowered*, never raised, so the backlog can shrink but cannot grow. When you fix warnings, lower the ceiling in `.github/workflows/audit.yml` to match. See `docs/ROADMAP.md` item 21.
   >
   > If a rule fires on something deliberate, do not silence it globally: add an inline `eslint-disable-next-line` with a `--` explanation, as done for the Svelte 5 dependency-registration reads in `tradeCalculator.svelte.ts`.
 
