@@ -658,6 +658,34 @@ services into the three `updateXFromWs` methods.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass seventeen: `market.svelte.ts`, 877 → 867.** A second pass over this
+file (the first, in an earlier session, introduced `RawNumeric`); this one
+cleared the 10 warnings that pass left behind.
+
+- `RawKline`, `RawPriceUpdate`, `RawTickerUpdate`, `RawDepthUpdate`,
+  `RawKlineWsMessage` — five named shapes for the raw WS payloads
+  `pendingKlineUpdates`, `applyUpdate`, `updateSymbolKlines`/
+  `applySymbolKlines`, and the four legacy `updateX` methods actually
+  receive, replacing 8 `any` sites.
+- `applyUpdate`'s `partial` parameter was `any` despite an exact-fit type
+  already existing two methods away: `MarketUpdatePayload`. Using it
+  surfaced two real gaps in that type for object-shaped fields — its
+  mapped type adds `| string | number | null` to *every* `MarketData`
+  field uniformly, including `depth` and `technicals`, which are never
+  sensibly a string or number. Narrowed with `typeof === "object"` checks
+  at the two read sites rather than special-casing `MarketUpdatePayload`
+  itself, which is used broadly enough that changing its shape risked
+  side effects outside this file.
+- Five `new Decimal(k.field)` calls and one `new Decimal(data.change)` cast
+  their `RawNumeric` argument `as Decimal.Value` rather than adding a new
+  null guard — `RawNumeric` includes `null`/`undefined`, which the prior
+  `any` silently let through to `new Decimal(...)` unchanged. Preserves
+  the exact prior behavior (including the fact that it can still throw)
+  instead of quietly changing what happens on a null/undefined field.
+- Removed one unused local (`previousTimestamp`, computed and never read).
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -665,7 +693,7 @@ services into the three `updateXFromWs` methods.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 877 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 867 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

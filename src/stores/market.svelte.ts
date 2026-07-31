@@ -82,6 +82,50 @@ interface CacheMetadata {
  */
 type RawNumeric = string | number | Decimal | null | undefined;
 
+// Raw kline as buffered/received before Decimal normalization — see the
+// RawNumeric doc comment above for why fields aren't just `Decimal`.
+interface RawKline {
+  time: number;
+  open: RawNumeric;
+  high: RawNumeric;
+  low: RawNumeric;
+  close: RawNumeric;
+  volume: RawNumeric;
+}
+
+interface RawPriceUpdate {
+  price?: RawNumeric;
+  indexPrice?: RawNumeric;
+  fundingRate?: RawNumeric;
+  nextFundingTime?: number | string | null;
+}
+
+interface RawTickerUpdate {
+  lastPrice?: RawNumeric;
+  high?: RawNumeric;
+  low?: RawNumeric;
+  vol?: RawNumeric;
+  quoteVol?: RawNumeric;
+  fundingRate?: RawNumeric;
+  nextFundingTime?: number | string | null;
+  open?: RawNumeric;
+  change?: RawNumeric;
+}
+
+interface RawDepthUpdate {
+  bids: [string, string][];
+  asks: [string, string][];
+}
+
+interface RawKlineWsMessage {
+  o: RawNumeric;
+  h: RawNumeric;
+  l: RawNumeric;
+  c: RawNumeric;
+  b: RawNumeric;
+  t: number;
+}
+
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
@@ -100,7 +144,7 @@ export class MarketManager {
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
   private backingBuffers = new Map<string, KlineBuffers>();
-  private pendingKlineUpdates = new Map<string, any[]>();
+  private pendingKlineUpdates = new Map<string, RawKline[]>();
   private bufferPool = new BufferPool();
   // `ReturnType<typeof ...>` rather than `number`: the handle is a number in the
   // browser and a Timeout object under Node, and these run in both.
@@ -295,11 +339,10 @@ export class MarketManager {
     this.enforceCacheLimit();
   }
 
-  private applyUpdate(symbol: string, partial: any) {
+  private applyUpdate(symbol: string, partial: MarketUpdatePayload) {
     try {
       this.touchSymbol(symbol);
       const current = this.getOrCreateSymbol(symbol);
-      const previousTimestamp = current.lastUpdated || 0;
       current.lastUpdated = Date.now();
 
       // Optimization: Check for equality before creating new Decimal
@@ -393,8 +436,11 @@ export class MarketManager {
         current.nextFundingTime = nft > 0 ? nft : null;
       }
 
-      if (partial.depth !== undefined) current.depth = partial.depth;
-      if (partial.technicals !== undefined) {
+      // depth/technicals are object-shaped fields; MarketUpdatePayload's
+      // mapped type also allows string/number (for the Decimal fields),
+      // which doesn't apply here — narrow to object before assigning.
+      if (partial.depth && typeof partial.depth === "object") current.depth = partial.depth;
+      if (partial.technicals && typeof partial.technicals === "object") {
         // Merge technicals map (keyed by timeframe)
         current.technicals = { ...(current.technicals || {}), ...partial.technicals };
       }
@@ -416,7 +462,7 @@ export class MarketManager {
   updateSymbolKlines(
     symbol: string,
     timeframe: string,
-    klines: any[],
+    klines: RawKline[],
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
@@ -458,7 +504,7 @@ export class MarketManager {
   private applySymbolKlines(
     symbol: string,
     timeframe: string,
-    klines: any[],
+    klines: RawKline[],
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
@@ -468,7 +514,7 @@ export class MarketManager {
     // [OPTIMIZATION] Deduplicate raw updates
     if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
         klines.sort((a, b) => a.time - b.time);
-        const dedupedRaw: any[] = [];
+        const dedupedRaw: RawKline[] = [];
         let lastTime = -1;
         for (const k of klines) {
              if (k.time === lastTime) {
@@ -543,12 +589,17 @@ export class MarketManager {
         }
     }
     // Normalize
+    //
+    // RawNumeric includes null/undefined; the `as Decimal.Value` casts below
+    // preserve the prior (pre-typing) behavior of passing the raw value
+    // straight to `new Decimal(...)` unchecked, rather than adding a new
+    // runtime guard here — see the RawNumeric doc comment.
     let newKlines: Kline[] = klines.map(k => ({
-      open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
-      high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
-      low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
-      close: k.close instanceof Decimal ? k.close : new Decimal(k.close),
-      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
+      open: k.open instanceof Decimal ? k.open : new Decimal(k.open as Decimal.Value),
+      high: k.high instanceof Decimal ? k.high : new Decimal(k.high as Decimal.Value),
+      low: k.low instanceof Decimal ? k.low : new Decimal(k.low as Decimal.Value),
+      close: k.close instanceof Decimal ? k.close : new Decimal(k.close as Decimal.Value),
+      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume as Decimal.Value),
       time: k.time
     }));
 
@@ -718,9 +769,9 @@ export class MarketManager {
   }
 
   // Legacy update methods refactored to use updateSymbol
-  updatePrice(symbol: string, data: any) {
+  updatePrice(symbol: string, data: RawPriceUpdate) {
     try {
-      const update: Partial<MarketData> = {
+      const update: MarketUpdatePayload = {
         nextFundingTime: data.nextFundingTime,
       };
 
@@ -735,9 +786,9 @@ export class MarketManager {
     }
   }
 
-  updateTicker(symbol: string, data: any) {
+  updateTicker(symbol: string, data: RawTickerUpdate) {
     try {
-      const update: Partial<MarketData> = {};
+      const update: MarketUpdatePayload = {};
 
       if (data.lastPrice !== undefined) update.lastPrice = data.lastPrice;
       if (data.high !== undefined) update.highPrice = data.high;
@@ -764,7 +815,9 @@ export class MarketManager {
       }
 
       if (!calculatedChange && data.change !== undefined) {
-        update.priceChangePercent = new Decimal(data.change).times(100);
+        // Cast preserves prior (pre-typing) behavior — see the RawNumeric
+        // doc comment; not a new guard against null.
+        update.priceChangePercent = new Decimal(data.change as Decimal.Value).times(100);
       }
 
       this.updateSymbol(symbol, update);
@@ -773,7 +826,7 @@ export class MarketManager {
     }
   }
 
-  updateDepth(symbol: string, data: any) {
+  updateDepth(symbol: string, data: RawDepthUpdate) {
     try {
       this.updateSymbol(symbol, {
         depth: { bids: data.bids, asks: data.asks },
@@ -783,7 +836,7 @@ export class MarketManager {
     }
   }
 
-  updateKline(symbol: string, timeframe: string, data: any) {
+  updateKline(symbol: string, timeframe: string, data: RawKlineWsMessage) {
     try {
       // Pass raw values (no Decimal creation here) to allow buffering
       // applySymbolKlines handles the conversion to Decimal lazily
