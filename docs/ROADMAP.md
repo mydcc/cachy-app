@@ -1253,6 +1253,27 @@ open-positions proxy route, fronting both exchanges.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty-nine: `routes/api/external/news/+server.ts`, 694 → 688.** The
+news-proxy route (CryptoPanic/NewsAPI passthrough with an in-memory cache,
+rate limiter, and in-flight-request dedup).
+
+- `CachedResponse.data: any` → `unknown`, and `pendingRequests`'s
+  `Map<string, Promise<any>>` → `Promise<unknown>` — both are opaque
+  payloads this route stores and replays verbatim, never inspects, so
+  `unknown` is the honest shape.
+- `setCache(key, data: any)` → `data: unknown` to match.
+- An eviction filter, `.filter(([_, info]) => ...)`, dropped the unused
+  `_` destructure binding entirely (`.filter(([, info]) => ...)`) — this
+  repo has no `varsIgnorePattern`, so the underscore itself doesn't
+  suppress the warning, only removing the binding does.
+- Two `catch` blocks normalized with the standard
+  `err instanceof Error ? err.message : String(err)` guard. The second one
+  also read `err.cause` for logging; `unknown` has no `.cause`, so that
+  read got its own `instanceof Error` guard alongside the message
+  extraction rather than a blanket cast.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1260,7 +1281,7 @@ open-positions proxy route, fronting both exchanges.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 694 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 688 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
