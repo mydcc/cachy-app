@@ -23,11 +23,30 @@ import { SonarEngine } from './engines/SonarEngine';
 import { BlockEngine } from './engines/BlockEngine';
 import { type BaseEngine, type EngineContext } from './engines/BaseEngine';
 
+// Camera/mode fields this worker itself reads; each engine also reads its
+// own settings (gridWidth, spread, size, ...) via BaseEngine's generic
+// `settings: any` context field, which this passes through unchanged.
+interface FlowSettings {
+    flowMode?: string;
+    cameraPositionX?: number;
+    cameraHeight?: number;
+    cameraDistance?: number;
+    cameraRotationX?: number;
+    cameraRotationY?: number;
+    cameraRotationZ?: number;
+    [key: string]: unknown;
+}
+
+interface TradeEventData {
+    sentiment?: number;
+    trade: { type: 'buy' | 'sell'; price: number; amount: number };
+}
+
 let renderer: THREE.WebGLRenderer;
 let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let activeEngine: BaseEngine | null = null;
-let settings: any;
+let settings: FlowSettings;
 
 const colorUp = new THREE.Color(0x00ff88);
 const colorDown = new THREE.Color(0xff4444);
@@ -61,7 +80,7 @@ self.onmessage = (event) => {
     }
 };
 
-function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio: number, initialSettings: any) {
+function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio: number, initialSettings: FlowSettings) {
     settings = initialSettings;
     
     scene = new THREE.Scene();
@@ -97,10 +116,15 @@ function animate(time: number) {
     requestAnimationFrame(animate);
 }
 
+interface ObjectWithSentimentUniform {
+    material?: { uniforms?: { uSentiment?: { value: number } } };
+}
+
 function updateSentimentUniforms() {
     scene.traverse((obj) => {
-        if ((obj as any).material && (obj as any).material.uniforms && (obj as any).material.uniforms.uSentiment) {
-            (obj as any).material.uniforms.uSentiment.value = currentSentiment;
+        const uniforms = (obj as unknown as ObjectWithSentimentUniform).material?.uniforms;
+        if (uniforms?.uSentiment) {
+            uniforms.uSentiment.value = currentSentiment;
         }
     });
 }
@@ -112,7 +136,7 @@ function resize(width: number, height: number) {
     renderer.setSize(width, height, false);
 }
 
-function updateSettings(newSettings: any) {
+function updateSettings(newSettings: FlowSettings) {
     const prevMode = settings ? settings.flowMode : null;
     settings = newSettings;
     updateCamera();
@@ -148,7 +172,7 @@ function updateColors(up: string, down: string, bg: string) {
     }
 }
 
-function switchMode(mode: string) {
+function switchMode(mode: string | undefined) {
     if (activeEngine) {
         activeEngine.dispose();
         activeEngine = null;
@@ -175,7 +199,7 @@ function switchMode(mode: string) {
     if (activeEngine) activeEngine.init();
 }
 
-function onTrade(data: any) {
+function onTrade(data: TradeEventData) {
     if (data.sentiment !== undefined) {
         targetSentiment = data.sentiment;
     }
