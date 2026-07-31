@@ -21,8 +21,17 @@
   import { icons } from "../../lib/constants";
   import { OrderType } from "../../types/orderTypes";
 
+  // Populated from UiState's tooltip.data (typed `unknown` there, since
+  // different tooltip variants carry different shapes). This tooltip reads a
+  // wide, provider-varying set of order/position fields with several
+  // exchange-specific fallback names (avgPrice/averagePrice,
+  // filled/tradeQty, price/qty, time/ctime) — wider than any single
+  // normalized interface this codebase declares.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type LooseOrder = any;
+
   interface Props {
-    order: any;
+    order: LooseOrder;
   }
 
   let { order }: Props = $props();
@@ -33,12 +42,12 @@
     isDetailsOpen = !isDetailsOpen;
   }
 
-  function formatDate(ts: any) {
+  function formatDate(ts: unknown) {
     if (!ts) return "-";
     return new Date(Number(ts)).toLocaleString();
   }
 
-  function getOrderType(order: any) {
+  function getOrderType(order: LooseOrder) {
     // Prefer 'orderType' or 'type'
     // Handle numeric codes: 1=LIMIT, 2=MARKET, 3=STOP_LIMIT, 4=STOP_MARKET, 5=TRAILING_STOP_MARKET
     const rawType = order.orderType || order.type;

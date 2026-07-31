@@ -29,6 +29,7 @@
   import AiPanel from "./sidepanel/AiPanel.svelte";
   import NotesPanel from "./sidepanel/NotesPanel.svelte";
   import ChatPanel from "./sidepanel/ChatPanel.svelte";
+  import type { Interactable } from "@interactjs/types";
 
   let isOpen = $state(false);
   let isInteracting = $state(false);
@@ -94,7 +95,7 @@
   $effect(() => {
     if (!panelEl || !isSidebar) return;
 
-    let interaction: any;
+    let interaction: Interactable | undefined;
 
     const initInteract = async () => {
       const { default: interact } = await import("interactjs");
@@ -129,8 +130,8 @@
   $effect(() => {
     if (!panelEl || !isFloating || settingsState.panelIsExpanded) return;
 
-    let dragInteraction: any;
-    let resizeInteraction: any;
+    let dragInteraction: Interactable | undefined;
+    let resizeInteraction: Interactable | undefined;
 
     const initInteract = async () => {
       const { default: interact } = await import("interactjs");
