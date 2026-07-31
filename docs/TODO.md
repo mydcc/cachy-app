@@ -223,6 +223,45 @@ removed, since a fully-built feature with prepared translations is not
 "purpose unclear" — it's "purpose clear, UI incomplete," which needs a
 placement decision, not deletion.
 
+## 7. Sentiment cache and AI response are trusted without schema validation
+
+**Roadmap item 21.** Found while removing two unused Zod schemas from
+`newsService.ts` during a lint pass — worth recording before the removal
+makes the gap invisible.
+
+`newsService.ts` had `SentimentAnalysisSchema` and `SentimentCacheSchema`
+defined but never referenced anywhere. `analyzeSentiment()` instead trusts
+two values by direct cast, no validation:
+
+- The IDB read: `dbService.get<{ data: SentimentAnalysis; timestamp: number;
+  newsHash: string }>("sentiment", newsHash)` — a type parameter, not a
+  runtime check.
+- The AI provider's response: `const analysis: SentimentAnalysis =
+  data.analysis;` — same thing, a type annotation on untrusted JSON from
+  `/api/sentiment`.
+
+This is inconsistent with the rest of the file: `fetchNews()` validates its
+IDB cache read through `NewsCacheEntrySchema.safeParse()` a few lines above
+(clearing and re-fetching on mismatch), and the CryptoPanic/NewsAPI
+responses are validated server-side against `CryptoPanicResponseSchema` /
+`NewsApiResponseSchema` before this file ever sees them. The sentiment path
+is the one place that skips it.
+
+**Consequence, not yet demonstrated:** a malformed or schema-drifted AI
+response (or a stale/corrupted IDB entry) would flow straight into
+`SentimentAnalysis`-typed state and out to the UI — `regime` outside the
+four expected values, missing `score`, etc. — instead of being caught and
+falling back to the existing neutral-sentiment error path this function
+already has for every other failure mode.
+
+**The decision:** wire the two schemas back in — `safeParse()` the IDB read
+before trusting `cached.data`, and `safeParse()` `data.analysis` before
+assigning it, falling back to the same `{score: 0, regime: "UNCERTAIN", ...}`
+response the `catch` block already returns on any other failure. Left as a
+lint-pass finding rather than fixed inline because it adds a new rejection
+branch to a live external-AI call path, which needs its own test rather
+than a drive-by change.
+
 ## Add new items below
 
 <!--

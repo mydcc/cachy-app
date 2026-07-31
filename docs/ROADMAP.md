@@ -1297,6 +1297,42 @@ multi-timeframe technical-analysis background loop.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass forty-one: `services/newsService.ts`, 682 → 676.** The
+news-fetch/sentiment-cache orchestrator (CryptoPanic, NewsAPI, Discord, RSS,
+plus an AI sentiment summarizer).
+
+- The CryptoPanic/NewsAPI response mappers each had a `.map((item: any) =>
+  ...)` reading fields off an untyped `safeJsonParse(text)` result.
+  `safeJsonParse<T>` is generic, so both call sites now pass
+  `z.infer<typeof CryptoPanicResponseSchema>` /
+  `z.infer<typeof NewsApiResponseSchema>` (the exact schemas
+  `routes/api/external/news/+server.ts` already validates the upstream
+  response against, from pass 39) instead of casting the mapper's
+  parameter — the honest fix, reusing existing schema types rather than
+  inventing a parallel shape.
+- That surfaced a real gap in `CryptoPanicPostSchema`
+  (`types/newsSchemas.ts`): it never declared a `currencies` field, even
+  though `NewsItemSchema` two schemas up in the same file expects exactly
+  that shape (`{code, title}[]`) and the CryptoPanic API does send it.
+  Added the matching field declaration rather than casting `unknown` away
+  at the call site — the schema was incomplete, not the consumer wrong.
+- `params: any` (the CryptoPanic query-params object) → `Record<string,
+  string>`, matching what's actually assigned into it.
+- Removed three module-scope constants nothing read:
+  `CACHE_KEY_SENTIMENT`, `CACHE_TTL_NEWS` (dead since the sentiment cache
+  uses its own `CACHE_TTL_SENTIMENT`, and news-cache freshness runs
+  through `shouldFetchNews()`, not a flat TTL constant), and
+  `SentimentCacheSchema`/`SentimentAnalysisSchema` (a Zod pair with no
+  reader anywhere in the file — `analyzeSentiment()` reads the IDB cache
+  and the AI response both as trusted casts, `cached as {data:
+  SentimentAnalysis, ...}` and `data.analysis as SentimentAnalysis`,
+  never through either schema). Left unwired rather than wired in: adding
+  a new rejection branch to a live external-AI response path is a
+  behavior change past what a lint pass should carry — documented as
+  `docs/TODO.md` item 7 instead.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1304,7 +1340,7 @@ multi-timeframe technical-analysis background loop.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 682 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 676 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

@@ -18,6 +18,7 @@ import { RequestDeduplicator } from "../utils/requestDeduplicator";
 import { z } from "zod";
 import CryptoJS from "crypto-js";
 import { safeJsonParse } from "../utils/safeJson";
+import { CryptoPanicResponseSchema, NewsApiResponseSchema } from "../types/newsSchemas";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -52,19 +53,6 @@ const NewsCacheEntrySchema = z.object({
   items: z.array(NewsItemSchema),
   timestamp: z.number(),
   lastApiCall: z.number(),
-});
-
-const SentimentAnalysisSchema = z.object({
-  score: z.number(),
-  regime: z.enum(["BULLISH", "BEARISH", "NEUTRAL", "UNCERTAIN"]),
-  summary: z.string(),
-  keyFactors: z.array(z.string()),
-});
-
-const SentimentCacheSchema = z.object({
-  data: SentimentAnalysisSchema,
-  timestamp: z.number(),
-  newsHash: z.string(),
 });
 
 const COIN_ALIASES: Record<string, string[]> = {
@@ -104,8 +92,6 @@ function matchesSymbol(text: string, symbol: string): boolean {
 
 const CACHE_PREFIX_NEWS_COIN = "news_"; // Prefixed ID for IDB
 const CACHE_KEY_NEWS_GLOBAL = "news_global";
-const CACHE_KEY_SENTIMENT = "sentiment_global";
-const CACHE_TTL_NEWS = 1000 * 60 * 60 * 24; // 24 hours
 const CACHE_TTL_SENTIMENT = 1000 * 60 * 15; // 15 minutes
 const MIN_NEWS_PER_COIN = 10;
 const MAX_NEWS_AGE_MS = 1000 * 60 * 60 * 24;
@@ -229,7 +215,7 @@ export const newsService = {
         // Prioritize CryptoPanic (wenn Quota nicht erschöpft)
         if (cryptoPanicApiKey && !isQuotaExhausted) {
           try {
-            const params: any = {
+            const params: Record<string, string> = {
               filter: settingsState.cryptoPanicFilter || "important",
               public: "true",
             };
@@ -265,14 +251,14 @@ export const newsService = {
 
             if (res.ok) {
               const text = await res.text();
-              const data = safeJsonParse(text);
-              newsItems = (Array.isArray(data?.results) ? data.results : []).map((item: any) => ({
-                title: item.title,
-                url: item.url,
+              const data = safeJsonParse<z.infer<typeof CryptoPanicResponseSchema>>(text);
+              newsItems = (Array.isArray(data?.results) ? data.results : []).map((item) => ({
+                title: item.title || "",
+                url: item.url || "",
                 source: item.source?.title || "Unknown",
-                published_at: item.published_at,
+                published_at: item.published_at || "",
                 currencies: item.currencies,
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+                id: generateNewsId({ title: item.title || "", url: item.url || "", source: "", published_at: "" }),
               }));
               apiQuotaTracker.logCall("cryptopanic", true);
             } else {
@@ -322,14 +308,14 @@ export const newsService = {
 
             if (res.ok) {
               const text = await res.text();
-              const data = safeJsonParse(text);
-              const mapped = data.articles.map((item: any) => ({
-                title: item.title,
-                url: item.url,
+              const data = safeJsonParse<z.infer<typeof NewsApiResponseSchema>>(text);
+              const mapped = (data.articles || []).map((item) => ({
+                title: item.title || "",
+                url: item.url || "",
                 source: item.source?.name ?? "Unknown",
-                published_at: item.publishedAt,
+                published_at: item.publishedAt || "",
                 currencies: [],
-                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
+                id: generateNewsId({ title: item.title || "", url: item.url || "", source: "", published_at: "" }),
               }));
               newsItems = [...newsItems, ...mapped];
               apiQuotaTracker.logCall("newsapi", true);
