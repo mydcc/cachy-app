@@ -1544,6 +1544,31 @@ singleton window stacking/persistence manager.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass fifty: `services/logger.ts`, 631 → 626.** The client-side
+centralized logger (distinct from `lib/server/logger.ts`, typed back in
+pass 15).
+
+- `data?: any` on `log()`/`warn()`/`debug()` and `error?: any` on
+  `error()` → `unknown`, matching the server-side logger's precedent:
+  these are opaque debug payloads handed straight to `console.*`, never
+  inspected by this file.
+- `(settings.logSettings as any)[category]` → `(settings.logSettings as
+  Partial<Record<LogCategory, boolean>>)[category]`. Not just a
+  mechanical swap: `logSettings`'s declared type only has 6 of
+  `LogCategory`'s 10 members (`journal`, `data`, `ui`, `api` aren't
+  fields on it) — `Partial<Record<LogCategory, boolean>>` is what
+  actually matches the runtime behavior of indexing a plain object with a
+  key it may not declare (`undefined`, then `!!undefined` → `false`),
+  which is exactly what the `any` cast was silently doing. No settings UI
+  component references `logSettings` at all currently, so those four
+  categories are only ever enabled via `force` or `debugMode` rather than
+  a per-category toggle — a completeness gap in an internal debug
+  feature, not a correctness bug, so noted here rather than in
+  `docs/TODO.md`.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1551,7 +1576,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 631 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 626 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
