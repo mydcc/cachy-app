@@ -24,7 +24,7 @@ export interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 class ServerLogger extends EventEmitter {
@@ -86,7 +86,7 @@ class ServerLogger extends EventEmitter {
   /**
    * Maskiert sensible Daten in Objekten oder Strings
    */
-  private sanitize(data: any): any {
+  private sanitize(data: unknown): unknown {
     if (!data) return data;
 
     if (typeof data === "string") {
@@ -108,13 +108,14 @@ class ServerLogger extends EventEmitter {
     }
 
     if (typeof data === "object") {
-      const sanitized: any = {};
-      for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const source = data as Record<string, unknown>;
+      const sanitized: Record<string, unknown> = {};
+      for (const key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
           if (this.isSensitiveKey(key)) {
             sanitized[key] = "***REDACTED***";
           } else {
-            sanitized[key] = this.sanitize(data[key]);
+            sanitized[key] = this.sanitize(source[key]);
           }
         }
       }
@@ -147,7 +148,7 @@ class ServerLogger extends EventEmitter {
     );
 
     // 4. Redact Query Parameters in URLs (e.g. ?apiKey=..., &token=...)
-    s = s.replace(/([?&])([\w-]+)=([^&\s]+)/g, (match, prefix, key, val) => {
+    s = s.replace(/([?&])([\w-]+)=([^&\s]+)/g, (match, prefix, key) => {
         if (this.isSensitiveKey(key)) {
             return `${prefix}${key}=***REDACTED***`;
         }
@@ -189,7 +190,7 @@ class ServerLogger extends EventEmitter {
     return s;
   }
 
-  private emitLog(level: LogLevel, message: string, data?: any) {
+  private emitLog(level: LogLevel, message: string, data?: unknown) {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -201,19 +202,19 @@ class ServerLogger extends EventEmitter {
     this.emit("log", entry);
   }
 
-  public info(message: string, data?: any) {
+  public info(message: string, data?: unknown) {
     this.emitLog("info", message, data);
   }
 
-  public warn(message: string, data?: any) {
+  public warn(message: string, data?: unknown) {
     this.emitLog("warn", message, data);
   }
 
-  public error(message: string, data?: any) {
+  public error(message: string, data?: unknown) {
     this.emitLog("error", message, data);
   }
 
-  public debug(message: string, data?: any) {
+  public debug(message: string, data?: unknown) {
     this.emitLog("debug", message, data);
   }
 }

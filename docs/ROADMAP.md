@@ -603,6 +603,27 @@ return type.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass fifteen: `src/lib/server/logger.ts`, 897 → 887.** The repeated cast
+was arbitrary log payload data — `sanitize()`, `emitLog()`, and all four
+public log methods (`info`/`warn`/`error`/`debug`) took `data?: any` and
+`sanitize` also returned `any`, even though the function's whole job is to
+recursively walk a value of genuinely unknown shape and redact sensitive
+keys — the textbook case for `unknown`, not `any`.
+
+- 9 `any` sites became `unknown`, including `LogEntry.data`. One spot
+  needed an explicit narrowing cast: inside the `typeof data === "object"`
+  branch, `unknown` doesn't support `for...in` plus indexed access the way
+  `any` silently did, so `data as Record<string, unknown>` names what the
+  branch already assumed.
+- Dropped an unused trailing `val` parameter from one regex `.replace()`
+  callback (the other, five lines down, already destructures the value it
+  needs under a different name — this one just never used it).
+
+No behavior change: every call site already passed concrete values, never
+relied on `any`'s implicit coercion.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -610,7 +631,7 @@ return type.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 897 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 887 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
