@@ -1520,6 +1520,30 @@ authenticated only.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped.
 
+**Pass forty-nine: `lib/windows/WindowManager.svelte.ts`, 636 → 631.** The
+singleton window stacking/persistence manager.
+
+- `rehydrate()`'s `let data: any[]` → `unknown[]`, and
+  `createFromData(data: any)` → `data: unknown`, narrowed via a new
+  `SerializedWindowData` interface (deliberately wider than the existing
+  `WindowSerializedState` from `WindowBase.svelte.ts`, since each window
+  type's own `serialize()` adds its own extra fields — `symbol`,
+  `timeframe`, `url` — that this factory reads back out). Two of the
+  three `new XWindow(...)` calls needed `as string` casts on `d.url`/
+  `d.title` to preserve the prior unchecked behavior against
+  `ChannelWindow`/`IframeWindow`'s required-string constructor
+  parameters, rather than adding new fallback defaults that would change
+  what a corrupt or partial session entry produces.
+- `openModal()`'s `component`/`options` and `openIframe()`'s `options`
+  stayed `any`, documented with `eslint-disable-next-line` — both forward
+  verbatim into `ModalWindow`/`IframeWindow`'s own `any`-typed
+  constructors (a separate file, out of this pass's scope), for the same
+  "heterogeneous Svelte component" reasoning pass 25 already documented
+  on `WindowBase`'s abstract `component` getter.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1527,7 +1551,7 @@ skipped.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 636 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 631 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
