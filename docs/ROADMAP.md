@@ -1354,6 +1354,32 @@ non-Svelte-context callers.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass forty-three: `utils/technicalsCalculator.ts`, 670 → 664.** The shared
+indicator-calculation core run from both the main thread and the
+technicals worker.
+
+- `advancedInfo: any` → `NonNullable<TechnicalsData["advanced"]>` — the
+  exact type already existed (`vwap`, `mfi`, `stochRsi`, `williamsR`,
+  `choppiness`, `ichimoku`, `parabolicSar`, `superTrend`,
+  `atrTrailingStop`, `obv`, `volumeProfile`, `volumeMa`, `adx`,
+  `marketStructure`), it just wasn't applied at the one place that builds
+  every field on it.
+- `let volatility: any` → `TechnicalsData["volatility"]`, same reasoning.
+- `let pivotData: any` → `{ pivots: TechnicalsData["pivots"]; basis:
+  TechnicalsData["pivotBasis"] }`, covering both the calculated branch and
+  the `{ pivots: undefined, basis: undefined }` disabled-pivots branch.
+- `shouldCalculate()`'s `(config as any).enabled` needed no cast at all —
+  the existing `'enabled' in config` guard already narrows the
+  `keyof IndicatorSettings` union correctly; the cast was redundant.
+- Removed an unused type import, `DivergenceResult` (the array literal it
+  typed is pushed straight into a `DivergenceItem[]`, and nothing else in
+  the file names the type), and an unused local, `stochD` — read from
+  settings, then never used, per the adjacent comment ("D-Line is
+  optional... usually standard Stoch has K and D") the D line was never
+  actually implemented here, only K.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1361,7 +1387,7 @@ non-Svelte-context callers.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 670 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 664 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
