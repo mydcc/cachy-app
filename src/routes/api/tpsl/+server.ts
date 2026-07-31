@@ -107,9 +107,9 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(result);
-  } catch (e: any) {
+  } catch (e) {
         let rawMsg = e instanceof Error ? e.message : String(e);
-    if (typeof e === "object" && e !== null && !e.message) {
+    if (typeof e === "object" && e !== null && !("message" in e)) {
       try {
         rawMsg = JSON.stringify(e);
       } catch {
@@ -120,7 +120,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Determine appropriate status code
     let status = 500;
-    let message = e.message || "Internal Server Error";
+    let message = e instanceof Error ? e.message : "Internal Server Error";
 
     if (message.includes("Bitunix API error")) {
       status = 502; // Bad Gateway (upstream error)
@@ -136,7 +136,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return json(
       {
         error: message,
-        stack: process.env.NODE_ENV === "development" ? e.stack : undefined,
+        stack: process.env.NODE_ENV === "development" && e instanceof Error ? e.stack : undefined,
       },
       { status },
     );
@@ -148,7 +148,7 @@ async function fetchBitunixTpSl(
   apiKey: string,
   apiSecret: string,
   path: string,
-  params: any = {},
+  params: Record<string, unknown> = {},
 ) {
   // Sort params for signature
   // Remove undefined/null/empty strings
@@ -203,10 +203,10 @@ async function executeBitunixAction(
   apiKey: string,
   apiSecret: string,
   path: string,
-  payload: any,
+  payload: Record<string, unknown>,
 ) {
   // Clean payload
-  const cleanPayload: any = {};
+  const cleanPayload: Record<string, unknown> = {};
   Object.keys(payload).forEach((k) => {
     if (payload[k] !== undefined && payload[k] !== null) {
       // Ensure we don't accidentally send empty strings if they should be filtered,

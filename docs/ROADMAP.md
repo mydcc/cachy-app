@@ -1852,6 +1852,30 @@ filters).
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass sixty-four: `routes/api/tpsl/+server.ts`, 569 → 565.** The
+Bitunix TP/SL order proxy (pending/history/cancel/modify).
+
+- `fetchBitunixTpSl()`'s `params: any` and `executeBitunixAction()`'s
+  `payload`/`cleanPayload: any` → `Record<string, unknown>`. Checked
+  every branch of `TpSlRequestSchema`'s discriminated union
+  (`BaseTpSlParams`, `CancelTpSlParams`, `ModifyTpSlParams`) — all fields
+  across all four actions are primitives, and both helpers only ever do
+  generic `Object.keys(...).forEach` key/value iteration, never a named
+  field read, so the honest generic bag type fit without narrowing
+  further.
+- `catch (e: any)` → `catch (e)`, with the two direct `e.message`/
+  `e.stack` reads that survived past the block's own existing
+  `e instanceof Error ? e.message : String(e)` line now going through
+  the same guard. One non-obvious spot: the object-vs-Error check used
+  to test `!e.message` (property presence); rewritten as `!("message" in
+  e)` rather than `!(e instanceof Error)`, since those aren't
+  equivalent — a plain object literal can have a `.message` field
+  without being `instanceof Error`, and the `in` form preserves exactly
+  what the original check tested.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1859,7 +1883,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 569 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 565 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
