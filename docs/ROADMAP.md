@@ -1168,6 +1168,34 @@ orders.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass thirty-five: `ScatterChart.svelte`, 719 → 712.** The MFE-vs-MAE
+efficiency chart — last production UI component before this item moves
+into test files.
+
+- `ScatterPoint` (the exact shape `getExecutionEfficiencyData` in
+  `lib/calculators/charts.ts` returns) replaces the `data: any` prop and
+  the two Chart.js scriptable-color-callback contexts
+  (`backgroundColor`/`borderColor`), which read `ctx.raw?.rawPnl`.
+- The tooltip `label` callback's `context: any` became Chart.js's own
+  `TooltipItem<"scatter">` type, imported from `chart.js` — the correct
+  fix, not a workaround, since the library already exports the type this
+  callback is actually invoked with.
+- **Left `any` deliberately, with an eslint-disable and a comment:** the
+  `datasets` array mixes a scatter dataset with line-type efficiency
+  overlays pushed in afterward, and Chart.js's dataset types are generic
+  per chart type — typing a genuinely heterogeneous array against that
+  would need real union/type-guard machinery, disproportionate to a lint
+  pass. Confirmed by trying the honest type first: `unknown[]` produced
+  four cascading errors at the `new Chart(...)` call and the
+  `chart.data =`/`chart.options =` update sites, all rooted in the same
+  mixed-dataset shape. Same treatment as `WindowBase.component` from an
+  earlier pass — still drops out of the warning count via the disable
+  comment.
+- Verified with `npm run build` in addition to check/eslint/test, given
+  the Chart.js integration.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -1175,7 +1203,7 @@ orders.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 719 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 712 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
