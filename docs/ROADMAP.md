@@ -883,6 +883,37 @@ class for all ~15 window implementations (charts, journal, chat, settings,
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass twenty-six: `routes/api/orders/+server.ts`, 801 → 793.** A second
+pass over this order-placement route (the first, in an earlier session,
+removed 6 `any` casts); this one cleared the 8 left behind.
+
+- `BitgetRawOrder` (one interface covering both the "current" and
+  "history" endpoints, which use different field names for fill price and
+  status — `priceAvg`/`state` vs. nothing/`status` — documented as such
+  rather than split into two near-identical types) replaces 2 `any`
+  parameters; `placeBitgetOrder`'s `Promise<any>` becomes `Promise<unknown>`,
+  matching how its result is only ever forwarded, never destructured.
+- Removed a duplicated undefined-stripping loop: `placeBitgetOrder` had its
+  own inline `Object.keys(bitgetBody).forEach(k => (bitgetBody as any)[k]
+  === undefined && delete ...)`, byte-for-byte the same logic as the
+  `cleanPayload<T>()` helper already defined in this file and already
+  called at two other sites — now a third call site instead of a third
+  copy.
+- Removed two genuinely unused symbols: `OrderRequestPayload` (only the
+  runtime validator `OrderRequestSchema` is used) and `safeDecimal`, a
+  never-called defensive helper. Checked before removing `safeDecimal`
+  specifically because this is an order-placement route handling real
+  money: every other `new Decimal(...)` call site in the file is already
+  guarded by its own truthiness check, so the helper wasn't covering a gap
+  — it was written and never wired up.
+- Typing `body: unknown` at one log call and `o.cTime` (used with
+  `parseInt`, which requires a `string`) surfaced two more places where
+  `any` had silently let a wider type through than the code actually
+  needed; both fixed with an explicit narrow/`String()` rather than
+  reintroducing `any`.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -890,7 +921,7 @@ class for all ~15 window implementations (charts, journal, chat, settings,
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 801 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 793 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

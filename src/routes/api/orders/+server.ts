@@ -29,11 +29,32 @@ import type {
   BitgetOrderPayload
 } from "../../../types/bitget";
 import { formatApiNum } from "../../../utils/utils";
-import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
+import { OrderRequestSchema } from "../../../types/orderSchemas";
 import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkAppAuth } from "../../../lib/server/auth";
 import { logger } from "$lib/server/logger";
+
+// Raw fields read off Bitget's current/history order list responses. The
+// two endpoints use different field names for fill price and status
+// (priceAvg/state on history, unset on current) — both live here since
+// this is "whatever field either endpoint's raw order carries," not a
+// single canonical shape.
+interface BitgetRawOrder {
+  orderId?: string;
+  symbol?: string;
+  orderType?: string;
+  side?: string;
+  price?: string | number;
+  priceAvg?: string | number;
+  size?: string | number;
+  filledQty?: string | number;
+  status?: string;
+  state?: string;
+  cTime?: string | number;
+  fee?: string | number;
+  totalProfits?: string | number;
+}
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
@@ -206,7 +227,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const details = (e as ExchangeError).details;
 
     // Enhanced Logging (automatically redacted by logger)
-    logger.error(`[API] Order failed: ${(body as any)?.type}`, {
+    logger.error(`[API] Order failed: ${(body as { type?: unknown } | undefined)?.type}`, {
       error: errorMsg,
       code: errorCode,
       body,
@@ -421,16 +442,6 @@ function cleanPayload<T extends object>(payload: T): T {
   return cleaned as T;
 }
 
-// Decimal.Value is string | number | Decimal — exactly what reaches here.
-function safeDecimal(value: Decimal.Value | null | undefined): Decimal {
-  try {
-    if (value === null || value === undefined) return new Decimal(0);
-    return new Decimal(value);
-  } catch {
-    return new Decimal(0);
-  }
-}
-
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
@@ -485,7 +496,7 @@ async function placeBitgetOrder(
     apiSecret: string,
     passphrase: string,
     payload: BitgetOrderPayload & { marginCoin?: string }
-): Promise<any> {
+): Promise<unknown> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/placeOrder";
 
@@ -515,10 +526,9 @@ async function placeBitgetOrder(
         timInForceValue: payload.force // normal, gtc, etc
     };
 
-    // Remove undefined
-    Object.keys(bitgetBody).forEach(k => (bitgetBody as any)[k] === undefined && delete (bitgetBody as any)[k]);
+    const cleanedBody = cleanPayload(bitgetBody);
 
-    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, bitgetBody);
+    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, cleanedBody);
 
     const response = await fetch(`${baseUrl}${path}`, {
         method: "POST",
@@ -581,7 +591,7 @@ async function fetchBitgetPendingOrders(
     if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
-    return orders.map((o: any) => ({
+    return orders.map((o: BitgetRawOrder) => ({
         id: o.orderId,
         orderId: o.orderId,
         symbol: o.symbol,
@@ -591,7 +601,7 @@ async function fetchBitgetPendingOrders(
         amount: formatApiNum(o.size) || "0",
         filled: formatApiNum(o.filledQty) || "0",
         status: o.status, // new, partial_fill
-        time: parseInt(o.cTime),
+        time: parseInt(String(o.cTime)),
         fee: formatApiNum(o.fee) || "0",
         realizedPNL: formatApiNum(o.totalProfits) || "0",
     }));
@@ -630,7 +640,7 @@ async function fetchBitgetHistoryOrders(
     if (res.code !== "00000") return [];
 
     const orders = res.data || [];
-    return orders.map((o: any) => ({
+    return orders.map((o: BitgetRawOrder) => ({
         id: o.orderId,
         orderId: o.orderId,
         symbol: o.symbol,
@@ -641,7 +651,7 @@ async function fetchBitgetHistoryOrders(
         filled: formatApiNum(o.filledQty) || "0",
         avgPrice: formatApiNum(o.priceAvg) || "0",
         status: o.state, // filled, canceled
-        time: parseInt(o.cTime),
+        time: parseInt(String(o.cTime)),
         fee: formatApiNum(o.fee) || "0",
         realizedPNL: formatApiNum(o.totalProfits) || "0",
     }));
