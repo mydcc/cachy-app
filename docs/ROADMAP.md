@@ -2426,6 +2426,32 @@ Exercises the TS/WASM/GPU engine-selection switch in
 passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
 stays at 0 errors.
 
+**Pass eighty-nine: `src/tests/security/storage_hardening.test.ts`,
+442 → 433.** Covers `SettingsManager`'s secret-encryption path
+(device-key and master-password modes) against a mocked
+`cryptoService`.
+
+- Mock `decrypt(blob: any, pwd?: string)` → `decrypt(blob:
+  EncryptedBlob)` (the real, exported type from `cryptoService.ts`) —
+  `pwd` was read nowhere in the mock body, so it came out with the
+  `any`, matching this item's established "drop unused mock params
+  outright, extra call-site args are ignored" rule (JS tolerates the
+  real code still passing a second argument at the call site).
+  `unlockSession(pwd: string)`'s equally-unused `pwd` dropped the same
+  way.
+- Four `(settings as any).effectActive`/`.save()` sites, reaching into
+  `SettingsManager`'s private `$effect`-guard flag and debounced save
+  method to force a synchronous persist in tests → one shared
+  `SettingsManagerInternals` type plus an `asInternals(settings)` helper
+  (`s as unknown as SettingsManagerInternals`), reused at all four call
+  sites instead of re-casting each one inline.
+- Verified under the same scratch-`tsconfig` technique as the last five
+  passes — 0 errors.
+
+`npx vitest run src/tests/security/storage_hardening.test.ts` stays at 4
+passing; `npm test` stays at 850 passing, 6 skipped; `npm run check`
+stays at 0 errors.
+
 ### Code health
 
 | # | Item | Status |
@@ -2433,7 +2459,7 @@ stays at 0 errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 442 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 433 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
