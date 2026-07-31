@@ -1719,6 +1719,29 @@ engines extend.
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped; `npm run build` succeeds.
 
+**Pass fifty-seven: `lib/windows/implementations/ContentWindow.svelte.ts`,
+597 → 593.** A generic "wrap any Svelte component" window implementation.
+
+- `_component`/the constructor's `component` param stayed `any`,
+  documented — same reasoning `WindowBase.svelte.ts`'s abstract
+  `component` getter already gives (a generic Svelte component reference
+  with no shared prop shape).
+- `_componentProps: any` → `Record<string, unknown>`, matching
+  `WindowBase`'s own `componentProps` getter, which this class overrides
+  — an honest type was already sitting one file away.
+- `options: any` in the constructor stayed `any`, consistent with every
+  sibling window implementation's constructor (`ModalWindow`,
+  `IframeWindow`, `ChannelWindow`) — same family-wide convention.
+- Grepping for callers turned up none: `ContentWindow` isn't imported or
+  instantiated anywhere in `src/`, unlike `ModalWindow`/`IframeWindow`
+  which both have real `windowManager` entry points. Documented as
+  `docs/TODO.md` item 8 rather than deleted, per this repo's
+  defensive-deletion rule — same shape of finding as item 5
+  (`WasmTechnicalsCalculator.ts`).
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1726,7 +1749,7 @@ skipped; `npm run build` succeeds.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 597 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 593 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

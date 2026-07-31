@@ -262,6 +262,27 @@ lint-pass finding rather than fixed inline because it adds a new rejection
 branch to a live external-AI call path, which needs its own test rather
 than a drive-by change.
 
+## 8. `src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable
+
+**Roadmap item 21.** Found while typing this file's `any` casts during a
+lint pass — the same shape of finding as item 5
+(`WasmTechnicalsCalculator.ts`).
+
+Nothing in `src/` imports or instantiates `ContentWindow` — a `grep -rl
+"ContentWindow" src` turns up only its own file. It's a small, generic
+"wrap any Svelte component in a window" class (`component`, `title`,
+`options.props`), structurally similar to `ModalWindow` and `IframeWindow`,
+both of which *do* have real callers via `windowManager.openModal()` /
+`.openIframe()`. `ContentWindow` has no equivalent `windowManager` method
+and no direct construction site anywhere.
+
+**The decision:** either wire it up (a `windowManager.openContent()` or
+similar, if the generic-component-window capability is still wanted), or
+delete it if `ModalWindow`/`IframeWindow` already cover every case it was
+meant for. Left in place and merely typed here per this repo's
+defensive-deletion rule: code whose purpose isn't fully clear doesn't get
+deleted without a person confirming it's safe to.
+
 ## Add new items below
 
 <!--

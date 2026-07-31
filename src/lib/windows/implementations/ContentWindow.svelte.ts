@@ -23,9 +23,14 @@
 import { WindowBase } from "../WindowBase.svelte";
 
 export class ContentWindow extends WindowBase {
+    // `any`: matches WindowBase's own abstract `component` getter (see that
+    // file's comment) — a generic Svelte component reference with no shared
+    // prop shape across window implementations.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private _component: any;
-    private _componentProps: any;
+    private _componentProps: Record<string, unknown>;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(component: any, title: string, options: any = {}) {
         super({ title, windowType: 'window', ...options });
         this._component = component;
