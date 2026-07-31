@@ -686,6 +686,33 @@ cleared the 10 warnings that pass left behind.
 
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
 
+**Pass eighteen: `tradeService.ts`, 867 → 858.** The repeated cast was the
+raw HTTP response body — `signedRequest<T>()` parsed it into `data: any`
+and returned it as `T` unchecked, and two TP/SL fetch call sites used
+`signedRequest<any>` to match.
+
+- `data: Record<string, unknown>` in `signedRequest`, with an explicit
+  `return data as T` at the one point it actually becomes the generic
+  return type (previously implicit through `any`). `TradeError.details`
+  and `serializePayload`'s return type became `unknown`; one internal
+  `newObj: any` became `Record<string, unknown>`. The two TP/SL call sites
+  now request `signedRequest<Record<string, unknown>>` instead of `<any>`.
+- Typing `data` surfaced three real, narrow gaps `any` had been papering
+  over: `data.code || response.status || -1` passed to
+  `BitunixApiError`'s `code: number | string` parameter (`data.code` is
+  `unknown`, needs a cast); `data.msg || data.error` built a log/error
+  message from two `unknown` fields (wrapped in `String(...)`, which was
+  already implicitly happening via template-literal coercion); and the
+  `.catch()` fallback on one TP/SL fetch returned a differently-shaped
+  object (`{ error: string }`) than the success path, which only type-checked
+  before because both sides were `any`. Gave the catch callback an explicit
+  `Record<string, unknown>` return type so both branches agree.
+- Removed the unused `PositionRaw` type import (only `PositionRawSchema`,
+  the runtime validator, is used) and `validCount`, a counter incremented
+  once and never read.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6 skipped.
+
 ### Code health
 
 | # | Item | Status |
@@ -693,7 +720,7 @@ cleared the 10 warnings that pass left behind.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 867 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 858 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |
