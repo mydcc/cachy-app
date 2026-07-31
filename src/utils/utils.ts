@@ -18,7 +18,14 @@
 import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../stores/types";
 
-export function debounce<T extends (...args: unknown[]) => void>(
+/**
+ * `never[]` rather than `unknown[]` in the constraint: parameters are
+ * contravariant, so `unknown[]` rejects any callback with concrete parameter
+ * types — it forced callers to type their debounced function as taking
+ * `unknown` (or `any`) and cast inside. `never[]` accepts every parameter list
+ * while `Parameters<T>` still resolves to the real one.
+ */
+export function debounce<T extends (...args: never[]) => void>(
   func: T,
   delay: number,
 ) {

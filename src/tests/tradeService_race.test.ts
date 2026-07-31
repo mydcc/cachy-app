@@ -86,10 +86,10 @@ describe('TradeService Race Conditions', () => {
             // optimistic order under test was never created.
             lastUpdated: Date.now(),
         };
-        (omsService.getPositions as any).mockReturnValue([position]);
+        vi.mocked(omsService.getPositions).mockReturnValue([position]);
 
         // Mock Fetch Failure (Network Error)
-        (global.fetch as any).mockRejectedValue(new Error('Network Error'));
+        vi.mocked(global.fetch).mockRejectedValue(new Error('Network Error'));
 
         // Spy on optimistic add
         const addOptimisticSpy = vi.spyOn(omsService, 'addOptimisticOrder');
@@ -126,11 +126,11 @@ describe('TradeService Race Conditions', () => {
             // optimistic order under test was never created.
             lastUpdated: Date.now(),
         };
-        (omsService.getPositions as any).mockReturnValue([position]);
+        vi.mocked(omsService.getPositions).mockReturnValue([position]);
 
         // Mock Fetch Success but API Error Response (400)
         // Ensure text() is mocked as TradeService uses it
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: false,
             // A real Response always carries status, and the code classifies an
             // error as definitive (safe to remove the optimistic order) by
@@ -168,10 +168,10 @@ describe('TradeService Race Conditions', () => {
             // optimistic order under test was never created.
             lastUpdated: Date.now(),
         };
-        (omsService.getPositions as any).mockReturnValue([position]);
+        vi.mocked(omsService.getPositions).mockReturnValue([position]);
 
         // Mock Rate Limit
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: false,
             status: 429,
             text: async () => "Too Many Requests",

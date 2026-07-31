@@ -146,7 +146,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
   > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build.
   >
-  > Warnings are capped by a **ratchet**: CI runs `eslint . --max-warnings 1107`, the size of the pre-existing `no-explicit-any` / `no-unused-vars` backlog. That number may only ever be *lowered*, never raised, so the backlog can shrink but cannot grow. When you fix warnings, lower the ceiling in `.github/workflows/audit.yml` to match. See `docs/ROADMAP.md` item 21.
+  > Warnings are capped by a **ratchet**: CI runs `eslint . --max-warnings 606`, the size of the pre-existing `no-explicit-any` / `no-unused-vars` backlog. That number may only ever be *lowered*, never raised, so the backlog can shrink but cannot grow. When you fix warnings, lower the ceiling in `.github/workflows/audit.yml` to match. See `docs/ROADMAP.md` item 21.
   >
   > If a rule fires on something deliberate, do not silence it globally: add an inline `eslint-disable-next-line` with a `--` explanation, as done for the Svelte 5 dependency-registration reads in `tradeCalculator.svelte.ts`.
 
@@ -179,6 +179,7 @@ See `DEPLOYMENT.md` for detailed instructions.
 - **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/lib/assets/content/guide.en.md`.
 - **Technical Whitepaper:** `src/lib/assets/content/whitepaper.en.md` — architecture, the mathematical core, and the security model.
 - **Developer Guidelines:** `CLAUDE.md` for the non-negotiable coding rules (Svelte 5 Runes, `decimal.js`, theming), `AGENT.md` for the development process.
+- **Open decisions:** [`docs/TODO.md`](docs/TODO.md) — items waiting on a person rather than on a plan.
 - **Scripts:** [`scripts/README.md`](scripts/README.md) — what each of the ~20 scripts does, and which ones run automatically.
 - **Global Chat:** [`docs/GLOBAL-CHAT.md`](docs/GLOBAL-CHAT.md) — the only Class B feature: what is stored, how tokens are issued, the retention policy, and why nothing else breaks when the server is down.
 - **Brand & Design:** [`docs/BRAND.md`](docs/BRAND.md) — the colour palette, the theme system and the rule against hardcoded colours. Written from `src/themes.css`, which stays the source of truth.

@@ -197,19 +197,19 @@
           <div
             class="flex items-center gap-1"
             title="Market Data Available"
-            class:text-green-500={contextData?.cmc?.global ||
+            class:text-green-500={contextData?.marketIntelligence?.global ||
               contextData?.technicals}
           >
-            <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+            <span>{contextData?.marketIntelligence?.global ? "🟢" : "⚪"}</span> Market
           </div>
           <div
             class="flex items-center gap-1"
             title="News Data Available"
-            class:text-green-500={contextData?.news &&
-              contextData.news.length > 0}
+            class:text-green-500={contextData?.latestNews &&
+              contextData.latestNews.length > 0}
           >
             <span
-              >{contextData?.news && contextData.news.length > 0
+              >{contextData?.latestNews && contextData.latestNews.length > 0
                 ? "🟢"
                 : "⚪"}</span
             > News

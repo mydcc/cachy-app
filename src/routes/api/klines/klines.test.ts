@@ -46,7 +46,7 @@ describe('GET /api/klines', () => {
         }
       ]
     };
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
     });
@@ -76,7 +76,7 @@ describe('GET /api/klines', () => {
         }
       ]
     };
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
     });
@@ -104,7 +104,7 @@ describe('GET /api/klines', () => {
         }
       ]
     };
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
     });
@@ -120,7 +120,7 @@ describe('GET /api/klines', () => {
       ["1600000000000", "100.5", "101.0", "99.0", "100.0", "1000", "100000"],
       ["1600000060000", "100.0", "100.5", "99.5", "99.8", "500", "50000"]
     ];
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
     });

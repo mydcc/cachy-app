@@ -25,6 +25,47 @@ import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
+import type { NormalizedPosition } from "../../../types/bitunix";
+
+// Raw Bitunix position fields — names vary across API versions/endpoints,
+// hence the fallback chains at each read site below.
+interface BitunixRawPosition {
+  side?: string | number;
+  positionSide?: string;
+  symbol: string;
+  qty?: string | number;
+  positionAmount?: string | number;
+  holdVolume?: string | number;
+  avgOpenPrice?: string | number;
+  openAvgPrice?: string | number;
+  avgPrice?: string | number;
+  liquidationPrice?: string | number;
+  liqPrice?: string | number;
+  markPrice?: string | number;
+  mark_price?: string | number;
+  margin?: string | number;
+  positionMargin?: string | number;
+  maintMargin?: string | number;
+  unrealizedPNL?: string | number;
+  unrealizedPnL?: string | number;
+  openLoss?: string | number;
+  leverage?: string | number;
+  marginMode?: string | number;
+}
+
+// Raw Bitget position fields (/api/mix/v1/position/allPosition).
+interface BitgetRawPosition {
+  symbol: string;
+  holdSide?: string;
+  total?: string | number;
+  averageOpenPrice?: string | number;
+  markPrice?: string | number;
+  liquidationPrice?: string | number;
+  margin?: string | number;
+  unrealizedPL?: string | number;
+  leverage?: string | number;
+  marginMode?: string;
+}
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -68,7 +109,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return jsonSuccess({ positions });
-  } catch (e: any) {
+  } catch (e) {
     console.error(`Error fetching positions from ${exchange}:`, e);
     return handleApiError(e);
   }
@@ -77,7 +118,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixPositions(
   apiKey: string,
   apiSecret: string,
-): Promise<any[]> {
+): Promise<NormalizedPosition[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
 
@@ -140,7 +181,7 @@ async function fetchBitunixPositions(
   const rawPositions = Array.isArray(data.data) ? data.data : [];
 
   return rawPositions
-    .map((p: any) => {
+    .map((p: BitunixRawPosition) => {
       // Robust side detection
       let side = "SHORT";
       if (p.side) {
@@ -185,14 +226,14 @@ async function fetchBitunixPositions(
             : "isolated",
       };
     })
-    .filter((p: any) => parseFloat(p.size || "0") !== 0);
+    .filter((p: NormalizedPosition) => parseFloat(p.size || "0") !== 0);
 }
 
 async function fetchBitgetPositions(
   apiKey: string,
   apiSecret: string,
   passphrase: string
-): Promise<any[]> {
+): Promise<NormalizedPosition[]> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/position/allPosition";
     const params = { productType: "umcbl", marginCoin: "USDT" };
@@ -216,8 +257,8 @@ async function fetchBitgetPositions(
     const data = res.data || [];
 
     return data
-        .filter((p: any) => parseFloat(p.total || "0") !== 0) // Filter empty positions
-        .map((p: any) => {
+        .filter((p: BitgetRawPosition) => parseFloat(String(p.total || "0")) !== 0) // Filter empty positions
+        .map((p: BitgetRawPosition) => {
             return {
                 symbol: p.symbol,
                 side: (p.holdSide || "").toUpperCase(),
@@ -228,7 +269,7 @@ async function fetchBitgetPositions(
                 margin: formatApiNum(p.margin),
                 unrealizedPnL: formatApiNum(p.unrealizedPL),
                 leverage: formatApiNum(p.leverage),
-                marginMode: p.marginMode
+                marginMode: p.marginMode || ""
             };
         });
 }

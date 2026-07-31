@@ -96,7 +96,7 @@ describe('MarketWatcher Backfill Performance', () => {
         // Expect updateSymbolKlines to be called.
 
         expect(marketState.updateSymbolKlines).toHaveBeenCalled();
-        const calls = (marketState.updateSymbolKlines as any).mock.calls;
+        const calls = vi.mocked(marketState.updateSymbolKlines).mock.calls;
 
         // Calculate total items pushed
         let totalItems = 0;

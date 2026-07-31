@@ -88,6 +88,7 @@ export interface IndicatorResult {
   name: string;
   params?: string; // e.g. "14, 14"
   value: number;
+  price?: number; // Moving averages only (GPU calculator path); no known reader
   signal?: number; // For MACD signal line, etc.
   histogram?: number; // For MACD histogram
   action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";

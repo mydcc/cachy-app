@@ -24,11 +24,36 @@ import type { Kline } from "./indicators";
 import type { TechnicalsData } from "../services/technicalsTypes";
 import { getEmptyData } from "./technicalsCalculator";
 
-export class WasmTechnicalsCalculator {
-  private instance: any; // WASM struct instance
-  private wasm: any; // WASM module
+// The WASM glue module and calculator instance it exports — see the
+// equivalent (and actually used) types in services/wasmCalculator.ts.
+interface WasmTechnicalsInstance {
+  initialize(closes: Float64Array, highs: Float64Array, lows: Float64Array, volumes: Float64Array, times: Float64Array, settingsJson: string): void;
+  update(open: number, high: number, low: number, close: number, volume: number, time: number): string;
+  free?(): void;
+}
 
-  constructor(wasmModule: any) {
+interface WasmModule {
+  TechnicalsCalculator: new () => WasmTechnicalsInstance;
+}
+
+// Parsed (or pre-parsed) WASM update/initialize result — assigned straight
+// onto the matching TechnicalsData fields below, unlike the reshaping done
+// in services/wasmCalculator.ts's WasmRawResult.
+interface WasmParsedResult {
+  movingAverages?: TechnicalsData["movingAverages"];
+  oscillators?: TechnicalsData["oscillators"];
+  volatility?: TechnicalsData["volatility"];
+  summary?: TechnicalsData["summary"];
+  pivots?: TechnicalsData["pivots"];
+  pivotBasis?: TechnicalsData["pivotBasis"];
+  advanced?: TechnicalsData["advanced"];
+}
+
+export class WasmTechnicalsCalculator {
+  private instance: WasmTechnicalsInstance;
+  private wasm: WasmModule;
+
+  constructor(wasmModule: WasmModule) {
     this.wasm = wasmModule;
     // Instantiate Rust struct
     this.instance = new wasmModule.TechnicalsCalculator();
@@ -36,8 +61,7 @@ export class WasmTechnicalsCalculator {
 
   public initialize(
     history: Kline[],
-    settings: any,
-    enabledIndicators?: Partial<Record<string, boolean>>
+    settings: Record<string, unknown>
   ): TechnicalsData {
     // 1. Prepare data for WASM (Float64Array)
     const len = history.length;
@@ -88,7 +112,7 @@ export class WasmTechnicalsCalculator {
       return this.parseWasmResult(resultJson, getEmptyData());
   }
 
-  public shift(newCandle: Kline) {
+  public shift() {
       // WASM shift logic
   }
 
@@ -98,8 +122,8 @@ export class WasmTechnicalsCalculator {
       }
   }
 
-  private parseWasmResult(json: any, base: TechnicalsData): TechnicalsData {
-      let data: any;
+  private parseWasmResult(json: string | WasmParsedResult, base: TechnicalsData): TechnicalsData {
+      let data: WasmParsedResult;
       if (typeof json === 'string') {
           try {
             data = JSON.parse(json);

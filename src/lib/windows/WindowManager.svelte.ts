@@ -30,6 +30,19 @@ const BASE_Z_INDEX = 11000;
 const MAX_SAFE_Z_INDEX = 1000000;
 const SAVE_DEBOUNCE_MS = 500;
 
+// Shape of a window's serialized session-storage entry, as read back by
+// createFromData() below. Wider than WindowSerializedState since each
+// window type's own serialize() adds its own extra fields (symbol,
+// timeframe, url) that this factory needs to read back out.
+interface SerializedWindowData {
+    type?: string;
+    id?: string;
+    title?: string;
+    symbol?: string;
+    timeframe?: string;
+    url?: string;
+}
+
 /**
  * WindowManager is a singleton class that manages the lifecycle, stacking order,
  * and visibility of all windows in the application.
@@ -109,7 +122,7 @@ class WindowManager {
         try {
             const saved = sessionStorage.getItem('cachy_open_windows');
             if (saved) {
-                let data: any[];
+                let data: unknown[];
                 try {
                     data = JSON.parse(saved);
                 } catch (parseError) {
@@ -155,20 +168,22 @@ class WindowManager {
     /**
      * Factory method to create window instances from serialized data.
      */
-    private async createFromData(data: any): Promise<WindowBase | null> {
-        if (!data || !data.type) return null;
+    private async createFromData(data: unknown): Promise<WindowBase | null> {
+        if (!data || typeof data !== 'object') return null;
+        const d = data as SerializedWindowData;
+        if (!d.type) return null;
 
-        switch (data.type) {
+        switch (d.type) {
             case 'chart': {
                 const { ChartWindow } = await import("./implementations/ChartWindow.svelte");
-                return new ChartWindow(data.symbol || "BTCUSDT", { timeframe: data.timeframe });
+                return new ChartWindow(d.symbol || "BTCUSDT", { timeframe: d.timeframe });
             }
             case 'channel': {
                 const { ChannelWindow } = await import("./implementations/ChannelWindow.svelte");
-                return new ChannelWindow(data.url, data.title, data.id);
+                return new ChannelWindow(d.url as string, d.title, d.id);
             }
             case 'iframe':
-                return new IframeWindow(data.url, data.title);
+                return new IframeWindow(d.url as string, d.title as string);
             default:
                 return null;
         }
@@ -259,12 +274,25 @@ class WindowManager {
         return this._windows.some(w => w.id === id);
     }
 
-    /** Utility for quick modal creation. */
+    /**
+     * Utility for quick modal creation.
+     * `component`/`options` stay untyped here because they're forwarded
+     * verbatim into ModalWindow's own constructor, which is `any`-typed for
+     * the same reason WindowBase's abstract `component` getter is (see
+     * that getter's comment): the set of possible Svelte components a modal
+     * can host is heterogeneous enough that a proper union isn't worth it.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     openModal(component: any, title: string, options: any = {}) {
         this.open(new ModalWindow(component, title, options));
     }
 
-    /** Utility for external content integration. */
+    /**
+     * Utility for external content integration.
+     * `options` forwards verbatim into IframeWindow's own `any`-typed
+     * constructor options, same reasoning as openModal() above.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     openIframe(url: string, title: string, options: any = {}) {
         this.open(new IframeWindow(url, title, options));
     }

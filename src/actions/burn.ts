@@ -21,8 +21,18 @@ import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import type { Decimal } from "decimal.js";
 
 let idCounter = 0;
+
+// Geometry shape shared between the pushed-coordinates fast path and the
+// node.getBoundingClientRect() fallback (a DOMRect structurally satisfies this).
+interface Rect {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+}
 
 export interface BurnOptions {
     color?: string; // CSS variable or hex
@@ -63,7 +73,7 @@ export function resetBurnThemeCache() {
 
 class BurnColorResolver {
     private localLastSymbol = "";
-    private localLastPrice: any = null; // Decimal
+    private localLastPrice: Decimal | null = null;
     private localTrendColor = ""; // Persists until change
 
     resolve(inputColor?: string, localMode?: string, inputSymbol?: string): string {
@@ -148,7 +158,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     const colorResolver = new BurnColorResolver();
     let currentOptions = options;
     let id = currentOptions?.id || `burn-${idCounter++}`;
-    let lastRect: any = null;
+    let lastRect: Rect | null = null;
 
     // Set data attribute for debugging/styling
     node.setAttribute("data-burn-id", id);
@@ -174,7 +184,7 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
             }
 
             // 1. Geometry resolution: Use Push (options) or Pull (getBoundingClientRect)
-            let rect: any;
+            let rect: Rect;
             const isPushActive = currentOptions.width !== undefined && currentOptions.height !== undefined;
 
             if (isPushActive) {
@@ -228,8 +238,8 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                     height: Math.round(rect.height),
                     intensity: intensity,
                     color: finalColor,
-                    layer: currentLayer as any,
-                    mode: (explicitMode || currentMode) as any
+                    layer: currentLayer,
+                    mode: explicitMode || currentMode
                 });
 
                 lastRect = rect;

@@ -25,6 +25,7 @@
     LineElement,
     LinearScale,
     ScatterController,
+    type TooltipItem,
   } from "chart.js";
   import annotationPlugin from "chartjs-plugin-annotation";
   import Tooltip from "../Tooltip.svelte";
@@ -40,8 +41,18 @@
     annotationPlugin,
   );
 
+  // From getExecutionEfficiencyData (lib/calculators/charts.ts).
+  interface ScatterPoint {
+    x: number;
+    y: number;
+    r: number;
+    pnl: number;
+    l: string;
+    rawPnl: number;
+  }
+
   interface Props {
-    data: any; // { scatterPoints: Array, efficiencyLines?: boolean }
+    data: { scatterPoints?: ScatterPoint[] } | undefined;
     title?: string;
     xLabel?: string;
     yLabel?: string;
@@ -69,11 +80,11 @@
     const scatterDataset = {
       label: "Trades",
       data: points, // {x, y, r, pnl, l}
-      backgroundColor: (ctx: any) => {
+      backgroundColor: (ctx: { raw?: ScatterPoint }) => {
         const val = ctx.raw?.rawPnl ?? 0;
         return val >= 0 ? "rgba(34, 197, 94, 0.6)" : "rgba(239, 68, 68, 0.6)"; // Green / Red
       },
-      borderColor: (ctx: any) => {
+      borderColor: (ctx: { raw?: ScatterPoint }) => {
         const val = ctx.raw?.rawPnl ?? 0;
         return val >= 0 ? "rgba(34, 197, 94, 1)" : "rgba(239, 68, 68, 1)";
       },
@@ -81,6 +92,12 @@
       type: "scatter",
     };
 
+    // Mixes a scatter dataset with line-type efficiency overlays below;
+    // Chart.js's per-type dataset generics don't accommodate a
+    // heterogeneous array like this without a disproportionate amount of
+    // union/type-guard machinery for a lint pass. Left any, same treatment
+    // as WindowBase.component in an earlier pass.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const datasets: any[] = [scatterDataset];
 
     return {
@@ -102,8 +119,8 @@
       },
       tooltip: {
         callbacks: {
-          label: function (context: any) {
-            return context.raw.l || "";
+          label: function (context: TooltipItem<"scatter">) {
+            return (context.raw as ScatterPoint | undefined)?.l || "";
           },
         },
       },
@@ -168,13 +185,15 @@
   let finalChartData = $derived.by(() => {
     const d = chartData;
     if (showEfficiencyLines) {
+      // datasets[0] is always the scatter dataset constructed above.
+      const scatterDataset = d.datasets[0] as { data: ScatterPoint[] };
       // Find max extent to draw lines
       const maxX = Math.max(
-        ...(d.datasets[0].data.map((p: any) => p.x) || [0]),
+        ...(scatterDataset.data.map((p) => p.x) || [0]),
         1,
       );
       const maxY = Math.max(
-        ...(d.datasets[0].data.map((p: any) => p.y) || [0]),
+        ...(scatterDataset.data.map((p) => p.y) || [0]),
         1,
       );
       const limit = Math.max(maxX, maxY) * 1.1;

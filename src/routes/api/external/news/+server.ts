@@ -16,7 +16,7 @@ import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 
 // In-Memory Cache for News Proxy
 interface CachedResponse {
-  data: any;
+  data: unknown;
   timestamp: number;
 }
 
@@ -31,11 +31,11 @@ export const _rateLimits = new Map<string, RateLimitInfo>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 10;
 
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<unknown>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
 const MAX_CACHE_SIZE = 50;
 
-function setCache(key: string, data: any) {
+function setCache(key: string, data: unknown) {
   if (_newsCache.has(key)) {
     _newsCache.delete(key);
   } else if (_newsCache.size >= MAX_CACHE_SIZE) {
@@ -85,7 +85,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     if (_rateLimits.size > 1000) {
       // Evict expired entries
       const expiredKeys = Array.from(_rateLimits.entries())
-        .filter(([_, info]) => nowLimit > info.resetTime)
+        .filter(([, info]) => nowLimit > info.resetTime)
         .map(([k]) => k);
       expiredKeys.forEach(k => _rateLimits.delete(k));
 
@@ -165,8 +165,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             }
             const errorText = await response.text();
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
-          } catch (e: any) {
-            let msg = e.message || String(e);
+          } catch (e) {
+            let msg = e instanceof Error ? e.message : String(e);
             if (apiKey && apiKey.length > 4) {
               msg = msg.split(apiKey).join("***");
             }
@@ -218,7 +218,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       pendingRequests.delete(cacheKey);
     }
 
-  } catch (err: any) {
+  } catch (err) {
     let errorMsg = err instanceof Error ? err.message : String(err);
     if (apiKey && apiKey.length > 4) {
       errorMsg = errorMsg.split(apiKey).join("***");
@@ -229,7 +229,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     // Safe logging: Don't log full URL if it has keys
     console.error(`[NewsProxy] Error processing request for ${request.url}:`, errorMsg);
 
-    if (err.cause) console.error("[NewsProxy] Cause:", err.cause);
+    if (err instanceof Error && err.cause) console.error("[NewsProxy] Cause:", err.cause);
 
     if (isQuotaError) {
       const staleCache = _newsCache.get(cacheKey);

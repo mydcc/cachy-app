@@ -16,7 +16,7 @@ import { resultsState } from "../stores/results.svelte";
 import { presetState } from "../stores/preset.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
-import { settingsState } from "../stores/settings.svelte";
+import { settingsState, type Settings } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
 import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs";
@@ -32,12 +32,7 @@ import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
 import { normalizeJournalEntry, parseDecimal } from "../utils/utils";
 import { safeJsonParse } from "../utils/safeJson";
-import type {
-  JournalEntry,
-  TradeValues,
-  IndividualTpResult,
-  BaseMetrics,
-} from "../stores/types";
+import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { addContextProvider } from "./trackingService";
@@ -156,7 +151,7 @@ export const app = {
     let lastKeys = "";
     let lastProvider = settingsState.apiProvider || "";
 
-    settingsState.subscribe((s: any) => {
+    settingsState.subscribe((s: Settings) => {
       untrack(() => {
         if (!s || !s.apiKeys) return;
 
@@ -176,7 +171,7 @@ export const app = {
             lastProvider = s.apiProvider;
             if (browser) {
               // Ensure we start fresh
-              (bitgetWs as any).isDestroyed = false;
+              (bitgetWs as unknown as { isDestroyed: boolean }).isDestroyed = false;
               bitgetWs.connect(true);
             }
           }
@@ -188,7 +183,7 @@ export const app = {
             lastKeys = currentKeys;
             lastProvider = s.apiProvider;
             if (browser) {
-              (bitunixWs as any).isDestroyed = false;
+              (bitunixWs as unknown as { isDestroyed: boolean }).isDestroyed = false;
               bitunixWs.connect();
             }
           }
@@ -202,7 +197,7 @@ export const app = {
     }
 
     let currentWatchedSymbol: string | null = null;
-    let symbolDebounceTimer: any = null;
+    let symbolDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     tradeStoreUnsubscribe = tradeState.subscribe((state) => {
       const provider = settingsState.apiProvider;
@@ -304,7 +299,7 @@ export const app = {
     if (saveJournalTask) return saveJournalTask;
 
     saveJournalTask = new Promise<void>((resolve) => {
-      const schedule = (window.requestIdleCallback) || ((cb: any) => setTimeout(cb, 1000));
+      const schedule = (window.requestIdleCallback) || ((cb: () => void) => setTimeout(cb, 1000));
 
       schedule(async () => {
         while (pendingJournalData) {

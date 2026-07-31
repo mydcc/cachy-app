@@ -65,10 +65,10 @@ class LoggerService {
 
         if (!settings.logSettings) return category === "general";
 
-        return !!(settings.logSettings as any)[category];
+        return !!(settings.logSettings as Partial<Record<LogCategory, boolean>>)[category];
     }
 
-    log(category: LogCategory, message: string, data?: any, force = false) {
+    log(category: LogCategory, message: string, data?: unknown, force = false) {
         if (!this.isEnabled(category, force)) return;
 
         const prefix = `[${category.toUpperCase()}]`;
@@ -81,13 +81,13 @@ class LoggerService {
         }
     }
 
-    warn(category: LogCategory, message: string, data?: any, force = false) {
+    warn(category: LogCategory, message: string, data?: unknown, force = false) {
         if (!this.isEnabled(category, force)) return;
         const prefix = `[${category.toUpperCase()}]`;
         console.warn(`${prefix} ${message}`, data || "");
     }
 
-    error(category: LogCategory, message: string, error?: any, options: LogOptions | boolean = true) {
+    error(category: LogCategory, message: string, error?: unknown, options: LogOptions | boolean = true) {
         // Normalize options
         const opts: LogOptions = typeof options === 'boolean'
             ? { force: options }
@@ -111,7 +111,7 @@ class LoggerService {
         }
     }
 
-    debug(category: LogCategory, message: string, data?: any) {
+    debug(category: LogCategory, message: string, data?: unknown) {
         if (import.meta.env.DEV) {
             this.log(category, `DEBUG: ${message}`, data);
         }

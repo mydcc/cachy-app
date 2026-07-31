@@ -82,7 +82,7 @@ describe('TradeService Flash Close Vulnerability', () => {
             amount: new Decimal(1.5),
             lastUpdated: Date.now()
         };
-        (omsService.getPositions as any).mockReturnValue([mockPosition]);
+        vi.mocked(omsService.getPositions).mockReturnValue([mockPosition]);
 
         // 2. Mock cancelAllOrders to FAIL
         // We need to spy on the instance method. Since tradeService is an instance, we can spy on it.

@@ -102,7 +102,7 @@ describe('MarketWatcher Hardening', () => {
     // We want to verify that pollSymbolChannel calls apiService with correct parameters
     // and handles the result.
 
-    (apiService.fetchTicker24h as any).mockImplementation(() => new Promise(() => {}));
+    vi.mocked(apiService.fetchTicker24h).mockImplementation(() => new Promise(() => {}));
 
     mw.pollSymbolChannel(symbol, channel, 'bitunix');
 
@@ -125,8 +125,8 @@ describe('MarketWatcher Hardening', () => {
     const validKline = { time: 1000, open: 100, high: 110, low: 90, close: 105, volume: 10 };
 
     // Reset mocks
-    (marketState.updateSymbolKlines as any).mockClear();
-    (apiService.fetchBitunixKlines as any).mockResolvedValue([invalidKline, validKline]);
+    vi.mocked(marketState.updateSymbolKlines).mockClear();
+    vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue([invalidKline, validKline]);
 
     await mw.ensureHistory(symbol, tf);
 
@@ -149,7 +149,7 @@ describe('MarketWatcher Hardening', () => {
         "rest"
     );
 
-    const callArgs = (marketState.updateSymbolKlines as any).mock.calls[0];
+    const callArgs = vi.mocked(marketState.updateSymbolKlines).mock.calls[0];
     expect(callArgs[2]).toContainEqual(validKline);
   });
 });

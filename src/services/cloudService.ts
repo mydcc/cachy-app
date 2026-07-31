@@ -136,10 +136,15 @@ class CloudService {
 
     // Handle row updates with robustness
     try {
-      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
+      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables.
+      // Same reasoning as canDeleteMyMessages() below: the accessor name `tables` exposes depends
+      // on the generated bindings' state, which can predate a schema change, so this is a runtime
+      // feature check `any` can't be typed away without hiding that uncertainty.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
 
       if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback shape depends on the untyped handle above
         globalMessageTable.onInsert((ctx: any, row: any) => {
           logger.debug('network', 'New Message Received:', row);
           this.messages = [...this.messages, row];
@@ -159,7 +164,9 @@ class CloudService {
       return;
     }
     try {
-      // The reducers object is exported from the generated code and handles calling the server
+      // The reducers object is exported from the generated code and handles calling the server.
+      // Same generated-bindings-drift reasoning as canDeleteMyMessages() below.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (reducers as any).sendMessage(text);
     } catch (e) {
       // Same rule as connect(): a chat failure stays a chat failure.

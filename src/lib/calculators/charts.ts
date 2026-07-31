@@ -23,7 +23,6 @@ import {
   calculateJournalStats,
   calculatePerformanceStats,
   getTagData,
-  getTimingData,
   getDisciplineData as getDisciplineStats,
 } from "./stats";
 import type { JournalContext } from "./types";
@@ -118,7 +117,7 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
 
   // 3. Cumulative R Curve Initialization
   let cumulativeR = new Decimal(0);
-  const cumulativeRCurve: { x: any; y: number }[] = [];
+  const cumulativeRCurve: { x: string; y: number }[] = [];
 
   closedTrades.forEach((t) => {
     if (t.status === "Won") won++;
@@ -258,8 +257,8 @@ export function getDirectionData(journal: JournalEntry[], context?: JournalConte
   // 3. Direction Evolution (Cumulative PnL)
   let cumLong = new Decimal(0);
   let cumShort = new Decimal(0);
-  const longCurve: { x: any; y: number }[] = [];
-  const shortCurve: { x: any; y: number }[] = [];
+  const longCurve: { x: string; y: number }[] = [];
+  const shortCurve: { x: string; y: number }[] = [];
 
   // Sort trades by date for evolution
   const sortedByDate = context
@@ -580,7 +579,7 @@ export function getTagEvolution(journal: JournalEntry[], context?: JournalContex
 
   const datasets = topTags.map((tag) => {
     let cumulative = 0;
-    const data: { x: any; y: number }[] = [];
+    const data: { x: string; y: number }[] = [];
 
     closedTrades.forEach((t) => {
       const tags = t.tags && t.tags.length > 0 ? t.tags : ["No Tag"];
@@ -784,8 +783,8 @@ export function getVisualRiskRadarData(journal: JournalEntry[], context?: Journa
   // Benchmark 1:3 -> Score 100?
   const rrScore = (Math.min(rr, 4) / 4) * 100;
 
-  // Expectancy (in R).
-  const expectancy = perf?.expectancy.toNumber() || 0; // This is actually expectancy per trade in $ usually, need in R.
+  // Expectancy (in R). perf.expectancy itself is per-trade in $, not R, so
+  // avgRMultiple is used below instead.
   const avgR = perf?.avgRMultiple.toNumber() || 0;
   // Benchmark 0.5R per trade = 100?
   const expScore = Math.min(Math.max(avgR, 0), 1) * 100;

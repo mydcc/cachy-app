@@ -20,35 +20,45 @@ import { Decimal } from 'decimal.js';
 import type { Kline } from './technicalsTypes';
 
 // --- Mock IndexedDB Implementation ---
-const storeMap = new Map<string, any>();
+/** What storageService actually stores: a keyed record it can sort by id. */
+interface StoredRecord {
+  id: string;
+  [field: string]: unknown;
+}
+
+/**
+ * The slice of IDBRequest this mock implements — a result and an onsuccess
+ * callback the service assigns. Typing it beats `any` at each of the four
+ * places a request is created.
+ */
+interface MockRequest<T> {
+  result?: T;
+  onsuccess?: () => void;
+  onerror?: () => void;
+}
+
+const storeMap = new Map<string, StoredRecord>();
+
+/** Resolves the request on the next tick, as IndexedDB does. */
+function resolveLater<T>(compute: () => T): MockRequest<T> {
+    const req: MockRequest<T> = {};
+    setTimeout(() => {
+        req.result = compute();
+        if (req.onsuccess) req.onsuccess();
+    }, 1);
+    return req;
+}
 
 const mockStore = {
-    get: (key: string) => {
-        const req: any = {};
-        setTimeout(() => {
-            req.result = storeMap.get(key);
-            if (req.onsuccess) req.onsuccess();
-        }, 1);
-        return req;
-    },
-    put: (val: any) => {
-        const req: any = {};
-        setTimeout(() => {
-            storeMap.set(val.id, val);
-            if (req.onsuccess) req.onsuccess();
-        }, 1);
-        return req;
-    },
-    getAll: (range: any) => {
-        const req: any = {};
-        setTimeout(() => {
-             // Return sorted values
-             const values = Array.from(storeMap.values()).sort((a, b) => a.id.localeCompare(b.id));
-             req.result = values;
-             if (req.onsuccess) req.onsuccess();
-        }, 1);
-        return req;
-    },
+    get: (key: string) => resolveLater(() => storeMap.get(key)),
+    put: (val: StoredRecord) => resolveLater(() => {
+        storeMap.set(val.id, val);
+        return undefined;
+    }),
+    getAll: (_range?: IDBKeyRange) =>
+        resolveLater(() =>
+            Array.from(storeMap.values()).sort((a, b) => a.id.localeCompare(b.id)),
+        ),
     clear: () => {
          storeMap.clear();
     }
