@@ -1569,6 +1569,28 @@ pass 15).
 `npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
 skipped.
 
+**Pass fifty-one: `stores/settings.svelte.ts`, 626 → 621.** The Class-A
+settings store (API keys, secrets, presets — `localStorage`-only per
+ADR-0001).
+
+- `private notifyTimer: any` / `private saveTimer: any` →
+  `ReturnType<typeof setTimeout> | null`.
+- Two identical `SENSITIVE_KEYS.includes(key as any)` sites (guarding
+  which decrypted-secret fields are safe to write back onto `this`) →
+  `key as keyof Settings`, matching `SENSITIVE_KEYS`'s own declared
+  element type (`(keyof Settings)[]`) instead of bypassing it — `key`
+  comes from `Object.entries(...)`, which always yields plain `string`,
+  so a cast is still required, just a precise one instead of an escape
+  hatch.
+- `let encryptionPassword: any` → `string | CryptoKey | undefined`,
+  matching `getDeviceKey()`'s declared return type
+  (`Promise<string | CryptoKey>`) and `cryptoService.encrypt()`'s second
+  parameter type, both already correctly typed — the `any` was
+  redundant.
+
+`npm run check` stays at 0 errors; `npm test` stays at 850 passing, 6
+skipped; `npm run build` succeeds.
+
 ### Code health
 
 | # | Item | Status |
@@ -1576,7 +1598,7 @@ skipped.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 626 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 621 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

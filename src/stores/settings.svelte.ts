@@ -867,8 +867,8 @@ export class SettingsManager {
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
   private listeners: Set<(value: Settings) => void> = new Set();
-  private notifyTimer: any = null;
-  private saveTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private saveLock = false; // Prevents concurrent saves
 
   // Security State
@@ -1001,7 +1001,7 @@ export class SettingsManager {
       // 2. Decrypt Generic Secrets
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
-          .filter(([key]) => SENSITIVE_KEYS.includes(key as any))
+          .filter(([key]) => SENSITIVE_KEYS.includes(key as keyof Settings))
           .map(async ([key, blob]) => {
             try {
               const decrypted = await cryptoService.decrypt(
@@ -1227,7 +1227,7 @@ export class SettingsManager {
                       blob as EncryptedBlob,
                       deviceKey,
                     );
-                    if (SENSITIVE_KEYS.includes(key as any)) {
+                    if (SENSITIVE_KEYS.includes(key as keyof Settings)) {
                       // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
                       this[key] = decrypted;
                     }
@@ -1478,7 +1478,7 @@ export class SettingsManager {
       }
 
       // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
-      let encryptionPassword: any = undefined;
+      let encryptionPassword: string | CryptoKey | undefined = undefined;
       let canEncrypt = true;
 
       if (!this.isEncrypted) {
