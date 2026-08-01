@@ -5,6 +5,15 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.2...v1.0.0-beta.3) (2026-08-01)
+
+
+### Bug Fixes
+
+* **chart-window:** restore saved timeframe when reopening from session ([82b51e8](https://github.com/mydcc/cachy-app/commit/82b51e839ea27191af8c363ba38ce723bb704376))
+* **close-all-positions-bench:** stub the real fetchOpenPositionsFromApi ([54b0734](https://github.com/mydcc/cachy-app/commit/54b07348744842c20ab456aaeff4fc593703e872))
+* thread requested limit through sync/orders, lower ESLint ratchet to 59 ([587d3ac](https://github.com/mydcc/cachy-app/commit/587d3ac0c4c540dbf282e80864ad987af7921c8b))
+
 # [1.0.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.1...v1.0.0-beta.2) (2026-07-31)
 
 
