@@ -5,6 +5,14 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.3...v1.0.0-beta.4) (2026-08-01)
+
+
+### Bug Fixes
+
+* eliminate WS init race that left market tiles empty until clicked ([49ebab3](https://github.com/mydcc/cachy-app/commit/49ebab3ca2419a1d767d31ed701739b6ea278719))
+* key marketState reads canonically instead of by active provider ([9ed97af](https://github.com/mydcc/cachy-app/commit/9ed97af12b4a604a9e4de6fe740b6c29ebc84287))
+
 # [1.0.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.2...v1.0.0-beta.3) (2026-08-01)
 
 
