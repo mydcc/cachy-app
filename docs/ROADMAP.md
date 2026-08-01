@@ -310,8 +310,8 @@ Three findings worth recording:
   run. The checks they perform now live in `translation-check.yml`, where
   `--no-verify` cannot skip them. Kept, because installing a local hook is the
   developer's choice, and `pre-commit.sh` documents its own installation.
-- **`render_build.sh` targets Render.com**, while the project deploys to aaPanel
-  through `deploy.sh`. Nothing references it.
+- **`render_build.sh` targeted Render.com** — removed along with `render.yaml`
+  (see `docs/TODO.md` item 23); superseded by `scripts/build_wasm.sh`.
 - **`scripts/maintenance/` holds four one-shot patch scripts** that performed a
   specific refactor once. They are not idempotent. The README says plainly not to
   run one to find out what it does — which is exactly what an undocumented
