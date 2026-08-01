@@ -615,3 +615,76 @@ Template:
 
 What has to happen, and what the options are.
 -->
+
+## 18. Broader SpacetimeDB use beyond chat needs its own ADR
+
+**Roadmap item 25** (`## Later`). Not a bug or a gap — a standing
+guardrail for the next time someone proposes a server-side feature.
+
+Global Chat is currently the only Class B (server-may-hold) data, and
+`docs/adr/0001-local-first-boundary.md` spells out the four conditions
+any *new* Class B feature must satisfy: opt-in and off by default,
+authenticated (no anonymous access), minimal (no Class A data, not even
+as metadata), and non-essential (the calculator/journal/risk tooling
+works fully without it). See also `CLAUDE.md`'s Local-First section.
+
+**The decision:** nothing to decide right now — there is no proposed
+feature. When one comes up (more SpacetimeDB tables, a new sync
+feature, anything that would put user data on a Cachy server), it needs
+its own ADR checked against those four conditions before being built,
+not folded into this item.
+
+## 19. Publish `/docs` to Confluence as a read-only mirror
+
+**Roadmap item 26** (`## Later`). Infrastructure/tooling work, not a
+code change — needs a decision and Confluence access neither of which
+exist yet.
+
+The repo's `/docs` (ADRs, ROADMAP, REPO-AUDIT, this file) would be
+mirrored read-only to Confluence so non-engineering stakeholders can
+read it without a GitHub account. The repo stays the source of truth;
+Confluence would just be a synced copy.
+
+**The decision:** whether this is still wanted, who owns the Confluence
+space it publishes into, and what syncs it (a scheduled export script?
+a GitHub Action?) — none of which can be picked without someone with
+Confluence access making the call.
+
+## 20. Mirror this roadmap as Jira epics for tracking
+
+**Roadmap item 27** (`## Later`). Same shape as item 19 — project-
+management tooling, not code, and needs Jira access this session
+doesn't have.
+
+**The decision:** whether `docs/ROADMAP.md`'s numbered items should
+also live as Jira epics (and who keeps the two in sync, since a roadmap
+item finishing here wouldn't automatically close a Jira ticket) — a
+call for whoever owns the Jira project, not something to script blind.
+
+## 21. Mobile native adaptation — whitepaper "Phase 2" claim, unscoped
+
+**Roadmap item 28** (`## Later`). The whitepaper promises this to
+readers; item 9's whitepaper audit (`docs/ROADMAP.md`, 🟢) found the
+claim but explicitly left open whether it's a real commitment.
+
+There is no design, no scope, no chosen approach (native Swift/Kotlin?
+React Native? a wrapped PWA?) — nothing implementable exists yet.
+
+**The decision:** either commit to it and write an actual scope/plan
+(new roadmap item, replacing this placeholder), or decide it was
+aspirational marketing and soften or remove the whitepaper claim so the
+document stops promising something nobody is building.
+
+## 22. Institutional features — whitepaper "Phase 3" claim, unscoped
+
+**Roadmap item 29** (`## Later`). Same shape and same source as item 21
+above — a whitepaper "Phase 3" promise that item 9's audit flagged but
+did not resolve.
+
+No feature list, no target customer definition, nothing scoped.
+
+**The decision:** same two options as item 21 — commit and scope it
+properly, or soften/remove the whitepaper claim. Whoever resolves this
+should probably resolve items 21 and 22 together, since they're the
+same open question (is the whitepaper's roadmap real?) about two
+different phases.

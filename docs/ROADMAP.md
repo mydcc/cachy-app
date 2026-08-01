@@ -4232,11 +4232,11 @@ Response has.
 
 | # | Item |
 | --- | --- |
-| 25 | Broader SpacetimeDB use beyond chat — any such feature needs its own ADR and must satisfy the Class B conditions; Class A data stays local |
-| 26 | Publish `/docs` to Confluence as a read-only mirror, repo stays the source of truth |
-| 27 | Mirror this roadmap as Jira epics for tracking |
-| 28 | Mobile native adaptation (claimed as "Phase 2" in the whitepaper — unverified against any actual plan) |
-| 29 | Institutional features (whitepaper "Phase 3" — same caveat) |
+| 25 | Broader SpacetimeDB use beyond chat — any such feature needs its own ADR and must satisfy the Class B conditions; Class A data stays local. See [`docs/TODO.md`](TODO.md) item 18 |
+| 26 | Publish `/docs` to Confluence as a read-only mirror, repo stays the source of truth. See [`docs/TODO.md`](TODO.md) item 19 |
+| 27 | Mirror this roadmap as Jira epics for tracking. See [`docs/TODO.md`](TODO.md) item 20 |
+| 28 | Mobile native adaptation (claimed as "Phase 2" in the whitepaper — unverified against any actual plan). See [`docs/TODO.md`](TODO.md) item 21 |
+| 29 | Institutional features (whitepaper "Phase 3" — same caveat). See [`docs/TODO.md`](TODO.md) item 22 |
 
 Items 28 and 29 are listed because the whitepaper already promises them to
 readers. They are recorded here as unspecified rather than silently dropped;
