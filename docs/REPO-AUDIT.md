@@ -157,7 +157,7 @@ Analysis showed most were configuration faults rather than code defects:
 
 | Cause | Count | Resolution |
 | --- | --- | --- |
-| Vendored / generated bundles being linted (`static/ammo/ammo.wasm.js` — Emscripten output; `static/js/newrelic.js` — minified agent, one 62 095-character line) | ~1360 | Added to `ignores`. |
+| Vendored / generated bundles being linted (`static/ammo/ammo.wasm.js` — Emscripten output) | ~1360 | Added to `ignores`. |
 | `no-undef` on TypeScript files, which cannot see ambient type names like `EventListener` or `NodeJS`, nor Svelte 5 runes | 498 | Disabled for TS per typescript-eslint guidance; runes declared as globals. `npm run check` is the real gate and passes with 0 errors. |
 | `no-redeclare` on the const-object-as-enum pattern in `src/types/orderTypes.ts`, where `export const OrderSide` and `export type OrderSide` legitimately occupy separate declaration spaces | 3 | Disabled; `tsc` is the authority. |
 
