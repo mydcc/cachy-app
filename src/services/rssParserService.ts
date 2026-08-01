@@ -9,6 +9,7 @@
 
 import type { NewsItem } from "./newsService";
 import { logger } from "./logger";
+import { appFetch } from "../lib/appAuth";
 
 interface RawRssItem {
   title: string;
@@ -25,7 +26,7 @@ export const rssParserService = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s client timeout
 
-      const response = await fetch("/api/rss-fetch", {
+      const response = await appFetch("/api/rss-fetch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
