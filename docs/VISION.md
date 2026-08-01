@@ -19,13 +19,37 @@ lose money.
 
 ## Who it is for
 
-Retail crypto traders who size positions deliberately rather than by feel, and
-who care where their data goes. Not institutions, not market makers, not people
-who want a signal service.
+Traders who size positions deliberately rather than by feel, and who care where
+their data goes — whether that trader is one person or a desk. Not people who
+want a signal service.
 
 The design consequence: the user is assumed competent and is never protected by
 hiding information from them, but is always protected from the software doing
 something they did not ask for.
+
+**"Institutional" is a scale question, not a different product, and the answer
+depends on which of two things is meant.** Individuals who happen to work at an
+institution — analysts, discretionary traders — are squarely in scope; nothing
+about commitment 1 changes because the person using the calculator has a Bloomberg
+terminal on the other monitor. That is the direction to be "unentbehrlich"
+(indispensable) for, the same way TradingView is: people at institutions use it
+by choice, not because their institution operates it for them.
+
+What is **not** in scope is Cachy operating a multi-tenant service *for* an
+institution — the thing regulated finance actually needs from an institutional
+tool: centralised audit logging, retention under a compliance officer's control,
+tenant administration, SSO. That is structurally the opposite of commitment 1,
+because it requires the operator to hold and control user data, not the user.
+
+The resolution is already implicit in [ADR-0004](adr/0004-spacetimedb-data-scope.md)'s
+user-operated-instance distinction, made explicit here: **an institution reaches
+that capability by deploying the Private edition on its own infrastructure**,
+where it is the data controller. It gets Local-First and its compliance
+requirements, because both are now the same thing — its own governance over its
+own deployment. What Cachy will not build is a hosted multi-tenant back end that
+makes Cachy the data controller for a client's trading activity. The commercial
+answer to "make it indispensable for large investors" is therefore an enterprise
+licence for the self-hosted build, not seats in a Cachy-run cloud.
 
 ## The three commitments
 
@@ -103,6 +127,11 @@ makes sense hosted:
   data, hosted AI inference. These have a marginal cost per user, which is what
   makes charging for them defensible.
 - **Plugins** — paid extensions that add capability rather than un-removing it.
+- **Enterprise licences for the self-hosted build** — the "Who it is for"
+  section above spells out why this, not a hosted institutional service, is how
+  Cachy reaches institutional desks: support, deployment assistance and
+  institution-specific plugins (audit export, SSO against the institution's own
+  identity provider) sold against infrastructure the institution controls.
 
 **What cannot be sold**, as a rule and not a preference: capability removed from
 the core in order to sell it back. If a feature belongs in the core by the

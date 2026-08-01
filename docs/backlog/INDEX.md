@@ -2,9 +2,9 @@
 
 # Backlog index
 
-36 items. How to read and add them: [README.md](README.md).
+37 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
+Counts by status: 💡 idea 9 · 📋 specced 26 · 🟢 ready 2
 
 ---
 
@@ -57,6 +57,7 @@ Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
+| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 
 ### M5
 
@@ -143,7 +144,8 @@ Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
+| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 
 ---
 
-Next free number: **0037**
+Next free number: **0038**

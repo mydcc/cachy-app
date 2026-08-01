@@ -156,6 +156,13 @@ exchanges without opening the exchange's own UI.
 `idea`: it needs persistent, addressable chart drawings, which do not exist. That
 prerequisite is most of the work and probably its own item.
 
+**Build [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md)'s evaluation
+core portable from the start** — plain TypeScript/WASM, no DOM dependency. Not
+optional polish: it is the only way background alerting can ever leave the
+browser without breaking [ADR-0004](adr/0004-spacetimedb-data-scope.md), since
+a Cachy-operated server evaluating alerts is forbidden outright. See
+[`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
+
 **Exit:** an armed alert fires within one candle, with the tab backgrounded, and
 does not fire twice for one crossing.
 

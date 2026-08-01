@@ -200,8 +200,16 @@ condition becoming true, with the tab in the background, and does not fire twice
 for one crossing.
 
 **Note on placement.** Alerts are locally evaluated by design — the alert
-definition is Class A and does not go to a server. Server-side alerting that
-fires with the browser closed is a Module and belongs to M7 at the earliest.
+definition is Class A and does not go to a server. This is not a limitation to
+work around later: server-side alerting that fires with the browser closed
+would require a Cachy-operated server to hold the alert definition, which
+[ADR-0004](adr/0004-spacetimedb-data-scope.md) forbids outright, not merely
+defers. The actual path to background alerting with the browser closed is a
+native companion running the same evaluation core on-device — see
+[`TODO.md`](TODO.md) item 21 and [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
+Because of this, [`FEAT-0027`](backlog/features/FEAT-0027-alert-engine.md)'s
+evaluation core is built portable (plain TypeScript/WASM, no DOM dependency)
+from the start.
 
 ---
 
