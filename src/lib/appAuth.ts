@@ -65,10 +65,18 @@ export function appAuthHeaders(
  *
  * A drop-in replacement: everything else in `init` — method, body, signal —
  * is passed through untouched.
+ *
+ * Waits for `settingsState.secretsReady` first. The token is restored from
+ * localStorage by an asynchronous decryption, so a request fired during
+ * startup — the account, positions, orders and balance fetches all run from
+ * `onMount` — would otherwise read an empty token and take a 401 that a later,
+ * hand-clicked retry of the same request does not. The headers are built after
+ * the await, never before.
  */
-export function appFetch(
+export async function appFetch(
   input: string,
   init: RequestInit = {},
 ): Promise<Response> {
+  await settingsState.secretsReady;
   return fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
 }
