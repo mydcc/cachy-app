@@ -688,3 +688,40 @@ properly, or soften/remove the whitepaper claim. Whoever resolves this
 should probably resolve items 21 and 22 together, since they're the
 same open question (is the whitepaper's roadmap real?) about two
 different phases.
+
+## 23. Orphaned Render.com integration still auto-deploys and fails
+
+**Roadmap item 24**'s scripts audit already flagged half of this
+(`docs/ROADMAP.md`: *"`render_build.sh` targets Render.com, while the
+project deploys to aaPanel through `deploy.sh`. Nothing references
+it."*) — surfaced again because a live Render deployment attached to
+this repo actually failed on `develop`/PR #1593, which needs a person
+with account access, not just a file cleanup.
+
+Two pieces of dead-looking config, confirmed via `grep` that neither is
+referenced by `package.json`, any `.github/workflows/*.yml`, or
+`deploy.sh`:
+
+- `render.yaml` — Render's Infrastructure-as-Code file, which is what
+  keeps a connected Render service auto-building every push.
+- `scripts/render_build.sh` — installs Rust/the `wasm32-unknown-unknown`
+  target and runs `npm run build`; superseded by `scripts/build_wasm.sh`
+  (used by `npm run dev`/`npm run build` locally and presumably by
+  whatever the aaPanel deploy path uses).
+
+**Consequence:** the project migrated its real deployment to aaPanel
+(`deploy.sh`, `dev.cachy.app` / `cachy.app`) at some point, but a Render
+service is still connected to this GitHub repo and keeps attempting
+(and failing) a build on every push — visible as a "failed deployment"
+notice on PRs, unrelated to and not gating the actual required CI
+checks (`audit.yml`, `release.yml`, `commit-lint.yml`).
+
+**The decision:** disconnect/delete the Render service from the Render
+dashboard (needs whoever owns that account — not something reachable
+from this repo or GitHub alone), then remove `render.yaml` and
+`scripts/render_build.sh` once nothing is deploying from them anymore.
+Left in place and not deleted yet per this repo's defensive-deletion
+rule: removing the files first would silence Render's failure without
+addressing the still-connected service, which would keep failing
+silently (or worse, keep half-succeeding) with no repo-side visibility
+left to notice it.
