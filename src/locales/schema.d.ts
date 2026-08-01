@@ -1321,6 +1321,8 @@ export type TranslationKey =
   | "apiErrors.syncIncomplete"
   | "apiErrors.syncNoNewData"
   | "apiErrors.syncFailed"
+  | "apiErrors.unauthorized"
+  | "apiErrors.tooManyRequests"
   | "chartPatterns.title"
   | "chartPatterns.searchPlaceholder"
   | "chartPatterns.description"
