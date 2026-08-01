@@ -82,7 +82,7 @@ Currently only Global Chat message content.
    management, market data — works fully with the server unreachable.
 
 Global Chat is **kept** as an optional Class B feature on SpacetimeDB, and is
-tracked on the roadmap (see `docs/ROADMAP.md`).
+tracked on the roadmap (see `docs/ROADMAP.md`; the original tracking is in `docs/archive/engineering-log-2026-h1.md`).
 
 Any new Class B feature requires its own ADR. Moving any field from Class A to
 Class B is a breaking change and requires an ADR plus a changelog entry marked

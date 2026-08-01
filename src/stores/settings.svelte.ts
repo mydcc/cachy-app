@@ -606,7 +606,7 @@ export class SettingsManager {
   // at build time, so such a default would serve the operator's AI keys as plain
   // JavaScript to every visitor of a production build. AI keys are Class A data
   // under ADR-0001: each user enters their own in Settings → AI, and it stays in
-  // that browser. See docs/ROADMAP.md item 24a.
+  // that browser. See docs/archive/engineering-log-2026-h1.md item 24a.
   openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
   openaiModel = $state<string>(defaultSettings.openaiModel);
   geminiApiKey = $state<string>(defaultSettings.geminiApiKey);

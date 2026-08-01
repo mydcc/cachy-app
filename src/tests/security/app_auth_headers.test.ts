@@ -35,9 +35,9 @@ import { describe, it, expect } from "vitest";
  * type-checks, and it fails only in the browser of whoever deployed it.
  *
  * It has already happened twice. `chat.svelte.ts` never sent the header
- * (docs/ROADMAP.md, item 12), and the balance, account, positions and orders
- * call sites did not either. Both were found from console output rather than
- * from CI.
+ * (docs/archive/engineering-log-2026-h1.md, item 12), and the balance,
+ * account, positions and orders call sites did not either. Both were found
+ * from console output rather than from CI.
  *
  * So: client code reaches guarded routes through `appFetch` from
  * `$lib/appAuth`, and this test fails the build when a raw `fetch` slips back

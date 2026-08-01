@@ -1,11 +1,34 @@
 # TODO
 
 Open items that need a decision or an action from a person, as opposed to work
-that is planned and specified. Planned engineering work lives in
-[`ROADMAP.md`](ROADMAP.md); this is the shorter list of things waiting on you.
+that is planned and specified. Planned work lives in
+[`backlog/`](backlog/README.md) and is scheduled in [`ROADMAP.md`](ROADMAP.md);
+this is the shorter list of things waiting on **you**.
 
 Add entries as they come up. Keep the "why it is here" line — an entry nobody
 can act on without re-deriving the context is how the roadmap got long.
+
+**How this relates to the backlog.** An entry here is a choice, not a task: no
+one can pick it up until it is decided. Once you decide, it becomes a backlog
+item — which **links back to the entry here** for the reasoning rather than
+copying it. Several entries below are already referenced that way, and the
+analysis stays here as the single source:
+
+| This entry | Tracked as |
+| --- | --- |
+| 2 — numbers stored where strings are declared | [`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md) |
+| 3 — Bitget WS field names | [`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md) |
+| 4 — GPU Choppiness field | [`BUG-0005`](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md) |
+| 7 — sentiment validation | [`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) |
+| 10 — SymbolPicker `null` | [`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md) |
+| 12 — legacy AES-CBC blobs | [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
+| 14 — order-map eviction | [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
+| 15 — `extraClasses` ignored | [`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) |
+| 18 — broader SpacetimeDB use | Decided: [ADR-0004](adr/0004-spacetimedb-data-scope.md) |
+| 21, 22 — whitepaper phases 2 and 3 | Answered by [`MILESTONES.md`](MILESTONES.md); see the note on each |
+
+References below to "Roadmap item N" mean the engineering log, now at
+[`archive/engineering-log-2026-h1.md`](archive/engineering-log-2026-h1.md).
 
 ---
 
@@ -119,7 +142,7 @@ actual field names, or normalize Bitget's payload to the Bitunix field
 names before calling the shared functions. Either way, this needs a test
 that fails without the fix before being called done — the same discipline
 that caught two overstated bug claims earlier in this item (see the
-"Pass one" and "Pass nine" entries in `ROADMAP.md`'s item 21 log).
+"Pass one" and "Pass nine" entries in `archive/engineering-log-2026-h1.md`'s item 21 log).
 
 **A second, related finding in the same function, possibly why the first
 one never surfaced in practice.** `handleMessage()` parses every incoming
@@ -634,6 +657,21 @@ feature, anything that would put user data on a Cachy server), it needs
 its own ADR checked against those four conditions before being built,
 not folded into this item.
 
+> **Resolved, August 2026 — three features were proposed and are now
+> decided in [ADR-0004](adr/0004-spacetimedb-data-scope.md).** Success-based
+> chat filtering is **rejected** in its proposed form (journal-derived, so
+> Class A metadata — the same mechanism that was already built and removed
+> under engineering-log item 12a); peer-signal reputation is admissible
+> instead. Copy trading is admissible as **price levels only** — sharing
+> position size publishes the sharer's account balance by arithmetic.
+> Pre-flight trade verification is **core and local**, explicitly not a
+> SpacetimeDB feature.
+>
+> ADR-0004 also adds **Class C** (public market data, no user identity
+> attached) and distinguishes a Cachy-operated instance from a
+> user-operated one. This item stays open as the standing guardrail: a
+> feature ADR-0004 does not cover still needs its own.
+
 ## 19. Publish `/docs` to Confluence as a read-only mirror
 
 **Roadmap item 26** (`## Later`). Infrastructure/tooling work, not a
@@ -656,15 +694,25 @@ Confluence access making the call.
 management tooling, not code, and needs Jira access this session
 doesn't have.
 
-**The decision:** whether `docs/ROADMAP.md`'s numbered items should
+**The decision:** whether the engineering log's numbered items should
 also live as Jira epics (and who keeps the two in sync, since a roadmap
 item finishing here wouldn't automatically close a Jira ticket) — a
 call for whoever owns the Jira project, not something to script blind.
 
+> **Partly overtaken, August 2026.** The thing Jira was wanted for —
+> sortable, ordered, systematically workable items — now exists in the
+> repository: [`backlog/`](backlog/README.md), with machine-readable front
+> matter, a validated [`INDEX.md`](backlog/INDEX.md), and IDs that commits
+> and tests can reference permanently. That is deliberately *not* a
+> Jira replacement for people who do not read the repo, so the question
+> narrows: is an external tracker still wanted for stakeholders, knowing
+> it would be a second copy to keep in sync? The same question applies to
+> item 19 and they should be answered together.
+
 ## 21. Mobile native adaptation — whitepaper "Phase 2" claim, unscoped
 
 **Roadmap item 28** (`## Later`). The whitepaper promises this to
-readers; item 9's whitepaper audit (`docs/ROADMAP.md`, 🟢) found the
+readers; item 9's whitepaper audit (`docs/archive/engineering-log-2026-h1.md`, 🟢) found the
 claim but explicitly left open whether it's a real commitment.
 
 There is no design, no scope, no chosen approach (native Swift/Kotlin?
@@ -674,6 +722,15 @@ React Native? a wrapped PWA?) — nothing implementable exists yet.
 (new roadmap item, replacing this placeholder), or decide it was
 aspirational marketing and soften or remove the whitepaper claim so the
 document stops promising something nobody is building.
+
+> **Still open, and now more visible.** The August 2026 planning pass wrote
+> [`MILESTONES.md`](MILESTONES.md) covering M0–M9 through autonomous
+> execution, and **native mobile is in none of them** — it was not dropped
+> silently, it was left out because nobody has scoped it. So the whitepaper
+> promises a phase the milestone plan does not contain, which is exactly the
+> drift ADR-0001 exists to prevent. Either scope it as a milestone or soften
+> the whitepaper; leaving both as they are is the one option that keeps the
+> documents contradicting each other.
 
 ## 22. Institutional features — whitepaper "Phase 3" claim, unscoped
 
@@ -689,10 +746,18 @@ should probably resolve items 21 and 22 together, since they're the
 same open question (is the whitepaper's roadmap real?) about two
 different phases.
 
+> **Still open, with one new consideration.** [`VISION.md`](VISION.md) now
+> states plainly that Cachy is not for institutions — retail traders who
+> size positions deliberately are the target, and several design decisions
+> follow from that. If "institutional features" stays in the whitepaper, it
+> contradicts the vision document rather than merely being unscoped. That
+> makes softening the claim the cheaper of the two options, but it is still
+> your call.
+
 ## 23. ~~Orphaned Render.com integration still auto-deploys and fails~~ — done
 
 **Roadmap item 24**'s scripts audit already flagged half of this
-(`docs/ROADMAP.md`: *"`render_build.sh` targets Render.com, while the
+(`docs/archive/engineering-log-2026-h1.md`: *"`render_build.sh` targets Render.com, while the
 project deploys to aaPanel through `deploy.sh`. Nothing references
 it."*) — surfaced again because a live Render deployment attached to
 this repo actually failed on `develop`/PR #1593.

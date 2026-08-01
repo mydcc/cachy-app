@@ -196,7 +196,7 @@ a required CI check** (`.github/workflows/audit.yml`). Highlights:
   deliberately exceed IEEE 754 precision — that is the thing being benchmarked.
 
 **0 warnings remain.** `src/lib/physics/StressLogic.ts` (the Ammo.js/WASM
-physics engine, reserved for last — see `docs/ROADMAP.md` item 21) was
+physics engine, reserved for last — see `docs/archive/engineering-log-2026-h1.md` item 21) was
 the final file; both `@typescript-eslint/no-explicit-any` and
 `@typescript-eslint/no-unused-vars` are now `"error"` in
 `eslint.config.js`, and the CI `--max-warnings` ratchet was removed.
@@ -249,7 +249,7 @@ Left for a decision, deliberately not touched:
   `develop` as a `beta` prerelease channel, matching `.deploy.conf`
   (`BRANCH_STABLE=main` → cachy.app, `BRANCH_BETA=develop` → dev.cachy.app).
   `release.yml` triggers on both.
-- **Ad-hoc scripts without structure:** `verification/`, `plans/`,
+- **Ad-hoc scripts without structure:** `verification/`, `plans/` (now `docs/archive/plans/`),
   `src/verify_settings_v2.py`, and roughly 20 mixed Python/JS helper scripts in
   `scripts/`. Worth grouping and documenting, or removing what is spent.
 
