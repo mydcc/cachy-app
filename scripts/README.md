@@ -44,7 +44,6 @@ Real tools with a clear job. None of them run on their own.
 | Script | Status |
 | --- | --- |
 | `pre-commit.sh`, `husky-pre-commit.sh` | Two git pre-commit hooks for translation checks. **Neither is installed**: there is no `.husky/` directory and husky is not a dependency. The checks they run now happen in `.github/workflows/translation-check.yml`, which no one can skip with `--no-verify`. Kept because installing a hook is a local choice — `pre-commit.sh` documents its own installation in its header. |
-| `render_build.sh` | A build script for Render.com. The project deploys via `deploy.sh` to aaPanel; nothing references this. Kept in case the hosting question reopens. |
 | `verify_technicals_frontend.py` | A Playwright-driven check of the technicals panel, predating `tests/e2e/`. Not wired into any suite. |
 
 ## Subdirectories
