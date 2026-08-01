@@ -260,6 +260,20 @@ class MarketWatcher {
     this.startPolling();
   }
 
+  /**
+   * Force an immediate reconciliation of desired subscriptions (`this.requests`,
+   * the watcher's own source of truth) against the live provider connection.
+   * Called by ConnectionManager right after a provider reports a successful
+   * (re)connect: the provider's subscription buffer is wiped on every
+   * destroy()/connect() cycle, so without an explicit resync here, tiles can
+   * end up subscribed to nothing after a reconnect even though `this.requests`
+   * still lists them as wanted.
+   */
+  public resync() {
+    this._subscriptionsDirty = false;
+    this.syncSubscriptions();
+  }
+
   private pruneOrphanedSubscriptions() {
     for (const [symbol, channels] of this.requests) {
       for (const [channel, reqs] of channels) {

@@ -148,45 +148,37 @@ export const app = {
   setupRealtimeUpdates: () => {
     if (!browser) return;
 
-    let lastKeys = "";
+    const computeKeys = (s: Settings) =>
+      s.apiProvider === "bitget"
+        ? `${s.apiKeys.bitget.key}:${s.apiKeys.bitget.secret}:${s.apiKeys.bitget.passphrase}`
+        : `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;
+
+    // Seed from the current settings snapshot so the synchronous initial
+    // emit below (store.subscribe() calls the listener immediately) is a
+    // no-op. The first connection is owned exclusively by app.init()'s
+    // explicit connectionManager.switchProvider() call further down; without
+    // this seed, this callback fired its own switchProvider() one step
+    // earlier in the same tick and raced it, destroying the socket before it
+    // finished opening.
     let lastProvider = settingsState.apiProvider || "";
+    let lastKeys = settingsState.apiKeys ? computeKeys(settingsState) : "";
 
     settingsState.subscribe((s: Settings) => {
       untrack(() => {
         if (!s || !s.apiKeys) return;
 
-        const currentKeys = s.apiProvider === "bitget"
-          ? `${s.apiKeys.bitget.key}:${s.apiKeys.bitget.secret}:${s.apiKeys.bitget.passphrase}`
-          : `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;
-
+        const currentKeys = computeKeys(s);
         const providerChanged = s.apiProvider !== lastProvider;
         const keysChanged = currentKeys !== lastKeys;
 
-        if (s.apiProvider === "bitget") {
-          // Ensure Bitunix is dead
-          if (bitunixWs) bitunixWs.destroy();
-
-          if (providerChanged || keysChanged) {
-            lastKeys = currentKeys;
-            lastProvider = s.apiProvider;
-            if (browser) {
-              // Ensure we start fresh
-              (bitgetWs as unknown as { isDestroyed: boolean }).isDestroyed = false;
-              bitgetWs.connect(true);
-            }
-          }
-        } else {
-          // Ensure Bitget is dead
-          if (bitgetWs) bitgetWs.destroy();
-
-          if (providerChanged || keysChanged) {
-            lastKeys = currentKeys;
-            lastProvider = s.apiProvider;
-            if (browser) {
-              (bitunixWs as unknown as { isDestroyed: boolean }).isDestroyed = false;
-              bitunixWs.connect();
-            }
-          }
+        if (providerChanged || keysChanged) {
+          lastKeys = currentKeys;
+          lastProvider = s.apiProvider;
+          // Route exclusively through ConnectionManager, the single owner of
+          // provider connect/destroy, so old and new provider are switched
+          // atomically instead of two services independently tearing each
+          // other down.
+          connectionManager.switchProvider(s.apiProvider || "bitunix", { force: true });
         }
       });
     });
