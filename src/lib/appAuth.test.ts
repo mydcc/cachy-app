@@ -79,4 +79,40 @@ describe("appFetch", () => {
       }),
     );
   });
+
+  it("waits for the secrets to be decrypted before sending", async () => {
+    // The regression: the token is restored from localStorage by an async
+    // decryption, while the account/positions/orders/balance fetches all run
+    // from onMount. Firing before the decryption lands meant an empty token
+    // and a 401 on every page load.
+    let releaseSecrets!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseSecrets = resolve;
+    });
+
+    const readySpy = vi
+      .spyOn(settingsState, "secretsReady", "get")
+      .mockReturnValue(gate);
+
+    settingsState.appAccessToken = "";
+    const pending = appFetch("/api/balance", { method: "POST" });
+
+    // Still gated: nothing may go out while the token is unresolved.
+    await Promise.resolve();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+
+    // Decryption lands, then the request goes out carrying the token.
+    settingsState.appAccessToken = "secret-token";
+    releaseSecrets();
+    await pending;
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/balance",
+      expect.objectContaining({
+        headers: { "x-app-access-token": "secret-token" },
+      }),
+    );
+
+    readySpy.mockRestore();
+  });
 });

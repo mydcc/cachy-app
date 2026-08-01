@@ -36,7 +36,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
-import { appAuthHeaders, appFetch } from "../lib/appAuth";
+import { appFetch } from "../lib/appAuth";
 
 export interface TpSlOrder {
     orderId: string;
@@ -103,18 +103,18 @@ class TradeService {
             throw new Error("apiErrors.missingCredentials");
         }
 
-        const headers = appAuthHeaders({
+        const headers: Record<string, string> = {
             "Content-Type": "application/json",
             "X-Provider": provider,
             "X-Api-Key": keys.key,
             "X-Api-Secret": keys.secret,
             ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
-        });
+        };
 
         // Deep serialize Decimals to strings before JSON.stringify
         const serializedPayload = this.serializePayload(payload);
 
-        const response = await fetch(endpoint, {
+        const response = await appFetch(endpoint, {
             method,
             headers,
             body: JSON.stringify(serializedPayload)
