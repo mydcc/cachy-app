@@ -66,7 +66,39 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 ---
 
-## 🛠️ Installation & Development
+## 🚀 Quick Start (self-hosting)
+
+Both editions are self-hosted: you run Cachy yourself, and your data never
+leaves your browser.
+
+```bash
+git clone https://github.com/mydcc/cachy-app.git
+cd cachy-app
+npm ci
+cp .env.example .env
+openssl rand -hex 32   # paste the result as APP_ACCESS_TOKEN in .env
+npm run build
+node --env-file=.env build/index.js   # not `npm start` — that skips .env
+```
+
+Then open `http://localhost:3000` and paste **the same token** into
+**Settings → Connections → App Access Token**.
+
+> ⚠️ **Both halves are required.** `APP_ACCESS_TOKEN` is a shared secret between
+> your browser and your own server. Authentication fails closed: set it on the
+> server but not in the app (or the other way round) and all 17 guarded API
+> routes answer 401 — the app loads and looks healthy while nothing that touches
+> your account works. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+
+**[→ Full installation guide](docs/INSTALL.md)** — prerequisites, configuration
+and a troubleshooting section for the 401 above.
+For a permanent instance behind a reverse proxy, see [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+---
+
+## 🛠️ Development setup
+
+For working *on* Cachy. To just run it, use the Quick Start above.
 
 ### Prerequisites
 
@@ -96,7 +128,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
    openssl rand -hex 32   # paste the result as APP_ACCESS_TOKEN in .env
    ```
 
-   `APP_ACCESS_TOKEN` is **required**. Authentication fails closed: without it, all 17 guarded API routes answer 401 and the app cannot reach its own backend. Put the same value into the running app under **Settings → Connections → App Access Token** so the browser sends it. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+   `APP_ACCESS_TOKEN` is **required** — `npm run dev` cannot reach its own API routes without it, and the same value goes into **Settings → Connections → App Access Token**. See the [Quick Start](#-quick-start-self-hosting) above and [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md) for why it fails closed.
 
    > ⚠️ **Deploying this to an existing instance:** set `APP_ACCESS_TOKEN` on the server **before** deploying, or every API call on the live site starts failing with 401.
 
@@ -174,6 +206,7 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 ## 📚 Documentation
 
+- **Installation:** [`docs/INSTALL.md`](docs/INSTALL.md) — running Cachy yourself, from clone to a working balance, including what to do when every API call answers 401.
 - **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/lib/assets/content/guide.en.md`.
 - **Technical Whitepaper:** `src/lib/assets/content/whitepaper.en.md` — architecture, the mathematical core, and the security model.
 - **Developer Guidelines:** `CLAUDE.md` for the non-negotiable coding rules (Svelte 5 Runes, `decimal.js`, theming), `AGENT.md` for the development process.
