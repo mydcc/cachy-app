@@ -33,6 +33,9 @@ export interface ManagedService {
 export interface PollingService {
     stopPolling: () => void;
     resumePolling: () => void;
+    // Reconciles desired subscriptions against the live connection. Optional
+    // so lightweight test doubles for PollingService don't need to implement it.
+    resync?: () => void;
 }
 
 class ConnectionManager {
@@ -134,10 +137,18 @@ class ConnectionManager {
 
         logger.log("governance", `[ConnectionManager] Provider ${name} is ACTIVE and CONNECTED.`);
 
-        // Successfully connected? Stop Polling redundant data.
-        if (this.pollingService) {
-            this.pollingService.stopPolling();
-        }
+        // Re-sync desired subscriptions immediately. A provider's own
+        // subscription buffer does not survive its destroy()/connect() cycle,
+        // but the polling service's registered interest does — without this,
+        // a reconnect can leave the socket open yet subscribed to nothing.
+        this.pollingService?.resync?.();
+
+        // Deliberately NOT stopping the polling fallback here anymore: it
+        // would kill the safety net before we know any data actually
+        // arrived. The polling service already skips REST calls per-symbol
+        // once its own WS data is fresh, so leaving the loop running is a
+        // cheap, continuous safety net rather than a one-shot check at
+        // connect time.
     }
 
     /**

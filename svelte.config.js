@@ -39,7 +39,6 @@ const config = {
           "unsafe-eval",
           "wasm-unsafe-eval",
           "https://s.cachy.app",
-          "https://js-agent.newrelic.com",
           "blob:",
         ],
         "style-src": [
