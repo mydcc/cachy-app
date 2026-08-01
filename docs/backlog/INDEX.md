@@ -2,9 +2,9 @@
 
 # Backlog index
 
-37 items. How to read and add them: [README.md](README.md).
+38 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 9 · 📋 specced 26 · 🟢 ready 2
+Counts by status: 💡 idea 9 · 📋 specced 27 · 🟢 ready 2
 
 ---
 
@@ -96,6 +96,7 @@ Counts by status: 💡 idea 9 · 📋 specced 26 · 🟢 ready 2
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | ui |
+| [BUG-0038](bugs/BUG-0038-android-manifest-icon-display.md) | Installed PWA displays suboptimally on Android home screens | P2 | 📋 specced | pwa |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | 🟢 ready | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | ui |
@@ -129,6 +130,7 @@ Counts by status: 💡 idea 9 · 📋 specced 26 · 🟢 ready 2
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0038](bugs/BUG-0038-android-manifest-icon-display.md) | Installed PWA displays suboptimally on Android home screens | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -148,4 +150,4 @@ Counts by status: 💡 idea 9 · 📋 specced 26 · 🟢 ready 2
 
 ---
 
-Next free number: **0038**
+Next free number: **0039**

@@ -84,6 +84,39 @@ clarification of what ADR-0001 already says, not a relaxation of it.
   Class A stays out — hosting it for someone does not make their journal
   admissible.
 
+**Who operates an instance and how many people connect to it are two different
+questions, and the first draft of this ADR answered only the first.** That gap
+produces a real question: if every user runs their own private instance, what
+is left for a multi-user feature like Global Chat or copy trading to run on?
+The answer is that those features were never meant to run on a personal
+instance — a "global" chat with one participant is not a chat, regardless of
+who is allowed to host it. The two features need different topologies, not
+just different permissions:
+
+| Topology | Who connects | What it is for | Class it can hold |
+| --- | --- | --- | --- |
+| **Personal instance** | One user, only that user's own clients | An individual's automation state — M9's agent strategies, positions, decision log | A, under the conditions above |
+| **Shared instance** | Many users, by design | Global Chat, copy trading — anything that requires more than one participant to mean anything | B only, regardless of operator |
+
+A shared instance's *operator* can still be any of the three parties this ADR
+already covers — Cachy (the default Class B case, satisfying ADR-0001's four
+conditions), a whitelabel operator running community features for their own
+users ([M5](../MILESTONES.md#m5--community--whitelabel-edition)), or a private
+group such as a trading team hosting one for themselves. What never changes is
+that a shared instance carries Class B data regardless of who runs it — the
+minimality and non-essentiality conditions apply the same way whether Cachy or
+a whitelabel customer operates it, because the risk (personal data held on a
+server, read by whoever controls it) is identical.
+
+A single user can reasonably use both at once with no conflict: their own
+personal instance for private automation, plus a connection to a shared
+instance for chat. Neither instance can see the other's data — the boundary is
+enforced by them being different databases, not by policy. This is also why
+`cloudHost`/`cloudDbName` are user-configurable settings rather than a single
+hardcoded Cachy endpoint: the same mechanism serves a Cachy-run shared
+instance, a whitelabel operator's own, or eventually a private group's, without
+the app needing to know which.
+
 ### 2. Class C — public data that is not the user's
 
 A third class, because two were not enough:

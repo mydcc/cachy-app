@@ -62,6 +62,30 @@ Nothing here blocks M0–M3. It becomes worth scoping once
 core is proven out — building the companion before the core it wraps exists
 would guess at an interface that doesn't exist yet.
 
+## Impact on the build — this is not a side effect of `npm run build`
+
+Worth stating plainly, because "just build an extra APK" understates it. The
+companion is a **separate Android project** (Kotlin, Gradle, Android SDK) with
+its own toolchain, its own CI, its own signing keys, its own versioning, and
+its own distribution path (Play Store or direct APK). None of that runs
+through Vite or semantic-release, and it does not become buildable by adding a
+step to `package.json`.
+
+The one genuinely shared piece is the alert evaluation logic, and *how* it is
+shared is itself a real decision with three candidates, not a detail:
+
+| Option | What it costs |
+| --- | --- |
+| **Rust → WASM and native**, called from Kotlin via JNI, cross-compiled with `cargo-ndk` | One source for both browser and Android — matches the existing `technicals-wasm/` precedent — but [`FEAT-0027`](../features/FEAT-0027-alert-engine.md)'s core would need to be written in Rust rather than TypeScript |
+| **Embed a JS engine** (e.g. QuickJS) in the Android app and run the TS core as-is | Core stays TypeScript, no rewrite — but adds a real runtime dependency and its own memory/battery footprint inside a foreground service, which is exactly the resource-conscious part of this idea |
+| **Reimplement in Kotlin from spec**, held honest by a conformance suite mirroring [`FEAT-0018`](../features/FEAT-0018-adapter-conformance-suite.md)'s pattern | Least new infrastructure, but two implementations that must be proven to agree rather than merely intended to — the "RSI crossed 30" correctness risk this idea exists to avoid doesn't disappear, it moves into test discipline |
+
+None of this needs deciding now — [`FEAT-0027`](../features/FEAT-0027-alert-engine.md)
+ships as a normal part of the web app regardless, since the portability
+requirement (plain TS/WASM, no DOM) is cheap to satisfy up front and keeps all
+three options open. This table exists so the decision is informed when it's
+actually made, not so it gets made today.
+
 ## What would have to be true first
 
 - [`FEAT-0027`](../features/FEAT-0027-alert-engine.md) built with a portable,
