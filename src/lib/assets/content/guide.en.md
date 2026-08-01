@@ -154,6 +154,23 @@ The "Deep Dive" section offers granular insights into your trading behavior:
 
 Access settings via the Gear icon.
 
+### App Access Token
+
+Because you run Cachy yourself, there is a shared secret between your browser and your own server: the **App Access Token** under Settings → Connections.
+
+This is **not** an exchange key and not an account password. It makes sure nobody but you can use your server's API routes.
+
+The token has to be in **two** places, and they have to match:
+
+1. In the `.env` file on your server, as `APP_ACCESS_TOKEN`.
+2. Here, in the **App Access Token** field.
+
+**How you notice one is missing:** the app starts normally, but the balance never loads, positions stay empty, and the browser console shows `401 (Unauthorized)`. If either half is missing the server refuses every request — deliberately with the same message in all cases, so it never reveals which half is at fault.
+
+After a page load it can take a few seconds for the token to appear in the field: it is decrypted from local storage in the background.
+
+How to generate the token and put it into `.env` is covered in the installation guide (`docs/INSTALL.md`).
+
 ### API Provider
 
 - **Bitunix (Recommended):** Supports full Websocket integration (real-time data), position syncing, and order management.
