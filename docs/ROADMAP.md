@@ -3921,6 +3921,127 @@ undecided rather than guessed at.
 `npm test` stays at 850 passing, 6 skipped; `npm run check` stays at 0
 errors.
 
+**Pass one hundred seventeen: 27-file batch, 44 → 17.** The last batch
+before `src/lib/physics/StressLogic.ts` (17 warnings, deliberately
+reserved for last — see its own entry below) — every other file in the
+project is now warning-free. One more `docs/TODO.md` finding, left
+undecided rather than guessed at:
+
+- `src/utils/indicators.ts` — `JSIndicators.ichimoku()`'s `laggingSpan2`
+  parameter is accepted (both call sites pass a real value: the user's
+  configured `displacement` setting from `technicalsCalculator.ts`, or a
+  literal in the test) but never read by the function body. The return
+  object's `lagging` field is unconditionally an empty `Float64Array(0)`
+  — the Chikou Span was never implemented. Confirmed inert via `grep
+  -rn "\.lagging\b"` across `src/`: nothing reads the field, so this is
+  a documented gap, not a live bug. Documented as `docs/TODO.md` item
+  16: implementing it needs a new `close`-series parameter threaded
+  through a shared indicator function (affects every caller), and
+  picking the wrong shift direction would ship a wrong-but-plausible
+  chart line — not a guess to make while clearing an unused-parameter
+  warning. Parameter kept with an `eslint-disable-next-line` pointing
+  at the TODO entry.
+
+Two more scrambled-argument-order bugs in a benchmark script, the same
+shape as pass 113's `stochrsi.bench.ts`/`technicals.bench.ts` finding:
+
+- `tests/benchmarks/worker_simulation.bench.ts` called
+  `calculateIndicatorsFromArrays(times, opens, highs, lows, closes,
+  volumes, settings as any, enabledIndicators, pool)` — the real
+  signature is `(highs, lows, closes, opens, volumes, times,
+  settings?)`, seven parameters, not nine. Fixed the argument order and
+  dropped the two parameters the function doesn't have (`enabledIndicators`,
+  `pool` — internal buffer pooling is handled by a module-level
+  singleton, not a caller-supplied instance), removing the now-dead
+  `BufferPool` import along with them. Verified via `npx tsx
+  tests/benchmarks/worker_simulation.bench.ts`: still runs and prints
+  real timing output.
+
+Everything else was mechanical, mostly single-file 1-warning fixes:
+
+- `src/stores/news.svelte.ts`, `storageHelper.ts`: `catch (e: any)` →
+  `catch (e)` with `e instanceof Error` narrowing, the established
+  pattern.
+- `src/stores/notes.svelte.ts`, `preset.svelte.ts`, `results.svelte.ts`:
+  `notifyTimer: any` → `ReturnType<typeof setTimeout> | null`, the same
+  timer convention as passes 111/112/116.
+- `src/stores/preset.test.ts`: an unused `curr` parameter on
+  `presetState.update((curr) => ({...}))` — the updater ignores its
+  input and returns a literal, so the parameter was dropped.
+- `src/stores/settings.security.test.ts`: `{ algorithm: { name:
+  "PBKDF2" } } as any` for a mocked `getOrGenerateDeviceKey` →
+  `as unknown as CryptoKey`, matching the real method's return type.
+- `src/tests/performance/technicals_cache.bench.ts`: `mockSettings: any`
+  → `as unknown as IndicatorSettings` at the value, dropping the
+  declared-type-then-cast-past-it pattern (pass 116's
+  `incrementalCache.test.ts` precedent).
+- `src/tests/security/rss_fetch_ssrf.test.ts`: a fake SvelteKit request
+  event `as any` → `as Parameters<typeof POST>[0]`.
+- `src/types/apiSchemas.ts`: an unused trailing `val` capture group
+  parameter on a `.replace()` callback in `sanitizeErrorMessage()` —
+  the replacement string only ever uses `q1`/`key`/`sep`/`q2`, dropped.
+- `src/types/bitget.ts`: `BitgetWSMessage.data: any[]` documented with
+  an `eslint-disable-next-line` — shape varies by channel, the same
+  reasoning as `BitunixWSMessage.data`.
+- `src/utils/confluenceAnalyzer.ts`: an unused `DivergenceItem` type
+  import, confirmed via grep to be the only reference in the file.
+- `src/utils/divergenceScanner.test.ts`: an unused `DivergenceResult`
+  type import, same shape.
+- `src/utils/incremental_indicators.test.ts`: a dead `const prevData =
+  data.slice(0, data.length - 1);` — the test hand-computes
+  `prevAvgGain`/`prevAvgLoss`/`prevPrice` from literal comments instead
+  of deriving them from `prevData`, confirmed unused.
+- `src/utils/networkMonitor.test.ts`: an unused `const monitor = new
+  NetworkMonitor();` in the "attach event listener" test — the
+  constructor's side effect is what's being asserted, not the
+  instance; dropped the assignment.
+- `src/utils/server/bitget.ts`, `bitunix.ts`: `body: any = null` on the
+  two signature generators → `body: unknown = null` — both only ever
+  check `typeof body === "string"` or `JSON.stringify(body)`, no
+  narrowing needed.
+- `src/utils/server/requestUtils.ts`: `body?: any` on
+  `extractApiCredentials()` → `body?: unknown`, narrowed once into a
+  local `Record<string, unknown>` instead of three separate `typeof
+  body === 'object'` checks each re-widening the same value.
+- `src/utils/technicalsPresenter.ts`: `getPivotsArray(pivots: any)` →
+  `TechnicalsData["pivots"]`, the real (optional) type from
+  `technicalsTypes.ts`.
+- `tests/benchmarks/rolling_stats.bench.ts`, `stats_calc.bench.ts`:
+  synthetic `JournalEntry` fixtures built with only the fields each
+  benchmark actually reads (`totalNetProfit`, `riskAmount`, ...), cast
+  `as any` → `as unknown as JournalEntry`, matching the established
+  bench-fixture convention (never a direct cast, since the fixture is
+  always partial).
+- `tests/benchmarks/safeJson.bench.ts`: `return jsonString as any;` in
+  the legacy-comparison function → `return jsonString;` — the
+  parameter is already typed `string`, the cast was a no-op.
+- `tests/benchmarks/syncService_perf.test.ts`: an unused `end`
+  parameter on a mocked `fetchBitunixKlines` implementation, dropped
+  (the mock doesn't use the requested end time).
+- `tests/unit/logger_security.test.ts`: an unused `event` from `const
+  [event, entry] = spy.mock.calls[0];` → `const [, entry] = ...`
+  (elision).
+- `tests/unit/webGpuCalculator.test.ts`: `(result as any[]).length` →
+  `(result as Float32Array[]).length`, `compute()`'s real return type.
+
+Verified: all 27 files pass `npm run check` (0 errors). The 12 files
+excluded from `tsconfig.json` (test/bench files) checked via the
+scratch-tsconfig technique; the remaining errors there — `crypto-js`
+missing types, `trackingService.ts`'s `_mtm`, `webGpuCalculator.ts`'s
+ambient `GPUBufferUsage`/`GPUMapMode`, and two `Kline`/plain-number
+mismatches in `technicals_cache.bench.ts` and `syncService_perf.test.ts`
+— all confirmed identical to each file's untouched `git show HEAD:...`
+baseline via a byte-for-byte error diff, left alone. `npm test`
+unchanged at 850 passing, 6 skipped.
+
+Mid-pass, this branch's local checkout was found to be 18 commits
+behind `origin` (a stale container clone) — passes 99 through 116 had
+already landed on the remote branch that this local state didn't have.
+Reconciled by hard-resetting to `origin`'s tip and re-applying only the
+fixes still genuinely needed against the real current file list, rather
+than risking a duplicate or conflicting diff against already-pushed
+work.
+
 ### Code health
 
 | # | Item | Status |
@@ -3928,7 +4049,7 @@ errors.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 44 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the remaining 17 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

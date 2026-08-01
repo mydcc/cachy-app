@@ -17,7 +17,7 @@
 
 
 import { describe, it, expect } from "vitest";
-import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
+import { DivergenceScanner } from "./divergenceScanner";
 
 describe("DivergenceScanner", () => {
   it("should deduplicate divergences and keep the widest one", () => {

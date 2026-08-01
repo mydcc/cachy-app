@@ -31,7 +31,7 @@ describe('PresetManager', () => {
     });
 
     it('should update state using update method', () => {
-        presetState.update((curr) => ({
+        presetState.update(() => ({
             availablePresets: ['preset1', 'preset2'],
             selectedPreset: 'preset1'
         }));

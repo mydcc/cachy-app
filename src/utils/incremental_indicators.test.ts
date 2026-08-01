@@ -89,7 +89,6 @@ describe('Incremental Indicators', () => {
 
     // Let's reconstruct the state at T-1
     // Data up to T-1: [100 ... 103]
-    const prevData = data.slice(0, data.length - 1);
 
     // We can't easily extract avgGain/Loss from `rsi()` output.
     // We have to trust that updateRsi implements the Wilder smoothing correctly.

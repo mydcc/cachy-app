@@ -535,6 +535,39 @@ call site it was written for. The parameter itself is kept (not
 deleted) with a `docs/TODO.md` pointer, since `uiManager.ts` still
 depends on its position in the call signature.
 
+## 16. Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
+
+**Roadmap item 21.** Found while typing/cleaning an unused-parameter
+warning on `JSIndicators.ichimoku()`.
+
+`ichimoku(high, low, conversionPeriod, basePeriod, spanBPeriod,
+laggingSpan2)` in `src/utils/indicators.ts` takes a `laggingSpan2`
+parameter — both call sites pass a real value (`technicalsCalculator.ts`
+passes the user's configured `displacement` setting, `indicators.test.ts`
+passes a literal `5`) — but the function body never references it.
+Conversion, base, and both spans (A and B, each correctly shifted forward
+by `displacement`) are all computed; the return object's `lagging` field
+is unconditionally `new Float64Array(0)`, an empty array.
+
+**Consequence:** none currently, because nothing reads `.lagging` —
+`grep -rn "\.lagging\b"` across `src/` turns up only the assignment
+itself. `technicalsCalculator.ts` only destructures `conversion`/`base`/
+`spanA`/`spanB` from the result. So this is a documented-but-inert gap,
+not a live bug: standard Ichimoku display includes the Chikou (lagging)
+span, and this implementation silently omits it rather than computing it
+wrong.
+
+**The decision:** either implement the lagging span (the Chikou Span is
+typically `close` shifted *backward* by `laggingSpan2` periods, which
+needs `close` threaded into `ichimoku()` — it isn't currently a
+parameter) and wire `.lagging` into whatever chart component ends up
+displaying it, or drop the parameter and rename/document `lagging` as
+"reserved, not implemented" if Chikou Span support isn't planned. Left
+as a lint-pass finding rather than guessed at inline: adding a new
+parameter (`close`) to a shared indicator function's signature affects
+every caller, and picking the wrong shift direction or source series
+would ship a wrong-but-plausible-looking chart line.
+
 ## Add new items below
 
 <!--

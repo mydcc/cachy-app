@@ -58,6 +58,10 @@ export interface BitgetWSArg {
 export interface BitgetWSMessage {
   action: string;
   arg: BitgetWSArg;
+  // Shape varies by channel (klines, orders, positions, tickers, ...) — see
+  // bitgetWs.ts's handleMessage() for the actual per-channel reads. Same
+  // reasoning as BitunixWSMessage.data.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
   ts?: number;
 }

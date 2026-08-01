@@ -87,9 +87,9 @@ class NewsStore {
       } else {
         this.sentiment = null;
       }
-    } catch (e: any) {
+    } catch (e) {
       logger.error("market", "Refresh failed", e);
-      this.error = e.message || "Failed to load news";
+      this.error = (e instanceof Error ? e.message : null) || "Failed to load news";
       // Update fetch time even on error to enforce cooldown
       this.lastFetchTime = Date.now();
     } finally {

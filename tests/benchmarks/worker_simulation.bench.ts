@@ -1,6 +1,6 @@
 
 import { calculateIndicatorsFromArrays } from '../../src/utils/technicalsCalculator';
-import { BufferPool } from '../../src/utils/bufferPool';
+import type { IndicatorSettings } from '../../src/types/indicators';
 import { performance } from 'perf_hooks';
 
 // Setup Data
@@ -29,17 +29,6 @@ const settings = {
     bb: { length: 20, stdDev: 2 },
     atr: { length: 14 }
 };
-const enabledIndicators = {
-    rsi: true,
-    stochastic: true,
-    macd: true,
-    ema: true,
-    bb: true,
-    atr: true
-};
-
-const pool = new BufferPool();
-
 // Simulation of Incremental State
 class IncrementalState {
     prevEma = 100;
@@ -87,8 +76,8 @@ console.log('--- Worker Simulation Benchmark ---\n');
 
 benchmark('Current: Full Recalc (1000 candles)', () => {
     calculateIndicatorsFromArrays(
-        times, opens, highs, lows, closes, volumes,
-        settings as any, enabledIndicators, pool
+        highs, lows, closes, opens, volumes, times,
+        settings as unknown as IndicatorSettings
     );
 }, 1000);
 
