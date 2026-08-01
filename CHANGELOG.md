@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.5...v1.0.0-beta.6) (2026-08-01)
+
+
+### Bug Fixes
+
+* wait for secret decryption before sending guarded API requests ([a569743](https://github.com/mydcc/cachy-app/commit/a569743bb730781f4fb5b130bbb47473be4a03ce))
+
 # [1.0.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.4...v1.0.0-beta.5) (2026-08-01)
 
 
