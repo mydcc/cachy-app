@@ -192,9 +192,14 @@ export const app = {
     let symbolDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     tradeStoreUnsubscribe = tradeState.subscribe((state) => {
-      const provider = settingsState.apiProvider;
+      // Canonical (Bitunix-style) form: marketWatcher.register()/unregister()
+      // re-normalize with "bitunix" internally regardless of what's passed
+      // in, and normalizeSymbol never strips a "_UMCBL" suffix for a
+      // non-bitget provider - so normalizing by the active provider here
+      // would, under Bitget, permanently bake the suffix into the request
+      // key marketWatcher tracks for the main trading symbol.
       const newSymbol = state.symbol
-        ? normalizeSymbol(state.symbol, provider)
+        ? normalizeSymbol(state.symbol, "bitunix")
         : "";
 
       if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
@@ -223,7 +228,9 @@ export const app = {
       const settings = settingsState;
 
       if (state.symbol) {
-        const normSymbol = normalizeSymbol(state.symbol, settings.apiProvider);
+        // marketState.data is always keyed by the canonical (Bitunix-style)
+        // symbol regardless of active provider (see MarketOverview.svelte).
+        const normSymbol = normalizeSymbol(state.symbol, "bitunix");
         const marketData = data[normSymbol];
 
         if (marketData && marketData.lastPrice) {
