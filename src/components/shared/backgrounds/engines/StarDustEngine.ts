@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { BaseEngine, type EngineContext } from './BaseEngine';
+import { BaseEngine } from './BaseEngine';
 
 export class StarDustEngine extends BaseEngine {
     private starDustPoints: THREE.Points | null = null;
@@ -69,7 +69,7 @@ export class StarDustEngine extends BaseEngine {
         this.container.add(this.starDustPoints);
     }
 
-    public update(time: number, delta: number): void {
+    public update(): void {
         // StarDust implementation
     }
     

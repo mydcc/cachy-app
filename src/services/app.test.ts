@@ -22,6 +22,7 @@ import { tradeState, INITIAL_TRADE_STATE } from "../stores/trade.svelte";
 import { resultsState, INITIAL_RESULTS_STATE } from "../stores/results.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { journalState } from "../stores/journal.svelte";
+import type { JournalEntry } from "../stores/types";
 import { app } from "./app";
 import { Decimal } from "decimal.js";
 import { apiService } from "./apiService";
@@ -53,7 +54,7 @@ vi.mock("./apiService", () => ({
 describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
   beforeEach(() => {
     // Deep copy and set initial state for each test to ensure isolation
-    const state: any = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE));
+    const state: typeof INITIAL_TRADE_STATE = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE));
     // Ensure analysisTimeframe is present
     state.analysisTimeframe = "1h";
     tradeState.set(state);
@@ -280,7 +281,7 @@ describe("app service - ATR and Locking Logic", () => {
 
     // Since apiService methods are mocked via factory, we should just assign the mock implementation
     // or ensure types match. Let's try mocking implementation directly.
-    (apiService.fetchBitunixKlines as any) = vi
+    apiService.fetchBitunixKlines = vi
       .fn()
       .mockResolvedValue(mockKlines);
 
@@ -483,7 +484,7 @@ describe("app service - ATR and Locking Logic", () => {
             tradeType: "short",
             status: "Won",
             entryPrice: new Decimal(20000),
-          } as any,
+          },
           {
             id: 2,
             tradeId: "2",
@@ -492,8 +493,8 @@ describe("app service - ATR and Locking Logic", () => {
             tradeType: "long",
             status: "Won",
             entryPrice: new Decimal(1500),
-          } as any,
-        ]);
+          },
+        ] as unknown as JournalEntry[]);
       });
 
     await app.syncBitunixHistory();

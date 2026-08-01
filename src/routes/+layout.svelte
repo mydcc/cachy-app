@@ -154,8 +154,8 @@ import { afterNavigate } from "$app/navigation";
             }
 
             // Stream ended (server closed connection) — fall through to retry
-          } catch (e: any) {
-            if (e.name === 'AbortError') return; // Cleanup requested, stop entirely
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') return; // Cleanup requested, stop entirely
             if (import.meta.env.DEV) {
               console.error("CL: Failed to consume log stream", e);
             }
@@ -351,7 +351,7 @@ import { afterNavigate } from "$app/navigation";
     if (!browser) return;
     // Watch chartHistoryLimit and refresh history if it changes
     // This allows immediate response to setting changes without reload
-    const _limit = settingsState.chartHistoryLimit;
+    void settingsState.chartHistoryLimit;
     import("../services/marketWatcher").then(({ marketWatcher }) => {
       marketWatcher.refreshActiveHistory();
     });

@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tradeService } from './tradeService';
 import { omsService } from './omsService';
+import type { OMSPosition } from './omsTypes';
 import { Decimal } from 'decimal.js';
 
 // Mock dependencies
@@ -79,7 +80,7 @@ describe('TradeService Race Condition Hardening', () => {
     // 1. Initial Check: Return stale position
     // 2+. Post-Sync Check: Return empty array
     vi.mocked(omsService.getPositions)
-      .mockReturnValueOnce([stalePosition as any])
+      .mockReturnValueOnce([stalePosition as OMSPosition])
       .mockReturnValue([]);
 
     // Mock API response for Sync

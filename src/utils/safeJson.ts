@@ -30,8 +30,14 @@
  * Input:  {"id": 1234567890123456789, "val": 12345.123456789012}
  * Output: {"id": "1234567890123456789", "val": "12345.123456789012"}
  */
+// `T = any`: ~33 of this function's 37 call sites across the codebase call
+// it without an explicit type argument, relying on the loose default so the
+// parsed result can be assigned directly wherever they need it — narrowing
+// the default to `unknown` would require an explicit cast at every one of
+// them.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function safeJsonParse<T = any>(jsonString: string): T {
-    if (!jsonString) return jsonString as any;
+    if (!jsonString) return jsonString as unknown as T;
     if (typeof jsonString !== 'string') return jsonString;
 
     let result = '';

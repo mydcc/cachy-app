@@ -43,7 +43,7 @@ vi.mock("../services/cryptoService", () => ({
       .mockResolvedValue('{"key":"decrypted-key","secret":"decrypted-secret"}'),
     getOrGenerateDeviceKey: vi
       .fn()
-      .mockResolvedValue({ algorithm: { name: "PBKDF2" } } as any),
+      .mockResolvedValue({ algorithm: { name: "PBKDF2" } } as unknown as CryptoKey),
   },
 }));
 

@@ -30,7 +30,9 @@ export interface CmcCoinMetadata {
   slug: string;
   date_added: string;
   tags: string[];
-  platform: any;
+  // CMC's raw API field: null for native coins, an object describing the
+  // host chain for tokens — not read anywhere in this codebase yet.
+  platform: unknown;
   category: string;
 }
 

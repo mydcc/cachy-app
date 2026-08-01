@@ -37,7 +37,7 @@ import { DialogWindow } from "../lib/windows/implementations/DialogWindow.svelte
 vi.spyOn(windowManager, "open").mockImplementation(() => {});
 
 describe("ModalManager", () => {
-    let env: any;
+    let env: typeof import("$app/environment");
     let originalBrowser: boolean;
     let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
@@ -48,16 +48,16 @@ describe("ModalManager", () => {
 
         env = await import("$app/environment");
         originalBrowser = env.browser;
-        env.browser = true; // Default to browser environment
+        (env as { browser: boolean }).browser = true; // Default to browser environment
     });
 
     afterEach(() => {
         consoleWarnSpy.mockRestore();
-        env.browser = originalBrowser;
+        (env as { browser: boolean }).browser = originalBrowser;
     });
 
     it("should resolve to false in SSR environment", async () => {
-        env.browser = false;
+        (env as { browser: boolean }).browser = false;
 
         const result = await modalState.show("Title", "Message", "alert");
 

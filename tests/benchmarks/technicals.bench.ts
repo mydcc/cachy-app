@@ -2,7 +2,7 @@
 import { calculateIndicatorsFromArrays } from '../../src/utils/technicalsCalculator';
 import { JSIndicators } from '../../src/utils/indicators';
 import { DivergenceScanner } from '../../src/utils/divergenceScanner';
-import { BufferPool } from '../../src/utils/bufferPool';
+import type { IndicatorSettings } from '../../src/types/indicators';
 
 // Setup data
 const LENGTH = 5000; // Increased length to make O(N*K) more visible
@@ -34,28 +34,7 @@ const settings = {
     cci: { length: 20 },
     ao: { fastLength: 5, slowLength: 34 },
     ichimoku: { conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52, displacement: 26 },
-};
-
-const enabledIndicators = {
-    rsi: true,
-    macd: true,
-    bb: true,
-    stochastic: true,
-    adx: true,
-    cci: true,
-    ao: true,
-    ichimoku: true,
-    ema: true,
-    // Add pro indicators if enabled by default
-    supertrend: true,
-    atrtrailingstop: true,
-    obv: true,
-    volumeprofile: true,
-    vwap: true,
-    parabolicsar: true,
-    mfi: true,
-    choppiness: true,
-};
+} as unknown as IndicatorSettings;
 
 function runBench(name: string, fn: () => void, iterations = 100) {
     // Warmup
@@ -71,31 +50,20 @@ function runBench(name: string, fn: () => void, iterations = 100) {
     console.log(`${name}: ${duration.toFixed(2)}ms for ${iterations} ops (${opsPerSec.toFixed(0)} ops/s) -> ${(duration/iterations).toFixed(3)} ms/op`);
 }
 
-runBench('calculateIndicatorsFromArrays (Full - No Pool)', () => {
+// calculateIndicatorsFromArrays's real signature is
+// (highs, lows, closes, opens, volumes, times, settings?) — it uses an
+// internal buffer pool singleton and always calculates every configured
+// indicator (no separate enabled-indicators or external-pool params), so
+// there's only one call shape to benchmark here.
+runBench('calculateIndicatorsFromArrays (Full)', () => {
     calculateIndicatorsFromArrays(
-        times,
-        opens,
         highs,
         lows,
         closes,
-        volumes,
-        settings as any,
-        enabledIndicators
-    );
-}, 50);
-
-const pool = new BufferPool();
-runBench('calculateIndicatorsFromArrays (Full - With Pool)', () => {
-    calculateIndicatorsFromArrays(
-        times,
         opens,
-        highs,
-        lows,
-        closes,
         volumes,
-        settings as any,
-        enabledIndicators,
-        pool
+        times,
+        settings
     );
 }, 50);
 

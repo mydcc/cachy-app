@@ -148,8 +148,8 @@ function animate(time: number) {
     requestAnimationFrame(animate);
 
     const t = time * 0.001;
-    galaxyEngine?.update(t, 0.016);
-    starDustEngine?.update(t, 0.016);
+    galaxyEngine?.update(t);
+    starDustEngine?.update();
 
     renderer.render(scene, camera);
 }

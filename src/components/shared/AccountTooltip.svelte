@@ -20,8 +20,23 @@
   import { _ } from "../../locales/i18n";
   import { Decimal } from "decimal.js";
 
+  type FinancialValue = number | string | Decimal;
+
+  interface AccountData {
+    available?: FinancialValue;
+    margin?: FinancialValue;
+    marginCoin?: string;
+    frozen?: FinancialValue;
+    transfer?: FinancialValue;
+    bonus?: FinancialValue;
+    positionMode?: string;
+    crossUnrealizedPNL?: FinancialValue;
+    isolationUnrealizedPNL?: FinancialValue;
+    totalUnrealizedPnL?: FinancialValue;
+  }
+
   interface Props {
-    account: any;
+    account: AccountData;
   }
 
   let { account }: Props = $props();

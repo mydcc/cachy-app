@@ -18,10 +18,22 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
 
+    interface PerformanceData {
+        totalPnl?: number;
+        winRate?: number;
+        profitFactor?: number;
+        totalTrades?: number;
+        maxDrawdown?: number;
+    }
+
+    interface QualityData {
+        avgR?: number;
+    }
+
     interface Props {
         // Props - Metrics from derived stores
-        performanceData: any;
-        qualityData: any;
+        performanceData: PerformanceData;
+        qualityData: QualityData;
         isPro?: boolean;
         minimal?: boolean;
     }

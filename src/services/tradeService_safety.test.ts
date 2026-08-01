@@ -81,7 +81,7 @@ describe("TradeService Safety - Flash Close", () => {
 
         // 2. Mock signedRequest to throw Network Error
         // This simulates a timeout where we don't know if the server got the request
-        const spy = vi.spyOn(tradeService as any, "signedRequest").mockRejectedValue(new Error("Network Timeout"));
+        vi.spyOn(tradeService, "signedRequest").mockRejectedValue(new Error("Network Timeout"));
 
         // 3. Mock cancelAllOrders (Best Effort) to succeed so we reach the close logic
         // tradeService.cancelAllOrders calls signedRequest too, so we need to handle that.
@@ -120,7 +120,7 @@ describe("TradeService Safety - Flash Close", () => {
         // 2. Mock signedRequest to throw Terminal Error (BitunixApiError)
         // Simulate "Invalid Qty" or similar
         const apiError = new BitunixApiError(400, "Invalid Quantity");
-        vi.spyOn(tradeService as any, "signedRequest").mockRejectedValue(apiError);
+        vi.spyOn(tradeService, "signedRequest").mockRejectedValue(apiError);
         vi.spyOn(tradeService, "cancelAllOrders").mockResolvedValue(undefined);
 
         // 3. Execute — now returns { success: false } instead of throwing
@@ -155,7 +155,7 @@ describe("TradeService Safety - Flash Close", () => {
         vi.spyOn(tradeService, "cancelAllOrders").mockRejectedValue(new Error("API Error"));
 
         // 3. Mock signedRequest to succeed for the close order
-        const requestSpy = vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({
+        const requestSpy = vi.spyOn(tradeService, "signedRequest").mockResolvedValue({
             code: 0, msg: "success"
         });
 

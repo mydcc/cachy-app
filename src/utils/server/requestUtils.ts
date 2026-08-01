@@ -24,7 +24,7 @@ export interface ApiCredentials {
  * @param body Optional parsed JSON body
  * @returns Object containing credentials
  */
-export function extractApiCredentials(request: Request, body?: any): ApiCredentials {
+export function extractApiCredentials(request: Request, body?: unknown): ApiCredentials {
     const headers = request.headers;
 
     // 1. Try Headers (Case-insensitive get)
@@ -33,15 +33,10 @@ export function extractApiCredentials(request: Request, body?: any): ApiCredenti
     let passphrase = headers.get("x-api-passphrase") || undefined;
 
     // 2. Fallback to Body (if provided)
-    if (!apiKey && body && typeof body === 'object') {
-        if (body.apiKey) apiKey = String(body.apiKey);
-    }
-    if (!apiSecret && body && typeof body === 'object') {
-        if (body.apiSecret) apiSecret = String(body.apiSecret);
-    }
-    if (!passphrase && body && typeof body === 'object') {
-        if (body.passphrase) passphrase = String(body.passphrase);
-    }
+    const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : undefined;
+    if (!apiKey && b?.apiKey) apiKey = String(b.apiKey);
+    if (!apiSecret && b?.apiSecret) apiSecret = String(b.apiSecret);
+    if (!passphrase && b?.passphrase) passphrase = String(b.passphrase);
 
     return { apiKey, apiSecret, passphrase };
 }

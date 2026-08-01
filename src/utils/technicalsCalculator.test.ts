@@ -18,6 +18,7 @@
 import { describe, it, expect } from "vitest";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import { Decimal } from "decimal.js";
+import type { IndicatorSettings } from "../types/indicators";
 
 describe("technicalsCalculator reproduction", () => {
   it("should return 0 for EMA(200) if insufficient data", () => {
@@ -33,7 +34,7 @@ describe("technicalsCalculator reproduction", () => {
 
     const result = calculateAllIndicators(klines, {
       ema: { ema3: { length: 200 }, source: "close" }
-    } as any, { ema: true, bb: true });
+    } as unknown as IndicatorSettings);
 
     // EMA(200) should NOT be present if insufficient data
     const ema200 = result.movingAverages.find(ma => ma.params === "200");
@@ -53,7 +54,7 @@ describe("technicalsCalculator reproduction", () => {
 
     const result = calculateAllIndicators(klines, {
         bollingerBands: { length: 20 }
-    } as any, { bollingerBands: true });
+    } as unknown as IndicatorSettings);
 
     expect(result.volatility?.bb).toBeDefined();
     expect(result.volatility?.bb?.upper).toBeNaN();
@@ -74,7 +75,7 @@ describe("technicalsCalculator reproduction", () => {
   
       const result = calculateAllIndicators(klines, {
           bollingerBands: { length: 20, stdDev: 2 }
-      } as any, { bollingerBands: true });
+      } as unknown as IndicatorSettings);
   
       expect(result.volatility?.bb).toBeDefined();
       expect(result.volatility?.bb?.upper).not.toBeNaN();

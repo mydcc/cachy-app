@@ -21,6 +21,7 @@
   import { tradeState } from "../../../stores/trade.svelte";
   import { _ } from "../../../locales/i18n";
   import { markdown } from "../../../actions/markdown";
+  import type { TranslationKey } from "../../../locales/schema";
 
   let inputEl: HTMLTextAreaElement | undefined = $state();
   let messagesContainer: HTMLDivElement | undefined = $state();
@@ -38,7 +39,7 @@
   $effect(() => {
     if (messagesContainer) {
       // Access length to trigger effect
-      const _len = aiState.messages.length;
+      void aiState.messages.length;
       // Use requestAnimationFrame or timeout to ensure DOM update
       setTimeout(() => {
         if(messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -59,8 +60,8 @@
         inputEl.style.height = "auto";
         inputEl.focus();
       }
-    } catch (e: any) {
-      errorMessage = e.message || "Error";
+    } catch (e) {
+      errorMessage = e instanceof Error ? e.message : "Error";
       if (errorTimeout) clearTimeout(errorTimeout);
       errorTimeout = setTimeout(() => (errorMessage = ""), 3000);
     } finally {
@@ -281,7 +282,7 @@
               >
             </div>
           {:else}
-            {$_(errorMessage as any) || errorMessage || aiState.error}
+            {$_(errorMessage as TranslationKey) || errorMessage || aiState.error}
           {/if}
         </div>
       {/if}

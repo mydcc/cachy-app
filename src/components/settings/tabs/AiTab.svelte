@@ -17,7 +17,7 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
-    import { settingsState } from "../../../stores/settings.svelte";
+    import { settingsState, type AiProvider } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
     import { uiState } from "../../../stores/ui.svelte";
 
@@ -92,7 +92,7 @@
                                     : ''}"
                                 onclick={() =>
                                     (settingsState.aiProvider =
-                                        provider.value as any)}
+                                        provider.value as AiProvider)}
                             >
                                 {provider.label}
                             </button>
@@ -321,7 +321,7 @@
                 </div>
                 <div class="flex flex-col gap-2 mb-6">
                     {#if settingsState.discordChannels}
-                        {#each settingsState.discordChannels as channel, i}
+                        {#each settingsState.discordChannels.map((_, i) => i) as i}
                             <div class="flex items-center gap-2">
                                 <input
                                     type="text"

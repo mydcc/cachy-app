@@ -21,12 +21,13 @@
 */
 
 import { WindowBase } from "../WindowBase.svelte";
+import type { WindowOptions } from "../types";
 import MarkdownView from "./MarkdownView.svelte";
 
 export class MarkdownWindow extends WindowBase {
     content: string;
 
-    constructor(content: string, title: string, options: any = {}) {
+    constructor(content: string, title: string, options: WindowOptions = {}) {
         super({
             title,
             windowType: options.windowType ?? 'modal',

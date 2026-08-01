@@ -42,14 +42,14 @@ describe('safeTfToMs', () => {
     });
 
     it('should return default for non-string inputs', () => {
-        expect(safeTfToMs(null as any)).toBe(60000);
-        expect(safeTfToMs(undefined as any)).toBe(60000);
+        expect(safeTfToMs(null as unknown as string)).toBe(60000);
+        expect(safeTfToMs(undefined as unknown as string)).toBe(60000);
     });
 
     it('should respect custom defaultMs argument', () => {
         expect(safeTfToMs('invalid', 12345)).toBe(12345);
         expect(safeTfToMs('', 1000)).toBe(1000);
         expect(safeTfToMs('0m', 2000)).toBe(2000);
-        expect(safeTfToMs(null as any, 5000)).toBe(5000);
+        expect(safeTfToMs(null as unknown as string, 5000)).toBe(5000);
     });
 });

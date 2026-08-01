@@ -22,6 +22,7 @@
  * Encapsulates presentation logic for technical indicators to keep UI dumb.
  */
 
+import type { TechnicalsData } from "../services/technicalsTypes";
 
 interface PivotDisplay {
     label: string;
@@ -91,7 +92,7 @@ export class TechnicalsPresenter {
     /**
      * Prepares Pivot Points for iteration
      */
-    static getPivotsArray(pivots: any): PivotDisplay[] {
+    static getPivotsArray(pivots: TechnicalsData["pivots"]): PivotDisplay[] {
         if (!pivots || !pivots.classic) return [];
 
         const p = pivots.classic;

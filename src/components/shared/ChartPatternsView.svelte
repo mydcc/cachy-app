@@ -19,6 +19,7 @@
     import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
+    import type { ChartPatternDefinition } from "../../services/chartPatterns.types";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { markdown } from "../../actions/markdown";
     import { safeJsonParse } from "../../utils/safeJson";
@@ -109,7 +110,10 @@
         selectedPatternId = id;
     }
 
-    function getLocalizedText(pattern: any, key: string): string {
+    function getLocalizedText(
+        pattern: ChartPatternDefinition | null | undefined,
+        key: "description" | "trading" | "advancedConsiderations" | "performanceStats",
+    ): string {
         // Prioritize explicit property on object since we are not using full i18n keys for this new feature yet
         if (pattern && pattern[key]) {
             return pattern[key];

@@ -57,7 +57,7 @@ export const POST: RequestHandler = async ({ request }) => {
       limit,
     );
     return json({ data: positions });
-  } catch (e: any) {
+  } catch (e) {
 
     const rawMsg = e instanceof Error ? e.message : String(e);
     // Mask sensitive data (SECURITY FIX)
@@ -81,7 +81,7 @@ async function fetchBitunixHistoryPositions(
   apiKey: string,
   apiSecret: string,
   limit: number = 50,
-): Promise<any[]> {
+): Promise<unknown[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_history_positions";
 

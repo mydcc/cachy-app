@@ -248,7 +248,7 @@
 
             const tempColor = new THREE.Color();
 
-            for (const [id, data] of fireStore.elements) {
+            for (const [, data] of fireStore.elements) {
                 if (i >= MAX_INSTANCES) break;
                 if (data.layer !== layer) continue; // Filter by layer
 

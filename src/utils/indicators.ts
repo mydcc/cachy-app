@@ -882,6 +882,9 @@ export const JSIndicators = {
     conversionPeriod: number,
     basePeriod: number,
     spanBPeriod: number,
+    // Accepted but not implemented — see docs/TODO.md item 16 (Chikou Span
+    // is never computed; `lagging` below is always empty).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     laggingSpan2: number,
   ) {
     const len = high.length;

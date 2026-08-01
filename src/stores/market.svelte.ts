@@ -84,7 +84,7 @@ type RawNumeric = string | number | Decimal | null | undefined;
 
 // Raw kline as buffered/received before Decimal normalization — see the
 // RawNumeric doc comment above for why fields aren't just `Decimal`.
-interface RawKline {
+export interface RawKline {
   time: number;
   open: RawNumeric;
   high: RawNumeric;

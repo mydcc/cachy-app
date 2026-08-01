@@ -24,6 +24,10 @@
   import { throttle } from "lodash-es";
 
   interface Props {
+    // Reused across several call sites with differently-shaped line
+    // datasets — no single ChartData<'line'> shape covers all of them,
+    // same reasoning as the sibling chart wrapper components.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     title?: string;
     yLabel?: string;

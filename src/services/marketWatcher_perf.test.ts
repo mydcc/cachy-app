@@ -61,13 +61,23 @@ vi.mock('$app/environment', () => ({
     browser: true
 }));
 
+interface MarketWatcherInternals {
+    stopPolling: () => void;
+    startPolling: () => void;
+    syncSubscriptions: () => void;
+    register: (symbol: string, channel: string, requirement?: "chart" | "stateless") => void;
+    requests: Map<string, Map<string, Map<string, number>>>;
+    pendingRequests: { clear: () => void };
+    _subscriptionsDirty?: boolean;
+}
+
 describe('MarketWatcher Performance', () => {
-    let watcher: any;
+    let watcher: MarketWatcherInternals;
 
     beforeEach(() => {
         vi.useFakeTimers();
         vi.clearAllMocks();
-        watcher = marketWatcher as any;
+        watcher = marketWatcher as unknown as MarketWatcherInternals;
         watcher.stopPolling();
         watcher.requests.clear();
         watcher.pendingRequests.clear();

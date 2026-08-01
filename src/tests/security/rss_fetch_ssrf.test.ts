@@ -34,7 +34,7 @@ describe("POST /api/rss-fetch SSRF Protection", () => {
 
     const event = {
       request: mockRequest
-    } as any;
+    } as Parameters<typeof POST>[0];
 
     const response = await POST(event);
 

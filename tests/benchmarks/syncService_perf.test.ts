@@ -31,7 +31,7 @@ describe('fetchBatchedKlines Performance', () => {
 
   beforeAll(() => {
     // Mock implementation with delay
-    vi.mocked(apiService.fetchBitunixKlines).mockImplementation(async (symbol, interval, limit, start, end) => {
+    vi.mocked(apiService.fetchBitunixKlines).mockImplementation(async (symbol, interval, limit, start) => {
       await new Promise(resolve => setTimeout(resolve, LATENCY_MS));
       // Return dummy klines covering the requested range
       return [

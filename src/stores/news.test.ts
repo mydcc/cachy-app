@@ -17,6 +17,7 @@
 
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import type { NewsItem } from "../services/newsService";
 
 const mockFetchNews = vi.fn();
 const mockAnalyzeSentiment = vi.fn();
@@ -24,8 +25,8 @@ const mockAnalyzeSentiment = vi.fn();
 vi.mock("$app/environment", () => ({ browser: true, dev: true }));
 vi.mock("../services/newsService", () => ({
   newsService: {
-    fetchNews: (...args: any[]) => mockFetchNews(...args),
-    analyzeSentiment: (...args: any[]) => mockAnalyzeSentiment(...args)
+    fetchNews: (symbol?: string) => mockFetchNews(symbol),
+    analyzeSentiment: (news: NewsItem[]) => mockAnalyzeSentiment(news)
   }
 }));
 
@@ -36,8 +37,8 @@ const indexedDBMock = {
 Object.defineProperty(window, 'indexedDB', { value: indexedDBMock });
 
 describe("NewsStore", () => {
-  let newsStore: any;
-  let settingsState: any;
+  let newsStore: typeof import("./news.svelte")["newsStore"];
+  let settingsState: typeof import("./settings.svelte")["settingsState"];
 
   beforeEach(async () => {
     vi.useFakeTimers();

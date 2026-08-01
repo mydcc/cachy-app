@@ -251,12 +251,12 @@
         {/each}
 
         <!-- Spacers for start of month -->
-        {#each Array(getFirstDayOfMonth(mIndex, year)) as _}
+        {#each Array.from({ length: getFirstDayOfMonth(mIndex, year) }, (_, i) => i) as i (i)}
           <div></div>
         {/each}
 
         <!-- Days -->
-        {#each Array(getDaysInMonth(mIndex, year)) as _, dIndex}
+        {#each Array.from({ length: getDaysInMonth(mIndex, year) }, (_, i) => i) as dIndex}
           {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
           {@const entry = dataMap[dateStr]}
 

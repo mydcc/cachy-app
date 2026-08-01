@@ -79,7 +79,7 @@ describe('NetworkMonitor', () => {
   });
 
   it('should initialize and attach event listener', () => {
-    const monitor = new NetworkMonitor();
+    new NetworkMonitor();
     expect(conn().addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
 

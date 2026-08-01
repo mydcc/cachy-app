@@ -28,7 +28,7 @@ class PresetManager {
     this.selectedPreset = next.selectedPreset;
   }
 
-  private notifyTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   subscribe(fn: (value: PresetState) => void) {
     const getSnapshot = () => ({

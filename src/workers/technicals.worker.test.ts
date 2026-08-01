@@ -19,12 +19,6 @@ import { describe, it, expect } from "vitest";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { Decimal } from "decimal.js";
 
-// Mock worker environment
-const self = {
-  onmessage: null as any,
-  postMessage: null as any,
-};
-
 describe("technicals.worker", () => {
   // We can't fully emulate the Worker context easily in Vitest without complex setup,
   // but we can test the core logic which is now shared in technicalsCalculator.
@@ -45,13 +39,13 @@ describe("technicals.worker", () => {
   describe("calculateAllIndicators", () => {
     it("should calculate SMA correctly", () => {
         // SMA logic test via calculator
-        const result = calculateAllIndicators(klines, undefined, { ema: false }); // Disable others to focus
+        const result = calculateAllIndicators(klines);
         // We actually can't easily disable everything, but we check return structure
         expect(result.movingAverages).toBeDefined();
     });
 
     it("should calculate RSI correctly", () => {
-        const result = calculateAllIndicators(klines, undefined, { rsi: true });
+        const result = calculateAllIndicators(klines);
         const rsi = result.oscillators.find(o => o.name === "RSI");
         expect(rsi).toBeDefined();
         expect(typeof rsi?.value).toBe("number");

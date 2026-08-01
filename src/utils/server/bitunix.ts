@@ -57,7 +57,7 @@ export function generateBitunixSignature(
   apiKey: string,
   apiSecret: string,
   params: Record<string, string> = {},
-  body: any = null,
+  body: unknown = null,
 ): BitunixSignatureResult {
   const nonce = randomBytes(16).toString("hex");
   const timestamp = Date.now().toString();

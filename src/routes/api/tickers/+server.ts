@@ -31,8 +31,8 @@ function isStatusError(error: unknown): error is StatusError {
     error !== null &&
     "status" in error &&
     "message" in error &&
-    typeof (error as any).status === "number" &&
-    typeof (error as any).message === "string"
+    typeof (error as { status: unknown }).status === "number" &&
+    typeof (error as { message: unknown }).message === "string"
   );
 }
 

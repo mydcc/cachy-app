@@ -22,8 +22,15 @@
     import { _ } from "../../../locales/i18n";
     import { formatDynamicDecimal } from "../../../utils/utils";
     import { Decimal } from "decimal.js";
+    import type { JournalEntry } from "../../../stores/types";
 
     interface Props {
+        // `any[]`, documented: rows mix real JournalEntry trades with synthetic
+        // "group summary" objects JournalContent.svelte builds when grouping by
+        // symbol (isGroup, totalTrades, totalProfitLoss, wonTrades, ...). The
+        // template below duck-types both shapes through the same `item` across
+        // ~250 lines; a full discriminated union is a separate, larger pass.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         trades?: any[];
         sortField?: string;
         sortDirection?: "asc" | "desc";
@@ -37,7 +44,7 @@
         onDeleteTrade?: (id: number | string) => void;
         onStatusChange?: (id: number | string, status: string) => void;
         onItemsPerPageChange?: (itemsPerPage: number) => void;
-        onUpdateTrade?: (id: number | string, data: any) => void;
+        onUpdateTrade?: (id: number | string, data: Partial<JournalEntry>) => void;
         onUploadScreenshot?: (id: number | string, file: File) => void;
     }
 
@@ -95,19 +102,24 @@
     // State for expanded groups
     let expandedGroups = $state(new Set<string>());
 
-    // Helper to sort trades
+    // Helper to sort trades. `list` stays unknown[] rather than JournalEntry[]
+    // since rows may also be the synthetic group-summary objects described on
+    // Props.trades above; each dynamic-field read below casts locally instead
+    // (same pattern as JournalContent.svelte's sortTrades()).
     function sortTradesList(
-        list: any[],
+        list: unknown[],
         field: string,
         direction: "asc" | "desc",
     ) {
-        return [...list].sort((a, b) => {
-            let aVal = a[field];
-            let bVal = b[field];
+        return [...list].sort((rawA, rawB) => {
+            const a = rawA as Record<string, string | number | Decimal | undefined | null>;
+            const b = rawB as Record<string, string | number | Decimal | undefined | null>;
+            let aVal: string | number | Decimal | undefined | null = a[field];
+            let bVal: string | number | Decimal | undefined | null = b[field];
 
             // Handle Decimal objects
-            if (aVal?.toNumber) aVal = aVal.toNumber();
-            if (bVal?.toNumber) bVal = bVal.toNumber();
+            if (aVal instanceof Decimal) aVal = aVal.toNumber();
+            if (bVal instanceof Decimal) bVal = bVal.toNumber();
 
             // Handle null/undefined
             if (aVal == null && bVal == null) return 0;
@@ -119,11 +131,11 @@
 
             // Computed field: slAtr
             if (field === "slAtr") {
-                const getSlAtr = (item: any) => {
+                const getSlAtr = (item: Record<string, string | number | Decimal | undefined | null>) => {
                     if (!item.entryPrice || !item.stopLossPrice || !item.atrValue) return -1;
-                    const entry = new Decimal(item.entryPrice);
-                    const sl = new Decimal(item.stopLossPrice);
-                    const atr = new Decimal(item.atrValue);
+                    const entry = new Decimal(item.entryPrice as Decimal.Value);
+                    const sl = new Decimal(item.stopLossPrice as Decimal.Value);
+                    const atr = new Decimal(item.atrValue as Decimal.Value);
                     if (atr.isZero()) return -1;
                     return entry.minus(sl).abs().div(atr).toNumber();
                 };
@@ -250,7 +262,8 @@
 </script>
 
 <!-- REUSABLE TABLE SNIPPET -->
-{#snippet tableTemplate(items: any[], isNested: boolean)}
+<!-- `items: any` mixes JournalEntry and group-summary rows, see Props.trades above -->
+{#snippet tableTemplate(/* eslint-disable-line @typescript-eslint/no-explicit-any */ items: any[], isNested: boolean)}
     {@const activeSort = isNested ? internalSortField : sortField}
     {@const activeDir = isNested ? internalSortDirection : sortDirection}
     {@const sortedItems = isNested

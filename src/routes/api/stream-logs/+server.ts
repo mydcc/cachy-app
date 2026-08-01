@@ -20,7 +20,7 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";
 
-export const GET: RequestHandler = ({ request, url }) => {
+export const GET: RequestHandler = ({ request }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
   const authHeader = request.headers.get("Authorization");

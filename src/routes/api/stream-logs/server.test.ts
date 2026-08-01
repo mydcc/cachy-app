@@ -46,7 +46,7 @@ describe('GET /api/stream-logs', () => {
     const request = new Request('http://localhost/api/stream-logs');
     const url = new URL('http://localhost/api/stream-logs');
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(403);
     expect(await response.text()).toContain('Log streaming is disabled');
@@ -63,7 +63,7 @@ describe('GET /api/stream-logs', () => {
       })
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(401);
     expect(await response.text()).toBe('Unauthorized');
@@ -90,7 +90,7 @@ describe('GET /api/stream-logs', () => {
         writable: true,
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
@@ -109,7 +109,7 @@ describe('GET /api/stream-logs', () => {
       })
     });
 
-    await GET({ request, url } as any);
+    await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
     expect(timingSafeEqualSpy).toHaveBeenCalled();
   });

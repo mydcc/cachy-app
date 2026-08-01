@@ -121,7 +121,20 @@
   const tradeHistorySize = 100;
   let targetSentiment = 0;
 
-  function onTrade(trade: any) {
+  // Raw trade payload from the WS feed (short Bitunix keys) or the debug
+  // injection hook below (longer keys) — both fall back across the two.
+  interface RawTradeEvent {
+    s?: string;
+    side?: string;
+    type?: string;
+    p?: string | number;
+    price?: string | number;
+    v?: string | number;
+    size?: string | number;
+    amount?: string | number;
+  }
+
+  function onTrade(trade: RawTradeEvent) {
     if (lifecycleState !== LifecycleState.READY || !worker || !trade) return;
     
     // Bitunix Trade Format: { p: "price", v: "vol", s: "side", t: ts }
@@ -131,8 +144,8 @@
     
     if (!side || pStr === undefined || vStr === undefined) return;
 
-    const price = parseFloat(pStr);
-    const amount = parseFloat(vStr);
+    const price = parseFloat(String(pStr));
+    const amount = parseFloat(String(vStr));
     
     if (isNaN(price) || isNaN(amount)) return;
     
@@ -207,7 +220,7 @@
 
     // Restore injection hook for debugging and testing
     if (typeof window !== 'undefined') {
-      (window as any).__injectTrade = (trade: any) => {
+      (window as unknown as { __injectTrade?: (trade: RawTradeEvent) => void }).__injectTrade = (trade: RawTradeEvent) => {
         if (worker) {
           worker.postMessage({
             type: 'onTrade',

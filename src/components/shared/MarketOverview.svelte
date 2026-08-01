@@ -25,7 +25,6 @@
 
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import { onMount } from "svelte";
   import { untrack } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -68,25 +67,6 @@
   let animationKey = $state(0);
   let priceTrend: "up" | "down" | null = $state(null);
   let isInitialLoad = $state(true);
-  let rootElement: HTMLElement | undefined = $state();
-  let isVisible = $state(false);
-
-
-
-
-  onMount(() => {
-    if (!rootElement) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        isVisible = true;
-        observer.disconnect(); // Trigger once
-      }
-    }, { rootMargin: "200px" }); // Pre-fetch slightly before view
-
-    observer.observe(rootElement);
-    return () => observer.disconnect();
-  });
 
 // Price Flashing & Trend Logic
   let flashingDigitIndexes: Set<number> = $state(new Set());
@@ -472,7 +452,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={rootElement}
+<div
   class="market-overview-card glass-panel rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] transition-all relative {isFavoriteTile
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
@@ -787,8 +767,6 @@
 
           <div class="flex items-center gap-0.5">
             {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
-              {@const config = CHANNEL_CONFIG[baseAsset]}
-              {@const plotId = typeof config === "string" ? config : baseAsset}
               {@const windowId = `channel-${baseAsset}`}
               {@const isOpen = windowManager.windows.some(
                 (w) => w.id === windowId,

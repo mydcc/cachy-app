@@ -96,10 +96,10 @@ export const GET: RequestHandler = async ({ url, request }) => {
     // alone.
     const data = await response.json();
     return json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error("[CMC Proxy] Exception:", error);
     return json(
-      { error: "Internal Server Error", message: error.message },
+      { error: "Internal Server Error", message: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     );
   }

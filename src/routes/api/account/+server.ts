@@ -33,6 +33,20 @@ import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 
+interface ExchangeAccountData {
+  available?: string;
+  margin?: string;
+  totalUnrealizedPnL?: string;
+  marginCoin?: string;
+  frozen?: string;
+  transfer?: string;
+  bonus?: string;
+  positionMode?: string;
+  crossUnrealizedPNL?: string;
+  isolationUnrealizedPNL?: string;
+  equity?: string;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
@@ -97,7 +111,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixAccount(
   apiKey: string,
   apiSecret: string,
-): Promise<any> {
+): Promise<ExchangeAccountData> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
 
@@ -168,7 +182,7 @@ async function fetchBitgetAccount(
     apiKey: string,
     apiSecret: string,
     passphrase: string
-): Promise<any> {
+): Promise<ExchangeAccountData> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/account/account";
     const params = { productType: "umcbl", marginCoin: "USDT" };

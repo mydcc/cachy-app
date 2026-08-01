@@ -25,10 +25,12 @@
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import type {
     WorkerMessage,
+    WorkerCalculatePayload,
     WorkerCalculatePayloadSoA,
     KlineBuffers
 } from "./technicalsTypes";
 import type { Kline } from "../utils/indicators";
+import type { IndicatorSettings } from "../types/indicators";
 import { Decimal } from "decimal.js";
 
 // Reusable Kline array to avoid excessive allocations between calls for stateless CALCULATE
@@ -37,7 +39,7 @@ let klineBuffer: Kline[] = [];
 // State for stateful operations (INITIALIZE/UPDATE)
 interface WorkerState {
     klines: Kline[];
-    settings: any;
+    settings: IndicatorSettings;
     lastAccessed: number;
 }
 const stateMap = new Map<string, WorkerState>();
@@ -133,7 +135,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
              // Enforce LRU limit before adding new state
              enforceLimit();
 
-             const parsedKlines: Kline[] = klines.map((k: any) => ({
+             const parsedKlines: Kline[] = klines.map((k: WorkerCalculatePayload["klines"][number]) => ({
                  time: k.time,
                  open: new Decimal(k.open),
                  high: new Decimal(k.high),

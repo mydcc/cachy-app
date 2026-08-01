@@ -20,10 +20,11 @@
   Chart Window Implementation using Lightweight Charts
 */
 
-import { WindowBase } from "../WindowBase.svelte";
+import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
 import CandleChartView from "./CandleChartView.svelte";
+import type { WindowOptions, ContextMenuAction } from "../types";
 
 /**
  * ChartWindow is a specific implementation of WindowBase that renders
@@ -34,11 +35,16 @@ import CandleChartView from "./CandleChartView.svelte";
  * - Integration with tradeState (syncing symbol selection).
  * - Price-in-title display toggle via context menu.
  */
+interface ChartWindowOptions extends WindowOptions {
+    /** Restores the active timeframe (e.g. re-opening a window from session data). */
+    timeframe?: string;
+}
+
 export class ChartWindow extends WindowBase {
     /** The active aggregation interval (e.g., 1h, 15m). */
     timeframe = $state("1h");
 
-    constructor(symbol: string, options: any = {}) {
+    constructor(symbol: string, options: ChartWindowOptions = {}) {
         super({
             id: `chart-${symbol}`,
             title: symbol,
@@ -48,6 +54,7 @@ export class ChartWindow extends WindowBase {
             windowType: "chart",
             ...options
         });
+        if (options.timeframe) this.timeframe = options.timeframe;
         this.updateHeaderControls();
     }
 
@@ -107,7 +114,7 @@ export class ChartWindow extends WindowBase {
     /**
      * Extends the base context menu with chart-specific actions.
      */
-    public getContextMenuActions(): any[] {
+    public getContextMenuActions(): ContextMenuAction[] {
         return [
             {
                 label: this.showPriceInTitle ? "✅ Show Price in Title" : "Show Price in Title",
@@ -134,7 +141,7 @@ export class ChartWindow extends WindowBase {
         // Implementation logic if needed
     }
 
-    public serialize(): any {
+    public serialize(): WindowSerializedState & { symbol: string; timeframe: string } {
         return {
             ...super.serialize(),
             symbol: this.symbol,

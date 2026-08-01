@@ -19,6 +19,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SettingsManager } from '../../stores/settings.svelte';
 import { CONSTANTS } from '../../lib/constants';
+import type { EncryptedBlob } from '../../services/cryptoService';
+
+// Reaches into SettingsManager's private effect-guard and save() to force
+// a synchronous persist without waiting on the real $effect debounce.
+type SettingsManagerInternals = { effectActive: boolean; save: () => Promise<void> };
+const asInternals = (s: SettingsManager) => s as unknown as SettingsManagerInternals;
 
 // Mock environment
 vi.mock("$app/environment", () => ({ browser: true, dev: true }));
@@ -39,13 +45,13 @@ vi.mock('../../services/cryptoService', () => {
             method: 'AES-GCM'
         };
       }),
-      decrypt: vi.fn(async (blob: any, pwd?: string) => {
+      decrypt: vi.fn(async (blob: EncryptedBlob) => {
         if (!blob || !blob.ciphertext) throw new Error("Invalid blob");
         const parts = blob.ciphertext.split('|||');
         // parts[1] is text
         return parts[1];
       }),
-      unlockSession: vi.fn(async (pwd: string) => {
+      unlockSession: vi.fn(async () => {
         isSessionUnlocked = true;
         return true;
       }),
@@ -69,8 +75,8 @@ describe('Security Fix: Secure Storage of Secrets', () => {
     settings.openaiApiKey = "sk-test-1234567890";
     settings.apiProvider = "bitunix";
 
-    (settings as any).effectActive = true;
-    await (settings as any).save();
+    asInternals(settings).effectActive = true;
+    await asInternals(settings).save();
 
     const storedJson = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     expect(storedJson).toBeTruthy();
@@ -107,8 +113,8 @@ describe('Security Fix: Secure Storage of Secrets', () => {
   it('should re-encrypt secrets when setting Master Password', async () => {
     const settings = new SettingsManager();
     settings.openaiApiKey = "sk-moving-to-secure";
-    (settings as any).effectActive = true;
-    await (settings as any).save();
+    asInternals(settings).effectActive = true;
+    await asInternals(settings).save();
 
     await settings.setMasterPassword("StrongPass123!");
 
@@ -131,14 +137,14 @@ describe('Security Fix: Secure Storage of Secrets', () => {
   it('should not save plain text if saving while locked', async () => {
       const settings = new SettingsManager();
       settings.openaiApiKey = "sk-initial";
-      (settings as any).effectActive = true;
+      asInternals(settings).effectActive = true;
       await settings.setMasterPassword("pass");
 
       settings.lock();
       expect(settings.openaiApiKey).toBe("");
 
       settings.apiProvider = "bitget";
-      await (settings as any).save();
+      await asInternals(settings).save();
 
       const storedJson = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
       const stored = JSON.parse(storedJson!);

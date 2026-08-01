@@ -23,6 +23,7 @@ import { loadInstruction } from "./markdownLoader";
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
 import type { IndividualTpResult } from "../stores/types";
+import type { TranslationKey } from "../locales/schema";
 
 interface VisualBarContentItem {
   type: string;
@@ -45,7 +46,7 @@ export interface VisualBarData {
 export const uiManager = {
   showReadme: async (type: "dashboard" | "journal" | "changelog") => {
     const instruction = await loadInstruction(type);
-    let titleKey: string;
+    let titleKey: TranslationKey;
     if (type === "dashboard") {
       titleKey = "dashboard.instructionsTitle";
     } else if (type === "journal") {
@@ -54,7 +55,7 @@ export const uiManager = {
       // type === 'changelog'
       titleKey = "app.changelogTitle";
     }
-    const translatedTitle = get(_)(titleKey as any);
+    const translatedTitle = get(_)(titleKey);
     // Pass the 'modal-size-instructions' class here to ensure it uses the updated 80vw width
     modalState.show(
       translatedTitle,

@@ -24,8 +24,17 @@ import { WindowBase } from "../WindowBase.svelte";
 import SymbolPickerView from "./SymbolPickerView.svelte";
 
 export class SymbolPickerWindow extends WindowBase {
+    // Left as `any`: this class calls resolve with a string (closeWith,
+    // e.g. from SymbolPickerView.svelte's selectSymbol) or null (destroy,
+    // on close-without-selection) — but its one real caller,
+    // stores/modal.svelte.ts's showModal(), constructs a Promise<boolean |
+    // string>, whose resolve type has no null case. See docs/TODO.md item
+    // 10 for that mismatch; narrowing the type here would just relocate
+    // the error to that unrelated call site rather than fix it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolve: ((value: any) => void) | null = null;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(resolve?: (value: any) => void) {
         super({
             title: "Symbol Selection",
@@ -38,6 +47,7 @@ export class SymbolPickerWindow extends WindowBase {
         return SymbolPickerView;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     closeWith(value: any) {
         if (this.resolve) {
             this.resolve(value);

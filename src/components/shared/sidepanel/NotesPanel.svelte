@@ -34,7 +34,7 @@
   // Scroll to bottom on new messages
   $effect(() => {
     if (messagesContainer) {
-      const _len = notesState.messages.length;
+      void notesState.messages.length;
       setTimeout(() => {
         if(messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }, 0);
@@ -54,8 +54,8 @@
         inputEl.style.height = "auto";
         inputEl.focus();
       }
-    } catch (e: any) {
-      errorMessage = e.message || "Error";
+    } catch (e) {
+      errorMessage = (e instanceof Error ? e.message : null) || "Error";
       if (errorTimeout) clearTimeout(errorTimeout);
       errorTimeout = setTimeout(() => (errorMessage = ""), 3000);
     } finally {

@@ -59,7 +59,7 @@ describe("TradeService - FlashClose Reproduction", () => {
     vi.clearAllMocks();
     // Mock signedRequest to avoid network calls (must be inside beforeEach so
     // it is re-applied after vi.clearAllMocks() resets all mock implementations)
-    vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({ code: 0 });
+    vi.spyOn(tradeService, "signedRequest").mockResolvedValue({ code: 0 });
   });
 
   it("should create an optimistic order with current market price", async () => {

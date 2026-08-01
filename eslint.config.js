@@ -89,13 +89,9 @@ export default [
       // the authority here, not ESLint.
       "no-redeclare": "off",
       "@typescript-eslint/no-redeclare": "off",
-      // Type-hygiene backlog, not a gate. ESLint was never wired up in this
-      // project, so these two rules alone account for ~1370 pre-existing
-      // findings. They stay visible as warnings so they can be burned down
-      // incrementally instead of blocking every pull request on day one.
-      // Tighten back to "error" once the count reaches zero.
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Roadmap item 21's backlog reached zero — both rules are gates now.
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": "error",
     },
   },
 
@@ -127,9 +123,9 @@ export default [
       "no-undef": "off",
       "no-redeclare": "off",
       "@typescript-eslint/no-redeclare": "off",
-      // Same pre-existing backlog as the .{js,ts} block above.
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Same gate as the .{js,ts} block above.
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": "error",
     },
   },
 

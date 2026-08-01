@@ -78,7 +78,7 @@
     newsStore.refresh(symbol, true);
   }
 
-  function handleArticleClick(e: MouseEvent, url: string, _title: string) {
+  function handleArticleClick(e: MouseEvent, url: string) {
     e.preventDefault();
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -191,7 +191,7 @@
             {#each news.slice(0, 5) as item}
               <button
                 type="button"
-                onclick={(e) => handleArticleClick(e, item.url, item.title)}
+                onclick={(e) => handleArticleClick(e, item.url)}
                 class="group block p-1.5 hover:bg-[var(--bg-tertiary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)] text-left w-full bg-transparent cursor-pointer"
               >
                 <div
@@ -316,7 +316,7 @@
             {#each news.slice(0, 5) as item}
               <button
                 type="button"
-                onclick={(e) => handleArticleClick(e, item.url, item.title)}
+                onclick={(e) => handleArticleClick(e, item.url)}
                 class="block p-2 hover:bg-[var(--bg-secondary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)] text-left w-full bg-transparent cursor-pointer"
               >
                 <span class="text-sm font-medium leading-tight block"

@@ -22,7 +22,7 @@
  * and do not use unsafe fallback amounts that could cause overfills.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach, type MockInstance } from 'vitest';
 import { Decimal } from 'decimal.js';
 
 // Mock services before importing tradeService
@@ -98,14 +98,16 @@ import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
 
 describe('Flash Close Position Binding (CRITICAL)', () => {
-    let signedRequestSpy: any;
+    let signedRequestSpy: MockInstance<
+        (method: string, endpoint: string, payload: Record<string, unknown>) => Promise<unknown>
+    >;
 
     beforeEach(() => {
         // Mock global fetch to prevent "Failed to parse URL" errors and support fallback sync
         global.fetch = vi.fn().mockResolvedValue({
             ok: true,
             text: () => Promise.resolve(JSON.stringify({ code: 0, data: [] }))
-        } as any);
+        } as unknown as Response);
 
         // Mock OMS with known position
         vi.mocked(omsService.getPositions).mockReturnValue([
@@ -123,7 +125,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         ]);
 
         // Spy on signedRequest to inspect API calls
-        signedRequestSpy = vi.spyOn(tradeService as any, 'signedRequest').mockResolvedValue({
+        signedRequestSpy = vi.spyOn(tradeService, 'signedRequest').mockResolvedValue({
             code: 0,
             msg: 'success',
             data: {
@@ -148,7 +150,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // [HARDENING FIX] Now that we call cancelAllOrders first, we must find the CLOSE order
         const calls = signedRequestSpy.mock.calls;
-        const callArgs = calls.find((c: any) => c[2] && c[2].side === 'SELL');
+        const callArgs = calls.find((c) => c[2] && c[2].side === 'SELL');
 
         if (!callArgs) {
             throw new Error(`Flash close order not found in ${calls.length} calls: ${JSON.stringify(calls)}`);
@@ -170,7 +172,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         global.fetch = vi.fn().mockResolvedValue({
             ok: true,
             text: () => Promise.resolve(JSON.stringify({ code: 0, data: [] }))
-        } as any);
+        } as unknown as Response);
 
         const result = await tradeService.flashClosePosition('ETHUSDT', 'long');
 
@@ -214,8 +216,8 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // [HARDENING FIX] Find the CLOSE order call
         const calls = signedRequestSpy.mock.calls;
-        const callArgs = calls.find((c: any) => c[2] && c[2].side === 'SELL');
-        const body = callArgs[2];
+        const callArgs = calls.find((c) => c[2] && c[2].side === 'SELL');
+        const body = callArgs![2];
 
         // Opposite side for long = sell
         expect(body.side).toBe('SELL');
@@ -236,7 +238,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         const calls = signedRequestSpy.mock.calls;
 
         // Find Cancel Call
-        const cancelCall = calls.find((call: any) =>
+        const cancelCall = calls.find((call) =>
             call[1] === '/api/orders' &&
             call[2].type === 'cancel-all'
         );
@@ -245,12 +247,12 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         expect(cancelCall).toBeDefined();
 
         // Ensure Close call is also present
-        const closeCall = calls.find((call: any) => call[2] && call[2].side === 'SELL');
+        const closeCall = calls.find((call) => call[2] && call[2].side === 'SELL');
         expect(closeCall).toBeDefined();
 
         // Ensure Cancel happens BEFORE Close
-        const cancelIndex = calls.indexOf(cancelCall);
-        const closeIndex = calls.indexOf(closeCall);
+        const cancelIndex = calls.indexOf(cancelCall!);
+        const closeIndex = calls.indexOf(closeCall!);
         expect(cancelIndex).toBeLessThan(closeIndex);
     });
 });

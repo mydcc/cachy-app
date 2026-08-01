@@ -17,7 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
-import { settingsState } from "../stores/settings.svelte";
+import { settingsState, type Settings } from "../stores/settings.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
 
@@ -25,7 +25,7 @@ import { uiState } from "../stores/ui.svelte";
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
     hotkeyMode: "mode1",
-    update: vi.fn((fn: any) => Object.assign(settingsState, fn(settingsState))),
+    update: vi.fn((fn: (s: Settings) => Partial<Settings>) => Object.assign(settingsState, fn(settingsState as Settings))),
   },
 }));
 

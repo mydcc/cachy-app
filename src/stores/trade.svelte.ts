@@ -147,7 +147,7 @@ export const INITIAL_TRADE_STATE = {
   journalSearchQuery: "",
   journalFilterStatus: "all",
   // Transient / Remote data placeholders
-  currentTradeData: null as any,
+  currentTradeData: null as CurrentTradeData | null,
   remoteLeverage: undefined as Decimal | undefined,
   remoteMarginMode: undefined as string | undefined,
   remoteMakerFee: undefined as Decimal | undefined,
@@ -312,7 +312,12 @@ class TradeManager {
   private saveDebounced = debounce((snapshot: TradeStateSnapshot) => {
     if (!browser) return;
     try {
-      const toSave: any = { ...snapshot };
+      // Partial: several fields are deleted below before persisting (transient/
+      // remote data that shouldn't survive a reload); lockedPositionSize is
+      // widened to also allow the stringified form it's converted to just after.
+      const toSave: Partial<Omit<TradeStateSnapshot, "lockedPositionSize">> & {
+        lockedPositionSize?: Decimal | string | null;
+      } = { ...snapshot };
 
       delete toSave.currentTradeData;
       delete toSave.remoteLeverage;

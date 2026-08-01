@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { BaseEngine, type EngineContext } from './BaseEngine';
+import { BaseEngine } from './BaseEngine';
 
 export class EqualizerEngine extends BaseEngine {
     private pointCloud: THREE.Points | null = null;
@@ -128,7 +128,7 @@ export class EqualizerEngine extends BaseEngine {
         return geometry;
     }
 
-    public update(time: number, delta: number): void {
+    public update(time: number): void {
         if (!this.pointCloud || !this.material) return;
 
         const attr = this.pointCloud.geometry.getAttribute('amplitude') as THREE.BufferAttribute;
@@ -207,6 +207,9 @@ export class EqualizerEngine extends BaseEngine {
         }
     }
 
+    // `any` matches BaseEngine.context.settings' own declared type ("Generic settings
+    // for flexibility") — every sibling engine's updateSettings() does the same.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public updateSettings(newSettings: any): void {
         if (this.shouldReinit(newSettings)) {
             // Clean up old geometry but keep container

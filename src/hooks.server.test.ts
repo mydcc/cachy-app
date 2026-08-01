@@ -74,7 +74,7 @@ afterAll(() => {
   console.log = originalLog;
   console.warn = originalWarn;
   console.error = originalError;
-  delete (global as any)._isConsolePatched;
+  delete (global as typeof global & { _isConsolePatched?: boolean })._isConsolePatched;
 });
 
 describe('headersHandler (Server Hook)', () => {

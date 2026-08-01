@@ -18,7 +18,8 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { indicatorState } from "../../../stores/indicator.svelte";
-    import { settingsState } from "../../../stores/settings.svelte";
+    import { settingsState, type PnlViewMode } from "../../../stores/settings.svelte";
+    import type { IndicatorSettings } from "../../../types/indicators";
     import Toggle from "../../shared/Toggle.svelte";
     import Field from "./IndicatorField.svelte";
     import Select from "./IndicatorSelect.svelte";
@@ -174,7 +175,7 @@
                                     {#each [{ value: "value", label: "Value" }, { value: "percent", label: "%" }, { value: "bar", label: "Bar" }] as mode}
                                         <button
                                             class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'text-[var(--text-secondary)]'}"
-                                            onclick={() => (settingsState.pnlViewMode = mode.value as any)}
+                                            onclick={() => (settingsState.pnlViewMode = mode.value as PnlViewMode)}
                                         >
                                             {mode.label}
                                         </button>
@@ -308,7 +309,7 @@
                             {#each pivotTypes as pType}
                                 <button
                                     class="text-xs py-1.5 rounded border border-[var(--border-color)] transition-colors {indicatorState.pivots.type === pType.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)]'}"
-                                    onclick={() => indicatorState.pivots.type = pType.value as any}
+                                    onclick={() => indicatorState.pivots.type = pType.value as IndicatorSettings['pivots']['type']}
                                 >
                                     {pType.label}
                                 </button>

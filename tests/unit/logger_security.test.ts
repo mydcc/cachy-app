@@ -55,7 +55,7 @@ describe('ServerLogger Security', () => {
 
         logger.info("User login", sensitiveData);
 
-        const [event, entry] = spy.mock.calls[0];
+        const [, entry] = spy.mock.calls[0];
 
         // The data object should be redacted (this was already working)
         expect(entry.data.apiKey).toBe('***REDACTED***');

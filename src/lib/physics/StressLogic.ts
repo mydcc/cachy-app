@@ -18,12 +18,90 @@
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
 
-// Type definition for Ammo (partial)
-declare const Ammo: any;
+// Ammo.js is a Bullet Physics WASM build loaded dynamically at runtime
+// (see init()), not an npm dependency — there is no official or
+// community TypeScript package for it. These interfaces declare only
+// the narrow subset of its API this file actually calls, not the full
+// Bullet Physics surface.
+interface AmmoVector3 {
+    x(): number;
+    y(): number;
+    z(): number;
+}
+
+interface AmmoQuaternion {
+    x(): number;
+    y(): number;
+    z(): number;
+    w(): number;
+}
+
+interface AmmoTransform {
+    setIdentity(): void;
+    setOrigin(origin: AmmoVector3): void;
+    getOrigin(): AmmoVector3;
+    getRotation(): AmmoQuaternion;
+}
+
+interface AmmoCollisionShape {
+    addPoint(point: AmmoVector3): void;
+    calculateLocalInertia(mass: number, inertia: AmmoVector3): void;
+}
+
+interface AmmoMotionState {
+    getWorldTransform(transform: AmmoTransform): void;
+}
+
+interface AmmoRigidBody {
+    userData: { mesh: THREE.Object3D };
+    setLinearVelocity(velocity: AmmoVector3): void;
+    setAngularVelocity(velocity: AmmoVector3): void;
+    getMotionState(): AmmoMotionState | null;
+}
+
+interface AmmoWorld {
+    setGravity(gravity: AmmoVector3): void;
+    stepSimulation(deltaTime: number, maxSubSteps: number): void;
+    addRigidBody(body: AmmoRigidBody): void;
+    removeRigidBody(body: AmmoRigidBody): void;
+}
+
+interface AmmoNamespace {
+    btVector3: new (x: number, y: number, z: number) => AmmoVector3;
+    btTransform: new () => AmmoTransform;
+    btDefaultCollisionConfiguration: new () => unknown;
+    btCollisionDispatcher: new (config: unknown) => unknown;
+    btDbvtBroadphase: new () => unknown;
+    btSequentialImpulseConstraintSolver: new () => unknown;
+    btDiscreteDynamicsWorld: new (
+        dispatcher: unknown,
+        broadphase: unknown,
+        solver: unknown,
+        config: unknown,
+    ) => AmmoWorld;
+    btConvexHullShape: new () => AmmoCollisionShape;
+    btDefaultMotionState: new (transform: AmmoTransform) => AmmoMotionState;
+    btRigidBodyConstructionInfo: new (
+        mass: number,
+        motionState: AmmoMotionState,
+        shape: AmmoCollisionShape,
+        localInertia: AmmoVector3,
+    ) => unknown;
+    btRigidBody: new (info: unknown) => AmmoRigidBody;
+}
+
+// window.Ammo cycles through three shapes while init() lazy-loads the
+// WASM module: absent, the factory function (right after the script
+// tag loads), then the resolved namespace (once the factory settles).
+type AmmoWindow = Window & {
+    Ammo?: AmmoNamespace | ((opts: { locateFile: (path: string) => string }) => Promise<AmmoNamespace>);
+};
+
+declare const Ammo: AmmoNamespace;
 
 export class StressLogic {
-    private world: any = null;
-    private physicsBodies: any[] = [];
+    private world: AmmoWorld | null = null;
+    private physicsBodies: AmmoRigidBody[] = [];
     private clock = new THREE.Clock();
     private isLoaded = false;
     private scene: THREE.Scene;
@@ -32,11 +110,25 @@ export class StressLogic {
         this.scene = scene;
     }
 
+    private static async resolveAmmoFactory(win: AmmoWindow): Promise<void> {
+        const factory = win.Ammo;
+        if (typeof factory !== 'function') return;
+        const ammoInstance = await factory({
+            locateFile: (path: string) => {
+                if (path.endsWith('.wasm')) return '/ammo/ammo.wasm.wasm';
+                return path;
+            }
+        });
+        win.Ammo = ammoInstance;
+    }
+
     async init() {
         if (this.isLoaded) return;
 
+        const win = window as AmmoWindow;
+
         // Lazy Load Ammo
-        if (typeof (window as any).Ammo !== 'function' && typeof (window as any).btDefaultCollisionConfiguration === 'undefined') {
+        if (typeof win.Ammo !== 'function' && typeof (window as unknown as { btDefaultCollisionConfiguration?: unknown }).btDefaultCollisionConfiguration === 'undefined') {
             try {
                 await new Promise<void>((resolve, reject) => {
                     const script = document.createElement('script');
@@ -46,29 +138,13 @@ export class StressLogic {
                     document.head.appendChild(script);
                 });
 
-                if (typeof (window as any).Ammo === 'function') {
-                    const AmmoFactory = (window as any).Ammo;
-                    const ammoInstance = await AmmoFactory({
-                        locateFile: (path: string) => {
-                            if (path.endsWith('.wasm')) return '/ammo/ammo.wasm.wasm';
-                            return path;
-                        }
-                    });
-                    (window as any).Ammo = ammoInstance;
-                }
+                await StressLogic.resolveAmmoFactory(win);
             } catch (e) {
                 console.error("Failed to load Ammo.js", e);
                 throw e;
             }
-        } else if (typeof (window as any).Ammo === 'function') {
-            const AmmoFactory = (window as any).Ammo;
-            const ammoInstance = await AmmoFactory({
-                locateFile: (path: string) => {
-                    if (path.endsWith('.wasm')) return '/ammo/ammo.wasm.wasm';
-                    return path;
-                }
-            });
-            (window as any).Ammo = ammoInstance;
+        } else if (typeof win.Ammo === 'function') {
+            await StressLogic.resolveAmmoFactory(win);
         }
 
         this.setupPhysicsWorld();
@@ -93,7 +169,9 @@ export class StressLogic {
         return shape;
     }
 
-    private createRigidBody(threeObject: THREE.Object3D, physicsShape: any, mass: number, pos: THREE.Vector3) {
+    private createRigidBody(threeObject: THREE.Object3D, physicsShape: AmmoCollisionShape, mass: number, pos: THREE.Vector3) {
+        if (!this.world) return null;
+
         const startTransform = new Ammo.btTransform();
         startTransform.setIdentity();
         const origin = new Ammo.btVector3(pos.x, pos.y, pos.z);
@@ -113,38 +191,6 @@ export class StressLogic {
         this.world.addRigidBody(body);
         this.physicsBodies.push(body);
         return body;
-    }
-
-    public smashWindow(rect: DOMRect, impulsePoint?: THREE.Vector3) {
-        if (!this.world || !this.isLoaded) return;
-
-        // Convert DOM Rect to 3D roughly
-        // NOTE: This assumes we are projecting to Z=0 or similar plane in FXOverlay
-        // We need the camera from FXOverlay to do this accurately, 
-        // OR we just spawn generic shards in front of the camera based on screen coords.
-        // Let's assume we pass in the `camera` and `screen` dims context or helper.
-        // For now, simpler: Create generic shards at a "World Position" we calculate.
-
-        // Placeholder for fracture logic:
-        // accurate fracture is complex. We will spawn pre-fractured or simple geometric shards.
-        const numShards = 25;
-        const width = rect.width / 100; // Arbitrary scaling for 3D
-        const height = rect.height / 100;
-
-        // Voronoi-like generation is hard without library. 
-        // We use random tetrahedrons for "glass" feel.
-        const material = new THREE.MeshStandardMaterial({
-            color: 0xaaddff,
-            transparent: true,
-            opacity: 0.8,
-            roughness: 0.1,
-            metalness: 0.9,
-            side: THREE.DoubleSide
-        });
-
-        // Calculate center in 3D (passed in or estimated?)
-        // Let's assume the caller gives us the 3D center.
-        // If not, we rely on FXOverlay projection logic.
     }
 
     // New signature to accept 3D center
@@ -177,6 +223,7 @@ export class StressLogic {
             mesh.position.y += (Math.random() - 0.5) * height;
 
             const body = this.createRigidBody(mesh, this.createConvexHullPhysicsShape(geom.getAttribute('position').array as Float32Array), 1.0, mesh.position);
+            if (!body) continue;
 
             // Explosive Force
             const force = new Ammo.btVector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random()) * 5);

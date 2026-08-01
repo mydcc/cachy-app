@@ -128,8 +128,8 @@ export const POST: RequestHandler = async ({ request }) => {
         Connection: "keep-alive",
       },
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("Gemini Proxy Error:", e);
-    return json({ error: e.message }, { status: 500 });
+    return json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 };

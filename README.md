@@ -144,9 +144,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
   npm run lint
   ```
 
-  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build.
-  >
-  > Warnings are capped by a **ratchet**: CI runs `eslint . --max-warnings 606`, the size of the pre-existing `no-explicit-any` / `no-unused-vars` backlog. That number may only ever be *lowered*, never raised, so the backlog can shrink but cannot grow. When you fix warnings, lower the ceiling in `.github/workflows/audit.yml` to match. See `docs/ROADMAP.md` item 21.
+  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build. `@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars` are both `"error"` (roadmap item 21's backlog reached zero; there is no more warning ratchet).
   >
   > If a rule fires on something deliberate, do not silence it globally: add an inline `eslint-disable-next-line` with a `--` explanation, as done for the Svelte 5 dependency-registration reads in `tradeCalculator.svelte.ts`.
 

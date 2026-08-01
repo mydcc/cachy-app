@@ -23,7 +23,7 @@ describe("getRollingData", () => {
       exitDate: new Date(startDate + i * 3600000 + 1800000).toISOString(),
       symbol: "BTCUSDT",
       isManual: false,
-    } as any);
+    } as unknown as JournalEntry);
   }
 
   bench("getRollingData (5k trades, window=20)", () => {

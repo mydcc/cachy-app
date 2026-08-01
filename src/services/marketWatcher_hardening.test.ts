@@ -20,6 +20,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { apiService } from './apiService';
 import { marketState } from '../stores/market.svelte';
+import type { RequestDeduplicator } from '../utils/requestDeduplicator';
+import type { Kline } from './technicalsTypes';
+
+// Reaches into marketWatcher's private polling internals for these
+// hardening tests, alongside a few of its public methods for convenience.
+type MarketWatcherInternals = {
+  requests: Map<string, Map<string, Map<string, number>>>;
+  pendingRequests: RequestDeduplicator<void>;
+  staggerTimeouts: Set<ReturnType<typeof setTimeout>>;
+  performPollingCycle: () => Promise<void>;
+  pollSymbolChannel: (symbol: string, channel: string, provider: "bitunix" | "bitget") => Promise<void>;
+  stopPolling: () => void;
+  forceCleanup: () => void;
+  ensureHistory: (symbol: string, tf: string) => Promise<boolean>;
+};
 
 // Mock dependencies
 vi.mock('$app/environment', () => ({
@@ -71,11 +86,10 @@ describe('MarketWatcher Hardening', () => {
   });
 
   it('should not leak stagger timeouts', async () => {
-    // Access private property for testing (casting to any)
-    const mw = marketWatcher as any;
+    const mw = marketWatcher as unknown as MarketWatcherInternals;
 
-    // Simulate a request
-    mw.requests.set('BTCUSDT', new Map([['price', 1]]));
+    // Simulate a request: symbol -> channel -> requirement -> count
+    mw.requests.set('BTCUSDT', new Map([['price', new Map([['stateless', 1]])]]));
 
     // Trigger polling cycle
     await mw.performPollingCycle();
@@ -91,7 +105,7 @@ describe('MarketWatcher Hardening', () => {
   });
 
   it('should handle API timeouts correctly without double wrapping', async () => {
-    const mw = marketWatcher as any;
+    const mw = marketWatcher as unknown as MarketWatcherInternals;
     const symbol = 'BTCUSDT';
     const channel = 'price';
 
@@ -116,7 +130,7 @@ describe('MarketWatcher Hardening', () => {
   });
 
   it('should filter invalid klines in ensureHistory', async () => {
-    const mw = marketWatcher as any;
+    const mw = marketWatcher as unknown as MarketWatcherInternals;
     const symbol = 'BTCUSDT';
     const tf = '1m';
 
@@ -126,7 +140,7 @@ describe('MarketWatcher Hardening', () => {
 
     // Reset mocks
     vi.mocked(marketState.updateSymbolKlines).mockClear();
-    vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue([invalidKline, validKline]);
+    vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue([invalidKline, validKline] as unknown as Kline[]);
 
     await mw.ensureHistory(symbol, tf);
 

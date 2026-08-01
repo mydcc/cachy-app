@@ -32,7 +32,11 @@ async function loadWasmModule() {
         console: { log: console.log }
     });
 
-    // Bind exports to a mock module structure expected by WasmTechnicalsCalculator
+    // Bind exports to a mock module structure expected by WasmTechnicalsCalculator.
+    // Raw WebAssembly.Exports is untyped (just named function/memory bindings);
+    // the wasm-bindgen JS glue that would normally give these real signatures
+    // isn't available here (see the comments below).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const exports = wasmModule.instance.exports as any;
 
     // The WasmTechnicalsCalculator expects a class-like structure: new module.TechnicalsCalculator()
@@ -97,9 +101,9 @@ async function loadWasmModule() {
             }
             update(price: number) {
                 // Returns string? Bindgen returns index to string in memory?
-                const retPtr = exports.technicalscalculator_update(this.ptr, price);
-                // Decode string from retPtr (standard bindgen ABI is complex)
+                // Decode string from the return pointer (standard bindgen ABI is complex).
                 // This path is brittle without the generated JS.
+                exports.technicalscalculator_update(this.ptr, price);
             }
             free() {
                 exports.technicalscalculator_free(this.ptr);
@@ -116,6 +120,7 @@ async function loadWasmModule() {
 describe('WASM Parity Check (Skipped - Requires Build Glue)', () => {
     it.skip('should match JS calculator results', async () => {
         // ... implementation blocked by missing wasm-bindgen JS runtime ...
+        await loadWasmModule();
         expect(true).toBe(true);
     });
 });

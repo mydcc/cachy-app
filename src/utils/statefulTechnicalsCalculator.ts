@@ -23,6 +23,7 @@
 import { JSIndicators, type Kline } from "./indicators";
 import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState } from "../services/technicalsTypes";
+import type { IndicatorSettings } from "../types/indicators";
 import { CircularBuffer } from "./circularBuffer";
 
 export class StatefulTechnicalsCalculator {
@@ -32,7 +33,7 @@ export class StatefulTechnicalsCalculator {
     rsi: {}
   };
 
-  private settings: any;
+  private settings: IndicatorSettings | undefined;
   private enabledIndicators: Partial<Record<string, boolean>> | undefined;
 
   // History Buffer for price data (Circular Buffer with max 200 candles)
@@ -45,7 +46,7 @@ export class StatefulTechnicalsCalculator {
 
   public initialize(
     history: Kline[],
-    settings: any,
+    settings: IndicatorSettings,
   ): TechnicalsData {
     this.settings = settings;
 
@@ -74,7 +75,6 @@ export class StatefulTechnicalsCalculator {
 
     const prevResult = this.state.lastResult;
     const currentPrice = tick.close.toNumber();
-    const prevPrice = this.state.lastCandle.close.toNumber();
 
     // Clone the previous result to modify it
     // Deep clone might be expensive, but structure is simple.
@@ -93,7 +93,7 @@ export class StatefulTechnicalsCalculator {
 
     // 2. Update RSI
     if (this.state.rsi && this.enabled("rsi")) {
-       this.updateRsiGroup(newResult, currentPrice, prevPrice);
+       this.updateRsiGroup(newResult, currentPrice);
     }
 
     // 3. Update SMA
@@ -343,7 +343,7 @@ export class StatefulTechnicalsCalculator {
       });
   }
 
-  private updateRsiGroup(result: TechnicalsData, price: number, prevClosedPrice: number) {
+  private updateRsiGroup(result: TechnicalsData, price: number) {
       const rsiLen = this.settings?.rsi?.length || 14;
       const state = this.state.rsi?.[rsiLen];
       if (state) {

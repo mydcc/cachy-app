@@ -57,7 +57,7 @@
                 };
             })
             .sort(
-                (a: any, b: any) =>
+                (a, b) =>
                     (b.confluenceScore || 0) - (a.confluenceScore || 0),
             );
     });
@@ -119,7 +119,7 @@
         };
     });
 
-    function getLivePrice(item: any) {
+    function getLivePrice(item: (typeof sortedResults)[number]) {
         // Try live data first, fall back to analysis snapshot
         const live = marketState.data[item.symbol];
         if (live && live.lastPrice) {
@@ -128,7 +128,7 @@
         return item.price;
     }
 
-    function getLiveChange(item: any) {
+    function getLiveChange(item: (typeof sortedResults)[number]) {
         const live = marketState.data[item.symbol];
         if (
             live &&

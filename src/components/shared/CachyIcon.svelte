@@ -16,7 +16,11 @@
 -->
 
 <script lang="ts">
+  // Generic pass-through: accepts arbitrary SVG/HTML attributes (class,
+  // style, event handlers, ...) plus the two custom shortcuts read below
+  // (ariaLabel, title), spread directly onto the <svg> element.
   interface Props {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any
   }
 

@@ -17,12 +17,12 @@
 
 
 import { describe, it, expect } from 'vitest';
-import { logger } from './logger';
+import { logger, type LogEntry } from './logger';
 
 describe('ServerLogger', () => {
   // Helper to capture log events
   const captureLog = () => {
-    return new Promise<any>((resolve) => {
+    return new Promise<LogEntry>((resolve) => {
       logger.once('log', (entry) => {
         resolve(entry);
       });
@@ -43,10 +43,11 @@ describe('ServerLogger', () => {
     logger.info('User login', sensitiveData);
     const entry = await logPromise;
 
-    expect(entry.data.user).toBe('alice');
-    expect(entry.data.password).toBe('***REDACTED***');
-    expect(entry.data.apiKey).toBe('***REDACTED***');
-    expect(entry.data.meta.apiSecret).toBe('***REDACTED***');
+    const data = entry.data as Record<string, unknown>;
+    expect(data.user).toBe('alice');
+    expect(data.password).toBe('***REDACTED***');
+    expect(data.apiKey).toBe('***REDACTED***');
+    expect((data.meta as Record<string, unknown>).apiSecret).toBe('***REDACTED***');
   });
 
   it('should sanitize JSON strings containing sensitive keys', async () => {
@@ -59,7 +60,7 @@ describe('ServerLogger', () => {
     logger.info('API Request', sensitiveData);
     const entry = await logPromise;
 
-    const parsedData = JSON.parse(entry.data);
+    const parsedData = JSON.parse(entry.data as string);
     expect(parsedData.token).toBe('***REDACTED***');
     expect(parsedData.other).toBe('value');
   });
@@ -142,10 +143,11 @@ MIIEpQIBAAKCAQEA...
     logger.info('Safe', safeData);
     const entry = await logPromise;
 
-    expect(entry.data.max_tokens).toBe(1000);
-    expect(entry.data.total_tokens).toBe(5000);
-    expect(entry.data.author).toBe('John Doe');
-    expect(entry.data.authority).toBe('Admin');
+    const data = entry.data as Record<string, unknown>;
+    expect(data.max_tokens).toBe(1000);
+    expect(data.total_tokens).toBe(5000);
+    expect(data.author).toBe('John Doe');
+    expect(data.authority).toBe('Admin');
   });
 
   it('should NOT sanitize quoted safe keys in strings', async () => {
@@ -166,7 +168,8 @@ MIIEpQIBAAKCAQEA...
     logger.info('API Login', sensitiveData);
     const entry = await logPromise;
 
-    expect(entry.data.username).toBe('trader');
-    expect(entry.data.passphrase).toBe('***REDACTED***');
+    const data = entry.data as Record<string, unknown>;
+    expect(data.username).toBe('trader');
+    expect(data.passphrase).toBe('***REDACTED***');
   });
 });

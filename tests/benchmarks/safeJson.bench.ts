@@ -12,7 +12,7 @@ import { safeJsonParse } from '../../src/utils/safeJson';
 
 // Legacy implementation for comparison
 function safeJsonParseLegacy(jsonString: string) {
-    if (!jsonString) return jsonString as any;
+    if (!jsonString) return jsonString;
     if (typeof jsonString !== 'string') return jsonString;
 
     let protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*(-?\d[\d.eE+-]{14,})(?=\s*[,}])/g, '"$1": "$2"');

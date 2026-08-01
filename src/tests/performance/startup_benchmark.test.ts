@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 
 // Mock Browser Environment
 const localStorageMock = (() => {
@@ -33,10 +33,10 @@ Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
 // Mock WebSocket
 class MockWebSocket {
-  onopen: any;
-  onmessage: any;
-  onclose: any;
-  onerror: any;
+  onopen?: () => void;
+  onmessage?: (event: MessageEvent) => void;
+  onclose?: () => void;
+  onerror?: (event: Event) => void;
   send = vi.fn();
   close = vi.fn();
   constructor(public url: string) {}
@@ -81,8 +81,8 @@ vi.mock('../../services/bitgetWs', () => ({
 vi.mock('../../services/logger', () => ({
   logger: {
     log: vi.fn(),
-    error: (scope: string, msg: string, ...args: any[]) => console.error(`[MockLog:Error] ${scope}: ${msg}`, ...args),
-    warn: (scope: string, msg: string, ...args: any[]) => console.warn(`[MockLog:Warn] ${scope}: ${msg}`, ...args),
+    error: (scope: string, msg: string, ...args: unknown[]) => console.error(`[MockLog:Error] ${scope}: ${msg}`, ...args),
+    warn: (scope: string, msg: string, ...args: unknown[]) => console.warn(`[MockLog:Warn] ${scope}: ${msg}`, ...args),
     debug: vi.fn(),
   }
 }));
@@ -111,7 +111,7 @@ import { analysisState } from '../../stores/analysis.svelte';
 import { settingsState } from '../../stores/settings.svelte';
 
 describe('App Startup Performance Benchmark', () => {
-  let fetchSpy: any;
+  let fetchSpy: MockInstance<typeof fetch>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,7 +123,7 @@ describe('App Startup Performance Benchmark', () => {
     settingsState.favoriteSymbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LINKUSDT'];
 
     // Mock Fetch
-    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url: any) => {
+    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (url: string | URL | Request) => {
       const urlStr = url.toString();
 
       // 1. Ticker Response (Price)
@@ -223,8 +223,8 @@ describe('App Startup Performance Benchmark', () => {
     console.log(`[Perf] Total HTTP Requests: ${totalRequests}`);
 
     // Breakdown
-    const tickerReqs = fetchSpy.mock.calls.filter((c: any) => c[0].toString().includes('tickers')).length;
-    const klineReqs = fetchSpy.mock.calls.filter((c: any) => c[0].toString().includes('klines')).length;
+    const tickerReqs = fetchSpy.mock.calls.filter((c) => String(c[0]).includes('tickers')).length;
+    const klineReqs = fetchSpy.mock.calls.filter((c) => String(c[0]).includes('klines')).length;
 
     console.log(`[Perf] Ticker Requests: ${tickerReqs}`);
     console.log(`[Perf] Kline Requests: ${klineReqs}`);

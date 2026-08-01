@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
 import { calculator } from "./calculator";
 import { Decimal } from "decimal.js";
 import { CONSTANTS } from "./constants";
+import type { JournalEntry } from "../stores/types";
 
 describe("Calculator - Core Functions", () => {
   describe("calculateBaseMetrics", () => {
@@ -42,7 +43,7 @@ describe("Calculator - Core Functions", () => {
       // Margin = 100 / 10 = 10
 
       const res = calculator.calculateBaseMetrics(
-        values as any,
+        values,
         CONSTANTS.TRADE_TYPE_LONG,
       );
       expect(res).not.toBeNull();
@@ -68,7 +69,7 @@ describe("Calculator - Core Functions", () => {
       };
 
       const res = calculator.calculateBaseMetrics(
-        values as any,
+        values,
         CONSTANTS.TRADE_TYPE_SHORT,
       );
       expect(res).not.toBeNull();
@@ -92,7 +93,7 @@ describe("Calculator - Core Functions", () => {
         totalPercentSold: new Decimal(0),
       };
       const res = calculator.calculateBaseMetrics(
-        values as any,
+        values,
         CONSTANTS.TRADE_TYPE_LONG,
       );
       expect(res).toBeNull();
@@ -130,7 +131,7 @@ describe("Calculator - Core Functions", () => {
         new Decimal(120),
         new Decimal(50),
         baseMetrics,
-        values as any,
+        values,
         0,
       );
 
@@ -172,9 +173,9 @@ describe("Calculator - Core Functions", () => {
       };
 
       const res = calculator.calculateTotalMetrics(
-        targets as any,
+        targets,
         baseMetrics,
-        values as any,
+        values,
         CONSTANTS.TRADE_TYPE_LONG,
       );
       expect(res.totalNetProfit.toNumber()).toBe(10);
@@ -188,30 +189,39 @@ describe("Calculator - Core Functions", () => {
       // 2: 110, 100, 105. TR = Max(10, |110-100|=10, |100-100|=0) = 10
       const klines = [
         {
+          open: new Decimal(100),
           high: new Decimal(105),
           low: new Decimal(95),
           close: new Decimal(100),
+          volume: new Decimal(0),
+          time: 1,
         },
         {
+          open: new Decimal(100),
           high: new Decimal(110),
           low: new Decimal(100),
           close: new Decimal(105),
+          volume: new Decimal(0),
+          time: 2,
         },
       ];
       // Period 1. Need 2 klines.
-      const atr = calculator.calculateATR(klines as any, 1);
+      const atr = calculator.calculateATR(klines, 1);
       expect(atr.toNumber()).toBe(10);
     });
 
     it("should return 0 if not enough data", () => {
       const klines = [
         {
+          open: new Decimal(95),
           high: new Decimal(100),
           low: new Decimal(90),
           close: new Decimal(95),
+          volume: new Decimal(0),
+          time: 1,
         },
       ];
-      const atr = calculator.calculateATR(klines as any, 14);
+      const atr = calculator.calculateATR(klines, 14);
       expect(atr.toNumber()).toBe(0);
     });
   });
@@ -252,8 +262,11 @@ describe("Calculator - Core Functions", () => {
         },
       ];
 
-      // Cast to JournalEntry for test
-      const stats = calculator.calculatePerformanceStats(journalData as any);
+      // Fixture only fills the fields calculatePerformanceStats reads,
+      // not the full JournalEntry shape.
+      const stats = calculator.calculatePerformanceStats(
+        journalData as unknown as JournalEntry[],
+      );
 
       expect(stats).not.toBeNull();
       expect(stats?.totalTrades).toBe(3);
@@ -296,7 +309,11 @@ describe("Calculator - Core Functions", () => {
         },
       ];
 
-      const stats = calculator.calculateSymbolPerformance(journalData as any);
+      // Fixture only fills the fields calculateSymbolPerformance reads,
+      // not the full JournalEntry shape.
+      const stats = calculator.calculateSymbolPerformance(
+        journalData as unknown as JournalEntry[],
+      );
 
       expect(stats["BTCUSDT"]).toBeDefined();
       expect(stats["BTCUSDT"].totalTrades).toBe(2);

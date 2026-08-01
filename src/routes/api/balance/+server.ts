@@ -47,10 +47,10 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json({ balance });
-  } catch (e: any) {
+  } catch (e) {
     console.error(`Error fetching balance from ${exchange}:`, e);
     return json(
-      { error: e.message || "Failed to fetch balance" },
+      { error: (e instanceof Error ? e.message : null) || "Failed to fetch balance" },
       { status: 500 },
     );
   }
@@ -128,7 +128,7 @@ async function fetchBitunixBalance(
   // Case: It returns an array of assets (as per documentation)
   if (Array.isArray(accountInfo)) {
     const usdt = accountInfo.find(
-      (a: any) =>
+      (a) =>
         a.marginCoin === "USDT" || a.currency === "USDT" || a.asset === "USDT",
     );
     if (usdt) {

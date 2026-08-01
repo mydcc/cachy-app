@@ -17,7 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { marketWatcher } from './marketWatcher';
-import { apiService } from './apiService';
+import { apiService, type Ticker24h } from './apiService';
 import { marketState } from '../stores/market.svelte';
 
 // Mock dependencies
@@ -46,8 +46,12 @@ vi.mock('../stores/settings.svelte', () => ({
 }));
 
 // We need to access private methods/properties for some tests, or test via public API
-// casting to any for test access
-const watcher = marketWatcher as any;
+type MarketWatcherInternals = {
+    pendingRequests: { clear: () => void };
+    requests: { clear: () => void };
+    pollSymbolChannel: (symbol: string, channel: string, provider: "bitunix" | "bitget") => Promise<void>;
+};
+const watcher = marketWatcher as unknown as MarketWatcherInternals;
 
 describe('MarketWatcher Locking & Deduplication', () => {
     beforeEach(() => {
@@ -60,10 +64,10 @@ describe('MarketWatcher Locking & Deduplication', () => {
 
     it('should deduplicate concurrent requests for the same symbol/channel', async () => {
         // Setup a slow API response
-        let resolveApi: (value: any) => void;
-        const delayedPromise = new Promise(resolve => { resolveApi = resolve; });
+        let resolveApi: (value: Ticker24h) => void;
+        const delayedPromise = new Promise<Ticker24h>(resolve => { resolveApi = resolve; });
 
-        vi.mocked(apiService.fetchTicker24h).mockReturnValue(delayedPromise as any);
+        vi.mocked(apiService.fetchTicker24h).mockReturnValue(delayedPromise);
 
         // Trigger two polls effectively simultaneously
         const p1 = watcher.pollSymbolChannel('BTCUSDT', 'price', 'bitunix');
@@ -73,7 +77,7 @@ describe('MarketWatcher Locking & Deduplication', () => {
         expect(apiService.fetchTicker24h).toHaveBeenCalledTimes(1);
 
         // Resolve the API
-        resolveApi!({ lastPrice: '50000' });
+        resolveApi!({ lastPrice: '50000' } as unknown as Ticker24h);
 
         await Promise.all([p1, p2]);
 
@@ -82,7 +86,7 @@ describe('MarketWatcher Locking & Deduplication', () => {
     });
 
     it('should allow new request after previous one finishes', async () => {
-        vi.mocked(apiService.fetchTicker24h).mockResolvedValue({ lastPrice: '50000' } as any);
+        vi.mocked(apiService.fetchTicker24h).mockResolvedValue({ lastPrice: '50000' } as unknown as Ticker24h);
 
         // First call
         await watcher.pollSymbolChannel('BTCUSDT', 'price', 'bitunix');
@@ -104,7 +108,7 @@ describe('MarketWatcher Locking & Deduplication', () => {
         }
 
         // Next call should proceed (lock released)
-        vi.mocked(apiService.fetchTicker24h).mockResolvedValue({ lastPrice: '50000' } as any);
+        vi.mocked(apiService.fetchTicker24h).mockResolvedValue({ lastPrice: '50000' } as unknown as Ticker24h);
         await watcher.pollSymbolChannel('BTCUSDT', 'price', 'bitunix');
 
         expect(apiService.fetchTicker24h).toHaveBeenCalledTimes(2); // 1 fail + 1 success

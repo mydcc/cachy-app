@@ -39,7 +39,7 @@ class FireStore {
             // Check for actual changes to avoid redundant reactivity triggers
             let hasChanged = false;
             for (const key in data) {
-                if ((data as any)[key] !== (existing as any)[key]) {
+                if ((data as unknown as Record<string, unknown>)[key] !== (existing as unknown as Record<string, unknown>)[key]) {
                     hasChanged = true;
                     break;
                 }

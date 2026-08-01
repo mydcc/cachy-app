@@ -62,12 +62,13 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
     return json({ data: positions });
-  } catch (e: any) {
+  } catch (e) {
     // SECURITY: Do not log the full error object if it might contain the request context or keys.
     // Logging only the message is safer.
-    console.error(`Error fetching pending positions from Bitunix:`, e.message);
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`Error fetching pending positions from Bitunix:`, message);
     return json(
-      { error: e.message || "Failed to fetch pending positions" },
+      { error: message || "Failed to fetch pending positions" },
       { status: 500 },
     );
   }
@@ -76,7 +77,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixPendingPositions(
   apiKey: string,
   apiSecret: string,
-): Promise<any[]> {
+): Promise<unknown[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
 

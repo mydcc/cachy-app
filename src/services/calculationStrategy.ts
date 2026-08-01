@@ -27,6 +27,15 @@ import { toastService } from './toastService.svelte';
 
 export type CalculationEngine = 'ts' | 'wasm' | 'gpu' | 'auto';
 
+// Shape EngineDebugPanel.svelte reads per engine — not yet populated (see
+// exportTelemetry() below), but typed against the real consumer so the
+// eventual circuit-breaker implementation has a contract to fill in.
+export interface EngineCircuitBreakerHealth {
+  healthy: boolean;
+  lastError: string;
+  failures: number;
+}
+
 interface EngineMetrics {
     calls: number;
     totalTime: number;
@@ -110,7 +119,7 @@ class CalculationStrategy {
         // Mock other fields expected by DebugPanel for now
         capabilities: { ts: true, wasm: false, simd: false, sharedMemory: false, gpu: false },
         context: { lowBattery: false, lowMemory: false, isMobile: false },
-        circuitBreaker: {} as Record<string, any>,
+        circuitBreaker: {} as Record<string, EngineCircuitBreakerHealth>,
         usagePercent: {} as Record<string, number>
     };
   }

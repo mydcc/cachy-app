@@ -38,6 +38,16 @@ vi.mock('./logger', () => ({
 
 import { WorkerPool } from './workerPool';
 
+// Tests reach into WorkerPool's private internals to simulate worker
+// lifecycle events; this mirrors their real (unexported) shape narrowly
+// enough for the test's own reads/writes.
+interface WorkerPoolInternals {
+  workers: { worker: Worker; busy: boolean; taskCount: number; lastUsed: number }[];
+  pendingTasks: Map<string, { resolve: (v: unknown) => void; reject: (r?: unknown) => void }>;
+  recycleWorker: (state: unknown) => void;
+  handleMessage: (e: MessageEvent, state: unknown) => void;
+}
+
 describe('WorkerPool', () => {
   let pool: WorkerPool;
   const mockWorkerUrl = new URL('../workers/technicals.worker.ts', import.meta.url).href;
@@ -66,8 +76,8 @@ describe('WorkerPool', () => {
     });
     
     it('should initialize worker on first task', async () => {
-      const task = pool.execute({ type: 'TEST' });
-      
+      pool.execute({ type: 'TEST' });
+
       // Worker should be created
       expect(global.Worker).toHaveBeenCalledWith(
         expect.stringContaining('technicals.worker'),
@@ -78,15 +88,13 @@ describe('WorkerPool', () => {
   
   describe('Parallel Execution', () => {
     it('should handle multiple concurrent tasks', async () => {
-      const tasks = [
-        pool.execute({ type: 'CALC', data: 1 }),
-        pool.execute({ type: 'CALC', data: 2 }),
-        pool.execute({ type: 'CALC', data: 3 }),
-        pool.execute({ type: 'CALC', data: 4 })
-      ];
-      
+      pool.execute({ type: 'CALC', data: 1 });
+      pool.execute({ type: 'CALC', data: 2 });
+      pool.execute({ type: 'CALC', data: 3 });
+      pool.execute({ type: 'CALC', data: 4 });
+
       const stats = pool.getStats();
-      
+
       // Should create multiple workers (up to max)
       expect(stats.workers).toBeGreaterThan(1);
       expect(stats.workers).toBeLessThanOrEqual(4);
@@ -94,10 +102,10 @@ describe('WorkerPool', () => {
     
     it('should queue tasks when all workers busy', async () => {
       // Create 5 tasks (more than MAX_WORKERS=4)
-      const tasks = Array.from({ length: 5 }, (_, i) =>
+      Array.from({ length: 5 }, (_, i) =>
         pool.execute({ type: 'CALC', data: i })
       );
-      
+
       const stats = pool.getStats();
       
       // 4 workers max, so 1 task should be queued
@@ -107,26 +115,27 @@ describe('WorkerPool', () => {
   
   describe('Worker Recycling', () => {
     it('should recycle worker after threshold tasks', async () => {
-      const recycleSpy = vi.spyOn(pool as any, 'recycleWorker');
+      const internals = pool as unknown as WorkerPoolInternals;
+      const recycleSpy = vi.spyOn(internals, 'recycleWorker');
       pool.execute({ type: 'SETUP' });
-      
+
       // Simulate 100 tasks (RECYCLE_THRESHOLD)
       for (let i = 0; i < 100; i++) {
-        const worker = (pool as any).workers[0];
+        const worker = internals.workers[0];
         if (worker) {
           worker.taskCount = i + 1;
-          
+
           if (i === 99) {
             // Trigger recycle
-            (pool as any).pendingTasks.set('test', { resolve: vi.fn(), reject: vi.fn() });
-            (pool as any).handleMessage(
+            internals.pendingTasks.set('test', { resolve: vi.fn(), reject: vi.fn() });
+            internals.handleMessage(
               { data: { id: 'test', payload: {} } } as MessageEvent,
               worker
             );
           }
         }
       }
-      
+
       expect(recycleSpy).toHaveBeenCalled();
     });
   });
@@ -134,13 +143,13 @@ describe('WorkerPool', () => {
   describe('Error Handling', () => {
     it('should reject task on worker error', async () => {
       const task = pool.execute({ type: 'TEST' });
-      
+
       // Simulate worker error
-      const worker = (pool as any).workers[0];
+      const worker = (pool as unknown as WorkerPoolInternals).workers[0];
       if (worker && worker.worker.onerror) {
-        worker.worker.onerror({ message: 'error' } as any);
+        worker.worker.onerror({ message: 'error' } as unknown as ErrorEvent);
       }
-      
+
       await expect(task).rejects.toThrow();
     });
     
@@ -180,8 +189,8 @@ describe('WorkerPool', () => {
       pool.execute({ type: 'TEST1' });
       pool.execute({ type: 'TEST2' });
       
-      const workers = (pool as any).workers;
-      const terminateSpies = workers.map((w: any) => 
+      const workers = (pool as unknown as WorkerPoolInternals).workers;
+      const terminateSpies = workers.map((w) =>
         vi.spyOn(w.worker, 'terminate')
       );
       

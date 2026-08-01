@@ -77,7 +77,7 @@ export function generateBitgetSignature(
   method: string,
   path: string,
   params: Record<string, string> = {},
-  body: any = null,
+  body: unknown = null,
 ): BitgetSignatureResult {
   const timestamp = Date.now().toString();
 

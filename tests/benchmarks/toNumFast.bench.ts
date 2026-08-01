@@ -3,14 +3,14 @@ import { Decimal } from 'decimal.js';
 import { toNumFast } from '../../src/utils/fastConversion';
 
 // Setup data
-const decimals = Array(1000).fill(0).map(() => new Decimal((Math.random() as any)));
-const strings = Array(1000).fill(0).map(() => (Math.random() as any).toString());
-const numbers = Array(1000).fill(0).map(() => (Math.random() as any));
+const decimals = Array(1000).fill(0).map(() => new Decimal(Math.random()));
+const strings = Array(1000).fill(0).map(() => Math.random().toString());
+const numbers = Array(1000).fill(0).map(() => Math.random());
 const decimalLikes = Array(1000).fill(0).map(() => ({ s: 1, e: 1, d: [123], toNumber: () => 0.123 }));
 
 // Current implementation (inside function - representative of old code)
 const createCurrent = () => {
-    return (val: any): number => {
+    return (val: unknown): number => {
         if (typeof val === 'number') return val;
         if (typeof val === 'string') {
            const p = parseFloat(val);
@@ -18,10 +18,11 @@ const createCurrent = () => {
         }
         if (val instanceof Decimal) return val.toNumber();
         // Duck typing for Decimal-like objects to avoid try/catch
-        if (val && typeof val === 'object' && (val as any).s !== undefined && (val as any).e !== undefined) {
-            return new Decimal(val).toNumber();
+        const decimalLike = val as { s?: unknown; e?: unknown };
+        if (val && typeof val === 'object' && decimalLike.s !== undefined && decimalLike.e !== undefined) {
+            return new Decimal(val as Decimal.Value).toNumber();
         }
-        try { return new Decimal(val).toNumber(); } catch { return 0; }
+        try { return new Decimal(val as Decimal.Value).toNumber(); } catch { return 0; }
     };
 };
 
