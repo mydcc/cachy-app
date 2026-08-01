@@ -5,6 +5,15 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.4...v1.0.0-beta.5) (2026-08-01)
+
+
+### Bug Fixes
+
+* add missing apiErrors.unauthorized and tooManyRequests translations ([04de952](https://github.com/mydcc/cachy-app/commit/04de9529d55f0f63622558fa105ec5539c48f604))
+* send x-app-access-token on all guarded API routes ([95c354d](https://github.com/mydcc/cachy-app/commit/95c354d7dfb29da2574c0bd4c996b9195ad64478))
+* skip stream-logs request when no admin token is configured ([72c6d58](https://github.com/mydcc/cachy-app/commit/72c6d58fb14bffa766dc9ad0a27be03d3486b76f))
+
 # [1.0.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.3...v1.0.0-beta.4) (2026-08-01)
 
 
