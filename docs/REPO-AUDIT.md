@@ -195,10 +195,11 @@ a required CI check** (`.github/workflows/audit.yml`). Highlights:
   `safeJson.bench.ts` disables `no-loss-of-precision` because its fixtures
   deliberately exceed IEEE 754 precision — that is the thing being benchmarked.
 
-**17 warnings remain**, all in `src/lib/physics/StressLogic.ts` (the
-Ammo.js/WASM physics engine, reserved for last — see `docs/ROADMAP.md`
-item 21). CI enforces `--max-warnings 17` as a ratchet: the ceiling may
-only be lowered, so the backlog can shrink but never grow.
+**0 warnings remain.** `src/lib/physics/StressLogic.ts` (the Ammo.js/WASM
+physics engine, reserved for last — see `docs/ROADMAP.md` item 21) was
+the final file; both `@typescript-eslint/no-explicit-any` and
+`@typescript-eslint/no-unused-vars` are now `"error"` in
+`eslint.config.js`, and the CI `--max-warnings` ratchet was removed.
 
 Verified across the whole change: `npm run check` stays at 0 errors and the full
 test suite reports the identical 28 pre-existing failures (777 passing, 0 new,
@@ -760,5 +761,5 @@ states and the disconnected case.
 | --- | --- |
 | `npm run check` | 1925 files, **0 errors, 0 warnings** |
 | `npm test` | **850 passing, 0 failing** (gate suite; wall-clock benchmarks run separately via `npm run test:perf`, 9 passing) |
-| `npx eslint .` | **0 errors**, 17 warnings under the CI ratchet |
+| `npx eslint .` | **0 errors, 0 warnings** — both backlog rules are `error` now |
 | `npx semantic-release --dry-run` | Config valid, resolves to "publish from main, develop" |

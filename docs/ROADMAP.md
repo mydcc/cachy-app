@@ -4042,6 +4042,74 @@ fixes still genuinely needed against the real current file list, rather
 than risking a duplicate or conflicting diff against already-pushed
 work.
 
+**Pass one hundred eighteen: `src/lib/physics/StressLogic.ts`, 17 → 0.
+Item 21 closed.** The last file, reserved for last because Ammo.js — a
+Bullet Physics WASM build loaded dynamically at runtime, not an npm
+dependency — has no official or community TypeScript types.
+
+- Deleted `smashWindow()` outright rather than typing it: `grep -rn
+  "smashWindow" src` (excluding its own definition) came back empty, and
+  the comment immediately above its replacement — `spawnShardsAt()`,
+  the method `FXOverlay.svelte` actually calls — literally reads "New
+  signature to accept 3D center." The method computed a shard count,
+  dimensions, and a material, then did nothing with any of them before
+  ending in a comment admitting the fracture logic was never finished.
+  Removing it cleared 5 of the file's 17 warnings (`impulsePoint`,
+  `numShards`, `width`, `height`, `material`) in one shot.
+- For the remaining 12 `any` sites: rather than a blanket
+  `eslint-disable` (the Chart.js-wrapper precedent from passes 110/114,
+  used when a library's shapes are too heterogeneous for one type to
+  fit), defined a set of local interfaces (`AmmoVector3`,
+  `AmmoTransform`, `AmmoCollisionShape`, `AmmoMotionState`,
+  `AmmoRigidBody`, `AmmoWorld`, `AmmoNamespace`) covering exactly the
+  Bullet Physics calls this file makes — `new Ammo.btVector3(...)`,
+  `.setGravity()`, `.stepSimulation()`, `.getWorldTransform()`, and so
+  on — derived from the file's own already-working usage, not the full
+  (undocumented) Ammo.js surface. `window.Ammo` itself cycles through
+  three shapes while `init()` lazy-loads the WASM module (absent, the
+  factory function, then the resolved namespace); typed as a small
+  `AmmoWindow` union and extracted the factory-resolution branch (which
+  appeared twice, once per lazy-load path) into one `resolveAmmoFactory()`
+  helper — TypeScript couldn't narrow the union through the repeated
+  `window.Ammo` property re-reads inline, but narrows cleanly through a
+  single local parameter.
+- Typing `this.world` as `AmmoWorld | null` (previously `any`) surfaced
+  a real gap `npm run check` had never been able to see:
+  `createRigidBody()` called `this.world.addRigidBody(body)` with no
+  null check of its own, relying entirely on its *callers* having
+  already checked `this.world` first. Added the guard directly in
+  `createRigidBody()` (`if (!this.world) return null;`) rather than
+  trusting caller discipline, which meant its one caller
+  (`spawnShardsAt()`) needed a `continue` on the now-possible `null`
+  return.
+- **Found while tracing callers for this pass, not fixed:** `grep -rn
+  "triggerSmash" src` (excluding `effects.test.ts` and the store's own
+  definition) also comes back empty — the entire glass-shatter feature
+  this file exists for has no production trigger. Unlike
+  `triggerProjectile()` (`+page.svelte:672`) and `triggerFeed()`
+  (`WindowFrame.svelte:561`), which both fire from real UI, nothing
+  currently sets `effectsState.smashTarget`. This also explains why the
+  physics behavior itself couldn't be verified by actually running the
+  effect in a browser this pass — there is currently no UI path that
+  triggers it. Documented as `docs/TODO.md` item 17 rather than wired up
+  or deleted: whether to give it a real trigger, keep it dead-but-typed
+  (matching items 5/8/9/11's "appears unreachable" shape), or remove it
+  is a product decision, not a lint-pass one.
+- Verified: `npx eslint src/lib/physics/StressLogic.ts` → 0 problems.
+  `npm run check` → 0 errors, 0 warnings, project-wide. `npm test` →
+  850 passing, 6 skipped, unchanged.
+
+**With the backlog at zero, both rules flip to their end state.**
+`@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars`
+are now `"error"` in both `eslint.config.js` blocks (`.{js,ts}` and
+`.svelte`) — test/benchmark files were never given a separate override
+for these two rules, so the gate applies there too, matching the
+comment already on that block ("these rules are relaxed here only —
+they stay errors everywhere else"). `.github/workflows/audit.yml`'s
+`--max-warnings 17` ratchet is gone; CI now runs a plain `npx eslint .`,
+which fails on any error, no ceiling to maintain. Verified: `npx eslint .`
+exits 0 with no output across the whole project.
+
 ### Code health
 
 | # | Item | Status |
@@ -4049,7 +4117,7 @@ work.
 | 18 | ~~Fix the pre-existing test failures~~ — done: **28 → 0**. The gate suite passes (821 tests) and CI runs all of it instead of three hand-picked files. Wall-clock benchmarks moved to a non-blocking job — see below | 🟢 |
 | 19 | ~~Attach `cause` to rethrown errors~~ — done: all 10 sites in `apiService.ts`, `tradeService.ts`, `news/+server.ts` and `storageUtils.ts` now chain the original failure | 🟢 |
 | 20 | ~~Burn down the 112 ESLint errors, then make lint a required CI check~~ — done: 0 errors, lint is now a required check | 🟢 |
-| 21 | Burn down the remaining 17 `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟡 |
+| 21 | Burn down the `no-explicit-any` / `no-unused-vars` warnings, lowering the CI ceiling as you go, then restore both rules to `error` | 🟢 |
 | 22 | ~~Resolve `.deploy.conf` being committed alongside its own `.example`~~ — done: untracked and ignored, template corrected, migration documented | 🟢 |
 | 23 | ~~Deduplicate `chartpatterns.html`~~ — done: the root copy was an early draft with 4 of 56 patterns | 🟢 |
 | 24 | ~~Group and document the ~20 ad-hoc scripts~~ — done: `scripts/README.md`, grouped by whether anything runs them | 🟢 |

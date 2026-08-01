@@ -131,11 +131,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Two gates:
-      #  - Any error fails the build. The error count is 0 and must stay 0.
-      #  - The warning ceiling is a ratchet over the pre-existing
-      #    no-explicit-any / no-unused-vars backlog. It may only ever be
-      #    lowered, never raised, so the backlog cannot grow silently.
-      #    Lower it as warnings are fixed; see docs/ROADMAP.md item 21.
+      # Roadmap item 21's no-explicit-any / no-unused-vars backlog reached
+      # zero; both rules are "error" in eslint.config.js now, so any error
+      # (including either of those two) fails the build. No more ratchet.
       - name: Run ESLint
-        run: npx eslint . --max-warnings 17
+        run: npx eslint .

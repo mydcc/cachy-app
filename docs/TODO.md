@@ -568,6 +568,42 @@ parameter (`close`) to a shared indicator function's signature affects
 every caller, and picking the wrong shift direction or source series
 would ship a wrong-but-plausible-looking chart line.
 
+## 17. `effectsState.triggerSmash()` (the glass-shatter physics FX) has no production caller
+
+**Roadmap item 21.** Found while typing `src/lib/physics/StressLogic.ts`'s
+Ammo.js `any` casts — the last file in the warning backlog, deliberately
+saved for last because it needed real usage-tracing before typing it.
+
+`StressLogic` is a full Ammo.js/WASM physics wrapper (lazy-loads the
+WASM module, builds a rigid-body world, fractures a DOM element into
+tumbling glass shards) wired into `FXOverlay.svelte`, which reacts to
+`effectsState.smashTarget` being set. The only caller of
+`effectsState.triggerSmash()` that sets it is
+`src/stores/effects.test.ts` — `grep -rn "triggerSmash" src` (excluding
+that test file and the store's own definition) comes back empty. Unlike
+`effectsState.triggerProjectile()` (called from `+page.svelte:672`) and
+`.triggerFeed()` (called from `WindowFrame.svelte:561`), which both have
+real UI triggers, nothing in the app currently invokes `triggerSmash()`.
+
+**Consequence:** the entire glass-shatter feature — and this file's
+physics code — is currently unreachable from the running app. This also
+means the `any`-removal typing done here (a set of local interfaces for
+the exact Ammo.js calls this file makes, derived from the file's own
+existing working code, not the official Ammo.js API surface, which has
+no TypeScript types at all) could only be verified via `npm run check`
+and reading the Bullet Physics API the calls match — not by actually
+triggering the effect in a browser and watching it run, since there is
+currently no UI path that does.
+
+**The decision:** either wire a real trigger into the UI (a mascot
+"smash" interaction, a delete-with-flourish animation — whatever this
+was originally built for), or, if the feature was abandoned, decide
+whether to keep it (as dead-but-typed code, like items 5/8/9/11's
+"appears unreachable" findings) or remove it. If kept and later wired
+up, the person doing so should manually exercise it once in a real
+browser before trusting the physics behavior, since this pass's typing
+was never run.
+
 ## Add new items below
 
 <!--
