@@ -53,6 +53,30 @@ jobs:
             echo "✅ All critical files use Decimal.js correctly."
           fi
 
+  docs-check:
+    name: Backlog & Documentation Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Validates every backlog item's front matter (status, priority, edition,
+      # data class, id/filename agreement, dependencies that actually exist) and
+      # fails if INDEX.md is stale. Without this the index is a hand-maintained
+      # copy of the directory, which is exactly the drift docs/REPO-AUDIT.md is
+      # about. No dependencies needed — the script is plain Node.
+      - name: Validate backlog front matter and index
+        run: npm run backlog:check
+
+      # A moved or renamed document silently breaks every pointer to it. That
+      # happened when the old roadmap was archived and is cheap to prevent.
+      - name: Check relative links in Markdown
+        run: node scripts/check-doc-links.mjs
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest

@@ -23,6 +23,8 @@ check.
 | `check_translations.sh` | `.github/workflows/translation-check.yml` | Shell wrapper that drives the translation checks from the project root. |
 | `verify_translations.py` | `.github/workflows/translation-check.yml` | Verifies `de.json` and `en.json` agree on their key set. |
 | `discord-notify.sh` | `deploy.sh` (sourced) | Deployment notifications. Silent no-op without `DISCORD_WEBHOOK_URL`; run it directly with `test` to check a webhook. |
+| `backlog-index.mjs` | `.github/workflows/audit.yml`, `npm run backlog:index` / `backlog:check` | Validates every `docs/backlog/` item's front matter and regenerates `INDEX.md`. `--check` fails if the index is stale, so a hand-edited or forgotten index is a red build rather than a document that quietly stops matching the files. No dependencies. |
+| `check-doc-links.mjs` | `.github/workflows/audit.yml`, `npm run docs:links` | Fails if a relative Markdown link points at a missing file. Moving a document breaks every pointer to it and nothing notices until a reader follows one — archiving the old roadmap broke six links in one commit. External URLs are not checked. |
 
 ## Run by hand, and worth keeping
 
@@ -61,7 +63,7 @@ Real tools with a clear job. None of them run on their own.
 - **`verification/`** — `verify_market_overview.py`, `verify_picker.py`,
   `verify_presenter.ts` plus two reference screenshots. Manual visual checks
   from before the e2e suite existed; not wired into anything.
-- **`plans/`** — two design documents, `plan_proposal.md` and
+- **`docs/archive/plans/`** — two design documents, `plan_proposal.md` and
   `settings-ui-optimization-20260228.md`. Historical planning notes, not
   instructions to follow.
 

@@ -206,6 +206,18 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 ## 📚 Documentation
 
+**Start at [`docs/README.md`](docs/README.md)** — it maps every document to what it answers. The short version:
+
+| I want to… | Read |
+| --- | --- |
+| Install and run Cachy myself | [`docs/INSTALL.md`](docs/INSTALL.md) |
+| Understand what Cachy is for | [`docs/VISION.md`](docs/VISION.md) |
+| Find my way around the code | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| See the long-term plan | [`docs/MILESTONES.md`](docs/MILESTONES.md) |
+| Know what is being built next | [`docs/ROADMAP.md`](docs/ROADMAP.md) |
+| Pick up a piece of work | [`docs/backlog/INDEX.md`](docs/backlog/INDEX.md) |
+| Know the boundaries | [`docs/adr/`](docs/adr/README.md) |
+
 - **Installation:** [`docs/INSTALL.md`](docs/INSTALL.md) — running Cachy yourself, from clone to a working balance, including what to do when every API call answers 401.
 - **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/lib/assets/content/guide.en.md`.
 - **Technical Whitepaper:** `src/lib/assets/content/whitepaper.en.md` — architecture, the mathematical core, and the security model.

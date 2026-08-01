@@ -23,8 +23,10 @@ npm run test:e2e     # Playwright-E2E-Tests (tests/e2e)
 - **Local-First (Datenklassen-Grenze, siehe `docs/adr/0001-local-first-boundary.md`):**
   - **Klasse A — verlässt das Gerät nie:** Journal, Settings, API-Keys/Secrets, Presets, private Notizen, Trade-Entwürfe. Ausschließlich `localStorage`. Niemals an einen Cachy-Server senden — auch nicht als Telemetrie, Crash-Report oder Debug-Log. (Ausnahme: API-Keys als Credential eines nutzerinitiierten Exchange-Requests über den Proxy.)
   - **Klasse B — darf serverseitig liegen:** derzeit nur Global-Chat-Nachrichten (SpacetimeDB, `server/spacetimedb/`). Nur unter allen vier Bedingungen: Opt-in und standardmäßig aus, authentifiziert (kein anonymer Zugriff), minimal (keine Klasse-A-Daten, auch nicht als Metadaten), und nicht essenziell (Rechner, Journal, Risikomanagement funktionieren vollständig ohne Server).
+  - **Klasse C — öffentliche Marktdaten und daraus abgeleitete Analysen** (Preise, Klines, News, Sentiment): darf überall liegen, aber **nie neben einer Nutzer-Identität**. Welche Symbole jemand beobachtet, ist Nutzerdatum. Siehe `docs/adr/0004-spacetimedb-data-scope.md`.
   - Jedes **neue** Klasse-B-Feature braucht eine eigene ADR. Ein Feld von Klasse A nach B zu verschieben ist ein `BREAKING CHANGE:`.
   - Local-First **nicht** als Absolutaussage formulieren („keine Server-Persistenz") — das war falsch und hat die Doku vom Code entkoppelt.
+  - **Der Core läuft ohne Server** (`docs/adr/0003-edition-boundary.md`): Core-Code — Rechner, Risiko-Engine, Journal, Presets, Notizen, Settings, Exchange-Anbindung, Indikatoren und deren UI — importiert **niemals** aus `src/lib/spacetimedb/` oder `src/services/cloudService.ts`. Nicht hinter einem Flag, nicht in einem try/catch. Server-gestützte Features sind Module hinter einer Schnittstelle.
 - `src/services/` — API- und WebSocket-Services (Bitunix/Bitget), Berechnungslogik. Tests liegen direkt daneben (`*.test.ts`).
 - `src/stores/` — Svelte-5-Rune-Stores (`*.svelte.ts`), ebenfalls mit Tests daneben.
 - `src/components/` — UI-Komponenten (inputs, layout, results, settings, shared).
@@ -32,6 +34,23 @@ npm run test:e2e     # Playwright-E2E-Tests (tests/e2e)
 - `src/routes/[[lang]]/` — i18n-Routing (Deutsch + Englisch, `src/locales/`). Neue UI-Texte immer in **beiden** Sprachen anlegen.
 - `server/` — SpacetimeDB-Modul; hat eine eigene CLAUDE.md mit eigenen Regeln.
 - `technicals-wasm/` — WASM-Modul für Indikator-Berechnungen.
+
+## Planung & Dokumentation
+
+`docs/README.md` ist die Karte — dort steht, welches Dokument wofür zuständig ist. Kurzfassung:
+
+| Frage | Dokument |
+|---|---|
+| Warum gibt es Cachy? | `docs/VISION.md` |
+| Wo liegt welcher Code? | `docs/ARCHITECTURE.md` |
+| Was wird wann gebaut? | `docs/MILESTONES.md` → `docs/ROADMAP.md` |
+| Woran arbeite ich konkret? | `docs/backlog/INDEX.md` |
+| Was darf ich nicht ändern? | `docs/adr/` |
+| Was wartet auf eine Entscheidung des Users? | `docs/TODO.md` |
+
+- **Verlinken, nie duplizieren.** Ein Fakt lebt in genau einer Datei. Zwei Kopien einer Begründung sind der Grund, warum Doku aufhört zu stimmen (siehe `docs/REPO-AUDIT.md`).
+- Neue Aufgabe → Backlog-Eintrag aus `docs/backlog/templates/` anlegen, danach `npm run backlog:index`. Das Front-Matter wird validiert; `npm run backlog:check` schlägt fehl, wenn der Index veraltet ist.
+- Neue Entscheidung, die künftige Arbeit einschränkt → ADR (`docs/adr/template.md`), nicht ein Absatz irgendwo.
 
 ## Nicht verhandelbare Regeln
 
