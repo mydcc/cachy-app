@@ -25,6 +25,7 @@ import { newsService } from "../services/newsService";
 import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue } from "../utils/utils";
 import { logger } from "../services/logger";
+import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
 
@@ -361,7 +362,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
       while (attempt < MAX_RETRIES) {
         try {
-          res = await fetch(endpoint, {
+          res = await appFetch(endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

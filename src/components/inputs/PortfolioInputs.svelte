@@ -29,6 +29,7 @@
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
+  import { appFetch } from "../../lib/appAuth";
 
   interface Props {
     accountSize: string | null;
@@ -156,7 +157,7 @@
 
     isFetchingBalance = true;
     try {
-      const res = await fetch("/api/balance", {
+      const res = await appFetch("/api/balance", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

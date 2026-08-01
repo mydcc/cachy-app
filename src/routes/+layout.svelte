@@ -64,7 +64,14 @@ import { afterNavigate } from "$app/navigation";
     const shouldEnable =
       settingsState.enableNetworkLogs || import.meta.env.DEV || isDevDomain;
 
-    if (shouldEnable) {
+    // No admin token, no stream: the server denies every request without one
+    // (LOG_STREAM_KEY is unset by default, ADR-0002 fails closed), and nothing
+    // in this app ever writes "cachy_admin_token" to localStorage — it is set
+    // manually via devtools when an operator wants to watch logs. Without it,
+    // connecting is a guaranteed 401/403 on every page load.
+    const adminToken = localStorage.getItem("cachy_admin_token") || "";
+
+    if (shouldEnable && adminToken) {
       abortController = new AbortController();
 
       const connectStream = async () => {
@@ -73,8 +80,6 @@ import { afterNavigate } from "$app/navigation";
 
         while (!abortController?.signal.aborted) {
           try {
-            const adminToken = localStorage.getItem("cachy_admin_token") || "";
-
             const response = await fetch("/api/stream-logs", {
               headers: {
                 "Authorization": `Bearer ${adminToken}` // i18n-ignore

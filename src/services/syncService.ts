@@ -27,6 +27,7 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 import type { TranslationKey } from "../locales/schema";
 import { trackCustomEvent } from "./trackingService";
+import { appFetch } from "../lib/appAuth";
 import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
@@ -191,7 +192,7 @@ export const syncService = {
 
     try {
       // 1. Fetch History Positions
-      const historyResponse = await fetch("/api/sync/positions-history", {
+      const historyResponse = await appFetch("/api/sync/positions-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -206,7 +207,7 @@ export const syncService = {
       const historyPositions = historyResult.data;
 
       // 2. Fetch Pending Positions
-      const pendingResponse = await fetch("/api/sync/positions-pending", {
+      const pendingResponse = await appFetch("/api/sync/positions-pending", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -221,7 +222,7 @@ export const syncService = {
         : [];
 
       // 3. Fetch Orders
-      const orderResponse = await fetch("/api/sync/orders", {
+      const orderResponse = await appFetch("/api/sync/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
