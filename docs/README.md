@@ -9,6 +9,7 @@ who it is for — if you are an agent starting a task, start here.
 
 | I want to… | Read |
 | --- | --- |
+| Install and run Cachy myself | [`INSTALL.md`](INSTALL.md) |
 | Understand what Cachy is and why | [`VISION.md`](VISION.md) |
 | Know where the code lives | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | See the long-term plan | [`MILESTONES.md`](MILESTONES.md) |
