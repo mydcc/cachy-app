@@ -418,9 +418,6 @@ class BitunixWebSocketService {
         marketState.connectionStatus = "connected";
         marketState.updateTelemetry({ activeConnections: (marketState.telemetry.activeConnections || 0) + 1 });
 
-        // Notify Manager
-        connectionManager.onProviderConnected("bitunix");
-
         // [HYBRID FIX] Reset Backoff on successful connection
         this.backoffDelay = 1000;
         this.isReconnectingPublic = false;
@@ -429,8 +426,19 @@ class BitunixWebSocketService {
         this.startHeartbeat(ws, "public");
         this.resetWatchdog("public", ws);
 
-        // [HYBRID] Flush Buffer on Connect
+        // [HYBRID] Flush Buffer on Connect. Must run before notifying
+        // ConnectionManager below: it sends whatever subscriptions were
+        // already queued while the socket was still CONNECTING. Notifying
+        // ConnectionManager afterwards (which triggers MarketWatcher.resync())
+        // then only needs to (re-)subscribe channels still missing after this
+        // flush, so the two don't both send the same channel moments apart.
         this.flushPendingSubscriptions();
+
+        // Notify Manager. Also triggers MarketWatcher.resync(), which
+        // restores any subscriptions this instance's own buffer lost across
+        // a prior destroy() (pendingSubscriptions is cleared there, but
+        // MarketWatcher's own registered interest is not).
+        connectionManager.onProviderConnected("bitunix");
       };
 
       ws.onmessage = (event) => {

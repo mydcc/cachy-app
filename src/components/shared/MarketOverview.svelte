@@ -79,15 +79,22 @@
   let baseAsset = $derived(symbol.toUpperCase().replace(/USDT(\.P|P)?$/, ""));
 
   // Market Data Access
+  //
+  // marketState.data is always keyed by the canonical (Bitunix-style,
+  // unsuffixed) symbol - that's what MarketWatcher/apiService write under
+  // regardless of the active provider (see marketWatcher.ts's register()).
+  // Normalizing with the active `provider` here would key Bitget lookups by
+  // e.g. "BTCUSDT_UMCBL", which nothing ever writes to, leaving the tile
+  // stuck on its loading state.
   let wsData = $derived.by(() => {
     if (!symbol) return null;
-    const key = normalizeSymbol(symbol, provider);
+    const key = normalizeSymbol(symbol, "bitunix");
     return marketState.data[key] || null;
   });
 
   // Ticker Data (Fallback)
   let tickerData = $derived(
-    marketState.data[normalizeSymbol(symbol, provider)],
+    marketState.data[normalizeSymbol(symbol, "bitunix")],
   );
 
   let currentPrice = $derived.by(() => {

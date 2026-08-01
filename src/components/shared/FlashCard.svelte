@@ -34,7 +34,10 @@
     const symbol = tradeState.symbol;
     if (!symbol) return "var(--accent-color)";
 
-    const key = normalizeSymbol(symbol, settingsState.apiProvider);
+    // marketState.data is always keyed by the canonical (Bitunix-style)
+    // symbol regardless of active provider - see MarketOverview.svelte for
+    // the same fix and why normalizing by provider here would miss Bitget.
+    const key = normalizeSymbol(symbol, "bitunix");
     const data = marketState.data[key];
 
     if (!data || !data.priceChangePercent) return "var(--accent-color)";

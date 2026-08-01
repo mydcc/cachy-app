@@ -117,8 +117,10 @@ class BurnColorResolver {
             // 2. Automatic Price Trend (Like Market Tiles Border)
             const symbol = inputSymbol || tradeState.symbol;
             if (symbol) {
-                const provider = settingsState.apiProvider;
-                const key = normalizeSymbol(symbol, provider);
+                // marketState.data is always keyed by the canonical
+                // (Bitunix-style) symbol regardless of active provider
+                // (see MarketOverview.svelte).
+                const key = normalizeSymbol(symbol, "bitunix");
                 const data = marketState.data[key];
 
                 // Cache colors if needed
