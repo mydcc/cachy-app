@@ -16,8 +16,6 @@
  */
 
 import { browser } from "$app/environment";
-// @ts-ignore
-import CryptoJS from "crypto-js";
 
 /**
  * CryptoService using Native Web Crypto API (SubtleCrypto) for performance.
@@ -26,9 +24,17 @@ import CryptoJS from "crypto-js";
 
 
 const STRONG_ITERATIONS = 600000;
+// Not read by attemptDecrypt()'s AES-CBC branch, which always uses
+// STRONG_ITERATIONS — see docs/TODO.md item 12: the pre-Web-Crypto
+// implementation retried legacy blobs at this iteration count, and that
+// fallback was lost in the rewrite. Kept, not deleted, until a person
+// confirms no real blob still needs it.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LEGACY_ITERATIONS = 10000;
 const SALT_SIZE = 16;
 const IV_SIZE_GCM = 12; // GCM standard
+// See docs/TODO.md item 12, same reasoning as LEGACY_ITERATIONS above.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const IV_SIZE_CBC = 16; // CBC standard
 const KEY_SIZE = 256;
 
@@ -358,7 +364,7 @@ class CryptoServiceImpl {
           const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
           getReq.onsuccess = () => resolve(getReq.result || null);
           getReq.onerror = () => reject(getReq.error);
-        } catch (e) {
+        } catch {
           resolve(null);
         }
       };

@@ -10,46 +10,75 @@
 import { browser } from "$app/environment";
 
 import { settingsState } from "./settings.svelte";
-import { journalState } from "./journal.svelte";
-import { calculator } from "../lib/calculator";
-import { Decimal } from "decimal.js";
-import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { cloudService, type CloudStatus } from "../services/cloudService";
 
+/**
+ * Global Chat, backed by SpacetimeDB.
+ *
+ * This store used to poll `/api/chat-v2`, which wrote messages to a JSON file on
+ * the Cachy server. That backend is gone: the project runs one Global Chat, on
+ * SpacetimeDB (roadmap item 12). The window and the panel are unchanged — only
+ * what stands behind them is different.
+ *
+ * The shape below is deliberately the same one the UI already consumed, so
+ * `SidePanel`, `ChatPanel`, `AssistantView` and the chat window did not have to
+ * change with it.
+ */
 export interface ChatMessage {
   id: string;
   text: string;
   timestamp: number;
-  senderId?: string; // 'me' or 'other'
-  sender?: "user" | "system"; // from API
-  profitFactor?: number;
+  /** "me" for the local user, otherwise the sender's short ID. */
+  senderId?: string;
+  sender?: "user" | "system";
+  /** The sender's short ID, unmapped. */
   clientId?: string;
 }
 
-const POLL_INTERVAL = 3000;
+/** Matches the module's `send_message` guard, so we reject before the round trip. */
+const MAX_MESSAGE_LENGTH = 1000;
+
+/** Client-side rate limit, unchanged from the previous backend. */
+const SEND_INTERVAL_MS = 2000;
 
 class ChatManager {
   messages = $state<ChatMessage[]>([]);
   lastSentTimestamp = $state(0);
-  latestSeenTimestamp = $state(0);
   loading = $state(false);
+  /**
+   * The local user's short sender ID once connected, so the UI can mark its own
+   * messages. Empty while disconnected. Named `clientId` because that is what
+   * the components already read.
+   */
   clientId = $state("");
+  connected = $state(false);
+  lastError = $state<string | null>(null);
 
   private effectCleanup: (() => void) | null = null;
 
   constructor() {
-    this.clientId = this.getClientId();
     if (browser) {
-      // Auto-start polling when conditions are met
+      cloudService.subscribeStatus((status) => this.applyStatus(status));
+      cloudService.subscribeMessages((rows) => this.applyRows(rows));
+
+      // Connect when Global Chat is enabled and configured, and stay out of the
+      // way otherwise. ADR-0001 keeps this off by default; nothing here may
+      // connect on its own.
       this.effectCleanup = $effect.root(() => {
         $effect(() => {
-          if (
-            windowManager.isOpen("assistant") &&
-            settingsState.sidePanelMode === "chat"
-          ) {
-            this.poll(); // Initial poll
-            const interval = setInterval(() => this.poll(), POLL_INTERVAL);
-            return () => clearInterval(interval);
-          }
+          const enabled = settingsState.cloudEnabled;
+          const token = settingsState.cloudToken;
+
+          if (!enabled || !token) return;
+          if (cloudService.isConnected()) return;
+
+          void cloudService
+            .connect(settingsState.cloudHost, settingsState.cloudDbName, token)
+            .catch((e: unknown) => {
+              // connect() already records build failures; this catches the
+              // argument-validation rejections it still throws.
+              this.lastError = e instanceof Error ? e.message : String(e);
+            });
         });
       });
     }
@@ -62,129 +91,71 @@ class ChatManager {
     }
   }
 
-  private getClientId(): string {
-    if (!browser) return "server";
-    let id = localStorage.getItem("chat_client_id");
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem("chat_client_id", id);
-    }
-    return id;
+  private applyStatus(status: CloudStatus) {
+    this.connected = status.connected;
+    this.lastError = status.lastError;
+    this.clientId = status.mySenderId ?? "";
+    // Re-map existing rows: which messages count as "mine" depends on the
+    // identity, which is only known once connected.
+    this.messages = this.messages.map((m) => ({
+      ...m,
+      senderId: m.clientId === this.clientId ? "me" : m.clientId,
+    }));
   }
 
-  private mergeMessages(
-    current: ChatMessage[],
-    incoming: ChatMessage[],
-  ): ChatMessage[] {
-    // 1. Update latest timestamp BEFORE filtering (prevents stuck polling)
-    if (incoming.length > 0) {
-      const maxTs = Math.max(...incoming.map((m) => m.timestamp));
-      if (maxTs > this.latestSeenTimestamp) {
-        this.latestSeenTimestamp = maxTs;
-      }
-    }
-
-    const settings = settingsState;
-    const minPF = settings.minChatProfitFactor || 0;
-
-    // 2. Apply Profit Factor Filter
-    // Allow own messages, system messages, or messages meeting the PF requirement
-    const filteredIncoming = incoming.filter((m) => {
-      // Exclude messages from filtering if they are:
-      // - From system
-      // - From me (by senderId 'me' or matching clientId)
-      // - System messages often have undefined profitFactor, so we should check sender type explicitly
-      const isSystem = m.sender === "system";
-      const isMe = m.senderId === "me" || m.clientId === this.clientId;
-
-      if (isSystem || isMe) return true;
-
-      // Otherwise, enforce PF
-      return (m.profitFactor ?? 0) >= minPF;
-    });
-
-    const existingIds = new Set(current.map((m) => m.id));
-    const uniqueIncoming = filteredIncoming.filter(
-      (m) => !existingIds.has(m.id),
-    );
-
-    if (uniqueIncoming.length === 0) return current;
-
-    let merged = [...current, ...uniqueIncoming];
-    merged.sort((a, b) => a.timestamp - b.timestamp);
-
-    // Frontend Limit (display last 500 max)
-    if (merged.length > 500) {
-      merged = merged.slice(-500);
-    }
-    return merged;
+  /**
+   * The module declares the column as `sent_at`; the generated client bindings
+   * expose it camelCased as `sentAt`. This side speaks the bindings' spelling.
+   */
+  private applyRows(rows: { sender: string; text: string; sentAt: number }[]) {
+    this.messages = rows
+      .map((row) => this.toMessage(row))
+      .sort((a, b) => a.timestamp - b.timestamp);
   }
 
-  private async poll() {
-    // Use tracked timestamp to ensure we advance even if messages are filtered out
-    const since = this.latestSeenTimestamp;
-
-    try {
-      const res = await fetch(`/api/chat-v2?since=${since}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.messages && data.messages.length > 0) {
-          this.messages = this.mergeMessages(this.messages, data.messages);
-        }
-      }
-    } catch (e) {
-      // Silent failure on poll
-      if (import.meta.env.DEV) {
-        console.warn("[Chat] Poll failed:", e);
-      }
-    }
+  private toMessage(row: {
+    sender: string;
+    text: string;
+    sentAt: number;
+  }): ChatMessage {
+    return {
+      // The module's table has no primary key, so the key is composed. A sender
+      // cannot produce two rows in the same millisecond — the send path is rate
+      // limited to one message per 2s.
+      id: `${row.sender}:${row.sentAt}`,
+      text: row.text,
+      timestamp: row.sentAt,
+      sender: "user",
+      clientId: row.sender,
+      senderId: row.sender === this.clientId ? "me" : row.sender,
+    };
   }
 
   async sendMessage(text: string) {
     const now = Date.now();
 
-    // Rate Limit Check (2 seconds)
-    if (now - this.lastSentTimestamp < 2000) {
+    if (now - this.lastSentTimestamp < SEND_INTERVAL_MS) {
       throw new Error("Please wait 2 seconds between messages.");
     }
-
-    // Calculate own PF
-    const stats = calculator.calculateJournalStats(journalState.entries);
-    const pf =
-      stats.profitFactor && new Decimal(stats.profitFactor).isFinite()
-        ? new Decimal(stats.profitFactor).toNumber()
-        : 0;
-
-    // Send to API
-    try {
-      const res = await fetch("/api/chat-v2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          profitFactor: pf,
-          clientId: this.clientId,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to send");
-      }
-
-      const data = await res.json();
-
-      // Optimistic update
-      this.messages = this.mergeMessages(this.messages, [data.message]);
-      this.lastSentTimestamp = now;
-    } catch (e) {
-      console.error(e);
-      throw e;
+    if (text.length > MAX_MESSAGE_LENGTH) {
+      throw new Error(`Message too long (max ${MAX_MESSAGE_LENGTH}).`);
     }
+    if (!this.connected) {
+      throw new Error(
+        "Global Chat is not connected. Enable it and enter a token in Settings → Cloud.",
+      );
+    }
+
+    // Only the message text leaves the device. Nothing derived from the journal,
+    // the settings or any key travels with it — ADR-0001, Class B condition 3.
+    cloudService.sendMessage(text);
+    this.lastSentTimestamp = now;
   }
 
   clearHistory() {
-    // Only clears local view, server history remains
+    // Local view only. Server-side history is governed by the retention policy
+    // in docs/GLOBAL-CHAT.md; to erase your own messages there, use the module's
+    // delete_my_messages reducer.
     this.messages = [];
   }
 }

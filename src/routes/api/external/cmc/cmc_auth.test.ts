@@ -39,7 +39,7 @@ describe('CMC Proxy Security', () => {
 
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest');
 
-    const response = await GET({ url, request } as any);
+    const response = await GET({ url, request } as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(401);
     const body = await response.json();
@@ -63,7 +63,7 @@ describe('CMC Proxy Security', () => {
 
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest');
 
-    const response = await GET({ url, request } as any);
+    const response = await GET({ url, request } as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(200);
     expect(checkAppAuth).toHaveBeenCalledWith(request);

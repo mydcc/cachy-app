@@ -16,11 +16,14 @@
 -->
 
 <script lang="ts">
-    import { settingsState } from "../../../stores/settings.svelte";
 
     interface Props {
         label: string;
         id: string;
+        // Bound to many different string-literal-union fields across
+        // IndicatorSettings.svelte (engine, mode, source, maType, anchor, ...);
+        // a precise union here would have to be re-derived per call site.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value: any;
         options: string[];
     }

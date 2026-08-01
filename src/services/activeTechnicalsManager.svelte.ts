@@ -33,10 +33,11 @@ import { tradeState } from "../stores/trade.svelte";
 import { technicalsService } from "./technicalsService";
 import { marketWatcher } from "./marketWatcher";
 import { browser } from "$app/environment";
-import { normalizeTimeframeInput, getIntervalMs, parseTimestamp } from "../utils/utils";
+import { getIntervalMs } from "../utils/utils";
 import { logger } from "./logger";
 import { Decimal } from "decimal.js";
-import type { Kline, KlineBuffers } from "./technicalsTypes";
+import type { Kline, KlineBuffers, TechnicalsData } from "./technicalsTypes";
+import type { MarketData } from "../stores/market.svelte";
 import { networkMonitor } from "../utils/networkMonitor";
 import { BufferPool } from "../utils/bufferPool";
 
@@ -48,7 +49,7 @@ class ActiveTechnicalsManager {
     private activeEffects = new Map<string, () => void>();
 
     // Throttle timers: `symbol:timeframe` -> timer ID
-    private throttles = new Map<string, ReturnType<typeof setTimeout>>();
+    private throttles = new Map<string, ReturnType<typeof setTimeout> | number>();
 
     // 🌟 Pro-Level: Visibility & Debounce State
     private visibleSymbols = new Set<string>();
@@ -369,7 +370,7 @@ class ActiveTechnicalsManager {
 
             // Use requestIdleCallback with polyfill fallback
             const requestIdleCb = this.getRequestIdleCallback();
-            const handle = requestIdleCb(callback, { timeout: delay }) as any;
+            const handle = requestIdleCb(callback, { timeout: delay });
             this.throttles.set(key, handle);
         }
     }
@@ -390,34 +391,36 @@ class ActiveTechnicalsManager {
         };
 
         const requestIdleCb = this.getRequestIdleCallback();
-        const handle = requestIdleCb(callback, { timeout: delay }) as any;
+        const handle = requestIdleCb(callback, { timeout: delay });
         this.throttles.set(key, handle);
     }
 
     /**
      * Get requestIdleCallback with polyfill fallback for older browsers.
      */
-    private getRequestIdleCallback(): (callback: (deadline?: IdleDeadline) => void, options?: { timeout: number }) => number {
+    private getRequestIdleCallback(): (callback: (deadline?: IdleDeadline) => void, options?: { timeout: number }) => ReturnType<typeof setTimeout> | number {
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
             return window.requestIdleCallback.bind(window);
         }
 
-        // Polyfill: Use setTimeout with simulated IdleDeadline
-        return (callback: (deadline?: IdleDeadline) => void, options?: { timeout: number }) => {
+        // Polyfill: Use setTimeout with simulated IdleDeadline. `options` is part
+        // of the shared call signature (used by the native path above) but the
+        // polyfill ignores the timeout hint — it always defers by 1ms.
+        return (callback: (deadline?: IdleDeadline) => void) => {
             const start = Date.now();
             return setTimeout(() => {
                 callback({
                     didTimeout: false,
                     timeRemaining: () => Math.max(0, 50 - (Date.now() - start))
                 } as IdleDeadline);
-            }, 1) as any;
+            }, 1);
         };
     }
 
     // Helper for deep equality – avoids JSON.stringify to reduce GC pressure on every tick.
     // Compares all TechnicalsData fields that can change between calculations.
     // Returns false (allow update) on any uncertainty – safe default for a dedup guard.
-    private isTechnicalsEqual(a: any, b: any): boolean {
+    private isTechnicalsEqual(a: TechnicalsData, b: TechnicalsData): boolean {
         // Fast path for references
         if (!a || !b) return false;
 
@@ -527,7 +530,7 @@ class ActiveTechnicalsManager {
         // Inject latest price (Ensure we clone to avoid mutating reactive array unexpectedly)
         if (marketData.lastPrice) {
             history = [...history]; // Fast shallow copy
-            this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
+            this.injectRealtimePrice(history, timeframe, marketData.lastPrice);
         }
 
         // Determine Mode: Initialize or Update
@@ -578,8 +581,9 @@ class ActiveTechnicalsManager {
                 this.handleResult(symbol, timeframe, marketData, result);
             }
 
-        } catch (e: any) {
-            if (e.message === "Worker unavailable for update") {
+        } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            if (message === "Worker unavailable for update") {
                 // Expected fallback behavior - just log debug and re-init next time
                 if (import.meta.env.DEV) {
                     logger.debug("technicals", `[ActiveManager] Worker unavailable for update on ${key}, scheduling re-init.`);
@@ -592,7 +596,7 @@ class ActiveTechnicalsManager {
         }
     }
 
-    private handleResult(symbol: string, timeframe: string, marketData: any, result: any) {
+    private handleResult(symbol: string, timeframe: string, marketData: MarketData, result: TechnicalsData) {
         // Anti-Flicker: Check if content actually changed
         // Access technicals for this specific timeframe
         const currentTechnicals = marketData.technicals?.[timeframe];
@@ -678,7 +682,9 @@ class ActiveTechnicalsManager {
     }
 
     // Stateless Helper: mutates a copy of the history array found in memory
-    private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal, symbol: string) {
+    // `symbol` was accepted and unused — this helper only ever mutates the
+    // history array handed to it, so it never needed the caller's symbol.
+    private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal) {
         if (history.length === 0) return;
 
         const lastIdx = history.length - 1;
@@ -690,7 +696,6 @@ class ActiveTechnicalsManager {
 
         if (lastCandle.time === currentPeriodStart) {
             // Update the clone
-            let close = price;
             let high = lastCandle.high instanceof Decimal ? lastCandle.high : new Decimal(lastCandle.high);
             let low = lastCandle.low instanceof Decimal ? lastCandle.low : new Decimal(lastCandle.low);
 

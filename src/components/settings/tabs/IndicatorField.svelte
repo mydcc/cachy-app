@@ -16,18 +16,16 @@
 -->
 
 <script lang="ts">
-    import { settingsState } from "../../../stores/settings.svelte";
     import { enhancedInput } from "../../../lib/actions/inputEnhancements";
 
     interface Props {
         label: string;
         id: string;
-        value: any;
+        value: number;
         type?: string;
         min?: number;
         max?: number;
         step?: number;
-        alwaysEnabled?: boolean;
     }
 
     let {
@@ -38,7 +36,6 @@
         min,
         max,
         step,
-        alwaysEnabled = false,
     }: Props = $props();
 </script>
 

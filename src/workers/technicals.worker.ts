@@ -20,11 +20,9 @@
 
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators, calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
-import { BufferPool } from "../utils/bufferPool";
-import type { WorkerMessage, WorkerCalculatePayload, WorkerCalculatePayloadSoA, KlineBuffers } from "../services/technicalsTypes";
+import type { WorkerMessage } from "../services/technicalsTypes";
 
-const ctx: Worker = self as any;
-const bufferPool = new BufferPool();
+const ctx = self;
 
 // Stateful Cache for "INITIALIZE" / "UPDATE"
 // Keyed by request ID (symbol:timeframe)
@@ -62,6 +60,9 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
           );
       } else {
           // Legacy Path
+          // `payload` is `any` on WorkerMessage (technicalsTypes.ts) since its shape
+          // varies by message type (SoA arrays, klines array, single kline, settings, ...).
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const klines = payload.klines.map((k: any) => ({
               time: k.time,
               open: new Decimal(k.open),
@@ -216,12 +217,12 @@ ctx.onmessage = (e: MessageEvent<WorkerMessage>) => {
         ctx.postMessage({ type: "RESULT", id, payload: { cleaned: true } });
     }
 
-    } catch (err: any) {
+    } catch (err) {
     console.error("Technicals Worker Error:", err);
     ctx.postMessage({
       type: "ERROR",
       id,
-      error: err.message || "Unknown worker error"
+      error: err instanceof Error ? err.message : "Unknown worker error"
     });
   }
 };

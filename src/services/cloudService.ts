@@ -23,35 +23,90 @@ import {
 import GlobalMessageType from '../lib/spacetimedb/global_message_type';
 import type { Infer } from 'spacetimedb';
 import { logger } from './logger';
+import { settingsState } from '../stores/settings.svelte';
 
 type GlobalMessage = Infer<typeof GlobalMessageType>;
+
+export interface CloudStatus {
+  connected: boolean;
+  /** Last connection or send failure, or null. Shown in the settings tab. */
+  lastError: string | null;
+  /**
+   * The caller's own sender ID, or null while disconnected.
+   *
+   * The module publishes `identity.toHexString().substring(0, 8)` as the sender
+   * of each message, so deriving it the same way here is what lets the UI tell
+   * "me" from everyone else without the server having to say so.
+   */
+  mySenderId: string | null;
+}
+
+/** How the module shortens an identity into the `sender` column. */
+const senderIdOf = (identity: { toHexString(): string }): string =>
+  identity.toHexString().substring(0, 8);
 
 class CloudService {
   private conn: DbConnection | null = null;
   private connected = false;
+  private lastError: string | null = null;
+  private mySenderId: string | null = null;
   private messages: GlobalMessage[] = [];
 
   // Callback for Svelte to update UI
   private onMessageCallback: ((msgs: GlobalMessage[]) => void) | null = null;
+  private onStatusCallback: ((status: CloudStatus) => void) | null = null;
 
   constructor() { }
 
-  async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
+  status(): CloudStatus {
+    return {
+      connected: this.connected,
+      lastError: this.lastError,
+      mySenderId: this.mySenderId,
+    };
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  /**
+   * Connects to the Global Chat module.
+   *
+   * `host` and `dbName` come from settings (`cloudHost`, `cloudDbName`) rather
+   * than from constants in this file — the endpoint is the user's choice, not
+   * something Cachy points at on their behalf. The old hardcoded
+   * `http://127.0.0.1:3000` / `cachy-server` defaults now live in
+   * `defaultSettings`, where the user can see and change them.
+   *
+   * Anonymous access stays prohibited: Class B condition 2 in ADR-0001.
+   */
+  async connect(host?: string, dbName?: string, token?: string) {
     if (!token) {
       throw new Error('A valid authentication token is required to connect to the cloud service. Anonymous access is strictly prohibited.');
     }
     if (this.connected) return;
 
-    logger.log('network', 'Connecting to SpacetimeDB...', host);
+    const uri = host || settingsState.cloudHost;
+    const moduleName = dbName || settingsState.cloudDbName;
+
+    if (!uri || !moduleName) {
+      throw new Error('Global Chat is not configured: set a server address and module name in Settings.');
+    }
+
+    logger.log('network', 'Connecting to SpacetimeDB...', uri);
 
     try {
       this.conn = DbConnection.builder()
-        .withUri(host)
-        .withModuleName(dbName)
+        .withUri(uri)
+        .withModuleName(moduleName)
         .withToken(token) // Enforce token
-        .onConnect((ctx) => {
+        .onConnect((ctx, identity) => {
           logger.log('network', 'Connected to SpacetimeDB!', ctx);
           this.connected = true;
+          this.lastError = null;
+          this.mySenderId = identity ? senderIdOf(identity) : null;
+          if (this.onStatusCallback) this.onStatusCallback(this.status());
 
           // Subscribe to queries
           const sub = this.conn?.subscriptionBuilder();
@@ -65,18 +120,31 @@ class CloudService {
         .onDisconnect((ctx) => {
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
+          this.mySenderId = null;
+          if (this.onStatusCallback) this.onStatusCallback(this.status());
         })
         .build();
     } catch (e) {
+      // Deliberately not rethrown. An unreachable chat server must never take a
+      // calculation, a journal entry or a risk figure down with it — ADR-0001
+      // requires every core function to work with the network down. The failure
+      // is recorded so the settings tab can say so, and nothing else changes.
+      this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
+      if (this.onStatusCallback) this.onStatusCallback(this.status());
     }
 
     // Handle row updates with robustness
     try {
-      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
+      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables.
+      // Same reasoning as canDeleteMyMessages() below: the accessor name `tables` exposes depends
+      // on the generated bindings' state, which can predate a schema change, so this is a runtime
+      // feature check `any` can't be typed away without hiding that uncertainty.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
 
       if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback shape depends on the untyped handle above
         globalMessageTable.onInsert((ctx: any, row: any) => {
           logger.debug('network', 'New Message Received:', row);
           this.messages = [...this.messages, row];
@@ -95,13 +163,70 @@ class CloudService {
       logger.warn('network', 'Cannot send message: Not connected');
       return;
     }
-    // The reducers object is exported from the generated code and handles calling the server
-    (reducers as any).sendMessage(text);
+    try {
+      // The reducers object is exported from the generated code and handles calling the server.
+      // Same generated-bindings-drift reasoning as canDeleteMyMessages() below.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (reducers as any).sendMessage(text);
+    } catch (e) {
+      // Same rule as connect(): a chat failure stays a chat failure.
+      this.lastError = e instanceof Error ? e.message : String(e);
+      logger.error('network', 'Failed to send message:', e);
+      if (this.onStatusCallback) this.onStatusCallback(this.status());
+    }
+  }
+
+  /**
+   * True when the current generated bindings know about `delete_my_messages`.
+   *
+   * The reducer exists in `server/spacetimedb/src/index.ts`, but the bindings in
+   * `src/lib/spacetimedb/` are produced by `spacetime generate` and a build made
+   * before that ran does not have it. Editing generated files by hand is
+   * forbidden (`server/CLAUDE.md`), so the client asks instead of assuming — a
+   * missing reducer is a deployment state, not a bug.
+   */
+  canDeleteMyMessages(): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return typeof (reducers as any).deleteMyMessages === 'function';
+  }
+
+  /**
+   * Erases every message the connected identity has sent — the GDPR right to
+   * erasure, exercised by the person it belongs to.
+   *
+   * The module derives the sender from `ctx.sender`, so this cannot be aimed at
+   * anyone else's messages, and no argument is needed.
+   */
+  deleteMyMessages() {
+    if (!this.connected) {
+      logger.warn('network', 'Cannot delete messages: Not connected');
+      throw new Error('Not connected to Global Chat.');
+    }
+    if (!this.canDeleteMyMessages()) {
+      throw new Error(
+        'This build cannot delete messages: the SpacetimeDB bindings predate the delete_my_messages reducer. Run `spacetime generate` and rebuild.',
+      );
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (reducers as any).deleteMyMessages({});
+    } catch (e) {
+      this.lastError = e instanceof Error ? e.message : String(e);
+      logger.error('network', 'Failed to delete messages:', e);
+      if (this.onStatusCallback) this.onStatusCallback(this.status());
+      throw e;
+    }
   }
 
   subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {
     this.onMessageCallback = cb;
     cb(this.messages);
+  }
+
+  subscribeStatus(cb: (status: CloudStatus) => void) {
+    this.onStatusCallback = cb;
+    cb(this.status());
   }
 }
 

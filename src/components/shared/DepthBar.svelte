@@ -29,13 +29,13 @@
   // Calculate total volume for the top 5 levels
   let bidVol = $derived(
     (bids ?? []).reduce(
-      (acc, [_, qty]) => acc.plus(new Decimal(qty || 0)),
+      (acc, [, qty]) => acc.plus(new Decimal(qty || 0)),
       new Decimal(0),
     ),
   );
   let askVol = $derived(
     (asks ?? []).reduce(
-      (acc, [_, qty]) => acc.plus(new Decimal(qty || 0)),
+      (acc, [, qty]) => acc.plus(new Decimal(qty || 0)),
       new Decimal(0),
     ),
   );

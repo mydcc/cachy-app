@@ -16,13 +16,13 @@
 -->
 
 <script lang="ts">
-  import { tradeService } from "../../services/tradeService";
+  import { tradeService, type TpSlOrder } from "../../services/tradeService";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
-    order: any;
+    order: TpSlOrder | null;
     onclose?: () => void;
     onsuccess?: () => void;
   }
@@ -36,13 +36,15 @@
   $effect(() => {
     if (order) {
       triggerPrice = order.triggerPrice || "";
-      amount = order.qty || order.amount || "";
+      amount = String(order.qty ?? order.amount ?? "");
     }
   });
   let loading = $state(false);
   let error = $state("");
 
   async function handleSave() {
+    if (!order) return;
+
     if (!triggerPrice) {
       error = $_("bitunixErrors.INVALID_TRIGGER") || "Trigger price is required";
       return;
@@ -53,7 +55,7 @@
 
     try {
       await tradeService.modifyTpSlOrder({
-        orderId: order.orderId || order.id || order.planId,
+        orderId: order.orderId || order.id || order.planId || "",
         symbol: order.symbol,
         planType: order.planType,
         triggerPrice: String(triggerPrice),

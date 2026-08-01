@@ -31,7 +31,7 @@ describe('PresetManager', () => {
     });
 
     it('should update state using update method', () => {
-        presetState.update((curr) => ({
+        presetState.update(() => ({
             availablePresets: ['preset1', 'preset2'],
             selectedPreset: 'preset1'
         }));
@@ -53,7 +53,7 @@ describe('PresetManager', () => {
         unsubscribe();
     });
 
-    it('should debounce state changes and notify subscribers after 20ms', () => {
+    it('should debounce state changes and notify subscribers after 20ms', async () => {
         const subscriber = vi.fn();
         const unsubscribe = presetState.subscribe(subscriber);
 
@@ -62,14 +62,19 @@ describe('PresetManager', () => {
 
         // Mutate state multiple times rapidly
         presetState.availablePresets = ['p1'];
-        flushSync();
         presetState.selectedPreset = 'p1';
-        flushSync();
         presetState.availablePresets = ['p1', 'p2'];
-        flushSync();
 
-        // Advance past the 20ms debounce window
-        vi.advanceTimersByTime(25);
+        // The debounce lives in an $effect inside $effect.root. flushSync() does
+        // not run effects in a detached root, so the previous version of this
+        // test never got as far as scheduling the 20ms timer — notifyTimer stayed
+        // null and the synchronous advanceTimersByTime had nothing to fire.
+        //
+        // The async timer helpers flush microtasks between ticks, which lets
+        // Svelte's scheduler run the effect first. favorites.test.ts already
+        // documents this ("advancing timers without tick sometimes misses the
+        // batched update"); this follows the same pattern.
+        await vi.advanceTimersByTimeAsync(25);
 
         // Should be called exactly once more with the final state
         expect(subscriber).toHaveBeenCalledTimes(2);

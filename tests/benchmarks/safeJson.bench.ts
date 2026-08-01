@@ -1,8 +1,18 @@
+/* eslint-disable no-loss-of-precision --
+   This benchmark exists to measure protection against JSON number precision
+   loss, so the fixtures below contain literals that deliberately exceed IEEE 754
+   precision (e.g. 1234567890123456789, 12345.123456789012345). Flagging them
+   inverts the purpose of the file. */
+/* eslint-disable no-useless-escape --
+   The regexes below are a verbatim copy of the legacy implementation being
+   benchmarked. They are kept byte-identical so the comparison stays honest;
+   tidying the character classes would silently change what is measured. */
+
 import { safeJsonParse } from '../../src/utils/safeJson';
 
 // Legacy implementation for comparison
 function safeJsonParseLegacy(jsonString: string) {
-    if (!jsonString) return jsonString as any;
+    if (!jsonString) return jsonString;
     if (typeof jsonString !== 'string') return jsonString;
 
     let protectedJson = jsonString.replace(/"([^"]+)"\s*:\s*(-?\d[\d.eE+-]{14,})(?=\s*[,}])/g, '"$1": "$2"');

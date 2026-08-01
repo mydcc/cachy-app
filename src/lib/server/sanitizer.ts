@@ -16,11 +16,13 @@
  */
 
 import { JSDOM } from 'jsdom';
-import DOMPurify from 'dompurify';
+import DOMPurify, { type WindowLike } from 'dompurify';
 
 const window = new JSDOM('').window;
-// Cast to any to bypass strict type mismatch between JSDOM Window and DOMPurify WindowLike
-const purify = DOMPurify(window as unknown as any);
+// JSDOM's Window and DOMPurify's WindowLike aren't structurally identical
+// (JSDOM's has extra members WindowLike doesn't declare), so this still
+// needs a cast — but through the real WindowLike type instead of any.
+const purify = DOMPurify(window as unknown as WindowLike);
 
 /**
  * Sanitizes user input for storage.

@@ -71,6 +71,61 @@ interface CacheMetadata {
   createdAt: number;
 }
 
+/**
+ * A numeric field as it arrives from an exchange, before conversion.
+ *
+ * `safeJsonParse` quotes literals of 15+ characters to preserve precision, so a
+ * price can be a string or a number depending on its length alone. Values that
+ * have already been converted arrive as `Decimal`. This union is the honest
+ * input type for anything coercing exchange data — `any` merely hid that the
+ * three cases exist.
+ */
+type RawNumeric = string | number | Decimal | null | undefined;
+
+// Raw kline as buffered/received before Decimal normalization — see the
+// RawNumeric doc comment above for why fields aren't just `Decimal`.
+export interface RawKline {
+  time: number;
+  open: RawNumeric;
+  high: RawNumeric;
+  low: RawNumeric;
+  close: RawNumeric;
+  volume: RawNumeric;
+}
+
+interface RawPriceUpdate {
+  price?: RawNumeric;
+  indexPrice?: RawNumeric;
+  fundingRate?: RawNumeric;
+  nextFundingTime?: number | string | null;
+}
+
+interface RawTickerUpdate {
+  lastPrice?: RawNumeric;
+  high?: RawNumeric;
+  low?: RawNumeric;
+  vol?: RawNumeric;
+  quoteVol?: RawNumeric;
+  fundingRate?: RawNumeric;
+  nextFundingTime?: number | string | null;
+  open?: RawNumeric;
+  change?: RawNumeric;
+}
+
+interface RawDepthUpdate {
+  bids: [string, string][];
+  asks: [string, string][];
+}
+
+interface RawKlineWsMessage {
+  o: RawNumeric;
+  h: RawNumeric;
+  l: RawNumeric;
+  c: RawNumeric;
+  b: RawNumeric;
+  t: number;
+}
+
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
@@ -89,13 +144,15 @@ export class MarketManager {
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
   // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
   private backingBuffers = new Map<string, KlineBuffers>();
-  private pendingKlineUpdates = new Map<string, any[]>();
+  private pendingKlineUpdates = new Map<string, RawKline[]>();
   private bufferPool = new BufferPool();
-  private cleanupIntervalId: any = null;
-  private flushIntervalId: any = null;
-  private telemetryIntervalId: any = null;
-  private notifyTimer: any = null;
-  private statusNotifyTimer: any = null;
+  // `ReturnType<typeof ...>` rather than `number`: the handle is a number in the
+  // browser and a Timeout object under Node, and these run in both.
+  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private flushIntervalId: ReturnType<typeof setInterval> | null = null;
+  private telemetryIntervalId: ReturnType<typeof setInterval> | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private statusNotifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
@@ -282,16 +339,15 @@ export class MarketManager {
     this.enforceCacheLimit();
   }
 
-  private applyUpdate(symbol: string, partial: any) {
+  private applyUpdate(symbol: string, partial: MarketUpdatePayload) {
     try {
       this.touchSymbol(symbol);
       const current = this.getOrCreateSymbol(symbol);
-      const previousTimestamp = current.lastUpdated || 0;
       current.lastUpdated = Date.now();
 
       // Optimization: Check for equality before creating new Decimal
       // Re-use Decimal instances if string value hasn't changed.
-      const toDecimal = (val: any, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
+      const toDecimal = (val: RawNumeric, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
         try {
           if (val === undefined) return undefined;
 
@@ -312,7 +368,7 @@ export class MarketManager {
              return currentVal; // Reuse existing object
           }
           return new Decimal(val);
-        } catch (e) {
+        } catch {
           return undefined;
         }
       };
@@ -380,8 +436,11 @@ export class MarketManager {
         current.nextFundingTime = nft > 0 ? nft : null;
       }
 
-      if (partial.depth !== undefined) current.depth = partial.depth;
-      if (partial.technicals !== undefined) {
+      // depth/technicals are object-shaped fields; MarketUpdatePayload's
+      // mapped type also allows string/number (for the Decimal fields),
+      // which doesn't apply here — narrow to object before assigning.
+      if (partial.depth && typeof partial.depth === "object") current.depth = partial.depth;
+      if (partial.technicals && typeof partial.technicals === "object") {
         // Merge technicals map (keyed by timeframe)
         current.technicals = { ...(current.technicals || {}), ...partial.technicals };
       }
@@ -403,7 +462,7 @@ export class MarketManager {
   updateSymbolKlines(
     symbol: string,
     timeframe: string,
-    klines: any[],
+    klines: RawKline[],
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
@@ -445,7 +504,7 @@ export class MarketManager {
   private applySymbolKlines(
     symbol: string,
     timeframe: string,
-    klines: any[],
+    klines: RawKline[],
     source: "rest" | "ws" = "rest",
     enforceLimit: boolean = true
   ) {
@@ -455,7 +514,7 @@ export class MarketManager {
     // [OPTIMIZATION] Deduplicate raw updates
     if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
         klines.sort((a, b) => a.time - b.time);
-        const dedupedRaw: any[] = [];
+        const dedupedRaw: RawKline[] = [];
         let lastTime = -1;
         for (const k of klines) {
              if (k.time === lastTime) {
@@ -479,7 +538,15 @@ export class MarketManager {
         if (newRaw.time === lastKline.time) {
             // 1. Update History In-Place (Minimizing Decimal Allocations)
             // We use a helper to only create new Decimals if value changed
-            const updateDecimal = (oldVal: Decimal, newVal: any): Decimal => {
+            const updateDecimal = (oldVal: Decimal, newVal: RawNumeric): Decimal => {
+                // Required once the parameter is typed honestly: RawNumeric
+                // includes null/undefined, which `new Decimal(...)` rejects.
+                // Keeping the previous value is what a missing field means.
+                //
+                // Defensive rather than a demonstrated fix — no call path was
+                // found that actually reaches here with a missing field, so do
+                // not read this as a crash that was occurring in production.
+                if (newVal === null || newVal === undefined) return oldVal;
                 if (typeof newVal === "number") {
                      return new Decimal(newVal);
                 }
@@ -502,7 +569,9 @@ export class MarketManager {
             const bufferKey = `${symbol}:${timeframe}`;
             const backing = this.backingBuffers.get(bufferKey);
             if (backing && backing.times.length > lastIdx) {
-                 const getNum = (val: any): number => {
+                 // Raw exchange values reach here as strings (safeJsonParse
+                 // quotes long literals), as numbers, or already as Decimal.
+                 const getNum = (val: RawNumeric): number => {
                     if (typeof val === "number") return val;
                     if (typeof val === "string") return parseFloat(val);
                     return val instanceof Decimal ? val.toNumber() : Number(val);
@@ -520,12 +589,17 @@ export class MarketManager {
         }
     }
     // Normalize
+    //
+    // RawNumeric includes null/undefined; the `as Decimal.Value` casts below
+    // preserve the prior (pre-typing) behavior of passing the raw value
+    // straight to `new Decimal(...)` unchecked, rather than adding a new
+    // runtime guard here — see the RawNumeric doc comment.
     let newKlines: Kline[] = klines.map(k => ({
-      open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
-      high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
-      low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
-      close: k.close instanceof Decimal ? k.close : new Decimal(k.close),
-      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
+      open: k.open instanceof Decimal ? k.open : new Decimal(k.open as Decimal.Value),
+      high: k.high instanceof Decimal ? k.high : new Decimal(k.high as Decimal.Value),
+      low: k.low instanceof Decimal ? k.low : new Decimal(k.low as Decimal.Value),
+      close: k.close instanceof Decimal ? k.close : new Decimal(k.close as Decimal.Value),
+      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume as Decimal.Value),
       time: k.time
     }));
 
@@ -550,7 +624,7 @@ export class MarketManager {
     // Calculate Limit
     const userLimit = settingsState.chartHistoryLimit || 2000;
     const safetyLimit = 50000;
-    let effectiveLimit = userLimit;
+    let effectiveLimit: number;
     if (!enforceLimit) {
       effectiveLimit = safetyLimit;
     } else {
@@ -695,9 +769,9 @@ export class MarketManager {
   }
 
   // Legacy update methods refactored to use updateSymbol
-  updatePrice(symbol: string, data: any) {
+  updatePrice(symbol: string, data: RawPriceUpdate) {
     try {
-      const update: Partial<MarketData> = {
+      const update: MarketUpdatePayload = {
         nextFundingTime: data.nextFundingTime,
       };
 
@@ -707,14 +781,14 @@ export class MarketManager {
       if (data.fundingRate) update.fundingRate = data.fundingRate;
 
       this.updateSymbol(symbol, update);
-    } catch (e) {
+    } catch {
         // ...
     }
   }
 
-  updateTicker(symbol: string, data: any) {
+  updateTicker(symbol: string, data: RawTickerUpdate) {
     try {
-      const update: Partial<MarketData> = {};
+      const update: MarketUpdatePayload = {};
 
       if (data.lastPrice !== undefined) update.lastPrice = data.lastPrice;
       if (data.high !== undefined) update.highPrice = data.high;
@@ -741,26 +815,28 @@ export class MarketManager {
       }
 
       if (!calculatedChange && data.change !== undefined) {
-        update.priceChangePercent = new Decimal(data.change).times(100);
+        // Cast preserves prior (pre-typing) behavior — see the RawNumeric
+        // doc comment; not a new guard against null.
+        update.priceChangePercent = new Decimal(data.change as Decimal.Value).times(100);
       }
 
       this.updateSymbol(symbol, update);
-    } catch (e) {
+    } catch {
        // ...
     }
   }
 
-  updateDepth(symbol: string, data: any) {
+  updateDepth(symbol: string, data: RawDepthUpdate) {
     try {
       this.updateSymbol(symbol, {
         depth: { bids: data.bids, asks: data.asks },
       });
-    } catch (e) {
+    } catch {
        // ...
     }
   }
 
-  updateKline(symbol: string, timeframe: string, data: any) {
+  updateKline(symbol: string, timeframe: string, data: RawKlineWsMessage) {
     try {
       // Pass raw values (no Decimal creation here) to allow buffering
       // applySymbolKlines handles the conversion to Decimal lazily
@@ -779,7 +855,7 @@ export class MarketManager {
         ],
         "ws"
       );
-    } catch (e) {
+    } catch {
        // ...
     }
   }
@@ -818,6 +894,7 @@ export class MarketManager {
     const cleanup = $effect.root(() => {
       $effect(() => {
         // Track.
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.data;
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);
@@ -829,10 +906,14 @@ export class MarketManager {
       });
     });
     return () => {
-      if (typeof cleanup === 'function') {
-        (cleanup as Function)();
-      } else if (cleanup && typeof (cleanup as any).stop === 'function') {
-        (cleanup as any).stop();
+      // The subscription helper returns either an unsubscribe function or an
+      // object with .stop(), depending on the path taken. Naming that union
+      // beats casting to any twice.
+      const stoppable = cleanup as (() => void) | { stop?: () => void } | null;
+      if (typeof stoppable === 'function') {
+        stoppable();
+      } else if (stoppable && typeof stoppable.stop === 'function') {
+        stoppable.stop();
       }
     };
   }
@@ -841,6 +922,7 @@ export class MarketManager {
     fn(this.connectionStatus);
     const cleanup = $effect.root(() => {
       $effect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.connectionStatus; // Track
         untrack(() => {
           if (this.statusNotifyTimer) clearTimeout(this.statusNotifyTimer);
@@ -852,10 +934,14 @@ export class MarketManager {
       });
     });
     return () => {
-      if (typeof cleanup === 'function') {
-        (cleanup as Function)();
-      } else if (cleanup && typeof (cleanup as any).stop === 'function') {
-        (cleanup as any).stop();
+      // The subscription helper returns either an unsubscribe function or an
+      // object with .stop(), depending on the path taken. Naming that union
+      // beats casting to any twice.
+      const stoppable = cleanup as (() => void) | { stop?: () => void } | null;
+      if (typeof stoppable === 'function') {
+        stoppable();
+      } else if (stoppable && typeof stoppable.stop === 'function') {
+        stoppable.stop();
       }
     };
   }

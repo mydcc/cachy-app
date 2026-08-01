@@ -20,7 +20,7 @@
 -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import { browser } from "$app/environment";
     import * as THREE from "three";
     import { effectsState } from "../../stores/effects.svelte";
@@ -119,7 +119,7 @@
         scene?.add(boltLine);
     }
 
-    function updateBolt(t: number) {
+    function updateBolt() {
         if (!boltLine) return;
         const positions = boltLine.geometry.attributes.position
             .array as Float32Array;
@@ -362,7 +362,7 @@
 
     $effect(() => {
         if (effectsState.smashTarget && camera && stressLogic) {
-            const { rect, id } = effectsState.smashTarget;
+            const { rect } = effectsState.smashTarget;
             const x =
                 ((rect.left + rect.width / 2) / window.innerWidth) * 2 - 1;
             const y =
@@ -448,7 +448,7 @@
                 obj.scale.set(scale, scale, scale);
                 checkWindowImpact(obj);
 
-                if (activeEffect === "bolt") updateBolt(elapsed);
+                if (activeEffect === "bolt") updateBolt();
                 if (activeEffect === "coin") {
                     obj.rotation.x += dt * 12;
                     obj.rotation.y += dt * 7;

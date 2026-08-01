@@ -19,12 +19,6 @@ import { describe, it, expect } from "vitest";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { Decimal } from "decimal.js";
 
-// Mock worker environment
-const self = {
-  onmessage: null as any,
-  postMessage: null as any,
-};
-
 describe("technicals.worker", () => {
   // We can't fully emulate the Worker context easily in Vitest without complex setup,
   // but we can test the core logic which is now shared in technicalsCalculator.
@@ -45,13 +39,13 @@ describe("technicals.worker", () => {
   describe("calculateAllIndicators", () => {
     it("should calculate SMA correctly", () => {
         // SMA logic test via calculator
-        const result = calculateAllIndicators(klines, undefined, { ema: false }); // Disable others to focus
+        const result = calculateAllIndicators(klines);
         // We actually can't easily disable everything, but we check return structure
         expect(result.movingAverages).toBeDefined();
     });
 
     it("should calculate RSI correctly", () => {
-        const result = calculateAllIndicators(klines, undefined, { rsi: true });
+        const result = calculateAllIndicators(klines);
         const rsi = result.oscillators.find(o => o.name === "RSI");
         expect(rsi).toBeDefined();
         expect(typeof rsi?.value).toBe("number");
@@ -67,9 +61,22 @@ describe("technicals.worker", () => {
     it("should handle incomplete data gracefully", () => {
       const shortKlines = klines.slice(0, 5);
       const result = calculateAllIndicators(shortKlines);
-      // Should not crash, just empty or partial results (MAs return 0 if not enough data)
-      expect(result.movingAverages.length).toBe(3);
-      expect(result.movingAverages[0].value).toBe(0);
+
+      // Must not throw on five candles.
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.movingAverages)).toBe(true);
+
+      // This assertion used to expect three entries with value 0. The
+      // calculator now pushes a moving average only when its value is not NaN,
+      // so an indicator without enough history is omitted instead of reported as
+      // 0 — a zero is indistinguishable from a real price level. Five candles is
+      // not enough for any of the configured periods, so none appear.
+      expect(result.movingAverages.length).toBe(0);
+
+      // Whatever is returned must never contain a NaN masquerading as a number.
+      for (const ma of result.movingAverages) {
+        expect(Number.isNaN(ma.value)).toBe(false);
+      }
     });
   });
 });

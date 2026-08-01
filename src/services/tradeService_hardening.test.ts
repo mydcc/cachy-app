@@ -16,7 +16,7 @@
  */
 
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { tradeService } from './tradeService';
 import { omsService } from './omsService';
 import { Decimal } from 'decimal.js';
@@ -68,10 +68,10 @@ describe('TradeService Hardening', () => {
       lastUpdated: Date.now() - 1000, // 1s old
     };
 
-    (omsService.getPositions as any).mockReturnValue([stalePos]);
+    vi.mocked(omsService.getPositions).mockReturnValue([stalePos]);
 
     // Mock the sync fetch response
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify({
         data: [{
@@ -84,7 +84,7 @@ describe('TradeService Hardening', () => {
     });
 
     // Mock the order execution fetch response
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify({ code: 0, msg: 'success' }))
     });
@@ -110,10 +110,10 @@ describe('TradeService Hardening', () => {
       lastUpdated: Date.now() - 50, // 50ms old
     };
 
-    (omsService.getPositions as any).mockReturnValue([freshPos]);
+    vi.mocked(omsService.getPositions).mockReturnValue([freshPos]);
 
     // Mock only order execution
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(JSON.stringify({ code: 0, msg: 'success' }))
     });

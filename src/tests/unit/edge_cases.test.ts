@@ -24,7 +24,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { Decimal } from 'decimal.js';
-import { calculateAllIndicators, getEmptyData } from '../../utils/technicalsCalculator';
+import { calculateAllIndicators } from '../../utils/technicalsCalculator';
 import type { Kline } from '../../services/technicalsTypes';
 
 function makeKline(open: number, high: number, low: number, close: number, volume: number, time: number): Kline {

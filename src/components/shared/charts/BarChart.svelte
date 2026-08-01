@@ -21,13 +21,19 @@
   import "../../../lib/chartSetup";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
+  import type { ChartOptions } from "chart.js";
 
   interface Props {
+    // Reused across ~15 call sites in JournalCharts.svelte /
+    // JournalDeepDive.svelte, each constructing a differently-shaped
+    // Chart.js dataset (labels, bar colors, R-multiple bins, ...) — no
+    // single ChartData<'bar'> shape covers all of them.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     title?: string;
     horizontal?: boolean;
     description?: string;
-    options?: any;
+    options?: ChartOptions<"bar">;
   }
 
   let {

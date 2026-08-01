@@ -21,11 +21,11 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
-  import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
   import { normalizeTimeframeInput } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/schema";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 
@@ -77,14 +77,15 @@
     if (!action) return "-";
     // First try exact key
     const key = action.toLowerCase().replace(/\s+/g, "");
-    const translation = $_(`settings.technicals.${key}` as any);
+    // Runtime-checked dynamic key — see syncService.ts's identical pattern.
+    const translation = $_(`settings.technicals.${key}` as TranslationKey);
 
     // If not found, try generic Buy/Sell
     if (!translation || translation.includes("settings.technicals")) {
-      if (action.includes("Buy")) return $_("common.buy" as any) || action;
-      if (action.includes("Sell")) return $_("common.sell" as any) || action;
+      if (action.includes("Buy")) return $_("common.buy" as TranslationKey) || action;
+      if (action.includes("Sell")) return $_("common.sell" as TranslationKey) || action;
       if (action.includes("Neutral"))
-        return $_("common.neutral" as any) || action;
+        return $_("common.neutral" as TranslationKey) || action;
       return action;
     }
     return translation;
@@ -92,20 +93,17 @@
 
   function translateContext(context: string): string {
     if (context === "Overbought")
-      return $_("settings.technicals.overbought" as any) || "Overbought";
+      return $_("settings.technicals.overbought" as TranslationKey) || "Overbought";
     if (context === "Oversold")
-      return $_("settings.technicals.oversold" as any) || "Oversold";
+      return $_("settings.technicals.oversold" as TranslationKey) || "Oversold";
     if (context === "Trend")
-      return $_("settings.technicals.trend" as any) || "Trend";
+      return $_("settings.technicals.trend" as TranslationKey) || "Trend";
     if (context === "Range")
-      return $_("settings.technicals.range" as any) || "Range";
+      return $_("settings.technicals.range" as TranslationKey) || "Range";
     return translateAction(context);
   }
 
   // --- UI Event Handlers ---
-  function toggleTimeframePopup() {
-    showTimeframePopup = !showTimeframePopup;
-  }
   function handleDropdownEnter() {
     if (hoverTimeout) clearTimeout(hoverTimeout);
     showTimeframePopup = true;
@@ -746,7 +744,7 @@
                 <div
                   class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
                 >
-                  {$_("settings.technicals.noSignals" as any)}
+                  {$_("settings.technicals.noSignals")}
                 </div>
               {/if}
             </div>

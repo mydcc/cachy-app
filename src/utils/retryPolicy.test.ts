@@ -123,7 +123,7 @@ describe('RetryPolicy', () => {
             jitter: false
         };
 
-        const promise = RetryPolicy.execute(fn, config).catch(() => {});
+        RetryPolicy.execute(fn, config).catch(() => {});
 
         // Attempt 1 fails. Logs retry in 100ms.
         await vi.advanceTimersByTimeAsync(100);
@@ -151,7 +151,7 @@ describe('RetryPolicy', () => {
             jitter: false
         };
 
-        const promise = RetryPolicy.execute(fn, config).catch(() => {});
+        RetryPolicy.execute(fn, config).catch(() => {});
 
         // 1. delay 100 -> wait 100
         await vi.advanceTimersByTimeAsync(100);
@@ -181,7 +181,7 @@ describe('RetryPolicy', () => {
         // Mock random to 0 -> jitter factor = 0.8
         vi.spyOn(Math, 'random').mockReturnValue(0);
 
-        const promise = RetryPolicy.execute(fn, config).catch(() => {});
+        RetryPolicy.execute(fn, config).catch(() => {});
 
         // Expected delay: 100 * 0.8 = 80ms
         await vi.advanceTimersByTimeAsync(80);

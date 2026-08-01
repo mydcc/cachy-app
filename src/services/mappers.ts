@@ -28,6 +28,11 @@ import type { OMSOrder, OMSPosition, OMSOrderSide, OMSOrderStatus } from "./omsT
  * Maps raw API/WS data to a standardized OMSPosition.
  * Handles different field names (API vs WS) and ensures Decimal precision.
  */
+// Bitunix/Bitget's REST and WS payloads use different field names for the
+// same value (avgOpenPrice vs averagePrice, qty vs size vs amount, ...) —
+// the function's job is duck-typing across all of them, matching
+// BitunixWSMessage.data's own documented reasoning (passes 68/73).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapToOMSPosition(data: any): OMSPosition {
     const isClose = data.event === "CLOSE";
     // If event is CLOSE, the position is effectively closed (qty 0).
@@ -74,6 +79,9 @@ export function mapToOMSPosition(data: any): OMSPosition {
  * Maps raw API/WS data to a standardized OMSOrder.
  * Handles numeric ID conversion warnings.
  */
+// Same reasoning as mapToOMSPosition above: duck-types across differently
+// -shaped Bitunix/Bitget REST and WS order payloads.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapToOMSOrder(data: any): OMSOrder {
     // Hardening: Detect numeric IDs which imply precision loss
     // Note: This check happens AFTER JSON.parse, so 19-digit numbers might already be corrupted.

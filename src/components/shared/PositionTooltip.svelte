@@ -20,15 +20,22 @@
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
 
+  // Populated from UiState's tooltip.data (typed `unknown` there, since
+  // different tooltip variants carry different shapes). Expected
+  // structure: symbol, side, leverage, size, entryPrice, unrealizedPnl,
+  // margin, marginMode, liquidationPrice, markPrice — but exchange
+  // responses vary, so this stays as loose as OrderDetailsTooltip's
+  // matching LooseOrder alias.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type LoosePosition = any;
+
   interface Props {
-    position: any;
+    position: LoosePosition;
   }
 
   let { position }: Props = $props();
-  // Expected structure:
-  // symbol, side, leverage, size, entryPrice, unrealizedPnl, margin, marginMode, liquidationPrice, markPrice
 
-  function getRoi(pos: any) {
+  function getRoi(pos: LoosePosition) {
     if (!pos.margin || new Decimal(pos.margin).isZero()) return 0;
     const pnl = new Decimal(pos.unrealizedPnl || 0);
     const margin = new Decimal(pos.margin);

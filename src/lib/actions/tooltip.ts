@@ -39,7 +39,7 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
   let tooltipElement: HTMLElement | null = null;
   let arrowElement: HTMLElement | null = null;
   let cleanup: (() => void) | null = null;
-  let timer: any = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   let config: TooltipOptions =
     typeof options === "string"

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { logger } from './logger';
 import { toastService } from './toastService.svelte';
 import * as appEnvironment from '$app/environment';
@@ -46,16 +46,15 @@ vi.mock('$app/environment', () => ({
 }));
 
 describe('LoggerService', () => {
-    let consoleErrorSpy: any;
-    let consoleLogSpy: any;
+    let consoleErrorSpy: MockInstance<typeof console.error>;
 
     beforeEach(() => {
         vi.clearAllMocks();
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'log').mockImplementation(() => {});
 
         // Reset browser mock default
-        // @ts-ignore
+        // @ts-expect-error -- overriding a module export to exercise the browser code path
         appEnvironment.browser = true;
     });
 

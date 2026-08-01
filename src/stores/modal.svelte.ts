@@ -30,6 +30,9 @@ class ModalManager {
     message: string,
     type: "alert" | "confirm" | "prompt" | "symbolPicker",
     defaultValue: string = "",
+    // Not applied anywhere yet — see docs/TODO.md item 15. Kept in the
+    // signature since callers (e.g. uiManager.ts) already pass it.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     extraClasses: string = "",
   ): Promise<boolean | string> {
     return new Promise((resolve) => {

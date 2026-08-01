@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// @ts-nocheck
 import { test, expect } from '@playwright/test';
 
 test.describe('Offline Banner UX', () => {

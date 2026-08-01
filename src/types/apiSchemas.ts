@@ -231,7 +231,7 @@ export function sanitizeErrorMessage(
     "gi"
   );
 
-  let sanitized = message.replace(regex, (match, q1, key, sep, q2, val) => {
+  let sanitized = message.replace(regex, (match, q1, key, sep, q2) => {
     // Preserve the key, separator and quotes, but mask the value
     return `${q1}${key}${q1}${sep}${q2}***${q2}`;
   });

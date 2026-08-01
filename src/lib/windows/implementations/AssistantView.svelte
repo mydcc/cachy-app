@@ -16,14 +16,13 @@
 -->
 
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
     import { chatState } from "../../../stores/chat.svelte";
     import { notesState } from "../../../stores/notes.svelte";
     import { aiState } from "../../../stores/ai.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
-    import { icons } from "../../../lib/constants";
+    import type { TranslationKey } from "../../../locales/schema";
     import { markdown } from "../../../actions/markdown";
     import type { WindowBase } from "../WindowBase.svelte";
 
@@ -78,8 +77,8 @@
                 await chatState.sendMessage(messageText);
             }
             messageText = "";
-        } catch (e: any) {
-            errorMessage = e.message || "Error";
+        } catch (e) {
+            errorMessage = e instanceof Error ? e.message : "Error";
         } finally {
             isSending = false;
             // Keep focus only if not error?
@@ -127,18 +126,10 @@
         }
     });
 
-    function changeFontSize(delta: number) {
-        win.setFontSize(win.fontSize + delta);
-    }
-
     function copyToClipboard(text: string) {
         if (typeof navigator !== "undefined") {
             navigator.clipboard.writeText(text);
         }
-    }
-
-    function cycleMode() {
-        win.onHeaderTitleClick();
     }
 </script>
 
@@ -338,12 +329,7 @@
             {/each}
         {:else}
             <div class="chat-status">--- Connected to Global Chat ---</div>
-            {#each chatState.messages.filter((m) => {
-                if (m.sender === "system") return true;
-                if (m.clientId === chatState.clientId) return true;
-                if (m.profitFactor === undefined) return true;
-                return m.profitFactor >= (settingsState.minChatProfitFactor || 0);
-            }) as msg (msg.id)}
+            {#each chatState.messages as msg (msg.id)}
                 <div class="chat-msg">
                     {#if msg.sender === "system"}
                         <div class="system-msg">--- {msg.text} ---</div>
@@ -354,10 +340,6 @@
                         <div class="flex flex-col">
                             <span class="msg-sender" class:is-me={isMe}>
                                 <span>{isMe ? "You" : "User"}</span>
-                                {#if msg.profitFactor !== undefined}<span
-                                        class="pf-badge"
-                                        >PF {msg.profitFactor.toFixed(2)}</span
-                                    >{/if}
                             </span>
                             <span class="msg-text">{msg.text}</span>
                             <span class="timestamp"
@@ -402,19 +384,19 @@
                 <div
                     class="indicator"
                     title="Market Data Available"
-                    class:active={contextData?.cmc?.global ||
+                    class:active={contextData?.marketIntelligence?.global ||
                         contextData?.technicals}
                 >
-                    <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+                    <span>{contextData?.marketIntelligence?.global ? "🟢" : "⚪"}</span> Market
                 </div>
                 <div
                     class="indicator"
                     title="News Data Available"
-                    class:active={contextData?.news &&
-                        contextData.news.length > 0}
+                    class:active={contextData?.latestNews &&
+                        contextData.latestNews.length > 0}
                 >
                     <span
-                        >{contextData?.news && contextData.news.length > 0
+                        >{contextData?.latestNews && contextData.latestNews.length > 0
                             ? "🟢"
                             : "⚪"}</span
                     > News
@@ -477,7 +459,7 @@
                             later.</span
                         >
                     </div>
-                {:else}{$_(errorMessage as any) ||
+                {:else}{$_(errorMessage as TranslationKey) ||
                         errorMessage ||
                         aiState.error}{/if}
             </div>
@@ -670,15 +652,6 @@
         background: rgba(255, 255, 255, 0.02);
         border-left: 3px solid var(--accent-color);
         border-radius: 0 4px 4px 0;
-    }
-
-    .pf-badge {
-        background: var(--accent-color);
-        color: white;
-        padding: 1px 4px;
-        border-radius: 3px;
-        font-size: 8px;
-        font-weight: 900;
     }
 
     .input-area {

@@ -52,7 +52,7 @@ vi.mock('../../services/toastService.svelte', () => ({
 import { technicalsService } from '../../services/technicalsService';
 import type { IndicatorSettings } from '../../types/indicators';
 
-const mockSettings: any = {
+const mockSettings = {
     historyLimit: 500,
     precision: 2,
     autoOptimize: true,
@@ -91,7 +91,7 @@ const mockSettings: any = {
     volumeMa: { length: 20, maType: 'sma' },
     volumeProfile: { rows: 24 },
     bollingerBands: { length: 20, stdDev: 2, source: 'close' }
-};
+} as unknown as IndicatorSettings;
 
 const klines = Array(100).fill(0).map((_, i) => ({
     time: 1000 + i * 60000,

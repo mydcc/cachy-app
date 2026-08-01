@@ -69,7 +69,6 @@ const config = {
         "connect-src": [
           "self",
           "https://s.cachy.app",
-          "https://stat.ufjdn.com",
           "https://bam.nr-data.net",
           "https://bam.eu01.nr-data.net",
           "wss://fapi.bitunix.com",

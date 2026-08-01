@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { type Pivot, type Structure, type OrderBlock, type FairValueGap, type SMCResult, TrendBias } from './types';
+import { type Pivot, type OrderBlock, type FairValueGap, type SMCResult, TrendBias } from './types';
 
 export interface SMCCandle {
     time: number;
@@ -58,7 +58,6 @@ export class SMCService {
 
         for (let i = this.length; i < candles.length; i++) {
             const currentCandle = candles[i];
-            const prevCandle = candles[i - 1];
 
             // 1. Swing Detection (High/Low)
             // Pine: high[size] > ta.highest(size) -> checks if the high 'size' bars ago was the highest
@@ -78,8 +77,6 @@ export class SMCService {
             // The candidate for swing is at `i - length`.
             const swingIndex = i - this.length;
             if (swingIndex < 0) continue;
-
-            const swingCandle = candles[swingIndex];
 
             // Check if swingCandle.high is highest in the range [i - length + 1 ... i]
             // This confirms it's a local high relative to the *right* side (most recent bars).

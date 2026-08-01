@@ -1,13 +1,12 @@
 # Cachy - Position Size & Risk Management
 
-![Version](https://img.shields.io/badge/version-0.94.3-blue?style=for-the-badge)
+[![Version](https://img.shields.io/github/v/release/mydcc/cachy-app?style=for-the-badge&color=blue)](https://github.com/mydcc/cachy-app/releases)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Svelte 5](https://img.shields.io/badge/Svelte_5-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg?style=for-the-badge)](LICENSE)
 
-Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Bitget.
 Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It follows a strict **Local-First** architecture (LocalStorage), is privacy-focused, and supports real-time market data from Bitunix and Bitget.
 
 ![Cachy Dashboard](docs/dashboard-preview.png)
@@ -39,8 +38,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 ### 📓 Integrated Journal, Notes & Presets
 
 - **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
-- **Chat / Side Panel:** A collapsible side panel for "Private Notes" (local) or "Global Chat" (ephemeral server cache).
-- **Side Panel:** A collapsible side panel for "Private Notes" (local) and AI Assistant.
+- **Side Panel:** A collapsible side panel for "Private Notes" (local) and the AI Assistant.
 - **CSV Import/Export:** Full control over your data – export your journal for Excel or import backups.
 - **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 
@@ -49,20 +47,13 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Multi-API Support:** Choose between **Bitunix** (Default) and **Bitget** as your data source.
 - **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 - **API Integration:** Optional API keys for auto-fetching account balance and private data.
-- **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
+- **Privacy:** Your journal, settings, API keys, presets and notes are stored only in your browser's `localStorage` and are never sent to a Cachy server. The one optional exception is Global Chat message content — off by default, requires an explicit token, and every core function works without it. See [ADR-0001](docs/adr/0001-local-first-boundary.md).
 - **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
 - **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 - **Multilingual:** German and English support.
 
 ### 🧩 Advanced Features
 
-- **Technicals Panel:** Eigenständiges Panel zur Anzeige technischer Indikatoren (z.B. RSI, MACD, Stoch) für das aktuell gewählte Symbol.
-- **Global Subscription Management:** Zentrale Verwaltung aller WebSocket-Verbindungen für stabile und effiziente Datenströme.
-- **Reference Counting:** Intelligentes Nachverfolgen von Datenanfragen, um Verbindungsabbrüche zu vermeiden.
-- **Debug Mode:** Optional aktivierbare System-Logs für bessere Diagnose.
-- **Symbol Normalization:** Verbesserte Handhabung von Symbol-Suffixen für stabile API-Zuordnung.
-- **Mobile Optimierung:** Verbesserte mobile Ansicht, Sidebar/Market Overview umschaltbar.
-- **Sicherheit:** Alle Daten bleiben lokal im Browser (localStorage), keine Cloud/Server-Persistenz.
 - **Trading Academy:** Interactive learning modules for candlestick patterns and trading strategies.
 - **Technicals Panel:** Standalone panel for technical indicators (RSI, MACD, Stoch) for the active symbol.
 - **Global Subscription Management:** Centralized WebSocket management for stable and efficient data streams.
@@ -70,7 +61,8 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Debug Mode:** Optional system logs for better diagnostics.
 - **Symbol Normalization:** Improved handling of symbol suffixes for stable API mapping.
 - **Mobile Optimization:** Enhanced mobile layout with toggleable Sidebar/Market Overview.
-- **Security:** All data remains local (localStorage), no cloud/server persistence.
+- **Security:** Trading data and credentials remain local (`localStorage`). The only server-side data is optional Global Chat message content — see the Privacy note above.
+- **Global Chat (optional):** An opt-in chat backed by SpacetimeDB, reachable from the Cloud settings tab. Disabled by default and never carries journal, settings or key data.
 
 ---
 
@@ -78,8 +70,9 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 ### Prerequisites
 
-- Node.js (v18+)
+- Node.js **v20 or newer** (see `engines` in `package.json`; `.node-version` pins 20.18.3 for tooling)
 - npm
+- _Optional:_ a Rust toolchain with the `wasm32-unknown-unknown` target. `npm run dev` and `npm run build` invoke `scripts/build_wasm.sh` to rebuild the `technicals-wasm` indicator module. Without Rust the script skips the build and the pre-compiled binary committed in `static/wasm/` is used, so a plain `npm install && npm run dev` works out of the box.
 
 ### Setup
 
@@ -96,7 +89,20 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
    npm install
    ```
 
-3. **Start Development Server:**
+3. **Configure the environment:**
+
+   ```bash
+   cp .env.example .env
+   openssl rand -hex 32   # paste the result as APP_ACCESS_TOKEN in .env
+   ```
+
+   `APP_ACCESS_TOKEN` is **required**. Authentication fails closed: without it, all 17 guarded API routes answer 401 and the app cannot reach its own backend. Put the same value into the running app under **Settings → Connections → App Access Token** so the browser sends it. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+
+   > ⚠️ **Deploying this to an existing instance:** set `APP_ACCESS_TOKEN` on the server **before** deploying, or every API call on the live site starts failing with 401.
+
+   > ⚠️ **Never put a secret behind a `VITE_`-prefixed variable.** Vite inlines any such variable into the client bundle, so its value is served as plain JavaScript to every visitor. AI keys are entered per user in Settings → AI and stay in that browser.
+
+4. **Start Development Server:**
 
    ```bash
    npm run dev
@@ -112,11 +118,35 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
   npm test
   ```
 
+  A required CI check, and the whole suite must be green.
+
+- **Performance benchmarks:**
+
+  ```bash
+  npm run test:perf
+  ```
+
+  Excluded from `npm test` and run in a **non-blocking** CI job. They assert
+  wall-clock time and heap growth, which on a shared runner is dominated by noise
+  — the scaling check compares a ~5ms measurement against a ~24ms one, so a GC
+  pause moves the result more than a real regression would. Treat a red run as a
+  hint to investigate, not as a gate.
+
+- **Type check:**
+
+  ```bash
+  npm run check
+  ```
+
 - **Linting:**
 
   ```bash
   npm run lint
   ```
+
+  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build. `@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars` are both `"error"` (roadmap item 21's backlog reached zero; there is no more warning ratchet).
+  >
+  > If a rule fires on something deliberate, do not silence it globally: add an inline `eslint-disable-next-line` with a `--` explanation, as done for the Svelte 5 dependency-registration reads in `tradeCalculator.svelte.ts`.
 
 ---
 
@@ -144,9 +174,14 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 ## 📚 Documentation
 
-- **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/instructions/guide.en.md`.
-- **Developer Guidelines:** Refer to `AGENT.md` for coding conventions and processes.
-- **Changelog:** Changes are automatically documented in `src/instructions/changelog.en.md`.
+- **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/lib/assets/content/guide.en.md`.
+- **Technical Whitepaper:** `src/lib/assets/content/whitepaper.en.md` — architecture, the mathematical core, and the security model.
+- **Developer Guidelines:** `CLAUDE.md` for the non-negotiable coding rules (Svelte 5 Runes, `decimal.js`, theming), `AGENT.md` for the development process.
+- **Open decisions:** [`docs/TODO.md`](docs/TODO.md) — items waiting on a person rather than on a plan.
+- **Scripts:** [`scripts/README.md`](scripts/README.md) — what each of the ~20 scripts does, and which ones run automatically.
+- **Global Chat:** [`docs/GLOBAL-CHAT.md`](docs/GLOBAL-CHAT.md) — the only Class B feature: what is stored, how tokens are issued, the retention policy, and why nothing else breaks when the server is down.
+- **Brand & Design:** [`docs/BRAND.md`](docs/BRAND.md) — the colour palette, the theme system and the rule against hardcoded colours. Written from `src/themes.css`, which stays the source of truth.
+- **Changelog:** [`CHANGELOG.md`](CHANGELOG.md), generated by semantic-release from 1.0.0 onward. The hand-written 0.9x history is archived in [`docs/CHANGELOG-legacy.md`](docs/CHANGELOG-legacy.md).
 
 ---
 
@@ -154,9 +189,35 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 Contributions are welcome! Please follow these steps:
 
-1. Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages (important for automated versioning).
+1. Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages — the release version is derived from them (see Versioning below). CI rejects pull requests whose commits do not conform.
 2. Create a separate branch for each feature (`feat/my-feature`).
-3. Ensure that `npm test` and `npm run lint` pass successfully.
+3. Ensure that `npm run check`, `npm test` and `npm run lint` pass. All three are required CI checks: type checking and lint must report zero errors, and the full test suite must be green.
+
+---
+
+## 🔖 Versioning
+
+Cachy uses [semantic-release](https://semantic-release.gitbook.io/). Version numbers are **never edited by hand** — the commit messages determine the next release:
+
+| Commit prefix                  | Release | Example             |
+| ------------------------------ | ------- | ------------------- |
+| `fix:` / `perf:`               | Patch   | `1.0.0` → `1.0.1`   |
+| `feat:`                        | Minor   | `1.0.0` → `1.1.0`   |
+| `BREAKING CHANGE:` in footer   | Major   | `1.0.0` → `2.0.0`   |
+| `chore:` `docs:` `refactor:` … | none    | no release          |
+
+### Branches
+
+Two release channels, matching the split `deploy.sh` already uses via `.deploy.conf`:
+
+| Branch    | Channel            | Deploys to     | Example version  |
+| --------- | ------------------ | -------------- | ---------------- |
+| `main`    | stable             | cachy.app      | `1.0.0`          |
+| `develop` | `beta` prerelease  | dev.cachy.app  | `1.0.0-beta.1`   |
+
+Feature branches target `develop`. On every push, the Release workflow bumps `version` in `package.json`, prepends the release notes to `CHANGELOG.md`, creates the Git tag and publishes a GitHub release. A stable release happens when `develop` merges into `main`.
+
+The app reads its version from exactly one place: the `version` field in `package.json`. `vite.config.ts` injects it as `VITE_APP_VERSION`, and `src/lib/version.ts` exposes it as `APP_VERSION`. **Do not hardcode version strings anywhere else** — if you see `0.0.0-unknown` in the UI, the build did not pick up the injected value.
 
 ---
 
@@ -168,86 +229,14 @@ Copyright (C) 2026 MYDCT
 
 ---
 
-## Changelog
+## 📜 Changelog
 
-### Table of Contents
+Versioning restarts at **1.0.0** with the move to automated releases. From there on the changelog is generated from Conventional Commits:
 
-1. [Version 0.94.2](#v0.94.2)
-2. [Version 0.94b2](#v0.94b2)
-3. [Version 0.94b1](#v0.94b1)
-4. [Version 0.94](#v0.94)
-5. [Version 0.92b2](#v0.92b2)
-6. [Version 0.92b1](#v0.92b1)
-7. [Version 0.92b](#v0.92b)
+- [`CHANGELOG.md`](CHANGELOG.md) — current, generated by semantic-release
+- [`docs/CHANGELOG-legacy.md`](docs/CHANGELOG-legacy.md) — hand-written history of the 0.9x releases that preceded 1.0.0
+- [GitHub Releases](https://github.com/mydcc/cachy-app/releases) — release notes per tag
 
 ---
 
-## <a name="v0.94.3"></a>Version 0.94.3 (February 2026)
-
-- **Architecture:** **Local-First Only**: Removed "Global Chat" and "Community Cloud".
-- **New:** **Trading Academy**: Interactive learning modules.
-- **Tech:** **Svelte 5 Migration**: Complete refactor to Runes.
-- **RSS Feed Integration**: Custom RSS feeds for AI context.
-
----
-
-## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
-
-- **Architecture:** **Global Subscription Management**: Centralized WebSocket management with the `MarketWatcher` service.
-- **System:** **Reference Counting**: Smart data request tracking to prevent connection drops.
-- **Robustness:** **Symbol Normalization**: Improved handling of symbol suffixes for stable API mapping.
-
-- **Feature:** **Technicals Panel**: Advanced chart overlay with indicators (RSI, MACD, Stoch) using `talib-web`.
-- **New:** **Debug Mode**: Opt-in system logs for better diagnostics.
-
----
-
-## <a name="v0.94b2"></a>Version 0.94b2 (February 2026)
-
-- **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
-- **Improvement:** Enhanced mobile layout with integrated positions view.
-- **Fix:** Fixed Bitunix "Pending Positions" calculation issues (handling of 'side' parameter).
-- **System:** Improved internal data structure for settings and API keys.
-
----
-
-## <a name="v0.94b1"></a>Version 0.94b1 (January 2026)
-
-- **New:** Backup & Restore feature: Create backups of your data (settings, journal, presets) and restore them when needed.
-- **Improvement:** Risk per Trade input now supports up to 2 decimal places.
-- **Improvement:** General stability improvements.
-
----
-
-## <a name="v0.94"></a>Version 0.94 (December 21, 2025)
-
-- **New:** Favorites feature: Save up to 4 symbols by clicking the star icon in the Market Overview. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
-- **New:** Auto-fetch account balance on startup (enable in settings, requires API keys).
-- **New:** Auto-update price input field (optional).
-- **Fix:** Fixed deployment issues (502 errors) and improved stability.
-
----
-
-## <a name="v0.92b2"></a>Version 0.92b2 (December 11, 2025)
-
-- **New:** "Market Overview" displays 24h data (Price, Volume, Change) for the current symbol.
-- **New:** Expanded settings: Select API provider (Bitunix/Bitget) and market data update interval (1s, 1m, 10m).
-
----
-
-## <a name="v0.92b1"></a>Version 0.92b1 (September 04, 2025)
-
-- **New:** Automatic ATR fetch from Bitget API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
-- **New:** Advanced locking functions: The risk amount in currency can now be locked to calculate position size and risk percentage.
-- **New:** Keyboard shortcuts (`Alt+L/S/R/J`) added for faster operation.
-- **New:** Modals can now be closed with the `Escape` key or by clicking the background.
-
----
-
-## <a name="v0.92b"></a>Version 0.92b (August 22, 2025)
-
-- **Improvement:** Symbol input field now accepts letters and numbers.
-- **Fixed:** Tooltip border is now theme-dependent and the double border issue has been fixed.
-- **Improvement:** "Add Trade to Journal" and "Show Instructions" buttons are now theme-dependent.
-
-[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mydcc/cachy-app)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mydcc/cachy-app)

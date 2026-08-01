@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
+    import { onMount } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
     const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";
@@ -27,6 +27,7 @@
     import { marketState } from "../../../stores/market.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import { apiService } from "../../../services/apiService";
+    import type { Ticker24h } from "../../../services/apiService";
     import { windowManager } from "../WindowManager.svelte";
     import type { SymbolPickerWindow } from "./SymbolPickerWindow.svelte";
 
@@ -44,11 +45,9 @@
         "favorites",
     );
     let sortMode = $state<"alpha" | "gainers" | "losers" | "volume">("alpha");
-    let favoriteSet = $derived(new Set(settingsState.favoriteSymbols || []));
 
     // Filter States
-    let snapshot = $state<Record<string, any>>({});
-    let isSnapshotLoading = $state(false);
+    let snapshot = $state<Record<string, Ticker24h>>({});
     let minVolumeStr = $state("0");
     let hideAlts = $state(false);
     let favSet = $derived(new Set(settingsState.favoriteSymbols || []));
@@ -57,18 +56,15 @@
 
     // Load Snapshot
     onMount(() => {
-        isSnapshotLoading = true;
         apiService
             .fetchMarketSnapshot("bitunix")
             .then((data) => {
-                const map: any = {};
+                const map: Record<string, Ticker24h> = {};
                 data.forEach((t) => (map[t.symbol] = t));
                 snapshot = map;
-                isSnapshotLoading = false;
             })
             .catch((e) => {
                 console.error("Snapshot failed", e);
-                isSnapshotLoading = false;
             });
 
         // Autofocus search
@@ -76,7 +72,7 @@
     });
 
     let sortedAndFilteredSymbols = $derived.by(() => {
-        let result = [];
+        let result: string[];
 
         // 1. Initial Set: Filter by Search OR Constants (USDT)
         if (searchQuery) {

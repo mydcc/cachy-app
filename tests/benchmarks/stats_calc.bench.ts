@@ -1,5 +1,4 @@
 import { bench, describe } from "vitest";
-import { Decimal } from "decimal.js";
 import { calculatePerformanceStats } from "../../src/lib/calculators/stats";
 import type { JournalEntry } from "../../src/stores/types";
 
@@ -23,7 +22,7 @@ describe("calculatePerformanceStats", () => {
       exitDate: new Date(startDate + i * 3600000 + 1800000).toISOString(),
       symbol: "BTCUSDT",
       isManual: false,
-    } as any);
+    } as unknown as JournalEntry);
   }
 
   bench("calculatePerformanceStats (10k trades)", () => {

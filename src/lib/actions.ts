@@ -35,7 +35,7 @@ export function trackClick(node: HTMLElement, params: TrackClickParams) {
 
   function handleClick(event: Event) {
     // Mark event as handled so the Global Tracker doesn't duplicate it
-    (event as any).__tracking_handled = true;
+    (event as Event & { __tracking_handled?: boolean }).__tracking_handled = true;
 
     trackCustomEvent(
       currentParams.category,

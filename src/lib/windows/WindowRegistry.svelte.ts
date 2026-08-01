@@ -66,7 +66,7 @@ class WindowRegistry {
             canMinimizeToPanel: true,
             showIcon: false,
             hasContextMenu: false,
-            doubleClickAction: 'maximize' as 'maximize',
+            doubleClickAction: 'maximize' as const,
             maxInstances: 0,
             closeOnBlur: false,
         };

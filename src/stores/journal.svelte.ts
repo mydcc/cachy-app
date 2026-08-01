@@ -48,7 +48,7 @@ class JournalManager {
         // Assuming append-only: latest are at the end.
         const limit = 1000;
         const sliced = parsedData.length > limit ? parsedData.slice(-limit) : parsedData;
-        this.entries = sliced.map((trade: any) => normalizeJournalEntry(trade));
+        this.entries = sliced.map((trade) => normalizeJournalEntry(trade));
 
         // Auto-calculate missing ATR values for closed trades
         this.autoCalculateMissingAtr();
@@ -74,10 +74,10 @@ class JournalManager {
     if (count > 0) {
       // Run repair in background without blocking UI
       dataRepairService
-        .repairMissingAtr((current, total, message) => {
-          // Silent background operation - no UI feedback
-          if (current === total) {
-          }
+        .repairMissingAtr(() => {
+          // Progress callback is required by repairMissingAtr but intentionally
+          // does nothing: this repair runs silently in the background with no
+          // UI feedback. Failures surface via the .catch() below.
         })
         .catch((err) => {
           console.warn("[Journal] ATR auto-calculation failed:", err);
@@ -166,13 +166,14 @@ class JournalManager {
   marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
   systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
 
-  private notifyTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {
     fn(this.entries);
     return $effect.root(() => {
       $effect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.entries; // Track
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);

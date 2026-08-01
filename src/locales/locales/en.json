@@ -923,7 +923,13 @@
       }
     },
     "technicals": {
-      "tabs": { "general": "General", "oscillators": "Oscillators", "trend": "Trend", "volatility": "Volatility", "volume": "Volume" },
+      "tabs": {
+        "general": "General",
+        "oscillators": "Oscillators",
+        "trend": "Trend",
+        "volatility": "Volatility",
+        "volume": "Volume"
+      },
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
       "title": "Technicals Analysis",
@@ -1136,8 +1142,6 @@
     "enableNewsAnalysis": "Enable News Analysis",
     "glassmorphismDesc": "Enable glass effect for cards and panels",
     "maxPrivateNotes": "Max Private Notes",
-    "minChatProfitFactor": "Min Chat Profit Factor",
-    "minChatProfitFactorDesc": "Minimum profit factor to display in chat",
     "pnlViewMode": "PnL Display Mode",
     "positionViewMode": "Position View Mode",
     "showMarketActivity": "Show Market Activity",
@@ -2118,7 +2122,10 @@
     "answer": "Answer",
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
-    "known": "I knew it"
+    "known": "I knew it",
+    "categoryLabel": "Category",
+    "categoryTrading": "Trading & Strategies",
+    "categoryTech": "Cachy App Knowledge"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
@@ -2128,8 +2135,23 @@
     "sendButton": "Send",
     "placeholder": "Say hello...",
     "connectionFailed": "Connection failed",
-    "connectionFailed": "Connection failed"
-    ,
-    "connectionFailed": "Connection failed"
+    "enableLabel": "Enable Global Chat",
+    "stateOn": "On. Message text you send is stored on the server you configure below.",
+    "stateOff": "Off. Nothing connects and nothing leaves this device.",
+    "conditionOptIn": "Opt-in: off by default, and turning it on is a deliberate act.",
+    "conditionAuthenticated": "Authenticated: a token is required, anonymous access is refused.",
+    "conditionMinimal": "Minimal: only message text and a short sender ID. No journal, settings, keys, presets or notes — not even as metadata.",
+    "conditionNonEssential": "Non-essential: calculator, journal and risk management work fully without it.",
+    "hostLabel": "Server address",
+    "dbNameLabel": "Module name",
+    "tokenLabel": "Connection token",
+    "tokenHelp": "Issued by the operator of the server above. See docs/GLOBAL-CHAT.md for how to obtain one.",
+    "offlineNotice": "Global Chat is unavailable. Everything else — calculator, journal, risk management, market data — is unaffected.",
+    "retentionNotice": "Messages are deleted automatically 90 days after they are sent. You can erase your own at any time — this affects the server and cannot be undone.",
+    "eraseButton": "Delete my messages",
+    "eraseConfirm": "Click again to confirm",
+    "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
+    "eraseNeedsConnection": "Connect first — erasure runs against the server.",
+    "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
   }
 }

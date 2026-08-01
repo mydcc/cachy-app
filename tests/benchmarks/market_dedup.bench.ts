@@ -1,6 +1,6 @@
 
 import { bench, describe } from 'vitest';
-import { MarketManager } from '../../src/stores/market.svelte';
+import { MarketManager, type RawKline } from '../../src/stores/market.svelte';
 
 describe('MarketManager Deduplication', () => {
   const market = new MarketManager();
@@ -10,7 +10,7 @@ describe('MarketManager Deduplication', () => {
   // Create a batch of 1000 updates for the SAME candle (simulating high-freq WS accumulation)
   // All have the same timestamp.
   const now = 1600000000000;
-  const rawBatch: any[] = [];
+  const rawBatch: RawKline[] = [];
   for (let i = 0; i < 1000; i++) {
       rawBatch.push({
           open: 50000,
@@ -23,7 +23,7 @@ describe('MarketManager Deduplication', () => {
   }
 
   // Also create a multi-candle batch for comparison
-  const multiBatch: any[] = [];
+  const multiBatch: RawKline[] = [];
   for (let i = 0; i < 1000; i++) {
       multiBatch.push({
           open: 50000,

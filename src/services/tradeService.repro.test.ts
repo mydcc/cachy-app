@@ -59,7 +59,7 @@ describe("TradeService - FlashClose Reproduction", () => {
     vi.clearAllMocks();
     // Mock signedRequest to avoid network calls (must be inside beforeEach so
     // it is re-applied after vi.clearAllMocks() resets all mock implementations)
-    vi.spyOn(tradeService as any, "signedRequest").mockResolvedValue({ code: 0 });
+    vi.spyOn(tradeService, "signedRequest").mockResolvedValue({ code: 0 });
   });
 
   it("should create an optimistic order with current market price", async () => {
@@ -72,7 +72,7 @@ describe("TradeService - FlashClose Reproduction", () => {
       lastUpdated: Date.now(),
     };
 
-    (omsService.getPositions as any).mockReturnValue([mockPosition]);
+    vi.mocked(omsService.getPositions).mockReturnValue([mockPosition]);
 
     // Execute
     await tradeService.flashClosePosition("BTCUSDT", "long");
@@ -80,7 +80,7 @@ describe("TradeService - FlashClose Reproduction", () => {
     // Assert: Verify addOptimisticOrder was called
     expect(omsService.addOptimisticOrder).toHaveBeenCalled();
 
-    const callArgs = (omsService.addOptimisticOrder as any).mock.calls[0][0];
+    const callArgs = vi.mocked(omsService.addOptimisticOrder).mock.calls[0][0];
 
     // THE FIX: Price should be the current market price (52000 from mock)
     expect(callArgs.price).toBeDefined();

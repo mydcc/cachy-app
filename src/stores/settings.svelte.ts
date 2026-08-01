@@ -23,6 +23,7 @@ const SENSITIVE_KEYS: (keyof Settings)[] = [
   "cmcApiKey",
   "imgbbApiKey",
   "appAccessToken",
+  "cloudToken",
 ];
 
 // Removed MarketDataInterval as it is legacy (WebSockets preferred)
@@ -31,7 +32,13 @@ export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
 export type SidePanelLayout = "standard" | "floating";
 export type AiProvider = "openai" | "gemini" | "anthropic";
-export type BackgroundType = "none" | "image" | "video" | "animation" | "threejs" | "tradeflow";
+export type BackgroundType =
+  | "none"
+  | "image"
+  | "video"
+  | "animation"
+  | "threejs"
+  | "tradeflow";
 export type BackgroundAnimationPreset =
   | "none"
   | "gradient"
@@ -43,8 +50,16 @@ export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
-export type TechnicalsUpdateMode = "realtime" | "fast" | "balanced" | "conservative";
-export type HeatmapMode = "coinglass_new_tab" | "coinglass_popup" | "coinank_new_tab" | "coinank_popup";
+export type TechnicalsUpdateMode =
+  | "realtime"
+  | "fast"
+  | "balanced"
+  | "conservative";
+export type HeatmapMode =
+  | "coinglass_new_tab"
+  | "coinglass_popup"
+  | "coinank_new_tab"
+  | "coinank_popup";
 
 export const TECHNICALS_UPDATE_PRESETS = {
   realtime: {
@@ -52,29 +67,29 @@ export const TECHNICALS_UPDATE_PRESETS = {
     cacheSize: 30,
     cacheTTL: 10,
     historyLimit: 500,
-    description: "Maximum responsiveness, higher CPU usage"
+    description: "Maximum responsiveness, higher CPU usage",
   },
   fast: {
     interval: 250,
     cacheSize: 20,
     cacheTTL: 30,
     historyLimit: 750,
-    description: "Fast updates, moderate CPU usage"
+    description: "Fast updates, moderate CPU usage",
   },
   balanced: {
     interval: 500,
     cacheSize: 15,
     cacheTTL: 60,
     historyLimit: 750,
-    description: "Balanced performance and accuracy"
+    description: "Balanced performance and accuracy",
   },
   conservative: {
     interval: 2000,
     cacheSize: 10,
     cacheTTL: 300,
     historyLimit: 500,
-    description: "Lower CPU usage, slower updates"
-  }
+    description: "Lower CPU usage, slower updates",
+  },
 } as const;
 
 export interface ApiKeys {
@@ -105,7 +120,6 @@ export interface GalaxySettings {
   enableGyroscope: boolean;
   rotationSpeed: number;
 }
-
 
 export interface TradeFlowSettings {
   speed: number;
@@ -165,6 +179,22 @@ export interface Settings {
   isDeepDiveUnlocked?: boolean;
   imgurClientId?: string;
   enableSidePanel: boolean;
+  /**
+   * Global Chat over SpacetimeDB. Class B under ADR-0001, so it is opt-in and
+   * off by default: nothing connects until the user turns this on and supplies
+   * a token.
+   */
+  cloudEnabled: boolean;
+  /** SpacetimeDB host, e.g. `http://127.0.0.1:3000` for a local module. */
+  cloudHost: string;
+  /** SpacetimeDB module name the client subscribes to. */
+  cloudDbName: string;
+  /**
+   * SpacetimeDB connection token. Class A: it stays in this browser and is only
+   * ever sent to the host configured above. Encrypted with the master password
+   * like every other credential.
+   */
+  cloudToken: string;
   showSidebarActivity: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
   sidePanelLayout: SidePanelLayout;
@@ -193,19 +223,18 @@ export interface Settings {
   confirmBulkDeletion: boolean;
   chatFontSize: number;
   panelIsExpanded: boolean;
-  minChatProfitFactor: number;
   fontFamily: string;
   cryptoPanicApiKey?: string;
   newsApiKey?: string;
   cryptoPanicPlan: "developer" | "growth" | "enterprise";
   cryptoPanicFilter:
-  | "all"
-  | "rising"
-  | "hot"
-  | "bullish"
-  | "bearish"
-  | "important"
-  | "saved";
+    | "all"
+    | "rising"
+    | "hot"
+    | "bullish"
+    | "bearish"
+    | "important"
+    | "saved";
   enableNewsAnalysis: boolean;
   cmcApiKey?: string;
   enableCmcContext: boolean;
@@ -331,6 +360,12 @@ const defaultSettings: Settings = {
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
+  // Class B defaults per ADR-0001: off, and pointing at a local module rather
+  // than at any Cachy-operated server. Turning it on is a deliberate act.
+  cloudEnabled: false,
+  cloudHost: "http://127.0.0.1:3000",
+  cloudDbName: "cachy-server",
+  cloudToken: "",
   sidePanelMode: "ai",
   sidePanelLayout: "floating",
   chatStyle: "minimal",
@@ -363,7 +398,6 @@ const defaultSettings: Settings = {
   panelIsExpanded: false,
   maxPrivateNotes: 50,
   aiConfirmClear: true,
-  minChatProfitFactor: 0.0,
   fontFamily: "Inter",
   cryptoPanicApiKey: "",
   newsApiKey: "",
@@ -428,7 +462,7 @@ const defaultSettings: Settings = {
     cameraRotationY: 0,
     cameraRotationZ: 0,
   } as TradeFlowSettings,
-    galaxySettings: {
+  galaxySettings: {
     particleCount: 20000,
     particleSize: 0.5,
     radius: 5,
@@ -473,7 +507,7 @@ const defaultSettings: Settings = {
     speed: 1.0,
     turbulence: 1.0,
     thickness: 20.0,
-    coreHeat: 0.8
+    coreHeat: 0.8,
   },
 
   marketMode: "balanced",
@@ -498,10 +532,10 @@ const defaultSettings: Settings = {
   dockingPosition: "top",
 };
 
-
-
 export class SettingsManager {
-  tradeFlowSettings = $state<TradeFlowSettings>(defaultSettings.tradeFlowSettings);
+  tradeFlowSettings = $state<TradeFlowSettings>(
+    defaultSettings.tradeFlowSettings,
+  );
   // Using $state for all properties
   private _apiProvider = $state<"bitunix" | "bitget">(
     defaultSettings.apiProvider,
@@ -551,6 +585,10 @@ export class SettingsManager {
   imgurClientId = $state<string | undefined>(defaultSettings.imgurClientId);
 
   enableSidePanel = $state<boolean>(defaultSettings.enableSidePanel);
+  cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
+  cloudHost = $state<string>(defaultSettings.cloudHost);
+  cloudDbName = $state<string>(defaultSettings.cloudDbName);
+  cloudToken = $state<string>(defaultSettings.cloudToken);
   sidePanelMode = $state<"chat" | "notes" | "ai">(
     defaultSettings.sidePanelMode,
   );
@@ -563,11 +601,17 @@ export class SettingsManager {
 
   customSystemPrompt = $state<string>(defaultSettings.customSystemPrompt);
   aiProvider = $state<AiProvider>(defaultSettings.aiProvider);
-  openaiApiKey = $state<string>(defaultSettings.openaiApiKey || import.meta.env.VITE_OPENAI_API_KEY || "");
+  // These three intentionally have no `import.meta.env.VITE_*_API_KEY`
+  // fallback. Vite inlines every VITE_-prefixed variable into the client bundle
+  // at build time, so such a default would serve the operator's AI keys as plain
+  // JavaScript to every visitor of a production build. AI keys are Class A data
+  // under ADR-0001: each user enters their own in Settings → AI, and it stays in
+  // that browser. See docs/ROADMAP.md item 24a.
+  openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
   openaiModel = $state<string>(defaultSettings.openaiModel);
-  geminiApiKey = $state<string>(defaultSettings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || "");
+  geminiApiKey = $state<string>(defaultSettings.geminiApiKey);
   geminiModel = $state<string>(defaultSettings.geminiModel);
-  anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey || import.meta.env.VITE_ANTHROPIC_API_KEY || "");
+  anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
   anthropicModel = $state<string>(defaultSettings.anthropicModel);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
@@ -590,7 +634,6 @@ export class SettingsManager {
   confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
   chatFontSize = $state<number>(defaultSettings.chatFontSize);
   panelIsExpanded = $state<boolean>(defaultSettings.panelIsExpanded);
-  minChatProfitFactor = $state<number>(defaultSettings.minChatProfitFactor);
   fontFamily = $state<string>(defaultSettings.fontFamily);
   cryptoPanicApiKey = $state<string | undefined>(
     defaultSettings.cryptoPanicApiKey,
@@ -610,7 +653,9 @@ export class SettingsManager {
   );
   showMarketOverview = $state<boolean>(defaultSettings.showMarketOverview);
   showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
-  marketAnalysisInterval = $state<number>(defaultSettings.marketAnalysisInterval);
+  marketAnalysisInterval = $state<number>(
+    defaultSettings.marketAnalysisInterval,
+  );
   pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
   analysisTimeframes = $state<string[]>(defaultSettings.analysisTimeframes);
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
@@ -624,16 +669,16 @@ export class SettingsManager {
     const hasBitgetKeys = Boolean(
       this.apiKeys?.bitget?.key &&
       this.apiKeys?.bitget?.secret &&
-      this.apiKeys?.bitget?.passphrase
+      this.apiKeys?.bitget?.passphrase,
     );
 
     // For Bitunix, just key and secret
     const hasBitunixKeys = Boolean(
-      this.apiKeys?.bitunix?.key &&
-      this.apiKeys?.bitunix?.secret
+      this.apiKeys?.bitunix?.key && this.apiKeys?.bitunix?.secret,
     );
 
-    const hasApiKeys = this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
+    const hasApiKeys =
+      this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
 
     return {
       // ========== PUBLIC FEATURES (Community + Pro) ==========
@@ -717,10 +762,12 @@ export class SettingsManager {
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
 
   enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
-  borderEffect = $state<"fire" | "glow">(defaultSettings.borderEffect || "fire");
-  borderEffectColorMode = $state<"theme" | "interactive" | "custom" | "classic">(
-    defaultSettings.borderEffectColorMode,
+  borderEffect = $state<"fire" | "glow">(
+    defaultSettings.borderEffect || "fire",
   );
+  borderEffectColorMode = $state<
+    "theme" | "interactive" | "custom" | "classic"
+  >(defaultSettings.borderEffectColorMode);
   borderEffectCustomColor = $state<string>(
     defaultSettings.borderEffectCustomColor,
   );
@@ -740,7 +787,7 @@ export class SettingsManager {
 
   fireConfig = $state(defaultSettings.fireConfig);
 
-  updateFireConfig(newConfig: Partial<Settings['fireConfig']>) {
+  updateFireConfig(newConfig: Partial<Settings["fireConfig"]>) {
     this.fireConfig = { ...this.fireConfig, ...newConfig };
   }
 
@@ -764,18 +811,26 @@ export class SettingsManager {
   marketCacheSize = $state<number>(defaultSettings.marketCacheSize);
 
   // Technicals Performance State
-  technicalsUpdateMode = $state<TechnicalsUpdateMode>(defaultSettings.technicalsUpdateMode);
-  technicalsUpdateInterval = $state<number | undefined>(defaultSettings.technicalsUpdateInterval);
+  technicalsUpdateMode = $state<TechnicalsUpdateMode>(
+    defaultSettings.technicalsUpdateMode,
+  );
+  technicalsUpdateInterval = $state<number | undefined>(
+    defaultSettings.technicalsUpdateInterval,
+  );
   technicalsCacheSize = $state<number>(defaultSettings.technicalsCacheSize);
   technicalsCacheTTL = $state<number>(defaultSettings.technicalsCacheTTL);
   maxTechnicalsHistory = $state<number>(defaultSettings.maxTechnicalsHistory);
-  enableIndicatorOptimization = $state<boolean>(defaultSettings.enableIndicatorOptimization);
+  enableIndicatorOptimization = $state<boolean>(
+    defaultSettings.enableIndicatorOptimization,
+  );
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
   autoTrading = $state<boolean>(defaultSettings.autoTrading);
   multiAccount = $state<boolean>(defaultSettings.multiAccount);
 
-  enableDockingCentered = $state<boolean>(defaultSettings.enableDockingCentered);
+  enableDockingCentered = $state<boolean>(
+    defaultSettings.enableDockingCentered,
+  );
   dockingPosition = $state<"top" | "bottom">(defaultSettings.dockingPosition);
 
   get marketMode() {
@@ -812,8 +867,8 @@ export class SettingsManager {
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
   private listeners: Set<(value: Settings) => void> = new Set();
-  private notifyTimer: any = null;
-  private saveTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private saveLock = false; // Prevents concurrent saves
 
   // Security State
@@ -877,14 +932,7 @@ export class SettingsManager {
     }
   }
 
-
-
-
-
-
-
-
-    // --- Device Security ---
+  // --- Device Security ---
   private _deviceKey: string | CryptoKey | null = null;
 
   /**
@@ -899,12 +947,16 @@ export class SettingsManager {
     const legacyKey = localStorage.getItem("cachy_device_id");
 
     // 2. Get or Generate secure key (handles migration if legacyKey provided)
-    const key = await cryptoService.getOrGenerateDeviceKey(legacyKey || undefined);
+    const key = await cryptoService.getOrGenerateDeviceKey(
+      legacyKey || undefined,
+    );
 
     // 3. Cleanup legacy key if migration happened
     if (legacyKey) {
       if (import.meta.env.DEV) {
-        console.warn("[Settings] Migrated device key from localStorage to secure storage.");
+        console.warn(
+          "[Settings] Migrated device key from localStorage to secure storage.",
+        );
       }
       localStorage.removeItem("cachy_device_id");
     }
@@ -927,30 +979,36 @@ export class SettingsManager {
       if (this.encryptedApiKeys) {
         const eak = this.encryptedApiKeys;
         if (eak.bitunix) {
-          tasks.push((async () => {
-            const json = await cryptoService.decrypt(eak.bitunix!);
-            if (aborted) return;
-            this.apiKeys.bitunix = JSON.parse(json);
-          })());
+          tasks.push(
+            (async () => {
+              const json = await cryptoService.decrypt(eak.bitunix!);
+              if (aborted) return;
+              this.apiKeys.bitunix = JSON.parse(json);
+            })(),
+          );
         }
         if (eak.bitget) {
-          tasks.push((async () => {
-            const json = await cryptoService.decrypt(eak.bitget!);
-            if (aborted) return;
-            this.apiKeys.bitget = JSON.parse(json);
-          })());
+          tasks.push(
+            (async () => {
+              const json = await cryptoService.decrypt(eak.bitget!);
+              if (aborted) return;
+              this.apiKeys.bitget = JSON.parse(json);
+            })(),
+          );
         }
       }
 
       // 2. Decrypt Generic Secrets
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
-          .filter(([key]) => SENSITIVE_KEYS.includes(key as any))
+          .filter(([key]) => SENSITIVE_KEYS.includes(key as keyof Settings))
           .map(async ([key, blob]) => {
             try {
-              const decrypted = await cryptoService.decrypt(blob as EncryptedBlob); // Use session key
+              const decrypted = await cryptoService.decrypt(
+                blob as EncryptedBlob,
+              ); // Use session key
               if (aborted) return;
-              // @ts-ignore
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
               this[key] = decrypted;
             } catch (e) {
               console.error("[Settings] Failed to decrypt secret " + key, e);
@@ -975,12 +1033,12 @@ export class SettingsManager {
     if (this.isEncrypted) {
       this.apiKeys = {
         bitunix: { key: "", secret: "" },
-        bitget: { key: "", secret: "", passphrase: "" }
+        bitget: { key: "", secret: "", passphrase: "" },
       };
 
       // Clear generic secrets from memory
       for (const key of SENSITIVE_KEYS) {
-        // @ts-ignore
+        // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
         this[key] = "";
       }
 
@@ -992,7 +1050,8 @@ export class SettingsManager {
   async setMasterPassword(password: string) {
     if (!browser) return;
     const success = await cryptoService.unlockSession(password);
-    if (!success) throw new Error("Failed to unlock session with provided password");
+    if (!success)
+      throw new Error("Failed to unlock session with provided password");
 
     try {
       // 1. Encrypt Exchange Keys into temp variables
@@ -1002,20 +1061,27 @@ export class SettingsManager {
 
       const tasks: Promise<void>[] = [];
 
-      tasks.push((async () => {
-        bitunixBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
-      })());
+      tasks.push(
+        (async () => {
+          bitunixBlob = await cryptoService.encrypt(
+            JSON.stringify(this.apiKeys.bitunix),
+          );
+        })(),
+      );
 
-      tasks.push((async () => {
-        bitgetBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
-      })());
+      tasks.push(
+        (async () => {
+          bitgetBlob = await cryptoService.encrypt(
+            JSON.stringify(this.apiKeys.bitget),
+          );
+        })(),
+      );
 
       // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
       // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
       const genericEncryptionTasks = SENSITIVE_KEYS.map(async (key) => {
-        // @ts-ignore
         const value = this[key];
-        if (typeof value === 'string' && value.length > 0) {
+        if (typeof value === "string" && value.length > 0) {
           // Encrypt with Session Key (implied)
           const blob = await cryptoService.encrypt(value);
           newSecrets[key] = blob;
@@ -1085,7 +1151,9 @@ export class SettingsManager {
       // Since Binance is gone, if provider was "binance", set to "bitunix" or "bitget".
       if (loadedProvider === "binance") {
         if (import.meta.env.DEV) {
-          console.warn("[Settings] Binance provider found (deprecated). Resetting to Bitunix.");
+          console.warn(
+            "[Settings] Binance provider found (deprecated). Resetting to Bitunix.",
+          );
         }
         loadedProvider = "bitunix";
       }
@@ -1116,22 +1184,27 @@ export class SettingsManager {
       this.hotkeyMode = merged.hotkeyMode;
       // Granular updates for apiKeys to preserve object references if components bind to them
       // Security: Load Keys
-      if (merged.encryptedApiKeys && Object.keys(merged.encryptedApiKeys).length > 0) {
+      if (
+        merged.encryptedApiKeys &&
+        Object.keys(merged.encryptedApiKeys).length > 0
+      ) {
         this.isEncrypted = true;
         this.isLocked = true;
         this.encryptedApiKeys = merged.encryptedApiKeys;
         // Ensure plain keys are empty in memory if locked
         this.apiKeys = {
           bitunix: { key: "", secret: "" },
-          bitget: { key: "", secret: "", passphrase: "" }
+          bitget: { key: "", secret: "", passphrase: "" },
         };
       } else {
         // Legacy: Load plain keys
         this.isEncrypted = false;
         this.isLocked = false;
         if (merged.apiKeys) {
-          if (merged.apiKeys.bitunix) this.apiKeys.bitunix = merged.apiKeys.bitunix;
-          if (merged.apiKeys.bitget) this.apiKeys.bitget = merged.apiKeys.bitget;
+          if (merged.apiKeys.bitunix)
+            this.apiKeys.bitunix = merged.apiKeys.bitunix;
+          if (merged.apiKeys.bitget)
+            this.apiKeys.bitget = merged.apiKeys.bitget;
         }
       }
 
@@ -1141,27 +1214,38 @@ export class SettingsManager {
 
         // If Obfuscation Mode (no master password), decrypt immediately
         if (!this.isEncrypted) {
-           // We need to trigger this async but load is sync.
-           // We'll launch a background decryption.
-           (async () => {
-             try {
-               const deviceKey = await this.getDeviceKey();
-               const entries = Object.entries(this.encryptedSecrets || {});
-               await Promise.all(entries.map(async ([key, blob]) => {
-                 try {
-                   const decrypted = await cryptoService.decrypt(blob as EncryptedBlob, deviceKey);
-                   if (SENSITIVE_KEYS.includes(key as any)) {
-                     // @ts-ignore
-                     this[key] = decrypted;
-                   }
-                 } catch (e) {
-                   console.error("[Settings] Failed to decrypt secret " + key, e);
-                 }
-               }));
-             } catch (e) {
-               console.error("[Settings] Failed to initialize background decryption", e);
-             }
-           })();
+          // We need to trigger this async but load is sync.
+          // We'll launch a background decryption.
+          (async () => {
+            try {
+              const deviceKey = await this.getDeviceKey();
+              const entries = Object.entries(this.encryptedSecrets || {});
+              await Promise.all(
+                entries.map(async ([key, blob]) => {
+                  try {
+                    const decrypted = await cryptoService.decrypt(
+                      blob as EncryptedBlob,
+                      deviceKey,
+                    );
+                    if (SENSITIVE_KEYS.includes(key as keyof Settings)) {
+                      // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
+                      this[key] = decrypted;
+                    }
+                  } catch (e) {
+                    console.error(
+                      "[Settings] Failed to decrypt secret " + key,
+                      e,
+                    );
+                  }
+                }),
+              );
+            } catch (e) {
+              console.error(
+                "[Settings] Failed to initialize background decryption",
+                e,
+              );
+            }
+          })();
         }
       }
 
@@ -1175,14 +1259,20 @@ export class SettingsManager {
       this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
       this.imgurClientId = merged.imgurClientId;
       this.enableSidePanel = merged.enableSidePanel;
+      this.cloudEnabled = merged.cloudEnabled;
+      this.cloudHost = merged.cloudHost;
+      this.cloudDbName = merged.cloudDbName;
+      this.cloudToken = merged.cloudToken;
       this.sidePanelMode = merged.sidePanelMode;
       this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
 
       // Copy panelState properties individually to preserve $state reactivity
       if (merged.panelState) {
-        this.panelState.width = merged.panelState.width ?? this.panelState.width;
-        this.panelState.height = merged.panelState.height ?? this.panelState.height;
+        this.panelState.width =
+          merged.panelState.width ?? this.panelState.width;
+        this.panelState.height =
+          merged.panelState.height ?? this.panelState.height;
         this.panelState.x = merged.panelState.x ?? this.panelState.x;
         this.panelState.y = merged.panelState.y ?? this.panelState.y;
       }
@@ -1197,7 +1287,8 @@ export class SettingsManager {
       this.geminiModel = merged.geminiModel;
       this.anthropicApiKey = merged.anthropicApiKey;
       this.anthropicModel = merged.anthropicModel;
-      this.analysisDepth = merged.analysisDepth || defaultSettings.analysisDepth;
+      this.analysisDepth =
+        merged.analysisDepth || defaultSettings.analysisDepth;
       this.aiConfirmActions = merged.aiConfirmActions;
       this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
       this.aiConfirmClear = merged.aiConfirmClear;
@@ -1211,7 +1302,6 @@ export class SettingsManager {
       this.confirmBulkDeletion = merged.confirmBulkDeletion;
       this.chatFontSize = merged.chatFontSize;
       this.panelIsExpanded = merged.panelIsExpanded;
-      this.minChatProfitFactor = merged.minChatProfitFactor;
       this.fontFamily = merged.fontFamily;
       this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
       this.newsApiKey = merged.newsApiKey;
@@ -1223,7 +1313,8 @@ export class SettingsManager {
       this.cmcApiKey = merged.cmcApiKey;
       this.enableCmcContext = merged.enableCmcContext;
       this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
-      this.showMarketOverview = merged.showMarketOverview ?? defaultSettings.showMarketOverview;
+      this.showMarketOverview =
+        merged.showMarketOverview ?? defaultSettings.showMarketOverview;
       this.showMarketActivity = merged.showMarketActivity;
       this.showSidebarActivity =
         merged.showSidebarActivity ?? defaultSettings.showSidebarActivity;
@@ -1250,7 +1341,8 @@ export class SettingsManager {
       this.isProLicenseActive =
         merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
       this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
-      this.glassSaturate = merged.glassSaturate ?? defaultSettings.glassSaturate;
+      this.glassSaturate =
+        merged.glassSaturate ?? defaultSettings.glassSaturate;
       this.glassOpacity = merged.glassOpacity ?? defaultSettings.glassOpacity;
 
       // Background Customization
@@ -1276,13 +1368,13 @@ export class SettingsManager {
       // Deep merge galaxy settings to ensure new fields (camPos, galaxyRot) are populated if missing in old storage
       this.galaxySettings = {
         ...defaultSettings.galaxySettings,
-        ...(merged.galaxySettings || {})
+        ...(merged.galaxySettings || {}),
       };
 
       // Deep merge TradeFlow settings for persistence
       this.tradeFlowSettings = {
         ...defaultSettings.tradeFlowSettings,
-        ...(merged.tradeFlowSettings || {})
+        ...(merged.tradeFlowSettings || {}),
       };
 
       this.enableNetworkLogs =
@@ -1294,40 +1386,65 @@ export class SettingsManager {
         merged.discordChannels || defaultSettings.discordChannels;
 
       this._marketMode = merged.marketMode || defaultSettings.marketMode;
-      this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
-      this.marketCacheSize = merged.marketCacheSize ?? defaultSettings.marketCacheSize;
+      this.analyzeAllFavorites =
+        merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
+      this.marketCacheSize =
+        merged.marketCacheSize ?? defaultSettings.marketCacheSize;
 
-      this.technicalsUpdateMode = merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
+      this.technicalsUpdateMode =
+        merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
       this.technicalsUpdateInterval = merged.technicalsUpdateInterval;
-      this.technicalsCacheSize = merged.technicalsCacheSize ?? defaultSettings.technicalsCacheSize;
-      this.technicalsCacheTTL = merged.technicalsCacheTTL ?? defaultSettings.technicalsCacheTTL;
-      this.maxTechnicalsHistory = merged.maxTechnicalsHistory ?? defaultSettings.maxTechnicalsHistory;
-      this.enableIndicatorOptimization = merged.enableIndicatorOptimization ?? defaultSettings.enableIndicatorOptimization;
-      this.chartHistoryLimit = merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
-      this.repairTimeframe = merged.repairTimeframe || defaultSettings.repairTimeframe;
+      this.technicalsCacheSize =
+        merged.technicalsCacheSize ?? defaultSettings.technicalsCacheSize;
+      this.technicalsCacheTTL =
+        merged.technicalsCacheTTL ?? defaultSettings.technicalsCacheTTL;
+      this.maxTechnicalsHistory =
+        merged.maxTechnicalsHistory ?? defaultSettings.maxTechnicalsHistory;
+      this.enableIndicatorOptimization =
+        merged.enableIndicatorOptimization ??
+        defaultSettings.enableIndicatorOptimization;
+      this.chartHistoryLimit =
+        merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
+      this.repairTimeframe =
+        merged.repairTimeframe || defaultSettings.repairTimeframe;
 
       // Burning Borders Persistence
-      this.enableBurningBorders = merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
+      this.enableBurningBorders =
+        merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
       this.borderEffect = merged.borderEffect ?? defaultSettings.borderEffect;
-      this.borderEffectColorMode = merged.borderEffectColorMode ?? defaultSettings.borderEffectColorMode;
-      this.borderEffectCustomColor = merged.borderEffectCustomColor ?? defaultSettings.borderEffectCustomColor;
-      this.burningBordersIntensity = merged.burningBordersIntensity ?? defaultSettings.burningBordersIntensity;
-      this.burnNewsWindows = merged.burnNewsWindows ?? defaultSettings.burnNewsWindows;
-      this.burnChannelWindows = merged.burnChannelWindows ?? defaultSettings.burnChannelWindows;
-      this.burnMarketOverviewTiles = merged.burnMarketOverviewTiles ?? defaultSettings.burnMarketOverviewTiles;
-      this.burnFlashCards = merged.burnFlashCards ?? defaultSettings.burnFlashCards;
+      this.borderEffectColorMode =
+        merged.borderEffectColorMode ?? defaultSettings.borderEffectColorMode;
+      this.borderEffectCustomColor =
+        merged.borderEffectCustomColor ??
+        defaultSettings.borderEffectCustomColor;
+      this.burningBordersIntensity =
+        merged.burningBordersIntensity ??
+        defaultSettings.burningBordersIntensity;
+      this.burnNewsWindows =
+        merged.burnNewsWindows ?? defaultSettings.burnNewsWindows;
+      this.burnChannelWindows =
+        merged.burnChannelWindows ?? defaultSettings.burnChannelWindows;
+      this.burnMarketOverviewTiles =
+        merged.burnMarketOverviewTiles ??
+        defaultSettings.burnMarketOverviewTiles;
+      this.burnFlashCards =
+        merged.burnFlashCards ?? defaultSettings.burnFlashCards;
       this.burnJournal = merged.burnJournal ?? defaultSettings.burnJournal;
       this.burnModals = merged.burnModals ?? defaultSettings.burnModals;
       this.burnSettings = merged.burnSettings ?? defaultSettings.burnSettings;
       this.burnGuide = merged.burnGuide ?? defaultSettings.burnGuide;
-      this.fireConfig = { ...defaultSettings.fireConfig, ...(merged.fireConfig || {}) };
+      this.fireConfig = {
+        ...defaultSettings.fireConfig,
+        ...(merged.fireConfig || {}),
+      };
 
-      this.enableDockingCentered = merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
-      this.dockingPosition = merged.dockingPosition ?? defaultSettings.dockingPosition;
-
+      this.enableDockingCentered =
+        merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
+      this.dockingPosition =
+        merged.dockingPosition ?? defaultSettings.dockingPosition;
 
       // Legacy manual sync migration removed. WebSockets handle this now.
-      
+
       // Migration for Gemini Model: Ensure we use a stable version
       // We do this at the very end to ensure it's not overwritten by 'merged.geminiModel'
       if (this.geminiModel === "gemma" || !this.geminiModel) {
@@ -1361,7 +1478,7 @@ export class SettingsManager {
       }
 
       // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
-      let encryptionPassword: any = undefined;
+      let encryptionPassword: string | CryptoKey | undefined = undefined;
       let canEncrypt = true;
 
       if (!this.isEncrypted) {
@@ -1377,25 +1494,27 @@ export class SettingsManager {
 
       if (canEncrypt) {
         const encryptionTasks = SENSITIVE_KEYS.map(async (key) => {
-          // @ts-ignore
           const value = data[key];
 
           // Only encrypt if value is present and not empty
-          if (typeof value === 'string' && value.length > 0) {
+          if (typeof value === "string" && value.length > 0) {
             try {
               // Encrypt
-              const blob = await cryptoService.encrypt(value, encryptionPassword);
+              const blob = await cryptoService.encrypt(
+                value,
+                encryptionPassword,
+              );
               data.encryptedSecrets![key] = blob;
 
               // Redact plain text from saved object
-              // @ts-ignore
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
               data[key] = "";
             } catch (err) {
               if (import.meta.env.DEV) {
                 console.error(`[Settings] Failed to encrypt ${key}:`, err);
               }
               // Safety: Do not save plain text on error
-              // @ts-ignore
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
               data[key] = "";
             }
           }
@@ -1404,7 +1523,7 @@ export class SettingsManager {
       } else {
         // Locked mode: Ensure plain text fields are empty
         for (const key of SENSITIVE_KEYS) {
-          // @ts-ignore
+          // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
           data[key] = "";
         }
       }
@@ -1454,11 +1573,18 @@ export class SettingsManager {
       isPro: this.isPro,
       feePreference: this.feePreference,
       hotkeyMode: this.hotkeyMode,
-      apiKeys: this.isEncrypted ?
-        { bitunix: { key: "", secret: "" }, bitget: { key: "", secret: "", passphrase: "" } } :
-        $state.snapshot(this.apiKeys),
-      encryptedApiKeys: this.encryptedApiKeys ? $state.snapshot(this.encryptedApiKeys) : undefined,
-      encryptedSecrets: this.encryptedSecrets ? $state.snapshot(this.encryptedSecrets) : undefined,
+      apiKeys: this.isEncrypted
+        ? {
+            bitunix: { key: "", secret: "" },
+            bitget: { key: "", secret: "", passphrase: "" },
+          }
+        : $state.snapshot(this.apiKeys),
+      encryptedApiKeys: this.encryptedApiKeys
+        ? $state.snapshot(this.encryptedApiKeys)
+        : undefined,
+      encryptedSecrets: this.encryptedSecrets
+        ? $state.snapshot(this.encryptedSecrets)
+        : undefined,
       isEncrypted: this.isEncrypted,
       customHotkeys: $state.snapshot(this.customHotkeys),
       favoriteTimeframes: $state.snapshot(this.favoriteTimeframes),
@@ -1469,6 +1595,10 @@ export class SettingsManager {
       isDeepDiveUnlocked: this.isDeepDiveUnlocked,
       imgurClientId: this.imgurClientId,
       enableSidePanel: this.enableSidePanel,
+      cloudEnabled: this.cloudEnabled,
+      cloudHost: this.cloudHost,
+      cloudDbName: this.cloudDbName,
+      cloudToken: this.cloudToken,
       sidePanelMode: this.sidePanelMode,
       sidePanelLayout: this.sidePanelLayout,
       chatStyle: this.chatStyle,
@@ -1510,7 +1640,6 @@ export class SettingsManager {
       burnSettings: this.burnSettings,
       burnGuide: this.burnGuide,
       fireConfig: $state.snapshot(this.fireConfig),
-      minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,
       newsApiKey: this.newsApiKey,

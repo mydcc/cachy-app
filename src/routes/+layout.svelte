@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import favicon from "../assets/favicon.svg";
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
@@ -42,7 +41,6 @@ import { afterNavigate } from "$app/navigation";
 
   import "../app.css";
 
-  import { CONSTANTS } from "../lib/constants";
 
   import { browser } from "$app/environment";
 
@@ -143,7 +141,7 @@ import { afterNavigate } from "$app/navigation";
                       levelStyle,
                       logEntry.data ? logEntry.data : "",
                     );
-                  } catch (e) {
+                  } catch {
                     console.log(
                       "%cCL:%c [RAW]",
                       "background: #333; color: #00ff9d;",
@@ -156,8 +154,8 @@ import { afterNavigate } from "$app/navigation";
             }
 
             // Stream ended (server closed connection) — fall through to retry
-          } catch (e: any) {
-            if (e.name === 'AbortError') return; // Cleanup requested, stop entirely
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') return; // Cleanup requested, stop entirely
             if (import.meta.env.DEV) {
               console.error("CL: Failed to consume log stream", e);
             }
@@ -353,33 +351,47 @@ import { afterNavigate } from "$app/navigation";
     if (!browser) return;
     // Watch chartHistoryLimit and refresh history if it changes
     // This allows immediate response to setting changes without reload
-    const _limit = settingsState.chartHistoryLimit;
+    void settingsState.chartHistoryLimit;
     import("../services/marketWatcher").then(({ marketWatcher }) => {
       marketWatcher.refreshActiveHistory();
     });
   });
+
+  // JSON-LD structured data for search engines.
+  //
+  // The tag delimiters are concatenated rather than written literally. A
+  // verbatim closing script tag would terminate this very script block, and a
+  // verbatim opening one inside a template literal in the markup cannot be
+  // parsed by svelte-eslint-parser.
+  const JSON_LD_OPEN = "<" + 'script type="application/ld+json">';
+  const JSON_LD_CLOSE = "<" + "/" + "script>";
+
+  const jsonLdTag = $derived(
+    JSON_LD_OPEN +
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "Cachy",
+        applicationCategory: "FinanceApplication",
+        operatingSystem: "Web",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+        image: "https://cachy.app/og-image.jpg",
+        description: $_("seo.description"),
+      }) +
+      JSON_LD_CLOSE,
+  );
 </script>
 
 <svelte:head>
   <title>{$_("seo.pageTitle")}</title>
   <meta name="description" content={$_("seo.description")} />
 
-  {@html `<script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Cachy",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "image": "https://cachy.app/og-image.jpg",
-      "description": ${JSON.stringify($_("seo.description"))}
-    }
-    </script>`}
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -- static structured data assembled in the script block, no user input -->
+  {@html jsonLdTag}
 </svelte:head>
 
 <div class="app-container">

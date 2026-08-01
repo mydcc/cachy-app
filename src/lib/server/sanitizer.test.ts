@@ -1,18 +1,21 @@
 import { JSDOM } from 'jsdom';
-import dompurify from 'dompurify';
-
-const window = new JSDOM('').window;
+import type { Config } from 'dompurify';
 
 vi.mock('dompurify', async (importOriginal) => {
+  // dompurify's shipped .d.ts describes the pre-instantiated browser export
+  // (`DOMPurify`), but the real CJS module resolves to a window-taking
+  // factory function when imported without a global window (this test
+  // environment) — no type in the package matches that dual shape.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actual = await importOriginal() as any;
   const dompurifyActual = actual.default || actual;
-  const purify = dompurifyActual(new JSDOM('').window as unknown as any);
+  const purify = dompurifyActual(new JSDOM('').window);
 
   return {
     ...actual,
     default: {
       ...actual.default,
-      sanitize: (dirty: string, config: any) => {
+      sanitize: (dirty: string, config: Config) => {
         const sanitizeConfig = { ...config };
         sanitizeConfig.FORBID_TAGS = ['iframe', 'img', 'script', 'style'];
         sanitizeConfig.RETURN_DOM = false;

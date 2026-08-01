@@ -23,7 +23,6 @@
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
   import { createEventDispatcher, onMount } from "svelte";
-  import { icons } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -184,14 +183,14 @@
       } else {
         throw new Error($_("dashboard.portfolioInputs.invalidBalanceData"));
       }
-    } catch (e: any) {
+    } catch (e) {
       if (!silent) {
         // [HARDENING] Map technical errors to friendly labels
         const mappedKey = mapApiErrorToLabel(e);
         if (mappedKey) {
             uiState.showError(mappedKey);
         } else {
-            uiState.showError(e.message || $_("dashboard.portfolioInputs.fetchBalanceError"));
+            uiState.showError((e instanceof Error ? e.message : null) || $_("dashboard.portfolioInputs.fetchBalanceError"));
         }
       } else {
         console.warn("Auto-fetch balance failed:", e);

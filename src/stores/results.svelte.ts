@@ -66,7 +66,7 @@ export const INITIAL_RESULTS_STATE: ResultsState = {
 };
 
 class ResultsManager {
-  private notifyTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
   // We use a single state object to allow easy resetting/bulk updates
   // or we can use individual fields. Individual fields are cleaner for fine-grained reactivity.
   // Given the calculator updates almost everything at once, a single object or spread might be fine.

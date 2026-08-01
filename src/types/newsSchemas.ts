@@ -48,6 +48,7 @@ export const CryptoPanicPostSchema = z.object({
   id: z.number().optional(),
   url: z.string().optional(),
   created_at: z.string().optional(),
+  currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
   votes: z.object({
     negative: z.number().optional(),
     positive: z.number().optional(),

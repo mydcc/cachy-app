@@ -22,7 +22,6 @@
  * Holds global market analysis data calculated by the background MarketAnalyst.
  */
 
-import { browser } from "$app/environment";
 import { settingsState } from "./settings.svelte";
 
 export interface SymbolAnalysis {

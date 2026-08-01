@@ -17,26 +17,24 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { cryptoService } from "./cryptoService";
-// @ts-ignore
-import CryptoJS from "crypto-js";
 
 // Mock Web Crypto API for tests
 beforeAll(() => {
   if (!global.window) {
-    global.window = {} as any;
+    global.window = {} as unknown as Window & typeof globalThis;
   }
   if (!global.window.crypto) {
     global.window.crypto = {
-      getRandomValues: (buffer: any) => {
+      getRandomValues: (buffer: ArrayBufferView) => {
         return require("crypto").randomFillSync(buffer);
       },
       subtle: {
-        importKey: async () => ({} as any),
-        deriveKey: async () => ({} as any),
+        importKey: async () => ({}),
+        deriveKey: async () => ({}),
         encrypt: async () => new Uint8Array(32).buffer,
         decrypt: async () => new Uint8Array(32).buffer,
-      } as any,
-    } as any;
+      },
+    } as unknown as Crypto;
   }
 });
 

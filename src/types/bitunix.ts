@@ -55,7 +55,7 @@ export interface BitunixOrder {
 
 export interface BitunixOrderListWrapper {
   orderList: BitunixOrder[];
-  [key: string]: any; // Allow other pagination fields
+  [key: string]: unknown; // Allow other pagination fields
 }
 
 // Normalized Internal Order Interface
@@ -88,6 +88,21 @@ export interface NormalizedOrder {
   role?: string;
 }
 
+// Normalized Internal Position Interface — shared shape both exchanges'
+// /api/positions routes map their raw responses into.
+export interface NormalizedPosition {
+  symbol: string;
+  side: string;
+  size?: string;
+  entryPrice?: string;
+  liquidationPrice?: string;
+  markPrice?: string;
+  margin?: string;
+  unrealizedPnL?: string;
+  leverage?: string;
+  marginMode: string;
+}
+
 export interface BitunixOrderPayload {
   symbol: string;
   side: string;
@@ -96,7 +111,7 @@ export interface BitunixOrderPayload {
   price?: string | number;
   reduceOnly?: boolean;
   leverage?: string | number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // WebSocket Types
@@ -107,7 +122,14 @@ export interface BitunixWSMessage {
   ch?: string; // Channel
   topic?: string; // Channel alias (Bitunix v2)
   symbol?: string;
-  data?: any; // Generic data payload depending on channel
+  // Generic data payload depending on channel — kept `any` rather than `unknown`
+  // since `bitunixWs.ts`'s handleMessage() reads named fields off it directly
+  // (e.g. `message.data.symbol`) before its own per-channel schema validation
+  // narrows it further; that file has its own extensive documentation of the
+  // reachability subtleties here, so narrowing this declaration alone would
+  // just push the same `any` onto several call sites without fixing anything.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any;
   pong?: number;
   event?: string; // e.g. "login"
   ts?: number; // Timestamp from root message

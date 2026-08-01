@@ -18,7 +18,14 @@
 import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../stores/types";
 
-export function debounce<T extends (...args: unknown[]) => void>(
+/**
+ * `never[]` rather than `unknown[]` in the constraint: parameters are
+ * contravariant, so `unknown[]` rejects any callback with concrete parameter
+ * types — it forced callers to type their debounced function as taking
+ * `unknown` (or `any`) and cast inside. `never[]` accepts every parameter list
+ * while `Parameters<T>` still resolves to the real one.
+ */
+export function debounce<T extends (...args: never[]) => void>(
   func: T,
   delay: number,
 ) {
@@ -68,7 +75,7 @@ export function parseDecimal(
     return new Decimal(0);
   }
 
-  if ((value as any) instanceof Decimal) return value as Decimal;
+  if (value instanceof Decimal) return value;
   if (typeof value === "number") return new Decimal(value);
 
   let str = String(value).trim();
@@ -111,7 +118,7 @@ export function parseDecimal(
 
   try {
     return new Decimal(str);
-  } catch (e) {
+  } catch {
     return new Decimal(0);
   }
 }
@@ -143,7 +150,7 @@ export function formatApiNum(
     // toFixed(20) ensures high precision, then we strip trailing zeros
     const d = val instanceof Decimal ? val : new Decimal(val);
     return d.toFixed(20).replace(/\.?0+$/, "");
-  } catch (e) {
+  } catch {
     return String(val);
   }
 }
@@ -361,7 +368,15 @@ export function getIntervalMs(timeframe: string): number {
 /**
  * Normalizes a plain object into a properly typed JournalEntry with Decimal instances.
  * This is crucial for data loaded from localStorage or imported via CSV.
+ *
+ * `trade` stays `any`: it's untrusted external data (localStorage, CSV import)
+ * of genuinely unknown shape, touched by name, by a dynamic-key loop, and by
+ * two nested `.map()`s below — the type safety this function actually
+ * provides is at the return boundary (`JournalEntry`), not the input. Typing
+ * the input as `unknown` would just push the same `any` onto every one of
+ * those access points without catching anything new.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeJournalEntry(trade: any): JournalEntry {
   if (!trade || typeof trade !== "object") {
     // Return a minimal valid dummy if completely malformed
@@ -415,6 +430,7 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
 
   // Handle nested targets array
   if (newTrade.targets && Array.isArray(newTrade.targets)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reasoning as normalizeJournalEntry's trade param above
     newTrade.targets = newTrade.targets.map((tp: any) => ({
       ...tp,
       price: parseDecimal(tp.price),
@@ -431,6 +447,7 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
     Array.isArray(newTrade.calculatedTpDetails)
   ) {
     newTrade.calculatedTpDetails = newTrade.calculatedTpDetails.map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reasoning as normalizeJournalEntry's trade param above
       (tp: any) => ({
         ...tp,
         netProfit: parseDecimal(tp.netProfit),
@@ -555,7 +572,7 @@ export function parseAiValue(value: string | number | boolean): Decimal {
     const d = new Decimal(str);
     if (d.isNaN()) return new Decimal(0);
     return d.times(multiplier);
-  } catch (e) {
+  } catch {
     return new Decimal(0);
   }
 }

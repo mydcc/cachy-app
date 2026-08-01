@@ -19,6 +19,16 @@ export function getRelativeTimeString(
 ): string {
   try {
     const publishedDate = new Date(dateString);
+
+    // An unparseable string does NOT throw — `new Date("nonsense")` yields an
+    // Invalid Date whose getTime() is NaN, so the catch below never fires. Every
+    // subsequent `NaN > 0` comparison is false, which used to fall all the way
+    // through to "gerade eben" / "just now": a news item with a broken
+    // timestamp was presented as breaking news. Guard explicitly.
+    if (Number.isNaN(publishedDate.getTime())) {
+      return locale === "de" ? "unbekannt" : "unknown";
+    }
+
     const now = new Date();
     const diffMs = now.getTime() - publishedDate.getTime();
 
@@ -106,6 +116,15 @@ export function getRelativeTimeString(
 export function formatGermanDate(dateString: string): string {
   try {
     const date = new Date(dateString);
+
+    // Same trap as getRelativeTimeString: an unparseable string yields an
+    // Invalid Date rather than throwing, and toLocaleString then renders the
+    // literal text "Invalid Date". Returning the original input is more useful
+    // to the reader and matches the documented contract.
+    if (Number.isNaN(date.getTime())) {
+      return dateString;
+    }
+
     return date.toLocaleString("de-DE", {
       day: "2-digit",
       month: "2-digit",

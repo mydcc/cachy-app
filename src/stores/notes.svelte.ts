@@ -91,7 +91,7 @@ class NotesManager {
     this.save();
   }
 
-  private notifyTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Compatibility for easier migration if needed, though direct property access is preferred
   subscribe(fn: (value: { messages: NoteMessage[] }) => void) {

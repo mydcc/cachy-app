@@ -32,19 +32,27 @@ import { settingsState } from "../stores/settings.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
 import { toastService } from "./toastService.svelte";
 import { Decimal } from "decimal.js";
+import type { IndicatorResult } from "./technicalsTypes";
 
 const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
-const REQUIRED_INDICATORS = {
-    ema: true, rsi: true, macd: true, atr: true, bb: true, pivots: true,
-    stochRsi: true, mfi: true, ichimoku: true, vwap: true, adx: true
-};
 
 // Local Helpers for Safety
 const safeDiv = (a: Decimal, b: Decimal) => b.isZero() ? new Decimal(0) : a.div(b);
 const safeSub = (a: Decimal, b: Decimal) => a.minus(b);
 
+// Technicals data as cached in techMap below: the raw calculation result
+// plus O(1)-lookup Maps indexed by indicator name (built once per cycle
+// instead of re-scanning the arrays on every read).
+interface AnalystTechEntry {
+    movingAverages?: IndicatorResult[];
+    oscillators?: IndicatorResult[];
+    confluence?: { score?: number };
+    _maMap?: Map<string, IndicatorResult>;
+    _oscMap?: Map<string, IndicatorResult>;
+}
+
 class MarketAnalystService {
-    private timeoutId: any = null;
+    private timeoutId: ReturnType<typeof setTimeout> | null = null;
     private isRunning = false;
     private currentSymbolIndex = 0;
 
@@ -165,10 +173,6 @@ class MarketAnalystService {
             // Prepare settings ONCE (Optimization)
             const settings = this.getAnalystSettings();
 
-            // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
-            // The calculator checks "shouldCalculate('ema')".
-            const requiredIndicators = REQUIRED_INDICATORS;
-
             const techPromises = timeframes.map(tf => {
                 const klines = klinesMap[tf];
                 if (!klines || klines.length < 20) return Promise.resolve(null);
@@ -182,7 +186,7 @@ class MarketAnalystService {
 
             // Build a map of timeframe -> technicals (with pre-indexed Maps for O(1) lookups)
             // NOTE: Do NOT mutate techResults objects — they may be cached by technicalsService.
-            const techMap: Record<string, any> = {};
+            const techMap: Record<string, AnalystTechEntry | null> = {};
             timeframes.forEach((tf, i) => {
                 const tech = techResults[i];
 
@@ -220,20 +224,12 @@ class MarketAnalystService {
 
             // Extract metrics from available data
             const tech1h = techMap["1h"];
-            const tech4h = techMap["4h"];
-
-
-
             const techPrimary = tech1h || techMap[primaryTf];
 
             if (techPrimary) {
                 const klines = primaryKlines;
                 const lastKline = klines[klines.length - 1];
                 const openKline = klines.length >= 24 ? klines[klines.length - 24] : klines[0];
-
-                const ema200_4h = tech4h?._maMap?.get("EMA_200")?.value || 0;
-
-                const rsiObj = techPrimary._oscMap?.get("RSI");
 
                 const metrics = calculateAnalysisMetrics(
                     lastKline?.close,
@@ -313,7 +309,7 @@ export const marketAnalyst = new MarketAnalystService();
 export function calculateAnalysisMetrics(
     lastClose: Decimal.Value | null | undefined,
     open24h: Decimal.Value | null | undefined,
-    techMap: Record<string, any>
+    techMap: Record<string, AnalystTechEntry | null>
 ) {
     const safeDec = (v: Decimal.Value | null | undefined): Decimal => {
         try {
@@ -393,7 +389,7 @@ export function calculateAnalysisMetrics(
         if (rsiDec.greaterThan(70)) condition = "overbought";
         else if (rsiDec.lessThan(30)) condition = "oversold";
         else if (change24hDec.abs().greaterThan(5)) condition = "trending";
-    } catch (err) {
+    } catch {
         condition = "neutral";
     }
 

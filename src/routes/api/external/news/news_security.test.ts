@@ -59,8 +59,8 @@ describe('News Service Security', () => {
                 params: params
             }),
             url: 'http://localhost/api/news'
-        } as any;
-        await POST({ request: req1, fetch: fetchMock } as any);
+        } as unknown as Request;
+        await POST({ request: req1, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
 
         // Verify it was cached
         expect(_newsCache.size).toBeGreaterThan(0);
@@ -74,9 +74,9 @@ describe('News Service Security', () => {
                 params: params
             }),
             url: 'http://localhost/api/news'
-        } as any;
+        } as unknown as Request;
 
-        const res2 = await POST({ request: req2, fetch: fetchMock } as any);
+        const res2 = await POST({ request: req2, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
         const json2 = await res2.json();
 
         // If vulnerable, json2 will be responseData (from cache)
@@ -101,8 +101,8 @@ describe('News Service Security', () => {
                 headers: new Headers({ 'x-api-key': apiKey }),
                 json: async () => ({ source: 'newsapi', apiKey, params: { q: `query-${i}` } }),
                 url: 'http://localhost/api/news'
-            } as any;
-            const res = await POST({ request: requestMock, fetch: fetchMock } as any);
+            } as unknown as Request;
+            const res = await POST({ request: requestMock, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
             expect(res.status).not.toBe(429);
         }
 
@@ -110,8 +110,8 @@ describe('News Service Security', () => {
             headers: new Headers({ 'x-api-key': apiKey }),
             json: async () => ({ source: 'newsapi', apiKey, params: { q: 'query-final' } }),
             url: 'http://localhost/api/news'
-        } as any;
-        const res = await POST({ request: requestMock, fetch: fetchMock } as any);
+        } as unknown as Request;
+        const res = await POST({ request: requestMock, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
         expect(res.status).toBe(429);
         const body = await res.json();
         expect(body.error).toContain('Rate limit exceeded');

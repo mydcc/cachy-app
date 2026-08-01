@@ -25,11 +25,49 @@ import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
+import type { TranslationKey } from "../locales/schema";
 import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { serializationService } from "./serializationService";
+import type { Kline } from "./technicalsTypes";
+
+// Raw Bitunix position payload as returned by /api/sync/positions-history and
+// /api/sync/positions-pending, before it is normalized into a JournalEntry.
+interface RawSyncPosition {
+  positionId?: string;
+  symbol: string;
+  side?: string;
+  ctime?: number;
+  mtime?: number;
+  entryPrice?: string | number;
+  closePrice?: string | number;
+  leverage?: string | number;
+  unrealizedPNL?: string | number;
+  realizedPNL?: string | number;
+  realizedPnl?: string | number;
+  pnl?: string | number;
+  funding?: string | number;
+  fee?: string | number;
+  qty?: string | number;
+  maxQty?: string | number;
+  amount?: string | number;
+  size?: string | number;
+  stopLossPrice?: string | number;
+  sl?: string | number;
+}
+
+// Raw Bitunix order payload as returned by /api/sync/orders, restricted to
+// the fields used here to derive stop-loss prices for history positions.
+interface RawSyncOrder {
+  symbol: string;
+  type: string;
+  stopPrice?: string | number;
+  triggerPrice?: string | number;
+  createTime?: number;
+  updateTime?: number;
+}
 
 // --- Helper Functions for Optimization ---
 
@@ -43,7 +81,7 @@ function calculateInterval(posTime: number, closeTime: number): string {
   return "1m";
 }
 
-export async function fetchBatchedKlines(trades: any[]) {
+export async function fetchBatchedKlines(trades: RawSyncPosition[]) {
   const prepared = trades.map((p) => {
     const posTime = parseTimestamp(p.ctime);
     let closeTime = parseTimestamp(p.mtime || p.ctime);
@@ -60,7 +98,8 @@ export async function fetchBatchedKlines(trades: any[]) {
     groups.get(key)!.push(item);
   }
 
-  const results = new Map<string, any[]>(); // key -> Array of {start, end, klines}
+  // key -> Array of {start, end, klines}
+  const results = new Map<string, Array<{ start: number; end: number; klines: Kline[] }>>();
   const fetchTasks: Array<{symbol: string, interval: string, start: number, end: number, key: string}> = [];
 
   for (const [key, items] of groups.entries()) {
@@ -123,7 +162,7 @@ export async function fetchBatchedKlines(trades: any[]) {
         const allKlines = blocks.flatMap(b => b.klines || []);
         // Deduplicate? Bitunix might return overlapping candles if we requested so.
         // But for filtering, just checking time is enough.
-        return allKlines.filter((k: any) => k.time >= start && k.time <= end);
+        return allKlines.filter((k: Kline) => k.time >= start && k.time <= end);
     }
   };
 }
@@ -192,7 +231,7 @@ export const syncService = {
         }),
       });
 
-      let orders: any[] = [];
+      let orders: RawSyncOrder[] = [];
       let isPartialSync = false;
       try {
         if (!orderResponse.ok) throw new Error("apiErrors.fetchFailed");
@@ -208,10 +247,10 @@ export const syncService = {
       let newEntries: JournalEntry[] = [];
       let addedCount = 0;
       let refreshedCount = 0;
-      const symbolSlMap: Record<string, any[]> = {};
+      const symbolSlMap: Record<string, Array<{ slPrice: Decimal; ctime: number }>> = {};
 
       // Build SL Map
-      orders.forEach((o: any) => {
+      orders.forEach((o) => {
         if (
           o.type === "STOP_MARKET" ||
           o.type === "TAKE_PROFIT_MARKET" ||
@@ -306,7 +345,7 @@ export const syncService = {
         if (pe.tradeId) existingHistoryIds.add(String(pe.tradeId));
       }
 
-      const filteredHistory = historyPositions.filter((p: any) => {
+      const filteredHistory = historyPositions.filter((p: RawSyncPosition) => {
         const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
         if (existingHistoryIds.has(uniqueId)) return false;
         // Track ID to deduplicate within the API response itself
@@ -337,10 +376,7 @@ export const syncService = {
 
         const klineCache = await fetchBatchedKlines(batch);
 
-        const batchPromises = batch.map(async (p: any, batchIndex: number) => {
-          // Update progress before processing each trade
-          const currentIndex = i + batchIndex;
-
+        const batchPromises = batch.map(async (p: RawSyncPosition) => {
           const uniqueId = String(
             p.positionId || `HIST-${p.symbol}-${p.ctime}`,
           );
@@ -390,7 +426,7 @@ export const syncService = {
               if (klines?.length > 0) {
                 let maxHigh = new Decimal(0),
                   minLow = new Decimal(Infinity);
-                klines.forEach((k: any) => {
+                klines.forEach((k: Kline) => {
                   if (k.high.gt(maxHigh)) maxHigh = k.high;
                   if (k.low.lt(minLow)) minLow = k.low;
                 });
@@ -530,10 +566,15 @@ export const syncService = {
             : get(_)("apiErrors.syncNoNewData"),
         );
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error("Sync error:", e);
       trackCustomEvent("Sync", "BitunixHistory", "Error");
-      const errMsg = e.message.startsWith("apiErrors.") ? get(_)(e.message) : e.message;
+      const message = e instanceof Error ? e.message : String(e);
+      // Runtime-checked dynamic key: message.startsWith guarantees this is a
+      // valid apiErrors.* key, which the TranslationKey union can't express.
+      const errMsg = message.startsWith("apiErrors.")
+        ? get(_)(message as TranslationKey)
+        : message;
       uiState.showError(get(_)("apiErrors.syncFailed", { values: { error: errMsg } }));
     } finally {
       syncService._syncLock = false; // Release lock
@@ -558,7 +599,7 @@ export const syncService = {
       if (!success) {
         uiState.showError("storage.journalSaveFailed");
       }
-    } catch (e) {
+    } catch {
       uiState.showError(
         "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.",
       );

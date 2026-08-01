@@ -17,7 +17,6 @@
 
 
 import { parseDecimal } from '../../../src/utils/utils';
-import { Decimal } from 'decimal.js';
 
 console.log("Running Decimal Repro Test...");
 

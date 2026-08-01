@@ -30,7 +30,7 @@ async function runProfile() {
       headless: "new",
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-  } catch (e) {
+  } catch {
     console.error("Failed to launch Puppeteer. Please run: npm install puppeteer");
     process.exit(1);
   }
@@ -110,7 +110,7 @@ async function runProfile() {
 
     // Get Worker Metrics
     let totalThroughput = 0;
-    for (const [url, worker] of workers.entries()) {
+    for (const [, worker] of workers.entries()) {
         try {
             const res = await worker.session.send('Runtime.evaluate', {
                 expression: 'self.__msgCount',
@@ -120,7 +120,7 @@ async function runProfile() {
             const delta = currentCount - worker.lastCount;
             totalThroughput += delta;
             worker.lastCount = currentCount;
-        } catch (e) {
+        } catch {
             // Worker might have died
         }
     }

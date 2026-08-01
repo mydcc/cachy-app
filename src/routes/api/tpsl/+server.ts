@@ -25,6 +25,7 @@ import {
 import { checkAppAuth } from "../../../lib/server/auth";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -106,16 +107,20 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(result);
-  } catch (e: any) {
+  } catch (e) {
         let rawMsg = e instanceof Error ? e.message : String(e);
-    if (typeof e === "object" && e !== null && !e.message) {
-      try { rawMsg = JSON.stringify(e); } catch {}
+    if (typeof e === "object" && e !== null && !("message" in e)) {
+      try {
+        rawMsg = JSON.stringify(e);
+      } catch {
+        // Non-serialisable (circular) error object — keep the String(e) fallback.
+      }
     }
     console.error(`Error processing TP/SL request:`, sanitizeErrorMessage(rawMsg, 1000));
 
     // Determine appropriate status code
     let status = 500;
-    let message = e.message || "Internal Server Error";
+    let message = e instanceof Error ? e.message : "Internal Server Error";
 
     if (message.includes("Bitunix API error")) {
       status = 502; // Bad Gateway (upstream error)
@@ -131,7 +136,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return json(
       {
         error: message,
-        stack: process.env.NODE_ENV === "development" ? e.stack : undefined,
+        stack: process.env.NODE_ENV === "development" && e instanceof Error ? e.stack : undefined,
       },
       { status },
     );
@@ -143,7 +148,7 @@ async function fetchBitunixTpSl(
   apiKey: string,
   apiSecret: string,
   path: string,
-  params: any = {},
+  params: Record<string, unknown> = {},
 ) {
   // Sort params for signature
   // Remove undefined/null/empty strings
@@ -183,7 +188,7 @@ async function fetchBitunixTpSl(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
+  const res = await readExchangeJson(response);
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
       `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
@@ -198,10 +203,10 @@ async function executeBitunixAction(
   apiKey: string,
   apiSecret: string,
   path: string,
-  payload: any,
+  payload: Record<string, unknown>,
 ) {
   // Clean payload
-  const cleanPayload: any = {};
+  const cleanPayload: Record<string, unknown> = {};
   Object.keys(payload).forEach((k) => {
     if (payload[k] !== undefined && payload[k] !== null) {
       // Ensure we don't accidentally send empty strings if they should be filtered,
@@ -238,7 +243,7 @@ async function executeBitunixAction(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
+  const res = await readExchangeJson(response);
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
       `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,

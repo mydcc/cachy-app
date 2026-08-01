@@ -27,13 +27,21 @@ import { browser } from "$app/environment";
 
 export type ConnectionQuality = "4g" | "3g" | "2g" | "slow-2g";
 
+// Navigator Network Information API — experimental, not in the standard DOM
+// lib typings.
+interface NetworkInformation extends EventTarget {
+    saveData: boolean;
+    effectiveType: ConnectionQuality;
+    rtt: number;
+}
+
 export class NetworkMonitor {
-    private connection: any; // Navigator.connection (experimental)
+    private connection: NetworkInformation | undefined;
 
     constructor() {
         if (browser && "connection" in navigator) {
-            this.connection = (navigator as any).connection;
-            this.connection.addEventListener("change", this.handleChange.bind(this));
+            this.connection = (navigator as Navigator & { connection?: NetworkInformation }).connection;
+            this.connection?.addEventListener("change", this.handleChange.bind(this));
         }
     }
 

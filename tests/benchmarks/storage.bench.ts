@@ -4,12 +4,25 @@ import { Decimal } from 'decimal.js';
 
 vi.mock('$app/environment', () => ({ browser: true }));
 
-const mockStore = new Map();
+/** What storageService actually stores: a keyed record it can sort by id. */
+interface StoredRecord {
+  id: string;
+  [field: string]: unknown;
+}
+
+/** The slice of IDBRequest this mock implements. */
+interface MockRequest<T> {
+  result?: T;
+  onsuccess?: (event?: { target: MockRequest<T> }) => void;
+  onerror?: () => void;
+}
+
+const mockStore = new Map<string, StoredRecord>();
 const mockDB = {
-  transaction: (storeName, mode) => ({
-    objectStore: (name) => ({
-      get: (key) => {
-        const req: any = {};
+  transaction: () => ({
+    objectStore: () => ({
+      get: (key: string) => {
+        const req: MockRequest<StoredRecord | undefined> = {};
         const val = mockStore.get(key);
         setTimeout(() => {
              req.result = val;
@@ -17,17 +30,17 @@ const mockDB = {
         }, 0);
         return req;
       },
-      put: (val) => {
-        const req: any = {};
+      put: (val: StoredRecord) => {
+        const req: MockRequest<undefined> = {};
         mockStore.set(val.id, val);
         setTimeout(() => {
              if (req.onsuccess) req.onsuccess({ target: req });
         }, 0);
         return req;
       },
-      getAll: (query) => {
-         const req: any = {};
-         const results = [];
+      getAll: (query?: { lower?: string; upper?: string }) => {
+         const req: MockRequest<StoredRecord[]> = {};
+         const results: StoredRecord[] = [];
          if (query && (query.lower !== undefined || query.upper !== undefined)) {
              const lower = query.lower;
              const upper = query.upper;
@@ -55,22 +68,21 @@ const mockDB = {
 
 // Mock IDBKeyRange
 globalThis.IDBKeyRange = {
-    bound: (lower, upper) => ({ lower, upper }),
-    lowerBound: (lower) => ({ lower }),
-    upperBound: (upper) => ({ upper })
-} as any;
+    bound: (lower: IDBValidKey, upper: IDBValidKey) => ({ lower, upper }),
+    lowerBound: (lower: IDBValidKey) => ({ lower }),
+    upperBound: (upper: IDBValidKey) => ({ upper })
+} as unknown as typeof IDBKeyRange;
 
-// @ts-ignore
 window.indexedDB = {
     open: () => {
-        const req: any = {};
+        const req: MockRequest<typeof mockDB> = {};
         setTimeout(() => {
             req.result = mockDB;
             if (req.onsuccess) req.onsuccess({ target: req });
         }, 0);
         return req;
     }
-};
+} as unknown as IDBFactory;
 
 Object.defineProperty(window, 'indexedDB', { value: window.indexedDB, writable: true });
 Object.defineProperty(window, 'localStorage', {
@@ -97,10 +109,10 @@ function generateKlines(count: number, startTs: number) {
 }
 
 describe('StorageService', () => {
-    let storageService;
+    let storageService: typeof import('../../src/services/storageService')['storageService'] | undefined;
     const symbol = 'BTCUSDT';
     const tf = '1m';
-    let newKline;
+    let newKline: ReturnType<typeof generateKlines>;
 
     beforeAll(async () => {
          const mod = await import('../../src/services/storageService');

@@ -951,7 +951,13 @@
       }
     },
     "technicals": {
-      "tabs": { "general": "Allgemein", "oscillators": "Oszillatoren", "trend": "Trend", "volatility": "Volatilität", "volume": "Volumen" },
+      "tabs": {
+        "general": "Allgemein",
+        "oscillators": "Oszillatoren",
+        "trend": "Trend",
+        "volatility": "Volatilität",
+        "volume": "Volumen"
+      },
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
@@ -1407,8 +1413,6 @@
     "enableNewsAnalysis": "News-Analyse aktivieren",
     "glassmorphismDesc": "Glaseffekt für Karten und Panels aktivieren",
     "maxPrivateNotes": "Max. private Notizen",
-    "minChatProfitFactor": "Min. Chat Profit Factor",
-    "minChatProfitFactorDesc": "Mindest-Profit-Faktor für Chat-Anzeige",
     "pnlViewMode": "PnL-Anzeigemodus",
     "positionViewMode": "Positions-Ansichtsmodus",
     "showMarketActivity": "Marktaktivität anzeigen",
@@ -2102,7 +2106,10 @@
     "answer": "Antwort",
     "clickToReveal": "Klicken zum Aufdecken",
     "practice": "Noch üben",
-    "known": "Gewusst"
+    "known": "Gewusst",
+    "categoryLabel": "Kategorie",
+    "categoryTrading": "Trading & Strategien",
+    "categoryTech": "Cachy App-Wissen"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
@@ -2111,9 +2118,26 @@
     "noMessages": "Noch keine Nachrichten.",
     "sendButton": "Senden",
     "placeholder": "Sag Hallo...",
-    "connectionFailed": "Verbindung fehlgeschlagen"
+    "connectionFailed": "Verbindung fehlgeschlagen",
+    "enableLabel": "Globalen Chat aktivieren",
+    "stateOn": "An. Der Text deiner Nachrichten wird auf dem unten konfigurierten Server gespeichert.",
+    "stateOff": "Aus. Es wird keine Verbindung aufgebaut, es verlässt nichts dieses Gerät.",
+    "conditionOptIn": "Opt-in: standardmäßig aus, das Einschalten ist eine bewusste Handlung.",
+    "conditionAuthenticated": "Authentifiziert: ein Token ist erforderlich, anonymer Zugriff wird abgelehnt.",
+    "conditionMinimal": "Minimal: nur Nachrichtentext und eine kurze Sender-ID. Kein Journal, keine Einstellungen, Keys, Presets oder Notizen — auch nicht als Metadaten.",
+    "conditionNonEssential": "Nicht essenziell: Rechner, Journal und Risikomanagement funktionieren vollständig ohne ihn.",
+    "hostLabel": "Serveradresse",
+    "dbNameLabel": "Modulname",
+    "tokenLabel": "Verbindungs-Token",
+    "tokenHelp": "Wird vom Betreiber des oben genannten Servers ausgestellt. Wie man eines erhält, steht in docs/GLOBAL-CHAT.md.",
+    "offlineNotice": "Der globale Chat ist nicht erreichbar. Alles andere — Rechner, Journal, Risikomanagement, Marktdaten — ist davon unberührt.",
+    "retentionNotice": "Nachrichten werden 90 Tage nach dem Senden automatisch gelöscht. Deine eigenen kannst du jederzeit löschen — das wirkt auf dem Server und lässt sich nicht rückgängig machen.",
+    "eraseButton": "Meine Nachrichten löschen",
+    "eraseConfirm": "Zum Bestätigen erneut klicken",
+    "eraseDone": "Löschung angefordert. Deine Nachrichten verschwinden, sobald die Änderung durchläuft.",
+    "eraseNeedsConnection": "Zuerst verbinden — die Löschung läuft gegen den Server.",
+    "eraseUnavailable": "In diesem Build nicht verfügbar: Die SpacetimeDB-Bindings sind älter als der Lösch-Reducer. Der Betreiber muss `spacetime generate` ausführen und neu bauen."
   },
-
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",
     "size": "Größe",

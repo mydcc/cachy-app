@@ -16,13 +16,14 @@
  */
 
 import { json } from '@sveltejs/kit';
+import { APP_VERSION } from '$lib/version';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
     const status = {
         status: 'ok',
         timestamp: Date.now(),
-        version: '0.94.3',
+        version: APP_VERSION,
         environment: process.env.NODE_ENV || 'development'
     };
 

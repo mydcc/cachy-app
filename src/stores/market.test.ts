@@ -75,7 +75,7 @@ describe('MarketManager', () => {
     const k1Update = createKline(1000, 105);
     market.updateSymbolKlines('BTC', '1m', [k1Update], 'ws');
 
-    (market as any).flushUpdates();
+    (market as unknown as { flushUpdates: () => void }).flushUpdates();
 
     const history = market.data['BTC'].klines['1m'];
     expect(history.length).toBe(1);
@@ -94,7 +94,7 @@ describe('MarketManager', () => {
     // Pass overlapping update + new one
     market.updateSymbolKlines('BTC', '1m', [k2Update, k3], 'ws');
 
-    (market as any).flushUpdates();
+    (market as unknown as { flushUpdates: () => void }).flushUpdates();
 
     const history = market.data['BTC'].klines['1m'];
     expect(history.length).toBe(3);
@@ -170,4 +170,5 @@ describe('MarketManager', () => {
     // safePush overwrites. First k2 pushed. Then k2Dup pushed -> safePush sees same time -> overwrites.
     expect(history[1].close.toNumber()).toBe(103);
   });
+
 });

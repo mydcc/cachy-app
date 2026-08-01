@@ -15,10 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as backupService from "./backupService";
-import { get } from "svelte/store";
-import { accountState } from "../stores/account.svelte";
 import { CONSTANTS } from "../lib/constants";
 
 // Mock $app/environment

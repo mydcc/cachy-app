@@ -19,10 +19,7 @@ import {
   _ as i18nStore,
   register,
   init,
-  getLocaleFromNavigator,
   locale as svelteLocale,
-  dictionary,
-  getLocaleFromHostname,
 } from "svelte-i18n";
 import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
@@ -126,16 +123,16 @@ const TECHNICAL_KEYS = [
 ];
 
 // Helper to get nested value from object using dot notation path
-function getNestedValue(obj: any, path: string): any {
-  return path.split(".").reduce((prev, curr) => {
-    return prev ? prev[curr] : null;
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce((prev: unknown, curr) => {
+    return prev && typeof prev === "object" ? (prev as Record<string, unknown>)[curr] : null;
   }, obj);
 }
 
 // Helper to set nested value in object using dot notation path
-function setNestedValue(obj: any, path: string, value: any) {
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown) {
   const keys = path.split(".");
-  let current = obj;
+  let current: Record<string, unknown> = obj;
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
@@ -151,7 +148,7 @@ function setNestedValue(obj: any, path: string, value: any) {
       current[key] = {};
     }
 
-    current = current[key];
+    current = current[key] as Record<string, unknown>;
   }
 }
 
@@ -176,17 +173,6 @@ TECHNICAL_KEYS.forEach((key) => {
 });
 
 register("de-tech", () => Promise.resolve(deTechDict));
-
-function getSafeLocale(
-  getter: () => string | undefined | null,
-): string | undefined | null {
-  try {
-    return getter();
-  } catch (e) {
-    console.error("Error getting locale:", e);
-    return undefined;
-  }
-}
 
 const storedLocale =
   typeof localStorage !== "undefined" ? localStorage.getItem("locale") : null;
@@ -245,5 +231,5 @@ export function setLocale(newLocale: string) {
 }
 
 export const _ = i18nStore as unknown as import("svelte/store").Readable<
-  (key: TranslationKey, vars?: Record<string, any>) => string
+  (key: TranslationKey, vars?: Record<string, unknown>) => string
 >;

@@ -26,6 +26,26 @@ import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue } from "../utils/utils";
 import { logger } from "../services/logger";
 import type { JournalEntry } from "./types";
+import type { Position } from "./account.svelte";
+
+// Shape returned by gatherContext(), passed to the AI provider and exposed
+// to the UI via lastContext for the context-gathered indicators.
+export interface AiContext {
+  // Absent when gatherContext() times out — see the fallback in sendMessage().
+  currentTime?: string;
+  portfolioStats?: { totalTrades: number; winrate: string; totalPnl: string; accountSize: string };
+  activeSymbol?: string | null;
+  REAL_TIME_PRICE?: string;
+  priceChange24h?: string;
+  marketDetails?: Record<string, unknown> | null;
+  technicals?: Record<string, unknown> | null;
+  openPositions?: Array<Record<string, unknown>>;
+  recentHistory?: Array<Record<string, unknown>>;
+  tradeSetup?: Record<string, unknown>;
+  marketIntelligence?: { global: Record<string, unknown> | string; symbolMetadata: Record<string, unknown> | string } | null;
+  latestNews?: Array<Record<string, unknown>> | null;
+  error?: string;
+}
 
 export interface AiMessage {
   id: string;
@@ -57,7 +77,7 @@ class AiManager {
   isStreaming = $state(false);
   error = $state<string | null>(null);
   pendingActions = $state<Map<string, PendingAction>>(new Map());
-  lastContext = $state<any>(null); // Expose context for UI indicators
+  lastContext = $state<AiContext | null>(null); // Expose context for UI indicators
 
   constructor() {
     if (browser) {
@@ -126,11 +146,11 @@ class AiManager {
       // 2. Gather Context (Async)
       // Timeout wrapper for gathering context to prevent hanging
       const contextPromise = this.gatherContext();
-      const timeoutPromise = new Promise((resolve) =>
+      const timeoutPromise = new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), 5000),
       );
 
-      const context = (await Promise.race([
+      const context: AiContext = (await Promise.race([
         contextPromise,
         timeoutPromise,
       ])) || {
@@ -375,11 +395,12 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           throw new Error(
             err.error || `Request failed with status ${res.status}`,
           );
-        } catch (e: any) {
+        } catch (e) {
           if (attempt === MAX_RETRIES - 1) throw e; // Final failure
           attempt++;
           if (import.meta.env.DEV) {
-            console.warn(`API Error: ${e.message}. Retrying...`);
+            const message = e instanceof Error ? e.message : String(e);
+            console.warn(`API Error: ${message}. Retrying...`);
           }
           await new Promise((r) => setTimeout(r, 1000));
         }
@@ -428,7 +449,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                   this.messages[idx].content = fullContent;
                 }
               }
-            } catch (e) {
+            } catch {
               // Ignore parse errors
             }
           }
@@ -488,13 +509,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
       this.isStreaming = false;
       this.save();
-    } catch (e: any) {
+    } catch (e) {
       this.isStreaming = false;
-      this.error = e.message;
+      this.error = e instanceof Error ? e.message : String(e);
     }
   }
 
-  private async gatherContext() {
+  private async gatherContext(): Promise<AiContext> {
     const trade = tradeState;
     const market = marketState.data;
     const account = accountState;
@@ -593,7 +614,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       )
       .toFixed(2);
 
-    const usdtAsset = account.assets?.find((a: any) => a.currency === "USDT");
+    const usdtAsset = account.assets?.find((a) => a.currency === "USDT");
     const accountSize = usdtAsset ? usdtAsset.total.toString() : "Unknown";
 
     const limit = settings.aiTradeHistoryLimit || 50;
@@ -619,7 +640,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       : [];
 
     // Technicals Data (New Addition)
-    let technicalsContext = null;
+    let technicalsContext: Record<string, unknown> | null = null;
     if (symbol && settings.showTechnicals) {
       try {
         const timeframe = trade.analysisTimeframe || "1h";
@@ -697,7 +718,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             if (trendData) {
               // Merge into technicalsContext or add as separate field
               // We'll add it as 'trendBias'
-              (technicalsContext as any).higherTimeframe = {
+              technicalsContext.higherTimeframe = {
                 timeframe: trendTimeframe,
                 summary: trendData.summary, // e.g. "STRONG_BUY"
                 ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
@@ -742,11 +763,11 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         const totalBidVol = marketData.depth.bids
           .slice(0, 5)
-          .reduce((sum: Decimal, b: any) => sum.plus(new Decimal(b[1] || 0)), new Decimal(0));
+          .reduce((sum: Decimal, b: [string, string]) => sum.plus(new Decimal(b[1] || 0)), new Decimal(0));
 
         const totalAskVol = marketData.depth.asks
           .slice(0, 5)
-          .reduce((sum: Decimal, a: any) => sum.plus(new Decimal(a[1] || 0)), new Decimal(0));
+          .reduce((sum: Decimal, a: [string, string]) => sum.plus(new Decimal(a[1] || 0)), new Decimal(0));
 
         const totalVol = totalBidVol.plus(totalAskVol);
         const bidRatio = totalVol.isZero() ? new Decimal(0.5) : totalBidVol.div(totalVol);
@@ -788,10 +809,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             spreadStatus,
             topBids: marketData.depth.bids
               .slice(0, 3)
-              .map((b: any) => Number(b[0])),
+              .map((b: [string, string]) => Number(b[0])),
             topAsks: marketData.depth.asks
               .slice(0, 3)
-              .map((a: any) => Number(a[0])),
+              .map((a: [string, string]) => Number(a[0])),
           }
           : null,
       };
@@ -808,7 +829,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       marketDetails,
       technicals: technicalsContext,
       openPositions: Array.isArray(account.positions)
-        ? account.positions.map((p: any) => ({
+        ? account.positions.map((p: Position) => ({
           symbol: p.symbol,
           side: p.side,
           size: p.size.toString(),
@@ -846,7 +867,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       try {
         const parsed = JSON.parse(match[1]);
         if (Array.isArray(parsed)) return parsed as AiAction[];
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }
@@ -857,7 +878,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       try {
         const parsed = JSON.parse(singleMatch[1]);
         return [parsed as AiAction];
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }
@@ -922,7 +943,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           }
           break;
         case "setAtrMultiplier":
-        case "setStopLossATR":
+        case "setStopLossATR": {
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
             // parseAiValue returns Decimal, convert to string for tradeState
@@ -930,6 +951,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             tradeState.useAtrSl = true;
           }
           break;
+        }
         case "setUseAtrSl":
           if (typeof action.value === "boolean") {
             tradeState.useAtrSl = action.value;
@@ -963,9 +985,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       case "setSymbol":
         return `Symbol: ${action.value}`;
       case "setAtrMultiplier":
-      case "setStopLossATR":
+      case "setStopLossATR": {
         const mult = action.value || action.atrMultiplier;
         return `ATR SL: ${mult}x`;
+      }
       case "setUseAtrSl":
         return action.value ? "ATR SL: AN" : "ATR SL: AUS";
       default:
@@ -976,7 +999,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
   /**
    * Add action to pending queue for user confirmation
    */
-  private addPendingAction(actions: any[]): string {
+  private addPendingAction(actions: AiAction[]): string {
     const id = crypto.randomUUID();
     this.pendingActions.set(id, {
       id,

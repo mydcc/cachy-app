@@ -144,7 +144,6 @@ export class RaindropsEngine extends BaseEngine {
         const numPoints = width * length;
         const positions = new Float32Array(numPoints * 3);
         const colors = new Float32Array(numPoints * 3);
-        const colorUp = this.context.colorUp || new THREE.Color(0x00ff88);
         let k = 0;
         const spacing = (this.context.settings.spread || 1.0) * 2.0;
         for (let i = 0; i < width; i++) {
@@ -168,7 +167,7 @@ export class RaindropsEngine extends BaseEngine {
         return geometry;
     }
 
-    public update(time: number, delta: number): void {
+    public update(time: number): void {
         if (this.material) {
             this.material.uniforms.uTime.value = time;
             // Force uniform update for ripples usually requires notifying THREE that the array contents changed, 
@@ -219,6 +218,7 @@ export class RaindropsEngine extends BaseEngine {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reasoning as EngineContext.settings in BaseEngine.ts
     public updateSettings(newSettings: any): void {
         if (this.shouldReinit(newSettings)) {
             if (this.pointCloud) {

@@ -17,10 +17,12 @@
 
 // src/services/trackingService.ts
 
-type ContextProvider = () => Record<
+type TrackingEventData = Record<
   string,
   string | number | boolean | null | undefined
 >;
+
+type ContextProvider = () => TrackingEventData;
 
 const contextProviders: ContextProvider[] = [];
 
@@ -36,7 +38,7 @@ export function addContextProvider(provider: ContextProvider) {
 /**
  * Internal helper to push data to Matomo Tag Manager
  */
-function pushToDataLayer(data: Record<string, any>) {
+function pushToDataLayer(data: TrackingEventData) {
   // Check if window exists (SSR guard) and if _mtm is available
   if (typeof window === "undefined" || !window._mtm) {
     // Matomo Tag Manager is not available, do nothing.
@@ -81,7 +83,7 @@ export function trackCustomEvent(
   name?: string,
   value?: number,
 ) {
-  const eventData: Record<string, any> = {
+  const eventData: TrackingEventData = {
     event: "customEvent",
     "custom-event-category": category,
     "custom-event-action": action,
@@ -110,9 +112,9 @@ export function trackCustomEvent(
 export function trackInteraction(
   id: string,
   type: string = "click",
-  context?: Record<string, any>,
+  context?: TrackingEventData,
 ) {
-  const eventData: Record<string, any> = {
+  const eventData: TrackingEventData = {
     event: "interaction",
     // Core Identity
     "interaction-id": id,

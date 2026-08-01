@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { icons } from "../../lib/constants";
   import { createEventDispatcher } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
@@ -26,6 +25,7 @@
   import { app } from "../../services/app";
   import type { IndividualTpResult } from "../../stores/types";
   import { parseDecimal } from "../../utils/utils";
+  import type { Decimal } from "decimal.js";
 
   const dispatch = createEventDispatcher();
 
@@ -97,7 +97,7 @@
     return 0.01;
   });
 
-  function formatProfit(val: any) {
+  function formatProfit(val: Decimal) {
     const num = val?.toNumber ? val.toNumber() : Number(val);
     if (!num) return "0";
     if (Math.abs(num) < 0.1) return num.toFixed(4);

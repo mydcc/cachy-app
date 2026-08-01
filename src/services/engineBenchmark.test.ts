@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { IndicatorSettings } from '../types/indicators';
+import type { TechnicalsData } from './technicalsTypes';
 
+// Fixture only fills the fields benchmarkEngine forwards on to its
+// (mocked) calculate calls, not the full IndicatorSettings shape.
 const mockSettings = {
   active: ['ema1'],
   configs: {
     ema1: { period: 10 }
   }
-};
+} as unknown as IndicatorSettings;
 
 const mockKlines = [
   { time: 1000, open: 1, high: 2, low: 0.5, close: 1.5, volume: 100 },
@@ -67,7 +71,7 @@ describe('engineBenchmark', () => {
 
       const warmupRuns = 1;
       const measuredRuns = 2;
-      const result = await benchmarkEngine('ts', mockKlines, mockSettings as any, warmupRuns, measuredRuns);
+      const result = await benchmarkEngine('ts', mockKlines, mockSettings, warmupRuns, measuredRuns);
 
       expect(result.length).toBe(measuredRuns);
       expect(technicalsService.calculateTechnicalsInline).toHaveBeenCalledTimes(warmupRuns + measuredRuns);
@@ -77,10 +81,10 @@ describe('engineBenchmark', () => {
     it('should return empty array if WASM engine throws an error', async () => {
       const { wasmCalculator } = await import('./wasmCalculator');
       // Mock an error during calculation
-      (wasmCalculator.calculate as any).mockRejectedValueOnce(new Error('WASM computation failed'));
+      vi.mocked(wasmCalculator.calculate).mockRejectedValueOnce(new Error('WASM computation failed'));
 
       const { benchmarkEngine } = await import('./engineBenchmark');
-      const result = await benchmarkEngine('wasm', mockKlines, mockSettings as any, 1, 2);
+      const result = await benchmarkEngine('wasm', mockKlines, mockSettings, 1, 2);
 
       expect(result).toEqual([]);
       expect(wasmCalculator.calculate).toHaveBeenCalledTimes(1);
@@ -88,10 +92,10 @@ describe('engineBenchmark', () => {
 
     it('should return empty array if WASM is not available', async () => {
       const { wasmCalculator } = await import('./wasmCalculator');
-      (wasmCalculator.isAvailable as any).mockReturnValueOnce(false);
+      vi.mocked(wasmCalculator.isAvailable).mockReturnValueOnce(false);
 
       const { benchmarkEngine } = await import('./engineBenchmark');
-      const result = await benchmarkEngine('wasm', mockKlines, mockSettings as any, 1, 2);
+      const result = await benchmarkEngine('wasm', mockKlines, mockSettings, 1, 2);
 
       expect(result).toEqual([]);
       expect(wasmCalculator.calculate).not.toHaveBeenCalled();
@@ -99,12 +103,12 @@ describe('engineBenchmark', () => {
 
     it('should calculate technicals using WASM engine when successful', async () => {
       const { wasmCalculator } = await import('./wasmCalculator');
-      (wasmCalculator.calculate as any).mockResolvedValue(undefined);
+      vi.mocked(wasmCalculator.calculate).mockResolvedValue(undefined as unknown as TechnicalsData); // resolved value unused, only call count is asserted
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const warmupRuns = 1;
       const measuredRuns = 1;
-      const result = await benchmarkEngine('wasm', mockKlines, mockSettings as any, warmupRuns, measuredRuns);
+      const result = await benchmarkEngine('wasm', mockKlines, mockSettings, warmupRuns, measuredRuns);
 
       expect(result.length).toBe(measuredRuns);
       expect(wasmCalculator.calculate).toHaveBeenCalledTimes(warmupRuns + measuredRuns);
@@ -112,10 +116,10 @@ describe('engineBenchmark', () => {
 
     it('should return empty array if GPU engine throws an error', async () => {
       const { webGpuCalculator } = await import('./webGpuCalculator');
-      (webGpuCalculator.calculate as any).mockRejectedValueOnce(new Error('GPU Out of Memory'));
+      vi.mocked(webGpuCalculator.calculate).mockRejectedValueOnce(new Error('GPU Out of Memory'));
 
       const { benchmarkEngine } = await import('./engineBenchmark');
-      const result = await benchmarkEngine('gpu', mockKlines, mockSettings as any, 1, 2);
+      const result = await benchmarkEngine('gpu', mockKlines, mockSettings, 1, 2);
 
       expect(result).toEqual([]);
       expect(webGpuCalculator.calculate).toHaveBeenCalledTimes(1);
@@ -123,10 +127,10 @@ describe('engineBenchmark', () => {
 
     it('should return empty array if GPU is not supported', async () => {
       const { WebGpuCalculator } = await import('./webGpuCalculator');
-      (WebGpuCalculator.isSupported as any).mockResolvedValueOnce(false);
+      vi.mocked(WebGpuCalculator.isSupported).mockResolvedValueOnce(false);
 
       const { benchmarkEngine } = await import('./engineBenchmark');
-      const result = await benchmarkEngine('gpu', mockKlines, mockSettings as any, 1, 2);
+      const result = await benchmarkEngine('gpu', mockKlines, mockSettings, 1, 2);
 
       expect(result).toEqual([]);
       const { webGpuCalculator } = await import('./webGpuCalculator');
@@ -135,12 +139,12 @@ describe('engineBenchmark', () => {
 
     it('should calculate technicals using GPU engine when successful', async () => {
       const { webGpuCalculator } = await import('./webGpuCalculator');
-      (webGpuCalculator.calculate as any).mockResolvedValue(undefined);
+      vi.mocked(webGpuCalculator.calculate).mockResolvedValue(undefined as unknown as TechnicalsData); // resolved value unused, only call count is asserted
 
       const { benchmarkEngine } = await import('./engineBenchmark');
       const warmupRuns = 1;
       const measuredRuns = 1;
-      const result = await benchmarkEngine('gpu', mockKlines, mockSettings as any, warmupRuns, measuredRuns);
+      const result = await benchmarkEngine('gpu', mockKlines, mockSettings, warmupRuns, measuredRuns);
 
       expect(result.length).toBe(measuredRuns);
       expect(webGpuCalculator.calculate).toHaveBeenCalledTimes(warmupRuns + measuredRuns);
@@ -148,7 +152,13 @@ describe('engineBenchmark', () => {
 
     it('should return empty array for an unknown engine type', async () => {
       const { benchmarkEngine } = await import('./engineBenchmark');
-      const result = await benchmarkEngine('quantum' as any, mockKlines, mockSettings as any, 1, 2);
+      const result = await benchmarkEngine(
+        'quantum' as unknown as Parameters<typeof benchmarkEngine>[0],
+        mockKlines,
+        mockSettings,
+        1,
+        2,
+      );
       expect(result).toEqual([]);
     });
   });
@@ -160,11 +170,11 @@ describe('engineBenchmark', () => {
 
       const { wasmCalculator } = await import('./wasmCalculator');
       // Let WASM fail, TS succeed
-      (wasmCalculator.calculate as any).mockRejectedValue(new Error('WASM fallback test'));
+      vi.mocked(wasmCalculator.calculate).mockRejectedValue(new Error('WASM fallback test'));
 
       // GPU succeeds
       const { webGpuCalculator } = await import('./webGpuCalculator');
-      (webGpuCalculator.calculate as any).mockResolvedValue(undefined);
+      vi.mocked(webGpuCalculator.calculate).mockResolvedValue(undefined as unknown as TechnicalsData); // resolved value unused, only call count is asserted
 
       const sizes = [100];
       const results = await runBenchmark(sizes, 1, 2);
@@ -181,8 +191,8 @@ describe('engineBenchmark', () => {
 
       // Restore default implementations to prevent persistent mocks from leaking.
       // clearAllMocks() only clears call history, not mockRejectedValue/mockResolvedValue.
-      (wasmCalculator.calculate as any).mockReset();
-      (webGpuCalculator.calculate as any).mockReset();
+      vi.mocked(wasmCalculator.calculate).mockReset();
+      vi.mocked(webGpuCalculator.calculate).mockReset();
     });
   });
 });

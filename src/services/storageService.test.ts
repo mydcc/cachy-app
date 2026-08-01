@@ -20,42 +20,52 @@ import { Decimal } from 'decimal.js';
 import type { Kline } from './technicalsTypes';
 
 // --- Mock IndexedDB Implementation ---
-const storeMap = new Map<string, any>();
+/** What storageService actually stores: a keyed record it can sort by id. */
+interface StoredRecord {
+  id: string;
+  [field: string]: unknown;
+}
+
+/**
+ * The slice of IDBRequest this mock implements — a result and an onsuccess
+ * callback the service assigns. Typing it beats `any` at each of the four
+ * places a request is created.
+ */
+interface MockRequest<T> {
+  result?: T;
+  onsuccess?: (event?: { target: MockRequest<T> }) => void;
+  onerror?: () => void;
+}
+
+const storeMap = new Map<string, StoredRecord>();
+
+/** Resolves the request on the next tick, as IndexedDB does. */
+function resolveLater<T>(compute: () => T): MockRequest<T> {
+    const req: MockRequest<T> = {};
+    setTimeout(() => {
+        req.result = compute();
+        if (req.onsuccess) req.onsuccess();
+    }, 1);
+    return req;
+}
 
 const mockStore = {
-    get: (key: string) => {
-        const req: any = {};
-        setTimeout(() => {
-            req.result = storeMap.get(key);
-            if (req.onsuccess) req.onsuccess();
-        }, 1);
-        return req;
-    },
-    put: (val: any) => {
-        const req: any = {};
-        setTimeout(() => {
-            storeMap.set(val.id, val);
-            if (req.onsuccess) req.onsuccess();
-        }, 1);
-        return req;
-    },
-    getAll: (range: any) => {
-        const req: any = {};
-        setTimeout(() => {
-             // Return sorted values
-             const values = Array.from(storeMap.values()).sort((a, b) => a.id.localeCompare(b.id));
-             req.result = values;
-             if (req.onsuccess) req.onsuccess();
-        }, 1);
-        return req;
-    },
+    get: (key: string) => resolveLater(() => storeMap.get(key)),
+    put: (val: StoredRecord) => resolveLater(() => {
+        storeMap.set(val.id, val);
+        return undefined;
+    }),
+    getAll: () =>
+        resolveLater(() =>
+            Array.from(storeMap.values()).sort((a, b) => a.id.localeCompare(b.id)),
+        ),
     clear: () => {
          storeMap.clear();
     }
 };
 
 const mockTx = {
-    objectStore: (name: string) => mockStore
+    objectStore: () => mockStore
 };
 
 const mockDB = {
@@ -68,8 +78,8 @@ const mockDB = {
 };
 
 const mockIDB = {
-    open: (name: string, version: number) => {
-        const req: any = {};
+    open: () => {
+        const req: MockRequest<typeof mockDB> = {};
         setTimeout(() => {
             req.result = mockDB;
             if (req.onsuccess) req.onsuccess({ target: req });
@@ -78,12 +88,12 @@ const mockIDB = {
     }
 };
 
-global.indexedDB = mockIDB as any;
-global.IDBKeyRange = { bound: (l, h) => ({ lower: l, upper: h }) } as any;
+global.indexedDB = mockIDB as unknown as IDBFactory;
+global.IDBKeyRange = { bound: (l: IDBValidKey, h: IDBValidKey) => ({ lower: l, upper: h }) } as unknown as typeof IDBKeyRange;
 
 // Mock Window
 // We must ensure 'indexedDB' in window works
-global.window = { indexedDB: mockIDB } as any;
+global.window = { indexedDB: mockIDB } as unknown as Window & typeof globalThis;
 
 // Mock Navigator
 Object.defineProperty(global, 'navigator', {
@@ -106,7 +116,7 @@ vi.mock('./logger', () => ({
 
 // --- Test ---
 
-let storageService: any;
+let storageService: typeof import('./storageService')['storageService'];
 
 function generateKlines(count: number, startTimestamp: number): Kline[] {
     const klines: Kline[] = [];
@@ -131,7 +141,7 @@ describe('StorageService Optimization', () => {
         const mod = await import('./storageService');
         storageService = mod.storageService;
         // Force support since we mocked everything
-        (storageService as any).isSupported = true;
+        (storageService as unknown as { isSupported: boolean }).isSupported = true;
         await storageService.clearAll();
     });
 

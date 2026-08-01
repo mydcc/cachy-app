@@ -23,6 +23,7 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
+import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 // Define Validation Schema
 const SyncRequestSchema = z.object({
@@ -71,10 +72,11 @@ export const POST: RequestHandler = async ({ request }) => {
       limit,
     );
     return json({ data: history });
-  } catch (e: any) {
-    console.error(`Error fetching history from Bitunix:`, e.message || e);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`Error fetching history from Bitunix:`, message);
     return json(
-      { error: e.message || "Failed to fetch history" },
+      { error: message || "Failed to fetch history" },
       { status: 500 },
     );
   }
@@ -86,7 +88,7 @@ async function fetchBitunixHistory(
   startTime?: number,
   endTime?: number,
   limit: number = 50,
-): Promise<Record<string, any>[]> {
+): Promise<Record<string, unknown>[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_trades";
 
@@ -121,7 +123,7 @@ async function fetchBitunixHistory(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

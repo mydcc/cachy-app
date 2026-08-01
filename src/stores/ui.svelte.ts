@@ -24,6 +24,41 @@ import { ModalWindow } from "../lib/windows/implementations/ModalWindow.svelte";
 import { MarkdownWindow } from "../lib/windows/implementations/MarkdownWindow.svelte";
 // Components are imported dynamically in toggle methods to avoid circular dependencies
 
+// Shape returned by the legacy subscribe()/update() snapshot — mirrors every
+// $state field UiManager exposed at the time those methods were written.
+interface UiSnapshot {
+  currentTheme: string;
+  showCopyFeedback: boolean;
+  showSaveFeedback: boolean;
+  errorMessage: string;
+  showErrorMessage: boolean;
+  isPriceFetching: boolean;
+  isSyncing: boolean;
+  isAtrFetching: boolean;
+  symbolSuggestions: string[];
+  showSymbolSuggestions: boolean;
+  showMarketDashboardModal: boolean;
+  showAcademyModal: boolean;
+  settingsTab: string;
+  settingsTradingSubTab: string;
+  settingsVisualsSubTab: string;
+  settingsAiSubTab: string;
+  settingsConnectionsSubTab: string;
+  settingsSystemSubTab: string;
+  settingsProfileTab: "general" | "appearance" | "controls";
+  settingsWorkspaceTab: string;
+  isLoading: boolean;
+  loadingMessage: string;
+  syncProgress: { total: number; current: number; step: string } | null;
+  tooltip: {
+    visible: boolean;
+    type: "position" | "order" | null;
+    data: unknown;
+    x: number;
+    y: number;
+  };
+}
+
 class UiManager {
   currentTheme = $state("dark");
   showCopyFeedback = $state(false);
@@ -94,7 +129,7 @@ class UiManager {
   tooltip = $state<{
     visible: boolean;
     type: "position" | "order" | null;
-    data: any;
+    data: unknown;
     x: number;
     y: number;
   }>({
@@ -112,11 +147,11 @@ class UiManager {
     }
   }
 
-  private notifyTimer: any = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Legacy Subscribe for backward compatibility
-  subscribe(fn: (value: any) => void) {
-    const getSnapshot = () => ({
+  subscribe(fn: (value: UiSnapshot) => void) {
+    const getSnapshot = (): UiSnapshot => ({
       currentTheme: this.currentTheme,
       showCopyFeedback: this.showCopyFeedback,
       showSaveFeedback: this.showSaveFeedback,
@@ -160,8 +195,8 @@ class UiManager {
   }
 
   // Legacy mapping to update(fn) to direct state changes
-  update(fn: (state: any) => any) {
-    const stateSnapshot = {
+  update(fn: (state: UiSnapshot) => Partial<UiSnapshot>) {
+    const stateSnapshot: UiSnapshot = {
       currentTheme: this.currentTheme,
       showCopyFeedback: this.showCopyFeedback,
       showSaveFeedback: this.showSaveFeedback,
@@ -423,7 +458,7 @@ class UiManager {
     this.syncProgress = progress;
   }
 
-  showTooltip(type: "position" | "order", data: any, x: number, y: number) {
+  showTooltip(type: "position" | "order", data: unknown, x: number, y: number) {
     this.tooltip = { visible: true, type, data, x, y };
   }
 

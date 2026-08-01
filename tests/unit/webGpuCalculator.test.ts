@@ -164,7 +164,7 @@ describe('WebGpuCalculator', () => {
 
       // Should return array of results
       expect(Array.isArray(result)).toBe(true);
-      expect((result as any[]).length).toBe(2);
+      expect((result as Float32Array[]).length).toBe(2);
 
       // Check copyBufferToBuffer called twice (once per output to staging)
       // Note: we're checking the shared mockCommandEncoder

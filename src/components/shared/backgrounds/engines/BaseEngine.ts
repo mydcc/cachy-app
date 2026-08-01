@@ -17,15 +17,19 @@
 
 import * as THREE from 'three';
 
-export interface BaseEngineSettings {
-    [key: string]: any;
-}
-
 export interface EngineContext {
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer;
-    settings: any; // Generic settings for flexibility
+    // Deliberately `any`: every BaseEngine subclass (CityEngine, BlockEngine,
+    // EqualizerEngine, GalaxyEngine, RaindropsEngine, SonarEngine,
+    // StarDustEngine) and galaxy.worker.ts reads arbitrary numeric/string
+    // fields off this freely (`s.gridWidth || 80`, etc.) with no shared
+    // settings shape across engines. Narrowing it here would cascade type
+    // errors through all of them — a separate, much larger pass, not a
+    // single-file fix.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    settings: any;
     colorUp?: THREE.Color;
     colorDown?: THREE.Color;
     currentAtmosphere?: THREE.Color;
@@ -66,10 +70,12 @@ export abstract class BaseEngine {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reasoning as EngineContext.settings above
     public updateSettings(settings: any) {
         this.context.settings = settings;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reasoning as EngineContext.settings above
     protected shouldReinit(newSettings: any): boolean {
         return (
             newSettings.gridWidth !== this.context.settings.gridWidth ||

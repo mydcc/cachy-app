@@ -8,7 +8,7 @@
  */
 
 import { marketState } from "../stores/market.svelte";
-import { accountState } from "../stores/account.svelte";
+import { accountState, type RawWsOrder, type RawWsPosition } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
@@ -21,10 +21,40 @@ import type {
 import {
   BitgetWSMessageSchema,
   BitgetWSTickerSchema,
-  isAllowedBitgetChannel,
-  validateBitgetSymbol,
 } from "../types/bitgetValidation";
 import { Decimal } from "decimal.js";
+
+// Bitget's login acknowledgement — see the NOTE at its one use site.
+interface BitgetLoginResponse {
+  event?: string;
+  code?: string;
+}
+
+// [ts, open, high, low, close, volume] — Bitget candle array entry.
+type BitgetCandleTuple = [string, string, string, string, string, string];
+
+// Raw fields read off the "orders" / "positions" private WS channels, as
+// opposed to BitgetOrder (types/bitget.ts), which models the REST shape.
+// NOTE: forwarded to accountState.updateOrderFromWs/updatePositionFromWs,
+// which read Bitunix's field names (qty, positionId, orderStatus, ...) —
+// see docs/TODO.md item 3, not fixed here.
+interface BitgetWSOrderData {
+  orderId?: string;
+  instId?: string;
+  status?: string;
+  accFillSize?: string;
+  price?: string;
+  priceAvg?: string;
+}
+
+interface BitgetWSPositionData {
+  instId?: string;
+  total?: string;
+  openPriceAvg?: string;
+  marginMode?: string;
+  leverage?: string;
+  unrealizedPL?: string;
+}
 
 const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
 
@@ -85,8 +115,6 @@ class BitgetWebSocketService {
       this.globalMonitorInterval = setInterval(() => {
         if (this.isDestroyed) return;
 
-        const now = Date.now();
-        const timeSince = now - this.lastMessageTime;
         const status = marketState.connectionStatus;
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -236,7 +264,7 @@ class BitgetWebSocketService {
         try {
           const message = safeJsonParse(event.data);
           this.handleMessage(message);
-        } catch (e) {
+        } catch {
           // ignore
         }
       };
@@ -255,9 +283,9 @@ class BitgetWebSocketService {
         }
       };
 
-      ws.onerror = (error) => { };
+      ws.onerror = () => { };
 
-    } catch (e) {
+    } catch {
       this.scheduleReconnect();
     }
   }
@@ -291,7 +319,10 @@ class BitgetWebSocketService {
         try {
           this.lastPingTime = Date.now();
           ws.send("ping");
-        } catch (e) { }
+        } catch {
+          // Best effort keepalive. A failed ping means the socket is already
+          // gone; the close/reconnect handler owns recovery.
+        }
       }
     }, PING_INTERVAL);
   }
@@ -331,7 +362,9 @@ class BitgetWebSocketService {
       this.ws.onclose = null;
       try {
         this.ws.close();
-      } catch (e) { }
+      } catch {
+        // Teardown must never throw — the socket may already be closed.
+      }
     }
     this.ws = null;
     this.isReconnecting = false;
@@ -376,7 +409,12 @@ class BitgetWebSocketService {
       // I might need to adjust schema for event messages vs data messages.
     }
     // Check event response
-    if ((msg as any).event === "login" && (msg as any).code === "00000") {
+    //
+    // NOTE: msg is validated.data from BitgetWSMessageSchema.safeParse(), a
+    // schema that requires `action` and does not declare `event`/`code` and
+    // is not .passthrough() — so a real Bitget login ack shaped this way may
+    // never reach here in practice. See docs/TODO.md item 3.
+    if ((msg as BitgetLoginResponse).event === "login" && (msg as BitgetLoginResponse).code === "00000") {
       this.isAuthenticated = true;
       if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
       this.subscribePrivate();
@@ -400,7 +438,7 @@ class BitgetWebSocketService {
       if (tickerVal.success) {
         const t = tickerVal.data;
         // Update market
-        const update: any = {};
+        const update: Record<string, unknown> = {};
         if (t.last) update.lastPrice = t.last;
         if (t.high24h) update.highPrice = t.high24h;
         if (t.low24h) update.lowPrice = t.low24h;
@@ -433,7 +471,7 @@ class BitgetWebSocketService {
     else if (channel.startsWith("candle")) {
       // data is [[ts, o, h, l, c, v, q], ...]
       if (Array.isArray(msg.data)) {
-        const klines = msg.data.map((k: any) => {
+        const klines = msg.data.map((k: BitgetCandleTuple) => {
           // k is [ts, o, h, l, c, v]
           return {
             time: parseInt(k[0]),
@@ -470,8 +508,13 @@ class BitgetWebSocketService {
     else if (channel === "orders") {
       // Handle order updates
       if (Array.isArray(msg.data)) {
-        msg.data.forEach((o: any) => {
+        msg.data.forEach((o: BitgetWSOrderData) => {
           // Map to internal format
+          //
+          // NOTE: these field names (status, filled, avgPrice) don't match
+          // what updateOrderFromWs actually reads (orderStatus, dealAmount,
+          // price/qty) — cast preserves the existing (buggy) behavior rather
+          // than silently "fixing" it here. See docs/TODO.md item 3.
           accountState.updateOrderFromWs({
             orderId: o.orderId,
             symbol: o.instId,
@@ -480,14 +523,19 @@ class BitgetWebSocketService {
             price: o.price,
             avgPrice: o.priceAvg,
             // etc
-          });
+          } as RawWsOrder);
         });
       }
     }
     // Private: Positions
     else if (channel === "positions") {
       if (Array.isArray(msg.data)) {
-        msg.data.forEach((p: any) => {
+        msg.data.forEach((p: BitgetWSPositionData) => {
+          // NOTE: no positionId, and these field names (size, marginType,
+          // unrealizedPnl) don't match what updatePositionFromWs actually
+          // reads (qty, positionId, marginMode, unrealizedPNL) — cast
+          // preserves the existing (buggy) behavior rather than silently
+          // "fixing" it here. See docs/TODO.md item 3.
           accountState.updatePositionFromWs({
             symbol: p.instId,
             size: p.total, // or available? total usually
@@ -495,7 +543,7 @@ class BitgetWebSocketService {
             marginType: p.marginMode,
             leverage: p.leverage,
             unrealizedPnl: p.unrealizedPL
-          });
+          } as RawWsPosition);
         });
       }
     }
@@ -584,7 +632,12 @@ class BitgetWebSocketService {
         instId: symbol
       }]
     };
-    try { ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch {
+      // Best effort subscribe/unsubscribe. If the socket is not writable
+      // the reconnect handler replays subscriptions.
+    }
   }
 
   private sendUnsubscribe(ws: WebSocket, symbol: string, channel: string) {
@@ -596,7 +649,12 @@ class BitgetWebSocketService {
         instId: symbol
       }]
     };
-    try { ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch {
+      // Best effort subscribe/unsubscribe. If the socket is not writable
+      // the reconnect handler replays subscriptions.
+    }
   }
 
   private resubscribe() {
@@ -623,7 +681,12 @@ class BitgetWebSocketService {
     }));
 
     const payload = { op: "subscribe", args };
-    try { this.ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      this.ws.send(JSON.stringify(payload));
+    } catch {
+      // Best effort subscribe/unsubscribe. If the socket is not writable
+      // the reconnect handler replays subscriptions.
+    }
   }
 }
 

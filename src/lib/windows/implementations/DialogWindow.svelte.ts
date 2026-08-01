@@ -17,20 +17,21 @@
 
 import { WindowBase } from "../WindowBase.svelte";
 import DialogView from "./DialogView.svelte";
+import type { WindowOptions } from "../types";
 
 export class DialogWindow extends WindowBase {
     message = $state("");
     type: 'alert' | 'confirm' | 'prompt' = $state('alert');
     defaultValue = $state("");
-    resolve: ((value: any) => void) | null = null;
+    resolve: ((value: boolean | string) => void) | null = null;
 
     constructor(
         title: string,
         message: string,
         type: 'alert' | 'confirm' | 'prompt' = 'alert',
         defaultValue: string = "",
-        resolve: (value: any) => void,
-        options: any = {}
+        resolve: (value: boolean | string) => void,
+        options: WindowOptions = {}
     ) {
         super({ title, windowType: 'dialog', ...options });
         this.message = message;
@@ -43,7 +44,7 @@ export class DialogWindow extends WindowBase {
         return DialogView;
     }
 
-    closeWith(value: any) {
+    closeWith(value: boolean | string) {
         if (this.resolve) {
             this.resolve(value);
             this.resolve = null; // Prevent double resolve

@@ -18,7 +18,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderSafeMarkdown } from '../../src/utils/markdownUtils';
 import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 
 // Mock DOMPurify as we are in a non-browser environment
 vi.mock('dompurify', () => {
@@ -36,11 +35,11 @@ vi.mock('dompurify', () => {
 
 describe('markdownUtils', () => {
     describe('renderSafeMarkdown', () => {
-        let originalWindow: any;
+        let originalWindow: Window & typeof globalThis;
 
         beforeEach(() => {
             originalWindow = global.window;
-            global.window = {} as any;
+            global.window = {} as unknown as Window & typeof globalThis;
         });
 
         afterEach(() => {
@@ -50,13 +49,13 @@ describe('markdownUtils', () => {
 
         it('should return empty string for empty input', () => {
             expect(renderSafeMarkdown('')).toBe('');
-            expect(renderSafeMarkdown(null as any)).toBe('');
-            expect(renderSafeMarkdown(undefined as any)).toBe('');
+            expect(renderSafeMarkdown(null as unknown as string)).toBe('');
+            expect(renderSafeMarkdown(undefined as unknown as string)).toBe('');
         });
 
         it('should return empty string during SSR', () => {
             const temp = global.window;
-            // @ts-ignore
+            // @ts-expect-error -- global.window is not optional; deleted to simulate a server environment
             delete global.window;
 
             expect(renderSafeMarkdown('# Hello')).toBe('');
@@ -67,7 +66,7 @@ describe('markdownUtils', () => {
         it('should return DocumentFragment on the client', () => {
             const result = renderSafeMarkdown('# Hello');
             expect(typeof result).toBe('object');
-            expect((result as any)._isFragment).toBe(true);
+            expect((result as unknown as { _isFragment?: boolean })._isFragment).toBe(true);
             expect(DOMPurify.sanitize).toHaveBeenCalledWith(expect.any(String), { RETURN_DOM_FRAGMENT: true });
         });
 

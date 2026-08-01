@@ -54,7 +54,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       json: async () => ({ apiKey, apiSecret, limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     // Verify fetch was called
@@ -75,6 +75,9 @@ describe('POST /api/sync/positions-history - Security', () => {
   it('should work correctly with valid credentials', async () => {
      fetchMock.mockResolvedValueOnce({
       ok: true,
+      // See readExchangeJson: the route uses text() + safeJsonParse to preserve
+      // numeric precision on exchange data.
+      text: async () => JSON.stringify({ code: 0, data: { positionList: [] } }),
       json: async () => ({ code: 0, data: { positionList: [] } }),
     });
 
@@ -82,7 +85,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       json: async () => ({ apiKey: 'validApiKey', apiSecret: 'validSecret', limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data).toEqual([]);

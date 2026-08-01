@@ -18,8 +18,8 @@
 
 import { bench, describe } from 'vitest';
 import { calculateAllIndicators } from '../utils/technicalsCalculator';
-import { technicalsService } from '../services/technicalsService';
 import { Decimal } from 'decimal.js';
+import type { IndicatorSettings } from '../types/indicators';
 
 // Generate dummy klines
 const generateKlines = (count: number) => {
@@ -70,13 +70,13 @@ const settings = {
     parabolicSar: { start: 0.02, increment: 0.02, max: 0.2 },
     volumeMa: { length: 20, maType: "sma" },
     volumeProfile: { rows: 24 },
-} as any;
+} as unknown as IndicatorSettings;
 
 describe('Technicals Performance', () => {
     bench('Full Calculation (Current)', () => {
         // Simulates what marketAnalyst does currently:
         // Pass { EMA: true, RSI: true } but due to logic, it calculates everything
-        calculateAllIndicators(klines, settings, { "EMA": true, "RSI": true });
+        calculateAllIndicators(klines, settings);
     });
 
     bench('Cache Key Generation', () => {

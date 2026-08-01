@@ -22,6 +22,7 @@ import { checkAppAuth } from "../../../../lib/server/auth";
 import type { BitunixOrder } from "../../../../types/bitunix";
 import { z } from "zod";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
+import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -36,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -67,24 +68,29 @@ export const POST: RequestHandler = async ({ request }) => {
       return false;
     };
 
+    const pageLimit = limit ?? 100;
+
     // Execute all fetches in parallel
     const [regularResult, tpslResult, planResult] = await Promise.allSettled([
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/trade/get_history_orders",
+        pageLimit,
         checkTimeout,
       ),
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/tpsl/get_history_orders",
+        pageLimit,
         checkTimeout,
       ),
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/plan/get_history_plan_orders",
+        pageLimit,
         checkTimeout,
       ),
     ]);
@@ -148,6 +154,7 @@ async function fetchAllPages(
   apiKey: string,
   apiSecret: string,
   path: string,
+  pageLimit: number,
   checkTimeout: () => boolean,
 ): Promise<BitunixOrder[]> {
   const maxPages = 50; // Reduced from 100 to prevent long waits
@@ -162,7 +169,7 @@ async function fetchAllPages(
       apiKey,
       apiSecret,
       path,
-      100,
+      pageLimit,
       currentEndTime,
     );
 
@@ -252,7 +259,7 @@ async function fetchBitunixData(
     );
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

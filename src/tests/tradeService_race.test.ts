@@ -17,9 +17,8 @@
 
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { tradeService, BitunixApiError } from '../services/tradeService';
+import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
-import { settingsState } from '../stores/settings.svelte';
 import { Decimal } from 'decimal.js';
 
 // Mocks
@@ -44,8 +43,14 @@ vi.mock('../stores/settings.svelte', () => ({
 }));
 
 vi.mock('../services/logger', () => ({
+    // Must cover every method the code under test calls. `debug` was missing,
+    // so flashClosePosition threw "logger.debug is not a function" inside its
+    // try block. That TypeError is not a BitunixApiError, so the rollback logic
+    // correctly classified it as indeterminate and kept the optimistic order —
+    // and the test blamed the rollback rather than its own mock.
     logger: {
         log: vi.fn(),
+        debug: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
     }
@@ -74,11 +79,17 @@ describe('TradeService Race Conditions', () => {
             unrealizedPnl: new Decimal(100),
             leverage: new Decimal(10),
             marginMode: 'cross',
+            // Fresh timestamp: ensurePositionFreshness refreshes anything older
+            // than 200ms and aborts the whole operation if that refresh fails
+            // ("do NOT trust stale data for critical ops"). Without this the
+            // rejected fetch below was consumed by the freshness check, so the
+            // optimistic order under test was never created.
+            lastUpdated: Date.now(),
         };
-        (omsService.getPositions as any).mockReturnValue([position]);
+        vi.mocked(omsService.getPositions).mockReturnValue([position]);
 
         // Mock Fetch Failure (Network Error)
-        (global.fetch as any).mockRejectedValue(new Error('Network Error'));
+        vi.mocked(global.fetch).mockRejectedValue(new Error('Network Error'));
 
         // Spy on optimistic add
         const addOptimisticSpy = vi.spyOn(omsService, 'addOptimisticOrder');
@@ -108,13 +119,24 @@ describe('TradeService Race Conditions', () => {
             unrealizedPnl: new Decimal(100),
             leverage: new Decimal(10),
             marginMode: 'cross',
+            // Fresh timestamp: ensurePositionFreshness refreshes anything older
+            // than 200ms and aborts the whole operation if that refresh fails
+            // ("do NOT trust stale data for critical ops"). Without this the
+            // rejected fetch below was consumed by the freshness check, so the
+            // optimistic order under test was never created.
+            lastUpdated: Date.now(),
         };
-        (omsService.getPositions as any).mockReturnValue([position]);
+        vi.mocked(omsService.getPositions).mockReturnValue([position]);
 
         // Mock Fetch Success but API Error Response (400)
         // Ensure text() is mocked as TradeService uses it
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: false,
+            // A real Response always carries status, and the code classifies an
+            // error as definitive (safe to remove the optimistic order) by
+            // checking status 400/401/403. Without it the failure looked
+            // indeterminate, so the order was deliberately kept.
+            status: 400,
             text: async () => JSON.stringify({ code: '400', msg: 'Bad Request' }),
             json: async () => ({ code: '400', msg: 'Bad Request' }),
         });
@@ -139,11 +161,17 @@ describe('TradeService Race Conditions', () => {
             unrealizedPnl: new Decimal(100),
             leverage: new Decimal(10),
             marginMode: 'cross',
+            // Fresh timestamp: ensurePositionFreshness refreshes anything older
+            // than 200ms and aborts the whole operation if that refresh fails
+            // ("do NOT trust stale data for critical ops"). Without this the
+            // rejected fetch below was consumed by the freshness check, so the
+            // optimistic order under test was never created.
+            lastUpdated: Date.now(),
         };
-        (omsService.getPositions as any).mockReturnValue([position]);
+        vi.mocked(omsService.getPositions).mockReturnValue([position]);
 
         // Mock Rate Limit
-        (global.fetch as any).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
             ok: false,
             status: 429,
             text: async () => "Too Many Requests",

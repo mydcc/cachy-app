@@ -16,7 +16,6 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
   generateBitunixSignature,
@@ -34,6 +33,20 @@ import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 
+interface ExchangeAccountData {
+  available?: string;
+  margin?: string;
+  totalUnrealizedPnL?: string;
+  marginCoin?: string;
+  frozen?: string;
+  transfer?: string;
+  bonus?: string;
+  positionMode?: string;
+  crossUnrealizedPNL?: string;
+  isolationUnrealizedPNL?: string;
+  equity?: string;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
@@ -42,7 +55,7 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const text = await request.text();
     body = safeJsonParse(text);
-  } catch (e) {
+  } catch {
     return jsonError("Invalid JSON body", "INVALID_JSON", 400);
   }
 
@@ -98,7 +111,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixAccount(
   apiKey: string,
   apiSecret: string,
-): Promise<any> {
+): Promise<ExchangeAccountData> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
 
@@ -169,7 +182,7 @@ async function fetchBitgetAccount(
     apiKey: string,
     apiSecret: string,
     passphrase: string
-): Promise<any> {
+): Promise<ExchangeAccountData> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/account/account";
     const params = { productType: "umcbl", marginCoin: "USDT" };

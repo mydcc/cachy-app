@@ -20,7 +20,8 @@
   Channel Window Implementation (Space/Market Channels)
 */
 
-import { WindowBase } from "../WindowBase.svelte";
+import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
+import type { WindowOptions } from "../types";
 import IframeView from "./IframeView.svelte";
 
 /**
@@ -35,7 +36,7 @@ export class ChannelWindow extends WindowBase {
     /** The target URL for the iframe content. */
     url: string;
 
-    constructor(url: string, title = "Galaxy Chat", id?: string, options: any = {}) {
+    constructor(url: string, title = "Galaxy Chat", id?: string, options: WindowOptions = {}) {
         super({
             ...options,
             title,
@@ -65,7 +66,7 @@ export class ChannelWindow extends WindowBase {
             if (event.origin !== expectedOrigin) {
                 return;
             }
-        } catch (e) {
+        } catch {
             // Invalid URL or local file, fail safe
             return;
         }
@@ -102,7 +103,7 @@ export class ChannelWindow extends WindowBase {
         };
     }
 
-    public serialize(): any {
+    public serialize(): WindowSerializedState & { url: string } {
         return {
             ...super.serialize(),
             url: this.url

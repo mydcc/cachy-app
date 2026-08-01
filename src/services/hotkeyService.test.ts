@@ -17,17 +17,15 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
-import { settingsState } from "../stores/settings.svelte";
+import { settingsState, type Settings } from "../stores/settings.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
-import { get } from "svelte/store";
-import { CONSTANTS } from "../lib/constants";
 
 // Mock dependencies
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
     hotkeyMode: "mode1",
-    update: vi.fn((fn: any) => Object.assign(settingsState, fn(settingsState))),
+    update: vi.fn((fn: (s: Settings) => Partial<Settings>) => Object.assign(settingsState, fn(settingsState as Settings))),
   },
 }));
 
@@ -63,7 +61,7 @@ const mockElement = {
 };
 
 global.document.getElementById = vi.fn().mockReturnValue(mockElement);
-// @ts-ignore - activeElement is readonly in TS lib but writable in JSDOM/Tests usually
+// @ts-expect-error - activeElement is readonly in TS lib but writable in JSDOM/Tests usually
 Object.defineProperty(global.document, "activeElement", {
   value: document.body,
   writable: true,
@@ -126,7 +124,6 @@ describe("HotkeyService", () => {
       maxPrivateNotes: 50,
       aiConfirmClear: true,
       chatFontSize: 13,
-      minChatProfitFactor: 0.0,
       panelIsExpanded: false,
       isDeepDiveUnlocked: false,
       fontFamily: "Inter", // Added missing prop
@@ -202,7 +199,7 @@ describe("HotkeyService", () => {
   it("should ignore hotkeys when input is focused", () => {
     // Mock input being focused
     const inputElement = { ...mockElement, tagName: "INPUT" };
-    // @ts-ignore
+    // @ts-expect-error -- document.activeElement is readonly; assigned directly to simulate focus
     global.document.activeElement = inputElement;
 
     const event = new KeyboardEvent("keydown", { key: "t" });
@@ -215,7 +212,7 @@ describe("HotkeyService", () => {
 
   it("should handle Direct Mode (Mode 1) hotkeys", () => {
     settingsState.hotkeyMode = "mode1";
-    // @ts-ignore
+    // @ts-expect-error -- document.activeElement is readonly; assigned directly to simulate focus
     global.document.activeElement = document.body;
 
     const event = new KeyboardEvent("keydown", { key: "e" });
@@ -230,7 +227,7 @@ describe("HotkeyService", () => {
 
   it("should handle Safety Mode (Mode 2) hotkeys", () => {
     settingsState.hotkeyMode = "mode2";
-    // @ts-ignore
+    // @ts-expect-error -- document.activeElement is readonly; assigned directly to simulate focus
     global.document.activeElement = document.body;
 
     // Press 'E' without Alt -> Should do nothing

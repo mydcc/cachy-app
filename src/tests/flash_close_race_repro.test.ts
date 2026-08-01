@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { Decimal } from 'decimal.js';
 
 // Mock Dependencies BEFORE import
@@ -39,8 +39,11 @@ vi.mock('../stores/settings.svelte', () => ({
 }));
 
 vi.mock('../services/logger', () => ({
+    // Mirrors the real logger interface exactly. `debug` was missing, so the code
+    // under test threw "logger.debug is not a function" mid-flow.
     logger: {
         log: vi.fn(),
+        debug: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
     }
@@ -51,7 +54,9 @@ import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
 
 describe('Flash Close Race Condition Reproduction', () => {
-    let signedRequestSpy: any;
+    let signedRequestSpy: MockInstance<
+        (method: string, endpoint: string, payload: Record<string, unknown>) => Promise<unknown>
+    >;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -68,11 +73,15 @@ describe('Flash Close Race Condition Reproduction', () => {
                 unrealizedPnl: new Decimal('0'),
                 marginMode: 'cross',
                 markPrice: new Decimal('50000'),
+                // ensurePositionFreshness refreshes anything older than 200ms and
+                // aborts the operation if that refresh fails, so an undated
+                // fixture never reaches the close call under test.
+                lastUpdated: Date.now(),
             }
         ]);
 
         // Mock signedRequest to control success/failure
-        signedRequestSpy = vi.spyOn(tradeService as any, 'signedRequest');
+        signedRequestSpy = vi.spyOn(tradeService, 'signedRequest');
     });
 
     afterEach(() => {
@@ -84,7 +93,7 @@ describe('Flash Close Race Condition Reproduction', () => {
         // 1. cancel-all request FAILS (e.g. timeout or error)
         // 2. We verify that the close order IS EXECUTED (Priority: Close Position)
 
-        signedRequestSpy.mockImplementation(async (method: string, endpoint: string, body: any) => {
+        signedRequestSpy.mockImplementation(async (method: string, endpoint: string, body: Record<string, unknown>) => {
             // Simulate Cancel All Failure
             if (endpoint === '/api/orders' && method === 'DELETE') {
                  throw new Error('Cancel All Failed (Simulated)');
@@ -112,7 +121,7 @@ describe('Flash Close Race Condition Reproduction', () => {
         // We can check if any call threw? No, we mocked it to throw.
 
         // Verify Close WAS called
-        const closeCall = calls.find((call: any) => call[1] === '/api/orders' && call[2] && call[2].side === 'SELL');
+        const closeCall = calls.find((call) => call[1] === '/api/orders' && call[2] && call[2].side === 'SELL');
         expect(closeCall).toBeDefined();
     });
 });

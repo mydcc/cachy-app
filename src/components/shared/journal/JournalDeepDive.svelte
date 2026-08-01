@@ -22,6 +22,7 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import type { TranslationKey } from "../../../locales/schema";
     import { formatDynamicDecimal } from "../../../utils/utils";
     import { hexToRgba } from "../../../utils/colors";
     import { journalState } from "../../../stores/journal.svelte";
@@ -35,8 +36,16 @@
     import RadarChart from "../charts/RadarChart.svelte";
     import CalendarHeatmap from "../charts/CalendarHeatmap.svelte";
 
+    interface ThemeColors {
+        success: string;
+        danger: string;
+        warning: string;
+        accent: string;
+        textSecondary: string;
+    }
+
     interface Props {
-        themeColors: any;
+        themeColors: ThemeColors;
         onfilterDateChange?: (data: { date: string }) => void;
     }
 
@@ -45,6 +54,8 @@
     // Local State
     let activeDeepDivePreset = $state("performance");
     let selectedYear = $state(new Date().getFullYear());
+
+    const hoursOfDay = Array.from({ length: 24 }, (_, i) => i);
 
     const dayMap: Record<string, string> = {
         Mon: "mon",
@@ -216,18 +227,6 @@
         ],
     });
     // Asset Bubble
-    let dirData = $derived(
-        journal
-            ? calculator.getDirectionData(journal)
-            : {
-                  longPnl: 0,
-                  shortPnl: 0,
-                  topSymbols: { labels: [], data: [] },
-                  bottomSymbols: { labels: [], data: [] },
-                  longCurve: [],
-                  shortCurve: [],
-              },
-    );
     let assetData = $derived(journalState.assetMetrics || {});
     let assetBubbleData = $derived({
         datasets: [
@@ -348,7 +347,7 @@
     let tagEvolutionChartData = $derived({
         datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
             label: ds.label,
-            data: (ds.data || []).map((d: any) => ({
+            data: (ds.data || []).map((d) => ({
                 x: new Date(d.x).toLocaleDateString(),
                 y: d.y,
             })),
@@ -753,9 +752,9 @@
                     class="grid grid-cols-[auto_repeat(24,1fr)] gap-1 text-[10px] overflow-x-auto pb-2"
                 >
                     <div class="h-6"></div>
-                    {#each Array(24) as _, i}
+                    {#each hoursOfDay as hour}
                         <div class="text-center text-[var(--text-secondary)]">
-                            {i}
+                            {hour}
                         </div>
                     {/each}
                     {#each confluenceData as row}
@@ -764,7 +763,7 @@
                         >
                             {$_(
                                 ("journal.days." +
-                                    (dayMap[row.day] || "mon")) as any,
+                                    (dayMap[row.day] || "mon")) as TranslationKey,
                             )}
                         </div>
                         {#each row.hours as cell}
@@ -803,7 +802,7 @@
                                             {$_(
                                                 ("journal.days." +
                                                     (dayMap[row.day] ||
-                                                        "mon")) as any,
+                                                        "mon")) as TranslationKey,
                                             )}
                                             {cell.hour}:00
                                         </div>

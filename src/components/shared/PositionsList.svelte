@@ -41,7 +41,7 @@
   }: Props = $props();
 
 
-  function handleMouseEnter(event: MouseEvent, pos: any) {
+  function handleMouseEnter(event: MouseEvent, pos: OMSPosition) {
     const coords = getTooltipPosition(event);
     uiState.showTooltip("position", pos, coords.x, coords.y);
   }

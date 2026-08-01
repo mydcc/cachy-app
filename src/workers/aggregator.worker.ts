@@ -9,7 +9,7 @@
 
 import { getJournalAnalysis } from "../lib/calculators/aggregator";
 
-const ctx: Worker = self as any;
+const ctx = self;
 
 ctx.onmessage = (e: MessageEvent) => {
   const { journal, id } = e.data;
@@ -23,11 +23,12 @@ ctx.onmessage = (e: MessageEvent) => {
     const start = performance.now();
     const analysis = getJournalAnalysis(journal);
     const duration = performance.now() - start;
+    void duration;
 
     // console.log(`[AggregatorWorker] Analysis took ${duration.toFixed(2)}ms for ${journal.length} trades`);
 
     ctx.postMessage({ result: analysis, id });
-  } catch (error: any) {
-    ctx.postMessage({ error: error.message || "Unknown error in aggregator", id });
+  } catch (error) {
+    ctx.postMessage({ error: error instanceof Error ? error.message : "Unknown error in aggregator", id });
   }
 };

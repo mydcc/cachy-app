@@ -25,6 +25,8 @@
   import { tradeService } from "../../services/tradeService";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import type { OMSPosition } from "../../services/omsTypes";
+  import type { NormalizedOrder } from "../../types/bitunix";
+  import type { TranslationKey } from "../../locales/schema";
 
   // Sub-components
   import PositionsList from "./PositionsList.svelte";
@@ -33,21 +35,28 @@
   import OrderHistoryList from "./OrderHistoryList.svelte";
   import TpSlList from "./TpSlList.svelte";
 
-  interface Props {
-    isMobile?: boolean;
-  }
-
-  let { isMobile = false }: Props = $props();
-
   let isOpen = $state(true);
 
   // Data State
   // Using store subscription for positions to react to WebSocket updates
   // For orders/history, we still fetch, but accountStore also has openOrders
 
-  let openOrders: any[] = $state([]);
-  let historyOrders: any[] = $state([]);
-  let accountInfo: any = $state({
+  interface AccountInfo {
+    available: number | string;
+    margin: number | string;
+    totalUnrealizedPnL: number | string;
+    marginCoin: string;
+    frozen: number | string;
+    transfer: number | string;
+    bonus: number | string;
+    positionMode: string;
+    crossUnrealizedPNL: number | string;
+    isolationUnrealizedPNL: number | string;
+  }
+
+  let openOrders: NormalizedOrder[] = $state([]);
+  let historyOrders: NormalizedOrder[] = $state([]);
+  let accountInfo: AccountInfo = $state({
     available: 0,
     margin: 0,
     totalUnrealizedPnL: 0,
@@ -64,7 +73,6 @@
   let loadingPositions = $state(false);
   let loadingOrders = $state(false);
   let loadingHistory = $state(false);
-  let loadingAccount = false;
 
   // Error State
   let errorPositions = $state("");
@@ -80,10 +88,11 @@
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
 
-  function translateError(data: any): string {
+  function translateError(data: { code?: string | number; error?: string }): string {
     if (data.code && typeof $_ === "function") {
       const key = `bitunixErrors.${data.code}`;
-      const translation = $_(key as any);
+      // Runtime-checked dynamic key — see syncService.ts's identical pattern.
+      const translation = $_(key as TranslationKey);
       // Basic check if translation exists (usually if it returns same key, it's missing)
       if (translation && translation !== key) return translation;
     }
@@ -137,7 +146,7 @@
           accountState.positions = data.positions;
         }
       }
-    } catch (e) {
+    } catch {
       errorPositions = $_("apiErrors.failedToLoadPositions");
     } finally {
       loadingPositions = false;
@@ -177,7 +186,7 @@
         if (type === "pending") openOrders = data.orders || [];
         else historyOrders = data.orders || [];
       }
-    } catch (e) {
+    } catch {
       const msg = $_("apiErrors.failedToLoadOrders");
       if (type === "pending") errorOrders = msg;
       else errorHistory = msg;
@@ -192,7 +201,6 @@
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
-    loadingAccount = true;
     try {
       const response = await fetch("/api/account", {
         method: "POST",
@@ -211,19 +219,6 @@
       if (import.meta.env.DEV) {
         console.error(e);
       }
-    } finally {
-      loadingAccount = false;
-    }
-  }
-
-  function refreshAll() {
-    const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
-    if (keys?.key && keys?.secret) {
-      fetchAccount();
-      fetchPositions();
-      if (activeTab === "orders") fetchOrders("pending");
-      if (activeTab === "history") fetchOrders("history");
     }
   }
 
@@ -267,7 +262,7 @@
   // Filter History
   let filteredHistoryOrders = $derived(
     settingsState.hideUnfilledOrders
-      ? historyOrders.filter((o) => Number(o.filled || o.dealAmount || 0) > 0)
+      ? historyOrders.filter((o) => Number(o.filled || 0) > 0)
       : historyOrders,
   );
 
@@ -305,9 +300,9 @@
     try {
       const res = (await tradeService.closePosition({
         symbol: pos.symbol,
-        positionSide: String(pos.side).toLowerCase() as any,
+        positionSide: pos.side,
         amount: pos.amount, // Use amount from OMSPosition
-      })) as any;
+      })) as { error?: string } | undefined;
 
       if (res && res.error) {
         uiState.showError(
@@ -322,14 +317,14 @@
         );
         // Trigger refresh or wait for WS
       }
-    } catch (e) {
+    } catch {
       uiState.showError($_("dashboard.alerts.failedClose"));
     }
   }
 
   async function handleCancelOrder(orderId: string, symbol: string) {
     try {
-        const res = (await tradeService.cancelOrder(symbol, orderId)) as any;
+        const res = (await tradeService.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
         if (res && res.error) {
             uiState.showError($_("dashboard.alerts.cancelOrderError", { values: { error: res.error } }) || `Cancel failed: ${res.error}`);
         } else {

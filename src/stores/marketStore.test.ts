@@ -16,7 +16,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { get } from "svelte/store";
 
 // Mock browser environment before importing the store
 vi.mock("$app/environment", () => ({

@@ -1,7 +1,7 @@
 
 import { calculateIndicatorsFromArrays } from '../../src/utils/technicalsCalculator';
 import { JSIndicators } from '../../src/utils/indicators';
-import { BufferPool } from '../../src/utils/bufferPool';
+import type { IndicatorSettings } from '../../src/types/indicators';
 
 // Setup data
 const LENGTH = 5000;
@@ -26,11 +26,7 @@ for (let i = 0; i < LENGTH; i++) {
 
 const settings = {
     stochRsi: { length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3 },
-};
-
-const enabledIndicators = {
-    stochrsi: true,
-};
+} as unknown as IndicatorSettings;
 
 function runBench(name: string, fn: () => void, iterations = 200) {
     // Warmup
@@ -50,30 +46,19 @@ runBench('JSIndicators.stochRsi (Standalone)', () => {
     JSIndicators.stochRsi(closes, 14, 3, 3, 1);
 }, 200);
 
-runBench('calculateIndicatorsFromArrays (StochRSI - No Pool)', () => {
+// calculateIndicatorsFromArrays's real signature is
+// (highs, lows, closes, opens, volumes, times, settings?) — it uses an
+// internal buffer pool singleton and always calculates every configured
+// indicator (no separate enabled-indicators or external-pool params), so
+// there's only one call shape to benchmark here.
+runBench('calculateIndicatorsFromArrays (StochRSI)', () => {
     calculateIndicatorsFromArrays(
-        times,
-        opens,
         highs,
         lows,
         closes,
-        volumes,
-        settings as any,
-        enabledIndicators
-    );
-}, 200);
-
-const pool = new BufferPool();
-runBench('calculateIndicatorsFromArrays (StochRSI - With Pool)', () => {
-    calculateIndicatorsFromArrays(
-        times,
         opens,
-        highs,
-        lows,
-        closes,
         volumes,
-        settings as any,
-        enabledIndicators,
-        pool
+        times,
+        settings
     );
 }, 200);

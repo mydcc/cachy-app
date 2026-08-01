@@ -22,6 +22,15 @@
  * Detects SIMD, WebAssembly, WebGPU support
  */
 
+// Non-standard Navigator extensions not covered by the DOM lib.
+interface NavigatorWithBattery extends Navigator {
+  getBattery(): Promise<{ charging: boolean; level: number }>;
+}
+
+interface NavigatorWithDeviceMemory extends Navigator {
+  deviceMemory?: number;
+}
+
 /**
  * Browser capabilities for performance optimization
  */
@@ -84,7 +93,7 @@ export async function detectWasmSIMD(): Promise<boolean> {
     }
     
     return hasSIMD;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -111,7 +120,7 @@ export async function detectWasmThreads(): Promise<boolean> {
     ]);
     
     return await WebAssembly.validate(threadsModule);
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -125,7 +134,7 @@ export async function detectWebGPU(): Promise<{ available: boolean; features?: s
   }
   
   try {
-    const adapter = await (navigator as any).gpu.requestAdapter();
+    const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       return { available: false };
     }
@@ -138,7 +147,7 @@ export async function detectWebGPU(): Promise<{ available: boolean; features?: s
     }
     
     return { available: true, features };
-  } catch (e) {
+  } catch {
     return { available: false };
   }
 }
@@ -152,12 +161,12 @@ export async function detectBattery(): Promise<{ charging: boolean; level: numbe
   }
   
   try {
-    const battery = await (navigator as any).getBattery();
+    const battery = await (navigator as NavigatorWithBattery).getBattery();
     return {
       charging: battery.charging,
       level: battery.level
     };
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }
@@ -171,7 +180,7 @@ export function detectDeviceMemory(): number | undefined {
   }
   
   // Chrome-specific API
-  return (navigator as any).deviceMemory;
+  return (navigator as NavigatorWithDeviceMemory).deviceMemory;
 }
 
 /**

@@ -65,7 +65,7 @@ function cleanupStaleCache() {
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
   private pendingResolves: Map<string, (value: { data: TechnicalsData; buffers?: KlineBuffers }) => void> = new Map();
-  private pendingRejects: Map<string, (reason?: any) => void> = new Map();
+  private pendingRejects: Map<string, (reason?: unknown) => void> = new Map();
   private consecutiveFailures = 0;
   private isDisabled = false;
 
@@ -131,7 +131,7 @@ class TechnicalsWorkerManager {
     this.pendingRejects.clear();
   }
 
-  public async postMessage(message: any, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
+  public async postMessage(message: { type: string; payload: Record<string, unknown> }, transfer: Transferable[] = []): Promise<{ data: TechnicalsData; buffers?: KlineBuffers }> {
     const w = this.getWorker();
     if (!w) throw new Error("workerErrors.notAvailable");
     
@@ -159,12 +159,11 @@ class TechnicalsWorkerManager {
 const workerManager = new TechnicalsWorkerManager();
 
 const settingsCache = new WeakMap<object, string>();
-const indicatorsCache = new WeakMap<object, string>();
 
-function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: any): string {
+function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: IndicatorSettings): string {
   let sPart = settings?._cachedJson;
   if (!sPart) {
-    sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : null;
+    sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : undefined;
     if (!sPart) {
       sPart = JSON.stringify(settings);
       if (settings && typeof settings === 'object') settingsCache.set(settings, sPart);
@@ -205,7 +204,7 @@ async function notifyCapabilityStatus() {
 }
 
 export const technicalsService = {
-  async calculateTechnicals(klinesInput: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
+  async calculateTechnicals(klinesInput: Kline[], settings?: IndicatorSettings): Promise<TechnicalsData> {
     const finalSettings = settings || indicatorState.toJSON();
     let klines = klinesInput;
     const limit = Math.max(finalSettings.historyLimit || 750, 1);
@@ -264,7 +263,7 @@ export const technicalsService = {
     }
   },
 
-  async calculateWithWorker(klines: any[], settings: IndicatorSettings): Promise<TechnicalsData> {
+  async calculateWithWorker(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
     const len = klines.length;
     const times = new Float64Array(len);
     const opens = new Float64Array(len);
@@ -291,7 +290,7 @@ export const technicalsService = {
     return result;
   },
 
-  async initializeTechnicals(symbol: string, timeframe: string, klines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
+  async initializeTechnicals(symbol: string, timeframe: string, klines: Kline[], settings?: IndicatorSettings): Promise<TechnicalsData> {
     notifyCapabilityStatus();
     if (!workerManager.isHealthy()) {
         return this.calculateTechnicalsInline(klines, settings);
@@ -325,37 +324,36 @@ export const technicalsService = {
             }
         }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
         return result;
-    } catch (e) {
+    } catch {
         return this.calculateTechnicalsInline(klines, settings);
     }
   },
 
-  async updateTechnicals(symbol: string, timeframe: string, kline: any, settings?: any): Promise<TechnicalsData> {
+  async updateTechnicals(symbol: string, timeframe: string, kline: Kline, settings?: IndicatorSettings): Promise<TechnicalsData> {
     if (!workerManager.isHealthy()) {
         // Cannot update incrementally without worker. Throw to force re-init/fallback in manager.
         throw new Error("Worker unavailable for update"); 
     }
 
-    try {
-        const { data: result } = await workerManager.postMessage({
-            type: "UPDATE",
-            payload: {
-                symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
-                kline: {
-                    time: kline.time,
-                    open: toNumFast(kline.open),
-                    high: toNumFast(kline.high),
-                    low: toNumFast(kline.low),
-                    close: toNumFast(kline.close),
-                    volume: toNumFast(kline.volume || 0)
-                },
-                settings
-            }
-        });
-        return result;
-    } catch (e) {
-        throw e; // Propagate error to manager to trigger re-init
-    }
+    // Errors propagate to the manager unhandled, which triggers re-init.
+    // This deliberately has no try/catch: a bare `catch (e) { throw e; }`
+    // wrapper behaves identically but hides that intent.
+    const { data: result } = await workerManager.postMessage({
+        type: "UPDATE",
+        payload: {
+            symbol, timeframe, cacheKey: `${symbol}:${timeframe}`,
+            kline: {
+                time: kline.time,
+                open: toNumFast(kline.open),
+                high: toNumFast(kline.high),
+                low: toNumFast(kline.low),
+                close: toNumFast(kline.close),
+                volume: toNumFast(kline.volume || 0)
+            },
+            settings
+        }
+    });
+    return result;
   },
 
   // Cleanup: Remove worker state to prevent leaks
@@ -372,7 +370,7 @@ export const technicalsService = {
       }
   },
 
-  calculateTechnicalsInline(klines: any[], settings?: IndicatorSettings): TechnicalsData {
+  calculateTechnicalsInline(klines: Kline[], settings?: IndicatorSettings): TechnicalsData {
     const finalSettings = settings || indicatorState.toJSON();
     const klinesDec = klines.map((k) => ({
       time: k.time, open: new Decimal(k.open), high: new Decimal(k.high), low: new Decimal(k.low), close: new Decimal(k.close), volume: new Decimal(k.volume || 0),

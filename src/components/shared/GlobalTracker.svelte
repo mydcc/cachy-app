@@ -18,8 +18,11 @@
 <script lang="ts">
   import { trackInteraction } from "../../services/trackingService";
 
-  function handleGlobalClick(event: MouseEvent) {
-    if ((event as any).__tracking_handled) return;
+  function handleGlobalClick(rawEvent: MouseEvent) {
+    // Marks the event so a bubbled duplicate isn't tracked twice; not part
+    // of the real MouseEvent shape.
+    const event = rawEvent as MouseEvent & { __tracking_handled?: boolean };
+    if (event.__tracking_handled) return;
 
     let target = event.target as HTMLElement | null;
     let depth = 0;
@@ -41,13 +44,13 @@
         if (contextStr) {
           try {
             context = JSON.parse(contextStr);
-          } catch (e) {
+          } catch {
             // Silently fail on invalid JSON to prevent console spam
           }
         }
 
         trackInteraction(id, "click", context);
-        (event as any).__tracking_handled = true;
+        event.__tracking_handled = true;
         return;
       }
 
@@ -81,7 +84,7 @@
           auto: true,
           path: getDomPath(target),
         });
-        (event as any).__tracking_handled = true;
+        event.__tracking_handled = true;
         return;
       }
 

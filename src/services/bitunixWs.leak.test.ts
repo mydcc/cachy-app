@@ -27,14 +27,29 @@ class MockWebSocket {
     removeEventListener = vi.fn();
 }
 
-global.WebSocket = MockWebSocket as any;
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+
+/**
+ * These tests assert on the service's internal bookkeeping — the point of a leak
+ * test is that the maps empty out. Naming the members once beats casting the
+ * singleton through `any` at each of the fifteen places they are touched.
+ */
+type WsInternals = {
+  syntheticSubs: Map<string, number>;
+  pendingSubscriptions: Set<string>;
+  wsPublic: WebSocket | null;
+  cleanup: (which: "public" | "private") => void;
+  destroy: () => void;
+};
+
+const internals = bitunixWs as unknown as WsInternals;
 
 describe('BitunixWebSocketService Leak', () => {
     beforeEach(() => {
         // Reset state
-        (bitunixWs as any).syntheticSubs.clear();
-        (bitunixWs as any).pendingSubscriptions.clear();
-        (bitunixWs as any).wsPublic = new MockWebSocket();
+        internals.syntheticSubs.clear();
+        internals.pendingSubscriptions.clear();
+        internals.wsPublic = new MockWebSocket();
         vi.clearAllMocks();
     });
 
@@ -53,7 +68,7 @@ describe('BitunixWebSocketService Leak', () => {
         const channel = 'kline_2h';
         bitunixWs.subscribe(symbol, channel);
 
-        const syntheticSubs = (bitunixWs as any).syntheticSubs;
+        const syntheticSubs = internals.syntheticSubs;
         expect(syntheticSubs.size).toBe(1);
 
         bitunixWs.unsubscribe(symbol, channel);
@@ -66,15 +81,15 @@ describe('BitunixWebSocketService Leak', () => {
 
         bitunixWs.subscribe(symbol, channel);
 
-        expect((bitunixWs as any).syntheticSubs.size).toBe(1);
-        expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
+        expect(internals.syntheticSubs.size).toBe(1);
+        expect(internals.pendingSubscriptions.size).toBe(1);
 
         // Transient cleanups (heartbeat failure, watchdog timeout, close, etc.)
         // MUST NOT drop the reconnection buffer.
-        (bitunixWs as any).cleanup("public");
+        internals.cleanup("public");
 
-        expect((bitunixWs as any).syntheticSubs.size).toBe(1);
-        expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
+        expect(internals.syntheticSubs.size).toBe(1);
+        expect(internals.pendingSubscriptions.size).toBe(1);
     });
 
     it('should clear all pending and synthetic subscriptions on destroy()', () => {
@@ -83,12 +98,12 @@ describe('BitunixWebSocketService Leak', () => {
 
         bitunixWs.subscribe(symbol, channel);
 
-        expect((bitunixWs as any).syntheticSubs.size).toBe(1);
-        expect((bitunixWs as any).pendingSubscriptions.size).toBe(1);
+        expect(internals.syntheticSubs.size).toBe(1);
+        expect(internals.pendingSubscriptions.size).toBe(1);
 
-        (bitunixWs as any).destroy();
+        internals.destroy();
 
-        expect((bitunixWs as any).syntheticSubs.size).toBe(0);
-        expect((bitunixWs as any).pendingSubscriptions.size).toBe(0);
+        expect(internals.syntheticSubs.size).toBe(0);
+        expect(internals.pendingSubscriptions.size).toBe(0);
     });
 });

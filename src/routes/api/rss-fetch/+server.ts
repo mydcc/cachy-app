@@ -31,7 +31,7 @@ const parser = new Parser({
 
 // Advanced Cache and Persistent Store for Tweets
 interface CachedFeed {
-  data: any;
+  data: unknown;
   timestamp: number;
 }
 
@@ -121,7 +121,7 @@ export const POST: RequestHandler = async ({ request }) => {
           throw new Error("Bot-Block");
         }
         return text;
-      } catch (e: any) {
+      } catch (e) {
         clearTimeout(id);
         throw e;
       }
@@ -137,7 +137,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const xml = await tryFetch(url, 8000);
       const parsed = await parser.parseString(xml);
       const result = {
-        items: (parsed.items || []).map((item: any) => ({
+        items: (parsed.items || []).map((item) => ({
           title: item.title || "Untitled",
           url: item.link || url,
           source: parsed.title || new URL(url).hostname,
@@ -159,8 +159,9 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Missing parameters" }, { status: 400 });
     }
 
-  } catch (error: any) {
-    console.error(`[RSS-FETCH] Error: ${error.message}`);
-    return json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[RSS-FETCH] Error: ${message}`);
+    return json({ error: message }, { status: 500 });
   }
 };

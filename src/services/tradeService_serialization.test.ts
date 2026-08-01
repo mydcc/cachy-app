@@ -16,9 +16,8 @@
  */
 
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 import { tradeService } from "./tradeService";
-import { settingsState } from "../stores/settings.svelte";
 import { Decimal } from "decimal.js";
 
 // Mock settingsState
@@ -49,7 +48,7 @@ vi.mock("../stores/trade.svelte", () => ({
 }));
 
 describe("TradeService - Serialization Hardening", () => {
-    let fetchSpy: any;
+    let fetchSpy: MockInstance<typeof fetch>;
 
     beforeEach(() => {
         fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
@@ -78,7 +77,7 @@ describe("TradeService - Serialization Hardening", () => {
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
         const call = fetchSpy.mock.calls[0];
-        const body = JSON.parse(call[1].body);
+        const body = JSON.parse(call[1]?.body as string);
 
         // Without serializePayload, this might be serialized as an object or number (losing precision)
         // With serializePayload, it must be a string.

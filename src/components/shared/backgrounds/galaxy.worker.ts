@@ -20,16 +20,60 @@ import { GalaxyEngine } from './engines/GalaxyEngine';
 import { StarDustEngine } from './engines/StarDustEngine';
 import type { EngineContext } from './engines/BaseEngine';
 
+// Settings shape as read by this worker. GalaxyEngine/StarDustEngine take
+// context.settings as `any` themselves (BaseEngine's own declared field type),
+// so the index signature covers whatever engine-specific tunables pass through
+// unread here.
+interface GalaxySettings {
+    camPos?: { x: number; y: number; z: number };
+    autoCenter?: boolean;
+    [key: string]: unknown;
+}
+
+interface InitMessageData {
+    canvas: OffscreenCanvas;
+    width: number;
+    height: number;
+    pixelRatio: number;
+    settings: GalaxySettings;
+}
+
+interface ResizeMessageData {
+    width: number;
+    height: number;
+    pixelRatio: number;
+}
+
+interface UpdateSettingsMessageData {
+    settings: GalaxySettings;
+}
+
+interface UpdateColorsMessageData {
+    inside: THREE.ColorRepresentation;
+    out1: THREE.ColorRepresentation;
+    out2: THREE.ColorRepresentation;
+    out3: THREE.ColorRepresentation;
+    blending: THREE.Blending;
+    cutoff: number;
+}
+
 let renderer: THREE.WebGLRenderer;
 let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let galaxyEngine: GalaxyEngine;
 let starDustEngine: StarDustEngine;
-let settings: any;
+let settings: GalaxySettings;
 let isInitialized = false;
 
 // Color state
-let colors = {
+let colors: {
+    inside: THREE.Color;
+    out1: THREE.Color;
+    out2: THREE.Color;
+    out3: THREE.Color;
+    blending: THREE.Blending;
+    cutoff: number;
+} = {
     inside: new THREE.Color(),
     out1: new THREE.Color(),
     out2: new THREE.Color(),
@@ -60,7 +104,7 @@ self.onmessage = (e: MessageEvent) => {
     }
 };
 
-function init(data: any) {
+function init(data: InitMessageData) {
     const { canvas, width, height, pixelRatio, settings: initSettings } = data;
     settings = initSettings;
 
@@ -104,13 +148,13 @@ function animate(time: number) {
     requestAnimationFrame(animate);
 
     const t = time * 0.001;
-    galaxyEngine?.update(t, 0.016);
-    starDustEngine?.update(t, 0.016);
+    galaxyEngine?.update(t);
+    starDustEngine?.update();
 
     renderer.render(scene, camera);
 }
 
-function resize(data: any) {
+function resize(data: ResizeMessageData) {
     const { width, height, pixelRatio } = data;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
@@ -118,7 +162,7 @@ function resize(data: any) {
     renderer.setPixelRatio(pixelRatio);
 }
 
-function updateSettings(data: any) {
+function updateSettings(data: UpdateSettingsMessageData) {
     settings = data.settings;
     if (galaxyEngine) galaxyEngine.updateSettings(settings);
     if (camera && settings.camPos) {
@@ -129,7 +173,7 @@ function updateSettings(data: any) {
     }
 }
 
-function updateColors(data: any) {
+function updateColors(data: UpdateColorsMessageData) {
     const { inside, out1, out2, out3, blending, cutoff } = data;
     colors.inside.set(inside);
     colors.out1.set(out1);

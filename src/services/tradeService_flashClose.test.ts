@@ -20,7 +20,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { tradeService } from './tradeService';
 import { omsService } from './omsService';
 import { Decimal } from 'decimal.js';
-import { marketState } from '../stores/market.svelte';
 
 // Mock dependencies
 vi.mock('./omsService', () => ({
@@ -43,7 +42,7 @@ vi.mock('../stores/settings.svelte', () => ({
   }
 }));
 
-vi.mock('../stores/market.svelte', async (importOriginal) => {
+vi.mock('../stores/market.svelte', async () => {
     const { Decimal } = await import('decimal.js');
     return {
         marketState: {
@@ -80,11 +79,11 @@ describe('TradeService Flash Close Reproduction', () => {
       lastUpdated: Date.now(),
     };
 
-    (omsService.getPositions as any).mockReturnValue([freshPos]);
+    vi.mocked(omsService.getPositions).mockReturnValue([freshPos]);
 
     // Mock fetch to simulate cancelAllOrders failure
     // The first call will be "cancel-all"
-    (global.fetch as any).mockImplementation(async (url: string, options: any) => {
+    vi.mocked(global.fetch).mockImplementation(async (url: string, options: { body: string }) => {
         const body = JSON.parse(options.body);
 
         if (body.type === 'cancel-all') {
@@ -115,10 +114,10 @@ describe('TradeService Flash Close Reproduction', () => {
     // We expect 2 calls (cancel-all, then place-order)
     expect(global.fetch).toHaveBeenCalledTimes(2);
 
-    const firstCallArgs = (global.fetch as any).mock.calls[0];
+    const firstCallArgs = vi.mocked(global.fetch).mock.calls[0];
     expect(JSON.parse(firstCallArgs[1].body).type).toBe('cancel-all');
 
-    const secondCallArgs = (global.fetch as any).mock.calls[1];
+    const secondCallArgs = vi.mocked(global.fetch).mock.calls[1];
     const secondBody = JSON.parse(secondCallArgs[1].body);
     // It is a POST /api/orders
     expect(secondCallArgs[0]).toBe('/api/orders');

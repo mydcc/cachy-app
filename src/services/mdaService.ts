@@ -29,6 +29,10 @@ export const mdaService = {
     /**
      * Normalizes ticker data into a standard flat object.
      */
+    // Bitunix/Bitget/generic raw payloads use entirely different field
+    // names and nesting for the same value (see the alias chains below) —
+    // duck-typed across all of them, same reasoning as mappers.ts.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     normalizeTicker(raw: any, provider: string): NormalizedTicker | null {
         const symbol = normalizeSymbol(raw.symbol || raw.s || "", provider);
 
@@ -90,6 +94,8 @@ export const mdaService = {
     /**
      * Normalizes a collection of klines.
      */
+    // Same reasoning as normalizeTicker above.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     normalizeKlines(raw: any[], provider: string): NormalizedKline[] {
         return raw.map(k => {
             if (provider === "bitunix") {

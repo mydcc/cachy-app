@@ -74,7 +74,7 @@ export class DBService {
         return this.openPromise;
     }
 
-    public async put(storeName: string, value: any, key?: string): Promise<void> {
+    public async put(storeName: string, value: unknown, key?: string): Promise<void> {
         const db = await this.getDB();
         return new Promise((resolve, reject) => {
             const tx = db.transaction(storeName, "readwrite");

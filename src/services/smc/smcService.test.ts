@@ -77,7 +77,6 @@ describe('SMCService', () => {
     it('should detect Fair Value Gaps', () => {
         const service = new SMCService(2);
         const candles: SMCCandle[] = [];
-        let time = 1000;
 
         // Bullish FVG Pattern:
         // 0: Huge Up

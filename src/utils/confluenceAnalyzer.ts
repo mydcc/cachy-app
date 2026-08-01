@@ -30,7 +30,6 @@
 import type {
   TechnicalsData,
   ConfluenceData,
-  DivergenceItem,
 } from "../services/technicalsTypes";
 
 export class ConfluenceAnalyzer {

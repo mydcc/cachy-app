@@ -25,18 +25,22 @@
     import { journalState } from "../../../stores/journal.svelte";
     import { calculator } from "../../../lib/calculator";
 
+    interface ThemeColors {
+        success: string;
+        danger: string;
+        warning: string;
+        accent: string;
+        textSecondary: string;
+    }
+
     interface Props {
         // Props - General
         activePreset?: string;
-        isPro?: boolean;
-        isDeepDiveUnlocked?: boolean;
-        themeColors?: any;
+        themeColors?: ThemeColors;
     }
 
     let {
         activePreset = "performance",
-        isPro = false,
-        isDeepDiveUnlocked = false,
         themeColors = {
             success: "#10b981",
             danger: "#ef4444",
@@ -51,13 +55,13 @@
     // Performance Data
     let perfData = $derived(journalState.performanceMetrics || {});
     let equityData = $derived({
-        labels: (perfData.equityCurve || []).map((d: any) =>
+        labels: (perfData.equityCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString(),
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.equityCurve"),
-                data: (perfData.equityCurve || []).map((d: any) => d.y),
+                data: (perfData.equityCurve || []).map((d) => d.y),
                 borderColor: themeColors.success,
                 backgroundColor: hexToRgba(themeColors.success, 0.1),
                 fill: true,
@@ -72,26 +76,11 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.drawdown"),
-                data: (perfData.drawdownSeries || []).map((d: any) => d.y),
+                data: (perfData.drawdownSeries || []).map((d) => d.y),
                 borderColor: themeColors.danger,
                 backgroundColor: hexToRgba(themeColors.danger, 0.2),
                 fill: true,
                 tension: 0.1,
-            },
-        ],
-    });
-    // Execution Data
-    let execData = $derived(journalState.executionMetrics || {});
-    let scatterData = $derived({
-        datasets: [
-            {
-                label: $_("journal.deepDive.charts.titles.mfeVsMae"),
-                data: execData.scatterPoints || [],
-                backgroundColor: (execData.scatterPoints || []).map((d: any) =>
-                    d.y >= 0
-                        ? hexToRgba(themeColors.success, 0.6)
-                        : themeColors.danger,
-                ),
             },
         ],
     });
@@ -287,13 +276,13 @@
         ],
     });
     let feeCurveData = $derived({
-        labels: (costData.feeCurve || []).map((d: any) =>
+        labels: (costData.feeCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString(),
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.cumulativeFees"),
-                data: (costData.feeCurve || []).map((d: any) => d.y),
+                data: (costData.feeCurve || []).map((d) => d.y),
                 borderColor: themeColors.warning,
                 fill: true,
                 backgroundColor: hexToRgba(themeColors.warning, 0.1),

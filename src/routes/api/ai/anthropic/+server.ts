@@ -92,8 +92,8 @@ export const POST: RequestHandler = async ({ request }) => {
         Connection: "keep-alive",
       },
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("Anthropic Proxy Error:", e);
-    return json({ error: e.message || "Internal Server Error" }, { status: 500 });
+    return json({ error: (e instanceof Error ? e.message : null) || "Internal Server Error" }, { status: 500 });
   }
 };

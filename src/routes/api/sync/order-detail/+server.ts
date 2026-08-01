@@ -20,6 +20,7 @@ import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
 import { checkAppAuth } from "../../../../lib/server/auth";
+import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1),
@@ -34,7 +35,7 @@ export const POST: RequestHandler = async ({ request }) => {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -51,13 +52,13 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const order = await fetchBitunixOrderDetail(apiKey, apiSecret, orderId);
     return json({ data: order });
-  } catch (e: any) {
+  } catch (e) {
     console.error(
       `Error fetching order detail from Bitunix for ${orderId}:`,
       e,
     );
     return json(
-      { error: e.message || "Failed to fetch order detail" },
+      { error: (e instanceof Error ? e.message : null) || "Failed to fetch order detail" },
       { status: 500 },
     );
   }
@@ -67,7 +68,7 @@ async function fetchBitunixOrderDetail(
   apiKey: string,
   apiSecret: string,
   orderId: string,
-): Promise<any> {
+): Promise<unknown> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_order_detail";
 
@@ -116,7 +117,7 @@ async function fetchBitunixOrderDetail(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

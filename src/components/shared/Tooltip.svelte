@@ -90,7 +90,7 @@
           [staticSide]: "-4px",
         });
       }
-    } catch (e) {
+    } catch {
       // console.warn("Tooltip position error", e);
     }
   }

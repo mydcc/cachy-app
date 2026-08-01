@@ -45,6 +45,6 @@ export interface NormalizedKline {
 
 export interface MarketDataAdapter {
     name: string;
-    normalizeTicker(raw: any): NormalizedTicker;
-    normalizeKline(raw: any): NormalizedKline;
+    normalizeTicker(raw: unknown): NormalizedTicker;
+    normalizeKline(raw: unknown): NormalizedKline;
 }

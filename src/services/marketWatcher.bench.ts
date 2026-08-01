@@ -18,13 +18,18 @@
 import { bench, describe } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { Decimal } from 'decimal.js';
+import type { Kline } from './technicalsTypes';
+
+interface MarketWatcherInternals {
+    fillGaps: (klines: Kline[], intervalMs: number) => Kline[];
+}
 
 describe('marketWatcher fillGaps', () => {
     // Generate data - Deterministic
     const intervalMs = 60000;
     const start = 1700000000000;
     const count = 10000;
-    const klines: any[] = [];
+    const klines: Kline[] = [];
     let currentTime = start;
 
     for (let i = 0; i < count; i++) {
@@ -47,6 +52,6 @@ describe('marketWatcher fillGaps', () => {
     }
 
     bench('fillGaps with fixed gaps', () => {
-        (marketWatcher as any).fillGaps(klines, intervalMs);
+        (marketWatcher as unknown as MarketWatcherInternals).fillGaps(klines, intervalMs);
     });
 });

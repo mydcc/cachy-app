@@ -45,6 +45,52 @@ export interface Asset {
   total: Decimal;
 }
 
+// Raw WS position/order/balance payload fields as read below. Written to
+// match Bitunix's field names (qty, positionId, orderStatus, dealAmount,
+// ctime) — Bitget's WS handler sends a differently-named payload through
+// the same functions; see docs/TODO.md item 3.
+export interface RawWsPosition {
+  positionId?: string | number;
+  symbol?: string;
+  event?: string;
+  qty?: string | number;
+  side?: string;
+  averagePrice?: string | number;
+  avgOpenPrice?: string | number;
+  leverage?: string | number;
+  unrealizedPNL?: string | number;
+  margin?: string | number;
+  marginMode?: string;
+}
+
+export interface RawWsOrder {
+  orderId?: string | number;
+  symbol?: string;
+  orderStatus?: string;
+  side?: string;
+  type?: string;
+  price?: string | number;
+  qty?: string | number;
+  dealAmount?: string | number;
+  ctime?: string | number;
+}
+
+interface RawWsBalance {
+  coin?: string;
+  available?: string | number;
+  margin?: string | number;
+  frozen?: string | number;
+}
+
+interface AccountSnapshot {
+  positions: Position[];
+  openOrders: OpenOrder[];
+  assets: Asset[];
+}
+
+const safeDecimal = (val: Decimal.Value | null | undefined, fallback: Decimal) =>
+  val !== undefined && val !== null ? new Decimal(val) : fallback;
+
 class AccountManager {
   positions = $state<Position[]>([]);
   openOrders = $state<OpenOrder[]>([]);
@@ -65,7 +111,7 @@ class AccountManager {
 
   // --- WS Actions ---
 
-  updatePositionFromWs(data: any) {
+  updatePositionFromWs(data: RawWsPosition) {
     const index = this.positions.findIndex(
       (p) => String(p.positionId) === String(data.positionId),
     );
@@ -104,15 +150,11 @@ class AccountManager {
         return;
       }
 
-      // Safe Decimal Helpers
-      const safeDecimal = (val: any, fallback: Decimal) =>
-        val !== undefined && val !== null ? new Decimal(val) : fallback;
-
       if (existing) {
         const newPos: Position = {
-          positionId: data.positionId,
-          symbol: data.symbol,
-          side: side,
+          positionId: String(data.positionId),
+          symbol: data.symbol ?? "",
+          side: side as "long" | "short",
           size: safeDecimal(data.qty, existing.size),
           entryPrice: safeDecimal(
             data.averagePrice || data.avgOpenPrice,
@@ -135,9 +177,9 @@ class AccountManager {
         this.positions[index] = newPos;
       } else {
         const newPos: Position = {
-          positionId: data.positionId,
-          symbol: data.symbol,
-          side: side,
+          positionId: String(data.positionId),
+          symbol: data.symbol ?? "",
+          side: side as "long" | "short",
           size: new Decimal(data.qty || 0),
           entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
           leverage: new Decimal(data.leverage || 0),
@@ -154,13 +196,13 @@ class AccountManager {
     }
   }
 
-  updateOrderFromWs(data: any) {
+  updateOrderFromWs(data: RawWsOrder) {
     const index = this.openOrders.findIndex(
       (o) => String(o.orderId) === String(data.orderId),
     );
 
     const isClosed = ["FILLED", "CANCELED", "PART_FILLED_CANCELED"].includes(
-      data.orderStatus,
+      data.orderStatus || "",
     );
 
     if (isClosed) {
@@ -170,15 +212,13 @@ class AccountManager {
     } else {
       // Update or Create
       const existing = index !== -1 ? this.openOrders[index] : null;
-      const safeDecimal = (val: any, fallback: Decimal) =>
-        val !== undefined && val !== null ? new Decimal(val) : fallback;
 
       if (existing) {
         const newOrder: OpenOrder = {
-          orderId: data.orderId,
-          symbol: data.symbol,
-          side: data.side ? data.side.toLowerCase() : existing.side,
-          type: data.type ? data.type.toLowerCase() : existing.type,
+          orderId: String(data.orderId),
+          symbol: data.symbol ?? "",
+          side: (data.side ? data.side.toLowerCase() : existing.side) as "buy" | "sell",
+          type: (data.type ? data.type.toLowerCase() : existing.type) as "limit" | "market",
           price: safeDecimal(data.price, existing.price),
           amount: safeDecimal(data.qty, existing.amount),
           filled: safeDecimal(data.dealAmount, existing.filled),
@@ -188,14 +228,14 @@ class AccountManager {
         this.openOrders[index] = newOrder;
       } else {
         const newOrder: OpenOrder = {
-          orderId: data.orderId,
-          symbol: data.symbol,
-          side: data.side ? data.side.toLowerCase() : "buy",
-          type: data.type ? data.type.toLowerCase() : "limit",
+          orderId: String(data.orderId),
+          symbol: data.symbol ?? "",
+          side: (data.side ? data.side.toLowerCase() : "buy") as "buy" | "sell",
+          type: (data.type ? data.type.toLowerCase() : "limit") as "limit" | "market",
           price: new Decimal(data.price || 0),
           amount: new Decimal(data.qty || 0),
           filled: new Decimal(data.dealAmount || 0),
-          status: data.orderStatus,
+          status: data.orderStatus || "",
           timestamp: parseTimestamp(data.ctime) || Date.now(),
         };
         this.openOrders.push(newOrder);
@@ -203,7 +243,7 @@ class AccountManager {
     }
   }
 
-  updateBalanceFromWs(data: any) {
+  updateBalanceFromWs(data: RawWsBalance) {
     if (data.coin === "USDT") {
       const idx = this.assets.findIndex((a) => a.currency === "USDT");
 
@@ -227,21 +267,21 @@ class AccountManager {
 
   // --- Batch Updates ---
 
-  updatePositionsBatch(dataList: any[]) {
+  updatePositionsBatch(dataList: RawWsPosition[]) {
     if (!Array.isArray(dataList) || dataList.length === 0) return;
     for (const data of dataList) {
       this.updatePositionFromWs(data);
     }
   }
 
-  updateOrdersBatch(dataList: any[]) {
+  updateOrdersBatch(dataList: RawWsOrder[]) {
     if (!Array.isArray(dataList) || dataList.length === 0) return;
     for (const data of dataList) {
       this.updateOrderFromWs(data);
     }
   }
 
-  updateBalanceBatch(dataList: any[]) {
+  updateBalanceBatch(dataList: RawWsBalance[]) {
     if (!Array.isArray(dataList) || dataList.length === 0) return;
     for (const data of dataList) {
       this.updateBalanceFromWs(data);
@@ -249,8 +289,8 @@ class AccountManager {
   }
 
   // Compatibility
-  private listeners = new Set<(value: any) => void>();
-  private notifyTimer: any = null;
+  private listeners = new Set<(value: AccountSnapshot) => void>();
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   private notifyListeners() {
     if (this.notifyTimer) clearTimeout(this.notifyTimer);

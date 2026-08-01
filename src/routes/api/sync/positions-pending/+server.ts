@@ -21,6 +21,7 @@ import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { z } from "zod";
+import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
 // It receives API keys from the client to perform a signed request to Bitunix.
@@ -38,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -61,12 +62,13 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
     return json({ data: positions });
-  } catch (e: any) {
+  } catch (e) {
     // SECURITY: Do not log the full error object if it might contain the request context or keys.
     // Logging only the message is safer.
-    console.error(`Error fetching pending positions from Bitunix:`, e.message);
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`Error fetching pending positions from Bitunix:`, message);
     return json(
-      { error: e.message || "Failed to fetch pending positions" },
+      { error: message || "Failed to fetch pending positions" },
       { status: 500 },
     );
   }
@@ -75,7 +77,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixPendingPositions(
   apiKey: string,
   apiSecret: string,
-): Promise<any[]> {
+): Promise<unknown[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
 
@@ -125,7 +127,7 @@ async function fetchBitunixPendingPositions(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(

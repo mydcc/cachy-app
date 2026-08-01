@@ -35,6 +35,24 @@ vi.mock("svelte/store", () => ({
   get: vi.fn(() => "en"),
 }));
 
+// Mock localStorage if missing
+const localStorageMap = new Map<string, string>();
+if (typeof globalThis.localStorage === "undefined" || !globalThis.localStorage?.clear) {
+  Object.defineProperty(globalThis, "localStorage", {
+    value: {
+      getItem: (key: string) => localStorageMap.get(key) ?? null,
+      setItem: (key: string, value: string) => localStorageMap.set(key, String(value)),
+      removeItem: (key: string) => localStorageMap.delete(key),
+      clear: () => localStorageMap.clear(),
+      key: (index: number) => Array.from(localStorageMap.keys())[index] ?? null,
+      get length() {
+        return localStorageMap.size;
+      },
+    },
+    writable: true,
+  });
+}
+
 // We need to import the quizState *after* mocks, but for vitest hoisting is automatic.
 import { quizState } from "./quiz.svelte";
 
@@ -93,7 +111,7 @@ describe("QuizStore", () => {
 
 
   describe("loadQuestions", () => {
-    it("fetches English flashcards when lang is 'en'", async () => {
+    it("fetches English trading flashcards by default when lang is 'en'", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve("Q1,A1\nQ2,A2"),
@@ -101,18 +119,19 @@ describe("QuizStore", () => {
 
       await quizState.loadQuestions("en");
 
-      expect(global.fetch).toHaveBeenCalledWith(CONSTANTS.FLASHCARDS_CSV_PATH_EN);
+      expect(global.fetch).toHaveBeenCalledWith(CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_EN);
       expect(quizState.questions.length).toBe(2);
       expect(quizState.questions[0].question).toBe("Q1");
       expect(quizState.isLoading).toBe(false);
     });
 
-    it("fetches German flashcards when lang is 'de'", async () => {
+    it("fetches German tech flashcards when category is 'tech' and lang is 'de'", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve("Frage 1,Antwort 1"),
       });
 
+      quizState.activeCategory = "tech";
       await quizState.loadQuestions("de");
 
       expect(global.fetch).toHaveBeenCalledWith(CONSTANTS.FLASHCARDS_CSV_PATH_DE);

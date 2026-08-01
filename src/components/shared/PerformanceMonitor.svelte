@@ -25,17 +25,18 @@
     import { _ } from "../../locales/i18n";
     import { marketState } from "../../stores/market.svelte";
 
-    let apiCallHistory: number[] = $state([]);
     let lastUpdateTime = $state(Date.now());
+
+    // Chrome-only, non-standard extension; not in the DOM lib types.
+    interface PerformanceWithMemory extends Performance {
+        memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+    }
 
     // Calculate memory usage approximation
     function calculateMemoryUsage(): number {
-        if (
-            typeof window !== "undefined" &&
-            performance &&
-            (performance as any).memory
-        ) {
-            const memory = (performance as any).memory;
+        const perf = performance as PerformanceWithMemory;
+        if (typeof window !== "undefined" && perf?.memory) {
+            const memory = perf.memory;
             return Math.round(
                 (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100,
             );

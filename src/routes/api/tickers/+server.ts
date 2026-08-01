@@ -31,8 +31,8 @@ function isStatusError(error: unknown): error is StatusError {
     error !== null &&
     "status" in error &&
     "message" in error &&
-    typeof (error as any).status === "number" &&
-    typeof (error as any).message === "string"
+    typeof (error as { status: unknown }).status === "number" &&
+    typeof (error as { message: unknown }).message === "string"
   );
 }
 
@@ -47,7 +47,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
     const data = await cache.getOrFetch(
       cacheKey,
       async () => {
-        let apiUrl = "";
+        let apiUrl: string;
         if (provider === "bitget") {
           // Bitget Futures API
           if (symbols) {
@@ -77,13 +77,13 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
               data.code === "2" ||
               (data.msg && data.msg.toLowerCase().includes("system error"))
             ) {
-              // eslint-disable-next-line no-throw-literal
+               
               throw { status: 404, message: "Symbol not found" };
             }
           } catch (e: unknown) {
             if (isStatusError(e) && e.status === 404) throw e;
           }
-          // eslint-disable-next-line no-throw-literal
+           
           throw { status: response.status, message: errorText };
         }
 
@@ -96,7 +96,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
             data.code === "2" ||
             (data.msg && data.msg.toLowerCase().includes("system error")))
         ) {
-          // eslint-disable-next-line no-throw-literal
+           
           throw { status: 404, message: "Symbol not found" };
         }
 

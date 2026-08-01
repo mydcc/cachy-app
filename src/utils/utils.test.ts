@@ -19,8 +19,6 @@ import { describe, it, expect } from "vitest";
 import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal } from "./utils";
 
 describe("parseTimestamp", () => {
-  const NOW = Date.now();
-
   it("should return number as is (milliseconds)", () => {
     expect(parseTimestamp(1678888888000)).toBe(1678888888000);
   });
@@ -176,8 +174,8 @@ describe("parseAiValue", () => {
   });
 
   it("should handle null/undefined/empty", () => {
-    expect(parseAiValue(null as any).toNumber()).toBe(0);
-    expect(parseAiValue(undefined as any).toNumber()).toBe(0);
+    expect(parseAiValue(null as unknown as string).toNumber()).toBe(0);
+    expect(parseAiValue(undefined as unknown as string).toNumber()).toBe(0);
     expect(parseAiValue("").toNumber()).toBe(0);
   });
 });

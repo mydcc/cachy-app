@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleError } from './hooks.client';
+import type { HandleClientError } from '@sveltejs/kit';
 
 vi.mock('./locales/i18n', () => ({}));
 
@@ -39,7 +40,7 @@ describe('handleError (Client Hook)', () => {
   it('should log the error to console and return fallback message', async () => {
     // Arrange
     const mockError = new Error('Test application error');
-    const mockEvent = {} as any; // Event is not used in the function body
+    const mockEvent = {} as unknown as Parameters<HandleClientError>[0]['event']; // Event is not used in the function body
 
     // Act
     const result = await handleError({ error: mockError, event: mockEvent, status: 500, message: '' });

@@ -24,37 +24,31 @@
   import TradeSetupInputs from "../components/inputs/TradeSetupInputs.svelte";
   import TakeProfitTargets from "../components/inputs/TakeProfitTargets.svelte";
   import VisualBar from "../components/shared/VisualBar.svelte";
-  import { CONSTANTS, themes, themeIcons, icons } from "../lib/constants";
+  import { themes, themeIcons, icons } from "../lib/constants";
+  import { APP_VERSION } from "../lib/version";
   import { app } from "../services/app";
   import { tradeState } from "../stores/trade.svelte";
   import { resultsState } from "../stores/results.svelte";
   import { presetState } from "../stores/preset.svelte";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
-import { activeTechnicalsManager } from "../services/activeTechnicalsManager.svelte";
-import { marketState } from "../stores/market.svelte";
-import { indicatorState } from "../stores/indicator.svelte";
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { windowManager } from "../lib/windows/WindowManager.svelte";
   import { favoritesState } from "../stores/favorites.svelte";
   import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
-  import { get } from "svelte/store"; // Import get
   import { loadInstruction } from "../services/markdownLoader";
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../lib/actions";
-  import { trackCustomEvent } from "../services/trackingService";
+  import type { TranslationKey } from "../locales/schema";
 
-  import type { IndividualTpResult } from "../stores/types";
   import SummaryResults from "../components/results/SummaryResults.svelte";
   import LanguageSwitcher from "../components/shared/LanguageSwitcher.svelte";
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
-  import ModalFrame from "../components/shared/ModalFrame.svelte";
   import MarketOverview from "../components/shared/MarketOverview.svelte";
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
-  import SidePanel from "../components/shared/SidePanel.svelte";
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
@@ -137,7 +131,7 @@ import { indicatorState } from "../stores/indicator.svelte";
 
   // Reset content when locale changes to force refetch
   $effect(() => {
-    const _loc = $locale;
+    void $locale;
     guideContent = "";
     changelogContent = "";
     privacyContent = "";
@@ -439,7 +433,7 @@ import { indicatorState } from "../stores/indicator.svelte";
         class="text-center text-sm font-medium mt-4 md:col-span-2"
         style:color="var(--danger-color)"
       >
-        {$_(uiState.errorMessage as any)}
+        {$_(uiState.errorMessage as TranslationKey)}
       </div>
     {/if}
 
@@ -777,7 +771,7 @@ import { indicatorState } from "../stores/indicator.svelte";
   class="relative z-10 w-full max-w-4xl mx-auto text-center py-4 px-4 text-sm text-[var(--text-secondary)] flex flex-col md:flex-row justify-center items-center gap-4"
 >
   <div class="flex items-center justify-between w-full md:w-auto gap-4">
-    <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
+    <span>{$_("app.version")} {APP_VERSION}</span>
   </div>
 
   <div

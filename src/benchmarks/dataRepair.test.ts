@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { dataRepairService } from "../services/dataRepairService";
 import { journalState } from "../stores/journal.svelte";
 import { apiService } from "../services/apiService";
-import { settingsState } from "../stores/settings.svelte";
 
 // Mock the dependencies
 vi.mock("../services/apiService", () => {
@@ -54,12 +53,12 @@ describe("dataRepairService performance", () => {
     journalState.updateEntry = vi.fn();
 
     // Mock API implementations with delays
-    (apiService.fetchBitunixKlines as any).mockImplementation(async () => {
+    vi.mocked(apiService.fetchBitunixKlines).mockImplementation(async () => {
       await new Promise((r) => setTimeout(r, 100)); // 100ms delay
       throw new Error("apiErrors.symbolNotFound"); // simulate fail to try next
     });
 
-    (apiService.fetchBitgetKlines as any).mockImplementation(async () => {
+    vi.mocked(apiService.fetchBitgetKlines).mockImplementation(async () => {
       await new Promise((r) => setTimeout(r, 100)); // 100ms delay
       return Array(15).fill({
         time: Date.now(),
@@ -103,13 +102,13 @@ describe("dataRepairService performance", () => {
     journalState.updateEntry = vi.fn();
 
     // Bitunix takes 2s then fails – simulates a slow timeout.
-    (apiService.fetchBitunixKlines as any).mockImplementation(async () => {
+    vi.mocked(apiService.fetchBitunixKlines).mockImplementation(async () => {
       await new Promise((r) => setTimeout(r, 2000));
       throw new Error("apiErrors.symbolNotFound");
     });
 
     // Bitget responds quickly (50ms) with valid data.
-    (apiService.fetchBitgetKlines as any).mockImplementation(async () => {
+    vi.mocked(apiService.fetchBitgetKlines).mockImplementation(async () => {
       await new Promise((r) => setTimeout(r, 50));
       return Array(15).fill({
         time: Date.now(),

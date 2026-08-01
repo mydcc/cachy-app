@@ -26,10 +26,10 @@
         type ISeriesApi,
         type CandlestickData,
         type Time,
+        type LogicalRange,
     } from "lightweight-charts";
     import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
-    import { settingsState } from "../../../stores/settings.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { marketWatcher } from "../../../services/marketWatcher";
@@ -37,18 +37,14 @@
 
     interface Props {
         symbol: string;
-        window: any; // Type ChartWindow
+        window: WindowBase;
         timeframe: string;
-        showPriceInTitle?: boolean;
-        setTimeframe: (tf: string) => void;
     }
 
     let {
         symbol,
         window: win,
         timeframe,
-        showPriceInTitle,
-        setTimeframe,
     }: Props = $props();
 
     let chartContainer: HTMLElement | null = $state(null);
@@ -184,11 +180,11 @@
         resizeObserver.observe(chartContainer);
 
         // Scroll listener for dynamic history loading
-        let debounceTimer: any;
+        let debounceTimer: ReturnType<typeof setTimeout>;
         const timeScale = chart.timeScale();
 
         const handleVisibleLogicalRangeChange = (
-            newVisibleLogicalRange: any,
+            newVisibleLogicalRange: LogicalRange | null,
         ) => {
             if (!newVisibleLogicalRange) return;
 
@@ -365,7 +361,7 @@
                 } else {
                     // Slow Path: Full Render (History load or New Candle)
                     const formatted: CandlestickData[] = klines
-                        .map((k: any) => ({
+                        .map((k) => ({
                             time: (k.time / 1000) as Time,
                             open: Number(k.open),
                             high: Number(k.high),

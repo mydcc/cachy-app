@@ -30,10 +30,10 @@ if (typeof Path2D === 'undefined') {
     arc() {}
     quadraticCurveTo() {}
     bezierCurveTo() {}
-  } as any;
+  } as unknown as typeof Path2D;
 }
 if (typeof CanvasRenderingContext2D === 'undefined') {
-  global.CanvasRenderingContext2D = class CanvasRenderingContext2D {} as any;
+  global.CanvasRenderingContext2D = class CanvasRenderingContext2D {} as unknown as typeof CanvasRenderingContext2D;
 }
 
 // Mock CanvasRenderingContext2D

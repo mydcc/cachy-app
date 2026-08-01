@@ -103,16 +103,27 @@ describe('Engine Performance Benchmarks', () => {
     calculateAllIndicators(small);
     calculateAllIndicators(large);
 
-    // Measure
-    const startSmall = performance.now();
-    calculateAllIndicators(small);
-    const timeSmall = performance.now() - startSmall;
+    // Measure the median of several runs, not a single one. The 1k baseline is
+    // only a few milliseconds on a warm machine, so one GC pause landing inside
+    // it moves the ratio by more than the whole tolerance — this assertion used
+    // to fail in CI at 9.1x and 10.9x while passing locally at 4.4x, without
+    // anything about the code having changed. The median of five costs a few
+    // milliseconds and makes the number mean what it claims to.
+    const medianOf = (klines: ReturnType<typeof generateKlines>) => {
+      const runs: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        const start = performance.now();
+        calculateAllIndicators(klines);
+        runs.push(performance.now() - start);
+      }
+      return runs.sort((a, b) => a - b)[Math.floor(runs.length / 2)];
+    };
 
-    const startLarge = performance.now();
-    calculateAllIndicators(large);
-    const timeLarge = performance.now() - startLarge;
+    const timeSmall = medianOf(small);
+    const timeLarge = medianOf(large);
 
-    // 5x data should take at most ~8x time (allowing wiggle room for cache effects)
+    // 5x the data should take at most ~8x the time. The failure this guards
+    // against is quadratic behaviour, which would show up as ~25x.
     const ratio = timeLarge / timeSmall;
     console.log(`📈 Scaling: 1k=${timeSmall.toFixed(1)}ms, 5k=${timeLarge.toFixed(1)}ms, ratio=${ratio.toFixed(2)}x (expect <8x)`);
     expect(ratio).toBeLessThan(8);

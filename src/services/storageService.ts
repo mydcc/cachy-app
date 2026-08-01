@@ -57,8 +57,8 @@ class StorageService {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onerror = (event) => {
-                logger.error("general", "Failed to open DB", (event.target as any).error);
-                reject((event.target as any).error);
+                logger.error("general", "Failed to open DB", (event.target as IDBOpenDBRequest).error);
+                reject((event.target as IDBOpenDBRequest).error);
             };
 
             request.onupgradeneeded = (event) => {
@@ -194,7 +194,7 @@ class StorageService {
                 const usedMB = (estimate.usage || 0) / 1024 / 1024;
                 const quotaMB = (estimate.quota || 0) / 1024 / 1024;
                 logger.log('data', `[Storage] Used: ${usedMB.toFixed(2)} MB / ${quotaMB.toFixed(0)} MB`);
-            } catch (e) {
+            } catch {
                 // ignore
             }
         }

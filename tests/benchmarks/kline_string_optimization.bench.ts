@@ -23,7 +23,7 @@ console.log(`Running benchmark with ${dataSize} items over ${iterations} iterati
 function runDecimalScenario() {
     const start = performance.now();
     for (let i = 0; i < iterations; i++) {
-        const mapped = rawData.map((k: any) => ({
+        rawData.map((k: typeof rawData[number]) => ({
             open: new Decimal(k.open || 0).toString(),
             high: new Decimal(k.high || 0).toString(),
             low: new Decimal(k.low || 0).toString(),
@@ -41,7 +41,7 @@ function runDecimalScenario() {
 function runStringScenario() {
     const start = performance.now();
     for (let i = 0; i < iterations; i++) {
-        const mapped = rawData.map((k: any) => ({
+        rawData.map((k: typeof rawData[number]) => ({
             open: String(k.open || 0),
             high: String(k.high || 0),
             low: String(k.low || 0),

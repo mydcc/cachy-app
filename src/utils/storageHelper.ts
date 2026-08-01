@@ -28,8 +28,8 @@ export class StorageHelper {
     try {
       localStorage.setItem(key, data);
       return true;
-    } catch (e: any) {
-      if (e.name === "QuotaExceededError") {
+    } catch (e) {
+      if (e instanceof Error && e.name === "QuotaExceededError") {
         console.error("[Storage] Quota exceeded for key:", key);
 
         // 1. Notify user

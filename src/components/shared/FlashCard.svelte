@@ -67,13 +67,46 @@
 {#if quizState.isQuizActive && quizState.activeQuestion}
   <!-- Backdrop -->
   <div
-    class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 gap-4"
     transition:fade={{ duration: 200 }}
     onclick={() => quizState.closeQuiz()}
     role="button"
     tabindex="0"
     onkeydown={(e) => e.key === "Escape" && quizState.closeQuiz()}
   >
+    <!-- Category Switcher Pills -->
+    <div
+      class="flex items-center gap-1.5 p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-lg glass-panel z-10"
+      role="toolbar"
+    >
+      <button
+        type="button"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 {quizState.activeCategory === 'trading' ? 'bg-[var(--accent-color)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+        onclick={(e) => {
+          e.stopPropagation();
+          if (quizState.activeCategory !== 'trading') {
+            quizState.setCategory('trading');
+            quizState.startQuiz();
+          }
+        }}
+      >
+        {$_("quiz.categoryTrading")}
+      </button>
+      <button
+        type="button"
+        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 {quizState.activeCategory === 'tech' ? 'bg-[var(--accent-color)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+        onclick={(e) => {
+          e.stopPropagation();
+          if (quizState.activeCategory !== 'tech') {
+            quizState.setCategory('tech');
+            quizState.startQuiz();
+          }
+        }}
+      >
+        {$_("quiz.categoryTech")}
+      </button>
+    </div>
+
     <!-- Card Container -->
     <div
       class="relative w-full max-w-md aspect-[4/3] perspective-1000 cursor-pointer group"

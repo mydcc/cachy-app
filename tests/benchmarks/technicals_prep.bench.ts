@@ -51,7 +51,7 @@ const cachedBuffers10k = {
 };
 
 // Current implementation in calculateTechnicals (Async version prep)
-const prepareCurrent = (klinesInput: any[]) => {
+const prepareCurrent = (klinesInput: MockKline[]) => {
   const len = klinesInput.length;
   const times = new Float64Array(len);
   const opens = new Float64Array(len);
@@ -60,14 +60,14 @@ const prepareCurrent = (klinesInput: any[]) => {
   const closes = new Float64Array(len);
   const volumes = new Float64Array(len);
 
-  const toNumFast = (val: any): number => {
+  const toNumFast = (val: unknown): number => {
     if (typeof val === 'number') return val;
     if (typeof val === 'string') {
         const p = parseFloat(val);
         return isNaN(p) ? 0 : p;
     }
     // The flaw: creates new Decimal(val) even if val is Decimal
-    try { return new Decimal(val).toNumber(); } catch { return 0; }
+    try { return new Decimal(val as Decimal.Value).toNumber(); } catch { return 0; }
   };
 
   for (let i = 0; i < len; i++) {
@@ -84,7 +84,7 @@ const prepareCurrent = (klinesInput: any[]) => {
 };
 
 // Optimized implementation: explicit Decimal check + avoiding new Decimal()
-const prepareOptimized = (klinesInput: any[]) => {
+const prepareOptimized = (klinesInput: MockKline[]) => {
   const len = klinesInput.length;
   const times = new Float64Array(len);
   const opens = new Float64Array(len);
@@ -93,7 +93,7 @@ const prepareOptimized = (klinesInput: any[]) => {
   const closes = new Float64Array(len);
   const volumes = new Float64Array(len);
 
-  const toNumOptimized = (val: any): number => {
+  const toNumOptimized = (val: unknown): number => {
     if (typeof val === 'number') return val;
     if (val instanceof Decimal) return val.toNumber(); // Fast path for Decimal
     if (typeof val === 'string') {
@@ -101,7 +101,7 @@ const prepareOptimized = (klinesInput: any[]) => {
         return isNaN(p) ? 0 : p;
     }
     // Fallback
-    try { return new Decimal(val).toNumber(); } catch { return 0; }
+    try { return new Decimal(val as Decimal.Value).toNumber(); } catch { return 0; }
   };
 
   for (let i = 0; i < len; i++) {
@@ -117,16 +117,10 @@ const prepareOptimized = (klinesInput: any[]) => {
   return { times, opens, highs, lows, closes, volumes };
 };
 
-// Cached access (simulate just passing reference or shallow copy)
-const prepareCached = (cached: any) => {
-    // If we have cached buffers, we just return them (or slice them if needed, but for benchmark assuming full reuse)
-    return cached;
-};
-
 // Cached with Transferable Prep (Simulate creating transferables if needed, though they are usually passed directly)
 // If we need to clone to send to worker (since worker takes ownership of transferables)
 // We might need to slice/copy.
-const prepareCachedCopy = (cached: any) => {
+const prepareCachedCopy = (cached: typeof cachedBuffers1k) => {
     return {
         times: cached.times.slice(),
         opens: cached.opens.slice(),

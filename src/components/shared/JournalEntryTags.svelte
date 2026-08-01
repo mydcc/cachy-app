@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { _ } from "../../locales/i18n";
   import { clickOutside } from "../../lib/actions/clickOutside";
 
   interface Props {

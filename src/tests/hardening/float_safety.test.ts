@@ -19,7 +19,10 @@ import { describe, it, expect } from "vitest";
 import { safeJsonParse } from "../../utils/safeJson";
 import { marketState } from "../../stores/market.svelte";
 import { Decimal } from "decimal.js";
-import { get } from "svelte/store";
+
+// Reaches into marketState's private, debounced flush to force a
+// synchronous update in tests instead of waiting on the real timer.
+const marketStateInternals = marketState as unknown as { flushUpdates: () => void };
 
 describe("Hardening: Float Safety & Data Integrity", () => {
 
@@ -65,11 +68,11 @@ describe("Hardening: Float Safety & Data Integrity", () => {
             const priceStr = "98765.12345678";
 
             marketState.updateSymbol(symbol, {
-                lastPrice: priceStr as any // simulating safeJsonParse output
+                lastPrice: priceStr // simulating safeJsonParse output
             });
 
             // Force flush
-            (marketState as any).flushUpdates();
+            marketStateInternals.flushUpdates();
 
             const data = marketState.data[symbol];
             expect(data).toBeDefined();
@@ -86,7 +89,7 @@ describe("Hardening: Float Safety & Data Integrity", () => {
             });
 
             // Force flush
-            (marketState as any).flushUpdates();
+            marketStateInternals.flushUpdates();
 
             const data = marketState.data[symbol];
             expect(data.lastPrice).toBeInstanceOf(Decimal);
@@ -102,7 +105,7 @@ describe("Hardening: Float Safety & Data Integrity", () => {
             });
 
             // Force flush
-            (marketState as any).flushUpdates();
+            marketStateInternals.flushUpdates();
 
             const data = marketState.data[symbol];
             expect(data.lastPrice?.toString()).toBe("150.55");

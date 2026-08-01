@@ -182,10 +182,12 @@ export const storageUtils = {
       if (e instanceof Error && e.name === "QuotaExceededError") {
         throw new Error(
           "LocalStorage ist voll. Bitte exportieren Sie Ihr Journal als CSV und löschen Sie alte Einträge.",
+          { cause: e },
         );
       }
       throw new Error(
         "Fehler beim Speichern. Der lokale Speicher ist möglicherweise blockiert.",
+        { cause: e },
       );
     }
   },

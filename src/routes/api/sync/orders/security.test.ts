@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { POST } from './+server';
 
 vi.mock('../../../../lib/server/auth', () => ({
@@ -24,14 +24,48 @@ vi.mock('../../../../lib/server/auth', () => ({
 
 
 describe('POST /api/sync/orders', () => {
+  it('returns a 19-digit order ID unchanged (money path)', async () => {
+    // The whole reason this route reads the exchange body via readExchangeJson
+    // rather than response.json(): a 19-digit order ID exceeds
+    // Number.MAX_SAFE_INTEGER, and JSON.parse would silently round it. A rounded
+    // ID means a later cancel or modify targets the wrong order, or none.
+    const ORDER_ID = '1234567890123456789';
+
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `{"code":0,"data":{"orderList":[{"orderId":${ORDER_ID},"symbol":"BTCUSDT"}]}}`,
+      json: async () => ({ code: 0, data: { orderList: [{ orderId: Number(ORDER_ID), symbol: 'BTCUSDT' }] } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const request = {
+      json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
+    } as unknown as Request;
+
+    // `as unknown as` rather than `as any`: the surrounding tests predate the
+    // lint ratchet, and new code should not add to the backlog.
+    const response = await POST({
+      request,
+    } as unknown as Parameters<typeof POST>[0]);
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+    expect(body).toContain(ORDER_ID);
+    // The rounded form must not appear anywhere in the payload.
+    expect(body).not.toContain('1234567890123456800');
+
+    vi.unstubAllGlobals();
+  });
+
   it('should return 400 if JSON is malformed', async () => {
     const request = {
       json: async () => {
         throw new Error('Unexpected end of JSON input');
       },
-    } as Request;
+    } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid JSON');
@@ -40,9 +74,9 @@ describe('POST /api/sync/orders', () => {
   it('should return 400 if credentials are missing', async () => {
     const request = {
       json: async () => ({ limit: 10 }),
-    } as Request;
+    } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid request data');
@@ -51,9 +85,9 @@ describe('POST /api/sync/orders', () => {
   it('should return 400 if limit is not a number', async () => {
     const request = {
       json: async () => ({ apiKey: 'key', apiSecret: 'secret', limit: 'invalid' }),
-    } as Request;
+    } as unknown as Request;
 
-    const response = await POST({ request } as any);
+    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
   });
 });

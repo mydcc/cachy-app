@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { analysisState, type SymbolAnalysis } from "./analysis.svelte";
 import { settingsState } from "./settings.svelte";
 

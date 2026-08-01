@@ -27,7 +27,7 @@ import { Decimal } from "decimal.js";
  * 3. Decimal/DecimalLike (via .toNumber() check) -> prevents new Decimal() allocation
  * 4. Serialized Decimal (state only) -> new Decimal() fallback
  */
-export const toNumFast = (val: any): number => {
+export const toNumFast = (val: unknown): number => {
     if (typeof val === 'number') return val;
 
     if (typeof val === 'string') {
@@ -44,11 +44,12 @@ export const toNumFast = (val: any): number => {
         // Fast path for Decimal or objects with .toNumber()
         // Checks property existence which is faster than instanceof in some cases
         // and handles non-instanceof Decimal-likes
-        if (typeof val.toNumber === 'function') return val.toNumber();
+        const decimalLike = val as { toNumber?: () => number; s?: unknown; e?: unknown };
+        if (typeof decimalLike.toNumber === 'function') return decimalLike.toNumber();
 
         // Fallback for serialized Decimal (state only, no methods)
         // e.g. from JSON.parse()
-        if ((val as any).s !== undefined && (val as any).e !== undefined) {
+        if (decimalLike.s !== undefined && decimalLike.e !== undefined) {
              const d = new Decimal(0);
              Object.assign(d, val);
              return d.toNumber();

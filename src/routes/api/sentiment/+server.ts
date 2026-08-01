@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request }) => {
         } else if (typeof e === 'string') {
             message = e;
         } else if (typeof e === 'object' && e !== null && 'message' in e) {
-            message = String((e as any).message);
+            message = String((e as { message: unknown }).message);
         }
         return json({ error: message }, { status: 500 });
     }

@@ -19,9 +19,10 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
+  import type { NormalizedOrder } from "../../types/bitunix";
 
   interface Props {
-    orders?: any[];
+    orders?: NormalizedOrder[];
     loading?: boolean;
     error?: string;
     oncancel?: (orderId: string, symbol: string) => void;
@@ -29,7 +30,7 @@
 
   let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
-  function handleMouseEnter(event: MouseEvent, order: any) {
+  function handleMouseEnter(event: MouseEvent, order: NormalizedOrder) {
     const coords = getTooltipPosition(event);
     uiState.showTooltip("order", order, coords.x, coords.y);
   }
@@ -65,7 +66,7 @@
     return `${day}.${month} ${hours}:${minutes}`;
   }
 
-  function getTypeLabel(type: any) {
+  function getTypeLabel(type: string) {
     const t = String(type || "").toUpperCase();
     if (["LIMIT", "1"].includes(t)) return "Limit";
     if (["MARKET", "2"].includes(t)) return "Market";
@@ -77,7 +78,7 @@
     return t.length > 6 ? t.substring(0, 6) + "." : t;
   }
 
-  function handleCancel(order: any) {
+  function handleCancel(order: NormalizedOrder) {
     if (confirm($_("dashboard.confirmCancelOrder") || "Cancel this order?")) {
         oncancel?.(order.id || order.orderId, order.symbol);
     }

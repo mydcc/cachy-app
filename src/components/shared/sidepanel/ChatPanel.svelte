@@ -32,7 +32,7 @@
   // Scroll to bottom on new messages
   $effect(() => {
     if (messagesContainer) {
-      const _len = chatState.messages.length;
+      void chatState.messages.length;
       setTimeout(() => {
         if(messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }, 0);
@@ -51,8 +51,8 @@
       if (inputEl) {
         inputEl.focus();
       }
-    } catch (e: any) {
-      errorMessage = e.message || "Error";
+    } catch (e) {
+      errorMessage = (e instanceof Error ? e.message : null) || "Error";
       if (errorTimeout) clearTimeout(errorTimeout);
       errorTimeout = setTimeout(() => (errorMessage = ""), 3000);
     } finally {
@@ -97,14 +97,6 @@
                 <span>
                   {isMe ? "You" : "User"}
                 </span>
-                {#if msg.profitFactor !== undefined}
-                  <span
-                    class="px-1.5 py-0.5 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded text-[7px] font-black shadow-sm"
-                    style="line-height: 1;"
-                  >
-                    PF {msg.profitFactor.toFixed(2)}
-                  </span>
-                {/if}
               </span>
               <span
                 class="leading-tight text-[var(--text-primary)]"

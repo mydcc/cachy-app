@@ -24,6 +24,7 @@
         restoreFromBackup,
     } from "../../services/backupService";
     import { trackCustomEvent } from "../../services/trackingService";
+    import type { TranslationKey } from "../../locales/schema";
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
@@ -39,8 +40,6 @@
     function selectTab(tab: string) {
         uiState.settingsTab = tab;
     }
-
-    const appVersion = import.meta.env.VITE_APP_VERSION || "0.0.0";
 
     // System Tab Functions passed down
     async function handleBackup() {
@@ -120,7 +119,7 @@
                 } else {
                     uiState.showError(
                         result.message.startsWith("app.")
-                            ? $_(result.message as any)
+                            ? $_(result.message as TranslationKey)
                             : result.message,
                     );
                 }

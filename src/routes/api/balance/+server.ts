@@ -22,6 +22,7 @@ import { checkAppAuth } from "../../../lib/server/auth";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
+import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
@@ -46,10 +47,10 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json({ balance });
-  } catch (e: any) {
+  } catch (e) {
     console.error(`Error fetching balance from ${exchange}:`, e);
     return json(
-      { error: e.message || "Failed to fetch balance" },
+      { error: (e instanceof Error ? e.message : null) || "Failed to fetch balance" },
       { status: 500 },
     );
   }
@@ -109,7 +110,7 @@ async function fetchBitunixBalance(
     throw new Error(`Bitunix API error: ${response.status} ${text}`);
   }
 
-  const data = await response.json();
+  const data = await readExchangeJson(response);
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
@@ -127,7 +128,7 @@ async function fetchBitunixBalance(
   // Case: It returns an array of assets (as per documentation)
   if (Array.isArray(accountInfo)) {
     const usdt = accountInfo.find(
-      (a: any) =>
+      (a) =>
         a.marginCoin === "USDT" || a.currency === "USDT" || a.asset === "USDT",
     );
     if (usdt) {
@@ -183,7 +184,7 @@ async function fetchBitgetBalance(
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
-    const res = await response.json();
+    const res = await readExchangeJson(response);
     if (res.code !== "00000") throw new Error(res.msg);
 
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;

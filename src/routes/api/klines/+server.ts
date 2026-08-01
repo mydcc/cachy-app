@@ -23,6 +23,31 @@ interface ApiError extends Error {
   status?: number;
 }
 
+// Bitunix kline entry — field names vary across API versions/endpoints,
+// hence the pairs (open/o, id/time, ...).
+interface BitunixRawKline {
+  open?: string | number;
+  o?: string | number;
+  high?: string | number;
+  h?: string | number;
+  low?: string | number;
+  l?: string | number;
+  close?: string | number;
+  c?: string | number;
+  quoteVol?: string | number;
+  q?: string | number;
+  volume?: string | number;
+  vol?: string | number;
+  v?: string | number;
+  amount?: string | number;
+  id?: string | number;
+  time?: string | number;
+  ts?: string | number;
+}
+
+// [timestamp, open, high, low, close, volume, quoteVol]
+type BitgetCandleTuple = [string | number, string | number, string | number, string | number, string | number, string | number, (string | number)?];
+
 export const GET: RequestHandler = async ({ url }) => {
   const symbol = url.searchParams.get("symbol");
   const interval = url.searchParams.get("interval") || "1d";
@@ -62,7 +87,7 @@ export const GET: RequestHandler = async ({ url }) => {
       }
     } else if (typeof e === 'object' && e !== null && 'message' in e) {
       // Fallback for non-Error objects that might have a message
-      message = String((e as any).message);
+      message = String((e as { message: unknown }).message);
     }
 
     return json({ error: message }, { status });
@@ -92,7 +117,7 @@ async function fetchBitunixKlines(
   };
   const mappedInterval = map[interval] || interval;
 
-  const params: any = {
+  const params: Record<string, string> = {
     symbol: symbol.toUpperCase(),
     interval: mappedInterval,
     limit: limit.toString(),
@@ -116,7 +141,10 @@ async function fetchBitunixKlines(
     let data;
     try {
       data = safeJsonParse(text);
-    } catch (e) {}
+    } catch {
+      // Leave `data` undefined: the upstream body was not valid JSON.
+      // The shape check below rejects it and returns a proper error response.
+    }
 
     if (
       data &&
@@ -160,7 +188,7 @@ async function fetchBitunixKlines(
       console.log(`[Bitunix API] ${symbol}:${interval} requested ${limit} with end ${end}. Got ${results.length}. FirstTS: ${results[0]?.time || results[0]?.id}, LastTS: ${results[results.length-1]?.time || results[results.length-1]?.id}`);
   }
 
-  const mapped = results.map((k: any) => ({
+  const mapped = results.map((k: BitunixRawKline) => ({
     open: String(k.open || k.o || 0),
     high: String(k.high || k.h || 0),
     low: String(k.low || k.l || 0),
@@ -206,7 +234,7 @@ async function fetchBitgetKlines(
       bitgetSymbol += "_UMCBL";
   }
 
-  const params: any = {
+  const params: Record<string, string> = {
     symbol: bitgetSymbol,
     granularity: mappedInterval,
     // limit? Bitget doesn't explicitly support 'limit' param in some docs, but we can try.
@@ -244,13 +272,13 @@ async function fetchBitgetKlines(
 
   // Optimize: Return plain strings
   return data
-    .map((k: any[]) => ({
-      timestamp: parseInt(k[0]),
+    .map((k: BitgetCandleTuple) => ({
+      timestamp: parseInt(String(k[0])),
       open: k[1],
       high: k[2],
       low: k[3],
       close: k[4],
       volume: k[5], // base volume
     }))
-    .sort((a: any, b: any) => a.timestamp - b.timestamp);
+    .sort((a, b) => a.timestamp - b.timestamp);
 }

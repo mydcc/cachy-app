@@ -16,11 +16,11 @@
  */
 
 import * as THREE from 'three';
-import { BaseEngine, type EngineContext } from './BaseEngine';
+import { BaseEngine } from './BaseEngine';
 
 export class CityEngine extends BaseEngine {
     private cityMesh: THREE.InstancedMesh | null = null;
-    private buildings = new Map<number, { height: number, targetHeight: number }>();
+    private buildings = new Map<number, { height: number, targetHeight: number, type?: 'buy' | 'sell' }>();
     private dummyObj = new THREE.Object3D();
     private _tempColor = new THREE.Color();
 
@@ -109,7 +109,7 @@ export class CityEngine extends BaseEngine {
         this.isInitialized = true;
     }
 
-    public update(time: number, delta: number): void {
+    public update(time: number): void {
         if (!this.cityMesh) return;
 
         const s = this.context.settings;
@@ -123,7 +123,7 @@ export class CityEngine extends BaseEngine {
             : new THREE.Color(0x050a0f);
 
         for (const [idx, data] of this.buildings) {
-            const tradeType = (data as any).type === 'buy' ? 1 : -1;
+            const tradeType = data.type === 'buy' ? 1 : -1;
             data.height += (data.targetHeight - data.height) * 0.15; // Snappy growth
             data.targetHeight *= 0.98; // Decay
             
@@ -174,7 +174,7 @@ export class CityEngine extends BaseEngine {
         const data = this.buildings.get(idx) || { height: 0.1, targetHeight: 0.1, type: trade.type };
         data.targetHeight += Math.log10(tradeValue + 1) * 3.0 * volScale;
         data.targetHeight = Math.min(data.targetHeight, 50.0);
-        (data as any).type = trade.type; // Store last trade type for color
+        data.type = trade.type; // Store last trade type for color
         this.buildings.set(idx, data);
     }
 
@@ -190,6 +190,9 @@ export class CityEngine extends BaseEngine {
         }
     }
 
+    // `any` matches BaseEngine.context.settings' own declared type ("Generic settings
+    // for flexibility") — every sibling engine's updateSettings() does the same.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public updateSettings(newSettings: any): void {
         if (this.shouldReinit(newSettings)) {
             if (this.cityMesh) {

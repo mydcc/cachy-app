@@ -80,7 +80,7 @@
     <div
       class="text-center p-4 border border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] text-sm"
     >
-      {$_("dashboard.takeProfitTargets.emptyState" as any)}
+      {$_("dashboard.takeProfitTargets.emptyState")}
     </div>
   {/if}
 

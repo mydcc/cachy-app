@@ -115,7 +115,7 @@ export const POST: RequestHandler = async ({ request }) => {
       try {
         const errJson = JSON.parse(errText);
         errMsg = errJson.error?.message || errMsg;
-      } catch (e) {
+      } catch {
         errMsg = errText.slice(0, 200); // Fallback to text if not JSON
       }
       return json({ error: errMsg }, { status: response.status });
@@ -128,8 +128,8 @@ export const POST: RequestHandler = async ({ request }) => {
         Connection: "keep-alive",
       },
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("Gemini Proxy Error:", e);
-    return json({ error: e.message }, { status: 500 });
+    return json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 };

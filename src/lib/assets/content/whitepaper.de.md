@@ -1,8 +1,7 @@
 # Cachy Technisches Whitepaper
 
-**Version:** 0.94.3
-**Datum:** Februar 2026
-**Letzte Aktualisierung:** 14. Februar 2026
+**Letzte Aktualisierung:** 29. Juli 2026
+**Abgleich mit dem Code:** Alle acht Kapitel wurden gegen die Implementierung geprüft. Jeder Datei-, Pfad- und Befehlsverweis ist verifiziert, das Rechenbeispiel in Kapitel 3 ist durch einen ausführbaren Test abgedeckt (`src/lib/whitepaper-claims.test.ts`). Gefundene Abweichungen sind in `docs/REPO-AUDIT.md`, Abschnitt 6, festgehalten.
 
 ---
 
@@ -79,23 +78,29 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Mathe**     | **Decimal.js**          | IEEE 754 Gleitkomma-Arithmetik (Standard-JS-Zahlen) ist für Finanzen unsicher (z. B. \`0.1 + 0.2 !== 0.3\`). Decimal.js gewährleistet beliebige Genauigkeit. |
 | **Charts**    | **Chart.js**            | Canvas-basiertes Rendering für hochperformante Visualisierungen (Equity-Kurven, Streudiagramme), die Tausende von Datenpunkten verarbeiten können.           |
 | **UI/UX**     | **VisualBar Component** | Proprietäre Svelte-Komponente für grafische Risk/Reward-Visualisierung im Calculator. Verwendet CSS-basierte Position Calculations für Echtzeit-Updates.     |
-| **Analyse**   | **TechnicalIndicators** | Modulare Bibliothek zur clientseitigen Berechnung komplexer Indikatoren (RSI, MACD, ADX).                                                                    |
-| **Testing**   | **Vitest**              | Blitzschnelles Unit-Testing-Framework, das die Konfiguration mit Vite teilt.                                                                                 |
+| **Indikatoren** | **Rust / WebAssembly** | \`technicals-wasm/\` kompiliert nach WASM für die Indikator-Mathematik; \`src/utils/indicators.ts\` (~2000 Zeilen) und \`technicalsCalculator.ts\` bilden die TS-Seite. Eine Fremdbibliothek namens "TechnicalIndicators" existiert nicht. |
+| **Compute**   | **WebGPU**              | \`src/services/webGpuCalculator.ts\` mit 17 WGSL-Compute-Shadern in \`src/shaders/\`, für Arbeit, die für den Main Thread zu schwer ist.                       |
+| **Threading** | **Web Workers**         | Drei Worker in \`src/workers/\`, die die Indikatorberechnung vom UI-Thread fernhalten.                                                                        |
+| **Realtime-DB** | **SpacetimeDB**       | \`server/spacetimedb/\` samt generierter Client-Bindings in \`src/lib/spacetimedb/\`. Trägt ausschließlich den optionalen Global Chat — siehe Kapitel 6.       |
+| **KI**        | **OpenAI · Gemini**     | Beide SDKs sind vorhanden; Assistent und Market Analyst rufen sie über den Server-Proxy auf, sodass Schlüssel den Client nie erreichen.                      |
+| **Charts**    | **lightweight-charts**  | Wird neben Chart.js für Preischarts verwendet; \`three\` treibt die visuellen Hintergrundeffekte.                                                             |
+| **Validierung** | **Zod**               | Strenge Schema-Validierung eingehender Börsen-WebSocket-Payloads, damit fehlerhafte Marktdaten verworfen statt gecastet werden.                              |
+| **Testing**   | **Vitest · Playwright** | Vitest teilt die Konfiguration mit Vite; Playwright deckt End-to-End-Abläufe ab.                                                                             |
 
 ### Client-seitiges Zustandsmanagement (Universelle Reaktivität)
 
 Cachy nutzt **Svelte 5 Runes** für das Zustandsmanagement und ersetzt Legacy-Stores durch `.svelte.js`-Module, die universelle Reaktivität bieten. Dies stellt sicher, dass die Zustandslogik portabel und typsicher ist.
 
-1. **\`AccountState.svelte.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
+1. **\`account.svelte.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
    - _Verfolgt_: Offene Positionen, Aktive Orders, Wallet-Guthaben.
    - _Implementierung_: Nutzt `$state` für veränderliche Daten und `$derived` für Echtzeit-Margin-Berechnungen.
-2. **\`MarketState.svelte.ts\`**: Hochfrequenz-Marktdaten.
+2. **\`market.svelte.ts\`**: Hochfrequenz-Marktdaten.
    - _Verfolgt_: Preise, Finanzierungsraten, Orderbuch-Tiefe.
    - _Optimierung_: Verwendet eine Dictionary-Map \`Record<string, MarketData>\` für O(1) Zugriffskomplexität bei Preisaktualisierungen.
-3. **\`TradeState.svelte.ts\`**: Das "Reißbrett".
+3. **\`trade.svelte.ts\`**: Das "Reißbrett".
    - _Verfolgt_: Benutzereingaben für einen _potenziellen_ Trade (Einstieg, SL, TP) vor der Ausführung.
    - _Persistenz_: Synchronisiert automatisch mit \`localStorage\`, sodass Benutzer ihre Arbeit beim Neuladen nicht verlieren.
-4. **\`JournalState.svelte.ts\`**: Die Historische Aufzeichnung.
+4. **\`journal.svelte.ts\`**: Die Historische Aufzeichnung.
    - _Verfolgt_: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
    - _Analytik_: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
 
@@ -120,7 +125,9 @@ _Hinweis: Während Geheimnisse vom Client zum Server reisen, ist der Server zust
 
 ## 3. Kernlogik & Mathematik ("Das Herzstück")
 
-Das mathematische Herz von Cachy befindet sich in \`src/lib/calculator.ts\`. Diese Bibliothek ist dafür verantwortlich, dass jeder auf dem Bildschirm angezeigte Dollar auf den Cent genau ist, unabhängig von Hebelwirkung oder Gebührenstrukturen.
+Das mathematische Herz von Cachy erreicht man über \`src/lib/calculator.ts\` — das ist allerdings nur eine schmale Fassade. Die Implementierung liegt in neun Modulen unter \`src/lib/calculators/\` (Kernmetriken, Targets, Statistik, Charts, Qualitätsbewertung). Beginne bei der Fassade, aber erwarte, die Untermodule lesen zu müssen. Gemeinsam stellen sie sicher, dass jeder angezeigte Betrag auf den Cent genau ist, unabhängig von Hebel oder Gebührenstruktur.
+
+Das folgende Rechenbeispiel ist durch \`src/lib/whitepaper-claims.test.ts\` abgedeckt, das genau diese Eingaben durch den Rechner schickt. Sollten Engine und dieses Dokument je auseinandergehen, schlägt dieser Test fehl.
 
 ### Präzisionsfinanzwesen (Decimal.js Integration)
 
@@ -161,7 +168,7 @@ Cachy arbeitet rückwärts: _Ich möchte 100 \$ riskieren -> Wie viel BTC sollte
 
 ### Deep Dive Analytik: Trader-Psychologie
 
-Cachy analysiert den \`journalStore\`, um Verhaltensmuster zu finden.
+Cachy analysiert den \`journalState\`, um Verhaltensmuster zu finden.
 
 #### 1. Multi-Timeframe ATR Scanning
 
@@ -413,7 +420,7 @@ _Komponente: \`app.ts\` (Sync-Logik)_
 3. **Der "Safe Swap"**:
    - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountStore\` übereinstimmt.
    - Es "hydratisiert" den Trade mit finalen Daten (Realisierte PnL, Gebühren, Finanzierung).
-   - Es verschiebt das Objekt vom \`accountStore\` (Aktiv) in den \`journalStore\` (Historie).
+   - Es verschiebt das Objekt vom \`accountStore\` (Aktiv) in den \`journalState\` (Historie).
    - Es speichert den neuen Journaleintrag im \`localStorage\`.
 
 ---
@@ -445,6 +452,8 @@ Um **Reaktionsfähigkeit** vs. **Ratenbegrenzungen** auszubalancieren, verwendet
    - _Heartbeat-Logik_: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 20 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
 
 ### Das "Safe Swap" Synchronisations-Protokoll
+
+> "Safe Swap" ist ein Begriff, der ausschließlich in diesem Dokument verwendet wird — im Code existiert er nicht. Die Synchronisationslogik findest du in \`src/services/syncService.ts\` und den WebSocket-Providern, nicht unter diesem Namen.
 
 Eine kritische Herausforderung bei der Synchronisierung des lokalen Zustands mit dem entfernten API-Zustand besteht darin, Updates ohne "Flackern" oder Datenverlust zu handhaben.
 
@@ -486,12 +495,17 @@ Cachy fungiert als Durchgangsinstanz.
 - **Übertragung**: Schlüssel werden nur in den HTTP-Headern spezifischer API-Anfragen gesendet.
 - **Server-seitig**: Der Node.js-Proxy empfängt die Anfrage, signiert sie mit dem Geheimnis, leitet sie an Bitunix weiter und verwirft die Anmeldeinformationen sofort aus dem Speicher. Es werden keine Protokolle geführt.
 
-### Datenbanklose Architektur
+### Datenklassen-Grenze: Was lokal bleibt und was nicht
 
-Durch das Entfernen der Datenbank:
+Cachy ist Local-First, aber das bedeutet nicht „kein Server". Die Garantie ist präzise nach Datenklassen definiert:
 
-1. **Eliminierung von Angriffsvektoren**: SQL-Injection und Datenbank-Lecks sind unmöglich.
-2. **DSGVO/CCPA-Konformität**: Wir verarbeiten keine Benutzerdaten, daher ist die Konformität per Design automatisch gegeben.
+**Klasse A — verlässt das Gerät nie.** Journal, Einstellungen, API-Schlüssel und Secrets, Presets, private Notizen und Trade-Entwürfe liegen ausschließlich im `localStorage`. Für diese Daten existiert keine serverseitige Speicherung — es gibt keine Datenbank, in der sie stehen könnten, und damit für sie auch keine Angriffsfläche durch SQL-Injection oder Datenbank-Lecks. API-Schlüssel verlassen den Browser nur als Credential eines vom Nutzer ausgelösten Börsen-Requests durch die Proxy-Schicht (siehe oben).
+
+**Klasse B — darf serverseitig liegen, opt-in.** Derzeit ausschließlich der Inhalt von Global-Chat-Nachrichten, gespeichert in einer SpacetimeDB-Instanz. Diese Funktion ist standardmäßig **deaktiviert**, erfordert ein explizites Authentifizierungs-Token (anonymer Zugriff ist ausgeschlossen), umfasst genau drei Felder (Absender, Text, Zeitstempel) und ist für den Betrieb nicht erforderlich: Rechner, Journal und Risikomanagement funktionieren vollständig, wenn der Server nicht erreichbar ist.
+
+**Datenschutzrechtliche Einordnung.** Für Klasse-A-Daten findet keine Verarbeitung durch Cachy statt. Chat-Nachrichten der Klasse B sind demgegenüber personenbezogene Daten, die auf einem Server verarbeitet werden; eine Aufbewahrungs- und Löschrichtlinie ist erforderlich und noch nicht umgesetzt (siehe Roadmap). Diese Unterscheidung wird hier bewusst benannt, statt eine pauschale Konformität zu behaupten.
+
+Die verbindliche Fassung dieser Grenze — einschließlich der Bedingungen, unter denen künftige Server-Funktionen zulässig sind — steht in `docs/adr/0001-local-first-boundary.md`.
 
 ### AES-256 Backup-Verschlüsselung
 
@@ -538,7 +552,7 @@ _Ziel: Push in den App Store/Play Store._
 ### Phase 3: Institutionelle Funktionen
 
 - **Multi-Account-Management**: Wechseln zwischen Unterkonten.
-- **Read-Only-Investorenansicht**: Generierung eines öffentlichen "Nur-Lese"-Links für ein bestimmtes Portfolio (erfordert einen Wechsel zu einer DB-gestützten Architektur für diese spezifischen Benutzer).
+- **Read-Only-Investorenansicht**: Generierung eines öffentlichen "Nur-Lese"-Links für ein bestimmtes Portfolio. Das würde Journaldaten von Klasse A nach Klasse B verschieben, wie in \`docs/adr/0001-local-first-boundary.md\` definiert — ein Breaking Change, der vor Arbeitsbeginn eine eigene ADR braucht. Derzeit nicht geplant.
 
 ---
 
@@ -561,22 +575,48 @@ npm install
 npm run dev
 \`\`\`
 
+\`npm run dev\` und \`npm run build\` rufen zuerst \`scripts/build_wasm.sh\` auf, um
+das Indikator-Modul \`technicals-wasm\` zu kompilieren. Eine Rust-Toolchain mit dem
+Target \`wasm32-unknown-unknown\` ist daher optional, aber empfohlen; ohne sie
+überspringt das Skript den Build und verwendet das vorkompilierte Binary in
+\`static/wasm/\`. Ein reines \`npm install && npm run dev\` funktioniert also.
+
 ### Teststrategie
 
-Cachy verwendet eine rigorose Testsuite mit **Vitest**.
+Cachy verwendet eine Testsuite mit **Vitest**, für End-to-End-Abläufe Playwright.
 
-- **Unit-Tests**: Fokus auf \`calculator.ts\`, um mathematische Genauigkeit sicherzustellen.
-  \`npm run test:unit\`
-- **Verifizierung**: Playwright-Skripte (Python) werden verwendet, um UI-Abläufe auf der Live-Staging-Umgebung zu verifizieren.
-  \`python3 verify_pagination.py\`
+| Befehl | Umfang |
+| --- | --- |
+| \`npm test\` | Alle Vitest-Unit-Tests |
+| \`npx vitest run <pfad>\` | Eine einzelne Testdatei |
+| \`npm run check\` | \`svelte-check\` Typprüfung — muss bei null Fehlern bleiben |
+| \`npm run lint\` | ESLint — verpflichtender CI-Check, null Fehler, Warnungen gedeckelt |
+| \`npm run test:e2e\` | Playwright-E2E-Tests in \`tests/e2e\` |
+| \`npm run benchmark:technicals\` | Indikator-Benchmarks |
+
+Unit-Tests liegen direkt neben dem Code, den sie abdecken (\`*.test.ts\`). Das
+Rechenbeispiel aus Kapitel 3 ist selbst ausführbar:
+\`src/lib/whitepaper-claims.test.ts\` schickt genau diese Eingaben durch den
+Rechner. Dieses Dokument kann sich also nicht unbemerkt von der beschriebenen
+Engine entfernen, ohne dass ein Test fehlschlägt.
+
+Zusätzlich gibt es Ad-hoc-Python-Skripte zur Verifikation unter \`verification/\`
+und \`scripts/\` (z. B. \`verification/verify_market_overview.py\`). Sie sind nicht
+Teil der automatisierten Suite und werden nicht auf demselben Stand gehalten.
 
 ### Deployment-Pipeline
 
 Der Produktions-Build ist ein Node.js-Adapter-Output.
 
-1. **Build**: \`npm run build\` (Kompiliert SvelteKit nach \`build/\`)
-2. **Run**: \`node build/index.js\` oder via PM2: \`pm2 start server.js --name "cachy-app"\`
-3. **Reverse Proxy**: Nginx wird empfohlen, um SSL-Terminierung zu handhaben und Traffic an Port 3000 weiterzuleiten.
+1. **Build**: \`npm run build\` (kompiliert SvelteKit nach \`build/\`)
+2. **Run**: \`npm start\`, was \`node build/index.js\` ausführt. \`server.js\` im
+   Repository-Root ist ein separater kleiner Wrapper — prüfe, auf welchen
+   Einstiegspunkt dein Process Manager konfiguriert ist, bevor du wechselst.
+3. **Reverse Proxy**: Nginx wird für die SSL-Terminierung empfohlen. Die Ports
+   stammen aus \`.deploy.conf\`: **3001** für Stable (cachy.app) und **3002** für
+   Beta (dev.cachy.app).
+
+Die vollständige aaPanel-Anleitung steht in \`DEPLOYMENT.md\`.
 
 ---
 

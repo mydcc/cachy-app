@@ -27,6 +27,8 @@
     import { icons } from "../../lib/constants";
     import { browser } from "$app/environment";
     import { getComputedColor } from "../../utils/colors";
+    import type { WindowBase } from "../../lib/windows/WindowBase.svelte";
+    import type { Snippet } from "svelte";
 
     import DashboardNav from "./DashboardNav.svelte";
     import { Decimal } from "decimal.js";
@@ -40,15 +42,13 @@
     import JournalDeepDive from "./journal/JournalDeepDive.svelte";
 
     interface Props {
-        window?: any;
+        window?: WindowBase;
     }
 
     let { window: win }: Props = $props();
 
     // --- State for Dashboard ---
     let activePreset = $state("performance");
-    let showUnlockOverlay = $state(false);
-    let unlockOverlayMessage = $state("");
 
     // --- Cheat Code Logic ---
     const CODE_UNLOCK = "VIPENTE2026";
@@ -102,31 +102,21 @@
     function unlockDeepDive() {
         if (settingsState.isDeepDiveUnlocked) return;
         settingsState.isDeepDiveUnlocked = true;
-        unlockOverlayMessage = $_("journal.messages.unlocked");
-        showUnlockOverlay = true;
+        uiState.showToast($_("journal.messages.unlocked"), "success");
         inputBuffer = [];
-        setTimeout(() => {
-            showUnlockOverlay = false;
-        }, 2000);
     }
 
     function lockDeepDive() {
         if (!settingsState.isDeepDiveUnlocked) return;
         settingsState.isDeepDiveUnlocked = false;
-        unlockOverlayMessage = $_("journal.messages.deactivated");
-        showUnlockOverlay = true;
+        uiState.showToast($_("journal.messages.deactivated"), "info");
         inputBuffer = [];
-        setTimeout(() => {
-            showUnlockOverlay = false;
-        }, 2000);
     }
 
     function activateVipSpace() {
-        unlockOverlayMessage = $_("journal.messages.vipSpaceUnlocked");
-        showUnlockOverlay = true;
+        uiState.showToast($_("journal.messages.vipSpaceUnlocked"), "success");
         inputBuffer = [];
         setTimeout(() => {
-            showUnlockOverlay = false;
             if (browser) {
                 window.open("https://metaverse.bitunix.cyou", "_blank");
             }
@@ -164,16 +154,15 @@
     }
 
     $effect(() => {
-        const currentTheme = uiState.currentTheme;
+        void uiState.currentTheme; // Read to register as an effect dependency.
         untrack(() => updateThemeColors());
     });
 
     // --- Table State ---
+    type SortField = keyof import("../../stores/types").JournalEntry | "duration";
     let currentPage = $state(1);
     let itemsPerPage = $state(10);
-    let sortField:
-        | keyof import("../../stores/types").JournalEntry
-        | "duration" = $state("date");
+    let sortField: SortField = $state("date");
     let sortDirection: "asc" | "desc" = $state("desc");
     let filterDateStart = $state("");
     let filterDateEnd = $state("");
@@ -205,25 +194,32 @@
         action: true,
     });
 
+    // Sorts a heterogeneous mix of JournalEntry rows and grouped-by-symbol
+    // summary rows (see groupedTrades below) by an arbitrary field name —
+    // Record<string, unknown> doesn't fit here since JournalEntry has no
+    // index signature, so callers stay untyped-array and each row is cast
+    // once, at the point it's actually read by dynamic key.
     function sortTrades(
-        trades: any[],
+        trades: unknown[],
         field: string,
         direction: "asc" | "desc",
     ) {
-        return [...trades].sort((a, b) => {
-            let valA = a[field];
-            let valB = b[field];
+        return [...trades].sort((rawA, rawB) => {
+            const a = rawA as Record<string, string | number | Decimal | undefined | null>;
+            const b = rawB as Record<string, string | number | Decimal | undefined | null>;
+            let valA: string | number | Decimal | undefined | null = a[field];
+            let valB: string | number | Decimal | undefined | null = b[field];
 
             if (field === "duration") {
-                const startA = new Date(a.entryDate || a.date).getTime();
-                const endA = new Date(a.exitDate || a.date).getTime();
+                const startA = new Date((a.entryDate || a.date) as string | number).getTime();
+                const endA = new Date((a.exitDate || a.date) as string | number).getTime();
                 valA =
                     isNaN(startA) || isNaN(endA)
                         ? 0
                         : Math.max(0, endA - startA);
 
-                const startB = new Date(b.entryDate || b.date).getTime();
-                const endB = new Date(b.exitDate || b.date).getTime();
+                const startB = new Date((b.entryDate || b.date) as string | number).getTime();
+                const endB = new Date((b.exitDate || b.date) as string | number).getTime();
                 valB =
                     isNaN(startB) || isNaN(endB)
                         ? 0
@@ -318,7 +314,7 @@
         sortTrades(displayTrades, sortField, sortDirection),
     );
 
-    function handleSort(field: any) {
+    function handleSort(field: SortField) {
         if (sortField === field) {
             sortDirection = sortDirection === "asc" ? "desc" : "asc";
         } else {
@@ -343,7 +339,9 @@
     }
 
     $effect(() => {
-        const _reset = [
+        // Read to register as effect dependencies — any of these changing
+        // should reset the page.
+        void [
             journalSearchQuery,
             journalFilterStatus,
             filterDateStart,
@@ -378,6 +376,8 @@
     let performanceData = $derived({
         ...filteredPerformance,
         totalPnl: filteredJournal.totalNetProfit?.toNumber() || 0,
+        profitFactor: filteredPerformance.profitFactor?.toNumber() || 0,
+        maxDrawdown: filteredPerformance.maxDrawdown?.toNumber() || 0,
     });
     let qualityData = $derived({
         avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
@@ -394,15 +394,19 @@
                 app.updateTrade(id, { screenshot: url });
                 uiState.showFeedback("save");
             }
-        } catch (e: any) {
+        } catch (e) {
             uiState.errorMessage =
-                e.message || $_("journal.messages.uploadFailed");
+                (e instanceof Error ? e.message : undefined) || $_("journal.messages.uploadFailed");
             uiState.showErrorMessage = true;
         } finally {
             uiState.isLoading = false;
         }
     }
 
+    // No caller in this file — see docs/TODO.md item 6 (dedicated i18n
+    // strings exist for the confirm dialog and progress messages, so this
+    // reads as a manual trigger missing its button, not dead code).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async function forceRecalculateAtr() {
         if (!confirm($_("journal.confirmRecalculateAtr"))) return;
 
@@ -419,9 +423,10 @@
                 true,
             );
             uiState.showFeedback("save");
-        } catch (err: any) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             uiState.showError(
-                $_("journal.messages.atrRecalcError") + err.message,
+                $_("journal.messages.atrRecalcError") + message,
             );
         } finally {
             uiState.isLoading = false;
@@ -429,7 +434,7 @@
         }
     }
 
-    function setHeaderSnippet(node: HTMLElement, snippet: any) {
+    function setHeaderSnippet(node: HTMLElement, snippet: Snippet) {
         if (win) win.headerSnippet = snippet;
     }
 </script>
@@ -449,12 +454,7 @@
 >
     <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
 
-    <JournalCharts
-        {activePreset}
-        isPro={true}
-        isDeepDiveUnlocked={true}
-        {themeColors}
-    />
+    <JournalCharts {activePreset} {themeColors} />
 
     <JournalFilters
         bind:searchQuery={tradeState.journalSearchQuery}
@@ -569,7 +569,7 @@
             bind:itemsPerPage
             {columnVisibility}
             {groupBySymbol}
-            onSort={(field) => handleSort(field)}
+            onSort={(field) => handleSort(field as SortField)}
             onDeleteTrade={(id) => confirmDeleteTrade(id)}
             onStatusChange={(id, status) => app.updateTradeStatus(id, status)}
             onUpdateTrade={(id, data) => app.updateTrade(id, data)}

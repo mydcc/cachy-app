@@ -59,7 +59,7 @@ describe("GET /api/stream-logs Security", () => {
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
     // Simulate Request
-    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as unknown as Parameters<typeof GET>[0];
 
     const response = await GET(event);
 
@@ -70,7 +70,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "development";
     mockEnv.LOG_STREAM_KEY = "dev-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs", "dev-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs", "dev-secret"), url: new URL("http://localhost/api/stream-logs") } as unknown as Parameters<typeof GET>[0];
 
     const response = await GET(event);
 
@@ -82,7 +82,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = undefined;
 
-    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as unknown as Parameters<typeof GET>[0];
     const response = await GET(event);
 
     expect(response.status).toBe(403);
@@ -93,7 +93,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs"), url: new URL("http://localhost/api/stream-logs") } as unknown as Parameters<typeof GET>[0];
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -103,7 +103,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs", "wrong"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs", "wrong"), url: new URL("http://localhost/api/stream-logs") } as unknown as Parameters<typeof GET>[0];
     const response = await GET(event);
 
     expect(response.status).toBe(401);
@@ -113,7 +113,7 @@ describe("GET /api/stream-logs Security", () => {
     process.env.NODE_ENV = "production";
     mockEnv.LOG_STREAM_KEY = "super-secret";
 
-    const event = { request: createRequest("http://localhost/api/stream-logs", "super-secret"), url: new URL("http://localhost/api/stream-logs") } as any;
+    const event = { request: createRequest("http://localhost/api/stream-logs", "super-secret"), url: new URL("http://localhost/api/stream-logs") } as unknown as Parameters<typeof GET>[0];
     const response = await GET(event);
 
     expect(response.status).toBe(200);

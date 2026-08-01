@@ -18,7 +18,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock authentication to bypass security check during test
-vi.mock("../../../lib/server/auth", () => ({
+vi.mock("../../lib/server/auth", () => ({
   checkAppAuth: vi.fn(() => null)
 }));
 
@@ -34,7 +34,7 @@ describe("POST /api/rss-fetch SSRF Protection", () => {
 
     const event = {
       request: mockRequest
-    } as any;
+    } as Parameters<typeof POST>[0];
 
     const response = await POST(event);
 

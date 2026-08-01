@@ -22,7 +22,6 @@
  * Orchestrates order state across providers and syncs with UI.
  */
 
-import { tradeState } from "../stores/trade.svelte";
 import type { OMSOrder, OMSPosition } from "./omsTypes";
 import { logger } from "./logger";
 
@@ -87,7 +86,9 @@ class OrderManagementSystem {
     }
 
     private pruneOrders(forceOne = false) {
-        // Protect recent orders from being pruned immediately (UI needs to see them)
+        // Protect recent orders from being pruned immediately (UI needs to see them).
+        // Not currently enforced by either step below — see docs/TODO.md item 14.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const PRESERVE_LATEST = 20;
 
         // Note: Map.keys() respects insertion order.

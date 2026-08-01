@@ -16,8 +16,8 @@
  */
 
 export class MemoryCache {
-  private cache: Map<string, { value: any; expiry: number }>;
-  private inflight: Map<string, Promise<any>>;
+  private cache: Map<string, { value: unknown; expiry: number }>;
+  private inflight: Map<string, Promise<unknown>>;
 
   constructor() {
     this.cache = new Map();

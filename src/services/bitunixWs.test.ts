@@ -17,9 +17,29 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Decimal } from 'decimal.js';
-import { bitunixWs } from '../../src/services/bitunixWs';
+import { bitunixWs, type TradeData } from '../../src/services/bitunixWs';
 import { marketState } from '../../src/stores/market.svelte';
 import { mdaService } from '../../src/services/mdaService';
+
+// Private members accessed directly to drive internal batching/throttling
+// behavior without a real WebSocket connection.
+interface BitunixWsInternals {
+    throttleMap?: Map<string, number>;
+    handleMessage: (message: unknown, type: "public" | "private") => void;
+    subscribeTrade: (symbol: string, callback: (trade: TradeData) => void) => () => void;
+    subscribe: (symbol: string, channel: string) => void;
+    unsubscribe: (symbol: string, channel: string) => void;
+    sendPublicMessage: (payload: unknown) => void;
+    wsPublic: WebSocket | null;
+    isDestroyed: boolean;
+    pendingSubscribes: { symbol: string; ch: string }[];
+    pendingUnsubscribes: { symbol: string; ch: string }[];
+    publicMessageQueue: string[];
+    batchTimer: ReturnType<typeof setTimeout> | null;
+    publicMessageTimer: ReturnType<typeof setTimeout> | null;
+    lastPublicSendTime: number;
+    pendingSubscriptions: Map<string, number>;
+}
 
 // Mock mdaService
 vi.mock('../../src/services/mdaService', () => ({
@@ -50,7 +70,7 @@ vi.mock('../../src/stores/market.svelte', () => ({
 }));
 
 describe('BitunixWS Fast Path Fallback', () => {
-    const wsService = bitunixWs as any;
+    const wsService = bitunixWs as unknown as BitunixWsInternals;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -167,14 +187,14 @@ describe('BitunixWS Fast Path Fallback', () => {
     });
 
     describe('Batching and Rate Limiting Queue', () => {
-        let mockWs: any;
+        let mockWs: { readyState: number; send: ReturnType<typeof vi.fn> };
 
         beforeEach(() => {
             mockWs = {
                 readyState: 1, // WebSocket.OPEN
                 send: vi.fn()
             };
-            wsService.wsPublic = mockWs;
+            wsService.wsPublic = mockWs as unknown as WebSocket;
             wsService.isDestroyed = false;
             wsService.pendingSubscribes = [];
             wsService.pendingUnsubscribes = [];

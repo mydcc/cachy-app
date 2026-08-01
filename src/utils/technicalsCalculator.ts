@@ -30,7 +30,7 @@ import {
   getRsiAction,
   type Kline,
 } from "./indicators";
-import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
+import { DivergenceScanner } from "./divergenceScanner";
 import { ConfluenceAnalyzer } from "./confluenceAnalyzer";
 import type { IndicatorSettings } from "../types/indicators";
 import { BufferPool } from "./bufferPool";
@@ -125,13 +125,13 @@ export function calculateIndicatorsFromArrays(
   const currentPrice = closesNum[closesNum.length - 1];
   const oscillators: IndicatorResult[] = [];
   const divergences: DivergenceItem[] = [];
-  const advancedInfo: any = { marketStructure: { highs: [], lows: [] } };
+  const advancedInfo: NonNullable<TechnicalsData["advanced"]> = { marketStructure: { highs: [], lows: [] } };
 
   const shouldCalculate = (key: keyof IndicatorSettings): boolean => {
     if (!settings) return true;
     const config = settings[key];
     if (config && typeof config === 'object' && 'enabled' in config) {
-        return (config as any).enabled;
+        return config.enabled;
     }
     return true;
   };
@@ -185,7 +185,6 @@ export function calculateIndicatorsFromArrays(
     // Stochastic
     if (shouldCalculate('stochastic')) {
         const stochK = settings?.stochastic?.kPeriod || 14;
-        const stochD = settings?.stochastic?.dPeriod || 3;
         const stochSmooth = settings?.stochastic?.kSmoothing || 3;
 
         // Calculate Raw K
@@ -442,7 +441,7 @@ export function calculateIndicatorsFromArrays(
   }
 
   // --- Volatility ---
-  let volatility: any = undefined;
+  let volatility: TechnicalsData["volatility"];
   try {
       if (shouldCalculate('atr') || shouldCalculate('bollingerBands')) {
           volatility = {};
@@ -542,7 +541,7 @@ export function calculateIndicatorsFromArrays(
   }
 
   const pivotType = settings?.pivots?.type || "classic";
-  let pivotData: any;
+  let pivotData: { pivots: TechnicalsData["pivots"]; basis: TechnicalsData["pivotBasis"] };
   const prevIdx = closesNum.length - 2;
 
   if (prevIdx >= 0 && shouldCalculate('pivots')) {
@@ -628,14 +627,16 @@ function getSourceArray(
         case "open": return open;
         case "high": return high;
         case "low": return low;
-        case "hl2":
+        case "hl2": {
             const hl2 = new Float64Array(close.length);
             for(let i=0; i<close.length; i++) hl2[i] = (high[i] + low[i]) / 2;
             return hl2;
-        case "hlc3":
+        }
+        case "hlc3": {
             const hlc3 = new Float64Array(close.length);
             for(let i=0; i<close.length; i++) hlc3[i] = (high[i] + low[i] + close[i]) / 3;
             return hlc3;
+        }
         case "close":
         default: return close;
     }

@@ -30,7 +30,6 @@ import {
   getPsychologyData,
   getTagEvolution,
   getConfluenceData,
-  getMonteCarloData,
   getExecutionEfficiencyData,
   getVisualRiskRadarData,
   getVolatilityMatrixData,

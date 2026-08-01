@@ -27,6 +27,8 @@ import { technicalsService } from './technicalsService';
 import { calculationStrategy } from './calculationStrategy';
 import { indicatorState } from '../stores/indicator.svelte';
 import type { IndicatorSettings } from '../types/indicators';
+import type { Kline } from './technicalsTypes';
+import { Decimal } from 'decimal.js';
 import { logger } from './logger';
 
 export interface BenchmarkRun {
@@ -48,10 +50,8 @@ export interface BenchmarkResults {
 /**
  * Generate synthetic OHLCV klines for benchmarking
  */
-function generateTestKlines(count: number): {
-  time: number; open: number; high: number; low: number; close: number; volume: number;
-}[] {
-  const klines = [];
+function generateTestKlines(count: number): Kline[] {
+  const klines: Kline[] = [];
   let price = 100;
   const baseTime = Date.now() - count * 60000;
 
@@ -65,7 +65,11 @@ function generateTestKlines(count: number): {
 
     klines.push({
       time: baseTime + i * 60000,
-      open, high, low, close, volume
+      open: new Decimal(open),
+      high: new Decimal(high),
+      low: new Decimal(low),
+      close: new Decimal(close),
+      volume: new Decimal(volume),
     });
     price = close;
   }
@@ -95,7 +99,7 @@ function percentile(values: number[], p: number): number {
  */
 export async function benchmarkEngine(
   engine: 'ts' | 'wasm' | 'gpu',
-  klines: any[],
+  klines: Kline[],
   settings: IndicatorSettings,
   warmupRuns: number,
   measuredRuns: number

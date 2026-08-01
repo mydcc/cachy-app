@@ -20,25 +20,21 @@ import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";
 
-export const GET: RequestHandler = ({ request, url }) => {
+export const GET: RequestHandler = ({ request }) => {
   // Security Check
   const secret = env.LOG_STREAM_KEY;
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!secret) {
-    const headers = {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    };
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(`data: {"level":"warn","message":"Server logs disabled (LOG_STREAM_KEY not set)"}\n\n`);
-        controller.close();
-      }
+    // No key configured means the feature is off, not open. This previously
+    // answered 200 with an SSE stream saying "logs disabled" — no log data
+    // leaked, but an unauthenticated request still got a success status.
+    // Consistent with ADR-0002: an unconfigured secret is a misconfiguration,
+    // not a permission grant. Set LOG_STREAM_KEY to enable log streaming.
+    return new Response("Log streaming is disabled (LOG_STREAM_KEY not set)", {
+      status: 403,
     });
-    return new Response(stream, { headers });
   }
 
   // Use timingSafeEqual to prevent timing attacks
@@ -76,7 +72,7 @@ export const GET: RequestHandler = ({ request, url }) => {
         try {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
-        } catch (err) {
+        } catch {
           cleanup();
           try { controller.close(); } catch { /* already closed */ }
         }
