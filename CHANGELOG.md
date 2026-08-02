@@ -5,6 +5,14 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.10](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.9...v1.0.0-beta.10) (2026-08-02)
+
+
+### Bug Fixes
+
+* normalize Bitget WS payload to match account store expectations (BUG-0001) ([9924365](https://github.com/mydcc/cachy-app/commit/9924365992483f7827ac7145f65c317761b65ba3))
+* remove ESLint no-explicit-any violations in bitgetWs tests ([6dd8562](https://github.com/mydcc/cachy-app/commit/6dd856279a5b76d5f26b53214cac36619df267f8))
+
 # [1.0.0-beta.9](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.8...v1.0.0-beta.9) (2026-08-02)
 
 
