@@ -5,6 +5,15 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.7...v1.0.0-beta.8) (2026-08-02)
+
+
+### Bug Fixes
+
+* bug-0002 — widen types to handle numeric prices, use Decimal for filtering ([9df1928](https://github.com/mydcc/cachy-app/commit/9df1928ef356eb2ce95ddabe5fdb93aa453f4006))
+* bug-0003 — enforce PRESERVE_LATEST protection for recent orders ([4ad0348](https://github.com/mydcc/cachy-app/commit/4ad0348df089312a5fa082032b96b4e74b633baa))
+* presets — sanitize legacy feeMode values for TypeScript compatibility ([27e64e6](https://github.com/mydcc/cachy-app/commit/27e64e62442204040457bf7559e991304b6cd572))
+
 # [1.0.0-beta.7](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.6...v1.0.0-beta.7) (2026-08-02)
 
 
