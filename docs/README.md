@@ -56,7 +56,6 @@ and this repository has already paid for that once — see
 | [`feedback-system.md`](feedback-system.md) | The in-app feedback path |
 | [`REPO-AUDIT.md`](REPO-AUDIT.md) | July 2026 audit — what was found wrong and what was done. Historical, still worth reading |
 | [`CHANGELOG-legacy.md`](CHANGELOG-legacy.md) | The hand-written 0.9x history. Releases from 1.0.0 are in the generated root `CHANGELOG.md` |
-| [`performance/technical_report.md`](performance/technical_report.md) | Performance analysis |
 | [`archive/`](archive/README.md) | Documents that were true once. Not maintained |
 
 ---
