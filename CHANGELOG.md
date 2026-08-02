@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.12](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.11...v1.0.0-beta.12) (2026-08-02)
+
+
+### Bug Fixes
+
+* bound upstream exchange fetch with a timeout in /api/klines ([0d6f6b2](https://github.com/mydcc/cachy-app/commit/0d6f6b2a4dbca2819194616cd6f6dc91ebc048d6))
+
 # [1.0.0-beta.11](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.10...v1.0.0-beta.11) (2026-08-02)
 
 
