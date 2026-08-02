@@ -149,7 +149,9 @@ Features:
 6. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
 7. **Validate build** - checks that `build/index.js` exists
 8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_old_<timestamp>`, move the new one in
-9. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`
+9. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
+   Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
+   start command (e.g. a bad path) is flagged before the health check even begins.
 10. **Health check** - verify the service responds at `/api/health`
 11. **Auto-rollback** - restore the backup if the health check fails
 
@@ -344,6 +346,14 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
    - Check aaPanel Node project status
    - Verify port is not in use: `lsof -i :3001`
    - Check service logs in aaPanel
+   - **Verify `STABLE_START_COMMAND` / `BETA_START_COMMAND` in `.deploy.conf` point at a script that actually
+     exists.** aaPanel names the vhost start script after the Node project's name (e.g. `cachyapp.sh`), not
+     after a fixed `prod`/`dev` convention — confirm with `ls /www/server/nodejs/vhost/scripts/`. This is a
+     common failure after a server move: the project gets recreated under a new name in aaPanel, but
+     `.deploy.conf` still points at the old script path. The command then exits immediately (exit 127) and
+     the health check waits its full timeout for a process that was never started — with `deploy.sh`'s
+     start-command logging (see above), this now shows up as `bash: .../<name>.sh: No such file or
+     directory` in `logs/start_*.log` instead of failing silently.
 
 2. **Endpoint not responding:**
    - Verify service is running: `curl http://localhost:3001/api/health`
