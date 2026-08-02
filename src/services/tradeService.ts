@@ -36,6 +36,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { PositionRawSchema } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import { appFetch } from "../lib/appAuth";
 
 export interface TpSlOrder {
     orderId: string;
@@ -105,7 +106,6 @@ class TradeService {
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
             "X-Provider": provider,
-            ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}),
             "X-Api-Key": keys.key,
             "X-Api-Secret": keys.secret,
             ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
@@ -114,7 +114,7 @@ class TradeService {
         // Deep serialize Decimals to strings before JSON.stringify
         const serializedPayload = this.serializePayload(payload);
 
-        const response = await fetch(endpoint, {
+        const response = await appFetch(endpoint, {
             method,
             headers,
             body: JSON.stringify(serializedPayload)
@@ -361,11 +361,10 @@ class TradeService {
             const keys = settingsState.apiKeys[provider];
             if (!keys?.key || !keys?.secret) return;
 
-            const pendingResponse = await fetch("/api/sync/positions-pending", {
+            const pendingResponse = await appFetch("/api/sync/positions-pending", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    ...(settingsState.appAccessToken ? { "x-app-access-token": settingsState.appAccessToken } : {}),
                     "X-Api-Key": keys.key,
                     "X-Api-Secret": keys.secret
                 },

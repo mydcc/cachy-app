@@ -606,7 +606,7 @@ export class SettingsManager {
   // at build time, so such a default would serve the operator's AI keys as plain
   // JavaScript to every visitor of a production build. AI keys are Class A data
   // under ADR-0001: each user enters their own in Settings → AI, and it stays in
-  // that browser. See docs/ROADMAP.md item 24a.
+  // that browser. See docs/archive/engineering-log-2026-h1.md item 24a.
   openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
   openaiModel = $state<string>(defaultSettings.openaiModel);
   geminiApiKey = $state<string>(defaultSettings.geminiApiKey);
@@ -877,8 +877,35 @@ export class SettingsManager {
   isEncrypted = $state(false);
   isLocked = $state(false);
 
+  /**
+   * Resolves once `load()` has restored the encrypted secrets into memory.
+   *
+   * Decrypting them is asynchronous — it needs the device key from IndexedDB
+   * and then WebCrypto — while the auto-fetches on mount are not. Without this
+   * gate they raced the decryption and went out with an empty
+   * `appAccessToken`, so every `checkAppAuth`-guarded route answered 401 on
+   * page load while the very same request succeeded once clicked by hand.
+   *
+   * `appFetch` awaits this before sending. It always settles: in
+   * master-password mode there is nothing to wait for (the vault is locked and
+   * stays locked until the user unlocks it), and a failed decryption resolves
+   * too rather than blocking every request forever.
+   */
+  readonly secretsReady: Promise<void>;
+  private resolveSecretsReady: () => void = () => {};
+
   constructor() {
-    if (browser) {
+    this.secretsReady = new Promise((resolve) => {
+      this.resolveSecretsReady = resolve;
+    });
+
+    if (!browser) {
+      // Server-side render: no localStorage to restore from.
+      this.resolveSecretsReady();
+      return;
+    }
+
+    {
       // 1. Load settings synchronously (effectActive is false, so no saves)
       this.load();
 
@@ -1106,6 +1133,11 @@ export class SettingsManager {
   }
 
   private load() {
+    // Set when the background decryption below takes over responsibility for
+    // resolving `secretsReady`. Every other path through load() resolves it
+    // itself, so a caller awaiting it is never left hanging.
+    let secretsPending = false;
+
     try {
       const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
       if (!d) {
@@ -1216,7 +1248,8 @@ export class SettingsManager {
         if (!this.isEncrypted) {
           // We need to trigger this async but load is sync.
           // We'll launch a background decryption.
-          (async () => {
+          secretsPending = true;
+          void (async () => {
             try {
               const deviceKey = await this.getDeviceKey();
               const entries = Object.entries(this.encryptedSecrets || {});
@@ -1244,6 +1277,11 @@ export class SettingsManager {
                 "[Settings] Failed to initialize background decryption",
                 e,
               );
+            } finally {
+              // Release waiters even when decryption failed — a request without
+              // the token gets a clean 401, a request that never fires hangs
+              // the UI.
+              this.resolveSecretsReady();
             }
           })();
         }
@@ -1461,6 +1499,9 @@ export class SettingsManager {
       }
       // Save defaults to fix corrupted localStorage
       this.save();
+    } finally {
+      // The background decryption resolves this itself once it is done.
+      if (!secretsPending) this.resolveSecretsReady();
     }
   }
 

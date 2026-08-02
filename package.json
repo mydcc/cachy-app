@@ -1,6 +1,6 @@
 {
   "name": "cachy-app",
-  "version": "1.0.1",
+  "version": "1.0.0-beta.8",
   "description": "Local-first position size and risk management calculator for crypto traders.",
   "license": "AGPL-3.0-or-later",
   "private": true,
@@ -25,7 +25,10 @@
     "test": "vitest run",
     "test:e2e": "playwright test tests/e2e",
     "test:perf": "vitest run --config vitest.perf.config.ts",
-    "benchmark:technicals": "vitest bench"
+    "benchmark:technicals": "vitest bench",
+    "backlog:index": "node scripts/backlog-index.mjs",
+    "backlog:check": "node scripts/backlog-index.mjs --check",
+    "docs:links": "node scripts/check-doc-links.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

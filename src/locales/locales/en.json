@@ -1505,7 +1505,9 @@
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",
     "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "syncFailed": "Sync failed: {error}",
+    "unauthorized": "Unauthorized. Check the App Access Token under Settings → Connections.",
+    "tooManyRequests": "Too many requests. Please wait a moment and try again."
   },
   "chartPatterns": {
     "title": "Chart Patterns Academy",

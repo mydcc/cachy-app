@@ -19,6 +19,7 @@ import { z } from "zod";
 import CryptoJS from "crypto-js";
 import { safeJsonParse } from "../utils/safeJson";
 import { CryptoPanicResponseSchema, NewsApiResponseSchema } from "../types/newsSchemas";
+import { appFetch } from "../lib/appAuth";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -231,10 +232,9 @@ export const newsService = {
 
             let res;
             try {
-              res = await fetch("/api/external/news", {
+              res = await appFetch("/api/external/news", {
                 method: "POST",
                 headers: {
-                  "x-app-access-token": settingsState.appAccessToken || "",
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
@@ -289,10 +289,9 @@ export const newsService = {
 
             let res;
             try {
-              res = await fetch("/api/external/news", {
+              res = await appFetch("/api/external/news", {
                 method: "POST",
                 headers: {
-                  "x-app-access-token": settingsState.appAccessToken || "",
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
@@ -451,7 +450,7 @@ export const newsService = {
         const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s for AI
 
         // Secure Server-Side Execution
-        const response = await fetch("/api/sentiment", {
+        const response = await appFetch("/api/sentiment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

@@ -8,6 +8,7 @@
  */
 
 import { settingsState } from "../stores/settings.svelte";
+import { appFetch } from "../lib/appAuth";
 
 interface CacheEntry<T> {
   data: T;
@@ -56,7 +57,7 @@ class CmcService {
     const query = new URLSearchParams(params);
     query.append("endpoint", endpoint);
 
-    const res = await fetch(`/api/external/cmc?${query.toString()}`, {
+    const res = await appFetch(`/api/external/cmc?${query.toString()}`, {
       headers: {
         "x-cmc-api-key": apiKey,
       },

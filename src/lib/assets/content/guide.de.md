@@ -168,6 +168,23 @@ Der "Deep Dive"-Bereich bietet detaillierte Einblicke in dein Verhalten:
 
 Zugriff auf die Einstellungen über das Zahnrad-Symbol.
 
+### App Zugangstoken
+
+Da du Cachy selbst betreibst, gibt es ein gemeinsames Geheimnis zwischen deinem Browser und deinem eigenen Server: den **App Zugangstoken** unter Einstellungen → Verbindungen.
+
+Das ist **kein** Börsen-Schlüssel und kein Konto-Passwort. Er sorgt dafür, dass nur du die API-Routen deines Servers nutzen kannst.
+
+Der Token muss an **zwei** Stellen stehen, und zwar identisch:
+
+1. In der Datei `.env` auf deinem Server, als `APP_ACCESS_TOKEN`.
+2. Hier im Feld **App Zugangstoken**.
+
+**Woran du erkennst, dass etwas fehlt:** Die App startet normal, aber der Kontostand lädt nicht, die Positionen bleiben leer, und die Browser-Konsole zeigt `401 (Unauthorized)`. Fehlt eine der beiden Hälften, weist der Server jede Anfrage ab — aus Sicherheitsgründen mit immer derselben Meldung, egal welche Hälfte fehlt.
+
+Nach dem Laden der Seite kann es ein paar Sekunden dauern, bis der Token im Feld erscheint: Er wird im Hintergrund aus dem lokalen Speicher entschlüsselt.
+
+Wie du den Token erzeugst und in die `.env` einträgst, steht in der Installationsanleitung (`docs/INSTALL.md`).
+
 ### API Provider
 
 - **Bitunix (Empfohlen):** Unterstützt volle Websocket-Integration (Echtzeitdaten), Positionssynchronisation und Order-Management.

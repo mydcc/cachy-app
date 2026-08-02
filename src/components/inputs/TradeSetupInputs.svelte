@@ -37,11 +37,11 @@
 
   interface Props {
     symbol: string;
-    entryPrice: string | null;
+    entryPrice: string | number | null;
     useAtrSl: boolean;
-    atrValue: string | null;
-    atrMultiplier: string | null; // Multiplier kept as number (1.2 etc)
-    stopLossPrice: string | null;
+    atrValue: string | number | null;
+    atrMultiplier: string | number | null;
+    stopLossPrice: string | number | null;
     atrMode: "manual" | "auto";
     atrTimeframe: string;
     atrFormulaDisplay: string;
@@ -353,7 +353,7 @@
   // Determine dynamic step based on price magnitude
   let priceStep = $derived.by(() => {
     if (!entryPrice) return 0.01;
-    const price = parseFloat(entryPrice);
+    const price = parseFloat(String(entryPrice));
     if (isNaN(price) || price === 0) return 0.01;
 
     // Dynamic precision for low-sat assets vs high-value assets

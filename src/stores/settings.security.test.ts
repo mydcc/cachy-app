@@ -129,8 +129,9 @@ describe("SettingsManager Security", () => {
 });
 
 /**
- * Guards ROADMAP item 24a. The AI key fields once defaulted to
- * `import.meta.env.VITE_*_API_KEY`. Vite inlines every VITE_-prefixed variable
+ * Guards engineering-log item 24a
+ * (docs/archive/engineering-log-2026-h1.md). The AI key fields once defaulted
+ * to `import.meta.env.VITE_*_API_KEY`. Vite inlines every VITE_-prefixed variable
  * into the client bundle, so a production build made with those variables set
  * shipped the operator's AI keys to every visitor as plain JavaScript. The
  * fallback is gone; this fails if anyone reintroduces it.

@@ -31,8 +31,8 @@
 
   interface Props {
     index: number;
-    price: string | null;
-    percent: string | null;
+    price: string | number | null;
+    percent: string | number | null;
     isLocked: boolean;
     tpDetail?: IndividualTpResult | undefined;
   }

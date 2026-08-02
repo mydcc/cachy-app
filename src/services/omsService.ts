@@ -86,36 +86,43 @@ class OrderManagementSystem {
     }
 
     private pruneOrders(forceOne = false) {
-        // Protect recent orders from being pruned immediately (UI needs to see them).
-        // Not currently enforced by either step below — see docs/TODO.md item 14.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const PRESERVE_LATEST = 20;
 
-        // Note: Map.keys() respects insertion order.
-        // The first keys are the oldest inserted.
-
         // 1. Safe Prune: Remove oldest finalized orders
-        // We iterate from the start (Oldest)
         for (const [id, order] of this.orders) {
             if (this.orders.size <= this.MAX_ORDERS && !forceOne) break;
-
-            // Check if finalized
             if (["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
-                 this.orders.delete(id);
-                 if (forceOne) return; // Mission accomplished
+                this.orders.delete(id);
+                if (forceOne) return;
             }
         }
 
-        // 2. Force Prune: If still full (or no finalized orders found to delete),
-        // delete the ABSOLUTE OLDEST, even if active (unless we are inside the protected buffer)
-        // This is a trade-off: Dropping an active order from OMS is better than crashing or rejecting new ones.
+        // 2. Force Prune: Evict oldest order outside PRESERVE_LATEST protection window.
+        // Strategy: Always keep the most recently inserted PRESERVE_LATEST orders.
+        // Only delete older ones, never delete a just-inserted order.
         if (this.orders.size > this.MAX_ORDERS || forceOne) {
-             const keys = this.orders.keys();
-             const oldestId = keys.next().value;
-             if (oldestId) {
-                 this.orders.delete(oldestId);
-                 logger.warn("market", `[OMS] Ring Buffer Eviction: Removed oldest order ${oldestId}`);
-             }
+            const allOrderEntries = Array.from(this.orders.entries());
+            // Entries beyond PRESERVE_LATEST (oldest ones) are candidates for deletion
+            const oldersOutsideBuffer = allOrderEntries.slice(
+              0,
+              Math.max(0, allOrderEntries.length - PRESERVE_LATEST),
+            );
+
+            if (oldersOutsideBuffer.length > 0) {
+                // Find the oldest order outside the protection window
+                const oldestOutsideBuffer = oldersOutsideBuffer[0];
+                if (oldestOutsideBuffer) {
+                    const [id] = oldestOutsideBuffer;
+                    this.orders.delete(id);
+                    logger.warn(
+                      "market",
+                      `[OMS] Ring Buffer Eviction: Removed order ${id} (outside PRESERVE_LATEST)`,
+                    );
+                    if (forceOne) return;
+                }
+            }
+            // If all remaining orders are in PRESERVE_LATEST, skip force prune
+            // (better to keep them than to evict a just-inserted order)
         }
     }
 

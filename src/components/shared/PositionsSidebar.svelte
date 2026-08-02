@@ -24,6 +24,7 @@
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
   import { getDisplayMessage } from "../../utils/errorUtils";
+  import { appFetch } from "../../lib/appAuth";
   import type { OMSPosition } from "../../services/omsTypes";
   import type { NormalizedOrder } from "../../types/bitunix";
   import type { TranslationKey } from "../../locales/schema";
@@ -125,7 +126,7 @@
     loadingPositions = true;
     errorPositions = "";
     try {
-      const response = await fetch("/api/positions", {
+      const response = await appFetch("/api/positions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,7 +168,7 @@
     }
 
     try {
-      const response = await fetch("/api/orders", {
+      const response = await appFetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -202,7 +203,7 @@
     if (!keys?.key || !keys?.secret) return;
 
     try {
-      const response = await fetch("/api/account", {
+      const response = await appFetch("/api/account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

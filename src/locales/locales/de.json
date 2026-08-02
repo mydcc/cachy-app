@@ -1536,7 +1536,9 @@
     "invalidAmount": "Invalid order amount",
     "syncIncomplete": "Sync incomplete (Timeout).",
     "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "syncFailed": "Sync failed: {error}",
+    "unauthorized": "Nicht autorisiert. Prüfe den App-Zugangstoken unter Einstellungen → Verbindungen.",
+    "tooManyRequests": "Zu viele Anfragen. Bitte kurz warten und erneut versuchen."
   },
   "bitunixErrors": {
     "10001": "Network Error",
