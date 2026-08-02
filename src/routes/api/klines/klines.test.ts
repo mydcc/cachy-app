@@ -114,6 +114,32 @@ describe('GET /api/klines', () => {
     expect(json[0].open).toBe("0.0000001");
     // If it was Decimal(x).toString(), it would likely be "1e-7"
   });
+  it('should return a 504 instead of hanging when the upstream never responds', async () => {
+    vi.useFakeTimers();
+    vi.mocked(global.fetch).mockImplementation((_url, init) => {
+      const signal = (init as RequestInit | undefined)?.signal;
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      });
+    });
+
+    const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
+    const responsePromise = GET({ url } as unknown as Parameters<typeof GET>[0]);
+
+    await vi.advanceTimersByTimeAsync(8000);
+
+    const response = await responsePromise;
+    const json = await response.json();
+
+    expect(response.status).toBe(504);
+    expect(json.error).toMatch(/timed out/i);
+    vi.useRealTimers();
+  });
+
   it('should handle Bitget array format', async () => {
     // [[timestamp, open, high, low, close, volume, quoteVol], ...]
     const mockKlines = [
