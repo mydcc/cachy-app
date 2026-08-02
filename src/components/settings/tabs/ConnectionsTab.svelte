@@ -524,16 +524,44 @@
                                 class="api-input"
                             />
                         </div>
-                        <div class="api-card compact">
-                            <label for="imgbb-key"
-                                >{$_("settings.connections.labels.imgbb")}</label
-                            >
-                            <input
-                                id="imgbb-key"
-                                type="password"
-                                bind:value={settingsState.imgbbApiKey}
-                                class="api-input"
-                            />
+                        <div class="api-card">
+                            <div class="header">
+                                <span class="font-bold text-sm">{$_("settings.connections.labels.imgbb")}</span>
+                                <span class="status-dot {settingsState.imgbbApiKey ? "connected" : ""}"></span>
+                            </div>
+                            <div class="body">
+                                <p class="text-xs text-[var(--text-secondary)] mb-3">
+                                    Required for screenshot uploads.
+                                    <a
+                                        href="https://api.imgbb.com/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-[var(--accent-color)] hover:underline"
+                                    >
+                                        Get your API key →
+                                    </a>
+                                </p>
+                                <div class="field-group">
+                                    <label for="imgbb-key">{$_("settings.connections.apiKey")} <span class="text-[var(--danger-color)]">*</span></label>
+                                    <div class="input-wrapper relative">
+                                        <input
+                                            id="imgbb-key"
+                                            type={showKeys["imgbb_k"] ? "text" : "password"}
+                                            bind:value={settingsState.imgbbApiKey}
+                                            class="api-input pr-8"
+                                            required
+                                            placeholder="Enter your imgbb API key..."
+                                        />
+                                        <button
+                                            class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                            onclick={() => toggleKeyVisibility("imgbb_k")}
+                                            aria-label="Toggle key visibility"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
