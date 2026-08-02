@@ -72,19 +72,63 @@ through Vite or semantic-release, and it does not become buildable by adding a
 step to `package.json`.
 
 The one genuinely shared piece is the alert evaluation logic, and *how* it is
-shared is itself a real decision with three candidates, not a detail:
+shared was a real decision with three candidates:
 
 | Option | What it costs |
 | --- | --- |
-| **Rust → WASM and native**, called from Kotlin via JNI, cross-compiled with `cargo-ndk` | One source for both browser and Android — matches the existing `technicals-wasm/` precedent — but [`FEAT-0027`](../features/FEAT-0027-alert-engine.md)'s core would need to be written in Rust rather than TypeScript |
-| **Embed a JS engine** (e.g. QuickJS) in the Android app and run the TS core as-is | Core stays TypeScript, no rewrite — but adds a real runtime dependency and its own memory/battery footprint inside a foreground service, which is exactly the resource-conscious part of this idea |
-| **Reimplement in Kotlin from spec**, held honest by a conformance suite mirroring [`FEAT-0018`](../features/FEAT-0018-adapter-conformance-suite.md)'s pattern | Least new infrastructure, but two implementations that must be proven to agree rather than merely intended to — the "RSI crossed 30" correctness risk this idea exists to avoid doesn't disappear, it moves into test discipline |
+| **Rust → WASM and native**, called from Kotlin via JNI, cross-compiled with `cargo-ndk` | One source for both browser and Android — matches the existing `technicals-wasm/` precedent — but the evaluation core has to be Rust rather than TypeScript |
+| **Embed a JS engine** (e.g. QuickJS) and run the TS core as-is | Core stays TypeScript, no rewrite — but adds a runtime with its own memory and battery footprint inside a foreground service, which is exactly the resource-constrained part of this idea |
+| **Reimplement in Kotlin from spec**, held honest by a conformance suite mirroring [`FEAT-0018`](../features/FEAT-0018-adapter-conformance-suite.md) | Least new infrastructure, but two implementations that must be *proven* to agree rather than intended to — the "did RSI cross 30" correctness risk moves into test discipline instead of going away |
 
-None of this needs deciding now — [`FEAT-0027`](../features/FEAT-0027-alert-engine.md)
-ships as a normal part of the web app regardless, since the portability
-requirement (plain TS/WASM, no DOM) is cheap to satisfy up front and keeps all
-three options open. This table exists so the decision is informed when it's
-actually made, not so it gets made today.
+**Decided: Rust → WASM, on the maintainer's instruction that evaluation must be
+the fastest, most robust and safest option available.** The reasoning that
+supports it, and one honest qualification:
+
+- **The precedent already exists.** `technicals-wasm/` is Rust compiled to
+  WASM and wired into the build through `scripts/build_wasm.sh`. The toolchain,
+  the build step and the fallback-to-committed-binary behaviour are proven in
+  this repo, so this is an extension of an existing pattern rather than a new
+  one.
+- **It is the only option that makes the companion nearly free.** The same
+  crate cross-compiles to Android with `cargo-ndk`. The other two options solve
+  the browser and then still owe an Android answer.
+- **Robustness is the strongest argument, more than raw speed.** Exhaustive
+  matching, no null, and no silent numeric coercion are real advantages for
+  "fire exactly once per crossing" logic — the same reasons that make Rust a
+  good fit for the indicator maths it would sit beside.
+- **The honest qualification: raw speed is not where the win is.** Alert
+  evaluation compares a handful of numbers per tick; it is not compute-bound,
+  and the cost is dominated by the WebSocket and by indicator calculation
+  (already WASM). Picking Rust here buys correctness guarantees, a shared
+  Android path, and adjacency to `technicals-wasm/` — not a measurable
+  reduction in evaluation latency. Worth stating so nobody later benchmarks it
+  expecting a speedup that was never the point.
+
+**Scope of the decision:** the *evaluation core* is Rust. Alert CRUD, storage,
+settings and all UI stay TypeScript/Svelte — they are bookkeeping, they touch
+the DOM, and moving them across a WASM boundary would cost clarity for nothing.
+
+## Does this cost anything elsewhere — the 3D background, Svelte reactivity?
+
+**No, and that is the specific reason for the narrow scope rather than a full
+port.** The question is worth answering explicitly because the two obvious
+alternatives both *would* have cost something:
+
+| Approach | Effect on the existing app |
+| --- | --- |
+| **Alert-only companion** (this idea) | **None.** The companion renders no UI at all — it is a foreground service plus a notification. The PWA is not modified, not wrapped, not rebuilt. Three.js background, WebGPU acceleration, Svelte 5 runes, the window system: all untouched, all still running in a real browser engine |
+| Capacitor/WebView wrapper around the whole app | Would put the entire UI inside Android's WebView, where **WebGPU support is limited or behind flags** — a genuine risk to the accelerated indicator path and the 3D background. Svelte reactivity itself would survive (still the same JS), but the rendering layer would become the WebView's problem rather than the browser's |
+| Native rewrite of the UI | Loses Svelte entirely, and with it the reactivity model, the theme system and the window manager. Never on the table |
+
+So the trade is the reverse of what it might look like: the companion exists
+*so that* nothing has to be given up. Everything visual and reactive stays in
+the PWA, where it already works; only the one capability a browser structurally
+cannot provide — holding a connection while closed — moves to a native process
+that has no UI to compromise.
+
+The one genuine cost is the shared evaluation core being Rust rather than
+TypeScript, which is a constraint on [`FEAT-0027`](../features/FEAT-0027-alert-engine.md)'s
+implementation, not a loss anywhere else in the app.
 
 ## What would have to be true first
 

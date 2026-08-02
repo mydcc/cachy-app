@@ -208,8 +208,9 @@ defers. The actual path to background alerting with the browser closed is a
 native companion running the same evaluation core on-device — see
 [`TODO.md`](TODO.md) item 21 and [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 Because of this, [`FEAT-0027`](backlog/features/FEAT-0027-alert-engine.md)'s
-evaluation core is built portable (plain TypeScript/WASM, no DOM dependency)
-from the start.
+evaluation core is **Rust compiled to WASM** from the start, extending the
+existing `technicals-wasm/` toolchain — the same crate cross-compiles for
+Android, so the companion needs no second implementation.
 
 ---
 

@@ -157,10 +157,12 @@ exchanges without opening the exchange's own UI.
 prerequisite is most of the work and probably its own item.
 
 **Build [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md)'s evaluation
-core portable from the start** — plain TypeScript/WASM, no DOM dependency. Not
-optional polish: it is the only way background alerting can ever leave the
-browser without breaking [ADR-0004](adr/0004-spacetimedb-data-scope.md), since
-a Cachy-operated server evaluating alerts is forbidden outright. See
+core in Rust → WASM from the start**, extending the existing `technicals-wasm/`
+toolchain. Not optional polish: a Cachy-operated server evaluating alerts is
+forbidden outright by [ADR-0004](adr/0004-spacetimedb-data-scope.md), so a
+native companion is the only way background alerting ever leaves the browser —
+and the same Rust crate cross-compiles for Android, which is what stops that
+companion from needing a second implementation of the alert logic. See
 [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 
 **Exit:** an armed alert fires within one candle, with the tab backgrounded, and

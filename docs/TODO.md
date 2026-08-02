@@ -761,11 +761,22 @@ claim but explicitly left open whether it's a real commitment.
 >
 > **One decision is made regardless of the platform question, because it's
 > cheap now and expensive later:** [`FEAT-0027`](backlog/features/FEAT-0027-alert-engine.md)'s
-> evaluation core must be portable — plain TypeScript or WASM, no DOM
-> dependency — so a native companion reuses it instead of reimplementing
-> alert logic in Kotlin. Two engines disagreeing about whether RSI crossed
-> 30 is a correctness bug, and it is far cheaper to prevent in M4 than to
-> fix after both exist.
+> evaluation core is **Rust compiled to WASM**, decided on the requirement
+> that evaluation be the most robust and safest option available. It extends
+> the existing `technicals-wasm/` toolchain rather than introducing a new one,
+> and the same crate cross-compiles for Android via `cargo-ndk` — so a native
+> companion reuses it instead of reimplementing alert logic in Kotlin. Two
+> engines disagreeing about whether RSI crossed 30 is a correctness bug, and
+> it is far cheaper to prevent in M4 than to fix after both exist. Alert CRUD,
+> storage, settings and UI stay TypeScript/Svelte.
+>
+> **This costs nothing elsewhere in the app**, which was the other open
+> question: the companion renders no UI, so the PWA is not wrapped or
+> rebuilt and the 3D background, WebGPU path and Svelte reactivity are
+> untouched. A Capacitor-style WebView wrapper *would* have put those at risk
+> (WebGPU support in Android's WebView is limited) — avoiding that is
+> precisely why the scope is alert-only. Full comparison in
+> [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 >
 > **The decision still open:** whether to build the companion at all, and
 > if so, on what timeline relative to M4. Not urgent — nothing here blocks
@@ -830,3 +841,46 @@ Both files have been removed from the repository:
 The Render service itself (on the Render dashboard) still needs to be
 disconnected/deleted by whoever owns that account — that step is not
 reachable from this repo or GitHub alone.
+
+## 24. PWA manifest — splash screen and long-press shortcuts still broken on Android
+
+**Raised by the maintainer**, August 2026: the installed Android PWA lost its
+splash-screen background, its install-dialog screenshots and its long-press
+context menu. These worked before and regressed.
+
+Tracked as [`BUG-0038`](backlog/bugs/BUG-0038-android-manifest-regressions.md),
+which has the full evidence. Summary of where it stands:
+
+**Found and fixed.** Both mobile screenshots were **JPEG files with a `.png`
+extension**, declared `"type": "image/png"` in the manifest. A browser
+validates each entry against what it actually fetches and silently drops the
+mismatches — with both `form_factor: "narrow"` entries invalid, the mobile
+install dialog had nothing to show. Files renamed, declarations corrected, and
+`src/tests/manifest_assets.test.ts` now reads the magic bytes of every image
+the manifest declares and fails if a type or size is misdeclared. Screenshots
+have since been **disabled at your request** — the key is removed, the four
+files kept, re-enabling is re-adding the key.
+
+**Not explained, and this is what needs you.** The splash screen and the
+long-press shortcuts depend on manifest fields that are all present and
+well-formed: `background_color` and `theme_color` are both `#0f172a`, a valid
+512×512 icon exists, and two `shortcuts` entries are declared with valid
+icons. Nothing in the file accounts for those two symptoms.
+
+`git log` cannot help: this working copy is a **shallow clone**, so
+`manifest.json` shows as "new file" in every commit that touches it and no
+bisect is possible. That has to happen on a full clone.
+
+**What would move this forward, in order:**
+
+1. On a full clone, `git log -p -- static/manifest.json src/app.html` to find
+   what actually changed when it broke.
+2. Test with `display_override` reduced to `["standalone"]`. It currently
+   reads `["window-controls-overlay", "standalone"]`, and
+   `window-controls-overlay` is a desktop-only mode sitting ahead of the one
+   Android uses. Per spec a browser skips an unsupported value, so this
+   *should* be harmless — but it is the only field in the file whose first
+   entry does not apply to the platform where the symptoms appear, and it
+   costs nothing to rule out.
+3. Verify on a real device and record which device and launcher — nothing here
+   can be confirmed from a terminal.
