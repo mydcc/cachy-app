@@ -94,9 +94,13 @@ export const applyPreset = (name: string) => {
   const preset = presets[name];
 
   if (preset) {
+    const sanitized: Record<string, unknown> = { ...preset };
+    if (sanitized.feeMode && !["flat", "maker_taker"].includes(String(sanitized.feeMode))) {
+      sanitized.feeMode = "maker_taker";
+    }
     tradeState.update((store) => ({
       ...store,
-      ...preset,
+      ...sanitized,
     }));
     presetState.update((store) => ({
       ...store,

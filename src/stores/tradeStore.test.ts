@@ -62,7 +62,7 @@ describe("Trade Store Integration", () => {
         // BUG-0002: verify that the filter logic now correctly handles numeric 0
         // using Decimal.isZero() instead of string comparison "0"
 
-        const filterLogic = (targets: any[]) => {
+        const filterLogic = (targets: Array<{ price: string | number | null }>) => {
             return targets.some((t) => {
                 if (t.price === null) return false;
                 try {
