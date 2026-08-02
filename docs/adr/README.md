@@ -40,5 +40,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0002](0002-api-authentication-fails-closed.md) | API authentication fails closed | Proposed |
 | [0003](0003-edition-boundary.md) | The core runs without a server; editions are additive | Proposed |
 | [0004](0004-spacetimedb-data-scope.md) | What SpacetimeDB is allowed to hold, and who operates it | Proposed |
+| [0005](0005-extension-model.md) | Extensions are tiered by capability, and isolation comes first | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
