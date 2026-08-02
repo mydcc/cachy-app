@@ -5,6 +5,25 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.1.0](https://github.com/mydcc/cachy-app/compare/v1.0.2...v1.1.0) (2026-08-02)
+
+
+### Bug Fixes
+
+* align develop version above main release ([bd0391d](https://github.com/mydcc/cachy-app/commit/bd0391daf89186dcbc7f65705619759da3b89796))
+* bound upstream exchange fetch with a timeout in /api/klines ([0d6f6b2](https://github.com/mydcc/cachy-app/commit/0d6f6b2a4dbca2819194616cd6f6dc91ebc048d6))
+* **deploy:** capture start command output instead of discarding it ([7531ab2](https://github.com/mydcc/cachy-app/commit/7531ab27021d2f48646547b3d4d670ede267f2ad))
+* **deploy:** close lock fd before START_CMD, correct sudo guidance ([a125c37](https://github.com/mydcc/cachy-app/commit/a125c37c7685eafee35d4df37f61aa490647a3c8))
+* **deploy:** stop flagging a clean fire-and-forget start as a failure ([b712390](https://github.com/mydcc/cachy-app/commit/b7123907fe2ebec61ebbec89660addacbfafa817))
+* normalize Bitget WS payload to match account store expectations (BUG-0001) ([9924365](https://github.com/mydcc/cachy-app/commit/9924365992483f7827ac7145f65c317761b65ba3))
+* remove ESLint no-explicit-any violations in bitgetWs tests ([6dd8562](https://github.com/mydcc/cachy-app/commit/6dd856279a5b76d5f26b53214cac36619df267f8))
+* todo-item-1 — rotate imgbb api key and enforce required input ([c2cb72f](https://github.com/mydcc/cachy-app/commit/c2cb72fb701f7c03689b27a1d5626b3b6e1e2d2a))
+
+
+### Features
+
+* **ai:** live model discovery, Ollama and OpenRouter providers ([7780b74](https://github.com/mydcc/cachy-app/commit/7780b74a533495d08d4e3ca1fcf07f026fcb7ede))
+
 # [1.0.0-beta.15](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.14...v1.0.0-beta.15) (2026-08-02)
 
 
