@@ -5,6 +5,14 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.15](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.14...v1.0.0-beta.15) (2026-08-02)
+
+
+### Bug Fixes
+
+* **deploy:** close lock fd before START_CMD, correct sudo guidance ([a125c37](https://github.com/mydcc/cachy-app/commit/a125c37c7685eafee35d4df37f61aa490647a3c8))
+* **deploy:** stop flagging a clean fire-and-forget start as a failure ([b712390](https://github.com/mydcc/cachy-app/commit/b7123907fe2ebec61ebbec89660addacbfafa817))
+
 # [1.0.0-beta.14](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.13...v1.0.0-beta.14) (2026-08-02)
 
 
