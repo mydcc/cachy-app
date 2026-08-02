@@ -446,6 +446,12 @@ graceful_shutdown "$PORT"
 # from "still starting up" — the health check just burned its full 90s with
 # nothing to show for it. Capture it instead, and flag immediately if the
 # process behind START_CMD has already died by the time we start polling.
+#
+# A quick exit alone isn't proof of failure, though: aaPanel's vhost scripts
+# are fire-and-forget wrappers — they `nohup node ... &` the real process and
+# return immediately once it's launched, so exiting within the first couple
+# of seconds is their *normal*, successful path. Only treat it as a failure
+# when it also left a nonzero exit code or something in the log.
 START_LOG="$LOG_DIR/start_$(date +%Y%m%d_%H%M%S).log"
 eval "$START_CMD" > "$START_LOG" 2>&1 &
 START_PID=$!
@@ -453,12 +459,20 @@ log "Start command launched (PID $START_PID, output: $START_LOG)"
 sleep 2
 
 if ! kill -0 "$START_PID" 2>/dev/null; then
-    log "${RED}Start command already exited before health check began — it likely never started the app.${NC}"
-    if [[ -s "$START_LOG" ]]; then
-        log "${GREY}--- last lines of $START_LOG ---${NC}"
-        while IFS= read -r line; do log "${GREY}  $line${NC}"; done < <(tail -n 20 "$START_LOG")
+    set +e
+    wait "$START_PID" 2>/dev/null
+    START_EXIT=$?
+    set -e
+    if [[ $START_EXIT -ne 0 || -s "$START_LOG" ]]; then
+        log "${RED}Start command exited (code $START_EXIT) before health check began — it may not have started the app.${NC}"
+        if [[ -s "$START_LOG" ]]; then
+            log "${GREY}--- last lines of $START_LOG ---${NC}"
+            while IFS= read -r line; do log "${GREY}  $line${NC}"; done < <(tail -n 20 "$START_LOG")
+        else
+            log "${GREY}  $START_LOG is empty — the command produced no output at all.${NC}"
+        fi
     else
-        log "${GREY}  $START_LOG is empty — the command produced no output at all.${NC}"
+        log "${GREY}Start command exited cleanly (code 0, no output) — likely a fire-and-forget wrapper that already detached the real process.${NC}"
     fi
 fi
 
