@@ -33,8 +33,25 @@ export const AiMessageSchema = z.object({
 export const AiRequestSchema = z.object({
   messages: z.array(AiMessageSchema),
   model: z.string().optional(),
+  // Only used by the Ollama proxy — the user's own local (or self-hosted)
+  // Ollama instance, never a Cachy-operated server.
+  baseUrl: z.string().optional(),
 });
 
 export type AiRole = z.infer<typeof AiRoleSchema>;
 export type AiMessage = z.infer<typeof AiMessageSchema>;
 export type AiRequest = z.infer<typeof AiRequestSchema>;
+
+/**
+ * Normalized model info returned by the `/api/ai/<provider>/models` routes.
+ * Each provider's raw API shape is mapped into this before it reaches the
+ * client, so the UI never has to know about provider-specific field names.
+ */
+export interface AiModelInfo {
+  id: string;
+  label: string;
+  contextWindow?: number;
+  inputPrice?: number; // USD per 1M input tokens
+  outputPrice?: number; // USD per 1M output tokens
+  deprecated?: boolean;
+}
