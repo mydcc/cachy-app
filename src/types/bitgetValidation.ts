@@ -22,11 +22,16 @@ export const BitgetWSArgSchema = z.object({
  * Schema for Bitget WebSocket Message
  */
 export const BitgetWSMessageSchema = z.object({
-  action: z.string(),
-  arg: BitgetWSArgSchema,
+  action: z.string().optional(),
+  arg: BitgetWSArgSchema.optional(),
   data: z.array(z.any()).optional(),
   ts: z.number().optional(),
-});
+  event: z.string().optional(),
+  code: z.string().optional(),
+}).refine(
+  (msg) => msg.action || msg.event,
+  "Message must have either 'action' or 'event' field"
+);
 
 /**
  * Schema for Bitget Ticker Data (WS)
