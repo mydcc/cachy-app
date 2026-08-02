@@ -24,20 +24,12 @@ import {
 } from "../types/bitgetValidation";
 import { Decimal } from "decimal.js";
 
-// Bitget's login acknowledgement — see the NOTE at its one use site.
-interface BitgetLoginResponse {
-  event?: string;
-  code?: string;
-}
-
 // [ts, open, high, low, close, volume] — Bitget candle array entry.
 type BitgetCandleTuple = [string, string, string, string, string, string];
 
 // Raw fields read off the "orders" / "positions" private WS channels, as
 // opposed to BitgetOrder (types/bitget.ts), which models the REST shape.
-// NOTE: forwarded to accountState.updateOrderFromWs/updatePositionFromWs,
-// which read Bitunix's field names (qty, positionId, orderStatus, ...) —
-// see docs/TODO.md item 3, not fixed here.
+// These are normalized to RawWsOrder/RawWsPosition before passing to accountState.
 interface BitgetWSOrderData {
   orderId?: string;
   instId?: string;
@@ -54,6 +46,7 @@ interface BitgetWSPositionData {
   marginMode?: string;
   leverage?: string;
   unrealizedPL?: string;
+  holdSide?: string;
 }
 
 const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
@@ -403,18 +396,7 @@ class BitgetWebSocketService {
 
     const msg = validated.data;
 
-    if (msg.action === "login") { // Assuming action is login for response? Or separate event?
-      // Bitget sends event: "login", code: 00000 on success.
-      // My schema uses 'action'. Bitget usually sends { event: "login", code: ... }
-      // I might need to adjust schema for event messages vs data messages.
-    }
-    // Check event response
-    //
-    // NOTE: msg is validated.data from BitgetWSMessageSchema.safeParse(), a
-    // schema that requires `action` and does not declare `event`/`code` and
-    // is not .passthrough() — so a real Bitget login ack shaped this way may
-    // never reach here in practice. See docs/TODO.md item 3.
-    if ((msg as BitgetLoginResponse).event === "login" && (msg as BitgetLoginResponse).code === "00000") {
+    if (msg.event === "login" && msg.code === "00000") {
       this.isAuthenticated = true;
       if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
       this.subscribePrivate();
@@ -509,21 +491,8 @@ class BitgetWebSocketService {
       // Handle order updates
       if (Array.isArray(msg.data)) {
         msg.data.forEach((o: BitgetWSOrderData) => {
-          // Map to internal format
-          //
-          // NOTE: these field names (status, filled, avgPrice) don't match
-          // what updateOrderFromWs actually reads (orderStatus, dealAmount,
-          // price/qty) — cast preserves the existing (buggy) behavior rather
-          // than silently "fixing" it here. See docs/TODO.md item 3.
-          accountState.updateOrderFromWs({
-            orderId: o.orderId,
-            symbol: o.instId,
-            status: o.status,
-            filled: o.accFillSize, // executed qty
-            price: o.price,
-            avgPrice: o.priceAvg,
-            // etc
-          } as RawWsOrder);
+          const normalized = this.normalizeOrderData(o);
+          accountState.updateOrderFromWs(normalized);
         });
       }
     }
@@ -531,19 +500,8 @@ class BitgetWebSocketService {
     else if (channel === "positions") {
       if (Array.isArray(msg.data)) {
         msg.data.forEach((p: BitgetWSPositionData) => {
-          // NOTE: no positionId, and these field names (size, marginType,
-          // unrealizedPnl) don't match what updatePositionFromWs actually
-          // reads (qty, positionId, marginMode, unrealizedPNL) — cast
-          // preserves the existing (buggy) behavior rather than silently
-          // "fixing" it here. See docs/TODO.md item 3.
-          accountState.updatePositionFromWs({
-            symbol: p.instId,
-            size: p.total, // or available? total usually
-            entryPrice: p.openPriceAvg,
-            marginType: p.marginMode,
-            leverage: p.leverage,
-            unrealizedPnl: p.unrealizedPL
-          } as RawWsPosition);
+          const normalized = this.normalizePositionData(p);
+          accountState.updatePositionFromWs(normalized);
         });
       }
     }
@@ -687,6 +645,34 @@ class BitgetWebSocketService {
       // Best effort subscribe/unsubscribe. If the socket is not writable
       // the reconnect handler replays subscriptions.
     }
+  }
+
+  private normalizeOrderData(order: BitgetWSOrderData): RawWsOrder {
+    return {
+      orderId: order.orderId,
+      symbol: order.instId,
+      orderStatus: order.status,
+      price: order.price,
+      qty: order.accFillSize,
+      dealAmount: order.accFillSize,
+      ctime: undefined,
+    };
+  }
+
+  private normalizePositionData(position: BitgetWSPositionData): RawWsPosition {
+    return {
+      positionId: position.instId,
+      symbol: position.instId,
+      qty: position.total,
+      leverage: position.leverage,
+      marginMode: position.marginMode,
+      unrealizedPNL: position.unrealizedPL,
+      averagePrice: position.openPriceAvg,
+      avgOpenPrice: position.openPriceAvg,
+      side: position.holdSide,
+      event: undefined,
+      margin: undefined,
+    };
   }
 }
 
