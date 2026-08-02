@@ -7,23 +7,30 @@
  * (at your option) any later version.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { accountState } from "../stores/account.svelte";
 import { bitgetWs } from "./bitgetWs";
+
+interface BitgetWSService {
+  isAuthenticated: boolean;
+  handleMessage(message: Record<string, unknown>): void;
+  normalizeOrderData(order: Record<string, string | undefined>): Record<string, unknown>;
+  normalizePositionData(position: Record<string, string | undefined>): Record<string, unknown>;
+}
 
 describe("Bitget WebSocket", () => {
   beforeEach(() => {
     // Clear account state before each test
     accountState.reset();
     // Reset authentication state on the singleton
-    const wsService = bitgetWs as any;
+    const wsService = bitgetWs as unknown as BitgetWSService;
     wsService.isAuthenticated = false;
   });
 
   describe("Login authentication", () => {
     it("should authenticate on login acknowledgement with event=login and code=00000", () => {
       // Create a minimal Bitget instance to access private handleMessage
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
       wsService.isAuthenticated = false;
 
       const message = {
@@ -37,7 +44,7 @@ describe("Bitget WebSocket", () => {
     });
 
     it("should not authenticate on login failure with code 30001", () => {
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
       wsService.isAuthenticated = false;
 
       const message = {
@@ -52,7 +59,7 @@ describe("Bitget WebSocket", () => {
 
   describe("Position updates normalization", () => {
     it("should add a position from Bitget WS payload with correct field mapping", () => {
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
 
       // Simulate a Bitget position push message
       const message = {
@@ -94,7 +101,7 @@ describe("Bitget WebSocket", () => {
     });
 
     it("should handle multiple positions without overwriting", () => {
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
       wsService.isAuthenticated = true;
 
       // Add first position
@@ -161,7 +168,7 @@ describe("Bitget WebSocket", () => {
 
   describe("Order updates normalization", () => {
     it("should add an order from Bitget WS payload with correct field mapping", () => {
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
       wsService.isAuthenticated = true;
 
       const message = {
@@ -196,7 +203,7 @@ describe("Bitget WebSocket", () => {
 
   describe("Field name mapping", () => {
     it("should correctly map Bitget position fields to internal format", () => {
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
 
       const bitgetPosition = {
         instId: "BTCUSDT_UMCBL",
@@ -222,7 +229,7 @@ describe("Bitget WebSocket", () => {
     });
 
     it("should correctly map Bitget order fields to internal format", () => {
-      const wsService = bitgetWs as any;
+      const wsService = bitgetWs as unknown as BitgetWSService;
 
       const bitgetOrder = {
         orderId: "order123",
