@@ -356,7 +356,7 @@ const defaultSettings: Settings = {
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
   syncRsiTimeframe: true,
-  imgbbApiKey: "71a5689343bb63d5c85a76e4375f1d0b",
+  imgbbApiKey: "25e953ac23d0704c1adc548c9a61b382",
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
