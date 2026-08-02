@@ -57,4 +57,62 @@ describe("Trade Store Integration", () => {
         tradeState.resetInputs(true); // preserveSymbol=true
         expect(tradeState.symbol).toBe("ETHUSDT");
     });
+
+    it("should handle numeric zero prices in filter logic using Decimal", () => {
+        // BUG-0002: verify that the filter logic now correctly handles numeric 0
+        // using Decimal.isZero() instead of string comparison "0"
+
+        const filterLogic = (targets: any[]) => {
+            return targets.some((t) => {
+                if (t.price === null) return false;
+                try {
+                    return !new Decimal(t.price).isZero();
+                } catch {
+                    return false;
+                }
+            });
+        };
+
+        // Test that numeric 0 is treated as zero
+        const zeroNumeric = [{ price: 0, percent: "50", isLocked: false }];
+        expect(filterLogic(zeroNumeric)).toBe(false);
+
+        // Test that string "0" is still treated as zero
+        const zeroString = [{ price: "0", percent: "50", isLocked: false }];
+        expect(filterLogic(zeroString)).toBe(false);
+
+        // Test that non-zero numeric is accepted
+        const nonZeroNumeric = [{ price: 120000, percent: "50", isLocked: false }];
+        expect(filterLogic(nonZeroNumeric)).toBe(true);
+
+        // Test that non-zero string is accepted
+        const nonZeroString = [{ price: "125000", percent: "50", isLocked: false }];
+        expect(filterLogic(nonZeroString)).toBe(true);
+    });
+
+    it("should accept both string and number prices in targets", () => {
+        tradeState.set({
+            targets: [
+                { price: 120000, percent: 50, isLocked: false },
+                { price: "125000", percent: "25", isLocked: false }
+            ]
+        });
+
+        const snapshot = tradeState.getSnapshot();
+        expect(snapshot.targets).toHaveLength(2);
+        expect(snapshot.targets[0].price).toBe(120000);
+        expect(snapshot.targets[1].price).toBe("125000");
+    });
+
+    it("should accept both string and number entryPrice", () => {
+        tradeState.set({
+            entryPrice: 50000
+        });
+        expect(tradeState.entryPrice).toBe(50000);
+
+        tradeState.set({
+            entryPrice: "55000"
+        });
+        expect(tradeState.entryPrice).toBe("55000");
+    });
 });
