@@ -2,9 +2,9 @@
 
 # Backlog index
 
-36 items. How to read and add them: [README.md](README.md).
+40 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
+Counts by status: 💡 idea 11 · 📋 specced 26 · 🟢 ready 2 · 🟡 in-progress 1
 
 ---
 
@@ -57,6 +57,7 @@ Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
+| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 
 ### M5
 
@@ -64,12 +65,14 @@ Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
 | --- | --- | --- | --- | --- |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | build |
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | build |
+| [FEAT-0039](features/FEAT-0039-data-extensions.md) | Let users add prompts, presets and themes as data files | P2 | 💡 idea | extensions |
 
 ### M6
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | build |
+| [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | extensions |
+| [FEAT-0040](features/FEAT-0040-computation-extensions.md) | Run user-written indicators in an isolated worker | P2 | 💡 idea | extensions |
 
 ### M7
 
@@ -95,6 +98,7 @@ Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | ui |
+| [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | pwa |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | 🟢 ready | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | ui |
@@ -128,22 +132,26 @@ Counts by status: 💡 idea 8 · 📋 specced 26 · 🟢 ready 2
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | M5 | community | none | none | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
-| [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | M6 | pro, private | none | required | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
+| [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | M6 | pro, private | none | ADR-0005 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md), [FEAT-0040](features/FEAT-0040-computation-extensions.md) |
 | [FEAT-0033](features/FEAT-0033-chat-hardening-and-reputation.md) | Harden Global Chat and add peer-signal reputation | P2 | 📋 specced | M7 | pro, private | B | ADR-0004 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
 | [FEAT-0034](features/FEAT-0034-copy-trading.md) | Share a trade setup live, as price levels only | P2 | 📋 specced | M7 | pro, private | B | ADR-0004 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
 | [FEAT-0035](features/FEAT-0035-autonomous-execution-agent.md) | Let an agent trade inside limits it cannot exceed | P2 | 💡 idea | M9 | private | A | required | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md), [FEAT-0012](features/FEAT-0012-paper-trading-mode.md), [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md), [FEAT-0015](features/FEAT-0015-order-audit-trail.md) |
+| [FEAT-0039](features/FEAT-0039-data-extensions.md) | Let users add prompts, presets and themes as data files | P2 | 💡 idea | M5 | community, pro, private | A | ADR-0005 | — |
+| [FEAT-0040](features/FEAT-0040-computation-extensions.md) | Run user-written indicators in an isolated worker | P2 | 💡 idea | M6 | community, pro, private | none | ADR-0005 | [FEAT-0039](features/FEAT-0039-data-extensions.md), [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
+| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 
 ---
 
-Next free number: **0037**
+Next free number: **0041**

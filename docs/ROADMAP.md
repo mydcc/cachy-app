@@ -156,6 +156,15 @@ exchanges without opening the exchange's own UI.
 `idea`: it needs persistent, addressable chart drawings, which do not exist. That
 prerequisite is most of the work and probably its own item.
 
+**Build [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md)'s evaluation
+core in Rust → WASM from the start**, extending the existing `technicals-wasm/`
+toolchain. Not optional polish: a Cachy-operated server evaluating alerts is
+forbidden outright by [ADR-0004](adr/0004-spacetimedb-data-scope.md), so a
+native companion is the only way background alerting ever leaves the browser —
+and the same Rust crate cross-compiles for Android, which is what stops that
+companion from needing a second implementation of the alert logic. See
+[`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
+
 **Exit:** an armed alert fires within one candle, with the tab backgrounded, and
 does not fire twice for one crossing.
 
@@ -171,6 +180,7 @@ safety layer to exist first.
 | --- | --- | --- |
 | [FEAT-0014](backlog/features/FEAT-0014-edition-build-targets.md) | P1 | Community/Pro/Private build targets from one tree |
 | [FEAT-0031](backlog/features/FEAT-0031-whitelabel-theming.md) | P2 | Branding as configuration |
+| [FEAT-0039](backlog/features/FEAT-0039-data-extensions.md) | P2 | User-supplied prompts, presets and themes as data files |
 
 [FEAT-0014](backlog/features/FEAT-0014-edition-build-targets.md) is what turns
 [ADR-0003](adr/0003-edition-boundary.md) from prose into a lint rule and a CI
@@ -186,17 +196,31 @@ SpacetimeDB reachable; the suite passes against it.
 
 ---
 
-## Release 2.0 — Pro modules
+## Release 2.0 — extensions and Pro modules
 
-**Milestone [M6](MILESTONES.md#m6--pro-modules--plugins).**
+**Milestone [M6](MILESTONES.md#m6--extensions--pro-modules).**
 
 | Item | Prio | What |
 | --- | --- | --- |
-| [FEAT-0032](backlog/features/FEAT-0032-plugin-contract.md) | P2 | Plugin contract, installation, licence validation |
+| [FEAT-0040](backlog/features/FEAT-0040-computation-extensions.md) | P2 | User-written indicators in an isolated worker |
+| [FEAT-0032](backlog/features/FEAT-0032-plugin-contract.md) | P2 | Licensing, installation and revocation on top |
 
-Needs its own ADR before implementation — the contract defines what a plugin may
-touch, and "not Class A data, not the order path" has to be structural rather
-than a convention.
+**Order matters here more than usual.**
+[FEAT-0039](backlog/features/FEAT-0039-data-extensions.md) ships back in 1.8 —
+it is declarative data with no sandbox to get wrong, and it establishes the
+import/validate/store path the code tiers reuse.
+[FEAT-0040](backlog/features/FEAT-0040-computation-extensions.md) adds
+isolation. Only then does [FEAT-0032](backlog/features/FEAT-0032-plugin-contract.md)
+put a licence on it: designing a sandbox under pressure to ship something
+sellable is how the sandbox ends up being "we review submissions".
+
+[ADR-0005](adr/0005-extension-model.md) governs all of it — three tiers, no
+extension reaching Class A data, and no order path except through
+[FEAT-0011](backlog/features/FEAT-0011-preflight-order-verification.md)'s gate.
+**The one thing that cannot be deferred is isolation:** extensions that once
+run in the main realm can never be moved out of it, because an ecosystem makes
+that a breaking change. Tier 3 (UI panels, exchange adapters) is deliberately
+not scheduled until the first two have been used in anger.
 
 ---
 

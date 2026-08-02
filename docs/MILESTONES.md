@@ -42,7 +42,7 @@ Current version: **1.0.0-beta.6** (see `package.json`).
 | **M3** | Trade panel | `~1.5` | ⚪ | A trader can run a full session without opening the exchange's own UI |
 | **M4** | Alerting | `~1.7` | ⚪ | Price, indicator and combined alerts fire locally and reliably |
 | **M5** | Community & whitelabel edition | `~1.8` | 🔒 M1–M3 | A serverless build is produced by CI and deployable without a database |
-| **M6** | Pro modules & plugins | `~2.0` | 🔒 M5 | A paid module can be installed, enabled and revoked without a fork |
+| **M6** | Extensions & Pro modules | `~2.0` | 🔒 M5 | A user-written indicator runs isolated and traceable; a paid module installs and revokes |
 | **M7** | Collaboration | `~2.x` | 🔒 M5 | Chat and copy trading run as optional modules within ADR-0004 |
 | **M8** | AI analyst | `~2.x` | 🔒 M2 | The assistant forms and defends a market view from live data it gathered |
 | **M9** | Autonomous execution | `~3.0` | 🔒 M1, M8 | An agent trades within limits it cannot exceed, with a full audit trail |
@@ -200,8 +200,17 @@ condition becoming true, with the tab in the background, and does not fire twice
 for one crossing.
 
 **Note on placement.** Alerts are locally evaluated by design — the alert
-definition is Class A and does not go to a server. Server-side alerting that
-fires with the browser closed is a Module and belongs to M7 at the earliest.
+definition is Class A and does not go to a server. This is not a limitation to
+work around later: server-side alerting that fires with the browser closed
+would require a Cachy-operated server to hold the alert definition, which
+[ADR-0004](adr/0004-spacetimedb-data-scope.md) forbids outright, not merely
+defers. The actual path to background alerting with the browser closed is a
+native companion running the same evaluation core on-device — see
+[`TODO.md`](TODO.md) item 21 and [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
+Because of this, [`FEAT-0027`](backlog/features/FEAT-0027-alert-engine.md)'s
+evaluation core is **Rust compiled to WASM** from the start, extending the
+existing `technicals-wasm/` toolchain — the same crate cross-compiles for
+Android, so the companion needs no second implementation.
 
 ---
 
@@ -231,17 +240,41 @@ runs with no SpacetimeDB reachable; the full test suite passes against it.
 
 ---
 
-## M6 — Pro modules & plugins
+## M6 — Extensions & Pro modules
 
-**Goal.** A capability can be added to an install without a fork, and revoked.
+**Goal.** Users can extend Cachy — their own indicators, prompts, strategies —
+and a capability can be sold and revoked, all without a fork.
 
-**What it contains.** A plugin contract (what a plugin may touch — explicitly
-not Class A data or the order path without an ADR), an installation and
-enablement mechanism, licence validation that fails closed but does not phone
-home for core functionality, and the first paid module as the proof.
+**What it contains,** in the order [ADR-0005](adr/0005-extension-model.md)
+requires, because each tier is the foundation for the next:
 
-**Exit criterion.** A module installs, enables, disables and revokes cleanly on
-a Community build, and its absence changes nothing about core behaviour.
+- **Tier 1, data** ([`FEAT-0039`](backlog/features/FEAT-0039-data-extensions.md),
+  scheduled in M5): prompts, presets, themes and templates as validated data
+  files. No executable code, so no security burden — and it establishes the
+  import/validate/store path the later tiers reuse.
+- **Tier 2, computation** ([`FEAT-0040`](backlog/features/FEAT-0040-computation-extensions.md)):
+  user-written indicators, alert conditions and strategy logic running in a
+  worker built without `fetch`, `localStorage` or DOM. Results carry a
+  provenance tag, so an extension-derived number cannot silently size a
+  position.
+- **Tier 3, integration**: UI panels, exchange adapters, AI providers.
+  Deliberately **not** built until Tiers 1 and 2 have been used in anger.
+- **Paid plugins** ([`FEAT-0032`](backlog/features/FEAT-0032-plugin-contract.md)):
+  licensing and revocation layered on the mechanism above, not a separate
+  security model.
+
+**The constraint that shapes this milestone.** A trading bot written as an
+extension is a client of [M1](#m1--safe-execution-foundation), not an
+exception to it: it may propose an order, and that proposal passes the same
+verification gate, risk limits and kill switch as a human click. Extensions
+never reach Class A data — enforced by isolation, not documentation. See
+[ADR-0005](adr/0005-extension-model.md) for why the WordPress "drop a file in
+a folder" model does not transfer.
+
+**Exit criterion.** A user-written indicator runs, is proven unable to reach
+`fetch`/`localStorage`/DOM by a test that tries each, and its output is
+traceable to it. A paid module installs, enables, disables and revokes on a
+Community build, and its absence changes nothing about core behaviour.
 
 ---
 

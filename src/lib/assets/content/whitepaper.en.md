@@ -518,17 +518,42 @@ The binding version of this boundary — including the conditions under which fu
 
 While the current Local-First model is robust for individual traders, the roadmap includes scaling to support teams and institutional requirements.
 
-### Phase 2: Mobile Native Adaptation
+### Phase 2: Background Alerting on Android
 
-_Objective: Push to App Store/Play Store._
+_Objective: alerts that fire while the app is closed, without weakening the
+Local-First guarantee._
 
-- **Plan**: Wrap the existing PWA in Capacitor.js.
-- **Benefit**: Access to native Biometrics (FaceID) for unlocking the app and Push Notifications for price alerts.
+- **Why not just wrap the PWA:** a Service Worker is killed after roughly 30
+  seconds idle, so it cannot hold an exchange connection open in the
+  background. The PWA-native alternative, Web Push, needs a server to hold the
+  alert definition and trigger the push — and which symbols and levels a
+  trader watches is their strategy, Class A data under
+  `docs/adr/0001-local-first-boundary.md`. A Cachy-operated server evaluating
+  it is exactly what `docs/adr/0004-spacetimedb-data-scope.md` forbids, not
+  merely defers.
+- **Plan**: a narrow native Android companion running only the alert engine —
+  a foreground service holding the exchange connection, evaluating alerts
+  on-device, firing a local notification on match. The calculator, journal and
+  trading UI stay the PWA; wrapping them natively would inherit the PWA's own
+  limits and add nothing. Scoped in `docs/backlog/ideas/IDEA-0037-android-alert-companion.md`,
+  not yet built.
+- **iOS**: background WebSockets are blocked there regardless of approach, so
+  this plan does not currently cover iOS background alerting.
 
 ### Phase 3: Institutional Features
 
+_Objective: usable by desks and funds without compromising who controls their
+data — see `docs/VISION.md`, "Who it is for"._
+
 - **Multi-Account Management**: Switching between Sub-Accounts.
 - **Read-Only Investor View**: Generating a public "View Only" link for a specific portfolio. This would move journal data from Class A to Class B as defined in `docs/adr/0001-local-first-boundary.md`, which is a breaking change and requires its own ADR before any work starts. It is not currently planned.
+- **The distinction that matters:** these are capabilities of a **self-hosted**
+  deployment, not a Cachy-operated multi-tenant service. An institution reaches
+  them by running the Private edition on its own infrastructure, where it
+  remains its own data controller — see
+  `docs/adr/0004-spacetimedb-data-scope.md`. Cachy does not plan to operate a
+  hosted service that would make it the data controller for a client's trading
+  activity.
 
 ---
 

@@ -672,67 +672,117 @@ not folded into this item.
 > user-operated one. This item stays open as the standing guardrail: a
 > feature ADR-0004 does not cover still needs its own.
 
-## 19. Publish `/docs` to Confluence as a read-only mirror
+## 19. ~~Publish `/docs` to Confluence as a read-only mirror~~ — dropped
 
 **Roadmap item 26** (`## Later`). Infrastructure/tooling work, not a
-code change — needs a decision and Confluence access neither of which
-exist yet.
+code change.
 
 The repo's `/docs` (ADRs, ROADMAP, REPO-AUDIT, this file) would be
 mirrored read-only to Confluence so non-engineering stakeholders can
 read it without a GitHub account. The repo stays the source of truth;
 Confluence would just be a synced copy.
 
-**The decision:** whether this is still wanted, who owns the Confluence
-space it publishes into, and what syncs it (a scheduled export script?
-a GitHub Action?) — none of which can be picked without someone with
-Confluence access making the call.
+> **Dropped, August 2026, together with item 20 below — same reasoning
+> applies to both.** Nobody outside the repository needs to read these
+> documents today: one developer, working with AI agents that read the
+> repo directly. A synced copy is a second place for the same fact to go
+> stale in, which is exactly the failure `REPO-AUDIT.md` documents.
+>
+> **Reopen this when it stops being true** — specifically, when a
+> non-technical stakeholder needs to read planning docs without repo
+> access. The natural trigger is [M5](MILESTONES.md#m5--community--whitelabel-edition)
+> or [M6](MILESTONES.md#m6--pro-modules--plugins): a whitelabel customer or
+> a plugin buyer who needs visibility without a GitHub account. Until
+> then, `docs/` and `docs/backlog/` are the only copy.
 
-## 20. Mirror this roadmap as Jira epics for tracking
+## 20. ~~Mirror this roadmap as Jira epics for tracking~~ — dropped
 
 **Roadmap item 27** (`## Later`). Same shape as item 19 — project-
-management tooling, not code, and needs Jira access this session
-doesn't have.
+management tooling, not code.
 
-**The decision:** whether the engineering log's numbered items should
-also live as Jira epics (and who keeps the two in sync, since a roadmap
-item finishing here wouldn't automatically close a Jira ticket) — a
-call for whoever owns the Jira project, not something to script blind.
+**What Jira would offer that the backlog doesn't:** access for people
+without repo access, sprint/velocity tracking, a portfolio view across
+several projects, assignment workflows. **What it can't do that the
+backlog can:** be read by an agent without an API round-trip, version
+with the code so a commit or a test can cite an ID permanently, or be
+validated in CI (`npm run backlog:check`).
 
-> **Partly overtaken, August 2026.** The thing Jira was wanted for —
-> sortable, ordered, systematically workable items — now exists in the
-> repository: [`backlog/`](backlog/README.md), with machine-readable front
-> matter, a validated [`INDEX.md`](backlog/INDEX.md), and IDs that commits
-> and tests can reference permanently. That is deliberately *not* a
-> Jira replacement for people who do not read the repo, so the question
-> narrows: is an external tracker still wanted for stakeholders, knowing
-> it would be a second copy to keep in sync? The same question applies to
-> item 19 and they should be answered together.
+> **Dropped, August 2026.** [`backlog/`](backlog/README.md) is now what
+> item 20 originally wanted — sortable, ordered, machine-readable work
+> items — and it is better suited to this project's actual shape (one
+> developer, AI agents doing the work) than Jira would be. A second
+> tracker here would only be a second place for the same fact to drift,
+> which is the exact problem `REPO-AUDIT.md` already documented once.
+>
+> **Reopen together with item 19** when non-repo people need to interact
+> with planned work — a whitelabel customer's support tickets ([M5](MILESTONES.md#m5--community--whitelabel-edition)),
+> or a plugin vendor's issues ([M6](MILESTONES.md#m6--pro-modules--plugins)).
+> When that day comes, GitHub Issues is the cheaper first step before
+> Jira: already available, natively linked to PRs — used for bug reports
+> from outside the repo, with `backlog/` staying the single source for
+> planned work rather than issues duplicating it.
 
-## 21. Mobile native adaptation — whitepaper "Phase 2" claim, unscoped
+## 21. Mobile native adaptation — narrowed to background alerting, platform still open
 
 **Roadmap item 28** (`## Later`). The whitepaper promises this to
 readers; item 9's whitepaper audit (`docs/archive/engineering-log-2026-h1.md`, 🟢) found the
 claim but explicitly left open whether it's a real commitment.
 
-There is no design, no scope, no chosen approach (native Swift/Kotlin?
-React Native? a wrapped PWA?) — nothing implementable exists yet.
+> **Narrowed, August 2026 — the reason to go native is now specific rather
+> than aspirational, but the platform choice is still open.**
+>
+> A PWA cannot deliver background price/indicator alerts without breaking
+> ADR-0004: a Service Worker is killed after ~30s idle, so holding an
+> exchange WebSocket in the background is not possible, and the only
+> PWA-native alternative — Web Push — requires a **server** to hold the
+> alert definition and trigger the push. What symbols and levels a user
+> watches is their strategy, Class A under ADR-0001, and a Cachy-operated
+> server evaluating it is exactly what ADR-0004 forbids. Periodic
+> Background Sync is not a real alternative either: Chromium-only, with an
+> interval the browser decides (practically ≥12h with no guarantee),
+> useless for a price alert.
+>
+> A native Android app with a foreground service can hold the exchange
+> connection and evaluate alerts **on the device**, so the definition never
+> leaves it — the only way to get background alerting that stays inside
+> the Local-First boundary. Real costs, stated plainly: Android requires a
+> persistent notification for a foreground service and the user must
+> exempt the app from battery optimisation or Doze kills it; Play Store
+> review is stricter for finance apps (sideloading avoids that, at the
+> cost of legitimacy for a trading tool); **iOS gets none of this** —
+> background WebSockets are blocked there regardless, leaving only the
+> server-side path (and its ADR-0004 problem) or nothing.
+>
+> **Recommended scope: an alert-only companion, not a full port.** The
+> calculator, journal and trading UI stay PWA — a WebView wrapper around
+> them would inherit the PWA's limits anyway, so porting them natively buys
+> nothing. Only the alert engine needs a native shell. Tracked as
+> [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
+>
+> **One decision is made regardless of the platform question, because it's
+> cheap now and expensive later:** [`FEAT-0027`](backlog/features/FEAT-0027-alert-engine.md)'s
+> evaluation core is **Rust compiled to WASM**, decided on the requirement
+> that evaluation be the most robust and safest option available. It extends
+> the existing `technicals-wasm/` toolchain rather than introducing a new one,
+> and the same crate cross-compiles for Android via `cargo-ndk` — so a native
+> companion reuses it instead of reimplementing alert logic in Kotlin. Two
+> engines disagreeing about whether RSI crossed 30 is a correctness bug, and
+> it is far cheaper to prevent in M4 than to fix after both exist. Alert CRUD,
+> storage, settings and UI stay TypeScript/Svelte.
+>
+> **This costs nothing elsewhere in the app**, which was the other open
+> question: the companion renders no UI, so the PWA is not wrapped or
+> rebuilt and the 3D background, WebGPU path and Svelte reactivity are
+> untouched. A Capacitor-style WebView wrapper *would* have put those at risk
+> (WebGPU support in Android's WebView is limited) — avoiding that is
+> precisely why the scope is alert-only. Full comparison in
+> [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
+>
+> **The decision still open:** whether to build the companion at all, and
+> if so, on what timeline relative to M4. Not urgent — nothing here blocks
+> M0–M3.
 
-**The decision:** either commit to it and write an actual scope/plan
-(new roadmap item, replacing this placeholder), or decide it was
-aspirational marketing and soften or remove the whitepaper claim so the
-document stops promising something nobody is building.
-
-> **Still open, and now more visible.** The August 2026 planning pass wrote
-> [`MILESTONES.md`](MILESTONES.md) covering M0–M9 through autonomous
-> execution, and **native mobile is in none of them** — it was not dropped
-> silently, it was left out because nobody has scoped it. So the whitepaper
-> promises a phase the milestone plan does not contain, which is exactly the
-> drift ADR-0001 exists to prevent. Either scope it as a milestone or soften
-> the whitepaper; leaving both as they are is the one option that keeps the
-> documents contradicting each other.
-
-## 22. Institutional features — whitepaper "Phase 3" claim, unscoped
+## 22. ~~Institutional features~~ — resolved: self-hosted, not hosted
 
 **Roadmap item 29** (`## Later`). Same shape and same source as item 21
 above — a whitepaper "Phase 3" promise that item 9's audit flagged but
@@ -740,19 +790,38 @@ did not resolve.
 
 No feature list, no target customer definition, nothing scoped.
 
-**The decision:** same two options as item 21 — commit and scope it
-properly, or soften/remove the whitepaper claim. Whoever resolves this
-should probably resolve items 21 and 22 together, since they're the
-same open question (is the whitepaper's roadmap real?) about two
-different phases.
-
-> **Still open, with one new consideration.** [`VISION.md`](VISION.md) now
-> states plainly that Cachy is not for institutions — retail traders who
-> size positions deliberately are the target, and several design decisions
-> follow from that. If "institutional features" stays in the whitepaper, it
-> contradicts the vision document rather than merely being unscoped. That
-> makes softening the claim the cheaper of the two options, but it is still
-> your call.
+> **Resolved, August 2026.** An earlier version of this document (and a
+> first pass at `VISION.md`) stated flatly that Cachy is "not for
+> institutions" — that was an overreach on my part, drawn from the code
+> being single-user and from the whitepaper's unscoped claim, not from
+> anything the maintainer asked for. The maintainer's actual goal —
+> indispensable for large investors, the way TradingView is — is legitimate
+> and is now the stated direction.
+>
+> The resolution distinguishes two different things "institutional" can
+> mean. **Individuals at institutions using the product** — analysts,
+> discretionary traders — were never excluded and need nothing new; that's
+> TradingView's actual relationship with institutions and it's fully
+> compatible with Local-First. **Cachy operating a multi-tenant service for
+> an institution** is the part that's out of scope, because what regulated
+> finance needs from that (centralised audit logging, retention under a
+> compliance officer, tenant admin, SSO) requires the operator to control
+> user data — the opposite of commitment 1.
+>
+> [ADR-0004](adr/0004-spacetimedb-data-scope.md)'s user-operated-instance
+> distinction already resolves this: an institution reaches full
+> capability, compliance included, by deploying the **Private edition on
+> its own infrastructure**, where it is its own data controller.
+> `VISION.md` now states this directly (see "Who it is for" and "How it
+> pays for itself" — an enterprise licence for the self-hosted build,
+> support and institution-specific plugins such as SSO or audit export, not
+> seats in a Cachy-run cloud). The whitepaper's "Phase 3" section is
+> rewritten to match, in the same pass as this resolution — the ambition is
+> real, the path is just self-hosted rather than hosted. Phase 2 (mobile) was
+> rewritten alongside it: its "wrap in Capacitor.js" + "Push Notifications"
+> plan had the same problem as item 21 above — it implied server-triggered
+> push, which ADR-0004 forbids — and now matches
+> [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 
 ## 23. ~~Orphaned Render.com integration still auto-deploys and fails~~ — done
 
@@ -772,3 +841,46 @@ Both files have been removed from the repository:
 The Render service itself (on the Render dashboard) still needs to be
 disconnected/deleted by whoever owns that account — that step is not
 reachable from this repo or GitHub alone.
+
+## 24. PWA manifest — splash screen and long-press shortcuts still broken on Android
+
+**Raised by the maintainer**, August 2026: the installed Android PWA lost its
+splash-screen background, its install-dialog screenshots and its long-press
+context menu. These worked before and regressed.
+
+Tracked as [`BUG-0038`](backlog/bugs/BUG-0038-android-manifest-regressions.md),
+which has the full evidence. Summary of where it stands:
+
+**Found and fixed.** Both mobile screenshots were **JPEG files with a `.png`
+extension**, declared `"type": "image/png"` in the manifest. A browser
+validates each entry against what it actually fetches and silently drops the
+mismatches — with both `form_factor: "narrow"` entries invalid, the mobile
+install dialog had nothing to show. Files renamed, declarations corrected, and
+`src/tests/manifest_assets.test.ts` now reads the magic bytes of every image
+the manifest declares and fails if a type or size is misdeclared. Screenshots
+have since been **disabled at your request** — the key is removed, the four
+files kept, re-enabling is re-adding the key.
+
+**Not explained, and this is what needs you.** The splash screen and the
+long-press shortcuts depend on manifest fields that are all present and
+well-formed: `background_color` and `theme_color` are both `#0f172a`, a valid
+512×512 icon exists, and two `shortcuts` entries are declared with valid
+icons. Nothing in the file accounts for those two symptoms.
+
+`git log` cannot help: this working copy is a **shallow clone**, so
+`manifest.json` shows as "new file" in every commit that touches it and no
+bisect is possible. That has to happen on a full clone.
+
+**What would move this forward, in order:**
+
+1. On a full clone, `git log -p -- static/manifest.json src/app.html` to find
+   what actually changed when it broke.
+2. Test with `display_override` reduced to `["standalone"]`. It currently
+   reads `["window-controls-overlay", "standalone"]`, and
+   `window-controls-overlay` is a desktop-only mode sitting ahead of the one
+   Android uses. Per spec a browser skips an unsupported value, so this
+   *should* be harmless — but it is the only field in the file whose first
+   entry does not apply to the platform where the symptoms appear, and it
+   costs nothing to rule out.
+3. Verify on a real device and record which device and launcher — nothing here
+   can be confirmed from a terminal.

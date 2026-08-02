@@ -542,17 +542,42 @@ const decrypted = await decrypt(ciphertext, userPassword);
 
 Während das aktuelle Local-First-Modell für einzelne Trader robust ist, umfasst die Roadmap die Skalierung zur Unterstützung von Teams und institutionellen Anforderungen.
 
-### Phase 2: Mobile Native Adaption
+### Phase 2: Hintergrund-Alarme auf Android
 
-_Ziel: Push in den App Store/Play Store._
+_Ziel: Alarme, die auch bei geschlossener App auslösen — ohne die Local-First-Garantie
+aufzuweichen._
 
-- **Plan**: Wrapping der bestehenden PWA in Capacitor.js.
-- **Vorteil**: Zugriff auf native Biometrie (FaceID) zum Entsperren der App und Push-Benachrichtigungen für Preisalarme.
+- **Warum nicht einfach die PWA wrappen:** Ein Service Worker wird nach rund
+  30 Sekunden Inaktivität beendet und kann daher keine Börsenverbindung im
+  Hintergrund halten. Die PWA-native Alternative, Web Push, braucht einen
+  Server, der die Alarmdefinition hält und den Push auslöst — und welche
+  Symbole und Level ein Trader beobachtet, ist seine Strategie, also
+  Klasse-A-Daten nach \`docs/adr/0001-local-first-boundary.md\`. Ein von Cachy
+  betriebener Server, der das auswertet, ist genau das, was
+  \`docs/adr/0004-spacetimedb-data-scope.md\` untersagt — nicht nur aufschiebt.
+- **Plan**: eine schlanke native Android-Begleit-App, die ausschließlich die
+  Alarm-Engine betreibt — ein Foreground Service hält die Börsenverbindung,
+  wertet Alarme auf dem Gerät aus und löst eine lokale Benachrichtigung aus.
+  Rechner, Journal und Trading-UI bleiben die PWA; sie nativ zu wrappen würde
+  deren Grenzen erben und nichts gewinnen. Skizziert in
+  \`docs/backlog/ideas/IDEA-0037-android-alert-companion.md\`, noch nicht gebaut.
+- **iOS**: Hintergrund-WebSockets sind dort unabhängig vom Ansatz gesperrt,
+  daher deckt dieser Plan aktuell keine Hintergrund-Alarme auf iOS ab.
 
 ### Phase 3: Institutionelle Funktionen
 
+_Ziel: nutzbar für Desks und Fonds, ohne zu kompromittieren, wer die Datenhoheit
+hat — siehe \`docs/VISION.md\`, "Who it is for"._
+
 - **Multi-Account-Management**: Wechseln zwischen Unterkonten.
 - **Read-Only-Investorenansicht**: Generierung eines öffentlichen "Nur-Lese"-Links für ein bestimmtes Portfolio. Das würde Journaldaten von Klasse A nach Klasse B verschieben, wie in \`docs/adr/0001-local-first-boundary.md\` definiert — ein Breaking Change, der vor Arbeitsbeginn eine eigene ADR braucht. Derzeit nicht geplant.
+- **Die entscheidende Unterscheidung:** Das sind Fähigkeiten eines **selbst
+  gehosteten** Deployments, nicht eines von Cachy betriebenen
+  Multi-Tenant-Dienstes. Eine Institution erreicht sie, indem sie die Private
+  Edition auf eigener Infrastruktur betreibt und damit ihre eigene
+  Datenhoheit behält — siehe \`docs/adr/0004-spacetimedb-data-scope.md\`. Cachy
+  plant nicht, einen gehosteten Dienst zu betreiben, der Cachy zum
+  Datenverantwortlichen für die Handelsaktivität eines Kunden machen würde.
 
 ---
 
