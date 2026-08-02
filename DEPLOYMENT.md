@@ -11,6 +11,22 @@ about how to invoke `deploy.sh`.
 - A server with **aaPanel** installed.
 - **Node.js Version Manager** (installed via aaPanel App Store). Recommended: Node v18 or v20.
 - Domains pointing to the server IP (e.g., `cachy.app` and `dev.cachy.app`).
+- **Passwordless `sudo` for the deploy user to run the vhost start scripts as `www`.** `deploy.sh` runs
+  `START_COMMAND` non-interactively in the background — no TTY is attached, so `sudo` cannot prompt for a
+  password even if one would normally be accepted. Without a `NOPASSWD` rule the command fails immediately
+  and silently (see Troubleshooting below); the health check then burns its full wait for a process that
+  never started. Set this up once via `visudo`:
+
+  ```bash
+  sudo visudo -f /etc/sudoers.d/cachy-deploy
+  ```
+
+  ```
+  <deploy-user> ALL=(www) NOPASSWD: /bin/bash /www/server/nodejs/vhost/scripts/cachyapp.sh, /bin/bash /www/server/nodejs/vhost/scripts/devcachyapp.sh
+  ```
+
+  Adjust the script filenames to match what aaPanel actually generated (see the naming note on
+  `START_COMMAND` in `.deploy.conf.example`) and the path to `bash` (`which bash`).
 
 ---
 
@@ -367,6 +383,15 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
      the health check waits its full timeout for a process that was never started — with `deploy.sh`'s
      start-command logging (see above), this now shows up as `bash: .../<name>.sh: No such file or
      directory` in `logs/start_*.log` instead of failing silently.
+   - **`sudo: I'm sorry <user>. I'm afraid I can't do that` (or a plain password prompt) in
+     `logs/start_*.log`:** the deploy user lacks a `NOPASSWD` sudoers rule for the vhost script — see
+     Prerequisites above. `deploy.sh` runs `START_CMD` in the background with no TTY, so `sudo` cannot
+     prompt; without `NOPASSWD` it fails immediately every time, even though the exact same command typed
+     interactively can appear to "just work" — a recently cached `sudo` credential (the ticket from an
+     earlier password entry, valid for several minutes) papers over the missing rule until it expires. Rule
+     out that false positive before trusting a manual test: run `sudo -k` (drop the cached ticket) right
+     before `sudo -n -u www bash <script> < /dev/null`, and only trust an exit code of `0` under those
+     conditions.
 
 2. **Endpoint not responding:**
    - Verify service is running: `curl http://localhost:3001/api/health`
