@@ -26,6 +26,14 @@ STABLE_ENVIRONMENT="cachy.app"
 STABLE_PORT=3001
 # Command that starts the Node process. deploy.sh runs it after a graceful
 # shutdown, then waits for the health check.
+#
+# aaPanel names this script after the Node project's name (Website > Node
+# project), not after a "prod"/"dev" convention — verify the real filename
+# with `ls /www/server/nodejs/vhost/scripts/` before pasting a path here. A
+# mismatch here fails silently: the command exits immediately (exit 127, file
+# not found) and the health check just burns its full wait for a process that
+# was never started. This exact failure is why a server move can break
+# deploys even though the build still succeeds.
 STABLE_START_COMMAND="sudo -u www bash /path/to/start-production.sh"
 
 # ---------------------------------------------------------------------------
@@ -34,6 +42,8 @@ STABLE_START_COMMAND="sudo -u www bash /path/to/start-production.sh"
 
 BETA_ENVIRONMENT="dev.cachy.app"
 BETA_PORT=3002
+# Same filename caveat as STABLE_START_COMMAND above — check the actual
+# script name for this Node project too, it is independent of the prod one.
 BETA_START_COMMAND="sudo -u www bash /path/to/start-staging.sh"
 
 # ---------------------------------------------------------------------------

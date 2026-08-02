@@ -439,11 +439,32 @@ rm -rf "$WORK_DIR_TMP"
 # 5. Restart & Health
 log "${CYAN}[HEALTH]${NC} Restarting service and health check..."
 graceful_shutdown "$PORT"
-eval "$START_CMD > /dev/null 2>&1 &"
+
+# START_CMD's output used to go to /dev/null, so a command that fails before
+# the Node process ever binds the port (e.g. sudo refusing without a TTY, or a
+# stale interpreter path left over from a server move) was indistinguishable
+# from "still starting up" — the health check just burned its full 90s with
+# nothing to show for it. Capture it instead, and flag immediately if the
+# process behind START_CMD has already died by the time we start polling.
+START_LOG="$LOG_DIR/start_$(date +%Y%m%d_%H%M%S).log"
+eval "$START_CMD" > "$START_LOG" 2>&1 &
+START_PID=$!
+log "Start command launched (PID $START_PID, output: $START_LOG)"
 sleep 2
+
+if ! kill -0 "$START_PID" 2>/dev/null; then
+    log "${RED}Start command already exited before health check began — it likely never started the app.${NC}"
+    if [[ -s "$START_LOG" ]]; then
+        log "${GREY}--- last lines of $START_LOG ---${NC}"
+        while IFS= read -r line; do log "${GREY}  $line${NC}"; done < <(tail -n 20 "$START_LOG")
+    else
+        log "${GREY}  $START_LOG is empty — the command produced no output at all.${NC}"
+    fi
+fi
 
 if ! health_check "$(echo "$HEALTH_CHECK_URL" | sed "s/{{PORT}}/$PORT/")"; then
     notify_health_check_failed "$ENVIRONMENT" 2>/dev/null || true
+    log "${GREY}Start command log: $START_LOG${NC}"
     error_exit "Service is not responding after restart"
 fi
 
