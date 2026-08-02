@@ -324,6 +324,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
       let apiKey = "";
       let model = "";
+      let baseUrl = "";
 
       if (provider === "openai") {
         apiKey = settings.openaiApiKey;
@@ -337,9 +338,21 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         apiKey = settings.anthropicApiKey;
         model = settings.anthropicModel;
       }
+      if (provider === "openrouter") {
+        apiKey = settings.openrouterApiKey;
+        model = settings.openrouterModel;
+      }
+      if (provider === "ollama") {
+        // Local (or self-hosted) instance — no API key required.
+        model = settings.ollamaModel;
+        baseUrl = settings.ollamaBaseUrl;
+      }
 
-      if (!apiKey) {
+      if (!apiKey && provider !== "ollama") {
         throw new Error(`API Key for ${provider} is missing in Settings.`);
+      }
+      if (!model) {
+        throw new Error(`No model selected for ${provider}. Please choose one in Settings.`);
       }
 
       // 4. Init Placeholder for Assistant Message
@@ -371,6 +384,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             body: JSON.stringify({
               messages: payloadMessages,
               model: model,
+              ...(provider === "ollama" ? { baseUrl } : {}),
             }),
           });
 
@@ -432,7 +446,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               const data = JSON.parse(dataStr);
               let delta = "";
 
-              if (provider === "openai") {
+              if (provider === "openai" || provider === "openrouter" || provider === "ollama") {
+                // All three speak the OpenAI chat-completions streaming shape.
                 delta = data.choices?.[0]?.delta?.content || "";
               } else if (provider === "gemini") {
                 delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";

@@ -20,11 +20,6 @@ import type { RequestHandler } from "./$types";
 import { checkAppAuth } from "../../../../lib/server/auth";
 import { AiRequestSchema } from "../../../../types/ai";
 
-interface AnthropicMessageParam {
-  role: "user" | "assistant";
-  content: string;
-}
-
 export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
@@ -36,7 +31,7 @@ export const POST: RequestHandler = async ({ request }) => {
     if (!parseResult.success) {
       return json(
         { error: "Invalid request body", details: parseResult.error.format() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,43 +42,26 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
-    let systemPrompt = "";
-    const anthropicMessages: AnthropicMessageParam[] = [];
-
-    for (const m of messages) {
-      if (m.role === "system") {
-        systemPrompt += m.content + "\n";
-      } else {
-        anthropicMessages.push({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        });
-      }
-    }
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    // OpenRouter speaks the OpenAI chat-completions wire format.
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "X-Title": "Cachy",
       },
       body: JSON.stringify({
-        // claude-3-5-sonnet-20240620 was retired 2025-10-28 — see
-        // shared/model-migration.md. This fallback only fires if the client
-        // somehow omits a model, which normal use through Settings never does.
-        model: model || "claude-sonnet-5",
+        model: model || "openrouter/auto",
+        messages,
         max_tokens: 2000,
-        system: systemPrompt,
-        messages: anthropicMessages,
         stream: true,
       }),
     });
 
     if (!response.ok) {
-      const err = await response.json();
+      const err = await response.json().catch(() => ({}));
       return json(
-        { error: err.error?.message || "Anthropic API Error" },
+        { error: err.error?.message || "OpenRouter API Error" },
         { status: response.status },
       );
     }
@@ -96,7 +74,7 @@ export const POST: RequestHandler = async ({ request }) => {
       },
     });
   } catch (e) {
-    console.error("Anthropic Proxy Error:", e);
-    return json({ error: (e instanceof Error ? e.message : null) || "Internal Server Error" }, { status: 500 });
+    console.error("OpenRouter Proxy Error:", e);
+    return json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 };
