@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.13](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.12...v1.0.0-beta.13) (2026-08-02)
+
+
+### Features
+
+* **ai:** live model discovery, Ollama and OpenRouter providers ([7780b74](https://github.com/mydcc/cachy-app/commit/7780b74a533495d08d4e3ca1fcf07f026fcb7ede))
+
 # [1.0.0-beta.12](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.11...v1.0.0-beta.12) (2026-08-02)
 
 
