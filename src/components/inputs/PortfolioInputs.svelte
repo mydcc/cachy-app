@@ -34,7 +34,7 @@
   interface Props {
     accountSize: string | null;
     riskPercentage: string | null;
-    riskAmount: string | null;
+    riskAmount: string | number | null;
     isRiskAmountLocked: boolean;
     isPositionSizeLocked: boolean;
   }

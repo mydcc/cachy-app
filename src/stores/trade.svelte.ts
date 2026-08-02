@@ -30,8 +30,8 @@ import type { CurrentTradeData } from "./types";
 // For now, I will mirror the structure.
 
 export interface TradeTarget {
-  price: string | null;
-  percent: string | null;
+  price: string | number | null;
+  percent: string | number | null;
   isLocked: boolean;
 }
 
@@ -39,13 +39,13 @@ export interface TradeStateSnapshot {
   tradeType: string;
   accountSize: string;
   riskPercentage: string;
-  entryPrice: string | null;
-  stopLossPrice: string | null;
-  leverage: string | null;
-  fees: string | null;
+  entryPrice: string | number | null;
+  stopLossPrice: string | number | null;
+  leverage: string | number | null;
+  fees: string | number | null;
   symbol: string;
-  atrValue: string | null;
-  atrMultiplier: string | null;
+  atrValue: string | number | null;
+  atrMultiplier: string | number | null;
   useAtrSl: boolean;
   atrMode: "auto" | "manual";
   atrTimeframe: string;
@@ -56,7 +56,7 @@ export interface TradeStateSnapshot {
   isPositionSizeLocked: boolean;
   lockedPositionSize: Decimal | null;
   isRiskAmountLocked: boolean;
-  riskAmount: string | null;
+  riskAmount: string | number | null;
   journalSearchQuery: string;
   journalFilterStatus: string;
   currentTradeData: CurrentTradeData | null;
@@ -71,20 +71,24 @@ export interface TradeStateSnapshot {
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
 // Define Zod Schema for TradeTarget
+// Accept both string and number, keep as-is (don't force to string)
 const TradeTargetSchema = z.object({
-  price: z.union([z.string(), z.number()]).transform(v => v === null ? null : String(v)).nullable(),
-  percent: z.union([z.string(), z.number()]).transform(v => v === null ? null : String(v)).nullable(),
+  price: z.union([z.string(), z.number()]).nullable(),
+  percent: z.union([z.string(), z.number()]).nullable(),
   isLocked: z.boolean(),
 });
 
-// Helper to transform number/string to string safely, ensuring strict numeric format
-const stringSchema = z.union([
-  z.string().regex(/^\d*\.?\d*$/, "Must be a valid number"),
-  z.number()
-]).transform(val => {
-  if (val === null || val === undefined) return null;
-  return String(val);
-}).nullable();
+// Helper to accept both string and number, keep as-is
+// (Don't force to string — let Decimal handle the comparison)
+const stringSchema = z
+  .union([
+    z.string().refine(
+      (val) => /^\d*\.?\d*$/.test(val),
+      "Must be a valid number"
+    ),
+    z.number().finite(),
+  ])
+  .nullable();
 
 // Required string schema (not nullable) for accountSize/riskPercentage which have defaults
 const requiredStringSchema = z.union([
@@ -160,13 +164,13 @@ class TradeManager {
   tradeType = $state<string>(INITIAL_TRADE_STATE.tradeType);
   accountSize = $state<string>(INITIAL_TRADE_STATE.accountSize);
   riskPercentage = $state<string>(INITIAL_TRADE_STATE.riskPercentage);
-  entryPrice = $state<string | null>(INITIAL_TRADE_STATE.entryPrice);
-  stopLossPrice = $state<string | null>(INITIAL_TRADE_STATE.stopLossPrice);
-  leverage = $state<string | null>(INITIAL_TRADE_STATE.leverage);
-  fees = $state<string | null>(INITIAL_TRADE_STATE.fees);
+  entryPrice = $state<string | number | null>(INITIAL_TRADE_STATE.entryPrice);
+  stopLossPrice = $state<string | number | null>(INITIAL_TRADE_STATE.stopLossPrice);
+  leverage = $state<string | number | null>(INITIAL_TRADE_STATE.leverage);
+  fees = $state<string | number | null>(INITIAL_TRADE_STATE.fees);
   symbol = $state<string>(INITIAL_TRADE_STATE.symbol);
-  atrValue = $state<string | null>(INITIAL_TRADE_STATE.atrValue);
-  atrMultiplier = $state<string | null>(INITIAL_TRADE_STATE.atrMultiplier);
+  atrValue = $state<string | number | null>(INITIAL_TRADE_STATE.atrValue);
+  atrMultiplier = $state<string | number | null>(INITIAL_TRADE_STATE.atrMultiplier);
   useAtrSl = $state<boolean>(INITIAL_TRADE_STATE.useAtrSl);
   atrMode = $state<"auto" | "manual">(INITIAL_TRADE_STATE.atrMode);
   atrTimeframe = $state<string>(INITIAL_TRADE_STATE.atrTimeframe);
@@ -177,7 +181,7 @@ class TradeManager {
   isPositionSizeLocked = $state<boolean>(INITIAL_TRADE_STATE.isPositionSizeLocked);
   lockedPositionSize = $state<Decimal | null>(INITIAL_TRADE_STATE.lockedPositionSize);
   isRiskAmountLocked = $state<boolean>(INITIAL_TRADE_STATE.isRiskAmountLocked);
-  riskAmount = $state<string | null>(INITIAL_TRADE_STATE.riskAmount);
+  riskAmount = $state<string | number | null>(INITIAL_TRADE_STATE.riskAmount);
   journalSearchQuery = $state<string>(INITIAL_TRADE_STATE.journalSearchQuery);
   journalFilterStatus = $state<string>(INITIAL_TRADE_STATE.journalFilterStatus);
 
@@ -258,7 +262,14 @@ class TradeManager {
 
           // Logic for targets
           const hasAnyPrice = data.targets?.some(
-            (t: TradeTarget) => t.price !== null && t.price !== "0",
+            (t: TradeTarget) => {
+              if (t.price === null) return false;
+              try {
+                return !new Decimal(t.price).isZero();
+              } catch {
+                return false;
+              }
+            },
           );
           if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
             this.targets = structuredClone(INITIAL_TRADE_STATE.targets);
@@ -399,20 +410,9 @@ class TradeManager {
     // this.targets = defaults.targets;
   }
 
-  // Helper for legacy 'update' pattern
-  // Deliberately not `(curr: TradeStateSnapshot) => Partial<TradeStateSnapshot>`
-  // yet: typing it that way surfaces callers passing numbers where the snapshot
-  // declares strings (app.ts, MarketOverview.svelte). That disagreement needs a
-  // decision, not a cast — see docs/TODO.md.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  update(fn: (curr: any) => any) {
-    // Create a snapshot object
+  update(fn: (curr: TradeStateSnapshot) => Partial<TradeStateSnapshot>) {
     const snap = this.getSnapshot();
     const next = fn(snap);
-
-    // Apply back properties to this instance (Svelte 5 Runes)
-    // We iterate keys to trigger individual property setters if needed,
-    // though Object.assign works for class properties in Runes too.
     Object.assign(this, next);
 
     // Handle nested Decimal if replaced (lockedPositionSize)
@@ -440,10 +440,7 @@ class TradeManager {
     this.notifyListeners();
   }
 
-  // Helper for legacy 'set' pattern (useful for tests)
-  // Same reason as update() above.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  set(newState: any) {
+  set(newState: Partial<TradeStateSnapshot>) {
     Object.assign(this, newState);
 
     if (

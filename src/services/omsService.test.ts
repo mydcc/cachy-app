@@ -160,4 +160,110 @@ describe('OrderManagementSystem', () => {
     expect(omsService.getOrder('active-0')).toBeUndefined();
     expect(omsService.getOrder('overflow-active')).toBeDefined();
   });
+
+  it('should protect recently inserted orders from eviction (PRESERVE_LATEST)', () => {
+    // BUG-0003 fix: just-inserted orders should not be evicted immediately
+    omsService.reset();
+    const limit = oms.MAX_ORDERS;
+    const PRESERVE_LATEST = 20;
+
+    // Fill close to limit (limit - PRESERVE_LATEST)
+    for (let i = 0; i < limit - PRESERVE_LATEST; i++) {
+        omsService.updateOrder({
+            id: `old-${i}`,
+            symbol: 'BTCUSDT',
+            side: 'buy',
+            type: 'limit',
+            price: new Decimal(100),
+            amount: new Decimal(1),
+            filledAmount: new Decimal(0),
+            status: 'pending',
+            timestamp: Date.now() - 1000 // older timestamp
+        });
+    }
+
+    // Add PRESERVE_LATEST recent orders (should be protected)
+    const recentOrderIds: string[] = [];
+    for (let i = 0; i < PRESERVE_LATEST; i++) {
+        const id = `recent-${i}`;
+        recentOrderIds.push(id);
+        omsService.updateOrder({
+            id,
+            symbol: 'BTCUSDT',
+            side: 'buy',
+            type: 'limit',
+            price: new Decimal(100),
+            amount: new Decimal(1),
+            filledAmount: new Decimal(0),
+            status: 'pending',
+            timestamp: Date.now() // recent timestamp
+        });
+    }
+
+    // Now we are exactly at limit + PRESERVE_LATEST
+    expect(omsService.getAllOrders().length).toBe(limit);
+
+    // Add one more order (overflow) - force eviction
+    const newOrderId = 'just-inserted';
+    omsService.updateOrder({
+        id: newOrderId,
+        symbol: 'BTCUSDT',
+        side: 'buy',
+        type: 'limit',
+        price: new Decimal(100),
+        amount: new Decimal(1),
+        filledAmount: new Decimal(0),
+        status: 'pending',
+        timestamp: Date.now()
+    });
+
+    // Expect just-inserted order to survive (it's in PRESERVE_LATEST)
+    expect(omsService.getOrder(newOrderId)).toBeDefined();
+    // Expect one of the old orders to be gone instead
+    expect(omsService.getOrder('old-0')).toBeUndefined();
+    // Expect map to be bounded at MAX_ORDERS
+    expect(omsService.getAllOrders().length).toBe(limit);
+  });
+
+  it('should keep map bounded even under sustained overflow', () => {
+    // BUG-0003: ensure map doesn't grow unbounded
+    omsService.reset();
+    const limit = oms.MAX_ORDERS;
+
+    // Add limit orders
+    for (let i = 0; i < limit; i++) {
+        omsService.updateOrder({
+            id: `order-${i}`,
+            symbol: 'BTCUSDT',
+            side: 'buy',
+            type: 'limit',
+            price: new Decimal(100),
+            amount: new Decimal(1),
+            filledAmount: new Decimal(0),
+            status: 'pending',
+            timestamp: Date.now()
+        });
+    }
+
+    // Sustained overflows - add 100 more orders
+    for (let i = 0; i < 100; i++) {
+        omsService.updateOrder({
+            id: `overflow-${i}`,
+            symbol: 'BTCUSDT',
+            side: 'buy',
+            type: 'limit',
+            price: new Decimal(100),
+            amount: new Decimal(1),
+            filledAmount: new Decimal(0),
+            status: 'pending',
+            timestamp: Date.now()
+        });
+
+        // Map must never exceed MAX_ORDERS
+        expect(omsService.getAllOrders().length).toBeLessThanOrEqual(limit);
+    }
+
+    // After all overflows, map should be at exactly MAX_ORDERS
+    expect(omsService.getAllOrders().length).toBe(limit);
+  });
 });

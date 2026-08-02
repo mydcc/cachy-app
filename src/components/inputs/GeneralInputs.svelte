@@ -28,8 +28,8 @@
 
   interface Props {
     tradeType: string;
-    leverage: string | null;
-    fees: string | null;
+    leverage: string | number | null;
+    fees: string | number | null;
   }
 
   let {
