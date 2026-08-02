@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.9](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.8...v1.0.0-beta.9) (2026-08-02)
+
+
+### Bug Fixes
+
+* todo-item-1 — rotate imgbb api key and enforce required input ([c2cb72f](https://github.com/mydcc/cachy-app/commit/c2cb72fb701f7c03689b27a1d5626b3b6e1e2d2a))
+
 # [1.0.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.7...v1.0.0-beta.8) (2026-08-02)
 
 
