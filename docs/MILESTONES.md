@@ -64,7 +64,10 @@ first means there is a known-good line to compare against.
   the Bitget WebSocket account sync ([`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md)),
   the numeric-zero target price ([`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md)),
   the order-map eviction rule ([`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md)).
-- `docs/TODO.md` item 1 (the shared imgbb key) is decided and the key rotated.
+- `docs/TODO.md` item 1 (the shared imgbb key): ✅ **RESOLVED** (Aug 2, 2026).
+  Hybrid approach: users must provide own imgbb key via Settings, default key
+  provided as fallback with link to https://api.imgbb.com/. Key rotatable
+  at any time.
 - `npm run check` clean, full test suite green, `npx eslint .` clean.
 
 **Explicitly not in scope.** New features. M0 is a closing milestone.

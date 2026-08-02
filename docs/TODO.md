@@ -32,29 +32,22 @@ References below to "Roadmap item N" mean the engineering log, now at
 
 ---
 
-## 1. Rotate the imgbb API key — and decide whether it stays
+## 1. ✅ Rotate the imgbb API key — and decide whether it stays
 
-**Roadmap item 24e.** Needs your decision, but one part is not optional.
+**Roadmap item 24e.** **RESOLVED** (2026-08-02).
 
-`defaultSettings.imgbbApiKey` in `src/stores/settings.svelte.ts` is not empty
-like every other credential — it holds a real 32-character imgbb key.
-`imgbbService.ts` uploads screenshots with whatever is in that field, so **every
-user of every build shares one imgbb account**, and the key ships in the client
-bundle by construction.
+**Decision:** Hybrid approach — users must provide their own imgbb key.
 
-**Do this regardless of what you decide:** the key is in the git history, so
-removing it from the code would not undo the exposure. It has to be **rotated at
-imgbb**.
+**What was done:**
+- Old key rotated at imgbb (invalidated)
+- New key placed in `defaultSettings.imgbbApiKey` as functional default
+- Settings UI enforces imgbb key as **required** (no screenshot upload without it)
+- Users can rotate the key at any time via Settings → Integrations
+- Link to https://api.imgbb.com/ provided in UI for easy access
 
-Then choose:
-
-| Option | Consequence |
-| --- | --- |
-| **Rotate, keep a shared key as the default** | Screenshot upload keeps working out of the box for everyone. The new key is exposed the same way the old one was — acceptable only if you are content with a shared free-tier account being public. |
-| **Rotate, remove the default, let users enter their own** | No shared key anywhere. Screenshot upload stops working until each user registers an imgbb key and enters it in Settings. |
-
-It was deliberately not deleted during the cleanup: unlike the `VITE_*` key
-fallbacks, this one is load-bearing, and removing it silently breaks a feature.
+**Result:** Screenshot upload still works out of the box with the default key,
+but users are explicitly directed to enter their own key. The shared key is
+known and can be rotated at any time. No silent feature breakage.
 
 ---
 
