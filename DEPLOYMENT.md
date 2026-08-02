@@ -340,6 +340,19 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
    - The build runs in `.deploy_work`, so a failure leaves the live deployment untouched
    - Try manually: `npm ci --legacy-peer-deps && npm run build`
 
+4. **`fatal: detected dubious ownership in repository`:**
+   - Git refuses to run `git` commands in a working tree owned by a different user than the one running
+     them (a security check, not a `deploy.sh` bug). Common on aaPanel when the repo was cloned as `root`
+     (or created by the panel) but `deploy.sh` is run as another shell user.
+   - Fix once per user/directory:
+     ```bash
+     git config --global --add safe.directory /www/wwwroot/cachy.app
+     git config --global --add safe.directory /www/wwwroot/dev.cachy.app
+     ```
+   - If this comes up, also double-check that the user running `deploy.sh` actually owns (or can write to)
+     the project directory — the same mismatch can later make `rsync`/`mv`/`chown` in the build-swap step
+     fail too.
+
 ### Health Check Fails
 
 1. **Service not starting:**
