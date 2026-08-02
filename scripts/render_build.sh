@@ -19,5 +19,10 @@
 set -o errexit
 
 echo "Running fallback build script for Render CI..."
-npm install
+
+# Render + npm optional dependency bug fix (rolldown binding missing)
+# As recommended by rolldown/npm error: "Please try npm i again after removing both package-lock.json and node_modules directory."
+rm -rf package-lock.json node_modules
+
+npm install --include=optional
 npm run build
