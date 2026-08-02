@@ -11,22 +11,45 @@ about how to invoke `deploy.sh`.
 - A server with **aaPanel** installed.
 - **Node.js Version Manager** (installed via aaPanel App Store). Recommended: Node v18 or v20.
 - Domains pointing to the server IP (e.g., `cachy.app` and `dev.cachy.app`).
-- **Passwordless `sudo` for the deploy user to run the vhost start scripts as `www`.** `deploy.sh` runs
-  `START_COMMAND` non-interactively in the background — no TTY is attached, so `sudo` cannot prompt for a
-  password even if one would normally be accepted. Without a `NOPASSWD` rule the command fails immediately
-  and silently (see Troubleshooting below); the health check then burns its full wait for a process that
-  never started. Set this up once via `visudo`:
+- **`START_COMMAND` must not contain a redundant `sudo -u www` if `deploy.sh` itself already runs as
+  `www`.** There are two valid ways to run `deploy.sh`, and the right `START_COMMAND` depends on which one
+  you use — mixing them up is a real failure mode, not a hypothetical one (it cost a multi-hour investigation
+  on a production instance):
 
-  ```bash
-  sudo visudo -f /etc/sudoers.d/cachy-deploy
-  ```
+  1. **`deploy.sh` runs as an unprivileged operator user** (e.g. via SSH as a personal account), and needs
+     to elevate to `www` to start the app:
+     ```
+     STABLE_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/cachyapp.sh"
+     ```
+     This requires a passwordless sudo rule for that operator user, because `deploy.sh` runs
+     `START_COMMAND` non-interactively in the background — no TTY is attached, so `sudo` cannot prompt for
+     a password even if one would normally be accepted:
+     ```bash
+     sudo visudo -f /etc/sudoers.d/cachy-deploy
+     ```
+     ```
+     <operator-user> ALL=(www) NOPASSWD: ALL
+     ```
+     Also check for `Defaults use_pty` in `/etc/sudoers` — it forces every `sudo` invocation to allocate a
+     pseudo-terminal, which is unreliable from a backgrounded, non-interactive job like this one and can
+     deny the command even with a correct `NOPASSWD` rule. If present, add a scoped exception:
+     `Defaults:<operator-user> !use_pty`.
 
-  ```
-  <deploy-user> ALL=(www) NOPASSWD: /bin/bash /www/server/nodejs/vhost/scripts/cachyapp.sh, /bin/bash /www/server/nodejs/vhost/scripts/devcachyapp.sh
-  ```
+  2. **`deploy.sh` runs as `www` itself** (e.g. via aaPanel's own "run as site user" button, or
+     `sudo -u www bash deploy.sh`) — the common case when the project directory is owned by `www` and an
+     unprivileged user can't write to it directly. Here `START_COMMAND` must be plain, with **no** `sudo`
+     prefix at all:
+     ```
+     STABLE_START_COMMAND="bash /www/server/nodejs/vhost/scripts/cachyapp.sh"
+     ```
+     `www` sudo-ing to `www` is not a no-op — it's a privilege escalation with no rule granting it, so it
+     is denied. Because `deploy.sh` swallowed `START_COMMAND`'s output for a long time (fixed below), this
+     failure mode looked identical to "the app is just slow to start": the health check burned its full
+     90s wait every time, and the real cause (`sudo: I'm sorry www. I'm afraid I can't do that`) was
+     invisible until the start-command logging below was added.
 
-  Adjust the script filenames to match what aaPanel actually generated (see the naming note on
-  `START_COMMAND` in `.deploy.conf.example`) and the path to `bash` (`which bash`).
+  Check which case applies by checking who owns the project directory (`ls -ld` on it) and how you
+  actually invoke `deploy.sh` — don't assume based on which user you SSH in as.
 
 ---
 
@@ -384,19 +407,46 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
      start-command logging (see above), this now shows up as `bash: .../<name>.sh: No such file or
      directory` in `logs/start_*.log` instead of failing silently.
    - **`sudo: I'm sorry <user>. I'm afraid I can't do that` (or a plain password prompt) in
-     `logs/start_*.log`:** the deploy user lacks a `NOPASSWD` sudoers rule for the vhost script — see
-     Prerequisites above. `deploy.sh` runs `START_CMD` in the background with no TTY, so `sudo` cannot
-     prompt; without `NOPASSWD` it fails immediately every time, even though the exact same command typed
-     interactively can appear to "just work" — a recently cached `sudo` credential (the ticket from an
-     earlier password entry, valid for several minutes) papers over the missing rule until it expires. Rule
-     out that false positive before trusting a manual test: run `sudo -k` (drop the cached ticket) right
-     before `sudo -n -u www bash <script> < /dev/null`, and only trust an exit code of `0` under those
-     conditions.
+     `logs/start_*.log`:** three possible causes, roughly in order of likelihood:
+     1. **`START_COMMAND` has `sudo -u www` but `deploy.sh` is already running as `www`.** `www` sudo-ing
+        to itself is a privilege escalation nothing grants, so it's always denied — see the
+        `START_COMMAND` note in Prerequisites above for how to tell which of the two invocation patterns
+        applies and fix the command accordingly. This was the actual cause the one time this was chased
+        down in production; the other two below turned out to be red herrings that first time, but are
+        worth ruling out too.
+     2. **Missing `NOPASSWD` sudoers rule** for the user actually invoking `sudo` (only relevant for the
+        "unprivileged operator user" pattern in Prerequisites). `deploy.sh` runs `START_CMD` in the
+        background with no TTY, so `sudo` cannot prompt; without `NOPASSWD` it fails immediately every
+        time — even though the exact same command typed interactively can appear to "just work", because a
+        recently cached `sudo` credential (the ticket from an earlier password entry, valid for several
+        minutes) papers over the missing rule until it expires. Rule out that false positive before
+        trusting a manual test: run `sudo -k` (drop the cached ticket) right before
+        `sudo -n -u www bash <script> < /dev/null`, and only trust an exit code of `0` under those
+        conditions.
+     3. **`Defaults use_pty`** in `/etc/sudoers` (`grep -rn use_pty /etc/sudoers /etc/sudoers.d/`) forcing
+        pty allocation, which is unreliable for a backgrounded job with no controlling terminal. A quick
+        interactive `sudo -u www id` can succeed while the exact same command run from within a
+        non-interactively-executed script still fails — test through an actual script file
+        (`bash /path/to/test.sh`, not typed at the prompt) to reproduce this faithfully. Fix: a scoped
+        `Defaults:<user> !use_pty`.
 
 2. **Endpoint not responding:**
    - Verify service is running: `curl http://localhost:3001/api/health`
    - Check if build/index.js exists
    - Restart manually via aaPanel
+
+3. **`❌ Another deployment is already running` right after a deploy that just succeeded:** the
+   concurrency-lock file descriptor (fd 200, see "Concurrency lock" in section 3) leaked into the Node
+   server process itself and is now held open for as long as that process runs — i.e. until its next
+   restart, not until some other deploy finishes. `deploy.sh` closes that fd for `START_CMD` now, so a
+   freshly pulled `deploy.sh` won't reproduce this on its *next* run — but that next run still needs to get
+   past the very `flock -n 200` check this is blocking, so the current stuck lock needs breaking by hand
+   once:
+   ```bash
+   rm .deploy.lock
+   ```
+   Safe here specifically because the cause is understood (a live app process, not a second `deploy.sh`
+   genuinely mid-run) — check `ps aux | grep deploy.sh` first if there's any doubt.
 
 ### Rollback Issues
 

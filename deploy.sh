@@ -452,8 +452,16 @@ graceful_shutdown "$PORT"
 # return immediately once it's launched, so exiting within the first couple
 # of seconds is their *normal*, successful path. Only treat it as a failure
 # when it also left a nonzero exit code or something in the log.
+#
+# fd 200 (the flock lock, see "Concurrency lock" above) must NOT reach this
+# command: START_CMD's descendants include the long-running Node server
+# itself (aaPanel's vhost script backgrounds it via nohup), and an inherited
+# fd stays open for as long as that process runs — i.e. forever, until the
+# next restart. Left open, every subsequent deploy would find the lock still
+# "held" by the app it's supposed to be replacing, not by another deploy.
+# 200>&- closes it for this command and everything it forks.
 START_LOG="$LOG_DIR/start_$(date +%Y%m%d_%H%M%S).log"
-eval "$START_CMD" > "$START_LOG" 2>&1 &
+eval "$START_CMD" > "$START_LOG" 2>&1 200>&- &
 START_PID=$!
 log "Start command launched (PID $START_PID, output: $START_LOG)"
 sleep 2
