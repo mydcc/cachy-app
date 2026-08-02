@@ -212,6 +212,14 @@ evaluation core is **Rust compiled to WASM** from the start, extending the
 existing `technicals-wasm/` toolchain — the same crate cross-compiles for
 Android, so the companion needs no second implementation.
 
+**Optional: Android alert companion.** M4 itself (in-browser alerting) is complete
+and ships as a PWA. Whether to build a native Android companion app is a separate
+decision ([`TODO.md`](TODO.md) item 21): it would run the same alert engine on-device
+to fire when the browser is closed, but it is neither blocking M4 nor required for
+M0–M3. The scope is alert-only (calculator, journal and UI stay PWA), the platform
+is Android (iOS cannot hold background WebSockets), and the timeline is unspecified.
+This carries no risk to the core product and costs nothing elsewhere in the app.
+
 ---
 
 ## M5 — Community & whitelabel edition
