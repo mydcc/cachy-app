@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+## [1.1.1-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.0...v1.1.1-beta.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* **ci:** auto back-merge main into develop after stable release ([180c284](https://github.com/mydcc/cachy-app/commit/180c28433ebd2d69bb0ce125042fb4b893b63a32))
+
 # [1.1.0](https://github.com/mydcc/cachy-app/compare/v1.0.2...v1.1.0) (2026-08-02)
 
 
