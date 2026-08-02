@@ -48,6 +48,28 @@ interface BitunixRawKline {
 // [timestamp, open, high, low, close, volume, quoteVol]
 type BitgetCandleTuple = [string | number, string | number, string | number, string | number, string | number, string | number, (string | number)?];
 
+const UPSTREAM_TIMEOUT_MS = 8000;
+
+// Bounds the exchange fetch so a slow/unreachable upstream fails fast with a
+// proper JSON error instead of letting the reverse proxy in front of this
+// server time out first and return a raw 502 to the client.
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      const error = new Error("Upstream exchange API timed out") as ApiError;
+      error.status = 504;
+      throw error;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const GET: RequestHandler = async ({ url }) => {
   const symbol = url.searchParams.get("symbol");
   const interval = url.searchParams.get("interval") || "1d";
@@ -128,13 +150,13 @@ async function fetchBitunixKlines(
   const queryString = new URLSearchParams(params).toString();
   const fullUrl = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetch(fullUrl, {
+  const response = await fetchWithTimeout(fullUrl, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       Accept: "application/json, text/plain, */*",
       "Accept-Language": "en-US,en;q=0.9",
     },
-  });
+  }, UPSTREAM_TIMEOUT_MS);
 
   if (!response.ok) {
     const text = await response.text();
@@ -247,7 +269,7 @@ async function fetchBitgetKlines(
 
   const queryString = new URLSearchParams(params).toString();
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`);
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {}, UPSTREAM_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`Bitget API error: ${response.status}`);

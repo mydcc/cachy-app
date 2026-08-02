@@ -5,19 +5,56 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
-## [1.0.2](https://github.com/mydcc/cachy-app/compare/v1.0.1...v1.0.2) (2026-08-02)
+# [1.0.0-beta.15](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.14...v1.0.0-beta.15) (2026-08-02)
 
 
 ### Bug Fixes
 
-* add missing apiErrors.unauthorized and tooManyRequests translations ([04de952](https://github.com/mydcc/cachy-app/commit/04de9529d55f0f63622558fa105ec5539c48f604))
-* bug-0002 — widen types to handle numeric prices, use Decimal for filtering ([9df1928](https://github.com/mydcc/cachy-app/commit/9df1928ef356eb2ce95ddabe5fdb93aa453f4006))
-* bug-0003 — enforce PRESERVE_LATEST protection for recent orders ([4ad0348](https://github.com/mydcc/cachy-app/commit/4ad0348df089312a5fa082032b96b4e74b633baa))
-* presets — sanitize legacy feeMode values for TypeScript compatibility ([27e64e6](https://github.com/mydcc/cachy-app/commit/27e64e62442204040457bf7559e991304b6cd572))
-* **pwa:** correct mislabelled manifest screenshots, disable the screenshot block ([d0d9158](https://github.com/mydcc/cachy-app/commit/d0d91580ec90dc13da046953946d89b271b21211))
-* send x-app-access-token on all guarded API routes ([95c354d](https://github.com/mydcc/cachy-app/commit/95c354d7dfb29da2574c0bd4c996b9195ad64478))
-* skip stream-logs request when no admin token is configured ([72c6d58](https://github.com/mydcc/cachy-app/commit/72c6d58fb14bffa766dc9ad0a27be03d3486b76f))
-* wait for secret decryption before sending guarded API requests ([a569743](https://github.com/mydcc/cachy-app/commit/a569743bb730781f4fb5b130bbb47473be4a03ce))
+* **deploy:** close lock fd before START_CMD, correct sudo guidance ([a125c37](https://github.com/mydcc/cachy-app/commit/a125c37c7685eafee35d4df37f61aa490647a3c8))
+* **deploy:** stop flagging a clean fire-and-forget start as a failure ([b712390](https://github.com/mydcc/cachy-app/commit/b7123907fe2ebec61ebbec89660addacbfafa817))
+
+# [1.0.0-beta.14](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.13...v1.0.0-beta.14) (2026-08-02)
+
+
+### Bug Fixes
+
+* **deploy:** capture start command output instead of discarding it ([7531ab2](https://github.com/mydcc/cachy-app/commit/7531ab27021d2f48646547b3d4d670ede267f2ad))
+
+# [1.0.0-beta.13](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.12...v1.0.0-beta.13) (2026-08-02)
+
+
+### Features
+
+* **ai:** live model discovery, Ollama and OpenRouter providers ([7780b74](https://github.com/mydcc/cachy-app/commit/7780b74a533495d08d4e3ca1fcf07f026fcb7ede))
+
+# [1.0.0-beta.12](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.11...v1.0.0-beta.12) (2026-08-02)
+
+
+### Bug Fixes
+
+* bound upstream exchange fetch with a timeout in /api/klines ([0d6f6b2](https://github.com/mydcc/cachy-app/commit/0d6f6b2a4dbca2819194616cd6f6dc91ebc048d6))
+
+# [1.0.0-beta.11](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.10...v1.0.0-beta.11) (2026-08-02)
+
+
+### Bug Fixes
+
+* align develop version above main release ([bd0391d](https://github.com/mydcc/cachy-app/commit/bd0391daf89186dcbc7f65705619759da3b89796))
+
+# [1.0.0-beta.10](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.9...v1.0.0-beta.10) (2026-08-02)
+
+
+### Bug Fixes
+
+* normalize Bitget WS payload to match account store expectations (BUG-0001) ([9924365](https://github.com/mydcc/cachy-app/commit/9924365992483f7827ac7145f65c317761b65ba3))
+* remove ESLint no-explicit-any violations in bitgetWs tests ([6dd8562](https://github.com/mydcc/cachy-app/commit/6dd856279a5b76d5f26b53214cac36619df267f8))
+
+# [1.0.0-beta.9](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.8...v1.0.0-beta.9) (2026-08-02)
+
+
+### Bug Fixes
+
+* todo-item-1 — rotate imgbb api key and enforce required input ([c2cb72f](https://github.com/mydcc/cachy-app/commit/c2cb72fb701f7c03689b27a1d5626b3b6e1e2d2a))
 
 # [1.0.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.7...v1.0.0-beta.8) (2026-08-02)
 

@@ -31,7 +31,7 @@ export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
 export type SidePanelLayout = "standard" | "floating";
-export type AiProvider = "openai" | "gemini" | "anthropic";
+export type AiProvider = "openai" | "gemini" | "anthropic" | "ollama" | "openrouter";
 export type BackgroundType =
   | "none"
   | "image"
@@ -209,6 +209,10 @@ export interface Settings {
   geminiModel: string;
   anthropicApiKey: string;
   anthropicModel: string;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
+  openrouterApiKey: string;
+  openrouterModel: string;
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
   aiTradeHistoryLimit: number;
@@ -356,7 +360,7 @@ const defaultSettings: Settings = {
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
   syncRsiTimeframe: true,
-  imgbbApiKey: "71a5689343bb63d5c85a76e4375f1d0b",
+  imgbbApiKey: "25e953ac23d0704c1adc548c9a61b382",
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
@@ -382,7 +386,11 @@ const defaultSettings: Settings = {
   geminiApiKey: "",
   geminiModel: "gemini-1.5-flash",
   anthropicApiKey: "",
-  anthropicModel: "claude-3-5-sonnet-20240620",
+  anthropicModel: "claude-sonnet-5",
+  ollamaBaseUrl: "http://localhost:11434",
+  ollamaModel: "",
+  openrouterApiKey: "",
+  openrouterModel: "",
   analysisDepth: "standard",
   aiConfirmActions: false,
   aiTradeHistoryLimit: 50,
@@ -613,6 +621,11 @@ export class SettingsManager {
   geminiModel = $state<string>(defaultSettings.geminiModel);
   anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
   anthropicModel = $state<string>(defaultSettings.anthropicModel);
+  // No API key: Ollama is the user's own local (or self-hosted) instance.
+  ollamaBaseUrl = $state<string>(defaultSettings.ollamaBaseUrl);
+  ollamaModel = $state<string>(defaultSettings.ollamaModel);
+  openrouterApiKey = $state<string>(defaultSettings.openrouterApiKey);
+  openrouterModel = $state<string>(defaultSettings.openrouterModel);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
@@ -1325,6 +1338,10 @@ export class SettingsManager {
       this.geminiModel = merged.geminiModel;
       this.anthropicApiKey = merged.anthropicApiKey;
       this.anthropicModel = merged.anthropicModel;
+      this.ollamaBaseUrl = merged.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
+      this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
+      this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
+      this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
       this.analysisDepth =
         merged.analysisDepth || defaultSettings.analysisDepth;
       this.aiConfirmActions = merged.aiConfirmActions;
@@ -1493,6 +1510,19 @@ export class SettingsManager {
         }
         this.geminiModel = "gemini-1.5-flash";
       }
+
+      // Migration for Anthropic Model: claude-3-5-sonnet-20240620 (the old
+      // hardcoded default) and every other Claude 2.x/3.x snapshot ID are
+      // retired. Move users still pointing at one onto a current model —
+      // the live model picker in Settings → AI takes over from here.
+      if (!this.anthropicModel || /^claude-[23]/.test(this.anthropicModel)) {
+        if (import.meta.env.DEV) {
+          console.warn(
+            `[Settings] Migrating anthropicModel from "${this.anthropicModel}" to claude-sonnet-5 (retired).`,
+          );
+        }
+        this.anthropicModel = "claude-sonnet-5";
+      }
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("[Settings] Load failed, using defaults:", e);
@@ -1653,6 +1683,10 @@ export class SettingsManager {
       geminiModel: this.geminiModel,
       anthropicApiKey: this.anthropicApiKey,
       anthropicModel: this.anthropicModel,
+      ollamaBaseUrl: this.ollamaBaseUrl,
+      ollamaModel: this.ollamaModel,
+      openrouterApiKey: this.openrouterApiKey,
+      openrouterModel: this.openrouterModel,
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,

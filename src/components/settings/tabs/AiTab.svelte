@@ -19,12 +19,15 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState, type AiProvider } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import AiModelPicker from "../AiModelPicker.svelte";
     import { uiState } from "../../../stores/ui.svelte";
 
-    const aiProviders = [
-        { value: "openai", label: "OpenAI (GPT-4o)" },
-        { value: "gemini", label: "Google Gemini (Pro)" },
-        { value: "anthropic", label: "Anthropic (Claude 3.5)" },
+    const aiProviders: { value: AiProvider; label: string }[] = [
+        { value: "openai", label: $_("settings.ai.provider.openai") },
+        { value: "gemini", label: $_("settings.ai.provider.gemini") },
+        { value: "anthropic", label: $_("settings.ai.provider.anthropic") },
+        { value: "ollama", label: $_("settings.ai.provider.ollama") },
+        { value: "openrouter", label: $_("settings.ai.provider.openrouter") },
     ];
 
     // Social Helper
@@ -83,7 +86,7 @@
                         class="text-xs font-semibold color-[var(--text-secondary)] mb-1"
                         >{$_("settings.apiProvider")}</span
                     >
-                    <div class="segmented-control">
+                    <div class="segmented-control flex-wrap">
                         {#each aiProviders as provider}
                             <button
                                 class="segmented-btn {settingsState.aiProvider ===
@@ -91,21 +94,11 @@
                                     ? 'active'
                                     : ''}"
                                 onclick={() =>
-                                    (settingsState.aiProvider =
-                                        provider.value as AiProvider)}
+                                    (settingsState.aiProvider = provider.value)}
                             >
                                 {provider.label}
                             </button>
                         {/each}
-                        <div
-                            class="segmented-bg"
-                            style="width: 33.33%; transform: translateX({settingsState.aiProvider ===
-                            'openai'
-                                ? '0%'
-                                : settingsState.aiProvider === 'gemini'
-                                  ? '100%'
-                                  : '200%'})"
-                        ></div>
                     </div>
                     <p class="text-[10px] text-[var(--text-secondary)] mt-1">
                         {$_("settings.ai.providerDesc")}
@@ -125,15 +118,11 @@
                                     placeholder="sk-..."
                                 />
                             </div>
-                            <div class="field-group">
-                                <label for="openai-model">{$_("settings.ai.openaiModel")}</label>
-                                <input
-                                    id="openai-model"
-                                    bind:value={settingsState.openaiModel}
-                                    placeholder="gpt-4o"
-                                    class="input-field"
-                                />
-                            </div>
+                            <AiModelPicker
+                                provider="openai"
+                                apiKey={settingsState.openaiApiKey}
+                                bind:model={settingsState.openaiModel}
+                            />
                         </div>
                     {:else if settingsState.aiProvider === "gemini"}
                         <div class="grid grid-cols-1 gap-4">
@@ -147,20 +136,11 @@
                                     placeholder="AIza..."
                                 />
                             </div>
-                            <div class="field-group">
-                                <label for="gemini-model">{$_("settings.ai.geminiModel")}
-                                    <span class="text-[10px] font-normal text-[var(--text-secondary)] ml-2">({$_("settings.ai.geminiModelDesc")})</span>
-                                </label>
-                                <select
-                                    id="gemini-model"
-                                    bind:value={settingsState.geminiModel}
-                                    class="input-field"
-                                >
-                                    <option value="gemini-3.5-flash">{$_("settings.ai.geminiRecommended")}</option>
-                                    <option value="gemini-3.5-pro">{$_("settings.ai.geminiPro")}</option>
-                                    <option value="gemma-4-31b-it">{$_("settings.ai.gemmaOpen")}</option>
-                                </select>
-                            </div>
+                            <AiModelPicker
+                                provider="gemini"
+                                apiKey={settingsState.geminiApiKey}
+                                bind:model={settingsState.geminiModel}
+                            />
                         </div>
                     {:else if settingsState.aiProvider === "anthropic"}
                         <div class="grid grid-cols-1 gap-4">
@@ -174,18 +154,49 @@
                                     placeholder="sk-ant-..."
                                 />
                             </div>
+                            <AiModelPicker
+                                provider="anthropic"
+                                apiKey={settingsState.anthropicApiKey}
+                                bind:model={settingsState.anthropicModel}
+                            />
+                        </div>
+                    {:else if settingsState.aiProvider === "ollama"}
+                        <div class="grid grid-cols-1 gap-4">
                             <div class="field-group">
-                                <label for="anthropic-model">{$_("settings.ai.anthropicModel")}</label>
+                                <label for="ollama-url">{$_("settings.ai.ollamaBaseUrl")}</label>
                                 <input
-                                    id="anthropic-model"
-                                    bind:value={settingsState.anthropicModel}
-                                    placeholder="claude-3-5-sonnet-20240620"
+                                    id="ollama-url"
+                                    bind:value={settingsState.ollamaBaseUrl}
                                     class="input-field"
+                                    placeholder="http://localhost:11434"
                                 />
-                                <span class="text-[10px] text-[var(--text-secondary)] mt-1">
-                                    {$_("settings.ai.anthropicModelDesc")}
+                                <span class="text-[10px] text-[var(--text-secondary)]">
+                                    {$_("settings.ai.ollamaBaseUrlDesc")}
                                 </span>
                             </div>
+                            <AiModelPicker
+                                provider="ollama"
+                                baseUrl={settingsState.ollamaBaseUrl}
+                                bind:model={settingsState.ollamaModel}
+                            />
+                        </div>
+                    {:else if settingsState.aiProvider === "openrouter"}
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="field-group">
+                                <label for="openrouter-key">{$_("settings.ai.openrouterApiKey")}</label>
+                                <input
+                                    id="openrouter-key"
+                                    type="password"
+                                    bind:value={settingsState.openrouterApiKey}
+                                    class="input-field"
+                                    placeholder="sk-or-..."
+                                />
+                            </div>
+                            <AiModelPicker
+                                provider="openrouter"
+                                apiKey={settingsState.openrouterApiKey}
+                                bind:model={settingsState.openrouterModel}
+                            />
                         </div>
                     {/if}
                 </div>
@@ -406,31 +417,23 @@
         border: 1px solid var(--border-color);
         padding: 2px;
         border-radius: 0.5rem;
-        position: relative;
-        overflow: hidden;
+        gap: 2px;
     }
     .segmented-btn {
-        flex: 1;
-        z-index: 1;
-        padding: 0.4rem;
+        flex: 0 0 auto;
+        padding: 0.4rem 0.6rem;
         font-size: 0.75rem;
         font-weight: 600;
         color: var(--text-secondary);
         background: transparent;
         border: none;
+        border-radius: 0.4rem;
         cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
     }
     .segmented-btn.active {
         color: var(--btn-accent-text);
-    }
-    .segmented-bg {
-        position: absolute;
-        top: 2px;
-        bottom: 2px;
-        left: 2px;
         background: var(--accent-color);
-        border-radius: 0.4rem;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .toggle-card {
         display: flex;
