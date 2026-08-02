@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.0.0-beta.7](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.6...v1.0.0-beta.7) (2026-08-02)
+
+
+### Bug Fixes
+
+* **pwa:** correct mislabelled manifest screenshots, disable the screenshot block ([d0d9158](https://github.com/mydcc/cachy-app/commit/d0d91580ec90dc13da046953946d89b271b21211))
+
 # [1.0.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.0.0-beta.5...v1.0.0-beta.6) (2026-08-01)
 
 
