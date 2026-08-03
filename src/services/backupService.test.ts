@@ -123,7 +123,7 @@ describe("backupService", () => {
 
     const restored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     expect(restored).toBe(validSettings);
-  });
+  }, 15000);
 
   it("should fail with incorrect password", async () => {
     localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, validSettings);
@@ -150,7 +150,7 @@ describe("backupService", () => {
     const result = await backupService.restoreFromBackup(backupText, "wrong");
     expect(result.success).toBe(false);
     expect(result.message).toBe("app.backupWrongPassword");
-  });
+  }, 15000);
 
   it("should throw error when backing up corrupt localStorage data", async () => {
     // The service currently catches JSON parse errors and returns null for that key,

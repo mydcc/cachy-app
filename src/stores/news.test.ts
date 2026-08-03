@@ -30,18 +30,12 @@ vi.mock("../services/newsService", () => ({
   }
 }));
 
-// Mock window.indexedDB to prevent the save error on Settings store
-const indexedDBMock = {
-  open: vi.fn(),
-};
-Object.defineProperty(window, 'indexedDB', { value: indexedDBMock });
 
 describe("NewsStore", () => {
   let newsStore: typeof import("./news.svelte")["newsStore"];
   let settingsState: typeof import("./settings.svelte")["settingsState"];
 
   beforeEach(async () => {
-    vi.useFakeTimers();
     mockFetchNews.mockReset();
     mockAnalyzeSentiment.mockReset();
     vi.resetModules();
@@ -52,6 +46,7 @@ describe("NewsStore", () => {
 
     const newsModule = await import("./news.svelte");
     newsStore = newsModule.newsStore;
+    vi.useFakeTimers();
   });
 
   afterEach(() => {

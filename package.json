@@ -1,6 +1,6 @@
 {
   "name": "cachy-app",
-  "version": "1.1.1",
+  "version": "1.1.2-beta.1",
   "description": "Local-first position size and risk management calculator for crypto traders.",
   "license": "AGPL-3.0-or-later",
   "private": true,
@@ -44,6 +44,7 @@
     "@webgpu/types": "^0.1.71",
     "eslint": "^10.8.0",
     "eslint-plugin-svelte": "^3.22.0",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^17.8.0",
     "puppeteer": "^25.3.0",
     "semantic-release": "^25.0.8",
