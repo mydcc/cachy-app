@@ -47,6 +47,7 @@ export default defineConfig({
     // with `// @vitest-environment node`, and the 12 files that already declare
     // jsdom or happy-dom keep their own choice — per-file directives win.
     environment: "happy-dom",
+    setupFiles: ["./vitest.setup.ts"],
   },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),

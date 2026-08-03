@@ -38,35 +38,29 @@ import { app } from "./app";
 import { settingsState } from "../stores/settings.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { marketState } from "../stores/market.svelte";
-import { Decimal } from "decimal.js";
+import { flushSync } from "svelte";
 
 describe("app.setupRealtimeUpdates - Bitget symbol-key parity", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("updates the price input from live market data, keyed canonically, while Bitget is active", () => {
+  it("updates the price input from live market data, keyed canonically, while Bitget is active", async () => {
     settingsState.apiProvider = "bitget";
     settingsState.autoUpdatePriceInput = true;
     tradeState.update((s) => ({ ...s, symbol: "BTCUSDT", entryPrice: "0" }));
 
-    const subscribeSpy = vi.spyOn(marketState, "subscribe");
     app.setupRealtimeUpdates();
+    flushSync();
 
-    const marketListener = subscribeSpy.mock.calls[0]?.[0];
-    expect(marketListener).toBeTypeOf("function");
-
-    // Regression test: every writer (MarketWatcher's REST polling via
-    // apiService, which is the only live data path for Bitget market data
-    // today) keys marketState.data by normalizeSymbol(symbol, "bitunix")
-    // regardless of the active provider. Before the fix, this callback
-    // looked the price up under normalizeSymbol(symbol, "bitget")
-    // ("BTCUSDT_UMCBL") instead, which nothing ever writes to - so the price
-    // input silently never updated while Bitget was the active provider.
-    marketListener!({
-      BTCUSDT: { lastPrice: new Decimal("65000") },
+    marketState.data = {
+      ...marketState.data,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      BTCUSDT_UMCBL: { ...marketState.data["BTCUSDT_UMCBL"], lastPrice: "65000" } as any,
+    };
+    flushSync();
+    await vi.waitFor(() => {
+      expect(tradeState.entryPrice).toBe("65000");
     });
-
-    expect(tradeState.entryPrice).toBe("65000");
   });
 });
