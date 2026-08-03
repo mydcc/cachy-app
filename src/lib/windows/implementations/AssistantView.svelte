@@ -37,6 +37,17 @@
     let messageText = $state("");
     let isSending = $state(false);
     let errorMessage = $state("");
+    let showContextPanel = $state(false);
+
+    type AiAnalysisMode = "risk" | "coach" | "scalper" | "analyst";
+    const analysisModes: { id: AiAnalysisMode; icon: string; label: string }[] = [
+        { id: "risk",    icon: "🛡️", label: "Risk Manager" },
+        { id: "coach",   icon: "📚", label: "Trade Coach"  },
+        { id: "scalper", icon: "⚡",   label: "Scalper"      },
+        { id: "analyst", icon: "🎯",   label: "Analyst"     },
+    ];
+
+    let contextSummary = $derived(aiState.contextSummary);
 
     // Scroll to bottom on new messages
     $effect(() => {
@@ -105,7 +116,6 @@
     let isBubble = $derived(styleMode === "bubble");
     let isMinimal = $derived(styleMode === "minimal");
     let isAiMode = $derived(settingsState.sidePanelMode === "ai");
-    let contextData = $derived(aiState.lastContext);
 
     let hasApiKey = $derived.by(() => {
         const provider = settingsState.aiProvider;
@@ -380,63 +390,78 @@
         class:border-[var(--border-color)]={!isTerminal}
     >
         {#if isAiMode}
-            <div class="context-indicators">
-                <div
-                    class="indicator"
-                    title="Market Data Available"
-                    class:active={contextData?.marketIntelligence?.global ||
-                        contextData?.technicals}
-                >
-                    <span>{contextData?.marketIntelligence?.global ? "🟢" : "⚪"}</span> Market
-                </div>
-                <div
-                    class="indicator"
-                    title="News Data Available"
-                    class:active={contextData?.latestNews &&
-                        contextData.latestNews.length > 0}
-                >
-                    <span
-                        >{contextData?.latestNews && contextData.latestNews.length > 0
-                            ? "🟢"
-                            : "⚪"}</span
-                    > News
-                </div>
+            <!-- AI Mode Selector -->
+            <div class="ai-modes-selector no-scrollbar">
+                {#each analysisModes as am}
+                    <button
+                        class="mode-chip"
+                        class:active={settingsState.aiAnalysisMode === am.id}
+                        onclick={() => settingsState.aiAnalysisMode = am.id}
+                        title={am.label}
+                    >
+                        {am.icon} <span class="mode-label">{am.label}</span>
+                    </button>
+                {/each}
             </div>
+
+            <!-- Context Info Toggle -->
+            {#if contextSummary}
+                <div class="context-panel-wrapper">
+                    <button class="context-toggle" onclick={() => showContextPanel = !showContextPanel}>
+                        ⏱ Context: {contextSummary.durationMs}ms
+                        <span class="divider">|</span>
+                        📰 {contextSummary.newsCount} News
+                        <span class="divider">|</span>
+                        📊 Tech: {contextSummary.hasTechnicals ? "✅" : "❌"}
+                        <span class="chevron" class:open={showContextPanel}>▼</span>
+                    </button>
+                    {#if showContextPanel}
+                        <div class="context-details">
+                            <table>
+                                <tbody>
+                                    <tr><td>Symbol</td><td>{tradeState.symbol || "BTCUSDT"}</td></tr>
+                                    <tr><td>Technicals</td><td>{contextSummary.hasTechnicals ? "✅ Loaded" : "❌ None"}</td></tr>
+                                    <tr><td>News</td><td>{contextSummary.newsCount > 0 ? `✅ ${contextSummary.newsCount} articles` : "❌ None"}</td></tr>
+                                    <tr><td>CoinMarketCap</td><td>{contextSummary.hasCmc ? "✅ Loaded" : "❌ No API Key configured"}</td></tr>
+                                    {#if contextSummary.timedOut}
+                                        <tr><td colspan="2" class="warning-text">⚠️ Context gathering timed out (5s). Data may be incomplete.</td></tr>
+                                    {/if}
+                                </tbody>
+                            </table>
+                        </div>
+                    {/if}
+                </div>
+            {/if}
 
             {#if !messageText}
                 <div class="quick-actions no-scrollbar">
                     <button
                         class="qa-btn"
                         onclick={() => {
-                            messageText =
-                                "Analysiere den Markt für " +
-                                (tradeState.symbol || "BTC");
+                            messageText = $_("sidePanel.quickActions.marketCheck", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>📊 Market Check</button
+                        }}>📊 {$_("sidePanel.quickActions.marketCheck", { values: { symbol: tradeState.symbol || "BTC" } }).split(' ')[0]} Check</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
-                            messageText =
-                                "Erstelle eine technische Analyse für " +
-                                (tradeState.symbol || "BTC");
+                            messageText = $_("sidePanel.quickActions.techAnalysis", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
                         }}>🧪 Tech Analysis</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
-                            messageText =
-                                "Prüfe mein Setup auf Fehler und Risiken.";
+                            messageText = $_("sidePanel.quickActions.riskAudit", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
                         }}>⚠️ Risk Audit</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
-                            messageText = "Gibt es wichtige News?";
+                            messageText = $_("sidePanel.quickActions.newsCheck", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>📰 News check</button
+                        }}>📰 News Check</button
                     >
                 </div>
             {/if}
@@ -660,19 +685,6 @@
         background: rgba(0, 0, 0, 0.1);
     }
 
-    .context-indicators,
-    .quick-actions {
-        padding: 0 12px;
-    }
-
-    .context-indicators {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 8px;
-        font-size: 10px;
-        opacity: 0.5;
-    }
-
     .quick-actions {
         display: flex;
         gap: 8px;
@@ -789,5 +801,90 @@
     .no-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
+    }
+    
+    /* V4 AI Analysis Modes & Context Panel */
+    .ai-modes-selector {
+        display: flex;
+        gap: 6px;
+        padding: 4px 16px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .mode-chip {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+    }
+    .mode-chip:hover {
+        background: var(--bg-secondary);
+    }
+    .mode-chip.active {
+        background: rgba(var(--accent-color-rgb, 79, 70, 229), 0.1);
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+    }
+    
+    .context-panel-wrapper {
+        margin: 0 16px 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-tertiary);
+        font-size: 11px;
+    }
+    .context-toggle {
+        width: 100%;
+        background: transparent;
+        border: none;
+        padding: 6px 10px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+    .context-toggle:hover {
+        color: var(--text-primary);
+    }
+    .context-toggle .divider {
+        opacity: 0.3;
+    }
+    .context-toggle .chevron {
+        font-size: 8px;
+        transition: transform 0.2s ease;
+    }
+    .context-toggle .chevron.open {
+        transform: rotate(180deg);
+    }
+    
+    .context-details {
+        padding: 10px;
+        border-top: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+    }
+    .context-details table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .context-details td {
+        padding: 4px;
+        color: var(--text-secondary);
+    }
+    .context-details td:first-child {
+        color: var(--text-primary);
+        width: 40%;
+    }
+    .warning-text {
+        color: #fbbf24 !important;
+        text-align: center;
     }
 </style>

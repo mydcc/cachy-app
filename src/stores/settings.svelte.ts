@@ -48,6 +48,7 @@ export type BackgroundAnimationPreset =
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
+export type AiAnalysisMode = "risk" | "coach" | "scalper" | "analyst";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode =
@@ -217,6 +218,7 @@ export interface Settings {
   aiConfirmActions: boolean;
   aiTradeHistoryLimit: number;
   aiConfirmClear: boolean;
+  aiAnalysisMode: AiAnalysisMode;
   showSpinButtons: boolean | "hover";
   disclaimerAccepted: boolean;
   useUtcDateParsing: boolean;
@@ -394,6 +396,7 @@ const defaultSettings: Settings = {
   analysisDepth: "standard",
   aiConfirmActions: false,
   aiTradeHistoryLimit: 50,
+  aiAnalysisMode: "risk" as AiAnalysisMode,
   showSpinButtons: "hover",
   disclaimerAccepted: false,
   useUtcDateParsing: true,
@@ -630,6 +633,7 @@ export class SettingsManager {
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
+  aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
 
   rssFilterBySymbol = $state<boolean | undefined>(
     defaultSettings.rssFilterBySymbol,
@@ -1344,6 +1348,7 @@ export class SettingsManager {
       this.aiConfirmActions = merged.aiConfirmActions;
       this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
       this.aiConfirmClear = merged.aiConfirmClear;
+      this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
       this.showSpinButtons = merged.showSpinButtons;
       this.disclaimerAccepted = merged.disclaimerAccepted;
       this.useUtcDateParsing = merged.useUtcDateParsing;
@@ -1688,6 +1693,7 @@ export class SettingsManager {
       aiConfirmActions: this.aiConfirmActions,
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,
       aiConfirmClear: this.aiConfirmClear,
+      aiAnalysisMode: this.aiAnalysisMode,
       showSpinButtons: this.showSpinButtons,
       disclaimerAccepted: this.disclaimerAccepted,
       useUtcDateParsing: this.useUtcDateParsing,

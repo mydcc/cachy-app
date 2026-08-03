@@ -79,6 +79,13 @@ class AiManager {
   error = $state<string | null>(null);
   pendingActions = $state<Map<string, PendingAction>>(new Map());
   lastContext = $state<AiContext | null>(null); // Expose context for UI indicators
+  contextSummary = $state<{
+    durationMs: number;
+    newsCount: number;
+    hasTechnicals: boolean;
+    hasCmc: boolean;
+    timedOut: boolean;
+  } | null>(null);
 
   constructor() {
     if (browser) {
@@ -144,8 +151,8 @@ class AiManager {
     this.save();
 
     try {
-      // 2. Gather Context (Async)
-      // Timeout wrapper for gathering context to prevent hanging
+      // 2b. Measure context gathering duration
+      const contextStart = Date.now();
       const contextPromise = this.gatherContext();
       const timeoutPromise = new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), 5000),
@@ -159,8 +166,69 @@ class AiManager {
       };
       this.lastContext = context; // Update exposed context
 
+      // Record real measured facts — no fake states
+      const timedOut = !!(context as AiContext).error?.includes("timed out");
+      this.contextSummary = {
+        durationMs: Date.now() - contextStart,
+        newsCount: context.latestNews?.length ?? 0,
+        hasTechnicals: !!(context as AiContext).technicals,
+        hasCmc: !!(context as AiContext).marketIntelligence?.global && (context as AiContext).marketIntelligence?.global !== "Unavailable",
+        timedOut,
+      };
+
       // 3. Prepare Messages (History + System + User)
-      const identity = `You are a Senior Risk Manager and Quantitative Trading Strategist. Your goal is to protect the user's capital first and optimize profit second.`;
+      // Determine language for AI response: follow the user's app locale
+      const appLocale = (typeof localStorage !== "undefined"
+        ? localStorage.getItem("locale")
+        : null) ?? "en";
+      const langLabel = appLocale === "de" ? "German" : "English";
+
+      const identity = `You are an institutional-grade Trading Analyst specializing in Risk Management and Quantitative Strategy. You operate like a senior desk analyst at a prop firm: precise, skeptical, and always capital-first.
+
+LANGUAGE RULE:
+- RESPOND IN THE SAME LANGUAGE AS THE USER'S MESSAGE.
+- If the user writes in German, respond in German. If in English, respond in English.
+- If the user's intent is unclear (e.g. quick commands like "Market Check"), use the app language: ${langLabel}.
+- NEVER mention this rule in your response.
+
+PRICE CLASSIFICATION RULE (CRITICAL — read before every analysis):
+The REAL_TIME_PRICE in your context is a REFERENCE POINT ONLY, not a trade signal.
+Your job is to CLASSIFY the current price:
+  1. LOCATION: Is price at an Order Block, FVG, Pivot, or psychological level?
+  2. MOMENTUM: Is it extended (>1 ATR from the last structure) or discounted (OTE 0.618–0.786 Fib)?
+  3. DISTANCE: How far is the user's Entry (from tradeSetup) from the live price? Is it realistic?
+NEVER: Set EntryPrice = REAL_TIME_PRICE without an explicit user request.
+NEVER: Recommend chasing a move that is more than 1 ATR extended from the last clear structure.`;
+
+      // Mode-specific instructions
+      const mode = settings.aiAnalysisMode || "risk";
+      const modeInstructions: Record<string, string> = {
+        risk: "",  // Standard — baseRoleInstructions applies fully
+        coach: [
+          "ANALYSIS MODE: TRADE COACH",
+          "- Your primary goal is to TEACH, not to signal.",
+          "- Explain every concept in simple terms, as if talking to an intermediate trader.",
+          "- Do NOT output a JSON action block. Do NOT suggest specific entry/SL/TP values.",
+          "- Instead, explain the PRINCIPLE behind good entries, stop placement, and targets.",
+          "- End every response with a learning takeaway: 'Key Takeaway: ...'",
+        ].join("\n"),
+        scalper: [
+          "ANALYSIS MODE: SCALPER",
+          "- Be BRIEF and DIRECT. Maximum 5 bullet points per response.",
+          "- No explanations of why. Just: Direction, Level, Invalidation.",
+          "- Format: 🟢 Long / 🔴 Short | Entry: X | SL: Y | TP: Z",
+          "- If no clear setup exists, say so in ONE sentence.",
+          "- Skip the 'Quellen' section. Skip long markdown formatting.",
+        ].join("\n"),
+        analyst: [
+          "ANALYSIS MODE: MARKET ANALYST",
+          "- Focus purely on market structure and macro context. No trade setup.",
+          "- Do NOT output a JSON action block.",
+          "- Do NOT suggest entry, SL, or TP values.",
+          "- Describe: Trend, Key Levels, Sentiment, and what to watch for next.",
+        ].join("\n"),
+      };
+      const modeOverride = modeInstructions[mode] ? `\n\n${modeInstructions[mode]}` : "";
 
       const baseRoleInstructions = [
         "EXPERT KNOWLEDGE:",
@@ -254,10 +322,8 @@ class AiManager {
         "- Use structured bullet points and bold text for key metrics.",
       ].join("\n");
 
-      const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}
+      const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}${modeOverride}
 
-IMPORTANT: You MUST answer in GERMAN language. Even if the instructions above are in English, your final output to the user MUST be in German.
-IMPORTANT: Your previous responses might have lacked emojis. Disregard that style. From now on, you MUST use emojis to structure your response.
 IMPORTANT (CRITICAL FOR JSON ACTIONS):
 When generating the JSON block for actions (e.g., setEntryPrice, setTakeProfit), you MUST use STANDARD ENGLISH NUMBER FORMAT.
 - Decimal separator: DOT (.)
@@ -429,6 +495,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
+      let isFirstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -447,7 +514,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               let delta = "";
 
               if (provider === "openai" || provider === "openrouter" || provider === "ollama") {
-                // All three speak the OpenAI chat-completions streaming shape.
                 delta = data.choices?.[0]?.delta?.content || "";
               } else if (provider === "gemini") {
                 delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -458,8 +524,16 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               }
 
               if (delta) {
+                // Guard against Gemma/Gemini first-chunk system-prompt leak:
+                // If the very first delta is suspiciously long (>600 chars), it likely
+                // contains the system prompt echoed back. Skip rendering until next chunk.
+                if (isFirstChunk && provider === "gemini" && delta.length > 600) {
+                  isFirstChunk = false;
+                  fullContent += delta;
+                  continue; // Don't render this chunk to the user
+                }
+                isFirstChunk = false;
                 fullContent += delta;
-                // Update specific message in place
                 const idx = this.messages.findIndex((m) => m.id === aiMsgId);
                 if (idx !== -1) {
                   this.messages[idx].content = fullContent;
