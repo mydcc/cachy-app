@@ -878,9 +878,7 @@ export class SettingsManager {
     // "custom" touches nothing, user decides
   }
   // Private state
-  private effectActive = false; // Controls whether $effect should trigger saves
-  private listeners: Set<(value: Settings) => void> = new Set();
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private effectActive = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private saveLock = false; // Prevents concurrent saves
 
@@ -938,7 +936,6 @@ export class SettingsManager {
             if (this.saveTimer) clearTimeout(this.saveTimer);
             this.saveTimer = setTimeout(() => {
               this.save();
-              this.notifyListeners();
             }, 500);
           });
         });
@@ -1776,23 +1773,6 @@ export class SettingsManager {
       enableDockingCentered: this.enableDockingCentered,
       dockingPosition: this.dockingPosition,
     };
-  }
-
-  subscribe(fn: (value: Settings) => void): () => void {
-    fn(this.toJSON());
-    this.listeners.add(fn);
-    return () => {
-      this.listeners.delete(fn);
-    };
-  }
-
-  private notifyListeners() {
-    if (this.notifyTimer) clearTimeout(this.notifyTimer);
-    this.notifyTimer = setTimeout(() => {
-      const snapshot = this.toJSON();
-      this.listeners.forEach((fn) => fn(snapshot));
-      this.notifyTimer = null;
-    }, 50);
   }
 
   update(fn: (s: Settings) => Partial<Settings>) {

@@ -18,6 +18,11 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from "vitest";
 import type { Settings } from "./settings.svelte";
 
+vi.mock("$app/environment", () => ({
+  browser: true,
+  dev: true
+}));
+
 describe("MarketStore Limits", () => {
   let settingsState: typeof import("./settings.svelte")["settingsState"];
   let MarketManager: typeof import("./market.svelte")["MarketManager"];
@@ -41,12 +46,6 @@ describe("MarketStore Limits", () => {
       location: { href: "" },
     };
     vi.stubGlobal("window", windowMock);
-
-    // Mock browser environment
-    vi.mock("$app/environment", () => ({
-      browser: true,
-      dev: true
-    }));
 
     // Dynamic imports
     const settingsModule = await import("./settings.svelte");

@@ -74,6 +74,13 @@ vi.mock('./bitunixWs', () => ({
   }
 }));
 
+vi.mock('./storageService', () => ({
+  storageService: {
+    getKlines: vi.fn().mockResolvedValue([]),
+    saveKlines: vi.fn().mockResolvedValue(undefined),
+  }
+}));
+
 describe('MarketWatcher Hardening', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -140,7 +147,9 @@ describe('MarketWatcher Hardening', () => {
 
     // Reset mocks
     vi.mocked(marketState.updateSymbolKlines).mockClear();
-    vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue([invalidKline, validKline] as unknown as Kline[]);
+    vi.mocked(apiService.fetchBitunixKlines)
+      .mockResolvedValueOnce([invalidKline, validKline] as unknown as Kline[])
+      .mockResolvedValue([]);
 
     await mw.ensureHistory(symbol, tf);
 

@@ -37,36 +37,14 @@ vi.mock("./connectionManager", () => ({
 
 import { app } from "./app";
 import { connectionManager } from "./connectionManager";
-import { settingsState, type Settings } from "../stores/settings.svelte";
+import { settingsState } from "../stores/settings.svelte";
 
-// settingsState's pub/sub is a plain listener Set behind subscribe()/toJSON(),
-// separate from the reactive $effect that normally drives notifyListeners()
-// on a 500ms debounce. setupRealtimeUpdates() never unsubscribes, so calling
-// it once per test would otherwise leave every previous test's listener
-// registered too. Capturing only the listener this call just added - and
-// invoking it directly - keeps each test isolated without needing to reset
-// settingsState's shared internal state.
-type SettingsInternals = {
-  listeners: Set<(value: Settings) => void>;
-};
-
-function registerAndCaptureListener(register: () => void): (value: Settings) => void {
-  const internals = settingsState as unknown as SettingsInternals;
-  const before = new Set(internals.listeners);
-  register();
-  for (const listener of internals.listeners) {
-    if (!before.has(listener)) return listener;
-  }
-  throw new Error("register() did not add a settings listener");
-}
-
-function emit(listener: (value: Settings) => void) {
-  listener(settingsState.toJSON());
-}
+import { flushSync } from "svelte";
 
 describe("app.setupRealtimeUpdates - init race", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     settingsState.apiProvider = "bitunix";
     settingsState.apiKeys = {
       bitunix: { key: "", secret: "" },
@@ -75,47 +53,51 @@ describe("app.setupRealtimeUpdates - init race", () => {
   });
 
   it("does not call switchProvider on the initial synchronous subscribe emit", () => {
-    // Regression test: app.init() connects exactly once via its own explicit
-    // connectionManager.switchProvider() call. Before this fix,
-    // setupRealtimeUpdates()'s settings subscription always saw a change on
-    // its first (synchronous) emit - lastKeys started as "" instead of the
-    // real current keys - and fired a second, competing switchProvider call
-    // in the same tick, racing the first and closing the socket before it
-    // finished opening.
-    registerAndCaptureListener(() => app.setupRealtimeUpdates());
+    app.setupRealtimeUpdates();
+    flushSync();
 
     expect(connectionManager.switchProvider).not.toHaveBeenCalled();
   });
 
-  it("calls switchProvider exactly once when the provider actually changes", () => {
-    const listener = registerAndCaptureListener(() => app.setupRealtimeUpdates());
+  it("calls switchProvider exactly once when the provider actually changes", async () => {
+    app.setupRealtimeUpdates();
+    flushSync();
 
     settingsState.apiProvider = "bitget";
-    emit(listener);
+    flushSync();
 
-    expect(connectionManager.switchProvider).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(connectionManager.switchProvider).toHaveBeenCalledTimes(1);
+    });
     expect(connectionManager.switchProvider).toHaveBeenCalledWith("bitget", { force: true });
   });
 
-  it("calls switchProvider exactly once when only the API keys change", () => {
-    const listener = registerAndCaptureListener(() => app.setupRealtimeUpdates());
+  it("calls switchProvider exactly once when only the API keys change", async () => {
+    app.setupRealtimeUpdates();
+    flushSync();
 
-    settingsState.apiKeys = {
-      bitunix: { key: "new-key", secret: "new-secret" },
-      bitget: { key: "", secret: "", passphrase: "" },
-    };
-    emit(listener);
+    settingsState.apiKeys.bitunix.key = "new-key";
+    flushSync();
 
-    expect(connectionManager.switchProvider).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(connectionManager.switchProvider).toHaveBeenCalledTimes(1);
+    });
     expect(connectionManager.switchProvider).toHaveBeenCalledWith("bitunix", { force: true });
   });
 
-  it("does not call switchProvider again when nothing relevant changed", () => {
-    const listener = registerAndCaptureListener(() => app.setupRealtimeUpdates());
+  it("does not call switchProvider again when nothing relevant changed", async () => {
+    app.setupRealtimeUpdates();
+    flushSync();
+    
+    // Clear the initial potential mock calls (e.g. from the bug where lastKeys captures stale state)
+    vi.clearAllMocks();
 
-    emit(listener);
-    emit(listener);
+    // Triggering an update that shouldn't affect keys or provider
+    settingsState.autoUpdatePriceInput = !settingsState.autoUpdatePriceInput;
+    flushSync();
 
+    // We can't waitFor a negative condition directly (it would timeout), but we can wait a bit
+    await new Promise((r) => setTimeout(r, 50));
     expect(connectionManager.switchProvider).not.toHaveBeenCalled();
   });
 });
