@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+## [1.1.2-beta.2](https://github.com/mydcc/cachy-app/compare/v1.1.2-beta.1...v1.1.2-beta.2) (2026-08-03)
+
+
+### Bug Fixes
+
+* **ui:** align Market Activity sidebar condition on mobile with desktop ([6a27a51](https://github.com/mydcc/cachy-app/commit/6a27a51f31923314a760af7583ff029c0fa8a04a)), closes [#if](https://github.com/mydcc/cachy-app/issues/if) [#if](https://github.com/mydcc/cachy-app/issues/if)
+
 ## [1.1.2-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.1...v1.1.2-beta.1) (2026-08-03)
 
 
