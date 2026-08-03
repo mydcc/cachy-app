@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+## [1.1.2-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.1...v1.1.2-beta.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* resolve live price update issue in Svelte 5 ([d4673ab](https://github.com/mydcc/cachy-app/commit/d4673ab68b0cda712b8c04db11ac00d7c0708977))
+
 ## [1.1.1](https://github.com/mydcc/cachy-app/compare/v1.1.0...v1.1.1) (2026-08-02)
 
 
