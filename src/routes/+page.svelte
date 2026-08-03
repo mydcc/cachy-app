@@ -684,7 +684,7 @@
     {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
-        {#if settingsState.isPro}
+        {#if settingsState.effectiveShowSidebarActivity}
           <!-- Add PositionsSidebar for Mobile -->
           <PositionsSidebar />
         {/if}
