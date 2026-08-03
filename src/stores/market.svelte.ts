@@ -129,6 +129,7 @@ interface RawKlineWsMessage {
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
+  tick = $state(0);
 
   // Telemetry Metrics
   telemetry = $state({
@@ -335,6 +336,8 @@ export class MarketManager {
         this.pendingKlineUpdates.clear();
       }
     });
+
+    this.tick++;
 
     this.enforceCacheLimit();
   }
@@ -896,6 +899,7 @@ export class MarketManager {
         // Track.
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.data;
+        this.tick;
         untrack(() => {
           if (this.notifyTimer) clearTimeout(this.notifyTimer);
           this.notifyTimer = setTimeout(() => {
