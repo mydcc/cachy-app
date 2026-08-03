@@ -47,8 +47,7 @@ import { logger } from "./logger";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
-let marketStoreUnsubscribe: (() => void) | null = null;
-let tradeStoreUnsubscribe: (() => void) | null = null;
+let realtimeUpdatesCleanup: (() => void) | null = null;
 let isInitialized = false;
 let saveJournalTask: Promise<void> | null = null;
 let pendingJournalData: JournalEntry[] | null = null;
@@ -163,98 +162,102 @@ export const app = {
     let lastProvider = settingsState.apiProvider || "";
     let lastKeys = settingsState.apiKeys ? computeKeys(settingsState) : "";
 
-    settingsState.subscribe((s: Settings) => {
-      untrack(() => {
-        if (!s || !s.apiKeys) return;
-
-        const currentKeys = computeKeys(s);
-        const providerChanged = s.apiProvider !== lastProvider;
-        const keysChanged = currentKeys !== lastKeys;
-
-        if (providerChanged || keysChanged) {
-          lastKeys = currentKeys;
-          lastProvider = s.apiProvider;
-          // Route exclusively through ConnectionManager, the single owner of
-          // provider connect/destroy, so old and new provider are switched
-          // atomically instead of two services independently tearing each
-          // other down.
-          connectionManager.switchProvider(s.apiProvider || "bitunix", { force: true });
-        }
-      });
-    });
-
-    if (tradeStoreUnsubscribe) {
-      tradeStoreUnsubscribe();
-      tradeStoreUnsubscribe = null;
+    if (realtimeUpdatesCleanup) {
+      realtimeUpdatesCleanup();
+      realtimeUpdatesCleanup = null;
     }
 
     let currentWatchedSymbol: string | null = null;
     let symbolDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    tradeStoreUnsubscribe = tradeState.subscribe((state) => {
-      // Canonical (Bitunix-style) form: marketWatcher.register()/unregister()
-      // re-normalize with "bitunix" internally regardless of what's passed
-      // in, and normalizeSymbol never strips a "_UMCBL" suffix for a
-      // non-bitget provider - so normalizing by the active provider here
-      // would, under Bitget, permanently bake the suffix into the request
-      // key marketWatcher tracks for the main trading symbol.
-      const newSymbol = state.symbol
-        ? normalizeSymbol(state.symbol, "bitunix")
-        : "";
+    realtimeUpdatesCleanup = $effect.root(() => {
+      // 1. Settings / Connection Manager
+      $effect(() => {
+        const s = settingsState;
+        const provider = s.apiProvider;
+        const keys = s.apiKeys;
 
-      if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
+        untrack(() => {
+          if (!keys) return;
 
-      symbolDebounceTimer = setTimeout(() => {
-        if (newSymbol && newSymbol !== currentWatchedSymbol) {
-          if (currentWatchedSymbol) {
-            marketWatcher.unregister(currentWatchedSymbol, "price");
-            marketWatcher.unregister(currentWatchedSymbol, "ticker");
+          const currentKeys = computeKeys(s);
+          const providerChanged = provider !== lastProvider;
+          const keysChanged = currentKeys !== lastKeys;
+
+          if (providerChanged || keysChanged) {
+            lastKeys = currentKeys;
+            lastProvider = provider || "";
+            // Route exclusively through ConnectionManager
+            connectionManager.switchProvider(provider || "bitunix", { force: true });
           }
-          // Subscribe to BOTH Price (Funding/Index) and Ticker (Last/Vol/Change)
-          marketWatcher.register(newSymbol, "price");
-          marketWatcher.register(newSymbol, "ticker");
-          currentWatchedSymbol = newSymbol;
-        } else if (!newSymbol && currentWatchedSymbol) {
-          marketWatcher.unregister(currentWatchedSymbol, "price");
-          marketWatcher.unregister(currentWatchedSymbol, "ticker");
-          currentWatchedSymbol = null;
+        });
+      });
+
+      // 2. Trade State Symbol -> Market Watcher Registration
+      $effect(() => {
+        const currentSymbol = tradeState.symbol;
+        untrack(() => {
+          const newSymbol = currentSymbol
+            ? normalizeSymbol(currentSymbol, "bitunix")
+            : "";
+
+          if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
+
+          symbolDebounceTimer = setTimeout(() => {
+            if (newSymbol && newSymbol !== currentWatchedSymbol) {
+              if (currentWatchedSymbol) {
+                marketWatcher.unregister(currentWatchedSymbol, "price");
+                marketWatcher.unregister(currentWatchedSymbol, "ticker");
+              }
+              marketWatcher.register(newSymbol, "price");
+              marketWatcher.register(newSymbol, "ticker");
+              currentWatchedSymbol = newSymbol;
+            } else if (!newSymbol && currentWatchedSymbol) {
+              marketWatcher.unregister(currentWatchedSymbol, "price");
+              marketWatcher.unregister(currentWatchedSymbol, "ticker");
+              currentWatchedSymbol = null;
+            }
+          }, 500);
+        });
+      });
+
+      // 3. Market State Data -> Trade State Entry Price
+      $effect(() => {
+        const currentSymbol = tradeState.symbol;
+        if (currentSymbol) {
+          const normSymbol = normalizeSymbol(currentSymbol, "bitunix");
+          const marketData = marketState.data[normSymbol];
+          
+          if (marketData && marketData.lastPrice) {
+            // Register dependency on the specific property
+            const lastPrice = marketData.lastPrice;
+            
+            untrack(() => {
+              app.currentMarketPrice = lastPrice;
+
+              if (settingsState.autoUpdatePriceInput) {
+                const newPrice = new Decimal(lastPrice).toString();
+                if (tradeState.entryPrice !== newPrice) {
+                  tradeState.entryPrice = newPrice;
+                }
+              }
+            });
+          }
         }
-      }, 500);
-    });
+      });
 
-    if (marketStoreUnsubscribe) marketStoreUnsubscribe();
-    marketStoreUnsubscribe = marketState.subscribe((data) => {
-      const state = tradeState;
-      const settings = settingsState;
-
-      if (state.symbol) {
-        // marketState.data is always keyed by the canonical (Bitunix-style)
-        // symbol regardless of active provider (see MarketOverview.svelte).
-        const normSymbol = normalizeSymbol(state.symbol, "bitunix");
-        const marketData = data[normSymbol];
-
-        if (marketData && marketData.lastPrice) {
-          app.currentMarketPrice = marketData.lastPrice;
-
-          if (settings.autoUpdatePriceInput) {
-            const newPrice = new Decimal(marketData.lastPrice).toString();
-            if (state.entryPrice !== newPrice) {
-              tradeState.update((s) => ({ ...s, entryPrice: newPrice }));
+      // 4. Market State Status
+      $effect(() => {
+        const status = marketState.connectionStatus;
+        untrack(() => {
+          if (status === "disconnected" || status === "reconnecting") {
+            const settings = settingsState;
+            if (settings.autoUpdatePriceInput) {
+              // Fallback handled by marketWatcher polling
             }
           }
-        }
-      }
-    });
-
-    marketState.subscribeStatus((status) => {
-      if (status === "disconnected" || status === "reconnecting") {
-        const settings = settingsState;
-        if (
-          settings.autoUpdatePriceInput
-        ) {
-          // Fallback handled by marketWatcher polling
-        }
-      }
+        });
+      });
     });
   },
 

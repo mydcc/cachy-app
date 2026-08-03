@@ -129,7 +129,6 @@ interface RawKlineWsMessage {
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
-  tick = $state(0);
 
   // Telemetry Metrics
   telemetry = $state({
@@ -152,8 +151,6 @@ export class MarketManager {
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
   private flushIntervalId: ReturnType<typeof setInterval> | null = null;
   private telemetryIntervalId: ReturnType<typeof setInterval> | null = null;
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
-  private statusNotifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
@@ -336,9 +333,6 @@ export class MarketManager {
         this.pendingKlineUpdates.clear();
       }
     });
-
-    this.tick++;
-
     this.enforceCacheLimit();
   }
 
@@ -892,63 +886,7 @@ export class MarketManager {
     this.enforceCacheLimit();
   }
 
-  subscribe(fn: (value: Record<string, MarketData>) => void) {
-    fn(this.data);
-    const cleanup = $effect.root(() => {
-      $effect(() => {
-        // Track.
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
-        this.data;
-        this.tick;
-        untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
-            fn(this.data);
-            this.notifyTimer = null;
-          }, 10);
-        });
-      });
-    });
-    return () => {
-      // The subscription helper returns either an unsubscribe function or an
-      // object with .stop(), depending on the path taken. Naming that union
-      // beats casting to any twice.
-      const stoppable = cleanup as (() => void) | { stop?: () => void } | null;
-      if (typeof stoppable === 'function') {
-        stoppable();
-      } else if (stoppable && typeof stoppable.stop === 'function') {
-        stoppable.stop();
-      }
-    };
-  }
 
-  subscribeStatus(fn: (value: WSStatus) => void) {
-    fn(this.connectionStatus);
-    const cleanup = $effect.root(() => {
-      $effect(() => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
-        this.connectionStatus; // Track
-        untrack(() => {
-          if (this.statusNotifyTimer) clearTimeout(this.statusNotifyTimer);
-          this.statusNotifyTimer = setTimeout(() => {
-            fn(this.connectionStatus);
-            this.statusNotifyTimer = null;
-          }, 10);
-        });
-      });
-    });
-    return () => {
-      // The subscription helper returns either an unsubscribe function or an
-      // object with .stop(), depending on the path taken. Naming that union
-      // beats casting to any twice.
-      const stoppable = cleanup as (() => void) | { stop?: () => void } | null;
-      if (typeof stoppable === 'function') {
-        stoppable();
-      } else if (stoppable && typeof stoppable.stop === 'function') {
-        stoppable.stop();
-      }
-    };
-  }
 }
 
 export const marketState = new MarketManager();
