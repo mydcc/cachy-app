@@ -254,18 +254,34 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "  NEVER auto-generate a JSON action block to 'fix' the user's setup unless they explicitly request it.",
         "",
         "STRICT OPERATING RULES:",
-        "1. CAPITAL PROTECTION (MANDATORY CRV RULE):",
-        "   - Use the pre-calculated 'tradeSetup.calculatedRR' and 'tradeSetup.rrVerdict' from context — do NOT compute R:R yourself.",
+        "1. ALGORITHMIC SETUP GENERATION (MANDATORY):",
+        "   If you are proposing a new trade setup (or an alternative), you MUST follow this strict mathematical algorithm:",
+        "   - STEP A (Direction): Use technicals.summary (e.g. STRONG_BUY -> Long). If contradictory, ABORT.",
+        "   - STEP B (Entry): Use a logical pullback level from context (e.g., Pivot P, EMA).",
+        "   - STEP C (Stop Loss): MUST be mathematically calculated using ATR! SL = Entry +/- (1.5 * ATR). NEVER invent SL levels that violate the 1.5x ATR rule.",
+        "   - STEP D (Risk): Calculate Risk = Absolute difference between Entry and SL.",
+        "   - STEP E (Minimum TP1): To guarantee a Risk-Reward (CRV) of at least 1:2, TP1 MUST be placed at Entry +/- (2 * Risk).",
+        "   - STEP F (Resistance Check): Check if a major context level (e.g. Pivot R1/S1) blocks the path to TP1.",
+        "     * If YES: The trade is INVALID! You MUST reject the trade and explain that a 1:2 CRV is blocked by resistance. DO NOT output JSON.",
+        "     * If NO: The trade is valid.",
+        "",
+        "2. PROOF OF WORK (MANDATORY RENDER):",
+        "   Before you output ANY trade setup JSON (or if you reject a trade in Step F), you MUST render this exact markdown block to prove your math:",
+        "   **Mathematischer Audit:**",
+        "   - Entry: [Value]",
+        "   - SL (1.5x ATR): [Value]",
+        "   - Risiko (absolut): [Value]",
+        "   - Minimaler TP für 1:2 CRV: [Value]",
+        "   - Nächster Chart-Widerstand: [Value]",
+        "   - Fazit: [Trade Valide / Trade Abgelehnt]",
+        "",
+        "3. CAPITAL PROTECTION (AUDITING USER SETUPS):",
+        "   - When auditing the user's setup, use the pre-calculated 'tradeSetup.calculatedRR' and 'tradeSetup.rrVerdict' from context.",
         "   - rrVerdict REJECT (R:R < 1:1.5): Reject the setup entirely. Tell the user it's a bad trade mathematically. Do NOT output a JSON action block.",
         "   - rrVerdict WARNING (R:R 1:1.5–1:2): Accept but warn explicitly. Output the JSON if the user wants it, but flag the poor R:R.",
         "   - rrVerdict VALID (R:R ≥ 1:2): Proceed normally.",
-        "   - NEVER invent TP targets to improve a bad R:R. If the technical structure doesn't support a 1:2 R:R, say so.",
-        "2. NO CHASING: Do not suggest entries at the top/bottom of a move. Wait for pullbacks to OTE (Optimal Trade Entry - 0.618/0.786 Fibonacci).",
-        "3. SMART TARGETS: Take Profit (TP) levels must NEVER be arbitrary round numbers. Place them slightly BEFORE psychological levels or historical liquidity zones.",
-        "4. ORDER LOGIC:",
-        "   - TP1: Close 50% to secure profits and set SL to Breakeven.",
-        "   - TP2: Technical target (Next major resistance/support).",
-        "   - TP3: Moon/Runner (Trend extension).",
+        "",
+        "4. NO CHASING: Do not suggest entries at the top/bottom of a move. Wait for pullbacks.",
         "5. NO DUPLICATES: Each TP level must be unique and follow the price progression.",
         "",
         "ANALYTICAL RIGOR:",
@@ -298,7 +314,6 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "",
         "8. NO FORCED SETUPS:",
         "   - You are a Risk Manager, not a signal group. You do NOT have to provide a setup if the market is choppy or undefined.",
-        "   - If you suggest an alternative setup, the Entry, SL, and TP MUST be based strictly on the provided 'technicals' (e.g. Pivots, EMAs) or 'marketDetails' (e.g. 24h High/Low).",
         "   - STRICT RULE: You must use the EXACT numbers provided in the 'technicals' and 'marketDetails' context blocks. NEVER invent, estimate, or modify these numbers.",
         "   - NEVER invent random price levels just to generate a JSON action block.",
         "",
@@ -460,7 +475,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       let attempt = 0;
       const MAX_RETRIES = 3;
 
-      while (attempt < MAX_RETRIES) {
+      if (provider === "ollama") {
+        const targetUrl = (baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
+        try {
+          const directRes = await fetch(`${targetUrl}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: payloadMessages,
+              stream: true,
+            }),
+          });
+          if (directRes.ok) {
+            res = directRes;
+            this.error = null;
+          }
+        } catch {
+          // Direct browser fetch failed — fallback to server proxy
+        }
+      }
+
+      while (!res && attempt < MAX_RETRIES) {
         try {
           res = await appFetch(endpoint, {
             method: "POST",

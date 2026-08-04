@@ -124,6 +124,25 @@ export async function getModels(
     }
   }
 
+  // If provider is Ollama, attempt direct browser fetch first when possible
+  if (provider === "ollama") {
+    const baseUrl = (opts.baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
+    try {
+      const directRes = await fetch(`${baseUrl}/api/tags`);
+      if (directRes.ok) {
+        const data = await directRes.json();
+        const models: AiModelInfo[] = ((data.models as { name: string }[]) || []).map((m) => ({
+          id: m.name,
+          label: m.name,
+        }));
+        writeCache(provider, scope, models);
+        return { models, fromCache: false };
+      }
+    } catch {
+      // Direct browser fetch to Ollama failed — fall through to server proxy
+    }
+  }
+
   try {
     const models = await fetchFromServer(provider, opts);
     writeCache(provider, scope, models);

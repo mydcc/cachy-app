@@ -832,6 +832,8 @@ export type TranslationKey =
   | "settings.ai.confirmActionsDesc"
   | "settings.ai.confirmClearHistory"
   | "settings.ai.confirmClearHistoryDesc"
+  | "settings.ai.allowSettingsChanges"
+  | "settings.ai.allowSettingsChangesDesc"
   | "settings.ai.behavior"
   | "settings.ai.agents"
   | "settings.ai.depth.label"
