@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.2-beta.2...v1.2.0-beta.1) (2026-08-04)
+
+
+### Features
+
+* **ai:** improve assistant ui, prompt and context handling ([f085b27](https://github.com/mydcc/cachy-app/commit/f085b27d05cd8411079a0f2bd6905bb975cef865))
+
 ## [1.1.2-beta.2](https://github.com/mydcc/cachy-app/compare/v1.1.2-beta.1...v1.1.2-beta.2) (2026-08-03)
 
 
