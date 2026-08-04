@@ -28,7 +28,9 @@ import { IframeWindow } from "./implementations/IframeWindow.svelte";
 
 const BASE_Z_INDEX = 11000;
 const MAX_SAFE_Z_INDEX = 1000000;
-const SAVE_DEBOUNCE_MS = 500;
+// Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
+// there is one save cadence for window state, not two independent ones.
+export const SAVE_DEBOUNCE_MS = 500;
 
 // Shape of a window's serialized session-storage entry, as read back by
 // createFromData() below. Wider than WindowSerializedState since each

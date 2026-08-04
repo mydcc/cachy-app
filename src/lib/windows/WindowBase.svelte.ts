@@ -255,10 +255,16 @@ export abstract class WindowBase {
         return `cachy_win_${this.id}`;
     }
 
-    /** Serialize reactive state to persistent storage. */
-    public saveState() {
-        if (typeof localStorage === 'undefined' || !this.persistent) return;
-        const state = {
+    /**
+     * Plain snapshot of exactly the fields saveState() persists. Reading
+     * this from a reactive context (e.g. an $effect) tracks the same
+     * dependencies saveState() itself would, so a caller that wants to
+     * react to "anything saveState() would write changed" never has to
+     * hand-duplicate the field list and risk it drifting out of sync.
+     * WindowFrame.svelte's debounced auto-save effect relies on this.
+     */
+    public get persistedSnapshot() {
+        return {
             x: this.x,
             y: this.y,
             width: this.width,
@@ -273,7 +279,12 @@ export abstract class WindowBase {
             showPriceInTitle: this.showPriceInTitle,
             symbol: this.symbol
         };
-        localStorage.setItem(this.storageKey, JSON.stringify(state));
+    }
+
+    /** Serialize reactive state to persistent storage. */
+    public saveState() {
+        if (typeof localStorage === 'undefined' || !this.persistent) return;
+        localStorage.setItem(this.storageKey, JSON.stringify(this.persistedSnapshot));
     }
 
     /** Rehydrate state from storage if available. */
