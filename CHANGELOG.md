@@ -5,6 +5,14 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ai:** apply 7-point audit - pre-calculate RR, AUDIT-FIRST protocol, code-level RR guard ([37bb7d2](https://github.com/mydcc/cachy-app/commit/37bb7d27d948e668017e1718ce73aedd1605d608))
+* **ai:** enforce strict risk reward ratio in system prompt ([4ddaadf](https://github.com/mydcc/cachy-app/commit/4ddaadf4ea2fe7c83de6b705fe40996034139590))
+
 # [1.2.0-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.2-beta.2...v1.2.0-beta.1) (2026-08-04)
 
 
