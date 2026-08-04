@@ -39,6 +39,8 @@ export const POST: RequestHandler = async ({ request }) => {
   const authError = checkAppAuth(request);
   if (authError) return authError;
 
+  let baseUrl: string | null = null;
+
   try {
     const rawBody = await request.json();
     const parseResult = AiRequestSchema.safeParse(rawBody);
@@ -51,7 +53,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     const { messages, model, baseUrl: rawBaseUrl } = parseResult.data;
-    const baseUrl = resolveBaseUrl(rawBaseUrl);
+    baseUrl = resolveBaseUrl(rawBaseUrl);
     if (!baseUrl) {
       return json({ error: "Invalid Ollama base URL" }, { status: 400 });
     }

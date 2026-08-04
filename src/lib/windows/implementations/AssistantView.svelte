@@ -122,6 +122,8 @@
         if (provider === "gemini") return !!settingsState.geminiApiKey;
         if (provider === "openai") return !!settingsState.openaiApiKey;
         if (provider === "anthropic") return !!settingsState.anthropicApiKey;
+        if (provider === "openrouter") return !!settingsState.openrouterApiKey;
+        if (provider === "ollama") return true;
         return false;
     });
 
