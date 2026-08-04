@@ -29,6 +29,7 @@ import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
 import { app } from "../services/app";
+import { TechnicalsPresenter } from "../utils/technicalsPresenter";
 
 // Shape returned by gatherContext(), passed to the AI provider and exposed
 // to the UI via lastContext for the context-gathered indicators.
@@ -786,87 +787,89 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     if (symbol && settings.showTechnicals) {
       try {
         const timeframe = trade.analysisTimeframe || "1h";
-        const limit = indicatorState.historyLimit || 750;
-        const klines = await apiService.fetchBitunixKlines(
-          symbol,
-          timeframe,
-          limit,
-        );
-        if (klines && klines.length > 0) {
-          const data = await technicalsService.calculateTechnicals(
-            klines,
-            indicatorState,
-          );
-          if (data) {
-            technicalsContext = {
-              timeframe,
-              summary: data.summary,
-              confluence: data.confluence
-                ? {
-                  score: Number(data.confluence.score.toFixed(2)),
-                  level: data.confluence.level,
-                  contributing: data.confluence.contributing,
-                }
-                : "N/A",
-              divergences:
-                data.divergences && data.divergences.length > 0
-                  ? data.divergences.map((d) => ({
-                    type: d.type,
-                    indicator: d.indicator,
-                    side: d.side,
-                    priceStart: Number(d.priceStart).toFixed(4),
-                    priceEnd: Number(d.priceEnd).toFixed(4),
-                  }))
-                  : [],
-              oscillators: Object.fromEntries(
-                data.oscillators.map((v) => [
-                  v.name,
-                  new Decimal(v.value || 0).toFixed(2),
+        let data = marketData?.technicals?.[timeframe];
+
+        if (!data) {
+          const limit = indicatorState.historyLimit || 750;
+          const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
+          if (klines && klines.length > 0) {
+            data = await technicalsService.calculateTechnicals(klines, indicatorState);
+          }
+        }
+
+        if (data) {
+          const precision = indicatorState.precision ?? 4;
+          technicalsContext = {
+            timeframe,
+            summary: data.summary,
+            confluence: data.confluence
+              ? {
+                score: Number(data.confluence.score.toFixed(2)),
+                level: data.confluence.level,
+                contributing: data.confluence.contributing,
+              }
+              : "N/A",
+            divergences:
+              data.divergences && data.divergences.length > 0
+                ? data.divergences.map((d) => ({
+                  type: d.type,
+                  indicator: d.indicator,
+                  side: d.side,
+                  priceStart: TechnicalsPresenter.formatVal(d.priceStart, precision),
+                  priceEnd: TechnicalsPresenter.formatVal(d.priceEnd, precision),
+                }))
+                : [],
+            oscillators: Object.fromEntries(
+              data.oscillators.map((v) => [
+                v.name,
+                TechnicalsPresenter.formatVal(v.value, 2),
+              ]),
+            ),
+            movingAverages: data.movingAverages.map((m) => ({
+              name: m.name,
+              value: TechnicalsPresenter.formatVal(m.value, precision),
+              action: m.action,
+            })),
+            pivots: data.pivots?.classic ? {
+              type: indicatorState.pivots.type,
+              classic: Object.fromEntries(
+                Object.entries(data.pivots.classic).map(([k, v]) => [
+                  k,
+                  TechnicalsPresenter.formatVal(Number(v), precision),
                 ]),
               ),
-              movingAverages: data.movingAverages.map((m) => ({
-                name: m.name,
-                value: Number(Number(m.value).toFixed(4)),
-                action: m.action,
-              })),
-              pivots: data.pivots?.classic ? {
-                type: indicatorState.pivots.type,
-                classic: Object.fromEntries(
-                  Object.entries(data.pivots.classic).map(([k, v]) => [
-                    k,
-                    Number(v).toFixed(4),
-                  ]),
-                ),
-              } : undefined,
-              volatility: data.volatility
-                ? {
-                  atr: Number(Number(data.volatility.atr ?? 0).toFixed(4)),
-                  bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
-                    ? Number(Number(data.volatility.bb.percentP).toFixed(2))
-                    : 0,
-                }
-                : "N/A",
-            };
-          }
+            } : undefined,
+            volatility: data.volatility
+              ? {
+                atr: TechnicalsPresenter.formatVal(data.volatility.atr, precision),
+                bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
+                  ? TechnicalsPresenter.formatVal(data.volatility.bb.percentP, 2)
+                  : "0",
+              }
+              : "N/A",
+          };
         }
 
         // --- Multi-Timeframe Trend Context (New) ---
         // Fetch higher timeframe (e.g. 4h) for trend bias
         const trendTimeframe = "4h";
         if (technicalsContext && timeframe !== trendTimeframe) {
-          const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
-          if (trendKlines && trendKlines.length > 0) {
-            const trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
-            if (trendData) {
-              // Merge into technicalsContext or add as separate field
-              // We'll add it as 'trendBias'
-              technicalsContext.higherTimeframe = {
-                timeframe: trendTimeframe,
-                summary: trendData.summary, // e.g. "STRONG_BUY"
-                ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
-                rsi: trendData.oscillators.find(o => o.name === "RSI")?.value?.toFixed(2) ?? "N/A"
-              };
+          let trendData = marketData?.technicals?.[trendTimeframe];
+          if (!trendData) {
+            const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
+            if (trendKlines && trendKlines.length > 0) {
+              trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
             }
+          }
+          if (trendData) {
+            // Merge into technicalsContext or add as separate field
+            // We'll add it as 'trendBias'
+            technicalsContext.higherTimeframe = {
+              timeframe: trendTimeframe,
+              summary: trendData.summary, // e.g. "STRONG_BUY"
+              ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
+              rsi: TechnicalsPresenter.formatVal(trendData.oscillators.find(o => o.name === "RSI")?.value, 2)
+            };
           }
         }
 
