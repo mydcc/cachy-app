@@ -149,9 +149,20 @@ export abstract class WindowBase {
 
     /** Global counter to stagger new windows. */
     static staggerCount = 0;
-    private resizeHandler: ((e: Event) => void) | null = null;
     /** Tracks if the current maximization was forced by responsive rules. */
     private _wasResponsiveMaximized = false;
+    /**
+     * True once the user has restored a window the responsive rule had
+     * auto-maximized, while the viewport is still below the breakpoint.
+     * Suppresses re-maximizing on the next viewport resize (BUG-0043) --
+     * without this, updateResponsiveState() has no way to tell "still
+     * small, user opted out" apart from "still small, never decided" and
+     * re-maximizes on every resize event a mobile browser fires (keyboard
+     * open/close, address bar collapse). Cleared the moment the viewport
+     * crosses back above the breakpoint, so a fresh small session (e.g.
+     * after rotating back to portrait) applies the responsive rule again.
+     */
+    private _responsiveOverridden = false;
 
     /**
      * Initializes the window instance.
@@ -221,32 +232,55 @@ export abstract class WindowBase {
 
         // Setup Responsive maximization for mobile
         this.updateResponsiveState();
-        if (typeof window !== 'undefined') {
-            this.resizeHandler = () => this.updateResponsiveState();
-            window.addEventListener('resize', this.resizeHandler);
-        }
     }
 
-    /** Clean up global listeners. */
-    destroy() {
-        if (typeof window !== 'undefined' && this.resizeHandler) {
-            window.removeEventListener('resize', this.resizeHandler);
-        }
-    }
+    /**
+     * Clean up any per-instance resources. Viewport resize handling is not
+     * per-instance (see WindowManager's single listener, BUG-0043), so this
+     * is currently a no-op; kept for subclasses that call super.destroy()
+     * and for future per-instance cleanup.
+     */
+    destroy() { }
 
-    /** Evaluation of mobile/responsive limits. */
+    /**
+     * Evaluation of mobile/responsive limits. Called by WindowManager's
+     * single window resize listener for every open window (not a
+     * per-instance listener -- see BUG-0043) and once from the constructor.
+     */
     updateResponsiveState() {
         if (!this.isResponsive || typeof window === 'undefined') return;
 
         const isSmall = window.innerWidth < this.edgeToEdgeBreakpoint;
 
-        if (isSmall && !this.isMaximized) {
+        if (!isSmall) {
+            // Leaving the small-viewport regime always clears an override --
+            // the next time the viewport shrinks, the rule starts fresh.
+            this._responsiveOverridden = false;
+            if (this.isMaximized && this._wasResponsiveMaximized) {
+                this.restore();
+            }
+            return;
+        }
+
+        if (!this.isMaximized && !this._responsiveOverridden) {
             this.maximize();
             this._wasResponsiveMaximized = true;
-        } else if (!isSmall && this.isMaximized && this._wasResponsiveMaximized) {
-            this.restore();
-            this._wasResponsiveMaximized = false;
         }
+    }
+
+    /**
+     * Re-applies responsive rules and re-clamps geometry to the current
+     * viewport. Called by WindowManager for every open window on 'resize'
+     * (BUG-0043) -- a single shared listener instead of one per window, and
+     * it also fixes non-responsive windows that used to never get
+     * re-clamped when the viewport shrank.
+     */
+    public handleViewportResize() {
+        this.updateResponsiveState();
+        // No-ops while maximized (updatePosition's own early return), and
+        // otherwise brings a window that's now partly or fully off-screen
+        // back into view without requiring a manual drag.
+        this.updatePosition(this.x, this.y);
     }
 
     private hasRestoredPosition = false;
@@ -478,11 +512,27 @@ export abstract class WindowBase {
             return;
         }
         if (this.isMaximized) {
+            const wasResponsiveMaximized = this._wasResponsiveMaximized;
             this.x = this.lastX;
             this.y = this.lastY;
             this.width = this.lastWidth;
             this.height = this.lastHeight;
             this.isMaximized = false;
+            this._wasResponsiveMaximized = false;
+
+            // The responsive rule maximized this window and the viewport is
+            // still small -- this restore is deliberately undoing that, so
+            // suppress re-maximizing until the viewport actually grows past
+            // the breakpoint. See BUG-0043.
+            if (
+                wasResponsiveMaximized &&
+                this.isResponsive &&
+                typeof window !== 'undefined' &&
+                window.innerWidth < this.edgeToEdgeBreakpoint
+            ) {
+                this._responsiveOverridden = true;
+            }
+
             this.saveState();
         }
     }

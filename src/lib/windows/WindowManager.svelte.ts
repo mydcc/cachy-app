@@ -82,6 +82,16 @@ class WindowManager {
                     this._performSaveSession();
                 }
             });
+
+            // One shared listener for every open window instead of one per
+            // instance (BUG-0043) -- re-applies responsive rules and
+            // re-clamps geometry so a window can't be left off-screen after
+            // the viewport shrinks.
+            window.addEventListener('resize', () => {
+                for (const win of this._windows) {
+                    win.handleViewportResize();
+                }
+            });
         }
     }
 
