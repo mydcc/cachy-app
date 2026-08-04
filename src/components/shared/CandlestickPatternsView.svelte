@@ -151,7 +151,7 @@
 
         <!-- List -->
         <div
-            class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1"
+            class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] p-1"
         >
             {#each filteredPatterns as pattern}
                 <button
