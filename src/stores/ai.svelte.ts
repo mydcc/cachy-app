@@ -219,6 +219,7 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
           "- Format: 🟢 Long / 🔴 Short | Entry: X | SL: Y | TP: Z",
           "- If no clear setup exists, say so in ONE sentence.",
           "- Skip the 'Quellen' section. Skip long markdown formatting.",
+          "- R:R rules still apply. If the R:R verdict in context is REJECT, say 'No setup — bad R:R' instead of forcing one.",
         ].join("\n"),
         analyst: [
           "ANALYSIS MODE: MARKET ANALYST",
@@ -242,11 +243,23 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "- NO REPETITION: Do NOT repeat the user's question.",
         "- START IMMEDIATELY: Start with 'Hi' or 'Moin' and the first data point.",
         "",
+        "AUDIT-FIRST PROTOCOL (MANDATORY — applies when user shares a trade setup):",
+        "When the user provides a setup (entry, SL, TP), you MUST follow this order:",
+        "  STEP 1 — AUDIT: Read the 'tradeSetup.rrVerdict' from context. Use 'tradeSetup.calculatedRR' as the pre-verified R:R — do NOT recalculate it yourself.",
+        "  STEP 2 — VERDICT: State the R:R clearly and give a verdict: VALID / WARNING / REJECT.",
+        "  STEP 3 — ONLY IF ASKED: Suggest an alternative setup ONLY if the user explicitly asks 'What would you do?' or 'Give me a better entry'.",
+        "  NEVER auto-generate a JSON action block to 'fix' the user's setup unless they explicitly request it.",
+        "",
         "STRICT OPERATING RULES:",
-        "1. CAPITAL PROTECTION: If a trade setup has a Risk/Reward (R:R) ratio below 1:2, warn the user explicitly.",
+        "1. CAPITAL PROTECTION (MANDATORY CRV RULE):",
+        "   - Use the pre-calculated 'tradeSetup.calculatedRR' and 'tradeSetup.rrVerdict' from context — do NOT compute R:R yourself.",
+        "   - rrVerdict REJECT (R:R < 1:1.5): Reject the setup entirely. Tell the user it's a bad trade mathematically. Do NOT output a JSON action block.",
+        "   - rrVerdict WARNING (R:R 1:1.5–1:2): Accept but warn explicitly. Output the JSON if the user wants it, but flag the poor R:R.",
+        "   - rrVerdict VALID (R:R ≥ 1:2): Proceed normally.",
+        "   - NEVER invent TP targets to improve a bad R:R. If the technical structure doesn't support a 1:2 R:R, say so.",
         "2. NO CHASING: Do not suggest entries at the top/bottom of a move. Wait for pullbacks to OTE (Optimal Trade Entry - 0.618/0.786 Fibonacci).",
         "3. SMART TARGETS: Take Profit (TP) levels must NEVER be arbitrary round numbers. Place them slightly BEFORE psychological levels or historical liquidity zones.",
-        "4. ORDER LOGIC: ",
+        "4. ORDER LOGIC:",
         "   - TP1: Close 50% to secure profits and set SL to Breakeven.",
         "   - TP2: Technical target (Next major resistance/support).",
         "   - TP3: Moon/Runner (Trend extension).",
@@ -275,16 +288,15 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "   - Use EXACT numbers from context (e.g., '47245.32') for calculations.",
         "   - In the text, follow the rounding rules defined in TONE & STYLE.",
         "",
-        "6. TEMPORAL GROUNDING (use internally, don't verbalize unless relevant):",
-        "   - Current time is provided in the context",
-        "   - ONLY use timestamps from 'latestNews.publishedAt' or 'currentTime' fields",
-        "   - For news: Use the 'ago' field naturally in your sentence. (e.g., 'Vor 2 Stunden wurde gemeldet...' instead of mentioning the variable).",
-        "   - NEVER reference events from your training cutoff date",
-        "",
-        "7. UNCERTAINTY MARKERS:",
+        "6. UNCERTAINTY MARKERS:",
         "   - If confidence < 90%, prefix with: 'Basierend auf begrenzten Daten: ...'",
         "   - If speculating (e.g., market psychology), prefix with: 'Spekulation: ...'",
         "   - NEVER present guesses as facts",
+        "",
+        "8. NO FORCED SETUPS:",
+        "   - You are a Risk Manager, not a signal group. You do NOT have to provide a setup if the market is choppy or undefined.",
+        "   - If you suggest an alternative setup, the Entry, SL, and TP MUST be based strictly on the provided 'technicals' (e.g. Pivots, EMAs) or 'marketDetails' (e.g. 24h High/Low).",
+        "   - NEVER invent random price levels just to generate a JSON action block.",
         "",
         "- MARKET NOISE & VOLATILITY (CRITICAL):",
         "  * **SNAPSHOT DATA**: Treat 'spread' and 'imbalance' as high-frequency noise. These values change every millisecond and have ZERO predictive power in isolation.",
@@ -294,7 +306,7 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "",
         "TONE & STYLE:",
         "- Professional, objective, and data-driven.",
-        "- LANGUAGE: Use natural, precise, and concise German. Avoid robotic or template-like phrasing.",
+        "- LANGUAGE: Use natural, precise, and concise language. Avoid robotic or template-like phrasing.",
         "- Be skeptical of 'easy' trades; challenge the user's assumptions if data suggests otherwise.",
         "- HUMOR: Occasionally use dry trading humor and well-known crypto culture references. Don't overdo it.",
         "  * 'Bitcoin only goes right'",
@@ -552,7 +564,42 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         const actions = this.parseActions(safeContent) || [];
 
         if (Array.isArray(actions) && actions.length > 0) {
-          // 1. Hide ALL JSON code blocks that contain trading actions
+          // 1. Code-level R:R guard: block execution if the suggested setup is mathematically poor
+          const entryAction = actions.find((a) => a.action === "setEntryPrice");
+          const slAction = actions.find((a) => a.action === "setStopLoss");
+          const tp1Action = actions.find((a) => a.action === "setTakeProfit" && (a.index ?? -1) === 0);
+
+          if (entryAction?.value != null && slAction?.value != null && tp1Action?.value != null) {
+            try {
+              const entryD = new Decimal(entryAction.value as string | number);
+              const slD = new Decimal(slAction.value as string | number);
+              const tp1D = new Decimal(tp1Action.value as string | number);
+              const risk = entryD.minus(slD).abs();
+              const reward = tp1D.minus(entryD).abs();
+              if (!risk.isZero() && reward.div(risk).lt(1.5)) {
+                // R:R too low — block the action block, leave the text analysis intact
+                logger.warn("ai", "Blocked AI action: R:R below 1:1.5", {
+                  rr: reward.div(risk).toFixed(2),
+                });
+                // Strip only the JSON block, keep the text
+                const cleanedContent = safeContent
+                  .replace(/```json[\s\S]*?```/g, "")
+                  .trim();
+                const idx = this.messages.findIndex((m) => m.id === aiMsgId);
+                if (idx !== -1) {
+                  this.messages[idx].content = cleanedContent;
+                }
+                // Do not execute — fall through to save()
+                this.isStreaming = false;
+                this.save();
+                return;
+              }
+            } catch {
+              // Parsing failed — allow through (conservative approach)
+            }
+          }
+
+          // 2. Hide ALL JSON code blocks that contain trading actions
           const cleanedContent = safeContent
             .replace(/```json\s*[\s\S]*?"action"[\s\S]*?```/g, "")
             .trim();
@@ -562,7 +609,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             this.messages[idx].content = cleanedContent;
           }
 
-          // 2. Execute Actions
+          // 3. Execute Actions
           const confirmActions = settings.aiConfirmActions ?? false;
 
           if (confirmActions) {
@@ -942,10 +989,53 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         risk: trade.riskPercentage + "%",
         atrMultiplier: trade.atrMultiplier,
         useAtrSl: trade.useAtrSl,
+        ...this.calculateRR(trade),
       },
       marketIntelligence: cmcContext,
       latestNews: newsContext,
     };
+  }
+
+  /**
+   * Pre-calculate Risk/Reward so the AI doesn't have to (and hallucinate).
+   * Returns calculatedRR (string like "1:2.5") and rrVerdict (VALID / WARNING / REJECT).
+   */
+  private calculateRR(trade: typeof tradeState): {
+    calculatedRR: string;
+    rrVerdict: "VALID" | "WARNING" | "REJECT" | "N/A";
+  } {
+    try {
+      const entry = trade.entryPrice ? new Decimal(trade.entryPrice) : null;
+      const sl = trade.stopLossPrice ? new Decimal(trade.stopLossPrice) : null;
+      const tps = trade.targets?.filter((t) => t.price != null && t.price !== "");
+
+      if (!entry || !sl || !tps || tps.length === 0) {
+        return { calculatedRR: "N/A", rrVerdict: "N/A" };
+      }
+
+      const risk = entry.minus(sl).abs();
+      if (risk.isZero()) return { calculatedRR: "N/A", rrVerdict: "N/A" };
+
+      // Use the first TP (TP1) as the reference reward
+      const tp1 = new Decimal(tps[0].price as string | number);
+      const reward = tp1.minus(entry).abs();
+
+      const rrRatio = reward.div(risk);
+      const rrFormatted = `1:${rrRatio.toFixed(2)}`;
+
+      let verdict: "VALID" | "WARNING" | "REJECT";
+      if (rrRatio.gte(2)) {
+        verdict = "VALID";
+      } else if (rrRatio.gte(1.5)) {
+        verdict = "WARNING";
+      } else {
+        verdict = "REJECT";
+      }
+
+      return { calculatedRR: rrFormatted, rrVerdict: verdict };
+    } catch {
+      return { calculatedRR: "N/A", rrVerdict: "N/A" };
+    }
   }
 
   private parseActions(text: string): AiAction[] {
