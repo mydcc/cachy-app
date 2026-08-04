@@ -4,7 +4,7 @@
 
 51 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 37 · 🟢 ready 2 · 🟡 in-progress 1
+Counts by status: 💡 idea 11 · 📋 specced 36 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 1
 
 ---
 
@@ -106,7 +106,7 @@ Counts by status: 💡 idea 11 · 📋 specced 37 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | 📋 specced | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | pwa |
-| [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | 📋 specced | ui |
+| [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | 📋 specced | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | 📋 specced | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | 📋 specced | ui |
@@ -151,7 +151,7 @@ Counts by status: 💡 idea 11 · 📋 specced 37 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | 📋 specced | M0 | community, pro, private | A | none | — |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | 📋 specced | M0 | community, pro, private | A | none | — |
-| [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | 📋 specced | none | community, pro, private | none | ADR-0006 | — |
+| [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | none | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -166,7 +166,7 @@ Counts by status: 💡 idea 11 · 📋 specced 37 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0040](features/FEAT-0040-computation-extensions.md) | Run user-written indicators in an isolated worker | P2 | 💡 idea | M6 | community, pro, private | none | ADR-0005 | [FEAT-0039](features/FEAT-0039-data-extensions.md), [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | 📋 specced | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | 📋 specced | none | community, pro, private | A | ADR-0006 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) |
-| [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | 📋 specced | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md), [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) |
+| [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | 📋 specced | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | none | community, pro, private | none | none | — |

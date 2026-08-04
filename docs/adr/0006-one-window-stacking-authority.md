@@ -13,7 +13,7 @@ know about each other.
 | --- | --- | --- | --- |
 | `WindowManager` + `WindowBase` + `WindowFrame` | Pointer Events, own code | `BASE_Z_INDEX = 11000`, dock `12000`, maximized `20000` | chart, news, guide, changelog, privacy, whitepaper, journal, assistant, settings, symbolpicker, dialog |
 | `ModalFrame.svelte` | none — fixed centre overlay | `10000` (`ModalFrame.svelte:154`) | `AcademyModal`, `MarketDashboardModal`, `TpSlEditModal` |
-| `floatingWindowsStore` + `SidePanel.svelte` | **interactjs** (`SidePanel.svelte:100-190`) | `1000` (`floatingWindows.svelte.ts:23`) | SidePanel — **not currently reachable from any route**, see below |
+| `floatingWindowsStore` + `SidePanel.svelte` | **interactjs** (`SidePanel.svelte:100-190`) | `1000` (`floatingWindows.svelte.ts:23`) | SidePanel |
 | `FlashCard.svelte` | none — fixed overlay | `200` (`FlashCard.svelte:73`) | quiz |
 | `modalState` (`stores/modal.svelte.ts`) | renders through `DialogWindow` | inherits window manager | `uiManager.showReadme()` |
 
@@ -27,27 +27,23 @@ The consequences are already visible in the product, not hypothetical:
   modal (`10000`). Opening it while any window is open produces a dimmed screen
   with no card.
 - Toasts (`10000`) and modals (`10000`) tie, and source order decides.
-
-A fourth data point turned up while starting the SidePanel migration below:
-`SidePanel.svelte` is not imported by any route, layout or component —
-`grep -rln "from.*SidePanel" src` returns nothing. Its stacking counter
-(`floatingWindowsStore.nextZIndex` starting at `1000`,
-`SidePanel.svelte:36-40`) genuinely cannot reach the window layer, but no user
-experiences that today, because the component that would suffer from it is
-never mounted. The "Enable Side Panel" setting
-(`settingsState.enableSidePanel`, guarding `SidePanel.svelte:267`) has been
-silently inert for at least as long as the file's git history shows only
-mechanical refactors touching it. See
-[`BUG-0051`](../backlog/bugs/BUG-0051-sidepanel-never-rendered.md). This ADR's
-decision to route every floating surface through one authority does not depend
-on which way that bug resolves — if the panel is retired instead of restored,
-its row above simply drops out of the table — but the migration item
-([`FEAT-0046`](../backlog/features/FEAT-0046-sidepanel-onto-window-manager.md))
-is blocked on the decision.
 - `.window-frame.maximized { z-index: 20000 !important; }`
   (`WindowFrame.svelte:713`) overrides the reactive `style:z-index={win.zIndex}`
   bind, so `WindowManager.bringToFront()` has no effect between two maximized
   windows.
+
+A fourth data point turned up while starting the SidePanel migration:
+`SidePanel.svelte` was not imported by any route, layout or component — its
+stacking counter (`floatingWindowsStore.nextZIndex` starting at `1000`,
+`SidePanel.svelte:36-40`) genuinely could not reach the window layer, but no
+user experienced that, because the component was never mounted. The "Enable
+Side Panel" setting (`settingsState.enableSidePanel`, guarding
+`SidePanel.svelte:267`) had been silently inert for at least as long as the
+file's git history showed only mechanical refactors touching it. Filed and
+resolved as [`BUG-0051`](../backlog/bugs/BUG-0051-sidepanel-never-rendered.md):
+the user confirmed the panel should stay, so it is now mounted in
+`src/routes/+layout.svelte`, and it competes for stacking order like every
+other row in the table above.
 
 The duplication costs more than stacking. Behaviour that exists once in
 `WindowFrame` — Escape handling, viewport clamping, glassmorphism, the mobile

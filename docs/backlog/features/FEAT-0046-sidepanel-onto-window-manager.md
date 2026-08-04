@@ -9,21 +9,20 @@ editions: [community, pro, private]
 area: ui
 data_class: A
 adr: ADR-0006
-depends_on: [FEAT-0041, BUG-0051]
+depends_on: [FEAT-0041]
 ---
 
 # FEAT-0046 — Move the SidePanel onto the window manager and drop interactjs
 
-## Blocked
-
-`SidePanel.svelte` turns out not to be reachable from any route or layout —
-see [`BUG-0051`](../bugs/BUG-0051-sidepanel-never-rendered.md), found while
-starting this item. Migrating its stacking and drag code would move dead code,
-not fix a live defect. This item cannot proceed until BUG-0051 decides whether
-the panel is restored or retired. If retired, this item is replaced by a
-deletion, not built as written below.
-
 ## Problem
+
+[`BUG-0051`](../bugs/BUG-0051-sidepanel-never-rendered.md), found while
+starting this item, is resolved: `SidePanel.svelte` had no render point and is
+now mounted in `src/routes/+layout.svelte`, gated on
+`settingsState.enableSidePanel` as the component already expected. This item's
+premise — that the panel is a live, reachable surface competing for stacking
+order with the window manager — now holds, so it proceeds as originally
+written below.
 
 `SidePanel.svelte` is the last floating surface with its own everything: its own
 store (`src/stores/floatingWindows.svelte.ts`), its own geometry model, its own
@@ -93,6 +92,7 @@ growing this item.
 ## Links
 
 - [`ADR-0006`](../../adr/0006-one-window-stacking-authority.md)
+- [`BUG-0051`](../bugs/BUG-0051-sidepanel-never-rendered.md) — resolved; the panel is mounted in `src/routes/+layout.svelte`
 - `src/stores/floatingWindows.svelte.ts`, `src/components/shared/SidePanel.svelte:36-40,100-190,231-253`
 - `src/lib/windows/implementations/IframeWindow.svelte.ts`
 - `src/lib/windows/WindowBase.svelte.ts:210-218,487-495`
