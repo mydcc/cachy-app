@@ -4,7 +4,7 @@
 
 51 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 34 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 3
+Counts by status: 💡 idea 11 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 4
 
 ---
 
@@ -19,7 +19,7 @@ Counts by status: 💡 idea 11 · 📋 specced 34 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | 📋 specced | execution |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | 📋 specced | security |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | ui |
-| [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | 📋 specced | ui |
+| [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | ✅ done | ui |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | 📋 specced | ui |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | 📋 specced | indicators |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | 📋 specced | ai |
@@ -130,7 +130,7 @@ Counts by status: 💡 idea 11 · 📋 specced 34 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | 📋 specced | M0 | community, pro, private | A | none | — |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | M0 | community, pro, private | A | none | — |
-| [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | 📋 specced | M0 | community, pro, private | none | none | — |
+| [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |

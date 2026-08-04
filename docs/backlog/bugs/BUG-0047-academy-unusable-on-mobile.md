@@ -2,7 +2,7 @@
 id: BUG-0047
 title: The Trading Academy content is unreachable on a phone because the pattern list fills the screen
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M0
 editions: [community, pro, private]
@@ -75,17 +75,58 @@ they share the structure and must not diverge.
 
 Do not change the desktop layout. The `md:` and `lg:` proportions are fine.
 
+Implemented as written, with one addition the plan didn't spell out: the main
+content column needed `flex-1 min-h-0` on mobile to actually claim the space
+freed up by capping the sidebar — without it, the column-stacked layout had
+no rule distributing the remaining height to the second child. Scoped with
+`md:flex-none` so it doesn't compete with the `md:w-3/4`/`lg:w-4/5` width
+split desktop already uses (an explicit `flex: 1 1 0%` flex-basis would have
+overridden those widths on `≥768px`).
+
+## Verification
+
+No automated test — no component-rendering harness exists in this repository
+(see [`BUG-0042`](BUG-0042-window-drag-jumps-on-touch.md)'s Verification
+section for the same finding; building one is
+[`FEAT-0050`](../features/FEAT-0050-window-manager-test-coverage.md)'s job).
+
+Verified against the running dev server with Playwright, both tabs, both
+viewport classes:
+
+- **390×844**: the main content region (`flex-1 min-h-0` in `ChartPatternsView`)
+  had a bounding box of 390×396px, non-zero and below the sidebar — the
+  selected pattern's chart and description render and are visible without
+  scrolling past clipped content. The sidebar list itself reported
+  `scrollHeight: 1544` vs `clientHeight: 175`, i.e. genuinely scrollable
+  within its own budget rather than pushing the page. Computed styles on the
+  sidebar: `max-height: 295.4px` (35vh of an 844px-tall viewport, as
+  intended), `border-bottom-width: 1px`, `border-right-width: 0px`. Repeated
+  identically on the Candlestick tab.
+- **1280×900**: sidebar `max-height: none`, `border-right-width: 1px`,
+  `border-bottom-width: 0px` — the row layout and its border are what they
+  were before. Screenshot comparison against the pre-fix layout shows no
+  visible change: sidebar list on the left, chart and description in the
+  centre, trading-strategy panel on the right.
+
 ## Acceptance criteria
 
 - [ ] A test renders the Academy at a 390px-wide viewport and asserts the main
-      content region has non-zero height; it fails without the fix
-- [ ] Both the pattern list and the selected pattern's content are reachable on
-      a 390×844 viewport
-- [ ] The sidebar scrolls independently of the main content on mobile
-- [ ] The separator is horizontal in the column layout and vertical in the row
-      layout
-- [ ] The desktop layout at ≥1024px is visually unchanged
-- [ ] `CandlestickPatternsView` behaves identically to `ChartPatternsView`
+      content region has non-zero height; it fails without the fix — not done
+      as an automated test; verified manually via Playwright per Verification
+      above (bounding box 390×396px)
+- [x] Both the pattern list and the selected pattern's content are reachable on
+      a 390×844 viewport — verified: pattern heading, chart and description
+      all rendered and visible
+- [x] The sidebar scrolls independently of the main content on mobile —
+      verified: `scrollHeight (1544) > clientHeight (175)` within a
+      `max-height: 295.4px` box
+- [x] The separator is horizontal in the column layout and vertical in the row
+      layout — verified via computed `border-bottom-width`/`border-right-width`
+      at both viewport widths
+- [x] The desktop layout at ≥1024px is visually unchanged — verified via
+      screenshot at 1280×900 and computed styles showing `max-height: none`
+- [x] `CandlestickPatternsView` behaves identically to `ChartPatternsView` —
+      verified on the Candlestick tab at 390×844
 
 ## Links
 

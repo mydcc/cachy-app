@@ -138,10 +138,10 @@
     }
 </script>
 
-<div class="flex flex-col md:flex-row h-full gap-4">
+<div class="flex flex-col md:flex-row h-full gap-4 min-h-0">
     <!-- Sidebar -->
     <div
-        class="w-full md:w-1/4 lg:w-1/5 flex flex-col gap-4 border-r border-[var(--border-color)] pr-4"
+        class="w-full md:w-1/4 lg:w-1/5 flex flex-col gap-4 max-h-[35vh] shrink-0 md:max-h-none md:shrink border-b border-[var(--border-color)] pb-4 md:border-b-0 md:border-r md:pr-4"
     >
         <!-- Search & Filter -->
         <div
@@ -221,7 +221,7 @@
 
     <!-- Main Content -->
     <div
-        class="w-full md:w-3/4 lg:w-4/5 flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2"
+        class="w-full md:w-3/4 lg:w-4/5 flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 md:flex-none"
     >
         {#if currentPattern}
             <!-- Header -->

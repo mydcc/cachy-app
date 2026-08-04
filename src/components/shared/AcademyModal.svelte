@@ -44,7 +44,7 @@
       title="Trading Academy"
       onclose={() => uiState.toggleAcademyModal(false)}
       extraClasses="modal-size-instructions flex flex-col"
-      bodyClass="flex flex-col h-[80vh] overflow-hidden"
+      bodyClass="flex flex-col h-full min-h-0"
    >
       <!-- Tab Header -->
       <div
