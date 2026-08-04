@@ -216,6 +216,7 @@ export interface Settings {
   openrouterModel: string;
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
+  aiAllowSettingsChanges: boolean;
   aiTradeHistoryLimit: number;
   aiConfirmClear: boolean;
   aiAnalysisMode: AiAnalysisMode;
@@ -395,6 +396,7 @@ const defaultSettings: Settings = {
   openrouterModel: "",
   analysisDepth: "standard",
   aiConfirmActions: false,
+  aiAllowSettingsChanges: false,
   aiTradeHistoryLimit: 50,
   aiAnalysisMode: "risk" as AiAnalysisMode,
   showSpinButtons: "hover",
@@ -631,6 +633,7 @@ export class SettingsManager {
   openrouterModel = $state<string>(defaultSettings.openrouterModel);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
+  aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
   aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
@@ -1343,9 +1346,9 @@ export class SettingsManager {
       this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
       this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
       this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
-      this.analysisDepth =
-        merged.analysisDepth || defaultSettings.analysisDepth;
+      this.analysisDepth = merged.analysisDepth;
       this.aiConfirmActions = merged.aiConfirmActions;
+      this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
       this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
       this.aiConfirmClear = merged.aiConfirmClear;
       this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
@@ -1691,6 +1694,7 @@ export class SettingsManager {
       openrouterModel: this.openrouterModel,
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
+      aiAllowSettingsChanges: this.aiAllowSettingsChanges,
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,
       aiConfirmClear: this.aiConfirmClear,
       aiAnalysisMode: this.aiAnalysisMode,

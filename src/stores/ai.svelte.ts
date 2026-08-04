@@ -28,6 +28,8 @@ import { logger } from "../services/logger";
 import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
+import { app } from "../services/app";
+import { TechnicalsPresenter } from "../utils/technicalsPresenter";
 
 // Shape returned by gatherContext(), passed to the AI provider and exposed
 // to the UI via lastContext for the context-gathered indicators.
@@ -62,6 +64,7 @@ export interface AiAction {
   index?: number;
   percent?: number | string;
   atrMultiplier?: number | string;
+  tags?: string[];
 }
 
 export interface PendingAction {
@@ -296,6 +299,7 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "8. NO FORCED SETUPS:",
         "   - You are a Risk Manager, not a signal group. You do NOT have to provide a setup if the market is choppy or undefined.",
         "   - If you suggest an alternative setup, the Entry, SL, and TP MUST be based strictly on the provided 'technicals' (e.g. Pivots, EMAs) or 'marketDetails' (e.g. 24h High/Low).",
+        "   - STRICT RULE: You must use the EXACT numbers provided in the 'technicals' and 'marketDetails' context blocks. NEVER invent, estimate, or modify these numbers.",
         "   - NEVER invent random price levels just to generate a JSON action block.",
         "",
         "- MARKET NOISE & VOLATILITY (CRITICAL):",
@@ -327,7 +331,8 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "  * 📊 for analysis",
         "  * 🦆 for absurd/market manipulation hints",
         "- FORMATTING RULES (STRICT):",
-        "  * **NUMBERS**: ALWAYS round numbers. Max 2 decimal places for percentages (e.g. 1.54%). Max 4 decimal places for prices. Do NOT show raw long floats.",
+        "  * **EXACT STRINGS**: DO NOT round numbers yourself! Output them EXACTLY as they appear in the JSON context. If the JSON says '72.3566', you must write '72.3566', not '72.35'.",
+        "  * **NO CURRENCY SUFFIXES FOR INDICATORS**: Do not append 'USDT' or 'USD' to technical indicators like ATR, RSI, or Pivot Points. Just use the raw number as provided in the context.",
         "  * **STRUCTURE**: Use Markdown bullet points, standard lists, and bold text for keys.",
         "  * **READABILITY**: Use short paragraphs. Avoid 'wall of text'.",
         "  * **SEPARATORS**: Use '---' to separate major sections if the response is long.",
@@ -372,15 +377,18 @@ CORE CAPABILITIES:
 FORMAT: To update values, output a JSON block at the very end:
 \`\`\`json
 [
+  { "action": "setTradeType", "value": "short" },
   { "action": "setSymbol", "value": "BTCUSDT" },
   { "action": "setEntryPrice", "value": 50000 },
   { "action": "setStopLoss", "value": 49000 },
+  { "action": "addTakeProfit", "value": 52000, "percent": 50 },
   { "action": "setTakeProfit", "index": 0, "value": 52000, "percent": 50 },
-  { "action": "setTakeProfit", "index": 1, "value": 53000, "percent": 30 },
-  { "action": "setTakeProfit", "index": 2, "value": 55000, "percent": 20 }
+  { "action": "removeTakeProfit", "index": 1 },
+  { "action": "setAutoPrice", "value": false },
+  { "action": "setNotes", "value": "Short due to bearish divergence" }
 ]
 \`\`\`
-Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk, setLeverage, setAtrMultiplier, setUseAtrSl.
+Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, addTakeProfit, removeTakeProfit, setTradeType, setRisk, setLeverage, setAtrMultiplier, setAtrMode, setAtrTimeframe, setAnalysisTimeframe, setAutoPrice, setAccountSize, setUseAtrSl, resetSetup, setNotes, setTags.
 
 BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 1. Review your answer
@@ -389,7 +397,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
    - Remove it, OR
    - Mark it as speculation with low confidence
 4. Verify all numbers match the context exactly
-5. Check that you cited sources for all key data points`;
+5. Check that you cited sources for all key data points
+6. FATAL ERROR CHECK: Did I invent a Pivot point, ATR, or price level? If the number does not exist in the REAL-TIME CONTEXT JSON verbatim, DO NOT USE IT.`;
 
       // Construct Payload Messages
       const payloadMessages = [
@@ -567,7 +576,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           // 1. Code-level R:R guard: block execution if the suggested setup is mathematically poor
           const entryAction = actions.find((a) => a.action === "setEntryPrice");
           const slAction = actions.find((a) => a.action === "setStopLoss");
-          const tp1Action = actions.find((a) => a.action === "setTakeProfit" && (a.index ?? -1) === 0);
+          const tp1Action = actions.find((a) => (a.action === "setTakeProfit" && (a.index ?? -1) === 0) || a.action === "addTakeProfit");
 
           if (entryAction?.value != null && slAction?.value != null && tp1Action?.value != null) {
             try {
@@ -781,87 +790,89 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     if (symbol && settings.showTechnicals) {
       try {
         const timeframe = trade.analysisTimeframe || "1h";
-        const limit = indicatorState.historyLimit || 750;
-        const klines = await apiService.fetchBitunixKlines(
-          symbol,
-          timeframe,
-          limit,
-        );
-        if (klines && klines.length > 0) {
-          const data = await technicalsService.calculateTechnicals(
-            klines,
-            indicatorState,
-          );
-          if (data) {
-            technicalsContext = {
-              timeframe,
-              summary: data.summary,
-              confluence: data.confluence
-                ? {
-                  score: Number(data.confluence.score.toFixed(2)),
-                  level: data.confluence.level,
-                  contributing: data.confluence.contributing,
-                }
-                : "N/A",
-              divergences:
-                data.divergences && data.divergences.length > 0
-                  ? data.divergences.map((d) => ({
-                    type: d.type,
-                    indicator: d.indicator,
-                    side: d.side,
-                    priceStart: Number(d.priceStart).toFixed(4),
-                    priceEnd: Number(d.priceEnd).toFixed(4),
-                  }))
-                  : [],
-              oscillators: Object.fromEntries(
-                data.oscillators.map((v) => [
-                  v.name,
-                  new Decimal(v.value || 0).toFixed(2),
+        let data = marketData?.technicals?.[timeframe];
+
+        if (!data) {
+          const limit = indicatorState.historyLimit || 750;
+          const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
+          if (klines && klines.length > 0) {
+            data = await technicalsService.calculateTechnicals(klines, indicatorState);
+          }
+        }
+
+        if (data) {
+          const precision = indicatorState.precision ?? 4;
+          technicalsContext = {
+            timeframe,
+            summary: data.summary,
+            confluence: data.confluence
+              ? {
+                score: Number(data.confluence.score.toFixed(2)),
+                level: data.confluence.level,
+                contributing: data.confluence.contributing,
+              }
+              : "N/A",
+            divergences:
+              data.divergences && data.divergences.length > 0
+                ? data.divergences.map((d) => ({
+                  type: d.type,
+                  indicator: d.indicator,
+                  side: d.side,
+                  priceStart: TechnicalsPresenter.formatVal(d.priceStart, precision),
+                  priceEnd: TechnicalsPresenter.formatVal(d.priceEnd, precision),
+                }))
+                : [],
+            oscillators: Object.fromEntries(
+              data.oscillators.map((v) => [
+                v.name,
+                TechnicalsPresenter.formatVal(v.value, 2),
+              ]),
+            ),
+            movingAverages: data.movingAverages.map((m) => ({
+              name: m.name,
+              value: TechnicalsPresenter.formatVal(m.value, precision),
+              action: m.action,
+            })),
+            pivots: data.pivots?.classic ? {
+              type: indicatorState.pivots.type,
+              classic: Object.fromEntries(
+                Object.entries(data.pivots.classic).map(([k, v]) => [
+                  k,
+                  TechnicalsPresenter.formatVal(Number(v), precision),
                 ]),
               ),
-              movingAverages: data.movingAverages.map((m) => ({
-                name: m.name,
-                value: Number(Number(m.value).toFixed(4)),
-                action: m.action,
-              })),
-              pivots: data.pivots?.classic ? {
-                type: indicatorState.pivots.type,
-                classic: Object.fromEntries(
-                  Object.entries(data.pivots.classic).map(([k, v]) => [
-                    k,
-                    Number(v).toFixed(4),
-                  ]),
-                ),
-              } : undefined,
-              volatility: data.volatility
-                ? {
-                  atr: Number(Number(data.volatility.atr ?? 0).toFixed(4)),
-                  bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
-                    ? Number(Number(data.volatility.bb.percentP).toFixed(2))
-                    : 0,
-                }
-                : "N/A",
-            };
-          }
+            } : undefined,
+            volatility: data.volatility
+              ? {
+                atr: TechnicalsPresenter.formatVal(data.volatility.atr, precision),
+                bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
+                  ? TechnicalsPresenter.formatVal(data.volatility.bb.percentP, 2)
+                  : "0",
+              }
+              : "N/A",
+          };
         }
 
         // --- Multi-Timeframe Trend Context (New) ---
         // Fetch higher timeframe (e.g. 4h) for trend bias
         const trendTimeframe = "4h";
         if (technicalsContext && timeframe !== trendTimeframe) {
-          const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
-          if (trendKlines && trendKlines.length > 0) {
-            const trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
-            if (trendData) {
-              // Merge into technicalsContext or add as separate field
-              // We'll add it as 'trendBias'
-              technicalsContext.higherTimeframe = {
-                timeframe: trendTimeframe,
-                summary: trendData.summary, // e.g. "STRONG_BUY"
-                ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
-                rsi: trendData.oscillators.find(o => o.name === "RSI")?.value?.toFixed(2) ?? "N/A"
-              };
+          let trendData = marketData?.technicals?.[trendTimeframe];
+          if (!trendData) {
+            const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
+            if (trendKlines && trendKlines.length > 0) {
+              trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
             }
+          }
+          if (trendData) {
+            // Merge into technicalsContext or add as separate field
+            // We'll add it as 'trendBias'
+            technicalsContext.higherTimeframe = {
+              timeframe: trendTimeframe,
+              summary: trendData.summary, // e.g. "STRONG_BUY"
+              ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
+              rsi: TechnicalsPresenter.formatVal(trendData.oscillators.find(o => o.name === "RSI")?.value, 2)
+            };
           }
         }
 
@@ -983,6 +994,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         : [],
       recentHistory: recentTrades,
       tradeSetup: {
+        tradeType: trade.tradeType,
         entry: trade.entryPrice,
         sl: trade.stopLossPrice,
         tp: trade.targets,
@@ -1137,6 +1149,67 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             tradeState.useAtrSl = action.value;
           }
           break;
+        case "setTradeType":
+          if (action.value === "long" || action.value === "short") {
+            tradeState.tradeType = action.value;
+          }
+          break;
+        case "addTakeProfit": {
+          app.addTakeProfitRow();
+          const newIdx = tradeState.targets.length - 1;
+          if (newIdx >= 0 && action.value !== undefined) {
+            tradeState.targets[newIdx].price = String(parseAiValue(action.value as string));
+            if (action.percent !== undefined) {
+              tradeState.targets[newIdx].percent = String(parseAiValue(action.percent as string));
+            }
+          }
+          break;
+        }
+        case "removeTakeProfit":
+          if (typeof action.index === "number" && tradeState.targets.length > 1) {
+            app.removeTakeProfitRow(action.index);
+          }
+          break;
+        case "setAtrMode":
+          if (action.value === "auto" || action.value === "manual") {
+            tradeState.atrMode = action.value;
+          }
+          break;
+        case "setAtrTimeframe":
+          if (typeof action.value === "string") {
+            tradeState.atrTimeframe = action.value;
+          }
+          break;
+        case "setAnalysisTimeframe":
+          if (typeof action.value === "string") {
+            tradeState.analysisTimeframe = action.value;
+          }
+          break;
+        case "setAutoPrice":
+          if (typeof action.value === "boolean" && settingsState.aiAllowSettingsChanges) {
+            settingsState.autoUpdatePriceInput = action.value;
+          }
+          break;
+        case "setAccountSize":
+          if (action.value !== undefined) {
+            tradeState.accountSize = String(parseAiValue(action.value as string));
+          }
+          break;
+        case "resetSetup":
+          tradeState.resetInputs(true, true);
+          break;
+        case "setNotes":
+          if (typeof action.value === "string") {
+            tradeState.tradeNotes = action.value.substring(0, 500);
+          }
+          break;
+        case "setTags":
+          if (Array.isArray(action.tags)) {
+            tradeState.tags = action.tags.map(String).slice(0, 10);
+          } else if (Array.isArray(action.value)) {
+            tradeState.tags = action.value.map(String).slice(0, 10);
+          }
+          break;
       }
       return true;
     } catch (e) {
@@ -1171,6 +1244,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       }
       case "setUseAtrSl":
         return action.value ? "ATR SL: AN" : "ATR SL: AUS";
+      case "setTradeType":
+        return `Richtung: ${String(action.value).toUpperCase()}`;
+      case "addTakeProfit":
+        return `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
+      case "removeTakeProfit":
+        return `TP Entfernen: Index ${(action.index ?? 0) + 1}`;
+      case "setAtrMode":
+        return `ATR Modus: ${action.value}`;
+      case "setAtrTimeframe":
+        return `ATR Timeframe: ${action.value}`;
+      case "setAnalysisTimeframe":
+        return `Analyse Timeframe: ${action.value}`;
+      case "setAutoPrice":
+        return action.value ? "Live-Preis: AN" : "Live-Preis: AUS";
+      case "setAccountSize":
+        return `Kontogröße: ${action.value}`;
+      case "resetSetup":
+        return "Setup zurücksetzen";
+      case "setNotes":
+        return "Trade-Notizen aktualisiert";
+      case "setTags":
+        return "Tags aktualisiert";
       default:
         return `Aktion: ${action.action}`;
     }
