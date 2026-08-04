@@ -156,6 +156,23 @@
 
   /* --- Status Indicators (Golden Ratio Harmonization) --- */
   --indicator-size: 0.382rem;
+
+  /* --- Floating Surface Stacking (ADR-0006 / FEAT-0041) ---
+     One ordered source for every floating surface's z-index. No component
+     may hard-code a numeric z-index for a floating surface; anchored/local
+     UI (tooltips, dropdown menus, the visual bar) is exempt and keeps its
+     own local stacking. --z-window and --z-window-max stay far enough below
+     --z-window-dock that WindowManager's own zIndex counter (which grows
+     over a session, capped and normalized at 1,000,000, see
+     WindowManager.svelte.ts) can never cross into the layers above it.
+     Keep these numbers in sync with src/lib/windows/zLayers.ts — a test
+     asserts they match. */
+  --z-window: 11000;
+  --z-window-dock: 1010000;
+  --z-window-max: 1020000;
+  --z-modal: 1030000;
+  --z-toast: 1040000;
+  --z-fx: 1050000;
 }
 
 /* =================================================================

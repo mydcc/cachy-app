@@ -70,7 +70,7 @@
 {#if quizState.isQuizActive && quizState.activeQuestion}
   <!-- Backdrop -->
   <div
-    class="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 gap-4"
+    class="fixed inset-0 z-[var(--z-modal)] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 gap-4"
     transition:fade={{ duration: 200 }}
     onclick={() => quizState.closeQuiz()}
     role="button"

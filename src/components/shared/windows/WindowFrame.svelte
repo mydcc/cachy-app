@@ -710,7 +710,7 @@
         border-radius: 0;
         border: none;
         box-shadow: none;
-        z-index: 20000 !important;
+        z-index: var(--z-window-max) !important;
     }
     .window-frame.minimized {
         position: relative !important;

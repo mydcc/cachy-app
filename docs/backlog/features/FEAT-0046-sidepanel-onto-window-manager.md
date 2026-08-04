@@ -9,10 +9,19 @@ editions: [community, pro, private]
 area: ui
 data_class: A
 adr: ADR-0006
-depends_on: [FEAT-0041]
+depends_on: [FEAT-0041, BUG-0051]
 ---
 
 # FEAT-0046 — Move the SidePanel onto the window manager and drop interactjs
+
+## Blocked
+
+`SidePanel.svelte` turns out not to be reachable from any route or layout —
+see [`BUG-0051`](../bugs/BUG-0051-sidepanel-never-rendered.md), found while
+starting this item. Migrating its stacking and drag code would move dead code,
+not fix a live defect. This item cannot proceed until BUG-0051 decides whether
+the panel is restored or retired. If retired, this item is replaced by a
+deletion, not built as written below.
 
 ## Problem
 
