@@ -299,6 +299,7 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "8. NO FORCED SETUPS:",
         "   - You are a Risk Manager, not a signal group. You do NOT have to provide a setup if the market is choppy or undefined.",
         "   - If you suggest an alternative setup, the Entry, SL, and TP MUST be based strictly on the provided 'technicals' (e.g. Pivots, EMAs) or 'marketDetails' (e.g. 24h High/Low).",
+        "   - STRICT RULE: You must use the EXACT numbers provided in the 'technicals' and 'marketDetails' context blocks. NEVER invent, estimate, or modify these numbers.",
         "   - NEVER invent random price levels just to generate a JSON action block.",
         "",
         "- MARKET NOISE & VOLATILITY (CRITICAL):",
@@ -395,7 +396,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
    - Remove it, OR
    - Mark it as speculation with low confidence
 4. Verify all numbers match the context exactly
-5. Check that you cited sources for all key data points`;
+5. Check that you cited sources for all key data points
+6. FATAL ERROR CHECK: Did I invent a Pivot point, ATR, or price level? If the number does not exist in the REAL-TIME CONTEXT JSON verbatim, DO NOT USE IT.`;
 
       // Construct Payload Messages
       const payloadMessages = [
