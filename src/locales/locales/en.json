@@ -74,7 +74,13 @@
     "quotaExceeded": "Generative AI Quota exceeded. Please try again later or check API settings.",
     "smallerFont": "Smaller Font",
     "suggestedChanges": "Suggested Changes",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "quickActions": {
+      "marketCheck":  "Analyze the market for {symbol}",
+      "techAnalysis": "Create a technical analysis for {symbol}",
+      "riskAudit":    "Audit my setup for errors and risks.",
+      "newsCheck":    "Are there any important news?"
+    }
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
