@@ -30,7 +30,7 @@ describe("Ollama Models Route GET", () => {
       headers: { "x-app-access-token": "test-token" },
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
     expect(response.status).toBe(400);
 
     const body = await response.json();
@@ -45,7 +45,7 @@ describe("Ollama Models Route GET", () => {
       headers: { "x-app-access-token": "test-token" },
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
     expect(response.status).toBe(502);
 
     const body = await response.json();
@@ -66,7 +66,7 @@ describe("Ollama Models Route GET", () => {
       headers: { "x-app-access-token": "test-token" },
     });
 
-    const response = await GET({ request, url } as any);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
     expect(response.status).toBe(200);
 
     const body = await response.json();
