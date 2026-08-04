@@ -5,6 +5,20 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ai:** enforce strict context matching in system prompt to prevent hallucination ([24003ee](https://github.com/mydcc/cachy-app/commit/24003ee7cd86db8f5ccf542038df74346690c497))
+* **ai:** strictly prevent AI from rounding context numbers or appending USDT to indicators ([34c0fd6](https://github.com/mydcc/cachy-app/commit/34c0fd6f11e496e3147264dc169fc6f776656031))
+* **ai:** sync technicals context with UI via active market data to prevent hallucination ([6bc8991](https://github.com/mydcc/cachy-app/commit/6bc8991ed6752755aab04f139115b5518a977cc4))
+
+
+### Features
+
+* **ai:** expand AI capabilities with 11 new Trade Panel actions and settings opt-in ([e26b0bc](https://github.com/mydcc/cachy-app/commit/e26b0bcb3496f3f967033af65410141d59492bac))
+
 # [1.2.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-08-04)
 
 
