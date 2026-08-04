@@ -28,6 +28,7 @@ import { logger } from "../services/logger";
 import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
+import { app } from "../services/app";
 
 // Shape returned by gatherContext(), passed to the AI provider and exposed
 // to the UI via lastContext for the context-gathered indicators.
@@ -62,6 +63,7 @@ export interface AiAction {
   index?: number;
   percent?: number | string;
   atrMultiplier?: number | string;
+  tags?: string[];
 }
 
 export interface PendingAction {
@@ -372,15 +374,18 @@ CORE CAPABILITIES:
 FORMAT: To update values, output a JSON block at the very end:
 \`\`\`json
 [
+  { "action": "setTradeType", "value": "short" },
   { "action": "setSymbol", "value": "BTCUSDT" },
   { "action": "setEntryPrice", "value": 50000 },
   { "action": "setStopLoss", "value": 49000 },
+  { "action": "addTakeProfit", "value": 52000, "percent": 50 },
   { "action": "setTakeProfit", "index": 0, "value": 52000, "percent": 50 },
-  { "action": "setTakeProfit", "index": 1, "value": 53000, "percent": 30 },
-  { "action": "setTakeProfit", "index": 2, "value": 55000, "percent": 20 }
+  { "action": "removeTakeProfit", "index": 1 },
+  { "action": "setAutoPrice", "value": false },
+  { "action": "setNotes", "value": "Short due to bearish divergence" }
 ]
 \`\`\`
-Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk, setLeverage, setAtrMultiplier, setUseAtrSl.
+Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, addTakeProfit, removeTakeProfit, setTradeType, setRisk, setLeverage, setAtrMultiplier, setAtrMode, setAtrTimeframe, setAnalysisTimeframe, setAutoPrice, setAccountSize, setUseAtrSl, resetSetup, setNotes, setTags.
 
 BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 1. Review your answer
@@ -567,7 +572,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           // 1. Code-level R:R guard: block execution if the suggested setup is mathematically poor
           const entryAction = actions.find((a) => a.action === "setEntryPrice");
           const slAction = actions.find((a) => a.action === "setStopLoss");
-          const tp1Action = actions.find((a) => a.action === "setTakeProfit" && (a.index ?? -1) === 0);
+          const tp1Action = actions.find((a) => (a.action === "setTakeProfit" && (a.index ?? -1) === 0) || a.action === "addTakeProfit");
 
           if (entryAction?.value != null && slAction?.value != null && tp1Action?.value != null) {
             try {
@@ -983,6 +988,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         : [],
       recentHistory: recentTrades,
       tradeSetup: {
+        tradeType: trade.tradeType,
         entry: trade.entryPrice,
         sl: trade.stopLossPrice,
         tp: trade.targets,
@@ -1137,6 +1143,67 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             tradeState.useAtrSl = action.value;
           }
           break;
+        case "setTradeType":
+          if (action.value === "long" || action.value === "short") {
+            tradeState.tradeType = action.value;
+          }
+          break;
+        case "addTakeProfit": {
+          app.addTakeProfitRow();
+          const newIdx = tradeState.targets.length - 1;
+          if (newIdx >= 0 && action.value !== undefined) {
+            tradeState.targets[newIdx].price = String(parseAiValue(action.value as string));
+            if (action.percent !== undefined) {
+              tradeState.targets[newIdx].percent = String(parseAiValue(action.percent as string));
+            }
+          }
+          break;
+        }
+        case "removeTakeProfit":
+          if (typeof action.index === "number" && tradeState.targets.length > 1) {
+            app.removeTakeProfitRow(action.index);
+          }
+          break;
+        case "setAtrMode":
+          if (action.value === "auto" || action.value === "manual") {
+            tradeState.atrMode = action.value;
+          }
+          break;
+        case "setAtrTimeframe":
+          if (typeof action.value === "string") {
+            tradeState.atrTimeframe = action.value;
+          }
+          break;
+        case "setAnalysisTimeframe":
+          if (typeof action.value === "string") {
+            tradeState.analysisTimeframe = action.value;
+          }
+          break;
+        case "setAutoPrice":
+          if (typeof action.value === "boolean" && settingsState.aiAllowSettingsChanges) {
+            settingsState.autoUpdatePriceInput = action.value;
+          }
+          break;
+        case "setAccountSize":
+          if (action.value !== undefined) {
+            tradeState.accountSize = String(parseAiValue(action.value as string));
+          }
+          break;
+        case "resetSetup":
+          tradeState.resetInputs(true, true);
+          break;
+        case "setNotes":
+          if (typeof action.value === "string") {
+            tradeState.tradeNotes = action.value.substring(0, 500);
+          }
+          break;
+        case "setTags":
+          if (Array.isArray(action.tags)) {
+            tradeState.tags = action.tags.map(String).slice(0, 10);
+          } else if (Array.isArray(action.value)) {
+            tradeState.tags = action.value.map(String).slice(0, 10);
+          }
+          break;
       }
       return true;
     } catch (e) {
@@ -1171,6 +1238,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       }
       case "setUseAtrSl":
         return action.value ? "ATR SL: AN" : "ATR SL: AUS";
+      case "setTradeType":
+        return `Richtung: ${String(action.value).toUpperCase()}`;
+      case "addTakeProfit":
+        return `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
+      case "removeTakeProfit":
+        return `TP Entfernen: Index ${(action.index ?? 0) + 1}`;
+      case "setAtrMode":
+        return `ATR Modus: ${action.value}`;
+      case "setAtrTimeframe":
+        return `ATR Timeframe: ${action.value}`;
+      case "setAnalysisTimeframe":
+        return `Analyse Timeframe: ${action.value}`;
+      case "setAutoPrice":
+        return action.value ? "Live-Preis: AN" : "Live-Preis: AUS";
+      case "setAccountSize":
+        return `Kontogröße: ${action.value}`;
+      case "resetSetup":
+        return "Setup zurücksetzen";
+      case "setNotes":
+        return "Trade-Notizen aktualisiert";
+      case "setTags":
+        return "Tags aktualisiert";
       default:
         return `Aktion: ${action.action}`;
     }
