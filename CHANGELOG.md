@@ -5,6 +5,16 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ai:** overhaul ai setup logic algorithm to enforce mathematical constraints and proof of work ([d4f6e9f](https://github.com/mydcc/cachy-app/commit/d4f6e9f956ee8f3eb9929051da6e1b6ab4bc5114))
+* **ai:** recognize OpenRouter and Ollama API keys in AssistantView overlay ([16dbfdb](https://github.com/mydcc/cachy-app/commit/16dbfdb914cf187c19c169ddf008a44c13bb5cfc))
+* **ai:** support direct client connection & improve error messaging for local Ollama ([891ddec](https://github.com/mydcc/cachy-app/commit/891ddec361015fffa885eea6415661f77e6018cc))
+* **eslint:** replace explicit any in ollama_models.test.ts ([4dbb79b](https://github.com/mydcc/cachy-app/commit/4dbb79b496a539c7210e899e15a24b4aa839123f))
+
 # [1.2.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-08-04)
 
 
