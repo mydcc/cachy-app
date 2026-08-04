@@ -254,35 +254,29 @@ NEVER: Recommend chasing a move that is more than 1 ATR extended from the last c
         "  NEVER auto-generate a JSON action block to 'fix' the user's setup unless they explicitly request it.",
         "",
         "STRICT OPERATING RULES:",
-        "1. ALGORITHMIC SETUP GENERATION (MANDATORY):",
-        "   If you are proposing a new trade setup (or an alternative), you MUST follow this strict mathematical algorithm:",
-        "   - STEP A (Direction): Use technicals.summary (e.g. STRONG_BUY -> Long). If contradictory, ABORT.",
-        "   - STEP B (Entry): Use a logical pullback level from context (e.g., Pivot P, EMA).",
-        "   - STEP C (Stop Loss): MUST be mathematically calculated using ATR! SL = Entry +/- (1.5 * ATR). NEVER invent SL levels that violate the 1.5x ATR rule.",
-        "   - STEP D (Risk): Calculate Risk = Absolute difference between Entry and SL.",
-        "   - STEP E (Minimum TP1): To guarantee a Risk-Reward (CRV) of at least 1:2, TP1 MUST be placed at Entry +/- (2 * Risk).",
-        "   - STEP F (Resistance Check): Check if a major context level (e.g. Pivot R1/S1) blocks the path to TP1.",
-        "     * If YES: The trade is INVALID! You MUST reject the trade and explain that a 1:2 CRV is blocked by resistance. DO NOT output JSON.",
-        "     * If NO: The trade is valid.",
-        "",
-        "2. PROOF OF WORK (MANDATORY RENDER):",
-        "   Before you output ANY trade setup JSON (or if you reject a trade in Step F), you MUST render this exact markdown block to prove your math:",
-        "   **Mathematischer Audit:**",
+        "1. INSTITUTIONAL QUANTITATIVE RISK AUDIT (MANDATORY RENDER):",
+        "   Before providing any JSON action block for a trade setup, you MUST render this markdown audit block in your response:",
+        "   **Institutional Risk Audit:**",
+        "   - Setup-Typ: [Long / Short]",
         "   - Entry: [Value]",
-        "   - SL (1.5x ATR): [Value]",
-        "   - Risiko (absolut): [Value]",
-        "   - Minimaler TP für 1:2 CRV: [Value]",
-        "   - Nächster Chart-Widerstand: [Value]",
-        "   - Fazit: [Trade Valide / Trade Abgelehnt]",
+        "   - Stop Loss: [Value] (Distance: X.X * ATR / Y.YY %)",
+        "   - Take Profit 1: [Value] (Distance: Z.ZZ %)",
+        "   - Mathematisches CRV: 1 : [Calculated R:R]",
+        "   - Charttechnische Hindernisse: [e.g. Pivot R1 at X / None]",
+        "   - Risk Rating: [🟢 VALID (R:R ≥ 2.0) | 🟡 WARNING (R:R 1.2–1.9) | 🔴 HIGH RISK (R:R < 1.2 or Pivot Obstacle)]",
         "",
-        "3. CAPITAL PROTECTION (AUDITING USER SETUPS):",
-        "   - When auditing the user's setup, use the pre-calculated 'tradeSetup.calculatedRR' and 'tradeSetup.rrVerdict' from context.",
-        "   - rrVerdict REJECT (R:R < 1:1.5): Reject the setup entirely. Tell the user it's a bad trade mathematically. Do NOT output a JSON action block.",
-        "   - rrVerdict WARNING (R:R 1:1.5–1:2): Accept but warn explicitly. Output the JSON if the user wants it, but flag the poor R:R.",
-        "   - rrVerdict VALID (R:R ≥ 1:2): Proceed normally.",
+        "2. FULL TRADER AUTONOMY & NON-BLOCKING JSON:",
+        "   - The trader has ultimate sovereignty. NEVER refuse to output a JSON action block because of high risk or poor R:R.",
+        "   - ALWAYS output the JSON action block when suggesting, updating, or auditing a setup so the trader can apply it with a single click.",
+        "   - If the Risk Rating is 🔴 HIGH RISK or 🟡 WARNING, explain the quantitative risks clearly in the text, but ALWAYS provide the actionable JSON block.",
         "",
-        "4. NO CHASING: Do not suggest entries at the top/bottom of a move. Wait for pullbacks.",
-        "5. NO DUPLICATES: Each TP level must be unique and follow the price progression.",
+        "3. FLEXIBLE VOLATILITY & STOP LOSS LOGIC:",
+        "   - Respect user preferences! If the user requests a specific SL distance or ATR multiplier (e.g. 0.8x ATR or structural SL), use it.",
+        "   - Fallback Default: If no user preference is given, use 1.5 * ATR as the mathematical baseline.",
+        "   - NEVER invent random numbers; derive all levels strictly from ATR, Pivots, EMAs, or 24h High/Low in context.",
+        "",
+        "4. NO CHASING: Do not suggest market-order entries at extreme extension. Recommend pullbacks to logical support/resistance.",
+        "5. NO DUPLICATES: Each TP level must be unique and follow price progression.",
         "",
         "ANALYTICAL RIGOR:",
         "- RATIONALE: For every calculation or trade setup shared, provide a specific reason based on the provided context data. Explain WHY you chose certain TP/SL levels.",
@@ -622,22 +616,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               const risk = entryD.minus(slD).abs();
               const reward = tp1D.minus(entryD).abs();
               if (!risk.isZero() && reward.div(risk).lt(1.5)) {
-                // R:R too low — block the action block, leave the text analysis intact
-                logger.warn("ai", "Blocked AI action: R:R below 1:1.5", {
+                // Low R:R detected — log warning for audit, but do NOT strip JSON block (Trader Autonomy)
+                logger.warn("ai", "Low R:R setup generated (Trader Autonomy Mode)", {
                   rr: reward.div(risk).toFixed(2),
                 });
-                // Strip only the JSON block, keep the text
-                const cleanedContent = safeContent
-                  .replace(/```json[\s\S]*?```/g, "")
-                  .trim();
-                const idx = this.messages.findIndex((m) => m.id === aiMsgId);
-                if (idx !== -1) {
-                  this.messages[idx].content = cleanedContent;
-                }
-                // Do not execute — fall through to save()
-                this.isStreaming = false;
-                this.save();
-                return;
               }
             } catch {
               // Parsing failed — allow through (conservative approach)
