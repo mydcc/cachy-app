@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2026-08-04)
+
+
+### Features
+
+* **ai:** implement institutional risk audit and full trader autonomy mode ([6129a9e](https://github.com/mydcc/cachy-app/commit/6129a9e83e6ee72fd28a962cd8f2876d2ddce72c))
+
 # [1.2.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2026-08-04)
 
 
