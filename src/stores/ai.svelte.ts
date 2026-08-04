@@ -475,7 +475,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       let attempt = 0;
       const MAX_RETRIES = 3;
 
-      while (attempt < MAX_RETRIES) {
+      if (provider === "ollama") {
+        const targetUrl = (baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
+        try {
+          const directRes = await fetch(`${targetUrl}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: payloadMessages,
+              stream: true,
+            }),
+          });
+          if (directRes.ok) {
+            res = directRes;
+            this.error = null;
+          }
+        } catch {
+          // Direct browser fetch failed — fallback to server proxy
+        }
+      }
+
+      while (!res && attempt < MAX_RETRIES) {
         try {
           res = await appFetch(endpoint, {
             method: "POST",

@@ -69,10 +69,16 @@ export const GET: RequestHandler = async ({ request, url }) => {
     return json({ models });
   } catch (e) {
     console.error("Ollama Models Proxy Error:", e);
+    const isLocalhost =
+      baseUrl.includes("localhost") ||
+      baseUrl.includes("127.0.0.1") ||
+      baseUrl.includes("::1");
+    const hint = isLocalhost
+      ? "If running Ollama locally while using a hosted web app (e.g. dev.cachy.app), start Ollama with OLLAMA_ORIGINS=\"*\" so your browser can connect directly, or run Cachy locally."
+      : "Is it running and is the base URL correct?";
     return json(
       {
-        error:
-          "Could not reach Ollama. Is it running and is the base URL correct?",
+        error: `Could not reach Ollama at ${baseUrl}. ${hint}`,
       },
       { status: 502 },
     );
