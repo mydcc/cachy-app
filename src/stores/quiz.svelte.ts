@@ -17,8 +17,9 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
-import { locale } from "../locales/i18n";
+import { locale, _ } from "../locales/i18n";
 import { get } from "svelte/store";
+import { toastService } from "../services/toastService.svelte";
 
 export interface FlashCard {
   id: string;
@@ -159,27 +160,50 @@ class QuizStore {
     return cards;
   }
 
+  /** Picks the next card to show: a random still-unknown one, or (once every
+   * card in the category is known) a random one from the full set. Shared by
+   * startQuiz() and nextQuestion() so there is one selection rule, not two. */
+  private pickQuestion(): FlashCard | null {
+    if (this.questions.length === 0) return null;
+
+    const unknownQuestions = this.questions.filter(
+      (q) => !this.knownQuestionIds.has(q.id)
+    );
+
+    const pool = unknownQuestions.length === 0 ? this.questions : unknownQuestions;
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    return pool[randomIndex];
+  }
+
   startQuiz(category?: QuizCategory) {
     if (category && category !== this.activeCategory) {
       this.setCategory(category);
     }
 
-    if (this.questions.length === 0) return;
-
-    // Filter unknown questions
-    const unknownQuestions = this.questions.filter(
-      (q) => !this.knownQuestionIds.has(q.id)
-    );
-
-    if (unknownQuestions.length === 0) {
-      const randomIndex = Math.floor(Math.random() * this.questions.length);
-      this.activeQuestion = this.questions[randomIndex];
-    } else {
-      const randomIndex = Math.floor(Math.random() * unknownQuestions.length);
-      this.activeQuestion = unknownQuestions[randomIndex];
+    const question = this.pickQuestion();
+    if (!question) {
+      // Most likely the CSV fetch hasn't resolved yet -- say so instead of
+      // silently doing nothing (BUG-0049).
+      toastService.warning(get(_)("quiz.notReady"));
+      return;
     }
 
+    this.activeQuestion = question;
     this.isQuizActive = true;
+  }
+
+  /** Advances to a new card without closing the quiz (BUG-0049: answering a
+   * card used to end the session instead of continuing it). */
+  nextQuestion() {
+    const question = this.pickQuestion();
+    if (!question) {
+      // The pool emptied out from under us (e.g. questions cleared
+      // mid-session) -- nothing left to show, so end the session rather
+      // than leave a stale card up.
+      this.closeQuiz();
+      return;
+    }
+    this.activeQuestion = question;
   }
 
   closeQuiz() {
@@ -194,11 +218,11 @@ class QuizStore {
       this.knownQuestionIds.add(this.activeQuestion.id);
       this.saveProgress();
     }
-    this.closeQuiz();
+    this.nextQuestion();
   }
 
   markUnknown() {
-    this.closeQuiz();
+    this.nextQuestion();
   }
 
   resetProgress() {

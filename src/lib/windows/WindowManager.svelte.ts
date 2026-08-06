@@ -28,7 +28,9 @@ import { IframeWindow } from "./implementations/IframeWindow.svelte";
 
 const BASE_Z_INDEX = 11000;
 const MAX_SAFE_Z_INDEX = 1000000;
-const SAVE_DEBOUNCE_MS = 500;
+// Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
+// there is one save cadence for window state, not two independent ones.
+export const SAVE_DEBOUNCE_MS = 500;
 
 // Shape of a window's serialized session-storage entry, as read back by
 // createFromData() below. Wider than WindowSerializedState since each
@@ -78,6 +80,16 @@ class WindowManager {
                 if (this._saveSessionTimer) {
                     clearTimeout(this._saveSessionTimer);
                     this._performSaveSession();
+                }
+            });
+
+            // One shared listener for every open window instead of one per
+            // instance (BUG-0043) -- re-applies responsive rules and
+            // re-clamps geometry so a window can't be left off-screen after
+            // the viewport shrinks.
+            window.addEventListener('resize', () => {
+                for (const win of this._windows) {
+                    win.handleViewportResize();
                 }
             });
         }

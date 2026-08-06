@@ -151,10 +151,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: var(--z-modal);
   }
   .modal-content {
-    background-color: var(--bg-secondary);
+    /* Background comes from the .glass-panel class applied alongside this
+       one in the template — it already covers both the glass-enabled and
+       fallback cases (themes.css). A second background-color here tied
+       with .glass-enabled .glass-panel at equal specificity, so which one
+       won was decided by build output order rather than intent. */
     padding: 1.5rem;
     border-radius: 0.75rem;
     max-height: 90vh;

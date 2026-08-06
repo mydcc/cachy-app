@@ -525,6 +525,6 @@
 
 <div
     bind:this={container}
-    class="fixed inset-0 pointer-events-none z-[99999]"
+    class="fixed inset-0 pointer-events-none z-[var(--z-fx)]"
     style="mix-blend-mode: screen;"
 ></div>

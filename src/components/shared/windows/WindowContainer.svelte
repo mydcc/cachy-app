@@ -93,7 +93,7 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 11000;
+        z-index: var(--z-window);
         pointer-events: none;
     }
 
@@ -119,7 +119,7 @@
         display: flex;
         padding: 6px 10px;
         pointer-events: none;
-        z-index: 12000;
+        z-index: var(--z-window-dock);
     }
 
     .dock-top {
