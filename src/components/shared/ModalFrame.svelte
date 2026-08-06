@@ -23,11 +23,12 @@
   be invoked from there regardless of where they were declared, so
   `children`/`headerExtra` still work exactly as callers already use them.
 
-  All three current callers (AcademyModal, MarketDashboardModal,
-  TpSlEditModal) mount this component only while their own `{#if}` guard is
-  true and always pass `isOpen={true}` -- so in practice "open" happens on
-  mount and "close" happens on unmount, both handled by the same $effect
-  below. `isOpen` is still honored as a reactive prop for robustness.
+  Both current callers (MarketDashboardModal, TpSlEditModal -- Academy moved
+  to its own AcademyWindow in FEAT-0045) mount this component only while
+  their own `{#if}` guard is true and always pass `isOpen={true}` -- so in
+  practice "open" happens on mount and "close" happens on unmount, both
+  handled by the same $effect below. `isOpen` is still honored as a
+  reactive prop for robustness.
 -->
 
 <script lang="ts">

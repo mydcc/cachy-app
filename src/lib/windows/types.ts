@@ -189,7 +189,6 @@ export type WindowType =
     | 'news'
     | 'settings'
     | 'chatbox'
-    | 'chatpanel'
     | 'symbolpicker'
     | 'journal'
     | 'guide'
@@ -198,4 +197,5 @@ export type WindowType =
     | 'whitepaper'
     | 'assistant'
     | 'channel'
+    | 'academy'
     | 'dialog';

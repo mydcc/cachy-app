@@ -19,7 +19,9 @@
   Copyright (C) 2026 MYDCT
   Backing WindowBase for the ModalFrame adapter (FEAT-0044). Renders whatever
   Snippet ModalFrame.svelte's `children` prop was given, through WindowFrame
-  instead of ModalFrame's old standalone overlay.
+  instead of ModalFrame's old standalone overlay. Current callers:
+  MarketDashboardModal and TpSlEditModal (Academy moved to its own
+  AcademyWindow in FEAT-0045, no longer routing through ModalFrame).
 */
 
 import type { Snippet } from "svelte";
@@ -56,28 +58,6 @@ export class ModalFrameWindow extends WindowBase {
         if (options.headerExtra) {
             this.headerSnippet = options.headerExtra;
             this.showHeaderIndicators = true;
-        }
-
-        // AcademyModal's "modal-size-instructions" sizing preset (80vw,
-        // capped at 1320px, aspect-ratio 3:2). WindowFrame binds
-        // width/height as inline styles, which always win over a
-        // class-based CSS rule regardless of specificity, so the class's
-        // own width/aspect-ratio (themes.css) no longer has any effect --
-        // this computes the equivalent once, here, from the same class name.
-        //
-        // super() already centered x/y using the registry's default 800x600
-        // before this constructor body ran, so changing width/height here
-        // requires re-centering too, or the window ends up off-center for
-        // its actual size.
-        if (
-            this.extraClasses.includes("modal-size-instructions") &&
-            typeof window !== "undefined"
-        ) {
-            const width = Math.min(window.innerWidth * 0.8, 1320);
-            this.width = width;
-            this.height = width / 1.5; // aspect-ratio 3 / 2
-            this.x = (window.innerWidth - this.width) / 2;
-            this.y = (window.innerHeight - this.height) / 2;
         }
 
         if (options.alignment === "top" && typeof window !== "undefined") {

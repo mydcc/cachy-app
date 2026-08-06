@@ -4,7 +4,7 @@
 
 51 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 30 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 7
+Counts by status: 💡 idea 11 · 📋 specced 29 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 8
 
 ---
 
@@ -108,7 +108,7 @@ Counts by status: 💡 idea 11 · 📋 specced 30 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
-| [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | 📋 specced | ui |
+| [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | 📋 specced | ui |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | 🟢 ready | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | ui |
@@ -165,7 +165,7 @@ Counts by status: 💡 idea 11 · 📋 specced 30 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0039](features/FEAT-0039-data-extensions.md) | Let users add prompts, presets and themes as data files | P2 | 💡 idea | M5 | community, pro, private | A | ADR-0005 | — |
 | [FEAT-0040](features/FEAT-0040-computation-extensions.md) | Run user-written indicators in an isolated worker | P2 | 💡 idea | M6 | community, pro, private | none | ADR-0005 | [FEAT-0039](features/FEAT-0039-data-extensions.md), [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) |
-| [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | 📋 specced | none | community, pro, private | A | ADR-0006 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) |
+| [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | none | community, pro, private | A | ADR-0006 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | 📋 specced | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |

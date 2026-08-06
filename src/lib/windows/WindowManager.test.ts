@@ -108,6 +108,34 @@ describe("WindowManager.bringToFront and maximized windows (FEAT-0044)", () => {
     });
 });
 
+describe("WindowManager.openAcademy (FEAT-0045)", () => {
+    afterEach(() => {
+        windowManager.close("academy");
+    });
+
+    it("focuses the existing academy window instead of duplicating it on a second call", async () => {
+        await windowManager.openAcademy();
+        const firstCount = windowManager.windows.filter(
+            (w) => w.windowType === "academy",
+        ).length;
+        await windowManager.openAcademy();
+        const secondCount = windowManager.windows.filter(
+            (w) => w.windowType === "academy",
+        ).length;
+
+        expect(firstCount).toBe(1);
+        expect(secondCount).toBe(1);
+    });
+
+    it("is closeable via its fixed 'academy' id", async () => {
+        await windowManager.openAcademy();
+        expect(windowManager.isOpen("academy")).toBe(true);
+
+        windowManager.close("academy");
+        expect(windowManager.isOpen("academy")).toBe(false);
+    });
+});
+
 describe("WindowManager resize handling (BUG-0043)", () => {
     it("calls handleViewportResize on every open window when the viewport resizes", () => {
         const w1 = openTestWindow();

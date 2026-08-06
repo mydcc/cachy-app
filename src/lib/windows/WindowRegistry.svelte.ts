@@ -285,6 +285,37 @@ class WindowRegistry {
             }
         });
 
+        /**
+         * Trading Academy: a real window rather than a `modal` (FEAT-0045)
+         * -- the whole point is that it can be minimised to the dock while
+         * checking a chart and come back with the same tab/size/position,
+         * none of which a `modal`-type window supports (not minimisable,
+         * not persisted). Default layout approximates the old
+         * `modal-size-instructions` CSS preset (80vw capped at 1320px,
+         * 3:2) at a common desktop resolution; unlike that preset it's a
+         * starting point, not a constraint -- no `aspectRatio` lock, since
+         * this is content browsing, not chart rendering.
+         */
+        this.configs.set('academy', {
+            type: 'academy',
+            flags: {
+                ...baseFlags,
+                allowMaximize: true,
+                allowMinimize: true,
+                canMinimizeToPanel: true,
+                centerByDefault: true,
+                isResponsive: true,
+                edgeToEdgeBreakpoint: 768
+            },
+            layout: {
+                ...baseLayout,
+                width: 1200,
+                height: 800,
+                minWidth: 480,
+                minHeight: 400
+            }
+        });
+
         /** Hybrid AI assistant / Side-chat window. */
         this.configs.set('assistant', {
             type: 'assistant',

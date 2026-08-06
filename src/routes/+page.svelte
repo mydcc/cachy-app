@@ -52,7 +52,6 @@
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
-  import AcademyModal from "../components/shared/AcademyModal.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import QuizButton from "../components/shared/QuizButton.svelte";
   import FlashCard from "../components/shared/FlashCard.svelte";
@@ -200,9 +199,12 @@
         uiState.toggleWhitepaperModal(false);
       if (windowManager.isOpen("changelog"))
         uiState.toggleChangelogModal(false);
-      // Academy (and Market Dashboard, TpSlEdit) are `modal`-type windows
-      // now, which close on Escape via WindowManager's own closeOnBlur
-      // handling (FEAT-0044) -- they no longer use a fixed "academy" id.
+      // Academy is its own window type now (FEAT-0045), with a real fixed
+      // "academy" id, closed directly rather than through a uiState
+      // wrapper. Market Dashboard and TpSlEdit stay `modal`-type windows,
+      // which close on Escape via WindowManager's own closeOnBlur handling
+      // (FEAT-0044) instead of a branch here.
+      if (windowManager.isOpen("academy")) windowManager.close("academy");
       return;
     }
 
@@ -846,7 +848,6 @@
   </div>
 </footer>
 
-<!-- No ModalFrames for Guide/Changelog etc. anymore - they are managed by WindowManager -->
+<!-- No ModalFrames for Guide/Changelog/Academy etc. anymore - they are managed by WindowManager -->
 
-<AcademyModal />
 <FlashCard />

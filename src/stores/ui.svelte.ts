@@ -38,7 +38,6 @@ interface UiSnapshot {
   symbolSuggestions: string[];
   showSymbolSuggestions: boolean;
   showMarketDashboardModal: boolean;
-  showAcademyModal: boolean;
   settingsTab: string;
   settingsTradingSubTab: string;
   settingsVisualsSubTab: string;
@@ -81,7 +80,6 @@ class UiManager {
   settingsProfileTab = $state<"general" | "appearance" | "controls">("general");
   settingsWorkspaceTab = $state("sidebar");
   showMarketDashboardModal = $state(false);
-  showAcademyModal = $state(false);
 
   get windows() {
     return windowManager.windows;
@@ -163,7 +161,6 @@ class UiManager {
       symbolSuggestions: this.symbolSuggestions,
       showSymbolSuggestions: this.showSymbolSuggestions,
       showMarketDashboardModal: this.showMarketDashboardModal,
-      showAcademyModal: this.showAcademyModal,
       settingsTab: this.settingsTab,
       settingsTradingSubTab: this.settingsTradingSubTab,
       settingsVisualsSubTab: this.settingsVisualsSubTab,
@@ -208,7 +205,6 @@ class UiManager {
       symbolSuggestions: this.symbolSuggestions,
       showSymbolSuggestions: this.showSymbolSuggestions,
       showMarketDashboardModal: this.showMarketDashboardModal,
-      showAcademyModal: this.showAcademyModal,
       settingsTab: this.settingsTab,
       settingsTradingSubTab: this.settingsTradingSubTab,
       settingsVisualsSubTab: this.settingsVisualsSubTab,
@@ -410,10 +406,6 @@ class UiManager {
 
   toggleMarketDashboardModal(show: boolean) {
     this.showMarketDashboardModal = show;
-  }
-
-  toggleAcademyModal(show: boolean) {
-    this.showAcademyModal = show;
   }
 
   showFeedback(type: "copy" | "save", duration = 2000) {

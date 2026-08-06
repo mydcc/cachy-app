@@ -210,6 +210,10 @@ class WindowManager {
             }
             case 'iframe':
                 return new IframeWindow(d.url as string, d.title as string);
+            case 'academy': {
+                const { AcademyWindow } = await import("./implementations/AcademyWindow.svelte");
+                return new AcademyWindow(d.title);
+            }
             default:
                 return null;
         }
@@ -321,6 +325,18 @@ class WindowManager {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     openIframe(url: string, title: string, options: any = {}) {
         this.open(new IframeWindow(url, title, options));
+    }
+
+    /**
+     * Opens (or focuses, if already open) the Trading Academy window
+     * (FEAT-0045). Dynamically imported like ChartWindow/ChannelWindow
+     * above, not statically like ModalWindow/IframeWindow -- AcademyWindow
+     * pulls in AcademyContent and its pattern-browsing views, heavier than
+     * this module should carry at initialization time.
+     */
+    async openAcademy() {
+        const { AcademyWindow } = await import("./implementations/AcademyWindow.svelte");
+        this.open(new AcademyWindow());
     }
 
     /** Calculates the relative position of a minimized window within the docking bar. */
