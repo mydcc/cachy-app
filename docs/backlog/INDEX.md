@@ -4,7 +4,7 @@
 
 51 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 32 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 5
+Counts by status: 💡 idea 11 · 📋 specced 31 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 6
 
 ---
 
@@ -25,7 +25,7 @@ Counts by status: 💡 idea 11 · 📋 specced 32 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | 📋 specced | ai |
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | ✅ done | ui |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | ui |
-| [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | 📋 specced | ui |
+| [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | ui |
 
 ### M1
 
@@ -150,7 +150,7 @@ Counts by status: 💡 idea 11 · 📋 specced 32 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | M0 | community, pro, private | none | none | — |
-| [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | 📋 specced | M0 | community, pro, private | A | none | — |
+| [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | none | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |

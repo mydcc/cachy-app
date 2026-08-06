@@ -1763,6 +1763,7 @@ export type TranslationKey =
   | "quiz.categoryLabel"
   | "quiz.categoryTrading"
   | "quiz.categoryTech"
+  | "quiz.notReady"
   | "cloud.title"
   | "cloud.description"
   | "cloud.connectButton"

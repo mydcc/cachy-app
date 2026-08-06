@@ -77,6 +77,22 @@
     tabindex="0"
     onkeydown={(e) => e.key === "Escape" && quizState.closeQuiz()}
   >
+    <!-- Close Button. Top-left, not top-right: ToastContainer anchors at
+         top:24px/right:24px, and a real toast firing while the quiz is open
+         would sit directly over a top-right close button. -->
+    <button
+      type="button"
+      class="absolute top-4 left-4 z-20 p-1.5 rounded-lg text-xl leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
+      onclick={(e) => {
+        e.stopPropagation();
+        quizState.closeQuiz();
+      }}
+      aria-label={$_("common.close")}
+      title={$_("common.close")}
+    >
+      {$_("common.remove")}
+    </button>
+
     <!-- Category Switcher Pills -->
     <div
       class="flex items-center gap-1.5 p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-lg glass-panel z-10"
