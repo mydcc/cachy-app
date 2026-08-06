@@ -38,7 +38,6 @@ import { afterNavigate } from "$app/navigation";
 
   import WindowContainer from "../components/shared/windows/WindowContainer.svelte";
   import GlobalTracker from "../components/shared/GlobalTracker.svelte";
-  import SidePanel from "../components/shared/SidePanel.svelte";
 
   import "../app.css";
 
@@ -424,7 +423,6 @@ import { afterNavigate } from "$app/navigation";
 <ToastContainer />
 <GlobalTracker />
 <FXOverlay />
-<SidePanel />
 
 {#if uiState.tooltip.visible}
   <div

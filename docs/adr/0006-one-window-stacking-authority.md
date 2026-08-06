@@ -45,6 +45,24 @@ the user confirmed the panel should stay, so it is now mounted in
 `src/routes/+layout.svelte`, and it competes for stacking order like every
 other row in the table above.
 
+A fifth data point turned up starting
+[`FEAT-0046`](../backlog/features/FEAT-0046-sidepanel-onto-window-manager.md):
+the migration this ADR calls for had already happened, under a different
+name. `AssistantWindow`/`AssistantView.svelte` is a complete, already-working
+`WindowManager`-based reimplementation of `SidePanel`'s AI/Notes/Chat content
+-- same modes, same export/clear logic, same underlying stores -- reachable
+from the "AI Assistant" button. The settings toggle labelled "Enable Side
+Panel" (`VisualsTab.svelte`) was already wired to `uiState.showAssistant`/
+`toggleAssistant()`, not to `settingsState.enableSidePanel`; nothing set that
+flag to `true` anymore, so `SidePanel.svelte` was unreachable through any
+current UI, exactly like `BUG-0051` found for the whole component one layer
+up. `floatingWindowsStore`'s own `openWindow`/`closeWindow`/`.all` were
+likewise never called from anywhere -- only its z-index counter was used,
+for `SidePanel`'s own stacking. `FEAT-0046` retired `SidePanel.svelte`,
+`floatingWindows.svelte.ts` and `interactjs` rather than porting them,
+since there was nothing left to port: `AssistantWindow` already was the
+window-manager-based destination this ADR describes.
+
 The duplication costs more than stacking. Behaviour that exists once in
 `WindowFrame` — Escape handling, viewport clamping, glassmorphism, the mobile
 edge-to-edge rule, geometry persistence — has to be re-implemented, or is
