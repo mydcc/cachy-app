@@ -200,7 +200,9 @@
         uiState.toggleWhitepaperModal(false);
       if (windowManager.isOpen("changelog"))
         uiState.toggleChangelogModal(false);
-      if (windowManager.isOpen("academy")) uiState.toggleAcademyModal(false);
+      // Academy (and Market Dashboard, TpSlEdit) are `modal`-type windows
+      // now, which close on Escape via WindowManager's own closeOnBlur
+      // handling (FEAT-0044) -- they no longer use a fixed "academy" id.
       return;
     }
 

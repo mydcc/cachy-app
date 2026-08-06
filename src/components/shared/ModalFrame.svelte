@@ -15,196 +15,107 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+<!--
+  ModalFrame (FEAT-0044) -- adapter that opens a ModalFrameWindow on the
+  shared WindowManager/WindowFrame stack instead of rendering its own
+  standalone overlay. Renders no markup of its own: WindowContainer renders
+  the actual WindowFrame elsewhere in the DOM tree, and Svelte Snippets can
+  be invoked from there regardless of where they were declared, so
+  `children`/`headerExtra` still work exactly as callers already use them.
+
+  All three current callers (AcademyModal, MarketDashboardModal,
+  TpSlEditModal) mount this component only while their own `{#if}` guard is
+  true and always pass `isOpen={true}` -- so in practice "open" happens on
+  mount and "close" happens on unmount, both handled by the same $effect
+  below. `isOpen` is still honored as a reactive prop for robustness.
+-->
+
 <script lang="ts">
-  import { fly } from "svelte/transition";
-  import { _ } from "../../locales/i18n";
-  import { burn } from "../../actions/burn";
-  import { settingsState } from "../../stores/settings.svelte";
+    import { untrack } from "svelte";
+    import type { Snippet } from "svelte";
+    import { windowManager } from "../../lib/windows/WindowManager.svelte";
+    import { ModalFrameWindow } from "../../lib/windows/implementations/ModalFrameWindow.svelte";
+    import { settingsState } from "../../stores/settings.svelte";
 
-  interface Props {
-    isOpen?: boolean;
-    title?: string;
-    extraClasses?: string;
-    alignment?: "center" | "top";
-    onclose?: () => void;
-    children?: import("svelte").Snippet;
-    headerExtra?: import("svelte").Snippet;
-    bodyClass?: string;
-  }
-
-  let {
-    isOpen = false,
-    title = "",
-    extraClasses = "",
-    alignment = "center",
-    onclose,
-    children,
-    headerExtra,
-    bodyClass = "",
-  }: Props = $props();
-
-  function handleClose() {
-    onclose?.();
-  }
-
-  let burnConfig = $derived.by(() => {
-    if (!settingsState.enableBurningBorders) return undefined;
-
-    // 1. Journal
-    const isJournal = title === $_("journal.title");
-    if (isJournal) {
-      if (!settingsState.burnJournal) return undefined;
-      return {
-        intensity: 1.5,
-        layer: "modals" as const,
-      };
+    interface Props {
+        isOpen?: boolean;
+        title?: string;
+        extraClasses?: string;
+        alignment?: "center" | "top";
+        onclose?: () => void;
+        children?: Snippet;
+        headerExtra?: Snippet;
+        bodyClass?: string;
     }
 
-    // 2. Settings
-    const isSettings = title === ($_("settings.title") || "Settings");
-    if (isSettings) {
-      if (!settingsState.burnSettings) return undefined;
-      return {
-        intensity: 1.5,
-        layer: "modals" as const,
-      };
-    }
+    let {
+        isOpen = false,
+        title = "",
+        extraClasses = "",
+        alignment = "center",
+        onclose,
+        children,
+        headerExtra,
+        bodyClass = "",
+    }: Props = $props();
 
-    // 3. Guide & Documentation
-    const isGuide =
-      title === $_("app.guideTitle") ||
-      title === $_("app.changelogTitle") ||
-      title === $_("app.privacyLegal") ||
-      title === $_("app.whitepaper") ||
-      title === "Trading Academy";
+    let instance: ModalFrameWindow | null = $state(null);
 
-    if (isGuide) {
-      if (!settingsState.burnGuide) return undefined;
-      return {
-        intensity: 1.2,
-        layer: "modals" as const,
-      };
-    }
+    // Creates/destroys the backing window in step with `isOpen`. Everything
+    // besides `title` is only read once at creation time (untracked) --
+    // none of the real callers change extraClasses/alignment/bodyClass
+    // after opening, so reacting to them would be unobserved complexity.
+    // untrack() around instance/windowManager.open() below is deliberate,
+    // not just style: windowManager.open() -> bringToFront() reads the
+    // shared windowManager._windows $state array internally, and without
+    // untrack that read gets recorded as a dependency of *this* effect.
+    // Every subsequent window-list mutation anywhere in the app (including
+    // this window's own registration write moments earlier) then
+    // reschedules this effect, which tears down and recreates the window
+    // it just created -- an immediate open/close loop that only showed up
+    // as "the window never appears" a few renders later once Playwright
+    // observed it (FEAT-0044 regression, caught before merge).
+    $effect(() => {
+        if (!isOpen) return;
 
-    // Generic handling for other modals
-    if (settingsState.burnModals) {
-      return { layer: "modals" as const, intensity: 1.0 };
-    }
+        const win = untrack(() => {
+            const w = new ModalFrameWindow({
+                title,
+                alignment,
+                extraClasses,
+                bodyClass,
+                children,
+                headerExtra,
+                onclose,
+            });
+            instance = w;
+            windowManager.open(w);
+            return w;
+        });
 
-    return undefined;
-  });
+        return () => {
+            windowManager.close(win.id);
+            instance = null;
+        };
+    });
+
+    // Title is the one caller-visible value that legitimately changes while
+    // open: MarketDashboardModal's and TpSlEditModal's titles come from
+    // `$_(...)` and change with the active locale.
+    $effect(() => {
+        if (instance) {
+            instance.title = title;
+        }
+    });
+
+    // `burnModals` was the only reachable branch of the old title-matching
+    // burn config -- journal/settings/guide all route through their own
+    // window types now and never render through ModalFrame (see BUG-0051).
+    // Kept in sync for the lifetime of the window since it's a global
+    // setting the user can toggle while a modal is open.
+    $effect(() => {
+        if (instance) {
+            instance.enableBurningBorders = settingsState.burnModals;
+        }
+    });
 </script>
-
-{#if isOpen}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="modal-overlay visible {alignment === 'top'
-      ? 'items-start pt-20'
-      : ''}"
-    style={alignment === "top"
-      ? "align-items: flex-start; padding-top: 10vh;"
-      : ""}
-    onclick={(e) => e.currentTarget === e.target && handleClose()}
-    onkeydown={(e) => {
-      if (e.key === "Escape") handleClose();
-    }}
-    role="dialog"
-    tabindex="-1"
-    aria-modal="true"
-    aria-labelledby="modal-title"
-  >
-    <div
-      class="modal-content glass-panel {extraClasses}"
-      transition:fly|local={{ y: -20, duration: 200 }}
-      use:burn={burnConfig}
-    >
-      <div class="modal-header">
-        <h2 id="modal-title" class="modal-title">{title}</h2>
-        <div class="header-extra">
-          {#if headerExtra}
-            {@render headerExtra()}
-          {/if}
-        </div>
-        <button
-          class="modal-close-btn"
-          aria-label="Schließen"
-          onclick={handleClose}>{$_("common.remove")}</button
-        >
-      </div>
-      <div class="modal-body {bodyClass}">
-        {#if children}
-          {@render children()}
-        {/if}
-      </div>
-    </div>
-  </div>
-{/if}
-
-<style>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-  }
-  .modal-content {
-    /* Background comes from the .glass-panel class applied alongside this
-       one in the template — it already covers both the glass-enabled and
-       fallback cases (themes.css). A second background-color here tied
-       with .glass-enabled .glass-panel at equal specificity, so which one
-       won was decided by build output order rather than intent. */
-    padding: 1.5rem;
-    border-radius: 0.75rem;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
-    flex-shrink: 0;
-    gap: 1rem;
-  }
-  .header-extra {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    overflow: hidden;
-    margin-right: 0.5rem;
-  }
-  .modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-  .modal-close-btn {
-    font-size: 2rem;
-    line-height: 1;
-    cursor: pointer;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    transition: color 0.15s ease;
-  }
-  .modal-close-btn:hover {
-    color: var(--accent-color);
-  }
-  .modal-body {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    min-height: 0;
-    flex: 1;
-  }
-</style>

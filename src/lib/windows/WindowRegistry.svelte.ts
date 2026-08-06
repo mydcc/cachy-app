@@ -88,7 +88,13 @@ class WindowRegistry {
             layout: { ...baseLayout }
         });
 
-        /** Center-fixed modal for critical inputs or overlays. */
+        /**
+         * Center-fixed modal for critical inputs or overlays. Backing type
+         * for the ModalFrame adapter (FEAT-0044) -- Academy, Market
+         * Dashboard and TpSlEdit are all `modal` windows that legitimately
+         * coexist, hence allowMultipleInstances: true (each gets its own
+         * generated id rather than sharing the type-based singleton id).
+         */
         this.configs.set('modal', {
             type: 'modal',
             flags: {
@@ -98,7 +104,12 @@ class WindowRegistry {
                 allowMaximize: false,
                 allowMinimize: false,
                 canMinimizeToPanel: false,
-                centerByDefault: true
+                centerByDefault: true,
+                allowMultipleInstances: true,
+                isResponsive: true, // Maximizes automatically on mobile
+                edgeToEdgeBreakpoint: 768,
+                showBackdrop: true,
+                closeOnBlur: true // Click-outside and Escape both close it
             },
             layout: {
                 ...baseLayout,

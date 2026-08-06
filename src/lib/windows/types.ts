@@ -79,12 +79,14 @@ export interface WindowFlags {
     doubleClickAction?: 'maximize' | 'edgeToEdge';
     /** Maximum number of instances allowed globally for this type. */
     maxInstances?: number;
-    /** If true, clicking outside the window closes it. */
+    /** If true, clicking outside the window or pressing Escape closes it. */
     closeOnBlur?: boolean;
     /** Automatically scales content to fit window size. */
     autoScaling?: boolean;
     /** Shows a trading-style right price scale (specific to charts). */
     showRightScale?: boolean;
+    /** Renders a dimming backdrop behind this window while it's open. */
+    showBackdrop?: boolean;
 }
 
 /**

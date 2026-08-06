@@ -39,9 +39,12 @@
     interface Props {
         /** The logic instance representing this window. contains state and behavioral rules. */
         window: WindowBase;
+        /** Extra CSS classes applied to the root .window-frame element (e.g.
+         * a caller-specific desktop size preset). Optional, additive. */
+        extraClasses?: string;
     }
 
-    let { window: win }: Props = $props();
+    let { window: win, extraClasses = "" }: Props = $props();
 
     // --- LOCAL INTERACTION STATE ---
     let isDragging = $state(false);
@@ -305,6 +308,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+    class={extraClasses}
     class:window-frame={true}
     class:glass-panel={true}
     class:focused={win.isFocused}
@@ -343,7 +347,7 @@
           : win.isPinned && (win.pinSide === "left" || win.pinSide === "right")
             ? "100vh"
             : `${win.height}px`}
-    style:z-index={win.zIndex}
+    style:z-index={win.isMaximized ? win.maximizedZIndex : win.zIndex}
     style:opacity={win.opacity}
     onpointerdown={handlePointerDown}
     oncontextmenu={handleContextMenu}
@@ -381,20 +385,10 @@
                 win.restore();
                 windowManager.bringToFront(win.id);
             } else {
-                // Respect doubleClickBehavior flag
-                if (
-                    win.doubleClickBehavior === "maximize" &&
-                    win.allowMaximize
-                ) {
-                    win.toggleMaximize();
-                } else if (win.doubleClickBehavior === "pin") {
-                    win.togglePin();
-                } else if (win.allowMinimize && (win.doubleClickBehavior as string) === "minimize") {
-                    // Widened to string: doubleClickBehavior's declared type no longer
-                    // includes 'minimize', but windows restored from persisted config
-                    // saved before that narrowing can still carry the old value.
-                    win.minimize();
-                }
+                const action = win.resolveDoubleClickAction();
+                if (action === "maximize") win.toggleMaximize();
+                else if (action === "pin") win.togglePin();
+                else if (action === "minimize") win.minimize();
             }
         }}
     >
@@ -407,17 +401,10 @@
                     win.restore();
                     windowManager.bringToFront(win.id);
                 } else {
-                    // Respect doubleClickBehavior flag instead of blindly minimizing
-                    if (
-                        win.doubleClickBehavior === "maximize" &&
-                        win.allowMaximize
-                    ) {
-                        win.toggleMaximize();
-                    } else if (win.doubleClickBehavior === "pin") {
-                        win.togglePin();
-                    } else if (win.allowMinimize && (win.doubleClickBehavior as string) === "minimize") {
-                        win.minimize();
-                    }
+                    const action = win.resolveDoubleClickAction();
+                    if (action === "maximize") win.toggleMaximize();
+                    else if (action === "pin") win.togglePin();
+                    else if (action === "minimize") win.minimize();
                 }
             }}
         >
@@ -743,6 +730,11 @@
         transition: none !important;
     }
     .window-frame.maximized {
+        /* z-index is NOT set here -- it used to be a flat !important
+           constant, which meant bringToFront() could never reorder two
+           maximized windows (FEAT-0044). The template binds
+           style:z-index to win.maximizedZIndex instead, which stays
+           correctly ordered by recency via refreshMaximizedZIndex(). */
         position: fixed;
         left: 0 !important;
         top: 0 !important;
@@ -751,7 +743,6 @@
         border-radius: 0;
         border: none;
         box-shadow: none;
-        z-index: var(--z-window-max) !important;
     }
     .window-frame.minimized {
         position: relative !important;

@@ -92,6 +92,20 @@ class WindowManager {
                     win.handleViewportResize();
                 }
             });
+
+            // Escape closes the topmost dismissible window. No window type
+            // had this before FEAT-0044 -- ModalFrame's own overlay used to
+            // handle it locally, but only when that overlay happened to hold
+            // focus, which nothing arranged. Reuses closeOnBlur rather than
+            // adding a separate flag: a window that closes when you click
+            // elsewhere is, by the same definition, dismissible by Escape.
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const dismissible = this._windows.filter(w => w.closeOnBlur && !w.isMinimized);
+                if (dismissible.length === 0) return;
+                const topmost = dismissible.reduce((a, b) => a.zIndex > b.zIndex ? a : b);
+                this.close(topmost.id);
+            });
         }
     }
 
@@ -330,6 +344,12 @@ class WindowManager {
             }
 
             win.zIndex = this._nextZIndex++;
+            if (win.isMaximized) {
+                // .window-frame.maximized binds to maximizedZIndex, not
+                // zIndex directly (FEAT-0044) -- refresh it too, or focusing
+                // an already-maximized window would have no visible effect.
+                win.refreshMaximizedZIndex();
+            }
 
             // Handle focus synchronization.
             // 1. Identify and close transient windows (e.g. Symbol Selector)

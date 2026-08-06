@@ -47,6 +47,67 @@ afterEach(() => {
     }
 });
 
+describe("WindowManager Escape-to-close (FEAT-0044)", () => {
+    // Only one closeOnBlur window is ever set up per test here: opening a
+    // *second* one through openTestWindow()/open() would immediately close
+    // the first via bringToFront()'s own "close other closeOnBlur windows"
+    // cleanup (pre-existing behavior, originally for transient windows like
+    // the Symbol Selector) -- so two closeOnBlur windows never actually
+    // coexist in practice, and a test pretending otherwise would be testing
+    // an unreachable state.
+    it("closes a closeOnBlur window on Escape, leaving a non-dismissible window open", () => {
+        const w1 = openTestWindow();
+        const w2 = openTestWindow();
+        w2.closeOnBlur = true;
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+        expect(windowManager.isOpen(w2.id)).toBe(false);
+        expect(windowManager.isOpen(w1.id)).toBe(true);
+        openedIds.splice(openedIds.indexOf(w2.id), 1);
+    });
+
+    it("does nothing when no open window has closeOnBlur set", () => {
+        const w1 = openTestWindow();
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+        expect(windowManager.isOpen(w1.id)).toBe(true);
+    });
+
+    it("does not close anything on a non-Escape key", () => {
+        const w1 = openTestWindow();
+        w1.closeOnBlur = true;
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+
+        expect(windowManager.isOpen(w1.id)).toBe(true);
+    });
+});
+
+describe("WindowManager.bringToFront and maximized windows (FEAT-0044)", () => {
+    it("reorders two maximized windows so the one brought to front has the higher maximizedZIndex", () => {
+        const w1 = openTestWindow();
+        const w2 = openTestWindow();
+        w1.maximize();
+        w2.maximize();
+        expect(w2.maximizedZIndex).toBeGreaterThan(w1.maximizedZIndex);
+
+        windowManager.bringToFront(w1.id);
+
+        expect(w1.maximizedZIndex).toBeGreaterThan(w2.maximizedZIndex);
+    });
+
+    it("does not touch maximizedZIndex for a non-maximized window", () => {
+        const w1 = openTestWindow();
+        const before = w1.maximizedZIndex;
+
+        windowManager.bringToFront(w1.id);
+
+        expect(w1.maximizedZIndex).toBe(before);
+    });
+});
+
 describe("WindowManager resize handling (BUG-0043)", () => {
     it("calls handleViewportResize on every open window when the viewport resizes", () => {
         const w1 = openTestWindow();
