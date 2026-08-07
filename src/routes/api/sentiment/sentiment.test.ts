@@ -18,9 +18,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './+server';
 
-vi.mock('../../../lib/server/auth', () => ({
-    checkAppAuth: vi.fn(() => null),
+vi.mock('../../../lib/server/clientToken', () => ({
+    checkClientToken: vi.fn(() => null),
 }));
+
+const getClientAddress = () => '127.0.0.1';
 
 describe('POST /api/sentiment error handling', () => {
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -39,7 +41,7 @@ describe('POST /api/sentiment error handling', () => {
             json: vi.fn().mockRejectedValue(error),
         } as unknown as Request;
 
-        const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         expect(response.status).toBe(500);
         const body = await response.json();
         expect(body).toEqual({ error: 'Test Error' });
@@ -52,7 +54,7 @@ describe('POST /api/sentiment error handling', () => {
             json: vi.fn().mockRejectedValue(errorString),
         } as unknown as Request;
 
-        const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         expect(response.status).toBe(500);
         const body = await response.json();
         expect(body).toEqual({ error: 'Just a string error' });
@@ -65,7 +67,7 @@ describe('POST /api/sentiment error handling', () => {
             json: vi.fn().mockRejectedValue(weirdObj),
         } as unknown as Request;
 
-        const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         expect(response.status).toBe(500);
         const body = await response.json();
         expect(body).toEqual({ error: 'INTERNAL_ERROR' });
@@ -78,7 +80,7 @@ describe('POST /api/sentiment error handling', () => {
             json: vi.fn().mockRejectedValue(objError),
         } as unknown as Request;
 
-        const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         expect(response.status).toBe(500);
         const body = await response.json();
         expect(body).toEqual({ error: 'Custom Object Error' });

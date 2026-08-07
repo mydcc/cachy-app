@@ -18,7 +18,7 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
 
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
-import { checkAppAuth } from "../../../lib/server/auth";
+import { checkClientToken } from "../../../lib/server/clientToken";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { formatApiNum } from "../../../utils/utils";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
@@ -67,8 +67,8 @@ interface BitgetRawPosition {
   marginMode?: string;
 }
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let body: unknown;

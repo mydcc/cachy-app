@@ -10,27 +10,26 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "./+server";
+import { issueToken, _resetForTests } from "../../../../../lib/server/clientToken";
 
-const mockEnv = vi.hoisted(() => ({
-  APP_ACCESS_TOKEN: "test-token",
-}));
-
-vi.mock("$env/dynamic/private", () => ({
-  env: mockEnv,
-}));
+const getClientAddress = () => "127.0.0.1";
 
 describe("Ollama Models Route GET", () => {
+  let token: string;
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    _resetForTests();
+    token = issueToken();
   });
 
   it("returns 400 for an invalid base URL", async () => {
     const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=invalid-url");
     const request = new Request(url, {
-      headers: { "x-app-access-token": "test-token" },
+      headers: { "x-app-access-token": token },
     });
 
-    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
     expect(response.status).toBe(400);
 
     const body = await response.json();
@@ -42,10 +41,10 @@ describe("Ollama Models Route GET", () => {
 
     const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=http%3A%2F%2Flocalhost%3A11434");
     const request = new Request(url, {
-      headers: { "x-app-access-token": "test-token" },
+      headers: { "x-app-access-token": token },
     });
 
-    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
     expect(response.status).toBe(502);
 
     const body = await response.json();
@@ -63,10 +62,10 @@ describe("Ollama Models Route GET", () => {
 
     const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=http%3A%2F%2Flocalhost%3A11434");
     const request = new Request(url, {
-      headers: { "x-app-access-token": "test-token" },
+      headers: { "x-app-access-token": token },
     });
 
-    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
     expect(response.status).toBe(200);
 
     const body = await response.json();

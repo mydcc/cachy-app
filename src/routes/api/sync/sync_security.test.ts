@@ -17,16 +17,18 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
-import * as auth from '../../../lib/server/auth';
+import * as clientToken from '../../../lib/server/clientToken';
 
 // Mock fetch globally
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
+const getClientAddress = () => '127.0.0.1';
+
 describe('POST /api/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
+    vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
   });
 
   it('should return 400 if apiKey is missing', async () => {
@@ -34,7 +36,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiSecret: 'secret123' }),
     } as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toContain('Validation Error'); // Or specific Zod error
@@ -45,7 +47,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiKey: 'key123' }),
     } as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
   });
 
@@ -54,7 +56,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiKey: '123', apiSecret: 'secret123' }),
     } as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     // Before fix: likely 500 or 200 (if upstream accepts it, but here we expect validation)
     // After fix: 400
     expect(response.status).toBe(400);
@@ -74,7 +76,7 @@ describe('POST /api/sync', () => {
       json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);

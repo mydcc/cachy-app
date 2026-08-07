@@ -17,12 +17,12 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkAppAuth } from "../../../../lib/server/auth";
+import { checkClientToken } from "../../../../lib/server/clientToken";
 
 const CMC_BASE_URL = "https://pro-api.coinmarketcap.com";
 
-export const GET: RequestHandler = async ({ url, request }) => {
-  const authError = checkAppAuth(request);
+export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const endpoint = url.searchParams.get("endpoint");

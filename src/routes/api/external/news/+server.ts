@@ -9,7 +9,8 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkAppAuth } from "../../../../lib/server/auth";
+import { checkClientToken } from "../../../../lib/server/clientToken";
+import { createRateLimiter } from "../../../../lib/server/rateLimit";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
@@ -22,14 +23,8 @@ interface CachedResponse {
 
 export const _newsCache = new Map<string, CachedResponse>();
 
-// Rate Limiting
-interface RateLimitInfo {
-  count: number;
-  resetTime: number;
-}
-export const _rateLimits = new Map<string, RateLimitInfo>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10;
+// Rate Limiting — shared implementation (BUG-0052), was a one-off Map here before.
+export const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 10 });
 
 const pendingRequests = new Map<string, Promise<unknown>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
@@ -45,8 +40,8 @@ function setCache(key: string, data: unknown) {
   _newsCache.set(key, { data, timestamp: Date.now() });
 }
 
-export const POST: RequestHandler = async ({ request, fetch }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, fetch, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let cacheKey = "";
@@ -77,35 +72,8 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     }
 
     // Rate Limit Check (only for requests that will hit upstream)
-    const rateLimitKey = apiKey;
-
-    const nowLimit = Date.now();
-
-    // Memory Limit Check
-    if (_rateLimits.size > 1000) {
-      // Evict expired entries
-      const expiredKeys = Array.from(_rateLimits.entries())
-        .filter(([, info]) => nowLimit > info.resetTime)
-        .map(([k]) => k);
-      expiredKeys.forEach(k => _rateLimits.delete(k));
-
-      // If still too large, forcefully clear
-      if (_rateLimits.size > 1000) {
-        const toDelete = Array.from(_rateLimits.keys()).slice(0, 100);
-        toDelete.forEach(k => _rateLimits.delete(k));
-      }
-    }
-
-    // Re-read after potential eviction to avoid stale references
-    const userLimit = _rateLimits.get(rateLimitKey);
-
-    if (!userLimit || nowLimit > userLimit.resetTime) {
-      _rateLimits.set(rateLimitKey, { count: 1, resetTime: nowLimit + RATE_LIMIT_WINDOW });
-    } else {
-      if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
-        return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
-      }
-      userLimit.count++;
+    if (!_rateLimits.consume(apiKey)) {
+      return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
     }
 
     if (pendingRequests.has(cacheKey)) {

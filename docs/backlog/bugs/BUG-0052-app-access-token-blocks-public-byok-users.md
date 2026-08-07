@@ -2,7 +2,7 @@
 id: BUG-0052
 title: APP_ACCESS_TOKEN blocks BYOK users who have no way to know it
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -134,27 +134,27 @@ account system would.
 
 ## Acceptance criteria
 
-- [ ] `POST /api/auth/token` issues a random token, stores only its hash
+- [x] `POST /api/auth/token` issues a random token, stores only its hash
       server-side, and is itself rate-limited per IP
-- [ ] Every route currently behind `checkAppAuth` validates the new client
+- [x] Every route currently behind `checkAppAuth` validates the new client
       token instead, and enforces a per-token rate limit
-- [ ] A shared rate-limiting utility exists and is used by at least
+- [x] A shared rate-limiting utility exists and is used by at least
       `/api/rss-fetch`, `/api/external/news`, and the new token-issuance
       route (proving it's not a per-route reimplementation)
-- [ ] `/api/sentiment`'s `ENV_OPENAI_API_KEY`/`ENV_GEMINI_API_KEY` fallback
+- [x] `/api/sentiment`'s `ENV_OPENAI_API_KEY`/`ENV_GEMINI_API_KEY` fallback
       is removed; the route is BYOK-only like the three AI proxies
-- [ ] A test proves a request with a valid, under-limit token succeeds
+- [x] A test proves a request with a valid, under-limit token succeeds
       without `APP_ACCESS_TOKEN`
-- [ ] A test proves a request that exceeds its token's rate limit is
+- [x] A test proves a request that exceeds its token's rate limit is
       rejected
-- [ ] A test proves the token-issuance endpoint itself is rate-limited per IP
-- [ ] `tests/unit/auth_fail_closed.test.ts` and
+- [x] A test proves the token-issuance endpoint itself is rate-limited per IP
+- [x] `tests/unit/auth_fail_closed.test.ts` and
       `src/tests/security/app_auth_headers.test.ts` are rewritten to assert
       the new token flow, not deleted
-- [ ] `docs/adr/0002-api-authentication-fails-closed.md` has an amendment
+- [x] `docs/adr/0002-api-authentication-fails-closed.md` has an amendment
       documenting the move to self-service tokens, including the
       local-first compatibility reasoning
-- [ ] `npm run check` and `npm test` are clean
+- [x] `npm run check` and `npm test` are clean
 
 ## Out of scope
 

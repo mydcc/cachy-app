@@ -18,7 +18,13 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import Parser from "rss-parser";
-import { checkAppAuth } from "../../../lib/server/auth";
+import { checkClientToken } from "../../../lib/server/clientToken";
+import { createRateLimiter } from "../../../lib/server/rateLimit";
+
+// checkClientToken already rate-limits per token/IP; this is defense in depth
+// on top of it (BUG-0052) — the real protection here is the domain allowlist
+// below, unaffected by either.
+const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 30 });
 
 const parser = new Parser({
   timeout: 10000,
@@ -65,9 +71,13 @@ function isUrlAllowed(urlStr: string): boolean {
   }
 }
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
+
+  if (!_rateLimits.consume(getClientAddress())) {
+    return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+  }
 
   try {
     const body = await request.json();

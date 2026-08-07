@@ -19,7 +19,7 @@ import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
-import { checkAppAuth } from "../../../../lib/server/auth";
+import { checkClientToken } from "../../../../lib/server/clientToken";
 import { z } from "zod";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
@@ -32,8 +32,8 @@ const RequestSchema = z.object({
   apiSecret: z.string().optional(),
 });
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let body;

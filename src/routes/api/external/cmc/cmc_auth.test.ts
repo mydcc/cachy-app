@@ -17,21 +17,23 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './+server';
-import { checkAppAuth } from '../../../../lib/server/auth';
+import { checkClientToken } from '../../../../lib/server/clientToken';
 import { json } from '@sveltejs/kit';
 
-vi.mock('../../../../lib/server/auth', () => ({
-  checkAppAuth: vi.fn(),
+vi.mock('../../../../lib/server/clientToken', () => ({
+  checkClientToken: vi.fn(),
 }));
+
+const getClientAddress = () => '127.0.0.1';
 
 describe('CMC Proxy Security', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should return 401 when checkAppAuth fails', async () => {
+  it('should return 401 when checkClientToken fails', async () => {
     const authError = json({ error: 'Unauthorized' }, { status: 401 });
-    vi.mocked(checkAppAuth).mockReturnValue(authError);
+    vi.mocked(checkClientToken).mockReturnValue(authError);
 
     const request = {
       headers: new Headers(),
@@ -39,16 +41,16 @@ describe('CMC Proxy Security', () => {
 
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest');
 
-    const response = await GET({ url, request } as Parameters<typeof GET>[0]);
+    const response = await GET({ url, request, getClientAddress } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(401);
     const body = await response.json();
     expect(body.error).toBe('Unauthorized');
-    expect(checkAppAuth).toHaveBeenCalledWith(request);
+    expect(checkClientToken).toHaveBeenCalledWith(request, '127.0.0.1');
   });
 
-  it('should proceed when checkAppAuth succeeds', async () => {
-    vi.mocked(checkAppAuth).mockReturnValue(null);
+  it('should proceed when checkClientToken succeeds', async () => {
+    vi.mocked(checkClientToken).mockReturnValue(null);
 
     // Mock global fetch
     const fetchMock = vi.fn().mockResolvedValue({
@@ -63,9 +65,9 @@ describe('CMC Proxy Security', () => {
 
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest');
 
-    const response = await GET({ url, request } as Parameters<typeof GET>[0]);
+    const response = await GET({ url, request, getClientAddress } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(200);
-    expect(checkAppAuth).toHaveBeenCalledWith(request);
+    expect(checkClientToken).toHaveBeenCalledWith(request, '127.0.0.1');
   });
 });

@@ -18,10 +18,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getErrorMessage } from "../../../../utils/errorUtils";
-import { checkAppAuth } from "../../../../lib/server/auth";
+import { checkClientToken } from "../../../../lib/server/clientToken";
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   try {
