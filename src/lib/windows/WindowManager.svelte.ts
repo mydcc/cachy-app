@@ -28,7 +28,9 @@ import { IframeWindow } from "./implementations/IframeWindow.svelte";
 
 const BASE_Z_INDEX = 11000;
 const MAX_SAFE_Z_INDEX = 1000000;
-const SAVE_DEBOUNCE_MS = 500;
+// Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
+// there is one save cadence for window state, not two independent ones.
+export const SAVE_DEBOUNCE_MS = 500;
 
 // Shape of a window's serialized session-storage entry, as read back by
 // createFromData() below. Wider than WindowSerializedState since each
@@ -79,6 +81,30 @@ class WindowManager {
                     clearTimeout(this._saveSessionTimer);
                     this._performSaveSession();
                 }
+            });
+
+            // One shared listener for every open window instead of one per
+            // instance (BUG-0043) -- re-applies responsive rules and
+            // re-clamps geometry so a window can't be left off-screen after
+            // the viewport shrinks.
+            window.addEventListener('resize', () => {
+                for (const win of this._windows) {
+                    win.handleViewportResize();
+                }
+            });
+
+            // Escape closes the topmost dismissible window. No window type
+            // had this before FEAT-0044 -- ModalFrame's own overlay used to
+            // handle it locally, but only when that overlay happened to hold
+            // focus, which nothing arranged. Reuses closeOnBlur rather than
+            // adding a separate flag: a window that closes when you click
+            // elsewhere is, by the same definition, dismissible by Escape.
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const dismissible = this._windows.filter(w => w.closeOnBlur && !w.isMinimized);
+                if (dismissible.length === 0) return;
+                const topmost = dismissible.reduce((a, b) => a.zIndex > b.zIndex ? a : b);
+                this.close(topmost.id);
             });
         }
     }
@@ -184,6 +210,10 @@ class WindowManager {
             }
             case 'iframe':
                 return new IframeWindow(d.url as string, d.title as string);
+            case 'academy': {
+                const { AcademyWindow } = await import("./implementations/AcademyWindow.svelte");
+                return new AcademyWindow(d.title);
+            }
             default:
                 return null;
         }
@@ -221,8 +251,11 @@ class WindowManager {
         // Dialogs/Modals are excluded from this limit.
         const activeWindows = this._windows.filter(w => w.windowType !== 'dialog');
         if (activeWindows.length >= 20) {
-            // FIFO strategy: Close the oldest visible window to make room.
-            const oldest = activeWindows[0];
+            // FIFO strategy: close the oldest window, skipping the
+            // currently focused one -- array position tracks insertion
+            // order, not focus, so the oldest-inserted window can still be
+            // the one the user is actively looking at (FEAT-0050).
+            const oldest = activeWindows.find(w => !w.isFocused) ?? activeWindows[0];
             this.close(oldest.id);
         }
 
@@ -297,6 +330,18 @@ class WindowManager {
         this.open(new IframeWindow(url, title, options));
     }
 
+    /**
+     * Opens (or focuses, if already open) the Trading Academy window
+     * (FEAT-0045). Dynamically imported like ChartWindow/ChannelWindow
+     * above, not statically like ModalWindow/IframeWindow -- AcademyWindow
+     * pulls in AcademyContent and its pattern-browsing views, heavier than
+     * this module should carry at initialization time.
+     */
+    async openAcademy() {
+        const { AcademyWindow } = await import("./implementations/AcademyWindow.svelte");
+        this.open(new AcademyWindow());
+    }
+
     /** Calculates the relative position of a minimized window within the docking bar. */
     getMinimizedIndex(id: string): number {
         return this._windows
@@ -318,6 +363,12 @@ class WindowManager {
             }
 
             win.zIndex = this._nextZIndex++;
+            if (win.isMaximized) {
+                // .window-frame.maximized binds to maximizedZIndex, not
+                // zIndex directly (FEAT-0044) -- refresh it too, or focusing
+                // an already-maximized window would have no visible effect.
+                win.refreshMaximizedZIndex();
+            }
 
             // Handle focus synchronization.
             // 1. Identify and close transient windows (e.g. Symbol Selector)

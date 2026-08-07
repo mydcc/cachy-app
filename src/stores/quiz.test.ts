@@ -27,13 +27,27 @@ vi.mock("$app/environment", () => ({
 
 vi.mock("../locales/i18n", () => ({
   locale: { subscribe: vi.fn() },
+  _: { subscribe: vi.fn() },
 }));
 
 global.fetch = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve("") });
 
-vi.mock("svelte/store", () => ({
-  get: vi.fn(() => "en"),
-}));
+// get(locale) must keep returning the language code the existing
+// loadQuestions() tests rely on; get(_) needs to return a callable
+// translator, since quiz.svelte.ts now reads get(_)("quiz.notReady")
+// directly (BUG-0049). Distinguish by identity against the mocked i18n
+// module rather than by call order, since both are `{ subscribe }` shapes.
+vi.mock("svelte/store", async () => {
+  const i18n = await import("../locales/i18n");
+  return {
+    get: vi.fn((store: unknown) => {
+      if (store === i18n._) {
+        return (key: string) => key;
+      }
+      return "en";
+    }),
+  };
+});
 
 // Mock localStorage if missing
 const localStorageMap = new Map<string, string>();
@@ -55,6 +69,7 @@ if (typeof globalThis.localStorage === "undefined" || !globalThis.localStorage?.
 
 // We need to import the quizState *after* mocks, but for vitest hoisting is automatic.
 import { quizState } from "./quiz.svelte";
+import { toastService } from "../services/toastService.svelte";
 
 describe("QuizStore", () => {
   beforeEach(() => {
@@ -208,12 +223,17 @@ describe("QuizStore", () => {
       expect(quizState.activeQuestion).not.toBeNull();
     });
 
-    it("does not start quiz when no questions exist", () => {
+    it("does not start quiz when no questions exist, and warns instead of doing nothing silently (BUG-0049)", () => {
+      const warningSpy = vi.spyOn(toastService, "warning");
+
       quizState.questions = [];
       quizState.startQuiz();
 
       expect(quizState.isQuizActive).toBe(false);
       expect(quizState.activeQuestion).toBeNull();
+      expect(warningSpy).toHaveBeenCalledWith("quiz.notReady");
+
+      warningSpy.mockRestore();
     });
 
     it("starts quiz picking only from unknown questions", () => {
@@ -266,10 +286,16 @@ describe("QuizStore", () => {
   describe("Knowledge marking methods", () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      quizState.activeQuestion = { id: "testId", question: "Q?", answer: "A!" };
+      quizState.questions = [
+        { id: "testId", question: "Q?", answer: "A!" },
+        { id: "otherId", question: "Q2?", answer: "A2!" },
+      ];
+      quizState.activeQuestion = quizState.questions[0];
+      quizState.isQuizActive = true;
     });
 
-    it("marks question as known and closes quiz", () => {
+    // BUG-0049: answering used to close the quiz after every single card.
+    it("marks question as known, saves progress, and advances instead of closing", () => {
       const closeQuizSpy = vi.spyOn(quizState, "closeQuiz");
       const saveProgressSpy = vi.spyOn(quizState, "saveProgress");
 
@@ -277,23 +303,23 @@ describe("QuizStore", () => {
 
       expect(quizState.knownQuestionIds.has("testId")).toBe(true);
       expect(saveProgressSpy).toHaveBeenCalled();
-      expect(closeQuizSpy).toHaveBeenCalled();
-
-      vi.advanceTimersByTime(300);
+      expect(quizState.isQuizActive).toBe(true);
+      expect(quizState.activeQuestion).not.toBeNull();
+      expect(closeQuizSpy).not.toHaveBeenCalled();
 
       closeQuizSpy.mockRestore();
       saveProgressSpy.mockRestore();
     });
 
-    it("marks question as unknown and closes quiz", () => {
+    it("marks question as unknown (not recorded) and advances instead of closing", () => {
       const closeQuizSpy = vi.spyOn(quizState, "closeQuiz");
 
       quizState.markUnknown();
 
       expect(quizState.knownQuestionIds.has("testId")).toBe(false);
-      expect(closeQuizSpy).toHaveBeenCalled();
-
-      vi.advanceTimersByTime(300);
+      expect(quizState.isQuizActive).toBe(true);
+      expect(quizState.activeQuestion).not.toBeNull();
+      expect(closeQuizSpy).not.toHaveBeenCalled();
 
       closeQuizSpy.mockRestore();
     });
@@ -308,6 +334,37 @@ describe("QuizStore", () => {
       expect(saveProgressSpy).toHaveBeenCalled();
 
       saveProgressSpy.mockRestore();
+    });
+  });
+
+  describe("nextQuestion (BUG-0049)", () => {
+    it("picks a different question from the pool without closing the quiz", () => {
+      quizState.questions = [
+        { id: "q1", question: "1?", answer: "1!" },
+        { id: "q2", question: "2?", answer: "2!" },
+      ];
+      quizState.knownQuestionIds = new Set(["q1"]); // only q2 left unknown
+      quizState.activeQuestion = quizState.questions[0];
+      quizState.isQuizActive = true;
+
+      quizState.nextQuestion();
+
+      expect(quizState.activeQuestion?.id).toBe("q2");
+      expect(quizState.isQuizActive).toBe(true);
+    });
+
+    it("closes the quiz if the question pool is empty when advancing", () => {
+      vi.useFakeTimers();
+      quizState.questions = [];
+      quizState.activeQuestion = { id: "stale", question: "Q?", answer: "A!" };
+      quizState.isQuizActive = true;
+
+      quizState.nextQuestion();
+
+      expect(quizState.isQuizActive).toBe(false);
+
+      vi.advanceTimersByTime(300);
+      expect(quizState.activeQuestion).toBeNull();
     });
   });
 

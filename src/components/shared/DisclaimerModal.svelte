@@ -39,7 +39,7 @@
 
 {#if visible}
   <div
-    class="fixed bottom-4 right-4 z-[9999] flex flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-xl shadow-2xl border border-[var(--border-primary)] max-w-md w-[calc(100vw-2rem)] max-h-[80vh] sm:max-h-[60vh]"
+    class="fixed bottom-4 right-4 z-[var(--z-toast)] flex flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-xl shadow-2xl border border-[var(--border-primary)] max-w-md w-[calc(100vw-2rem)] max-h-[80vh] sm:max-h-[60vh]"
     transition:fly={{ y: 20, duration: 400 }}
   >
     <!-- Header -->

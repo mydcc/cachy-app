@@ -283,26 +283,24 @@ lint-pass finding rather than fixed inline because it adds a new rejection
 branch to a live external-AI call path, which needs its own test rather
 than a drive-by change.
 
-## 8. `src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable
+## 8. ~~`src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable~~ — resolved: deleted
 
 **Roadmap item 21.** Found while typing this file's `any` casts during a
 lint pass — the same shape of finding as item 5
 (`WasmTechnicalsCalculator.ts`).
 
-Nothing in `src/` imports or instantiates `ContentWindow` — a `grep -rl
-"ContentWindow" src` turns up only its own file. It's a small, generic
+Nothing in `src/` imported or instantiated `ContentWindow` — a `grep -rl
+"ContentWindow" src` turned up only its own file. It was a small, generic
 "wrap any Svelte component in a window" class (`component`, `title`,
-`options.props`), structurally similar to `ModalWindow` and `IframeWindow`,
-both of which *do* have real callers via `windowManager.openModal()` /
-`.openIframe()`. `ContentWindow` has no equivalent `windowManager` method
-and no direct construction site anywhere.
+`options.props`), structurally identical to `ModalWindow` except for a fixed
+`windowType: 'window'` and forwarding `options.props` into `componentProps`
+(`ModalWindow` doesn't forward props at all). Since it had zero callers,
+that difference was never exercised either.
 
-**The decision:** either wire it up (a `windowManager.openContent()` or
-similar, if the generic-component-window capability is still wanted), or
-delete it if `ModalWindow`/`IframeWindow` already cover every case it was
-meant for. Left in place and merely typed here per this repo's
-defensive-deletion rule: code whose purpose isn't fully clear doesn't get
-deleted without a person confirming it's safe to.
+**Resolved by [`FEAT-0045`](backlog/features/FEAT-0045-academy-as-window-type.md):**
+deleted. `ModalWindow`/`IframeWindow` already cover every case it was meant
+for — the props-forwarding gap only mattered if something needed it, and
+nothing ever did, in the whole time it existed unreferenced.
 
 ## 9. `src/utils/wasmTechnicals.ts` appears to be unreachable
 
@@ -865,20 +863,49 @@ well-formed: `background_color` and `theme_color` are both `#0f172a`, a valid
 512×512 icon exists, and two `shortcuts` entries are declared with valid
 icons. Nothing in the file accounts for those two symptoms.
 
-`git log` cannot help: this working copy is a **shallow clone**, so
-`manifest.json` shows as "new file" in every commit that touches it and no
-bisect is possible. That has to happen on a full clone.
+`git log` still can't help: a full unshallow was attempted from this
+environment (`git fetch --unshallow`, then a bounded `--depth=1000` deepen)
+and both timed out against the sandboxed network. That has to happen on a
+full clone outside this environment.
 
-**What would move this forward, in order:**
+**Done since:** `display_override` reduced to `["standalone"]` —
+`window-controls-overlay` removed. It was a desktop-only mode sitting ahead of
+the one Android uses; per spec a browser skips an unsupported value, so this
+*should* have been harmless, but it was the only field whose first entry
+didn't apply to the platform where the symptoms appear, and a grep confirmed
+nothing in the app reads a WCO-specific layout, so removing it costs nothing.
+This is a precaution, not a confirmed fix.
+
+**What would still move this forward, in order:**
 
 1. On a full clone, `git log -p -- static/manifest.json src/app.html` to find
    what actually changed when it broke.
-2. Test with `display_override` reduced to `["standalone"]`. It currently
-   reads `["window-controls-overlay", "standalone"]`, and
-   `window-controls-overlay` is a desktop-only mode sitting ahead of the one
-   Android uses. Per spec a browser skips an unsupported value, so this
-   *should* be harmless — but it is the only field in the file whose first
-   entry does not apply to the platform where the symptoms appear, and it
-   costs nothing to rule out.
-3. Verify on a real device and record which device and launcher — nothing here
-   can be confirmed from a terminal.
+2. Verify on a real device and record which device and launcher — nothing here
+   can be confirmed from a terminal. Check whether removing
+   `window-controls-overlay` alone resolved the splash/shortcuts symptoms, or
+   whether they persist and need further investigation.
+
+## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
+
+**FEAT-0050.** Found while writing the "every `WindowType` union member has a
+registry config" test — `iframe` had none (`getConfig()` silently fell back
+to `window`'s defaults), the same shape of gap `chatpanel` was before
+FEAT-0045 removed it. Fixed the immediate gap by adding a registry entry
+(`WindowRegistry.svelte.ts`), but that only makes the fallback correct, not
+the type reachable.
+
+`grep -rn "openIframe\|new IframeWindow" src` (excluding
+`IframeWindow.svelte.ts`'s own definition) turns up only `WindowManager`'s
+own `openIframe()` method and the `'iframe'` case in `createFromData()`
+(session rehydration) — no UI ever calls `openIframe()`. The component that
+looks like it should, `FloatingIframeButton.svelte`, opens `ChannelWindow`
+instances instead, not `IframeWindow`. Since nothing ever constructs an
+`IframeWindow`, no session could ever contain one to rehydrate either, so
+`createFromData()`'s `'iframe'` branch is unreachable too.
+
+**The decision:** same shape as items 5/8/9/11/17 — either wire a real
+caller to `openIframe()` (if generic externally-hosted iframe embedding,
+distinct from `ChannelWindow`'s more specific use, is still wanted), or
+remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
+`createFromData()` case if `ChannelWindow` already covers every case this was
+meant for. Left in place per this repo's defensive-deletion rule.

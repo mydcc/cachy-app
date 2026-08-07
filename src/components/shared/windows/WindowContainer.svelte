@@ -47,6 +47,15 @@
         windowManager.windows.filter((w) => w.isMinimized && w.canMinimizeToPanel),
     );
 
+    /**
+     * Windows that want a dimming backdrop behind them while open (FEAT-0044)
+     * -- modal-type windows (Academy, Market Dashboard, TpSlEdit), unlike
+     * ordinary floating windows which coexist without one.
+     */
+    let backdropWindows = $derived(
+        windowManager.windows.filter((w) => w.showBackdrop && !w.isMinimized),
+    );
+
     // Configuration from global application settings
     let dockPosition = $derived(settingsState.dockingPosition);
     let isCentered = $derived(settingsState.enableDockingCentered);
@@ -55,6 +64,9 @@
 <div class="windows-container">
     <!-- Floating Windows Layer -->
     <div class="floating-layer">
+        {#each backdropWindows as win (win.id)}
+            <div class="window-backdrop" style:z-index={win.zIndex - 1}></div>
+        {/each}
         {#each floatingWindows as win (win.id)}
             <div
                 class="window-wrapper"
@@ -62,7 +74,7 @@
                 onclick={(e) => e.stopPropagation()}
                 onkeydown={(e) => e.stopPropagation()}
             >
-                <WindowFrame window={win} />
+                <WindowFrame window={win} extraClasses={win.extraClasses} />
             </div>
         {/each}
     </div>
@@ -78,7 +90,7 @@
             <div class="dock-inner">
                 {#each minimizedWindows as win (win.id)}
                     <div class="dock-item">
-                        <WindowFrame window={win} />
+                        <WindowFrame window={win} extraClasses={win.extraClasses} />
                     </div>
                 {/each}
             </div>
@@ -93,7 +105,7 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 11000;
+        z-index: var(--z-window);
         pointer-events: none;
     }
 
@@ -111,6 +123,17 @@
         pointer-events: auto;
     }
 
+    /* Positioned just below the window it belongs to (see backdropWindows'
+       z-index above). Not .window-frame/.glass-panel, so WindowManager's
+       own background-click detection treats a click on it as "empty space"
+       and closes any closeOnBlur window -- no click handler needed here. */
+    .window-backdrop {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        pointer-events: auto;
+    }
+
     /* Dock Styles */
     .minimized-dock {
         position: fixed;
@@ -119,7 +142,7 @@
         display: flex;
         padding: 6px 10px;
         pointer-events: none;
-        z-index: 12000;
+        z-index: var(--z-window-dock);
     }
 
     .dock-top {

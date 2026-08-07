@@ -88,7 +88,13 @@ class WindowRegistry {
             layout: { ...baseLayout }
         });
 
-        /** Center-fixed modal for critical inputs or overlays. */
+        /**
+         * Center-fixed modal for critical inputs or overlays. Backing type
+         * for the ModalFrame adapter (FEAT-0044) -- Academy, Market
+         * Dashboard and TpSlEdit are all `modal` windows that legitimately
+         * coexist, hence allowMultipleInstances: true (each gets its own
+         * generated id rather than sharing the type-based singleton id).
+         */
         this.configs.set('modal', {
             type: 'modal',
             flags: {
@@ -98,7 +104,12 @@ class WindowRegistry {
                 allowMaximize: false,
                 allowMinimize: false,
                 canMinimizeToPanel: false,
-                centerByDefault: true
+                centerByDefault: true,
+                allowMultipleInstances: true,
+                isResponsive: true, // Maximizes automatically on mobile
+                edgeToEdgeBreakpoint: 768,
+                showBackdrop: true,
+                closeOnBlur: true // Click-outside and Escape both close it
             },
             layout: {
                 ...baseLayout,
@@ -126,6 +137,22 @@ class WindowRegistry {
                 width: 450,
                 height: 250
             }
+        });
+
+        /**
+         * Generic external-URL embed. Had no registry entry before
+         * FEAT-0050's "every WindowType has a config" test caught the gap
+         * (it silently fell back to 'window' via getConfig()) --
+         * allowMultipleInstances since several embedded URLs can legitimately
+         * coexist, the same reasoning as 'channel' below.
+         */
+        this.configs.set('iframe', {
+            type: 'iframe',
+            flags: {
+                ...baseFlags,
+                allowMultipleInstances: true
+            },
+            layout: { ...baseLayout }
         });
 
         // --- TRADING & DATA TYPES ---
@@ -271,6 +298,37 @@ class WindowRegistry {
                 ...baseLayout,
                 width: 1000,
                 height: 800
+            }
+        });
+
+        /**
+         * Trading Academy: a real window rather than a `modal` (FEAT-0045)
+         * -- the whole point is that it can be minimised to the dock while
+         * checking a chart and come back with the same tab/size/position,
+         * none of which a `modal`-type window supports (not minimisable,
+         * not persisted). Default layout approximates the old
+         * `modal-size-instructions` CSS preset (80vw capped at 1320px,
+         * 3:2) at a common desktop resolution; unlike that preset it's a
+         * starting point, not a constraint -- no `aspectRatio` lock, since
+         * this is content browsing, not chart rendering.
+         */
+        this.configs.set('academy', {
+            type: 'academy',
+            flags: {
+                ...baseFlags,
+                allowMaximize: true,
+                allowMinimize: true,
+                canMinimizeToPanel: true,
+                centerByDefault: true,
+                isResponsive: true,
+                edgeToEdgeBreakpoint: 768
+            },
+            layout: {
+                ...baseLayout,
+                width: 1200,
+                height: 800,
+                minWidth: 480,
+                minHeight: 400
             }
         });
 

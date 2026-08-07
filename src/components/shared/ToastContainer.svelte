@@ -36,7 +36,7 @@
         position: fixed;
         top: 24px;
         right: 24px;
-        z-index: 10000; /* High z-index to stay on top of everything */
+        z-index: var(--z-toast);
         display: flex;
         flex-direction: column;
         gap: 12px;

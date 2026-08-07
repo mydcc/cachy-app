@@ -47,7 +47,7 @@
 
 {#if isOffline}
     <div
-        class="fixed top-0 left-0 right-0 z-[100] bg-danger-bg border-b border-danger-color"
+        class="fixed top-0 left-0 right-0 z-[var(--z-toast)] bg-danger-bg border-b border-danger-color"
         data-testid="offline-banner"
         role="alert"
         aria-live="assertive"

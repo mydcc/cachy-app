@@ -188,7 +188,7 @@
 
   {#if conflictWarning}
     <div
-      class="fixed bottom-4 right-4 bg-[var(--warning-color)] text-black px-4 py-2 rounded shadow-lg text-sm font-bold animate-bounce z-[10000]"
+      class="fixed bottom-4 right-4 bg-[var(--warning-color)] text-black px-4 py-2 rounded shadow-lg text-sm font-bold animate-bounce z-[var(--z-toast)]"
     >
       {conflictWarning}
     </div>

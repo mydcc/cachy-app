@@ -73,12 +73,15 @@ and two `shortcuts` entries are declared with valid icons. So the cause of
 those two is still unknown, and this item does not pretend otherwise.
 
 One untested suspicion worth checking first, recorded as a lead rather than a
-finding: `display_override` is `["window-controls-overlay", "standalone"]`,
+finding: `display_override` was `["window-controls-overlay", "standalone"]`,
 and `window-controls-overlay` is a desktop-only display mode listed ahead of
 the one Android actually uses. Per spec a browser should skip an unsupported
 value and fall through to `standalone`, so this *should* be harmless — but it
-is the one field in the file whose first entry is inapplicable to the platform
-where the symptoms appear, and it costs nothing to test with it removed.
+was the one field in the file whose first entry is inapplicable to the
+platform where the symptoms appear, and it cost nothing to test with it
+removed. `grep -rn "window-controls-overlay\|display_override" src` turned up
+no CSS or JS depending on the WCO layout (no `titlebar-area-*` env() usage
+anywhere), so removing it changes nothing else.
 
 ## Fix
 
@@ -99,12 +102,22 @@ where the symptoms appear, and it costs nothing to test with it removed.
   four image files are kept in `static/screenshots/` — re-enabling is
   re-adding the key. The test validates the block if it returns and skips it
   while absent.
+- `display_override` is now `["standalone"]` — `window-controls-overlay`
+  removed. Nothing in the codebase reads a WCO-specific layout (checked via
+  grep, see above), so this has no other effect either way. This is a
+  precaution, not a confirmed fix: it has not been verified on-device, and a
+  full `git log -p` to find what actually changed when the regression landed
+  was attempted and is still not possible from this environment (`git fetch
+  --unshallow` and a bounded `--depth=1000` deepen both timed out against the
+  sandboxed network — not merely "no tooling," an actual attempt was made and
+  failed). That step still needs a full clone.
 
 **Still open:**
 
 - Root-cause symptoms 1 and 3 (splash background, long-press shortcuts) on a
-  real device. Start by testing `display_override` without
-  `window-controls-overlay`.
+  real device, now that `display_override` no longer lists a desktop-only
+  mode first. Needs on-device verification — nothing here confirms it fixed
+  anything, only that it removes one plausible cause.
 - If screenshots are wanted back, produce real PNGs at a portrait aspect ratio
   rather than the current 640×640 squares, which are an odd shape for a phone
   install dialog.
@@ -118,7 +131,8 @@ where the symptoms appear, and it costs nothing to test with it removed.
       verified on-device and the device/launcher noted here
 - [ ] Long-pressing the installed icon shows both declared shortcuts —
       verified on-device
-- [ ] `display_override` is confirmed as cause or ruled out
+- [x] `display_override`'s desktop-only entry removed as a precaution (not yet
+      confirmed as the actual cause — needs on-device verification, see above)
 
 ## Out of scope
 

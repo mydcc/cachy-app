@@ -156,6 +156,23 @@
 
   /* --- Status Indicators (Golden Ratio Harmonization) --- */
   --indicator-size: 0.382rem;
+
+  /* --- Floating Surface Stacking (ADR-0006 / FEAT-0041) ---
+     One ordered source for every floating surface's z-index. No component
+     may hard-code a numeric z-index for a floating surface; anchored/local
+     UI (tooltips, dropdown menus, the visual bar) is exempt and keeps its
+     own local stacking. --z-window and --z-window-max stay far enough below
+     --z-window-dock that WindowManager's own zIndex counter (which grows
+     over a session, capped and normalized at 1,000,000, see
+     WindowManager.svelte.ts) can never cross into the layers above it.
+     Keep these numbers in sync with src/lib/windows/zLayers.ts — a test
+     asserts they match. */
+  --z-window: 11000;
+  --z-window-dock: 1010000;
+  --z-window-max: 1020000;
+  --z-modal: 1030000;
+  --z-toast: 1040000;
+  --z-fx: 1050000;
 }
 
 /* =================================================================
@@ -2696,48 +2713,6 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   border-top: 5px solid var(--bg-tertiary);
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--overlay-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  visibility: hidden;
-  opacity: 0;
-  transition:
-    opacity 0.3s ease-in-out,
-    visibility 0.3s ease-in-out;
-}
-
-.modal-overlay.visible {
-  visibility: visible;
-  opacity: 1;
-}
-
-.modal-content {
-  background-color: var(--bg-secondary);
-  padding: 2rem;
-  border-radius: 1rem;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  transform: scale(0.95);
-  opacity: 0;
-  transition:
-    transform 0.2s ease-in-out,
-    opacity 0.2s ease-in-out;
-}
-
-.modal-overlay.visible .modal-content {
-  transform: scale(1);
-  opacity: 1;
-}
-
 .journal-table {
   width: 100%;
   border-collapse: collapse;
@@ -3026,36 +3001,27 @@ svg {
   width: 80vw;
 }
 
+/*
+ * Desktop-only now (FEAT-0044). This class used to also force fullscreen
+ * below 768px via a @media block, duplicating what ModalFrame's window is
+ * now responsible for itself: it's isResponsive with edgeToEdgeBreakpoint
+ * 768 (WindowRegistry's 'modal' type), so .window-frame.maximized already
+ * goes fullscreen on mobile without any help from this class. The mobile
+ * block's own child selectors (.modal-header, div[role="tablist"]) targeted
+ * ModalFrame's old markup, which no longer exists.
+ *
+ * The width/aspect-ratio below no longer take effect either, in practice:
+ * WindowFrame binds width/height as inline styles (style:width={...}),
+ * which always win over a class-based rule regardless of specificity. The
+ * adapter in ModalFrame.svelte computes the equivalent size in JS instead,
+ * from this same class name. Left here non-destructively rather than
+ * removed, since modalState's DialogWindow path also references this class
+ * name (currently inert there too -- see BUG-0010).
+ */
 .modal-size-instructions {
   width: 80vw;
   max-width: 1320px;
   aspect-ratio: 3 / 2;
-}
-
-@media (max-width: 768px) {
-  .modal-size-instructions {
-    aspect-ratio: auto;
-    width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    max-width: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Ensure header doesn't touch edges in fullscreen mode */
-  .modal-size-instructions .modal-header {
-    padding-left: 1.25rem !important;
-    padding-right: 1.25rem !important;
-    padding-top: 0.75rem !important;
-  }
-
-  /* Add padding to the horizontal scrollable tablist on mobile */
-  .modal-size-instructions div[role="tablist"] {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-  }
 }
 
 /* App Container for Footer Layout */

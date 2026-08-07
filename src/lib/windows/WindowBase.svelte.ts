@@ -23,6 +23,7 @@
 import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
+import { Z_LAYERS } from "./zLayers";
 
 /** A custom control rendered in the window header (e.g. a timeframe picker). */
 export interface HeaderControl {
@@ -73,6 +74,16 @@ export abstract class WindowBase {
 
     // --- STATE RUNES ---
     isMaximized = $state(false);
+    /**
+     * Effective z-index while maximized. `.window-frame.maximized`'s CSS
+     * used to force a flat constant via `!important`, which meant
+     * `bringToFront()` had no way to reorder two maximized windows (FEAT-0044)
+     * -- `zIndex` kept updating but the CSS override ignored it. This field
+     * is what WindowFrame actually binds to while maximized; refreshed by
+     * refreshMaximizedZIndex() from a counter shared across all windows via
+     * the static field below, so relative order is preserved.
+     */
+    maximizedZIndex = $state<number>(Z_LAYERS.windowMax);
     isMinimized = $state(false);
     isResizable = $state(true);
     isDraggable = $state(true);
@@ -129,12 +140,19 @@ export abstract class WindowBase {
     enableGlassmorphism = $state(true);
     enableBurningBorders = $state(true);
     opacity = $state(1.0);
-    /** Close when clicking anywhere else in the app. */
+    /** Close when clicking anywhere else in the app, or on Escape. */
     closeOnBlur = $state(false);
+    /** Renders a dimming backdrop behind this window while it's open. */
+    showBackdrop = $state(false);
     /** Specifically for financial windows (Asset price). */
     symbol = $state("");
     showPriceInTitle = $state(false);
     currentPrice = $state("");
+    /** Extra CSS classes for the root .window-frame element (e.g. a
+     * caller-specific desktop size preset). Read by WindowContainer and
+     * forwarded to every WindowFrame render, not registry-driven since it
+     * varies per instance rather than per type. */
+    extraClasses = $state("");
 
     // --- UTILITY/FEATURE STATE ---
     fontSize = $state(14);
@@ -149,9 +167,42 @@ export abstract class WindowBase {
 
     /** Global counter to stagger new windows. */
     static staggerCount = 0;
-    private resizeHandler: ((e: Event) => void) | null = null;
+    /**
+     * Shared across every WindowBase instance so relative focus order among
+     * maximized windows survives regardless of which instance last called
+     * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded well
+     * inside the --z-window-max..--z-modal gap (FEAT-0041's layer contract)
+     * so it can never grow into the next layer.
+     */
+    private static nextMaximizedOffset = 0;
+    private static readonly MAX_MAXIMIZED_OFFSET = 9000;
+
+    /**
+     * Bumps this window to the front of the maximized-window stacking order.
+     * Called when a window maximizes and again whenever an already-maximized
+     * window is focused, so bringToFront() has an effect on maximized
+     * windows too (FEAT-0044).
+     */
+    refreshMaximizedZIndex() {
+        WindowBase.nextMaximizedOffset =
+            (WindowBase.nextMaximizedOffset + 1) % WindowBase.MAX_MAXIMIZED_OFFSET;
+        this.maximizedZIndex = Z_LAYERS.windowMax + WindowBase.nextMaximizedOffset;
+    }
+
     /** Tracks if the current maximization was forced by responsive rules. */
     private _wasResponsiveMaximized = false;
+    /**
+     * True once the user has restored a window the responsive rule had
+     * auto-maximized, while the viewport is still below the breakpoint.
+     * Suppresses re-maximizing on the next viewport resize (BUG-0043) --
+     * without this, updateResponsiveState() has no way to tell "still
+     * small, user opted out" apart from "still small, never decided" and
+     * re-maximizes on every resize event a mobile browser fires (keyboard
+     * open/close, address bar collapse). Cleared the moment the viewport
+     * crosses back above the breakpoint, so a fresh small session (e.g.
+     * after rotating back to portrait) applies the responsive rule again.
+     */
+    private _responsiveOverridden = false;
 
     /**
      * Initializes the window instance.
@@ -221,32 +272,55 @@ export abstract class WindowBase {
 
         // Setup Responsive maximization for mobile
         this.updateResponsiveState();
-        if (typeof window !== 'undefined') {
-            this.resizeHandler = () => this.updateResponsiveState();
-            window.addEventListener('resize', this.resizeHandler);
-        }
     }
 
-    /** Clean up global listeners. */
-    destroy() {
-        if (typeof window !== 'undefined' && this.resizeHandler) {
-            window.removeEventListener('resize', this.resizeHandler);
-        }
-    }
+    /**
+     * Clean up any per-instance resources. Viewport resize handling is not
+     * per-instance (see WindowManager's single listener, BUG-0043), so this
+     * is currently a no-op; kept for subclasses that call super.destroy()
+     * and for future per-instance cleanup.
+     */
+    destroy() { }
 
-    /** Evaluation of mobile/responsive limits. */
+    /**
+     * Evaluation of mobile/responsive limits. Called by WindowManager's
+     * single window resize listener for every open window (not a
+     * per-instance listener -- see BUG-0043) and once from the constructor.
+     */
     updateResponsiveState() {
         if (!this.isResponsive || typeof window === 'undefined') return;
 
         const isSmall = window.innerWidth < this.edgeToEdgeBreakpoint;
 
-        if (isSmall && !this.isMaximized) {
+        if (!isSmall) {
+            // Leaving the small-viewport regime always clears an override --
+            // the next time the viewport shrinks, the rule starts fresh.
+            this._responsiveOverridden = false;
+            if (this.isMaximized && this._wasResponsiveMaximized) {
+                this.restore();
+            }
+            return;
+        }
+
+        if (!this.isMaximized && !this._responsiveOverridden) {
             this.maximize();
             this._wasResponsiveMaximized = true;
-        } else if (!isSmall && this.isMaximized && this._wasResponsiveMaximized) {
-            this.restore();
-            this._wasResponsiveMaximized = false;
         }
+    }
+
+    /**
+     * Re-applies responsive rules and re-clamps geometry to the current
+     * viewport. Called by WindowManager for every open window on 'resize'
+     * (BUG-0043) -- a single shared listener instead of one per window, and
+     * it also fixes non-responsive windows that used to never get
+     * re-clamped when the viewport shrank.
+     */
+    public handleViewportResize() {
+        this.updateResponsiveState();
+        // No-ops while maximized (updatePosition's own early return), and
+        // otherwise brings a window that's now partly or fully off-screen
+        // back into view without requiring a manual drag.
+        this.updatePosition(this.x, this.y);
     }
 
     private hasRestoredPosition = false;
@@ -255,10 +329,16 @@ export abstract class WindowBase {
         return `cachy_win_${this.id}`;
     }
 
-    /** Serialize reactive state to persistent storage. */
-    public saveState() {
-        if (typeof localStorage === 'undefined' || !this.persistent) return;
-        const state = {
+    /**
+     * Plain snapshot of exactly the fields saveState() persists. Reading
+     * this from a reactive context (e.g. an $effect) tracks the same
+     * dependencies saveState() itself would, so a caller that wants to
+     * react to "anything saveState() would write changed" never has to
+     * hand-duplicate the field list and risk it drifting out of sync.
+     * WindowFrame.svelte's debounced auto-save effect relies on this.
+     */
+    public get persistedSnapshot() {
+        return {
             x: this.x,
             y: this.y,
             width: this.width,
@@ -273,7 +353,12 @@ export abstract class WindowBase {
             showPriceInTitle: this.showPriceInTitle,
             symbol: this.symbol
         };
-        localStorage.setItem(this.storageKey, JSON.stringify(state));
+    }
+
+    /** Serialize reactive state to persistent storage. */
+    public saveState() {
+        if (typeof localStorage === 'undefined' || !this.persistent) return;
+        localStorage.setItem(this.storageKey, JSON.stringify(this.persistedSnapshot));
     }
 
     /** Rehydrate state from storage if available. */
@@ -345,6 +430,7 @@ export abstract class WindowBase {
         this.closeOnBlur = f.closeOnBlur ?? this.closeOnBlur;
         this.autoScaling = f.autoScaling ?? false;
         this.showRightScale = f.showRightScale ?? false;
+        this.showBackdrop = f.showBackdrop ?? false;
 
         this.headerAction = f.headerAction ?? 'none';
         this.headerButtons = f.headerButtons ?? [];
@@ -454,6 +540,7 @@ export abstract class WindowBase {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
         this.isMaximized = true;
+        this.refreshMaximizedZIndex();
     }
 
     /**
@@ -467,11 +554,27 @@ export abstract class WindowBase {
             return;
         }
         if (this.isMaximized) {
+            const wasResponsiveMaximized = this._wasResponsiveMaximized;
             this.x = this.lastX;
             this.y = this.lastY;
             this.width = this.lastWidth;
             this.height = this.lastHeight;
             this.isMaximized = false;
+            this._wasResponsiveMaximized = false;
+
+            // The responsive rule maximized this window and the viewport is
+            // still small -- this restore is deliberately undoing that, so
+            // suppress re-maximizing until the viewport actually grows past
+            // the breakpoint. See BUG-0043.
+            if (
+                wasResponsiveMaximized &&
+                this.isResponsive &&
+                typeof window !== 'undefined' &&
+                window.innerWidth < this.edgeToEdgeBreakpoint
+            ) {
+                this._responsiveOverridden = true;
+            }
+
             this.saveState();
         }
     }
@@ -492,6 +595,25 @@ export abstract class WindowBase {
             this.isMaximized = false;
         }
         this.saveState();
+    }
+
+    /**
+     * Resolves what a header double-click should do while the window is not
+     * minimized (minimizing/restoring a minimized window is a separate,
+     * unconditional action the caller handles directly). Factored out of
+     * WindowFrame.svelte, which previously duplicated this exact three-way
+     * check in two separate double-click handlers.
+     *
+     * Widened to accept a persisted `doubleClickBehavior` of `'minimize'`:
+     * the type narrowed to `'maximize' | 'pin'` after that value could
+     * already have been written, so a window restored from state saved
+     * before the narrowing can still carry it.
+     */
+    resolveDoubleClickAction(): 'maximize' | 'pin' | 'minimize' | null {
+        if (this.doubleClickBehavior === 'maximize' && this.allowMaximize) return 'maximize';
+        if (this.doubleClickBehavior === 'pin') return 'pin';
+        if (this.allowMinimize && (this.doubleClickBehavior as string) === 'minimize') return 'minimize';
+        return null;
     }
 
     // --- INTERACTION HOOKS (TO BE OVERRIDDEN BY SUBCLASSES) ---
