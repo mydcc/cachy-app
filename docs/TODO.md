@@ -857,33 +857,51 @@ the manifest declares and fails if a type or size is misdeclared. Screenshots
 have since been **disabled at your request** — the key is removed, the four
 files kept, re-enabling is re-adding the key.
 
-**Not explained, and this is what needs you.** The splash screen and the
-long-press shortcuts depend on manifest fields that are all present and
-well-formed: `background_color` and `theme_color` are both `#0f172a`, a valid
-512×512 icon exists, and two `shortcuts` entries are declared with valid
-icons. Nothing in the file accounts for those two symptoms.
+**Not explained by the manifest fields alone.** `background_color` and
+`theme_color` are both `#0f172a`, a valid 512×512 icon exists, and two
+`shortcuts` entries are declared with valid icons — all correct on paper.
 
-`git log` still can't help: a full unshallow was attempted from this
-environment (`git fetch --unshallow`, then a bounded `--depth=1000` deepen)
-and both timed out against the sandboxed network. That has to happen on a
-full clone outside this environment.
+**`git log` turned out not to be the dead end it looked like.** The local
+clone is still shallow and still can't help (both `--unshallow` and a bounded
+`--depth=1000` deepen timed out against the sandboxed network again), but the
+**GitHub API has the full history independent of the local clone's depth** —
+`list_commits` with a `path` filter returned every commit that ever touched
+`static/manifest.json`, back to its creation in January. That surfaced
+something this item had missed: **the white-splash symptom already has three
+prior fix attempts on record**, none confirmed as having worked —
+`purpose: "any maskable"` added then reverted an hour later with the opposite
+justification (both January 7th, same bot), and a same-day-adjacent rename to
+`site.webmanifest` to force a re-fetch (January 11th). Worth remembering
+generally: this repo's shallow clone is not the only source of file history
+when GitHub itself is reachable.
 
-**Done since:** `display_override` reduced to `["standalone"]` —
-`window-controls-overlay` removed. It was a desktop-only mode sitting ahead of
-the one Android uses; per spec a browser skips an unsupported value, so this
-*should* have been harmless, but it was the only field whose first entry
-didn't apply to the platform where the symptoms appear, and a grep confirmed
-nothing in the app reads a WCO-specific layout, so removing it costs nothing.
-This is a precaution, not a confirmed fix.
+**Ruled out on-device this round, not just on paper:** `display_override`
+without `window-controls-overlay` — deployed and tested on both
+`dev.cachy.app` and `cachy.app`, fresh installs after a full Chrome storage
+wipe (not just cache), still white splash and no shortcuts on both. Also
+ruled out: stale caching (storage wipe made no difference), a beta-subdomain
+infra quirk (production shows the identical bug), and Brave-specific behavior
+(reproduced there too). Chrome's own DevTools installability check reports
+zero errors on the manifest — it considers the app fully installable.
 
-**What would still move this forward, in order:**
+**Done since:** added a real `maskable` icon pair
+(`icon-192-maskable.png`/`icon-512-maskable.png`, generated at 66% scale on a
+solid `#0f172a` canvas, declared as additional `purpose: "maskable"` entries
+alongside the existing `any` ones) rather than repeating either January
+attempt of toggling `purpose` on the same transparent-to-the-edges icon file.
+This is the strongest untried lead the history turned up — full reasoning and
+the exact commits are in `BUG-0038`. **Still unverified on-device.**
 
-1. On a full clone, `git log -p -- static/manifest.json src/app.html` to find
-   what actually changed when it broke.
-2. Verify on a real device and record which device and launcher — nothing here
-   can be confirmed from a terminal. Check whether removing
-   `window-controls-overlay` alone resolved the splash/shortcuts symptoms, or
-   whether they persist and need further investigation.
+**What would still move this forward:**
+
+1. Verify on a real device whether the new maskable icons fix the splash and
+   shortcuts, or whether the symptom persists.
+2. If it persists: this item now suspects a genuine Chrome-on-Android
+   platform issue rather than an app-side bug — DevTools finds the manifest
+   fully valid, and three independent prior fix attempts (going back to
+   January) have all failed to resolve it. `BUG-0038`'s Evidence section has
+   links to matching community/Chromium bug reports gathered during this
+   pass, for whoever picks this up next.
 
 ## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 
