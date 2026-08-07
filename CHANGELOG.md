@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.14](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.13...v1.2.0-beta.14) (2026-08-07)
+
+
+### Bug Fixes
+
+* close out BUG-0002 — verify and document the numeric-zero-target fix ([80a1585](https://github.com/mydcc/cachy-app/commit/80a158513748cf78989b3944ccb2933b7e894e84))
+
 # [1.2.0-beta.13](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.12...v1.2.0-beta.13) (2026-08-07)
 
 
