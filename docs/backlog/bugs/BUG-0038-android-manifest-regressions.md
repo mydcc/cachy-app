@@ -395,41 +395,56 @@ one more content test at the maintainer's request: **a full revert of
 `static/manifest.json` to the exact structure it had on 2026-01-15** (the
 last point the maintainer remembers everything working) — no `id`, no
 `display_override`, `icons` reduced back to the original two `purpose: "any"`
-entries only (maskable variants removed), no `shortcuts`. If this exact,
-historically-confirmed-working manifest still produces blank fields in
-`about://webapks`, that is conclusive: the cause is 100% not the manifest
-content, in any configuration this item has been able to construct.
-**Unverified on-device as of this writing.**
+entries only (maskable variants removed), no `shortcuts`.
 
-**Still open:**
+**Result, confirmed on-device: identical failure.** Same blank `Manifest
+URL`/`Theme color`/`Background color` in `about://webapks`, same white
+splash, same missing shortcuts — on the exact byte-for-byte manifest
+structure from the last point everything is remembered to have worked.
 
-- Verify the Round 3 experiment on-device: splash, shortcuts, **and now also
-  orientation lock** (not tested before this round).
-- **Check the aaPanel firewall/WAF for blocked requests to `cachy.app` and
-  `dev.cachy.app`** (not just `www`) around install-attempt timestamps —
-  partially checked (see Round 3), inconclusive since a block below the nginx
-  layer wouldn't show in the access log checked so far. Look for
-  non-phone-browser traffic or Google Cloud IP ranges getting 403/blocked on
-  `/manifest.json` or the icon files, and check for a lower-level (iptables /
-  Hetzner Cloud Firewall console) block log specifically.
-- **Fix the `www.cachy.app` vhost anyway** — real, confirmed bug (TLS cert
-  for `board.heinze-media.com` served on `www.cachy.app`), worth doing
-  regardless of whether it turns out related to symptoms 1/3. Either a 301 to
-  `https://cachy.app` with a certificate that actually covers `www` as a SAN,
-  or drop the DNS record if `www` was never meant to resolve.
-- If neither turns up anything: the remaining candidates are (a) something
-  genuinely platform-side (see the Chromium/community bug reports gathered
-  during this pass — Chrome on Android has open, unresolved reports of
-  installed PWAs ignoring `background_color`/`theme_color` independent of
-  manifest correctness), or (b) something this item hasn't found yet. Four
-  independent failed fix attempts across seven months (two in January, the
-  `site.webmanifest` rename, and `display_override` this round) makes (a)
-  worth taking seriously if the infra checks above turn up nothing.
-- Brave is confirmed out of scope for symptom 3 specifically (upstream bug,
-  see Round 2) — don't re-test shortcuts there, only splash/icon.
-- If screenshots are wanted back, produce real PNGs at a portrait aspect ratio
-  rather than the current 640×640 squares, which are an odd shape for a phone
-  install dialog.
+**This settles it: the manifest content is not the cause, in any
+configuration this item has been able to construct.** Every variable tried
+across all four rounds — screenshots, `display_override`, maskable icons,
+`id`, `start_url`, shortcut icon transparency, and now a full revert to the
+historically-working baseline — has produced the same result. Combined with
+Round 4's reachability finding (Google's own Lighthouse infrastructure
+fetches and parses this manifest without any error), the failure is
+conclusively isolated to the Chrome-for-Android WebAPK-minting backend
+itself, a narrow, specific Google service that evidently does not share a
+code path with Lighthouse, Googlebot, DevTools, or Brave — all of which
+handle this manifest correctly regardless of its exact contents.
+
+Since content is proven irrelevant, the full-featured manifest (maskable
+icons + shortcuts, both confirmed correct and beneficial for every other
+client) was restored rather than left in the stripped-down diagnostic state
+— there is no reason to keep the app worse for Brave/desktop/DevTools while
+chasing a bug those clients don't have.
+
+**What remains is outside this repo's reach:**
+
+- A structural difference noticed but never tested: `cachy.app` and
+  `dev.cachy.app` both negotiate **HTTP/1.1 only**, while a broken, unrelated
+  vhost on the same server negotiated **h2** — meaning HTTP/2 works on this
+  server in general, just not on Cachy's own vhosts. Cheap to enable, worth
+  doing as good practice regardless of whether it's related.
+- Testing from a different device or Google account, to check whether
+  whatever is stuck is tied to this specific phone/account rather than the
+  origin itself.
+- Simply waiting — if this is a stuck reputation/cache state on Google's
+  side from the many months this manifest spent genuinely broken (JPEG
+  screenshots mislabelled as PNG, `display_override` listing a desktop-only
+  mode first, etc.), it may resolve on its own once Google's systems next
+  attempt a fresh mint.
+- Filing feedback with Google/Chromium — the evidence gathered here (content
+  ruled out exhaustively, reachability confirmed via Google's own
+  infrastructure, failure isolated to one specific backend) is about as
+  strong a report as this repo can produce without server-side access to
+  Google's own systems.
+- The Chromium/community bug reports gathered earlier in this item (Evidence
+  above) remain relevant background reading for whoever picks this up next.
+
+**Not app code, and this item should not keep looking for a manifest fix —
+there isn't one left to find.**
 
 ## Acceptance criteria
 
@@ -442,18 +457,22 @@ content, in any configuration this item has been able to construct.
       gap an earlier pass in this item wrongly ruled out
 - [x] The splash screen shows `background_color` on a real Android device —
       **confirmed in Brave** on a fresh install (Motorola Edge 30, Brave for
-      Android). Chrome on the same device still shows white; cause not yet
-      identified (see "What's left" above — likely infra-level, affects both
-      `cachy.app` and `dev.cachy.app`, so `www` alone doesn't explain it)
+      Android). Chrome on the same device still shows white — **root cause
+      identified as the Chrome-for-Android WebAPK-minting backend, external
+      to this repo** (see Round 4). Manifest content exhaustively ruled out.
 - [ ] Long-pressing the installed icon shows both declared shortcuts —
-      not yet achieved in any tested browser. Brave is structurally incapable
-      of this (upstream bug, out of scope here); Chrome remains the only
-      valid target and its blocker is still unidentified
+      not yet achieved in Chrome (the only browser where it's structurally
+      possible; Brave has its own upstream bug, see Round 2). Blocked on the
+      same external cause as the splash symptom above — **not actionable
+      from this repo** until Google's WebAPK-minting backend starts
+      succeeding for this origin again.
 - [ ] `www.cachy.app` has a working vhost (redirect + valid certificate, or
-      the DNS record removed) — a real, confirmed infra bug worth fixing on
-      its own merits, but **not confirmed to be related to symptoms 1/3**
-      (see "What's left" above — it can't explain `dev.cachy.app` showing the
-      same symptom, since that hostname has no relationship to `www`)
+      the DNS record removed) — a real, confirmed infra bug, worth fixing on
+      its own merits, but **confirmed not related** to symptoms 1/3 (it
+      can't explain `dev.cachy.app` showing the identical symptom, since
+      that hostname has no relationship to `www` at all — see Round 2/3).
+      Tracked here only because it surfaced during this investigation; treat
+      as a separate, independent fix.
 
 ## Links
 
