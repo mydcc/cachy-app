@@ -50,12 +50,11 @@ known-good line to measure everything else against.
 | [BUG-0006](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) | P2 | Sentiment response trusted without validation |
 | [TODO 1](TODO.md) | P0 | Rotate the shared imgbb key and decide whether it stays |
 
-**Two items need a decision before they can start.**
-[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) needs the
-eviction rule chosen — the code's comments do not determine it, and guessing at
-an eviction rule for live order state is worse than the current gap.
-[BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md) needs the
-string-versus-number question settled one way or the other.
+[BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md),
+[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md), and
+[BUG-0004](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) are all done — the
+string-versus-number question, the eviction rule, and the legacy-blob
+fallback are each decided and enforced, with tests.
 
 **Exit:** no open P0, the money-affecting defects fixed or accepted in writing,
 `npm run check` clean, suite green, `npx eslint .` clean.

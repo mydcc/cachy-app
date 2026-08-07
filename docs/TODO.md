@@ -16,13 +16,13 @@ analysis stays here as the single source:
 
 | This entry | Tracked as |
 | --- | --- |
-| 2 — numbers stored where strings are declared | [`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md) |
+| 2 — numbers stored where strings are declared | Resolved: [`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md) |
 | 3 — Bitget WS field names | [`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md) |
 | 4 — GPU Choppiness field | [`BUG-0005`](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md) |
 | 7 — sentiment validation | [`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) |
 | 10 — SymbolPicker `null` | [`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md) |
-| 12 — legacy AES-CBC blobs | [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
-| 14 — order-map eviction | [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
+| 12 — legacy AES-CBC blobs | Resolved: [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
+| 14 — order-map eviction | Resolved: [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
 | 15 — `extraClasses` ignored | [`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) |
 | 18 — broader SpacetimeDB use | Decided: [ADR-0004](adr/0004-spacetimedb-data-scope.md) |
 | 21, 22 — whitepaper phases 2 and 3 | Answered by [`MILESTONES.md`](MILESTONES.md); see the note on each |
@@ -51,9 +51,13 @@ known and can be rotated at any time. No silent feature breakage.
 
 ---
 
-## 2. Numbers are stored where the trade state declares strings
+## 2. ✅ Numbers are stored where the trade state declares strings
 
-**Roadmap item 21.** Surfaced by typing `tradeState.update()` / `set()`, which
+**Roadmap item 21.** **RESOLVED** (commit `9df1928`, PR #1605). Tracked as
+[`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md), which has
+the chosen rule and the tests that prove it.
+
+Surfaced by typing `tradeState.update()` / `set()`, which
 were `(curr: any) => any`. Giving them the real `TradeStateSnapshot` type made
 the typechecker reject three call sites — so the signature was **left as `any`
 with an explicit `eslint-disable` and a comment**, rather than casting the
@@ -380,9 +384,13 @@ typed here per this repo's defensive-deletion rule: code whose purpose
 isn't fully clear doesn't get deleted without a person confirming it's
 safe to.
 
-## 12. Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
+## 12. ✅ Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
 
-**Roadmap item 21.** Found while looking for a home for two newly-unused
+**Roadmap item 21.** **RESOLVED.** Tracked as
+[`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md), which has the
+restored fallback chain, the fixture blob, and the tests that prove it.
+
+Found while looking for a home for two newly-unused
 constants (`LEGACY_ITERATIONS`, `IV_SIZE_CBC`) flagged by a lint pass —
 `git log`/`git show` on the file traced the regression before deciding
 whether the constants were safe to delete.
@@ -473,9 +481,13 @@ every user's PWA install, which needs deliberate design and testing
 100th write evict silently or reject?), not a guess made while
 clearing an unused-variable warning.
 
-## 14. `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
+## 14. ✅ `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
 
-**Roadmap item 21.** Found while tracing an unused `PRESERVE_LATEST`
+**Roadmap item 21.** **RESOLVED** (commit `4ad0348`, PR #1605). Tracked as
+[`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md), which
+has the chosen rule and the tests that prove it.
+
+Found while tracing an unused `PRESERVE_LATEST`
 constant flagged by a lint pass.
 
 `omsService.ts`'s `pruneOrders(forceOne = false)` has two steps once
