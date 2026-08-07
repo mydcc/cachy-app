@@ -420,13 +420,51 @@ client) was restored rather than left in the stripped-down diagnostic state
 — there is no reason to keep the app worse for Brave/desktop/DevTools while
 chasing a bug those clients don't have.
 
-**What remains is outside this repo's reach:**
+### Round 5 — HTTP/2 enabled, still no change. Investigation closed.
 
-- A structural difference noticed but never tested: `cachy.app` and
-  `dev.cachy.app` both negotiate **HTTP/1.1 only**, while a broken, unrelated
-  vhost on the same server negotiated **h2** — meaning HTTP/2 works on this
-  server in general, just not on Cachy's own vhosts. Cheap to enable, worth
-  doing as good practice regardless of whether it's related.
+The HTTP/1.1-vs-h2 difference from Round 4 was tested. `dev.cachy.app`'s
+nginx vhost initially used the legacy `listen 443 ssl http2;` syntax —
+adding it and reloading nginx made **no measurable difference**
+(`curl -Iv --http2` still negotiated `http/1.1`), because this legacy
+syntax makes HTTP/2 a property of the shared IP:port *socket*, not the
+individual vhost: whichever server block nginx resolves first for that
+socket decides the protocol for everyone sharing it, regardless of which
+vhost SNI actually selects. Other sites on the same server/IP apparently
+have `http2` unset and were winning that resolution.
+
+Switched to nginx's newer, per-vhost `http2 on;` directive (nginx ≥ 1.25.1;
+`listen 443 ssl;` plus a separate `http2 on;` line, rather than the
+`listen ... http2;` parameter) — this is the documented fix for exactly this
+class of shared-socket problem. `nginx -t` and reload succeeded, and
+`curl -Iv --http2 https://dev.cachy.app/` now confirms `ALPN: server
+accepted h2` / `HTTP/2 200`. HTTP/2 is genuinely active on `dev.cachy.app`
+now (not yet applied to `cachy.app`, since the test was run on beta first).
+
+**Fresh WebAPK install against the HTTP/2-enabled origin: no change.** New
+package name again (`org.chromium.webapk.a5b8f46f4fa1c706c_v2`, confirming a
+genuine rebuild), `Theme color`/`Background color`/`Manifest URL` still
+blank. One new data point, seen for the first time across every round:
+`Last Update Completion Time` is populated and matches `Last Update Check
+Time` exactly — every prior attempt (Rounds 2–4) showed the epoch
+placeholder (`Thu Jan 01 1970`) there, meaning the update cycle had never
+been recorded as completing. This time it completed cleanly — but the
+manifest-derived fields still didn't populate, so whatever "completing"
+means in Chrome's bookkeeping is independent of whether the WebAPK actually
+picked up the manifest's colors and shortcuts. On-device: splash and
+shortcuts unchanged from every prior round.
+
+**HTTP/2 is now also ruled out.** Every actionable lever available to this
+item — manifest content (five variations across four rounds), general
+reachability (confirmed via Google's own Lighthouse infrastructure), and
+transport protocol (HTTP/2, now genuinely active) — has been tested and
+produced the identical result. `cachy.app` itself was not switched to the
+new `http2 on;` syntax as part of this round (only `dev.cachy.app` was
+tested), but there is no reason left to expect a different outcome there
+given `dev.cachy.app`'s result.
+
+**At the maintainer's request, this item's active investigation ends here.**
+What remains is entirely outside this repo's reach:
+
 - Testing from a different device or Google account, to check whether
   whatever is stuck is tied to this specific phone/account rather than the
   origin itself.
@@ -436,15 +474,21 @@ chasing a bug those clients don't have.
   mode first, etc.), it may resolve on its own once Google's systems next
   attempt a fresh mint.
 - Filing feedback with Google/Chromium — the evidence gathered here (content
-  ruled out exhaustively, reachability confirmed via Google's own
-  infrastructure, failure isolated to one specific backend) is about as
-  strong a report as this repo can produce without server-side access to
-  Google's own systems.
+  ruled out exhaustively across five configurations, reachability confirmed
+  via Google's own infrastructure, transport protocol ruled out, failure
+  isolated to one specific backend) is about as strong a report as this repo
+  can produce without server-side access to Google's own systems.
 - The Chromium/community bug reports gathered earlier in this item (Evidence
   above) remain relevant background reading for whoever picks this up next.
+- Applying the same `http2 on;` fix to `cachy.app` (production) — untested
+  but harmless and good practice regardless, independent of this bug.
 
-**Not app code, and this item should not keep looking for a manifest fix —
-there isn't one left to find.**
+**Not app code. This item should not be reopened for a manifest-content fix
+— there isn't one left to find.** It stays `in-progress` rather than `done`
+because the reported symptoms (splash, shortcuts) are genuinely unresolved,
+and rather than `dropped` because the cause is understood and worth revisiting
+if new information surfaces (a Chrome update, a different device, a resolved
+Google-side state) — just not something this repo can act on further today.
 
 ## Acceptance criteria
 
@@ -473,6 +517,18 @@ there isn't one left to find.**
       that hostname has no relationship to `www` at all — see Round 2/3).
       Tracked here only because it surfaced during this investigation; treat
       as a separate, independent fix.
+- [x] HTTP/2 enabled on `dev.cachy.app` and tested — **confirmed not the
+      cause** either (see Round 5). `cachy.app` not yet switched to the
+      newer `http2 on;` syntax; worth doing for its own sake, not expected
+      to change this item's outcome.
+
+**Investigation closed at the maintainer's request (Round 5).** Every lever
+available from this repo — manifest content, reachability, transport
+protocol — has been exhausted with an identical result each time. The
+remaining two acceptance criteria (splash on Chrome, shortcuts) stay
+unchecked because they are genuinely unresolved, not because more work is
+planned here; see Round 5's closing note for why this stays `in-progress`
+rather than `done` or `dropped`.
 
 ## Links
 
