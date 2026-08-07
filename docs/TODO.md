@@ -938,22 +938,40 @@ along the way: Brave has its own unrelated, already-open upstream bug —
 — installed PWAs on Android never become a real standalone package there, so
 Brave can never show shortcuts regardless of anything here.)
 
-**What's left is outside this repo:**
+**HTTP/2 tested too — also ruled out. Investigation closed at your request.**
+You enabled HTTP/2 on `dev.cachy.app` (first hit the known nginx quirk where
+the legacy `listen ... http2;` parameter is a shared-socket setting, not
+per-vhost — another site on the same server/IP without `http2` was winning
+that resolution; switching to the newer per-vhost `http2 on;` directive
+fixed the negotiation, confirmed via `curl -Iv --http2` showing `h2` for
+real). Fresh WebAPK install against the now-genuinely-HTTP/2 origin: same
+result — blank colors, blank manifest URL, no shortcuts, white splash. One
+new detail worth recording: `Last Update Completion Time` was populated for
+the first time across every round (previously always stuck at the epoch),
+meaning the update cycle completed cleanly this time — but that didn't
+translate into the manifest's colors or shortcuts actually being picked up.
+
+With manifest content (five configurations across four rounds), reachability
+(Google's own Lighthouse infrastructure), and now transport protocol all
+tested and ruled out, you asked to close this out. **What's left is outside
+this repo:**
 
 1. `www.cachy.app`'s TLS cert is still broken (serves `board.heinze-media.com`'s
    certificate) — real bug, worth fixing on its own merits, but confirmed
    **not** related to this item (can't explain `dev.cachy.app` showing the
    same symptom).
-2. A structural difference noticed but untested: `cachy.app`/`dev.cachy.app`
-   negotiate HTTP/1.1 only, while another vhost on the same server does h2.
-   Cheap to enable, unlikely at this point but free to rule out.
+2. Applying the same `http2 on;` fix to `cachy.app` (only `dev.cachy.app` was
+   switched) — harmless, good practice, not expected to change the outcome.
 3. Testing from a different device/Google account, waiting for whatever may
    be stuck on Google's side to clear, or filing feedback with
    Google/Chromium — the evidence gathered here is about as strong a report
    as this repo can produce without server-side access to Google's systems.
 
 This item is not expected to need further manifest changes unless new
-evidence turns up.
+evidence turns up. `BUG-0038` stays `in-progress` rather than `done` (the
+reported symptoms are genuinely unresolved) or `dropped` (the cause is
+understood and worth revisiting later) — it's just not actionable from this
+repo today.
 
 ## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 
