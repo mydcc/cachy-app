@@ -349,11 +349,57 @@ strict one-variable-at-a-time isolation):
    plausibly needs the same safe-zone/opaque-background treatment as the main
    icon.
 
-**Unverified on-device as of this writing.** If this resolves symptoms 1 and
-3 (and orientation), which specific change mattered stays genuinely unknown
-unless someone bisects it later — recorded as a limitation of testing three
-things at once, accepted deliberately given the cost of each on-device round
-trip.
+**Round 3 result: no change.** Deployed and tested on-device on a fresh
+Chrome install. New WebAPK package name confirmed a genuine rebuild
+(`org.chromium.webapk.ab40df37a541a7209_v2`, different from Round 2's), so
+this was not stale data. `Manifest Start URL` and `Manifest Id` now read
+correctly — but only because they coincidentally match the new defaults
+(`start_url: "/"` with no `id` resolves to the same value whether the
+manifest was actually read or not). **`Theme color`, `Background color`, and
+`Manifest URL` are still blank.** Splash still white, shortcuts still absent.
+This rules out `id`, `start_url`, and shortcut-icon transparency as the
+cause — every manifest-content variable this item has now tried (screenshots,
+`display_override`, maskable icons, `id`, `start_url`, shortcut icon
+transparency) has been changed at least once with no effect on the blank
+fields.
+
+**Round 4 — ruling out reachability, then a full revert to the last known-
+working structure.** Two things checked before reaching for content again:
+
+- The maintainer's own aaPanel access logs showed no evidence either way (see
+  Round 3) — inconclusive, not a real answer.
+- **Google's own infrastructure was asked directly**, via PageSpeed
+  Insights (`pagespeed.web.dev`, which runs Lighthouse server-side on
+  Google's own servers, not the phone or this sandbox) against
+  `dev.cachy.app`. Result: **no manifest error at all.** Google's
+  infrastructure fetches and parses the manifest cleanly. This rules out
+  reachability, firewall, and DNS as an explanation — Google *can* reach this
+  origin without issue. The failure is isolated to the Chrome-for-Android
+  WebAPK-minting backend specifically, which apparently does not share a code
+  path with Lighthouse, Googlebot, or DevTools' own installability check —
+  all of which read this manifest correctly.
+
+One structural difference noticed in the earlier `curl -Iv` output, not yet
+explained or tested: `cachy.app` and `dev.cachy.app` both negotiate
+**HTTP/1.1 only** (`ALPN: server accepted http/1.1`), while the broken `www`
+vhost (serving an unrelated site's certificate) negotiated **h2** — meaning
+HTTP/2 works on this server in general, just not on Cachy's own vhosts.
+Speculative, but recorded as a candidate: if WebAPK minting is less tolerant
+of HTTP/1.1-only origins than Lighthouse/Googlebot are, this would explain
+the failure being isolated to exactly that one code path. Untested as of
+this writing — enabling HTTP/2 on both vhosts costs nothing and is good
+practice regardless of whether it's related.
+
+With content, reachability, and (mostly) infra now checked, this pass did
+one more content test at the maintainer's request: **a full revert of
+`static/manifest.json` to the exact structure it had on 2026-01-15** (the
+last point the maintainer remembers everything working) — no `id`, no
+`display_override`, `icons` reduced back to the original two `purpose: "any"`
+entries only (maskable variants removed), no `shortcuts`. If this exact,
+historically-confirmed-working manifest still produces blank fields in
+`about://webapks`, that is conclusive: the cause is 100% not the manifest
+content, in any configuration this item has been able to construct.
+**Unverified on-device as of this writing.**
 
 **Still open:**
 
