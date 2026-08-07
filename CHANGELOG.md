@@ -5,6 +5,27 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.5...v1.2.0-beta.6) (2026-08-07)
+
+
+### Bug Fixes
+
+* academy content unreachable on a phone ([5c96ee5](https://github.com/mydcc/cachy-app/commit/5c96ee5d67b661bc8c891fe80660cc7bbd80e42d))
+* glassmorphism removes the Academy sidebar background ([ec66863](https://github.com/mydcc/cachy-app/commit/ec66863d2c7bf6d9fca49b6dfdbe814e102173e7))
+* quiz closes after every answer and has no close button ([e22fc77](https://github.com/mydcc/cachy-app/commit/e22fc775cbbdfb6506e042293268930b916c55b0))
+* responsive windows re-maximize themselves after a manual restore ([ea5c59a](https://github.com/mydcc/cachy-app/commit/ea5c59ae980a3576d3f5f1d9e1181575764f308d))
+* restore the SidePanel's missing render point ([941e7be](https://github.com/mydcc/cachy-app/commit/941e7be2b1b4fbc8fa85e4a245bbd954a965245c))
+* reword a doc comment tripping the i18n hardcoded-string lint ([32a5469](https://github.com/mydcc/cachy-app/commit/32a54692e626ee556a32a904206f577ae3b693c9))
+* window drag jumping and sticking on touch input ([90b7a0c](https://github.com/mydcc/cachy-app/commit/90b7a0c38da77fe55924cf8dddf3d7a5e4ca8ef2))
+
+
+### Features
+
+* give every floating surface its z-index from one layer contract ([e8c9828](https://github.com/mydcc/cachy-app/commit/e8c9828b71ae1e234a9254cb8dfdf026ea3e6665))
+* make ModalFrame an adapter over WindowFrame (FEAT-0044) ([6544bce](https://github.com/mydcc/cachy-app/commit/6544bce89b1c5e63131e5a70a435cfaee763875b))
+* register the Trading Academy as its own window type (FEAT-0045) ([5dd2b34](https://github.com/mydcc/cachy-app/commit/5dd2b349b5639789f8adb8997094c12b648a6893))
+* retire SidePanel and interactjs in favor of AssistantWindow (FEAT-0046) ([a755b44](https://github.com/mydcc/cachy-app/commit/a755b440571e280b4b52a02aea6cfcf2a42877bb))
+
 # [1.2.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2026-08-04)
 
 
