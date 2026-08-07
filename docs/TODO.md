@@ -833,145 +833,36 @@ The Render service itself (on the Render dashboard) still needs to be
 disconnected/deleted by whoever owns that account — that step is not
 reachable from this repo or GitHub alone.
 
-## 24. PWA manifest — splash screen and long-press shortcuts still broken on Android
+## 24. ~~PWA manifest — splash screen and long-press shortcuts broken on Android~~ — resolved: device-side ad blocker
 
 **Raised by the maintainer**, August 2026: the installed Android PWA lost its
 splash-screen background, its install-dialog screenshots and its long-press
-context menu. These worked before and regressed.
+context menu.
 
-Tracked as [`BUG-0038`](backlog/bugs/BUG-0038-android-manifest-regressions.md),
-which has the full evidence. Summary of where it stands:
+**Root cause: an ad blocker on the test device was blocking Chrome's own
+connection to Google's WebAPK infrastructure.** Nothing in this repo, this
+server, or the manifest itself was ever the reason — five rounds of
+server-side investigation (documented in
+[`BUG-0038`](backlog/bugs/BUG-0038-android-manifest-regressions.md)) checked
+reachability from *Google's* side (Lighthouse, Googlebot) and never could
+have found a block on the *phone's* side of that connection. Worth
+remembering for any future PWA-install symptom that resists every
+server-side fix: check the installing device's own network stack (ad
+blockers, private DNS, VPNs) before spending more effort on the server.
 
-**Found and fixed.** Both mobile screenshots were **JPEG files with a `.png`
-extension**, declared `"type": "image/png"` in the manifest. A browser
-validates each entry against what it actually fetches and silently drops the
-mismatches — with both `form_factor: "narrow"` entries invalid, the mobile
-install dialog had nothing to show. Files renamed, declarations corrected, and
-`src/tests/manifest_assets.test.ts` now reads the magic bytes of every image
-the manifest declares and fails if a type or size is misdeclared. Screenshots
-have since been **disabled at your request** — the key is removed, the four
-files kept, re-enabling is re-adding the key.
+Real, independent fixes made along the way and kept regardless: the two
+mislabelled JPEG screenshots (now correctly typed), a proper safe-zone-padded
+`maskable` icon pair (fixes a genuine white-splash bug in browsers that don't
+share Chrome's specific issue, e.g. Brave), and HTTP/2 correctly enabled on
+`dev.cachy.app`. A follow-up bug found once shortcuts started rendering —
+empty icon slots in the shortcut menu, traced to a `maskable`-only shortcut
+icon Android's shortcut renderer doesn't handle — was fixed by reverting
+those to a plain `purpose: "any"` icon.
 
-**Not explained by the manifest fields alone.** `background_color` and
-`theme_color` are both `#0f172a`, a valid 512×512 icon exists, and two
-`shortcuts` entries are declared with valid icons — all correct on paper.
-
-**`git log` turned out not to be the dead end it looked like.** The local
-clone is still shallow and still can't help (both `--unshallow` and a bounded
-`--depth=1000` deepen timed out against the sandboxed network again), but the
-**GitHub API has the full history independent of the local clone's depth** —
-`list_commits` with a `path` filter returned every commit that ever touched
-`static/manifest.json`, back to its creation in January. That surfaced
-something this item had missed: **the white-splash symptom already has three
-prior fix attempts on record**, none confirmed as having worked —
-`purpose: "any maskable"` added then reverted an hour later with the opposite
-justification (both January 7th, same bot), and a same-day-adjacent rename to
-`site.webmanifest` to force a re-fetch (January 11th). Worth remembering
-generally: this repo's shallow clone is not the only source of file history
-when GitHub itself is reachable.
-
-**Ruled out on-device this round, not just on paper:** `display_override`
-without `window-controls-overlay` — deployed and tested on both
-`dev.cachy.app` and `cachy.app`, fresh installs after a full Chrome storage
-wipe (not just cache), still white splash and no shortcuts on both. Also
-ruled out: stale caching (storage wipe made no difference), a beta-subdomain
-infra quirk (production shows the identical bug), and Brave-specific behavior
-(reproduced there too). Chrome's own DevTools installability check reports
-zero errors on the manifest — it considers the app fully installable.
-
-**Done and confirmed working (partially):** added a real `maskable` icon pair
-(`icon-192-maskable.png`/`icon-512-maskable.png`, generated at 66% scale on a
-solid `#0f172a` canvas, declared as additional `purpose: "maskable"` entries
-alongside the existing `any` ones) rather than repeating either January
-attempt of toggling `purpose` on the same transparent-to-the-edges icon file.
-**On-device result: the splash background is now correct in Brave** (dark
-background, icon, title — fresh install, Motorola Edge 30). Chrome on the
-same device still shows white — see below for why.
-
-**A real bug turned up chasing your memory of when this last worked — but it
-doesn't actually explain the symptom, and an earlier draft of this note
-wrongly treated it as the leading cause. You caught that immediately.** You
-recalled shortcuts working before screenshots were added. The commit that
-added screenshots (`7f40111`, Feb 9) also — same commit — migrated the
-canonical domain from `www.cachy.app` to bare `cachy.app`. Screenshots were
-already ruled out (removing the key didn't fix anything), which left the
-domain migration worth checking. `curl -Iv` confirmed something real:
-**`www.cachy.app` serves the TLS certificate for a different site**
-(`board.heinze-media.com`, apparently sharing the same server IP) — every
-connection to `www.cachy.app` fails at the TLS handshake. `cachy.app` and
-`dev.cachy.app` are both fine.
-
-That's worth fixing regardless, but it can't be why `dev.cachy.app` shows the
-identical broken WebAPK (blank `Manifest URL`, blank colors, no shortcuts) —
-`dev.cachy.app` has no relationship to `www.cachy.app` at all, there was
-never a `www.dev.cachy.app`, and the February migration only ever touched
-`www` vs. bare `cachy.app`. A cert bug on one hostname doesn't explain an
-unrelated hostname breaking the same way.
-
-So the next lead was what it was before the `www` detour: something
-affecting **both** domains uniformly. Your own aaPanel access-log check found
-no trace either way (only your own IP plus normal Googlebot/scanner traffic —
-inconclusive, since a block below nginx wouldn't show there). What settled
-it instead: asking **Google's own infrastructure directly**, via
-PageSpeed Insights (runs Lighthouse server-side on Google's own servers)
-against `dev.cachy.app` — **no manifest error at all.** Google can fetch and
-parse this manifest cleanly from outside. That rules out reachability,
-firewall, and DNS entirely.
-
-With reachability confirmed and every manifest-content variable exhausted —
-including, at your request, a full revert of `static/manifest.json` to its
-exact 2026-01-15 structure (no `id`, no `display_override`, plain icons, no
-shortcuts) — **the result was identical: still blank `Manifest URL`/colors
-in `about://webapks`, still white splash, still no shortcuts, on the exact
-manifest from the last point you remember everything working.**
-
-**This settles it. The manifest content is not the cause, in any
-configuration this item could construct.** The failure is isolated to the
-Chrome-for-Android WebAPK-minting backend specifically — a narrow Google
-service that doesn't share a code path with Lighthouse, Googlebot, DevTools,
-or Brave, all of which handle this manifest correctly. Since content
-provably doesn't matter, the full-featured manifest (maskable icons +
-shortcuts) has been restored rather than left stripped down — no reason to
-keep it worse for the clients that do read it correctly. (Also confirmed
-along the way: Brave has its own unrelated, already-open upstream bug —
-[brave/brave-browser#56133](https://github.com/brave/brave-browser/issues/56133)
-— installed PWAs on Android never become a real standalone package there, so
-Brave can never show shortcuts regardless of anything here.)
-
-**HTTP/2 tested too — also ruled out. Investigation closed at your request.**
-You enabled HTTP/2 on `dev.cachy.app` (first hit the known nginx quirk where
-the legacy `listen ... http2;` parameter is a shared-socket setting, not
-per-vhost — another site on the same server/IP without `http2` was winning
-that resolution; switching to the newer per-vhost `http2 on;` directive
-fixed the negotiation, confirmed via `curl -Iv --http2` showing `h2` for
-real). Fresh WebAPK install against the now-genuinely-HTTP/2 origin: same
-result — blank colors, blank manifest URL, no shortcuts, white splash. One
-new detail worth recording: `Last Update Completion Time` was populated for
-the first time across every round (previously always stuck at the epoch),
-meaning the update cycle completed cleanly this time — but that didn't
-translate into the manifest's colors or shortcuts actually being picked up.
-
-With manifest content (five configurations across four rounds), reachability
-(Google's own Lighthouse infrastructure), and now transport protocol all
-tested and ruled out, you asked to close this out. **What's left is outside
-this repo:**
-
-1. `www.cachy.app`'s TLS cert is still broken (serves `board.heinze-media.com`'s
-   certificate) — real bug, worth fixing on its own merits, but confirmed
-   **not** related to this item (can't explain `dev.cachy.app` showing the
-   same symptom).
-2. Applying the same `http2 on;` fix to `cachy.app` (only `dev.cachy.app` was
-   switched) — harmless, good practice, not expected to change the outcome.
-3. Testing from a different device/Google account, waiting for whatever may
-   be stuck on Google's side to clear, or filing feedback with
-   Google/Chromium — the evidence gathered here is about as strong a report
-   as this repo can produce without server-side access to Google's systems.
-
-This item is not expected to need further manifest changes unless new
-evidence turns up. `BUG-0038` stays `in-progress` rather than `done` (the
-reported symptoms are genuinely unresolved) or `dropped` (the cause is
-understood and worth revisiting later) — it's just not actionable from this
-repo today.
+Still open, tracked in `BUG-0038`'s acceptance criteria, unrelated to this
+item: `www.cachy.app` still serves the wrong TLS certificate (a real,
+separate infra bug); `cachy.app` hasn't had the `http2 on;` fix applied yet
+(only `dev.cachy.app` was).
 
 ## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 

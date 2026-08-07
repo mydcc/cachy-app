@@ -2,7 +2,7 @@
 id: BUG-0038
 title: PWA splash screen, screenshots and long-press shortcuts regressed on Android
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -24,6 +24,13 @@ Three things that used to work on an installed Android PWA no longer do:
 
 Reported by the maintainer as a regression — these worked at some point and
 broke since.
+
+**Resolved — see Round 6.** The actual cause was a device-side ad blocker on
+the test phone blocking Chrome's own connection to Google's WebAPK
+infrastructure. Nothing in this repo, this server, or this manifest was ever
+the reason symptoms 1 and 3 persisted after symptom 2 (screenshots) was
+fixed — five rounds of server-side investigation below are kept as the
+record of what was checked and ruled out, not as remaining open work.
 
 **Correction to an earlier wrong diagnosis.** An earlier pass on this item
 claimed a missing `maskable` icon was "wrong and ruled out," reasoning only
@@ -281,6 +288,17 @@ Google Cloud IP ranges.
 - **Round 3 (see below): removed `id`, reverted `start_url` to `/`, switched
   shortcut icons to the maskable variant.** Also unverified on-device as of
   this writing.
+- **Round 6 (see below): reverted shortcut icons back to the plain,
+  transparent `icon-192.png` (`purpose: "any"`)** — the Round 3 switch to
+  the maskable variant is the prime suspect for shortcut menu items
+  rendering with no icon at all (empty space) once shortcuts started
+  working. Reasoning: matches the format every other WebAPK on the same
+  device uses for its own shortcut icons (Round 2's `about://webapks`
+  survey), and matches the icon-selection algorithm's normal behaviour
+  (`any` is the default; `maskable` is only picked where the OS specifically
+  asks for it, which a shortcut-icon slot apparently doesn't). **Not yet
+  verified on-device** as of this writing — this is a plausible fix based on
+  solid reasoning, not a confirmed one.
 
 ### Round 3 — firewall logs checked (inconclusive), a third ignored field, and a new experiment
 
@@ -490,6 +508,70 @@ and rather than `dropped` because the cause is understood and worth revisiting
 if new information surfaces (a Chrome update, a different device, a resolved
 Google-side state) — just not something this repo can act on further today.
 
+### Round 6 — the actual cause: a device-side ad blocker. Resolved.
+
+The real cause, once found, made every earlier finding in this item make
+sense in retrospect: **an ad blocker on the test device/network was
+blocking the connection Chrome itself needs to reach Google's WebAPK
+infrastructure.** Disabling it, `about://webapks` populates correctly and
+the installed app shows the correct splash background and the long-press
+shortcuts menu.
+
+This reframes the entire investigation, and it is worth being explicit about
+why five rounds of testing never found it: **every reachability check this
+item ran was from the wrong side.** PageSpeed Insights/Lighthouse (Round 4)
+and Googlebot (Round 3) both check whether *Google's servers* can reach
+*this repo's* server — that path was never broken. The actual broken path
+was the reverse: *the phone's own Chrome* reaching *Google's* WebAPK-minting
+service, over the phone's own network/ad-blocker stack. Nothing server-side
+(this repo, the aaPanel firewall, the `www.cachy.app` TLS bug, HTTP/1.1 vs.
+h2) was ever going to surface a client-side network block, because none of
+those checks route through the device doing the installing. The lesson for
+next time a WebAPK/PWA symptom looks server-side but resists every
+server-side fix: check the installing device's own network stack (ad
+blockers, private DNS, VPNs, firewalls) before spending more effort on the
+server.
+
+**None of the fixes made along the way were wasted, even though none of them
+were *the* fix:**
+
+- The mislabelled JPEG screenshots (Fix, first entry) were a real, separate
+  bug, independent of this one — still correctly fixed.
+- The maskable icon pair fixes a real rendering problem (an unpadded,
+  fully-transparent icon declared `maskable` gives the OS nothing to mask
+  into) and is standard PWA best practice regardless of the ad-blocker issue.
+- The `www.cachy.app` TLS misconfiguration is a real, independent bug, still
+  unresolved and still worth fixing on its own merits (see Acceptance
+  criteria) — just never related to this item.
+- HTTP/2 is generally good practice and now correctly enabled on
+  `dev.cachy.app` (not yet on `cachy.app`).
+- The extensive git-history archaeology (the January `purpose` flip-flop,
+  the `www` domain migration) surfaced real prior art worth knowing about
+  even though neither turned out to be this bug's cause.
+
+**One follow-up bug found once shortcuts finally rendered:** the shortcut
+menu items showed with **no icon** — an empty slot where the icon belongs.
+The shortcuts' `icons` entries pointed at `icon-192-maskable.png` with
+`"purpose": "maskable"` (set in Round 3, itself an untested guess made while
+chasing the wrong theory). Android's shortcut-icon rendering does not appear
+to handle a `maskable`-only shortcut icon the way the main app icon's
+adaptive-icon pipeline does — it does not degrade to *something*, it shows
+nothing. Fixed by reverting the shortcut icons to the plain, transparent
+`icon-192.png` with `"purpose": "any"` — the same file already used for the
+regular app icon, and the format every other WebAPK on the maintainer's
+device (Bitpanda Academy, Tasker Share, Vivid Money) uses for its own
+shortcut icons too, per the `about://webapks` output gathered in Round 2.
+
+The top-level `icons` array keeps its `maskable` entries — they solve a
+real, confirmed problem (Brave's splash rendering, see Round 2) and are
+listed *after* the `purpose: "any"` entries, so per the manifest icon
+selection algorithm they are only ever used where the OS specifically
+requests a maskable icon (e.g. shaping the home-screen icon) — everywhere
+else, including apparently the shortcut-icon renderer, the `any` icon is
+what gets used. That is already exactly the "maskable as a fallback, not the
+default" relationship asked for; nothing needed to change there beyond the
+shortcut icons themselves.
+
 ## Acceptance criteria
 
 - [x] No manifest entry declares a type or size its file does not have
@@ -500,35 +582,32 @@ Google-side state) — just not something this repo can act on further today.
 - [x] A properly safe-zone-padded `maskable` icon pair added, addressing the
       gap an earlier pass in this item wrongly ruled out
 - [x] The splash screen shows `background_color` on a real Android device —
-      **confirmed in Brave** on a fresh install (Motorola Edge 30, Brave for
-      Android). Chrome on the same device still shows white — **root cause
-      identified as the Chrome-for-Android WebAPK-minting backend, external
-      to this repo** (see Round 4). Manifest content exhaustively ruled out.
-- [ ] Long-pressing the installed icon shows both declared shortcuts —
-      not yet achieved in Chrome (the only browser where it's structurally
-      possible; Brave has its own upstream bug, see Round 2). Blocked on the
-      same external cause as the splash symptom above — **not actionable
-      from this repo** until Google's WebAPK-minting backend starts
-      succeeding for this origin again.
+      **confirmed working**, on both Brave (Round 2) and Chrome, once the
+      device-side ad blocker (Round 6) was disabled.
+- [x] Long-pressing the installed icon shows both declared shortcuts —
+      **confirmed working in Chrome** after disabling the ad blocker (Round
+      6). A follow-up bug surfaced at that point: shortcut icons rendered as
+      empty space instead of the icon. Reverted the shortcut icons from the
+      `maskable` variant (Round 3) back to the plain `purpose: "any"` icon
+      as the fix — **not yet re-verified on-device** as of this writing.
 - [ ] `www.cachy.app` has a working vhost (redirect + valid certificate, or
       the DNS record removed) — a real, confirmed infra bug, worth fixing on
-      its own merits, but **confirmed not related** to symptoms 1/3 (it
-      can't explain `dev.cachy.app` showing the identical symptom, since
-      that hostname has no relationship to `www` at all — see Round 2/3).
-      Tracked here only because it surfaced during this investigation; treat
-      as a separate, independent fix.
-- [x] HTTP/2 enabled on `dev.cachy.app` and tested — **confirmed not the
-      cause** either (see Round 5). `cachy.app` not yet switched to the
-      newer `http2 on;` syntax; worth doing for its own sake, not expected
-      to change this item's outcome.
+      its own merits, but **confirmed not related** to symptoms 1/3, and
+      **not part of this item's scope** — tracked here only because it
+      surfaced during the investigation. Left open for a separate fix.
+- [x] HTTP/2 enabled on `dev.cachy.app` — not the cause of this bug, but
+      correctly configured now regardless (Round 5). `cachy.app` not yet
+      switched to the newer `http2 on;` syntax — separate, low-priority
+      follow-up.
 
-**Investigation closed at the maintainer's request (Round 5).** Every lever
-available from this repo — manifest content, reachability, transport
-protocol — has been exhausted with an identical result each time. The
-remaining two acceptance criteria (splash on Chrome, shortcuts) stay
-unchecked because they are genuinely unresolved, not because more work is
-planned here; see Round 5's closing note for why this stays `in-progress`
-rather than `done` or `dropped`.
+**Resolved (Round 6).** The actual cause was a device-side ad blocker
+blocking Chrome's own connection to Google's WebAPK infrastructure — not
+this repo, not this server. See Round 6 for the full explanation, including
+why five rounds of server-side reachability testing could never have found
+a client-side network block. The mislabelled screenshots, the maskable icon
+pair, and HTTP/2 were all real, independent fixes made along the way and are
+kept; the `www.cachy.app` certificate bug remains open as a separate,
+unrelated item.
 
 ## Links
 

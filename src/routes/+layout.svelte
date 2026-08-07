@@ -349,6 +349,11 @@ import { afterNavigate } from "$app/navigation";
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("action");
       window.history.replaceState({}, "", newUrl.toString());
+    } else if (action === "market") {
+      uiState.toggleMarketDashboardModal(true);
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("action");
+      window.history.replaceState({}, "", newUrl.toString());
     }
   });
   // Reactivity for Settings Changes
