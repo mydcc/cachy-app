@@ -17,7 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkAppAuth } from "../../../../../lib/server/auth";
+import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OpenRouterModel {
@@ -29,8 +29,8 @@ interface OpenRouterModel {
 
 // OpenRouter's model catalog is a public marketplace listing — no API key
 // required to read it, unlike the actual chat completions.
-export const GET: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const GET: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   try {

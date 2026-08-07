@@ -1268,7 +1268,9 @@
     },
     "connections": {
       "serverSecurity": "Server Security",
-      "appAccessToken": "App Access Token (Server Security)",
+      "appAccessToken": "Access Token (self-issued)",
+      "createToken": "Create access token",
+      "createTokenError": "Could not create a token. Try again.",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
@@ -1290,7 +1292,8 @@
         "apiKey": "API Key",
         "apiSecret": "API Secret",
         "passphrase": "Passphrase",
-        "url": "https://..."
+        "url": "https://...",
+        "appAccessToken": "Click \"Create access token\" or paste one"
       },
       "providers": {
         "bitunix": "Bitunix",

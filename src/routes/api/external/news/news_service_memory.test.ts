@@ -17,14 +17,16 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, _newsCache, _rateLimits } from './+server';
-import * as auth from '../../../../lib/server/auth';
+import * as clientToken from '../../../../lib/server/clientToken';
+
+const getClientAddress = () => '127.0.0.1';
 
 describe('News Service Cache Memory', () => {
     beforeEach(() => {
         _newsCache.clear();
         _rateLimits.clear();
         vi.clearAllMocks();
-        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
+        vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
     });
 
     it('should limit cache size to 50 items (optimization)', async () => {
@@ -46,7 +48,7 @@ describe('News Service Cache Memory', () => {
                 })
             };
 
-            await POST({ request, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
+            await POST({ request, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         }
 
         // Optimization: Cache size should be capped at 50

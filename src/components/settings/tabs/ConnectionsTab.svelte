@@ -30,6 +30,24 @@
         showKeys[id] = !showKeys[id];
     }
 
+    // BUG-0052: self-service access token. POST /api/auth/token is
+    // deliberately unguarded — this is how a client gets its first token —
+    // so this is a plain fetch, not appFetch.
+    let tokenStatus: "idle" | "loading" | "error" = $state("idle");
+
+    async function createAccessToken() {
+        tokenStatus = "loading";
+        try {
+            const res = await fetch("/api/auth/token", { method: "POST" });
+            if (!res.ok) throw new Error("token request failed");
+            const data = await res.json();
+            settingsState.appAccessToken = data.token;
+            tokenStatus = "idle";
+        } catch {
+            tokenStatus = "error";
+        }
+    }
+
     // RSS Feed Management
     function togglePreset(id: string) {
         if (!settingsState.rssPresets) settingsState.rssPresets = [];
@@ -120,7 +138,7 @@
                                     type={showKeys["app_token"] ? "text" : "password"}
                                     bind:value={settingsState.appAccessToken}
                                     class="api-input pr-8"
-                                    placeholder="Enter token configured on server..."
+                                    placeholder={$_("settings.connections.placeholders.appAccessToken")}
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -130,6 +148,16 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
                             </div>
+                            <button
+                                class="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors disabled:opacity-50"
+                                onclick={createAccessToken}
+                                disabled={tokenStatus === "loading"}
+                            >
+                                {$_("settings.connections.createToken")}
+                            </button>
+                            {#if tokenStatus === "error"}
+                                <p class="text-xs text-[var(--danger-color)] mt-1">{$_("settings.connections.createTokenError")}</p>
+                            {/if}
                         </div>
                     </div>
                 </div>
@@ -395,19 +423,19 @@
 
                 <div class="api-card mb-6">
                     <div class="header">
-                        <span class="font-bold text-sm">Server Security</span>
+                        <span class="font-bold text-sm">{$_("settings.connections.serverSecurity")}</span>
                         <span class="status-dot {settingsState.appAccessToken ? "connected" : ""}"></span>
                     </div>
                     <div class="body">
                         <div class="field-group">
-                            <label for="app-access-token">{$_("settings.connections.appAccessToken")}</label>
+                            <label for="app-access-token-data">{$_("settings.connections.appAccessToken")}</label>
                             <div class="input-wrapper relative">
                                 <input
-                                    id="app-access-token"
+                                    id="app-access-token-data"
                                     type={showKeys["app_token"] ? "text" : "password"}
                                     bind:value={settingsState.appAccessToken}
                                     class="api-input pr-8"
-                                    placeholder="Enter token configured on server..."
+                                    placeholder={$_("settings.connections.placeholders.appAccessToken")}
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
@@ -417,6 +445,16 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
                             </div>
+                            <button
+                                class="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors disabled:opacity-50"
+                                onclick={createAccessToken}
+                                disabled={tokenStatus === "loading"}
+                            >
+                                {$_("settings.connections.createToken")}
+                            </button>
+                            {#if tokenStatus === "error"}
+                                <p class="text-xs text-[var(--danger-color)] mt-1">{$_("settings.connections.createTokenError")}</p>
+                            {/if}
                         </div>
                     </div>
                 </div>

@@ -22,15 +22,15 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
-import { checkAppAuth } from "../../../lib/server/auth";
+import { checkClientToken } from "../../../lib/server/clientToken";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
   // Wrap the entire parsing logic in try-catch to handle malformed JSON
   try {

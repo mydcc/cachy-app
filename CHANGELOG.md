@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.12](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.11...v1.2.0-beta.12) (2026-08-07)
+
+
+### Bug Fixes
+
+* replace shared APP_ACCESS_TOKEN with self-issued client tokens (BUG-0052) ([ffb6f6a](https://github.com/mydcc/cachy-app/commit/ffb6f6ab50beb1d5369d4b62e01ecc3ff96a4a0d))
+
 # [1.2.0-beta.11](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.10...v1.2.0-beta.11) (2026-08-07)
 
 

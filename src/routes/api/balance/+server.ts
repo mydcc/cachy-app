@@ -18,14 +18,14 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
-import { checkAppAuth } from "../../../lib/server/auth";
+import { checkClientToken } from "../../../lib/server/clientToken";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
