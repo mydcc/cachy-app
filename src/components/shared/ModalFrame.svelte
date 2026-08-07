@@ -25,10 +25,10 @@
 
   Both current callers (MarketDashboardModal, TpSlEditModal -- Academy moved
   to its own AcademyWindow in FEAT-0045) mount this component only while
-  their own `{#if}` guard is true and always pass `isOpen={true}` -- so in
-  practice "open" happens on mount and "close" happens on unmount, both
-  handled by the same $effect below. `isOpen` is still honored as a
-  reactive prop for robustness.
+  their own `{#if}` guard is true and always pass `isOpen={true}` -- so
+  mounting is effectively the open action and unmounting is the close
+  action, both handled by the same $effect below. `isOpen` is still honored
+  as a reactive prop for robustness.
 -->
 
 <script lang="ts">
