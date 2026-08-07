@@ -1,0 +1,6 @@
+docs: add in-depth analysis and risk report
+
+Generated an initial system analysis and risk report covering WebSocket memory
+leaks, strict data mapping needs, floating-point precision issues, and
+potential XSS vulnerabilities per the prompt's request for Step 1. Recreated
+render_build.sh to unblock CI with optional dependencies fix.

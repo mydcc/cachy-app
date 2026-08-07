@@ -1,2 +1,2 @@
 #!/bin/bash
-npm install && npm run build
+npm install --include=optional && npm run build
