@@ -2,7 +2,7 @@
 id: FEAT-0044
 title: Make ModalFrame an adapter over WindowFrame instead of a second implementation
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -61,19 +61,36 @@ flat constant.
 
 ## Acceptance criteria
 
-- [ ] `AcademyModal`, `MarketDashboardModal` and `TpSlEditModal` render with no
-      change to their own source
-- [ ] All three have a draggable title bar, a close button and working Escape
-- [ ] Escape closes the Academy, and the dead `windowManager.isOpen("academy")`
-      branch in `+page.svelte:203` is gone
-- [ ] Both the Academy and the Market Dashboard go edge-to-edge below 768px,
-      without either component asking for it
-- [ ] `modal-size-instructions` no longer controls mobile layout for anything
-      going through `ModalFrame`
-- [ ] Two maximized chart windows stack in focus order; a test asserts
-      `bringToFront()` changes which one is on top
-- [ ] A test covers restoring persisted state that contains a field the current
-      types no longer allow, as `WindowFrame.svelte:351-378` describes
+- [x] `AcademyModal`, `MarketDashboardModal` and `TpSlEditModal` render with no
+      change to their own source — verified by diff: none of the three files
+      were touched
+- [x] All three have a draggable title bar, a close button and working Escape
+      — inherited from `WindowFrame` automatically; verified live for Academy
+      and Market Dashboard via Playwright (drag, close button, Escape), and
+      by inspection for TpSlEditModal (identical `<ModalFrame>` usage, no
+      caller-specific styling that could interfere)
+- [x] Escape closes the Academy, and the dead `windowManager.isOpen("academy")`
+      branch in `+page.svelte:203` is gone — removed; Escape now goes through
+      `WindowManager`'s own `closeOnBlur` handling (`modal` type sets
+      `closeOnBlur: true`), verified via Playwright
+- [x] Both the Academy and the Market Dashboard go edge-to-edge below 768px,
+      without either component asking for it — `isResponsive`/
+      `edgeToEdgeBreakpoint: 768` moved onto the `modal` registry type;
+      verified live for Academy at a 390px viewport
+- [x] `modal-size-instructions` no longer controls mobile layout for anything
+      going through `ModalFrame` — its `@media (max-width: 768px)` block was
+      removed from `themes.css`; the desktop width/aspect-ratio rule is now
+      inert too (`ModalFrameWindow` computes the equivalent size in JS,
+      since `WindowFrame`'s inline `style:width`/`style:height` always win
+      over a class), kept non-destructively since `modalState`/`DialogWindow`
+      still references the class name (BUG-0010)
+- [x] Two maximized chart windows stack in focus order; a test asserts
+      `bringToFront()` changes which one is on top —
+      `WindowManager.test.ts`'s "bringToFront and maximized windows" block
+- [x] A test covers restoring persisted state that contains a field the current
+      types no longer allow, as `WindowFrame.svelte:351-378` describes —
+      `WindowBase.test.ts`'s "restoreState tolerates unknown persisted
+      fields" test
 
 ## Out of scope
 
@@ -89,8 +106,75 @@ not touched here; see [`BUG-0010`](../bugs/BUG-0010-modal-extraclasses-ignored.m
 
 ## Open questions
 
-Whether `TpSlEditModal` should stay `isResponsive`. It is a small editing form,
-and fullscreen-on-phone may be right for it or may be overkill.
+Whether `TpSlEditModal` should stay `isResponsive`. Resolved implicitly:
+`isResponsive`/`edgeToEdgeBreakpoint` live on the `modal` registry type, not
+per-instance, so all three callers get the same rule for consistency (the
+premise of ADR-0006 — responsive behaviour is a window-type property, not
+something each caller opts into separately). If TpSlEdit's small form turns
+out to feel wrong fullscreen on a phone, that's a follow-up bug against the
+`modal` type's config, not a reason to special-case one caller here.
+
+## Verification
+
+Backing implementation: `src/lib/windows/implementations/ModalFrameWindow.svelte.ts`
+(new `WindowBase` subclass) and `src/components/shared/windows/ModalFrameContent.svelte`
+(new content view, deliberately no independent scroll container — `WindowFrame`'s
+own `.window-content` is the single scroll boundary, avoiding a BUG-0047-style
+nested-overflow bug). `ModalFrame.svelte` itself shrank to a lifecycle
+coordinator: an `$effect` opens/closes a `ModalFrameWindow` in step with
+`isOpen` (in practice, mount/unmount, since all three callers wrap `ModalFrame`
+in their own `{#if}` and always pass `isOpen={true}`), plus two small sync
+effects for `title` and the `burnModals` setting (the only reachable branch of
+the old title-matching burn config — journal/settings/guide already route
+through their own window types and never rendered through `ModalFrame`, per
+BUG-0051's findings).
+
+New supporting infrastructure, all in `WindowBase`: `maximizedZIndex` +
+`refreshMaximizedZIndex()` (maximized windows now stack independently of the
+flat `!important` z-index `WindowFrame.svelte`'s CSS used to force),
+`showBackdrop` (read by `WindowContainer` to render a dimming layer behind
+backdrop windows), `resolveDoubleClickAction()` (de-duplicates identical
+double-click-resolution logic that existed twice in `WindowFrame.svelte`),
+and a new `extraClasses` field so a window can carry a caller-specific CSS
+class through to its `WindowFrame` render (`WindowContainer` forwards it
+generically for both the floating and dock layers). `WindowManager` gained a
+global Escape listener that closes the topmost `closeOnBlur` window.
+
+A real regression was caught and fixed before this could ship: the window's
+opening `$effect` originally called `windowManager.open(win)` without
+`untrack()`. `open()` → `bringToFront()` reads the shared `windowManager`
+`$state` window list internally, and without `untrack` that read was recorded
+as a dependency of the *opening effect itself* — every subsequent mutation of
+that shared array (including the window's own registration moments earlier)
+rescheduled the effect, which tore the window down and recreated it in an
+immediate loop. Symptom: the window would flash into existence and
+self-close before any observer (Playwright, a screenshot, a human) could see
+it — `windowManager.windows.length` was reliably `0` a tick later, even
+though `open()` visibly ran. Root-caused by tracing `WindowManager.close()`'s
+call stack (`update_effect` → `execute_effect_teardown`, proving the *same*
+effect was re-running, not a real unmount) back to the untracked read. Fixed
+by wrapping window construction and `windowManager.open()` in `untrack()`,
+leaving `isOpen` as the effect's only real dependency.
+
+`npm run check` and `npm test` are green (947 passed, 6 skipped, no
+regressions; 17 new tests: `resolveDoubleClickAction()`, `maximizedZIndex`/
+`refreshMaximizedZIndex()`, `showBackdrop`, the Escape mechanism, `bringToFront`
+reordering two maximized windows, and the legacy-persisted-field tolerance
+test). Verified end-to-end against the dev server with Playwright: Academy
+renders with a title bar, closes via its close button and via Escape,
+re-opens, is draggable, keeps its 80vw/1320px-cap/3:2-aspect desktop sizing,
+shows a dimming backdrop, and goes edge-to-edge at a 390px viewport with its
+close button still reachable; Market Dashboard renders at the registry's
+default 800×600; two `ChartWindow` instances maximized back-to-back stack in
+open order and `bringToFront()` demonstrably reorders them. TpSlEditModal
+was not separately driven through the UI (it requires an open position/order
+to reach) but uses `<ModalFrame>` identically to the other two with no
+caller-specific styling, so it shares the same verified code path.
+
+No automated component-rendering test exists for the DOM-level assertions
+above (no harness in this repo — `FEAT-0050`), so the Playwright pass above
+is the only evidence for those; everything else (the z-index/backdrop/
+Escape/legacy-field logic itself) is covered by the new unit tests.
 
 ## Links
 

@@ -79,7 +79,7 @@
   <div class="relative w-full flex justify-center">
     <button
       class="control-btn"
-      onclick={() => uiState.toggleAcademyModal(true)}
+      onclick={() => windowManager.openAcademy()}
       title={$_("academy.title") || "Trading Academy"}
       use:trackClick={{
         category: "Navigation",

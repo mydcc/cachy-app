@@ -278,26 +278,24 @@ lint-pass finding rather than fixed inline because it adds a new rejection
 branch to a live external-AI call path, which needs its own test rather
 than a drive-by change.
 
-## 8. `src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable
+## 8. ~~`src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable~~ — resolved: deleted
 
 **Roadmap item 21.** Found while typing this file's `any` casts during a
 lint pass — the same shape of finding as item 5
 (`WasmTechnicalsCalculator.ts`).
 
-Nothing in `src/` imports or instantiates `ContentWindow` — a `grep -rl
-"ContentWindow" src` turns up only its own file. It's a small, generic
+Nothing in `src/` imported or instantiated `ContentWindow` — a `grep -rl
+"ContentWindow" src` turned up only its own file. It was a small, generic
 "wrap any Svelte component in a window" class (`component`, `title`,
-`options.props`), structurally similar to `ModalWindow` and `IframeWindow`,
-both of which *do* have real callers via `windowManager.openModal()` /
-`.openIframe()`. `ContentWindow` has no equivalent `windowManager` method
-and no direct construction site anywhere.
+`options.props`), structurally identical to `ModalWindow` except for a fixed
+`windowType: 'window'` and forwarding `options.props` into `componentProps`
+(`ModalWindow` doesn't forward props at all). Since it had zero callers,
+that difference was never exercised either.
 
-**The decision:** either wire it up (a `windowManager.openContent()` or
-similar, if the generic-component-window capability is still wanted), or
-delete it if `ModalWindow`/`IframeWindow` already cover every case it was
-meant for. Left in place and merely typed here per this repo's
-defensive-deletion rule: code whose purpose isn't fully clear doesn't get
-deleted without a person confirming it's safe to.
+**Resolved by [`FEAT-0045`](backlog/features/FEAT-0045-academy-as-window-type.md):**
+deleted. `ModalWindow`/`IframeWindow` already cover every case it was meant
+for — the props-forwarding gap only mattered if something needed it, and
+nothing ever did, in the whole time it existed unreferenced.
 
 ## 9. `src/utils/wasmTechnicals.ts` appears to be unreachable
 
@@ -877,3 +875,28 @@ bisect is possible. That has to happen on a full clone.
    costs nothing to rule out.
 3. Verify on a real device and record which device and launcher — nothing here
    can be confirmed from a terminal.
+
+## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
+
+**FEAT-0050.** Found while writing the "every `WindowType` union member has a
+registry config" test — `iframe` had none (`getConfig()` silently fell back
+to `window`'s defaults), the same shape of gap `chatpanel` was before
+FEAT-0045 removed it. Fixed the immediate gap by adding a registry entry
+(`WindowRegistry.svelte.ts`), but that only makes the fallback correct, not
+the type reachable.
+
+`grep -rn "openIframe\|new IframeWindow" src` (excluding
+`IframeWindow.svelte.ts`'s own definition) turns up only `WindowManager`'s
+own `openIframe()` method and the `'iframe'` case in `createFromData()`
+(session rehydration) — no UI ever calls `openIframe()`. The component that
+looks like it should, `FloatingIframeButton.svelte`, opens `ChannelWindow`
+instances instead, not `IframeWindow`. Since nothing ever constructs an
+`IframeWindow`, no session could ever contain one to rehydrate either, so
+`createFromData()`'s `'iframe'` branch is unreachable too.
+
+**The decision:** same shape as items 5/8/9/11/17 — either wire a real
+caller to `openIframe()` (if generic externally-hosted iframe embedding,
+distinct from `ChannelWindow`'s more specific use, is still wanted), or
+remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
+`createFromData()` case if `ChannelWindow` already covers every case this was
+meant for. Left in place per this repo's defensive-deletion rule.

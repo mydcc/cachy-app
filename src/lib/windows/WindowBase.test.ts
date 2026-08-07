@@ -191,6 +191,247 @@ describe("WindowBase.handleViewportResize (BUG-0043)", () => {
     });
 });
 
+describe("WindowBase.resolveDoubleClickAction (FEAT-0044)", () => {
+    it("returns 'maximize' when doubleClickBehavior is 'maximize' and maximizing is allowed", () => {
+        const win = makeTestWindow();
+        win.doubleClickBehavior = "maximize";
+        win.allowMaximize = true;
+        expect(win.resolveDoubleClickAction()).toBe("maximize");
+    });
+
+    it("returns null for 'maximize' when maximizing is disallowed", () => {
+        const win = makeTestWindow();
+        win.doubleClickBehavior = "maximize";
+        win.allowMaximize = false;
+        expect(win.resolveDoubleClickAction()).toBeNull();
+    });
+
+    it("returns 'pin' when doubleClickBehavior is 'pin'", () => {
+        const win = makeTestWindow();
+        win.doubleClickBehavior = "pin";
+        expect(win.resolveDoubleClickAction()).toBe("pin");
+    });
+
+    it("returns 'minimize' for a legacy persisted 'minimize' value when minimizing is allowed", () => {
+        const win = makeTestWindow();
+        // The type narrowed to 'maximize' | 'pin' after this value could
+        // already have been written to localStorage by an older session --
+        // cast past the narrowed type the same way restoreState() would
+        // read it back from JSON.
+        win.doubleClickBehavior = "minimize" as "maximize" | "pin";
+        win.allowMinimize = true;
+        expect(win.resolveDoubleClickAction()).toBe("minimize");
+    });
+
+    it("returns null for a legacy 'minimize' value when minimizing is disallowed", () => {
+        const win = makeTestWindow();
+        win.doubleClickBehavior = "minimize" as "maximize" | "pin";
+        win.allowMinimize = false;
+        expect(win.resolveDoubleClickAction()).toBeNull();
+    });
+});
+
+describe("WindowBase maximizedZIndex (FEAT-0044)", () => {
+    it("advances maximizedZIndex above the windowMax base on maximize()", () => {
+        const win = makeTestWindow();
+        const before = win.maximizedZIndex;
+        win.maximize();
+        expect(win.maximizedZIndex).toBeGreaterThan(before - 1);
+        expect(win.maximizedZIndex).toBeGreaterThanOrEqual(1_020_000);
+    });
+
+    it("gives a later-maximized window a higher maximizedZIndex than an earlier one", () => {
+        const winA = makeTestWindow();
+        const winB = makeTestWindow();
+
+        winA.maximize();
+        winB.maximize();
+
+        expect(winB.maximizedZIndex).toBeGreaterThan(winA.maximizedZIndex);
+    });
+
+    it("bumps maximizedZIndex above a sibling's when refreshed again", () => {
+        const winA = makeTestWindow();
+        const winB = makeTestWindow();
+
+        winA.maximize();
+        winB.maximize();
+        expect(winB.maximizedZIndex).toBeGreaterThan(winA.maximizedZIndex);
+
+        // Simulates re-focusing the already-maximized winA -- without a
+        // fresh refresh it would remain stuck behind winB.
+        winA.refreshMaximizedZIndex();
+        expect(winA.maximizedZIndex).toBeGreaterThan(winB.maximizedZIndex);
+    });
+});
+
+describe("WindowBase.restoreState tolerates unknown persisted fields (FEAT-0044)", () => {
+    it("restores known fields and ignores a field the current type no longer allows", () => {
+        const id = `test-window-legacy-${nextTestId++}`;
+        localStorage.setItem(
+            `cachy_win_${id}`,
+            JSON.stringify({
+                x: 42,
+                y: 24,
+                width: 500,
+                height: 400,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: false,
+                pinSide: "none",
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "BTCUSDT",
+                // Simulates a field a past schema persisted that the
+                // current WindowSerializedState/persistedSnapshot shape no
+                // longer has any concept of -- restoreState() must not
+                // throw or otherwise choke on it.
+                legacyBurnLayer: "modals",
+            }),
+        );
+
+        const win = new TestWindow({ id });
+
+        expect(win.x).toBe(42);
+        expect(win.y).toBe(24);
+        expect(win.width).toBe(500);
+        expect(win.symbol).toBe("BTCUSDT");
+    });
+});
+
+describe("WindowBase.showBackdrop (FEAT-0044)", () => {
+    it("defaults to false for a window type with no showBackdrop flag", () => {
+        const win = makeTestWindow();
+        expect(win.showBackdrop).toBe(false);
+    });
+});
+
+describe("WindowBase.updatePosition viewport clamping (FEAT-0050)", () => {
+    beforeEach(() => {
+        setViewportWidth(1200);
+        Object.defineProperty(window, "innerHeight", {
+            value: 900,
+            writable: true,
+            configurable: true,
+        });
+    });
+
+    afterEach(() => {
+        setViewportWidth(1200);
+    });
+
+    it("clamps the left edge: at least 38% of the window stays on screen", () => {
+        const win = makeTestWindow();
+        win.width = 400;
+        win.updatePosition(-10000, 100);
+        // minX = -(width - width*0.38) = -(400 - 152) = -248
+        expect(win.x).toBe(-248);
+    });
+
+    it("clamps the right edge: at least 38% of the window stays on screen", () => {
+        const win = makeTestWindow();
+        win.width = 400;
+        win.updatePosition(10000, 100);
+        // maxX = screenWidth - width*0.38 = 1200 - 152 = 1048
+        expect(win.x).toBe(1048);
+    });
+
+    it("clamps the top edge: the header (y) never goes negative", () => {
+        const win = makeTestWindow();
+        win.updatePosition(100, -500);
+        expect(win.y).toBe(0);
+    });
+
+    it("clamps the bottom edge: at least 38% of the window stays on screen", () => {
+        const win = makeTestWindow();
+        win.height = 300;
+        win.updatePosition(100, 10000);
+        // maxY = screenHeight - height*0.38 = 900 - 114 = 786
+        expect(win.y).toBe(786);
+    });
+
+    it("does not move a maximized window", () => {
+        const win = makeTestWindow();
+        win.maximize();
+        const { x, y } = win;
+        win.updatePosition(9999, 9999);
+        expect(win.x).toBe(x);
+        expect(win.y).toBe(y);
+    });
+});
+
+describe("WindowBase.updateSize (FEAT-0050)", () => {
+    it("clamps width below minWidth up to minWidth", () => {
+        const win = makeTestWindow();
+        win.minWidth = 200;
+        win.updateSize(50, 400);
+        expect(win.width).toBe(200);
+    });
+
+    it("clamps height below minHeight up to minHeight", () => {
+        const win = makeTestWindow();
+        win.minHeight = 150;
+        win.updateSize(400, 50);
+        expect(win.height).toBe(150);
+    });
+
+    it("derives height from width and aspectRatio when one is set", () => {
+        const win = makeTestWindow();
+        win.aspectRatio = 2; // 2:1
+        win.updateSize(800, 999 /* ignored -- aspectRatio drives height */);
+        // height = round(width / ratio) + HEADER_HEIGHT(41)
+        expect(win.width).toBe(800);
+        expect(win.height).toBe(Math.round(800 / 2) + 41);
+    });
+
+    it("does not resize a maximized window", () => {
+        const win = makeTestWindow();
+        win.maximize();
+        const { width, height } = win;
+        win.updateSize(999, 999);
+        expect(win.width).toBe(width);
+        expect(win.height).toBe(height);
+    });
+});
+
+describe("WindowBase construction ordering: restoreState before updateResponsiveState (FEAT-0050)", () => {
+    afterEach(() => {
+        setViewportWidth(1200);
+    });
+
+    it("lets the responsive rule override a persisted non-maximized state on a small viewport", () => {
+        // This exercises the real constructor order end to end -- 'modal'
+        // is isResponsive/edgeToEdgeBreakpoint: 768 by registry default
+        // (WindowRegistry.svelte.ts), so unlike makeResponsiveWindow() this
+        // doesn't need to toggle isResponsive after the fact. If
+        // updateResponsiveState() ran before restoreState() (the reverse of
+        // the actual order in WindowBase's constructor), the persisted
+        // isMaximized: false read by restoreState() would be the last write
+        // and the window would incorrectly end up not maximized despite the
+        // small viewport -- BUG-0043's whole fix depends on restoreState()
+        // running first.
+        const id = `ordering-test-${nextTestId++}`;
+        localStorage.setItem(
+            `cachy_win_${id}`,
+            JSON.stringify({
+                x: 100,
+                y: 100,
+                width: 400,
+                height: 300,
+                isMaximized: false,
+                isMinimized: false,
+            }),
+        );
+
+        setViewportWidth(400);
+        const win = new TestWindow({ id, windowType: "modal" });
+
+        expect(win.isMaximized).toBe(true);
+    });
+});
+
 describe("WindowBase construction does not register a per-instance resize listener (BUG-0043)", () => {
     it("adds no 'resize' listener when a window is constructed", () => {
         const addEventListenerSpy = vi.spyOn(window, "addEventListener");

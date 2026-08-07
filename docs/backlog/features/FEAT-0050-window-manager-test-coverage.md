@@ -2,7 +2,7 @@
 id: FEAT-0050
 title: Put tests under the window manager before more surfaces depend on it
 type: feature
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -65,13 +65,33 @@ page did not scroll and the window followed.
 
 ## Acceptance criteria
 
-- [ ] Test files exist beside `WindowManager`, `WindowBase` and `WindowRegistry`
-- [ ] Each invariant listed above has a test that fails if the invariant is
-      removed — verified by removing it, not by assuming
-- [ ] A registry test fails today because of `chatpanel`, or `chatpanel` is gone
-      per [`FEAT-0045`](FEAT-0045-academy-as-window-type.md)
-- [ ] A Playwright case covers header drag in a mobile viewport
-- [ ] `npm test` and `npm run check` are clean
+- [x] Test files exist beside `WindowManager`, `WindowBase` and `WindowRegistry`
+      — `WindowRegistry.test.ts` is new; the other two already existed from
+      earlier items in this batch and gained the invariants below
+- [x] Each invariant listed above has a test that fails if the invariant is
+      removed — verified by removing it, not by assuming. One genuinely did:
+      the "capacity limit does not evict a focused window" test failed
+      against the *actual* code (`open()`'s eviction picked
+      `activeWindows[0]` by array position, not focus state), so a real
+      window could be silently closed out from under a user who had it in
+      front. Fixed in `WindowManager.svelte.ts` alongside the test, not just
+      documented as a known gap
+- [x] A registry test fails today because of `chatpanel`, or `chatpanel` is gone
+      per [`FEAT-0045`](FEAT-0045-academy-as-window-type.md) — gone. The new
+      registry test caught a live descendant of the same gap anyway:
+      `iframe` had no config either (`getConfig()` was silently falling back
+      to `window`'s defaults) — fixed with a real registry entry. Investigating
+      that surfaced `IframeWindow`/`openIframe()` itself is apparently
+      unreachable from any current UI (`FloatingIframeButton.svelte` uses
+      `ChannelWindow` instead) -- recorded as `docs/TODO.md` item 25, the
+      same "found it, didn't decide its fate" shape as items 5/8/9/11/17,
+      since deciding that is a product call FEAT-0050 wasn't scoped to make
+- [x] A Playwright case covers header drag in a mobile viewport --
+      `tests/e2e/window-drag-mobile.spec.ts`, verified passing locally
+      (`npx playwright test tests/e2e/window-drag-mobile.spec.ts`); not part
+      of CI today (no workflow runs Playwright at all currently -- a
+      pre-existing gap, out of this item's scope)
+- [x] `npm test` and `npm run check` are clean
 
 ## Out of scope
 
@@ -85,8 +105,28 @@ whether the drag and resize handlers should be extracted into a testable module
 first. Worth deciding before writing the Playwright case, since extraction would
 move most of that coverage into unit tests.
 
+Resolved: no extraction. The Playwright case covers the drag path exactly as
+proposed above, end to end through real pointer events -- which is the actual
+behavior that matters (BUG-0042 was a touch-input defect, not a unit-testable
+formula), and extraction for its own sake wasn't needed to get there.
+
+## Verification
+
+`npm run check` and `npm test` are green (978 passed, 6 skipped, no
+regressions; 22 new unit tests across `WindowManager.test.ts` (capacity
+eviction incl. the fix above, z-index layer bounds, `isOpen`, `saveSession`
+debounce), `WindowBase.test.ts` (viewport clamping per edge, `updateSize`
+bounds/aspect-ratio, the restoreState-before-updateResponsiveState ordering),
+and the new `WindowRegistry.test.ts`), plus the new Playwright mobile-drag
+spec (verified passing locally; not wired into CI, since no Playwright job
+exists in this repo's CI yet).
+
 ## Links
 
 - [`ADR-0006`](../../adr/0006-one-window-stacking-authority.md) — "What this costs"
-- `src/lib/windows/`, `src/components/shared/windows/`
+- `src/lib/windows/WindowManager.test.ts`, `WindowBase.test.ts`,
+  `WindowRegistry.test.ts` (new)
+- `tests/e2e/window-drag-mobile.spec.ts` (new)
+- `docs/TODO.md` item 25 — `IframeWindow`/`openIframe()` unreachability,
+  found while writing the registry completeness test
 - `src/stores/quiz.test.ts` for the house style

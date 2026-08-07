@@ -23,6 +23,7 @@
 import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
+import { Z_LAYERS } from "./zLayers";
 
 /** A custom control rendered in the window header (e.g. a timeframe picker). */
 export interface HeaderControl {
@@ -73,6 +74,16 @@ export abstract class WindowBase {
 
     // --- STATE RUNES ---
     isMaximized = $state(false);
+    /**
+     * Effective z-index while maximized. `.window-frame.maximized`'s CSS
+     * used to force a flat constant via `!important`, which meant
+     * `bringToFront()` had no way to reorder two maximized windows (FEAT-0044)
+     * -- `zIndex` kept updating but the CSS override ignored it. This field
+     * is what WindowFrame actually binds to while maximized; refreshed by
+     * refreshMaximizedZIndex() from a counter shared across all windows via
+     * the static field below, so relative order is preserved.
+     */
+    maximizedZIndex = $state<number>(Z_LAYERS.windowMax);
     isMinimized = $state(false);
     isResizable = $state(true);
     isDraggable = $state(true);
@@ -129,12 +140,19 @@ export abstract class WindowBase {
     enableGlassmorphism = $state(true);
     enableBurningBorders = $state(true);
     opacity = $state(1.0);
-    /** Close when clicking anywhere else in the app. */
+    /** Close when clicking anywhere else in the app, or on Escape. */
     closeOnBlur = $state(false);
+    /** Renders a dimming backdrop behind this window while it's open. */
+    showBackdrop = $state(false);
     /** Specifically for financial windows (Asset price). */
     symbol = $state("");
     showPriceInTitle = $state(false);
     currentPrice = $state("");
+    /** Extra CSS classes for the root .window-frame element (e.g. a
+     * caller-specific desktop size preset). Read by WindowContainer and
+     * forwarded to every WindowFrame render, not registry-driven since it
+     * varies per instance rather than per type. */
+    extraClasses = $state("");
 
     // --- UTILITY/FEATURE STATE ---
     fontSize = $state(14);
@@ -149,6 +167,28 @@ export abstract class WindowBase {
 
     /** Global counter to stagger new windows. */
     static staggerCount = 0;
+    /**
+     * Shared across every WindowBase instance so relative focus order among
+     * maximized windows survives regardless of which instance last called
+     * refreshMaximizedZIndex() -- see maximizedZIndex above. Bounded well
+     * inside the --z-window-max..--z-modal gap (FEAT-0041's layer contract)
+     * so it can never grow into the next layer.
+     */
+    private static nextMaximizedOffset = 0;
+    private static readonly MAX_MAXIMIZED_OFFSET = 9000;
+
+    /**
+     * Bumps this window to the front of the maximized-window stacking order.
+     * Called when a window maximizes and again whenever an already-maximized
+     * window is focused, so bringToFront() has an effect on maximized
+     * windows too (FEAT-0044).
+     */
+    refreshMaximizedZIndex() {
+        WindowBase.nextMaximizedOffset =
+            (WindowBase.nextMaximizedOffset + 1) % WindowBase.MAX_MAXIMIZED_OFFSET;
+        this.maximizedZIndex = Z_LAYERS.windowMax + WindowBase.nextMaximizedOffset;
+    }
+
     /** Tracks if the current maximization was forced by responsive rules. */
     private _wasResponsiveMaximized = false;
     /**
@@ -390,6 +430,7 @@ export abstract class WindowBase {
         this.closeOnBlur = f.closeOnBlur ?? this.closeOnBlur;
         this.autoScaling = f.autoScaling ?? false;
         this.showRightScale = f.showRightScale ?? false;
+        this.showBackdrop = f.showBackdrop ?? false;
 
         this.headerAction = f.headerAction ?? 'none';
         this.headerButtons = f.headerButtons ?? [];
@@ -499,6 +540,7 @@ export abstract class WindowBase {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
         this.isMaximized = true;
+        this.refreshMaximizedZIndex();
     }
 
     /**
@@ -553,6 +595,25 @@ export abstract class WindowBase {
             this.isMaximized = false;
         }
         this.saveState();
+    }
+
+    /**
+     * Resolves what a header double-click should do while the window is not
+     * minimized (minimizing/restoring a minimized window is a separate,
+     * unconditional action the caller handles directly). Factored out of
+     * WindowFrame.svelte, which previously duplicated this exact three-way
+     * check in two separate double-click handlers.
+     *
+     * Widened to accept a persisted `doubleClickBehavior` of `'minimize'`:
+     * the type narrowed to `'maximize' | 'pin'` after that value could
+     * already have been written, so a window restored from state saved
+     * before the narrowing can still carry it.
+     */
+    resolveDoubleClickAction(): 'maximize' | 'pin' | 'minimize' | null {
+        if (this.doubleClickBehavior === 'maximize' && this.allowMaximize) return 'maximize';
+        if (this.doubleClickBehavior === 'pin') return 'pin';
+        if (this.allowMinimize && (this.doubleClickBehavior as string) === 'minimize') return 'minimize';
+        return null;
     }
 
     // --- INTERACTION HOOKS (TO BE OVERRIDDEN BY SUBCLASSES) ---
