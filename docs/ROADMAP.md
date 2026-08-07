@@ -50,12 +50,10 @@ known-good line to measure everything else against.
 | [BUG-0006](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) | P2 | Sentiment response trusted without validation |
 | [TODO 1](TODO.md) | P0 | Rotate the shared imgbb key and decide whether it stays |
 
-[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) is done —
-the eviction rule is chosen and enforced, with tests.
-
-**One item still needs a decision before it can start.**
-[BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md) needs the
-string-versus-number question settled one way or the other.
+[BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md) and
+[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) are both
+done — the string-versus-number question and the eviction rule are each
+decided and enforced, with tests.
 
 **Exit:** no open P0, the money-affecting defects fixed or accepted in writing,
 `npm run check` clean, suite green, `npx eslint .` clean.
