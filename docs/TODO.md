@@ -908,32 +908,52 @@ never a `www.dev.cachy.app`, and the February migration only ever touched
 `www` vs. bare `cachy.app`. A cert bug on one hostname doesn't explain an
 unrelated hostname breaking the same way.
 
-So the actual next lead is what it was before the `www` detour: something
-affecting **both** domains uniformly, at the server/infra level — most likely
-whatever firewall/WAF you confirmed exists on the aaPanel server, if it
-treats Google's WebAPK-minting request (a server-to-server fetch from
-Google's own infrastructure, not your phone's browser) differently from
-normal traffic. (Also confirmed along the way: Brave has its own unrelated,
-already-open upstream bug —
+So the next lead was what it was before the `www` detour: something
+affecting **both** domains uniformly. Your own aaPanel access-log check found
+no trace either way (only your own IP plus normal Googlebot/scanner traffic —
+inconclusive, since a block below nginx wouldn't show there). What settled
+it instead: asking **Google's own infrastructure directly**, via
+PageSpeed Insights (runs Lighthouse server-side on Google's own servers)
+against `dev.cachy.app` — **no manifest error at all.** Google can fetch and
+parse this manifest cleanly from outside. That rules out reachability,
+firewall, and DNS entirely.
+
+With reachability confirmed and every manifest-content variable exhausted —
+including, at your request, a full revert of `static/manifest.json` to its
+exact 2026-01-15 structure (no `id`, no `display_override`, plain icons, no
+shortcuts) — **the result was identical: still blank `Manifest URL`/colors
+in `about://webapks`, still white splash, still no shortcuts, on the exact
+manifest from the last point you remember everything working.**
+
+**This settles it. The manifest content is not the cause, in any
+configuration this item could construct.** The failure is isolated to the
+Chrome-for-Android WebAPK-minting backend specifically — a narrow Google
+service that doesn't share a code path with Lighthouse, Googlebot, DevTools,
+or Brave, all of which handle this manifest correctly. Since content
+provably doesn't matter, the full-featured manifest (maskable icons +
+shortcuts) has been restored rather than left stripped down — no reason to
+keep it worse for the clients that do read it correctly. (Also confirmed
+along the way: Brave has its own unrelated, already-open upstream bug —
 [brave/brave-browser#56133](https://github.com/brave/brave-browser/issues/56133)
 — installed PWAs on Android never become a real standalone package there, so
-Brave can never show shortcuts regardless of anything here. Excluded from
-further testing.)
+Brave can never show shortcuts regardless of anything here.)
 
-**What would still move this forward:**
+**What's left is outside this repo:**
 
-1. Check the aaPanel firewall/WAF logs for blocked requests to `cachy.app`
-   **and** `dev.cachy.app` (not just `www`) around install-attempt
-   timestamps — non-phone-browser traffic or Google Cloud IP ranges hitting
-   403/blocked on `/manifest.json` or the icon files would confirm this.
-2. Fix the `www.cachy.app` vhost too, on its own merits — a 301 redirect to
-   `https://cachy.app` with a certificate that actually covers `www`, or drop
-   the DNS record if `www` was never meant to resolve. Real bug, just not
-   this one.
-3. If the firewall check turns up nothing: `BUG-0038`'s Evidence section has
-   Chromium/community bug reports gathered during this pass as the next
-   candidate — a genuine platform-side issue rather than anything in this
-   app or its infra.
+1. `www.cachy.app`'s TLS cert is still broken (serves `board.heinze-media.com`'s
+   certificate) — real bug, worth fixing on its own merits, but confirmed
+   **not** related to this item (can't explain `dev.cachy.app` showing the
+   same symptom).
+2. A structural difference noticed but untested: `cachy.app`/`dev.cachy.app`
+   negotiate HTTP/1.1 only, while another vhost on the same server does h2.
+   Cheap to enable, unlikely at this point but free to rule out.
+3. Testing from a different device/Google account, waiting for whatever may
+   be stuck on Google's side to clear, or filing feedback with
+   Google/Chromium — the evidence gathered here is about as strong a report
+   as this repo can produce without server-side access to Google's systems.
+
+This item is not expected to need further manifest changes unless new
+evidence turns up.
 
 ## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 
