@@ -22,7 +22,7 @@ analysis stays here as the single source:
 | 7 — sentiment validation | [`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) |
 | 10 — SymbolPicker `null` | [`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md) |
 | 12 — legacy AES-CBC blobs | [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
-| 14 — order-map eviction | [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
+| 14 — order-map eviction | Resolved: [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
 | 15 — `extraClasses` ignored | [`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) |
 | 18 — broader SpacetimeDB use | Decided: [ADR-0004](adr/0004-spacetimedb-data-scope.md) |
 | 21, 22 — whitepaper phases 2 and 3 | Answered by [`MILESTONES.md`](MILESTONES.md); see the note on each |
@@ -473,9 +473,13 @@ every user's PWA install, which needs deliberate design and testing
 100th write evict silently or reject?), not a guess made while
 clearing an unused-variable warning.
 
-## 14. `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
+## 14. ✅ `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
 
-**Roadmap item 21.** Found while tracing an unused `PRESERVE_LATEST`
+**Roadmap item 21.** **RESOLVED** (commit `4ad0348`, PR #1605). Tracked as
+[`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md), which
+has the chosen rule and the tests that prove it.
+
+Found while tracing an unused `PRESERVE_LATEST`
 constant flagged by a lint pass.
 
 `omsService.ts`'s `pruneOrders(forceOne = false)` has two steps once

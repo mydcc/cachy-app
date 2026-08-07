@@ -50,10 +50,10 @@ known-good line to measure everything else against.
 | [BUG-0006](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) | P2 | Sentiment response trusted without validation |
 | [TODO 1](TODO.md) | P0 | Rotate the shared imgbb key and decide whether it stays |
 
-**Two items need a decision before they can start.**
-[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) needs the
-eviction rule chosen — the code's comments do not determine it, and guessing at
-an eviction rule for live order state is worse than the current gap.
+[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) is done —
+the eviction rule is chosen and enforced, with tests.
+
+**One item still needs a decision before it can start.**
 [BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md) needs the
 string-versus-number question settled one way or the other.
 
