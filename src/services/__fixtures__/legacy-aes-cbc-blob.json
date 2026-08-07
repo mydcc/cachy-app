@@ -1,0 +1,11 @@
+{
+  "description": "Fixture for BUG-0004: a pre-Web-Crypto-rewrite AES-CBC credential blob, encrypted at the oldest legacy PBKDF2 parameters (LEGACY_ITERATIONS = 10000, SHA-1) that the original CryptoJS implementation's fallback chain used, per docs/TODO.md item 12. Generated once with crypto.subtle directly (see PR description), not with cryptoService.encrypt(), which has never produced AES-CBC.",
+  "password": "correct horse battery staple",
+  "plaintext": "{\"apiKey\":\"legacy-api-key-123\",\"apiSecret\":\"legacy-secret-456\"}",
+  "blob": {
+    "ciphertext": "d1JY5yDUWW/0SYggPVoflBXmGuYBqmeHdKs+DuUQpIL3Y3M3VlXMTabWdpF+ylFOpsWcfbFRF4109OPA/QGmfA==",
+    "iv": "1nzS9P6i4vulwt8wcdc+xw==",
+    "salt": "eVaInQKGSLHlS3Y6Bn2TDw==",
+    "method": "AES-CBC"
+  }
+}

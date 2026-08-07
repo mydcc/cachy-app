@@ -2,7 +2,7 @@
 id: BUG-0004
 title: Legacy AES-CBC credential blobs may decrypt to silent garbage
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M0
 editions: [community, pro, private]
@@ -51,16 +51,54 @@ legacy blob, not a guess at the missing fallback's shape.
 
 ## Acceptance criteria
 
-- [ ] A fixture blob is produced at the legacy parameters and committed as test
+- [x] A fixture blob is produced at the legacy parameters and committed as test
       data
-- [ ] A test decrypts it and fails against the current implementation
-- [ ] The fix makes it pass, and AES-GCM blobs are unaffected
-- [ ] Garbage output is detectable rather than silently returned — decide and
+- [x] A test decrypts it and fails against the current implementation
+- [x] The fix makes it pass, and AES-GCM blobs are unaffected
+- [x] Garbage output is detectable rather than silently returned — decide and
       implement a plaintext sanity check for the CBC path
-- [ ] If the alternative is chosen instead, this item records the evidence that
-      no legacy blob remains, and both constants are removed
+- [ ] ~~If the alternative is chosen instead, this item records the evidence
+      that no legacy blob remains, and both constants are removed~~ — not
+      taken; the retry was restored instead
+
+## Resolution
+
+Restored the `LEGACY_ITERATIONS` retry that commit `560a15c7` dropped.
+`attemptDecrypt()` now takes an `iterations` parameter (default
+`STRONG_ITERATIONS`), and `decrypt()`'s `AES-CBC` branch loops through the
+same three PBKDF2 configurations the old CryptoJS implementation tried, in
+the same order: `{STRONG_ITERATIONS, SHA-256}` → `{STRONG_ITERATIONS,
+SHA-1}` → `{LEGACY_ITERATIONS, SHA-1}`, returning on the first one that
+succeeds.
+
+Also closed the silent-garbage gap named in the acceptance criteria:
+`attemptDecrypt()` decodes the decrypted buffer with `new
+TextDecoder("utf-8", { fatal: true })` and rethrows as an `OperationError`
+on failure. AES-CBC's PKCS7 padding check alone lets roughly 1 in 256 wrong
+keys through undetected; every plaintext this service ever produces is
+`TextEncoder`-encoded UTF-8, so a fatal decode catches that remainder
+without needing to know anything about the plaintext's shape (JSON vs. a
+raw string).
+
+Fixture: `src/services/__fixtures__/legacy-aes-cbc-blob.json`, a blob
+encrypted directly with `crypto.subtle` at `LEGACY_ITERATIONS` (10000) and
+SHA-1 — the oldest configuration the pre-rewrite fallback chain used, and
+the one most likely to still be silently mis-decrypted. Verified by
+`src/services/cryptoService.test.ts` ("legacy AES-CBC blobs (BUG-0004)"):
+one test decrypts the fixture and asserts the exact plaintext, one asserts
+a wrong password on the same blob throws rather than resolving, one
+round-trips an `AES-GCM` blob through the same password-based path to show
+it's unaffected, and one mocks `subtle.decrypt` to return non-UTF-8 bytes
+to exercise the sanity check directly, independent of AES padding luck.
+Confirmed the first two tests fail against the pre-fix code (`bad decrypt`
+and a silently-resolved `'����'` respectively) before
+applying the fix. `npm run check` and the full `cryptoService`/
+`backupService`/`settings.security` test files pass afterward.
 
 ## Links
 
 - [`docs/TODO.md`](../../TODO.md) item 12
-- `src/services/cryptoService.ts` — `attemptDecrypt()`
+- `src/services/cryptoService.ts` — `attemptDecrypt()`, `decrypt()`
+- `src/services/cryptoService.test.ts` — `describe("CryptoService — legacy
+  AES-CBC blobs (BUG-0004)")`
+- `src/services/__fixtures__/legacy-aes-cbc-blob.json`
