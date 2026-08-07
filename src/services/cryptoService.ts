@@ -24,16 +24,14 @@ import { browser } from "$app/environment";
 
 
 const STRONG_ITERATIONS = 600000;
-// Not read by attemptDecrypt()'s AES-CBC branch, which always uses
-// STRONG_ITERATIONS — see docs/TODO.md item 12: the pre-Web-Crypto
-// implementation retried legacy blobs at this iteration count, and that
-// fallback was lost in the rewrite. Kept, not deleted, until a person
-// confirms no real blob still needs it.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Iteration count used by the pre-Web-Crypto (CryptoJS) implementation for
+// its oldest AES-CBC blobs. attemptDecrypt()'s legacy fallback retries at
+// this count — see docs/TODO.md item 12 / BUG-0004.
 const LEGACY_ITERATIONS = 10000;
 const SALT_SIZE = 16;
 const IV_SIZE_GCM = 12; // GCM standard
-// See docs/TODO.md item 12, same reasoning as LEGACY_ITERATIONS above.
+// CBC IV size for reference only: legacy AES-CBC blobs always carry their
+// own IV in EncryptedBlob.iv, so this is never used to generate one.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const IV_SIZE_CBC = 16; // CBC standard
 const KEY_SIZE = 256;
@@ -217,7 +215,12 @@ class CryptoServiceImpl {
 
   // --- Decryption ---
 
-  private async attemptDecrypt(blob: EncryptedBlob, password?: string | CryptoKey, hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512"): Promise<string> {
+  private async attemptDecrypt(
+    blob: EncryptedBlob,
+    password?: string | CryptoKey,
+    hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512",
+    iterations: number = STRONG_ITERATIONS,
+  ): Promise<string> {
     try {
       const salt = base64ToBuffer(blob.salt);
       const iv = base64ToBuffer(blob.iv);
@@ -248,7 +251,7 @@ class CryptoServiceImpl {
           // Legacy or CBC. Import as CBC key.
           const passwordKey = await this.getPasswordKey(password);
           key = await window.crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
+            { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations, hash: hashAlgo },
             passwordKey,
             { name: "AES-CBC", length: KEY_SIZE },
             false,
@@ -269,7 +272,19 @@ class CryptoServiceImpl {
         ciphertext as unknown as BufferSource
       );
 
-      return new TextDecoder().decode(decryptedBuffer);
+      // AES-CBC has no authentication tag: a wrong key still produces a
+      // buffer whenever the (also key-dependent) PKCS7 padding happens to
+      // validate, silently returning garbage instead of throwing. A fatal
+      // UTF-8 decode catches that case, since every plaintext this service
+      // ever encrypts is TextEncoder-produced UTF-8.
+      try {
+        return new TextDecoder("utf-8", { fatal: true }).decode(decryptedBuffer);
+      } catch {
+        throw new DOMException(
+          "Decrypted plaintext is not valid UTF-8 (wrong key or corrupted blob)",
+          "OperationError"
+        );
+      }
 
     } catch (e) {
       // Fallback logic for legacy strings (not EncryptedBlob objects)? 
@@ -285,11 +300,29 @@ class CryptoServiceImpl {
       return await this.attemptDecrypt(blob, password, blob.kdfHash);
     }
 
-    // AES-CBC blobs are legacy and were never encrypted with SHA-512.
-    // AES-CBC lacks an authentication tag, so decrypting with the wrong key
-    // can silently return garbage instead of throwing. Skip the fallback.
+    // AES-CBC blobs predate the Web Crypto rewrite (commit 560a15c7). The
+    // old CryptoJS implementation tried three PBKDF2 configurations in
+    // order before giving up — restore that exact fallback order via
+    // crypto.subtle.deriveKey (docs/TODO.md item 12 / BUG-0004). AES-CBC
+    // lacks an authentication tag, so a wrong key can otherwise silently
+    // return garbage instead of throwing; attemptDecrypt()'s fatal UTF-8
+    // decode turns that into a thrown error so each attempt below either
+    // succeeds with real plaintext or fails and moves to the next.
     if (blob.method === "AES-CBC") {
-      return await this.attemptDecrypt(blob, password, "SHA-256");
+      const legacyAttempts: Array<{ iterations: number; hash: "SHA-256" | "SHA-1" }> = [
+        { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+        { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
+        { iterations: LEGACY_ITERATIONS, hash: "SHA-1" }, // for blobs older still
+      ];
+      let lastError: unknown;
+      for (const { iterations, hash } of legacyAttempts) {
+        try {
+          return await this.attemptDecrypt(blob, password, hash, iterations);
+        } catch (e) {
+          lastError = e;
+        }
+      }
+      throw lastError;
     }
 
     // Legacy AES-GCM blobs without kdfHash were always encrypted with SHA-256.
