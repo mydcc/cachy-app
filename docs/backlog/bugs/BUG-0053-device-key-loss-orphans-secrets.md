@@ -75,6 +75,26 @@ This is the AES-GCM/device-key path, not the AES-CBC path BUG-0004 already
 fixed (`c3157101`) — that fix retried PBKDF2 parameters for legacy blobs and is
 unrelated to a device key going missing.
 
+**Also observed, same session:** the device key resolves roughly 5 seconds
+after the page finishes loading, while other requests that don't need it
+(public market data) have already gone out and come back. This is consistent
+with the mechanism above, not evidence of a separate race: `appFetch`
+(`src/lib/appAuth.ts`) already awaits `settingsState.secretsReady` before
+sending, and `secretsReady` only resolves once the full
+decrypt-every-`SENSITIVE_KEY` pass (`settings.svelte.ts:1244-1276`) finishes —
+so a slow device-key lookup delays every secret-dependent request uniformly
+*by design*; it doesn't let any of them through early with a stale or missing
+value. What is unusual is the 5 seconds itself: a single IndexedDB `get`
+(`loadKeyFromDB`) is normally sub-millisecond. Worth measuring directly, not
+guessing, whether that time is inside `indexedDB.open()`/the transaction
+(which would point at storage-layer contention — e.g. another connection
+holding a version-change lock — and could itself be *why* the key looked
+"missing" to `getOrGenerateDeviceKey()` in the first place, rather than it
+truly being gone), or upstream of it entirely (e.g. lazy-chunk load latency
+for the JS bundle hosting this code, unrelated to IndexedDB). That
+measurement should happen before picking among the fix options below, since
+it changes which one actually addresses the root cause.
+
 ## Cause
 
 `getOrGenerateDeviceKey()` cannot distinguish "first run, no secrets exist yet"
@@ -85,8 +105,14 @@ silently strands existing data instead.
 
 ## Fix
 
-Not decided yet; options to weigh:
+Not decided yet; options to weigh. Start with measurement, then pick:
 
+0. **Instrument first.** Time `loadKeyFromDB()`/`indexedDB.open()` directly
+   (e.g. `performance.now()` around each await in `getOrGenerateDeviceKey()`)
+   to find out where the observed ~5s actually goes, per the timing note in
+   Evidence above. If it is inside the IndexedDB call itself, that changes the
+   likely cause (storage-layer contention, not necessarily key loss) and may
+   deserve its own performance fix independent of 1-3 below.
 1. **Detect the mismatch before minting a new key.** Store a small canary
    alongside `encryptedSecrets` (e.g. a fixed known plaintext encrypted with
    the current device key) so `getOrGenerateDeviceKey()` — or the caller in
