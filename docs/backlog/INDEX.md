@@ -2,9 +2,9 @@
 
 # Backlog index
 
-52 items. How to read and add them: [README.md](README.md).
+53 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 15
+Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 15
 
 ---
 
@@ -16,6 +16,7 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 15
 | --- | --- | --- | --- | --- |
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | exchange |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | calculation |
+| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 📋 specced | security |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | 📋 specced | execution |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | security |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | ui |
@@ -125,6 +126,7 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 15
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | M0 | community, pro, private | A | none | — |
+| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 📋 specced | M0 | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
@@ -178,4 +180,4 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 15
 
 ---
 
-Next free number: **0053**
+Next free number: **0054**
