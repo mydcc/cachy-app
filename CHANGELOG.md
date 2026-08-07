@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.11](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.10...v1.2.0-beta.11) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** restore full manifest, close out BUG-0038's content investigation ([41a1e6c](https://github.com/mydcc/cachy-app/commit/41a1e6c313335a892ab294895c4e9e6e615f7995))
+
 # [1.2.0-beta.10](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.9...v1.2.0-beta.10) (2026-08-07)
 
 
