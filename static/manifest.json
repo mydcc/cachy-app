@@ -7,7 +7,7 @@
   "dir": "ltr",
   "start_url": "/?pwa=true",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": ["standalone"],
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "portrait",
