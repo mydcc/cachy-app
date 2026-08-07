@@ -92,14 +92,9 @@ second is more honest about what the store actually holds; the first keeps the
 comparisons simple. Both are better than the current state, where the type says
 one thing and three callers do another.
 
-## 3. ✅ Bitget WS order/position sync sends field names the account store never reads
+## 3. Bitget WS order/position sync sends field names the account store never reads
 
-**Roadmap item 21.** **RESOLVED** (2026-08-02) — see
-[`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md) for the
-verified fix (normalize at the boundary, shipped in `1.0.0-beta.11`). Analysis
-kept below as the record of what was found and why.
-
-Found while typing the `any`-cast payloads in
+**Roadmap item 21.** Found while typing the `any`-cast payloads in
 `bitgetWs.ts`'s `handleMessage()`. Not fixed here — it is a live-trading
 correctness bug, not a typing nit, and needs its own verified fix with a
 test, not a drive-by inside a lint pass.
@@ -884,24 +879,61 @@ infra quirk (production shows the identical bug), and Brave-specific behavior
 (reproduced there too). Chrome's own DevTools installability check reports
 zero errors on the manifest — it considers the app fully installable.
 
-**Done since:** added a real `maskable` icon pair
+**Done and confirmed working (partially):** added a real `maskable` icon pair
 (`icon-192-maskable.png`/`icon-512-maskable.png`, generated at 66% scale on a
 solid `#0f172a` canvas, declared as additional `purpose: "maskable"` entries
 alongside the existing `any` ones) rather than repeating either January
 attempt of toggling `purpose` on the same transparent-to-the-edges icon file.
-This is the strongest untried lead the history turned up — full reasoning and
-the exact commits are in `BUG-0038`. **Still unverified on-device.**
+**On-device result: the splash background is now correct in Brave** (dark
+background, icon, title — fresh install, Motorola Edge 30). Chrome on the
+same device still shows white — see below for why.
+
+**A real bug turned up chasing your memory of when this last worked — but it
+doesn't actually explain the symptom, and an earlier draft of this note
+wrongly treated it as the leading cause. You caught that immediately.** You
+recalled shortcuts working before screenshots were added. The commit that
+added screenshots (`7f40111`, Feb 9) also — same commit — migrated the
+canonical domain from `www.cachy.app` to bare `cachy.app`. Screenshots were
+already ruled out (removing the key didn't fix anything), which left the
+domain migration worth checking. `curl -Iv` confirmed something real:
+**`www.cachy.app` serves the TLS certificate for a different site**
+(`board.heinze-media.com`, apparently sharing the same server IP) — every
+connection to `www.cachy.app` fails at the TLS handshake. `cachy.app` and
+`dev.cachy.app` are both fine.
+
+That's worth fixing regardless, but it can't be why `dev.cachy.app` shows the
+identical broken WebAPK (blank `Manifest URL`, blank colors, no shortcuts) —
+`dev.cachy.app` has no relationship to `www.cachy.app` at all, there was
+never a `www.dev.cachy.app`, and the February migration only ever touched
+`www` vs. bare `cachy.app`. A cert bug on one hostname doesn't explain an
+unrelated hostname breaking the same way.
+
+So the actual next lead is what it was before the `www` detour: something
+affecting **both** domains uniformly, at the server/infra level — most likely
+whatever firewall/WAF you confirmed exists on the aaPanel server, if it
+treats Google's WebAPK-minting request (a server-to-server fetch from
+Google's own infrastructure, not your phone's browser) differently from
+normal traffic. (Also confirmed along the way: Brave has its own unrelated,
+already-open upstream bug —
+[brave/brave-browser#56133](https://github.com/brave/brave-browser/issues/56133)
+— installed PWAs on Android never become a real standalone package there, so
+Brave can never show shortcuts regardless of anything here. Excluded from
+further testing.)
 
 **What would still move this forward:**
 
-1. Verify on a real device whether the new maskable icons fix the splash and
-   shortcuts, or whether the symptom persists.
-2. If it persists: this item now suspects a genuine Chrome-on-Android
-   platform issue rather than an app-side bug — DevTools finds the manifest
-   fully valid, and three independent prior fix attempts (going back to
-   January) have all failed to resolve it. `BUG-0038`'s Evidence section has
-   links to matching community/Chromium bug reports gathered during this
-   pass, for whoever picks this up next.
+1. Check the aaPanel firewall/WAF logs for blocked requests to `cachy.app`
+   **and** `dev.cachy.app` (not just `www`) around install-attempt
+   timestamps — non-phone-browser traffic or Google Cloud IP ranges hitting
+   403/blocked on `/manifest.json` or the icon files would confirm this.
+2. Fix the `www.cachy.app` vhost too, on its own merits — a 301 redirect to
+   `https://cachy.app` with a certificate that actually covers `www`, or drop
+   the DNS record if `www` was never meant to resolve. Real bug, just not
+   this one.
+3. If the firewall check turns up nothing: `BUG-0038`'s Evidence section has
+   Chromium/community bug reports gathered during this pass as the next
+   candidate — a genuine platform-side issue rather than anything in this
+   app or its infra.
 
 ## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 

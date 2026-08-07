@@ -149,6 +149,93 @@ and Fix) is the most promising lead left: it is the one manifest field this
 item had not actually tried changing yet, despite two unverified attempts
 already existing in the file's history.
 
+### Round 2 — after the maskable icons shipped, and the real root cause
+
+The maskable icons (see Fix) were deployed and tested on-device. Results,
+gathered across both Brave and Chrome on the same Android device:
+
+- **Splash is fixed in Brave** — dark background, icon, and title footer, all
+  correct, on a fresh install. The maskable-icon fix works.
+- **Shortcuts still absent in Brave** — but this is not evidence against the
+  fix: Brave has an **open, known upstream bug**,
+  [brave/brave-browser#56133](https://github.com/brave/brave-browser/issues/56133),
+  where installed PWAs on Android become plain Home Screen Shortcuts, never a
+  true standalone app with its own package. Native app shortcuts require a
+  real installed package; a browser-side shortcut can't have them, by
+  construction. Confirmed further via `brave://webapks/`, which shows Cachy's
+  entry stuck at the epoch (`Thu Jan 01 1970`) for both "Last Update Check
+  Time" and "Last Update Completion Time" — Brave has never actually
+  completed a real update cycle for it. Brave is not a valid test bed for
+  symptom 3 and should be excluded from further testing here.
+- **Chrome: still broken, but diagnosably so.** `about://webapks` (Chrome's
+  own internal WebAPK registry) initially didn't list Cachy **at all** —
+  meaning Chrome's "Install app" had, this whole time, silently produced a
+  plain bookmark shortcut, never a real WebAPK, which alone fully explains
+  every symptom (a bookmark has no manifest-driven splash and no native
+  shortcuts). After another explicit "Install app" + forced update via the
+  `about://webapks` "Update" button, a real WebAPK entry *did* appear for
+  Cachy (`org.chromium.webapk.a4f525ce7006f1ec6_v2`, targeting
+  `dev.cachy.app`) — but with **`Manifest URL`, `Theme color`, and
+  `Background color` all blank**, unlike the three other WebAPKs installed on
+  the same device (Bitpanda Academy, Tasker Share, Vivid Money), which all
+  have these fields populated. More tellingly: **`Manifest Id` reads
+  `https://dev.cachy.app/`**, not the `https://dev.cachy.app/app.cachy` that
+  our declared `"id": "app.cachy"` should resolve to per spec. A blank/
+  fallback `id` is exactly what happens when the manifest fetch used for
+  minting never actually succeeded — Chrome falls back to deriving identity
+  from `start_url` alone. Shortcuts remained absent even against this
+  "real" WebAPK.
+
+**A real bug found while chasing the maintainer's memory of when this last
+worked — but ruled out as the explanation, not confirmed as one.** The
+maintainer recalled shortcuts working before screenshots were added. Commit
+`7f40111` (2026-02-09, the same commit that first added `screenshots` *and*
+`shortcuts`) also silently migrated the canonical domain from
+`www.cachy.app` to bare `cachy.app`. Screenshots were already ruled out
+independently (removing the key didn't fix anything), which pointed at the
+domain migration as worth checking. `curl -Iv` from the maintainer's own
+machine (this sandbox cannot reach the domain) found something real:
+
+```
+$ curl -Iv https://www.cachy.app/manifest.json
+* Server certificate: subject: CN=board.heinze-media.com
+* SSL: no alternative certificate subject name matches target hostname 'www.cachy.app'
+curl: (60) SSL: no alternative certificate subject name matches target hostname 'www.cachy.app'
+
+$ curl -Iv https://cachy.app/manifest.json      →  200 OK
+$ curl -Iv https://dev.cachy.app/manifest.json  →  200 OK
+```
+
+**`www.cachy.app` serves the TLS certificate for an unrelated domain**
+(`board.heinze-media.com`, apparently another site on the same server/IP,
+`162.55.39.50`) — every TLS handshake to `www.cachy.app` fails at the
+certificate stage. This is a genuine, independent infrastructure bug (no
+dedicated nginx vhost for `www.cachy.app`, so an unmatched SNI falls through
+to whatever server block is first/default on that IP) and worth fixing on
+its own merits.
+
+**But it does not explain this item's symptoms, and it was a mistake for an
+earlier draft of this section to lean on it as though it did.** `dev.cachy.app`
+shows the identical broken WebAPK behavior (blank manifest URL, blank colors,
+no shortcuts) and has **no relationship to `www.cachy.app` at all** — there
+has never been a `www.dev.cachy.app`, and the February migration only ever
+touched `www` vs. bare `cachy.app`. A broken certificate on one hostname
+cannot be why a completely unrelated hostname degrades the same way. Caught
+by the maintainer immediately on review, before this went further — recorded
+here rather than quietly corrected, per this repo's evidence rule.
+
+**What's left, now that `www` is set aside:** something affecting *both*
+`cachy.app` and `dev.cachy.app` uniformly, at the server/infrastructure level
+rather than per-vhost, most likely something that treats Google's WebAPK-
+minting request (a server-to-server fetch from Google's infrastructure, not
+the phone's own browser) differently from a normal browser request — a WAF,
+bot-protection rule, or firewall on the aaPanel server that the maintainer
+confirmed exists but hasn't yet inspected for this. **Untested**: checking
+the aaPanel firewall/WAF logs (commonly the "网站防火墙"/Nginx-firewall or
+CC-protection module) for blocked requests to `/manifest.json` around
+install-attempt timestamps, especially from non-phone-browser user agents or
+Google Cloud IP ranges.
+
 ## Fix
 
 **Done in this pass:**
@@ -191,23 +278,109 @@ already existing in the file's history.
   test reads `manifest.icons` generically. This is the strongest untried lead
   in the item's history — see the January flip-flop above — but it is still
   **unverified on a real device** as of this writing.
+- **Round 3 (see below): removed `id`, reverted `start_url` to `/`, switched
+  shortcut icons to the maskable variant.** Also unverified on-device as of
+  this writing.
+
+### Round 3 — firewall logs checked (inconclusive), a third ignored field, and a new experiment
+
+The maintainer checked the actual aaPanel access logs (only a system-level
+firewall is configured — no separate WAF plugin, no Cloudflare) around the
+timestamps of the on-device install attempts. Findings:
+
+- No request to `/manifest.json` or any icon file from any IP other than the
+  maintainer's own (used for the `curl` tests and manual browser testing).
+- One unrelated vulnerability scanner (`91.92.241.196`) probing `/.git/HEAD`
+  and `/.git/config` — background internet noise, not relevant.
+- Real Googlebot traffic (`66.249.x.x`, `Googlebot/2.1` user agent) crawling
+  `/robots.txt` and `/` — normal SEO indexing, and notably **it reaches the
+  server successfully**. That's an argument against a blanket
+  "block Google Cloud IP ranges" firewall rule: if one existed and applied
+  broadly, Googlebot's own crawl would be blocked too, and it isn't.
+- No blocked/rejected entries at all for the relevant paths — but this is a
+  plain nginx access log; if a block happens at the system-firewall/packet
+  level (before nginx), it wouldn't appear here regardless. Inconclusive,
+  not a clean ruling-out.
+
+So: **no firewall involvement confirmed, but not disproven either** — the
+access log simply shows zero evidence of anyone besides the maintainer ever
+requesting `/manifest.json`, including no failed attempts. If Google's
+WebAPK-minting service ever tried, it left no trace in this log at all.
+
+**A third manifest-driven behavior found to be ignored by the installed
+app:** the maintainer separately recalled that the installed app used to be
+locked to portrait orientation, and at some point started allowing free
+rotation. `orientation: "portrait"` has been in every version of the
+manifest since its creation in January — unchanged, never touched by any
+commit in the file's history (see the table above). If the installed app
+stopped honoring a field whose declared value never changed, that's a third
+independent confirmation (alongside `background_color`/`theme_color` and
+`shortcuts`) that the *installed* app isn't actually running on the manifest
+this repo serves — everything manifest-driven degrades together, not just
+the two originally-reported symptoms.
+
+**Also re-examined: `about://webapks`'s `Manifest Start URL` field itself
+was wrong**, not just `Manifest Id`. It read `https://dev.cachy.app/` —
+missing the `?pwa=true` query string our manifest's `start_url` actually
+declares. Combined with the `id` fallback from Round 2, that's now two
+separate fields both showing the browser-context default (bare origin)
+rather than anything read from the manifest — consistent with a minting
+fetch that produced nothing at all, not a partial/selective failure.
+
+**New experiment, deployed to `dev.cachy.app`, combining three changes at
+once rather than one round-trip per field** (each on-device retest costs the
+maintainer real time, so this bundles well-justified changes instead of
+strict one-variable-at-a-time isolation):
+
+1. **Removed the `"id": "app.cachy"` field entirely**, reverting to the
+   pre-2026-02-09 baseline where identity derives from `start_url`. This was
+   added in the same suspect commit as screenshots/shortcuts/the domain
+   migration and had never been tested in isolation. Directly targets the
+   `Manifest Id` anomaly from Round 2.
+2. **Reverted `start_url` from `/?pwa=true` back to `/`**, matching the same
+   pre-2026-02-09 baseline. Confirmed safe first: `grep -rn "pwa=true"` across
+   `src/` turns up nothing — the query param is not read anywhere in the app,
+   so this is a pure manifest-identity change with no functional loss.
+3. **Shortcut icons switched from `/icon-192.png` (transparent) to
+   `/icon-192-maskable.png`** — the maintainer's own observation: shortcut
+   icons had the identical transparent-to-the-edges problem the main app icon
+   had before the Round 2 maskable fix, and were never updated when that fix
+   landed. Same reasoning applies: Android's icon treatment for shortcuts
+   plausibly needs the same safe-zone/opaque-background treatment as the main
+   icon.
+
+**Unverified on-device as of this writing.** If this resolves symptoms 1 and
+3 (and orientation), which specific change mattered stays genuinely unknown
+unless someone bisects it later — recorded as a limitation of testing three
+things at once, accepted deliberately given the cost of each on-device round
+trip.
 
 **Still open:**
 
-- Root-cause symptoms 1 and 3 (splash background, long-press shortcuts) on a
-  real device with the new maskable icons. Needs on-device verification —
-  three prior "fix" attempts for the white splash specifically (two in
-  January, one in this pass before the maskable icons) did not resolve it, so
-  treat this one with the same skepticism until confirmed.
-- If the maskable icons don't fix it either: the remaining candidates are (a)
-  something genuinely platform-side (see the Chromium/community bug reports
-  gathered during this pass — Chrome on Android has open, unresolved reports
-  of installed PWAs ignoring `background_color`/`theme_color` independent of
-  manifest correctness), or (b) something this item hasn't found yet. Chrome's
-  own installability check passing with zero errors, combined with three
-  independent failed fix attempts across seven months, makes (a) look
-  increasingly plausible — recorded here so the next pass doesn't have to
-  re-derive it.
+- Verify the Round 3 experiment on-device: splash, shortcuts, **and now also
+  orientation lock** (not tested before this round).
+- **Check the aaPanel firewall/WAF for blocked requests to `cachy.app` and
+  `dev.cachy.app`** (not just `www`) around install-attempt timestamps —
+  partially checked (see Round 3), inconclusive since a block below the nginx
+  layer wouldn't show in the access log checked so far. Look for
+  non-phone-browser traffic or Google Cloud IP ranges getting 403/blocked on
+  `/manifest.json` or the icon files, and check for a lower-level (iptables /
+  Hetzner Cloud Firewall console) block log specifically.
+- **Fix the `www.cachy.app` vhost anyway** — real, confirmed bug (TLS cert
+  for `board.heinze-media.com` served on `www.cachy.app`), worth doing
+  regardless of whether it turns out related to symptoms 1/3. Either a 301 to
+  `https://cachy.app` with a certificate that actually covers `www` as a SAN,
+  or drop the DNS record if `www` was never meant to resolve.
+- If neither turns up anything: the remaining candidates are (a) something
+  genuinely platform-side (see the Chromium/community bug reports gathered
+  during this pass — Chrome on Android has open, unresolved reports of
+  installed PWAs ignoring `background_color`/`theme_color` independent of
+  manifest correctness), or (b) something this item hasn't found yet. Four
+  independent failed fix attempts across seven months (two in January, the
+  `site.webmanifest` rename, and `display_override` this round) makes (a)
+  worth taking seriously if the infra checks above turn up nothing.
+- Brave is confirmed out of scope for symptom 3 specifically (upstream bug,
+  see Round 2) — don't re-test shortcuts there, only splash/icon.
 - If screenshots are wanted back, produce real PNGs at a portrait aspect ratio
   rather than the current 640×640 squares, which are an odd shape for a phone
   install dialog.
@@ -221,10 +394,20 @@ already existing in the file's history.
       not to be the cause, kept as a correctness fix regardless
 - [x] A properly safe-zone-padded `maskable` icon pair added, addressing the
       gap an earlier pass in this item wrongly ruled out
-- [ ] The splash screen shows `background_color` on a real Android device —
-      verified on-device and the device/launcher noted here
+- [x] The splash screen shows `background_color` on a real Android device —
+      **confirmed in Brave** on a fresh install (Motorola Edge 30, Brave for
+      Android). Chrome on the same device still shows white; cause not yet
+      identified (see "What's left" above — likely infra-level, affects both
+      `cachy.app` and `dev.cachy.app`, so `www` alone doesn't explain it)
 - [ ] Long-pressing the installed icon shows both declared shortcuts —
-      verified on-device
+      not yet achieved in any tested browser. Brave is structurally incapable
+      of this (upstream bug, out of scope here); Chrome remains the only
+      valid target and its blocker is still unidentified
+- [ ] `www.cachy.app` has a working vhost (redirect + valid certificate, or
+      the DNS record removed) — a real, confirmed infra bug worth fixing on
+      its own merits, but **not confirmed to be related to symptoms 1/3**
+      (see "What's left" above — it can't explain `dev.cachy.app` showing the
+      same symptom, since that hostname has no relationship to `www`)
 
 ## Links
 
