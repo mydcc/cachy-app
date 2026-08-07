@@ -1205,7 +1205,9 @@
     "connections": {
       "exchanges": "Börsen",
       "serverSecurity": "Server Sicherheit",
-      "appAccessToken": "App Zugangstoken (Server Sicherheit)",
+      "appAccessToken": "Zugangstoken (selbst ausgestellt)",
+      "createToken": "Zugangstoken erstellen",
+      "createTokenError": "Token konnte nicht erstellt werden. Bitte erneut versuchen.",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
       "passphrase": "Passphrase",
@@ -1226,7 +1228,8 @@
         "apiKey": "API-Schlüssel",
         "apiSecret": "API-Secret",
         "passphrase": "Passphrase",
-        "url": "https://..."
+        "url": "https://...",
+        "appAccessToken": "\"Zugangstoken erstellen\" klicken oder einfügen"
       },
       "providers": {
         "bitunix": "Bitunix",

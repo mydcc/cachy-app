@@ -18,7 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { generateBitunixSignature } from "../../../../utils/server/bitunix";
-import { checkAppAuth } from "../../../../lib/server/auth";
+import { checkClientToken } from "../../../../lib/server/clientToken";
 import type { BitunixOrder } from "../../../../types/bitunix";
 import { z } from "zod";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
@@ -30,8 +30,8 @@ const RequestSchema = z.object({
   limit: z.number().optional(),
 });
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let body;

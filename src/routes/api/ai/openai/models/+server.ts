@@ -17,7 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkAppAuth } from "../../../../../lib/server/auth";
+import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OpenAiModel {
@@ -32,8 +32,8 @@ const CHAT_MODEL_RE = /^(gpt-|o1|o3|o4|chatgpt)/i;
 const EXCLUDE_RE =
   /(embedding|whisper|tts|dall-e|moderation|davinci|babbage|ada|curie|realtime|audio|transcribe|instruct|image)/i;
 
-export const GET: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const GET: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const apiKey = request.headers.get("x-api-key");

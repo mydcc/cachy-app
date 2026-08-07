@@ -17,7 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkAppAuth } from "../../../../../lib/server/auth";
+import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OllamaModel {
@@ -41,8 +41,8 @@ function resolveBaseUrl(raw: string | null): string | null {
   }
 }
 
-export const GET: RequestHandler = async ({ request, url }) => {
-  const authError = checkAppAuth(request);
+export const GET: RequestHandler = async ({ request, url, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const baseUrl = resolveBaseUrl(url.searchParams.get("baseUrl"));

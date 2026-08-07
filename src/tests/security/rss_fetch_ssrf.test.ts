@@ -18,8 +18,8 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock authentication to bypass security check during test
-vi.mock("../../lib/server/auth", () => ({
-  checkAppAuth: vi.fn(() => null)
+vi.mock("../../lib/server/clientToken", () => ({
+  checkClientToken: vi.fn(() => null)
 }));
 
 // Import the handler
@@ -33,8 +33,9 @@ describe("POST /api/rss-fetch SSRF Protection", () => {
     });
 
     const event = {
-      request: mockRequest
-    } as Parameters<typeof POST>[0];
+      request: mockRequest,
+      getClientAddress: () => "127.0.0.1"
+    } as unknown as Parameters<typeof POST>[0];
 
     const response = await POST(event);
 

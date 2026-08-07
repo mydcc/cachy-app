@@ -9,13 +9,10 @@
 
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import { checkAppAuth } from '../../../lib/server/auth';
+import { checkClientToken } from '../../../lib/server/clientToken';
 
-const ENV_OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const ENV_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-export const POST: RequestHandler = async ({ request }) => {
-    const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+    const authError = checkClientToken(request, getClientAddress());
     if (authError) return authError;
 
     try {
@@ -30,11 +27,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
         let resultText = '';
         if (provider === 'openai') {
-            const key = apiKey || ENV_OPENAI_API_KEY;
-            if (!key) return json({ error: 'NO_OPENAI_KEY' }, { status: 500 });
+            if (!apiKey) return json({ error: 'NO_OPENAI_KEY' }, { status: 401 });
 
             const OpenAI = (await import('openai')).default;
-            const openai = new OpenAI({ apiKey: key });
+            const openai = new OpenAI({ apiKey });
             const completion = await openai.chat.completions.create({
                 messages: [
                     { role: 'system', content: 'Analyze sentiment.' },
@@ -45,11 +41,10 @@ export const POST: RequestHandler = async ({ request }) => {
             });
             resultText = completion.choices[0].message.content || '{}';
         } else if (provider === 'gemini') {
-            const key = apiKey || ENV_GEMINI_API_KEY;
-            if (!key) return json({ error: 'NO_GEMINI_KEY' }, { status: 500 });
+            if (!apiKey) return json({ error: 'NO_GEMINI_KEY' }, { status: 401 });
 
             const { GoogleGenerativeAI } = await import('@google/generative-ai');
-            const genAI = new GoogleGenerativeAI(key);
+            const genAI = new GoogleGenerativeAI(apiKey);
             const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-1.5-flash-latest' });
             const result = await geminiModel.generateContent(prompt);
             resultText = result.response.text();

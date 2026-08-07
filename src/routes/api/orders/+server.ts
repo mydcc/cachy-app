@@ -32,7 +32,7 @@ import { formatApiNum } from "../../../utils/utils";
 import { OrderRequestSchema } from "../../../types/orderSchemas";
 import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
-import { checkAppAuth } from "../../../lib/server/auth";
+import { checkClientToken } from "../../../lib/server/clientToken";
 import { logger } from "$lib/server/logger";
 
 // Raw fields read off Bitget's current/history order list responses. The
@@ -70,8 +70,8 @@ const ORDER_ERRORS = {
   BITGET_API_ERROR: "bitunixErrors.BITGET_API_ERROR",
 };
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
   let body: unknown;
   try {

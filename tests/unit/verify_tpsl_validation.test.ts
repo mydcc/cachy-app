@@ -34,12 +34,14 @@ vi.mock('../../src/utils/server/bitunix', () => ({
   }))
 }));
 
-vi.mock('../../src/lib/server/auth', () => ({
-  checkAppAuth: vi.fn(() => null) // Allow all
+vi.mock('../../src/lib/server/clientToken', () => ({
+  checkClientToken: vi.fn(() => null) // Allow all
 }));
 
 // Mock global fetch
 global.fetch = vi.fn();
+
+const getClientAddress = () => '127.0.0.1';
 
 // The route reads the body with safeJsonParse(await request.text()) rather than
 // request.json(), deliberately: JSON.parse mangles the precision of large numeric
@@ -62,7 +64,7 @@ describe('TP/SL API Validation', () => {
       })
     };
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toBe('Validation Error');
@@ -83,7 +85,7 @@ describe('TP/SL API Validation', () => {
       })
     };
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toBe('Validation Error');
@@ -107,7 +109,7 @@ describe('TP/SL API Validation', () => {
       })
     };
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.error).toBe('Validation Error');
@@ -140,7 +142,7 @@ describe('TP/SL API Validation', () => {
         text: async () => JSON.stringify({ code: 0, data: [] })
     } as unknown as Response);
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
   });
 
@@ -172,7 +174,7 @@ describe('TP/SL API Validation', () => {
         text: async () => JSON.stringify({ code: 0, data: {} })
     } as unknown as Response);
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
   });
 });
