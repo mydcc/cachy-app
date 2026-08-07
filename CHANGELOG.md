@@ -5,6 +5,18 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.13](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.12...v1.2.0-beta.13) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** resolve BUG-0038 -- real cause was a device-side ad blocker ([41ef0e7](https://github.com/mydcc/cachy-app/commit/41ef0e7cd2f5286dbf54b43b7bfee1d45450d120))
+
+
+### Features
+
+* **pwa:** swap Settings shortcut for Market Overview, add launch_handler ([5a955bb](https://github.com/mydcc/cachy-app/commit/5a955bb0b8700cdefbee160c8027783361e678b7))
+
 # [1.2.0-beta.12](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.11...v1.2.0-beta.12) (2026-08-07)
 
 
