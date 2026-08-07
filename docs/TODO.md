@@ -92,9 +92,14 @@ second is more honest about what the store actually holds; the first keeps the
 comparisons simple. Both are better than the current state, where the type says
 one thing and three callers do another.
 
-## 3. Bitget WS order/position sync sends field names the account store never reads
+## 3. ✅ Bitget WS order/position sync sends field names the account store never reads
 
-**Roadmap item 21.** Found while typing the `any`-cast payloads in
+**Roadmap item 21.** **RESOLVED** (2026-08-02) — see
+[`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md) for the
+verified fix (normalize at the boundary, shipped in `1.0.0-beta.11`). Analysis
+kept below as the record of what was found and why.
+
+Found while typing the `any`-cast payloads in
 `bitgetWs.ts`'s `handleMessage()`. Not fixed here — it is a live-trading
 correctness bug, not a typing nit, and needs its own verified fix with a
 test, not a drive-by inside a lint pass.

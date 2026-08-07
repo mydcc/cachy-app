@@ -45,10 +45,10 @@ export interface Asset {
   total: Decimal;
 }
 
-// Raw WS position/order/balance payload fields as read below. Written to
-// match Bitunix's field names (qty, positionId, orderStatus, dealAmount,
-// ctime) — Bitget's WS handler sends a differently-named payload through
-// the same functions; see docs/TODO.md item 3.
+// Raw WS position/order/balance payload fields as read below, named after
+// Bitunix's wire format (qty, positionId, orderStatus, dealAmount, ctime).
+// Bitget's WS handler (bitgetWs.ts) normalizes its differently-shaped
+// payload to this format before calling these functions — see BUG-0001.
 export interface RawWsPosition {
   positionId?: string | number;
   symbol?: string;

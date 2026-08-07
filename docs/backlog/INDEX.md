@@ -4,7 +4,7 @@
 
 52 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 10
+Counts by status: 💡 idea 11 · 📋 specced 27 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 11
 
 ---
 
@@ -14,7 +14,7 @@ Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | 📋 specced | exchange |
+| [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | exchange |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | 📋 specced | calculation |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | 📋 specced | execution |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | 📋 specced | security |
@@ -123,7 +123,7 @@ Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Milestone | Editions | Data | ADR | Depends on |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | 📋 specced | M0 | community, pro, private | none | none | — |
+| [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | 📋 specced | M0 | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
