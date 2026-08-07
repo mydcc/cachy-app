@@ -2,9 +2,9 @@
 
 # Backlog index
 
-51 items. How to read and add them: [README.md](README.md).
+52 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 27 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 10
+Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 10
 
 ---
 
@@ -103,6 +103,7 @@ Counts by status: 💡 idea 11 · 📋 specced 27 · 🟢 ready 2 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | 📋 specced | api |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | pwa |
@@ -131,6 +132,7 @@ Counts by status: 💡 idea 11 · 📋 specced 27 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | 📋 specced | M0 | community, pro, private | A | none | — |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | ✅ done | M0 | community, pro, private | none | none | — |
+| [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | 📋 specced | none | community, pro, private | none | ADR-0002 | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -176,4 +178,4 @@ Counts by status: 💡 idea 11 · 📋 specced 27 · 🟢 ready 2 · 🟡 in-pro
 
 ---
 
-Next free number: **0052**
+Next free number: **0053**
