@@ -63,71 +63,109 @@ BYOK route, which never needed it.
 
 ## Fix
 
-Per-route classification instead of one flat gate:
+Decided design (this section supersedes the two options floated during
+initial triage — resolved in discussion with @mydcc, see rationale below):
+**replace the single shared `APP_ACCESS_TOKEN` with self-service, anonymous,
+per-client bearer tokens plus server-side rate limiting.** Not a bare
+removal of the gate — a different, more precise security layer that keeps
+abuse individually revocable instead of relying on BYOK credentials alone.
 
-- **BYOK routes** (all trading/sync routes, all three AI proxies,
-  `/api/external/cmc`, `/api/external/news`) — remove the `checkAppAuth()`
-  guard. The caller's own credential is already the authorization: a bad key
-  fails at the upstream provider, not at this server. Replace
-  `APP_ACCESS_TOKEN` with **per-IP rate limiting** on these routes, so an
-  anonymous caller can't turn the server into a free load generator even
-  though each call is individually harmless to the operator's wallet.
-  `/api/external/news` already has an ad-hoc in-memory rate limiter
-  (`_rateLimits`, `RATE_LIMIT_WINDOW`, `MAX_REQUESTS_PER_WINDOW` in
-  `external/news/+server.ts`) — extract that into a shared
-  `src/lib/server/rateLimit.ts` utility so every newly-opened route uses the
-  same mechanism instead of reinventing it per file.
-- **`/api/rss-fetch`** — keep as is. Its domain allowlist is the right
-  protection for what it actually risks (SSRF/open-proxy), and
-  `APP_ACCESS_TOKEN` was never doing anything for it that the allowlist
-  doesn't already cover. Add the same per-IP rate limiting for defense in
-  depth.
-- **`/api/sentiment`** — this is the one route that needs a real decision:
-  either (a) drop the `ENV_OPENAI_API_KEY`/`ENV_GEMINI_API_KEY` fallback
-  entirely and require callers to always BYOK, consistent with the three AI
-  proxies (simplest — makes every AI-touching route the same shape, and then
-  nothing in the whole guarded set spends the operator's quota, so
-  `APP_ACCESS_TOKEN` has no remaining job anywhere); or (b) keep the
-  operator-funded fallback as a deliberate "free tier" and keep *only this
-  route* behind `checkAppAuth`, clearly documented as the reason the gate
-  still exists. (a) is recommended: a partial free tier gated by a secret
-  users can't get is the same bug this item exists to fix, just smaller.
-- **`APP_ACCESS_TOKEN`/`checkAppAuth`** — if (a) above is chosen, the
-  mechanism has no remaining caller and can be retired outright (env var,
-  `.env.example` entry, the two security tests that currently assert
-  fail-closed, the Settings → Connections field, and its locale strings).
-  This needs its own pass, ideally after the route-by-route split lands and
-  is verified — don't delete the gate and change what it protects in the
-  same commit.
-- **ADR-0002** needs an amendment (or a superseding ADR) recording this
-  split: it explicitly left room for "a reasonable future refinement" here.
+1. New, deliberately unguarded route `POST /api/auth/token` issues a random,
+   cryptographically strong token. No registration, no personal data — the
+   client requests one (e.g. a "Create access token" action in
+   Settings → Connections, replacing today's manual `APP_ACCESS_TOKEN`
+   field) and it's stored client-side like any other credential.
+2. Server stores only `{tokenHash, createdAt, requestCount, lastSeenAt}` per
+   issued token — hashed the same way `APP_ACCESS_TOKEN` is compared today
+   (SHA-256 + `timingSafeEqual`), never the raw token. No name, email, or
+   other personal data.
+3. Every route currently behind `checkAppAuth()` switches to a
+   `checkClientToken()`-style check: does this token exist, and is it within
+   its rate limit? — not "does it match the one global secret".
+4. Rate limiting is enforced **per token** (with IP also tracked, to catch a
+   single actor issuing many tokens to route around per-token limits).
+   `/api/external/news` already has an ad-hoc in-memory limiter
+   (`_rateLimits`, `RATE_LIMIT_WINDOW`, `MAX_REQUESTS_PER_WINDOW` in
+   `external/news/+server.ts`) — extract that into a shared
+   `src/lib/server/rateLimit.ts` used by every route instead of
+   reinventing it per file.
+5. **The issuance endpoint itself needs protection**, or a script can mint
+   unlimited tokens to bypass per-token limits: rate-limit
+   `/api/auth/token` per IP (e.g. one token per IP per hour) as the floor
+   for v1. A bot challenge (e.g. Cloudflare Turnstile) at issuance is a
+   reasonable follow-up if IP limiting alone proves insufficient, but isn't
+   required to ship the first version.
+6. **`/api/sentiment`'s operator-key fallback
+   (`ENV_OPENAI_API_KEY`/`ENV_GEMINI_API_KEY`) is removed.** Every
+   AI-touching route becomes BYOK-only, consistent with `/api/ai/gemini`,
+   `/api/ai/openai`, `/api/ai/anthropic`. This decouples the token system
+   from cost protection entirely — the client-token layer is abuse/rate
+   protection only, never a "spend the operator's money" gate, which keeps
+   its blast radius small if a token is ever abused.
+7. **`/api/rss-fetch`** keeps its existing domain allowlist unchanged and
+   also gets the shared rate limiter for defense in depth; its risk
+   (SSRF/open-proxy) was never really `APP_ACCESS_TOKEN`'s to solve.
+8. Once the above lands and is verified, `APP_ACCESS_TOKEN`/`checkAppAuth`
+   retire entirely: env var, `.env.example` entry,
+   `tests/unit/auth_fail_closed.test.ts` and
+   `src/tests/security/app_auth_headers.test.ts` (rewritten to assert the
+   new token flow, not deleted), the Settings → Connections field, its
+   locale strings. Do this as its own follow-up commit after the new
+   mechanism is proven working, not in the same change that introduces it.
+9. **ADR-0002 gets an amendment** recording the move from "one operator
+   secret" to "self-service per-client tokens + rate limiting", including
+   the local-first compatibility reasoning below.
+
+## Local-first compatibility
+
+Raised explicitly during triage, worth recording: a *named user account*
+(email/password, "who is this person") would be Class-B personal data under
+ADR-0001 requiring its own ADR, and would push Cachy toward multi-tenant
+SaaS — explicitly rejected, not proposed here.
+
+An anonymous, self-issued bearer token is a different thing: it identifies a
+*client*, not a *person*. No registration, no personal data collected — the
+token lives client-side (`localStorage`) exactly like the API keys
+ADR-0001 already treats as "credentials of a user-initiated request,
+forwarded through the proxy." Server-side, only rate-limit bookkeeping is
+kept (`tokenHash`, timestamps, counts) — operational abuse-prevention data,
+not user data, and it doesn't cross ADR-0001's boundary the way a real
+account system would.
 
 ## Acceptance criteria
 
-- [ ] A test per newly-opened route asserts a request *without*
-      `x-app-access-token` but *with* valid-shaped BYOK credentials is no
-      longer rejected by `checkAppAuth` (still subject to whatever the
-      upstream/rate-limiter does)
+- [ ] `POST /api/auth/token` issues a random token, stores only its hash
+      server-side, and is itself rate-limited per IP
+- [ ] Every route currently behind `checkAppAuth` validates the new client
+      token instead, and enforces a per-token rate limit
 - [ ] A shared rate-limiting utility exists and is used by at least
-      `/api/rss-fetch` and `/api/external/news` (proving it's not a
-      per-route reimplementation)
-- [ ] `/api/sentiment`'s operator-key fallback is either removed (BYOK-only)
-      or explicitly, narrowly re-justified in ADR-0002's amendment — the
-      item must say which
-- [ ] `tests/unit/auth_fail_closed.test.ts` and any other test asserting
-      universal fail-closed behavior are updated to match the new per-route
-      reality, not deleted wholesale
-- [ ] `docs/adr/0002-api-authentication-fails-closed.md` has an amendment (or
-      is superseded) documenting the split and why
+      `/api/rss-fetch`, `/api/external/news`, and the new token-issuance
+      route (proving it's not a per-route reimplementation)
+- [ ] `/api/sentiment`'s `ENV_OPENAI_API_KEY`/`ENV_GEMINI_API_KEY` fallback
+      is removed; the route is BYOK-only like the three AI proxies
+- [ ] A test proves a request with a valid, under-limit token succeeds
+      without `APP_ACCESS_TOKEN`
+- [ ] A test proves a request that exceeds its token's rate limit is
+      rejected
+- [ ] A test proves the token-issuance endpoint itself is rate-limited per IP
+- [ ] `tests/unit/auth_fail_closed.test.ts` and
+      `src/tests/security/app_auth_headers.test.ts` are rewritten to assert
+      the new token flow, not deleted
+- [ ] `docs/adr/0002-api-authentication-fails-closed.md` has an amendment
+      documenting the move to self-service tokens, including the
+      local-first compatibility reasoning
 - [ ] `npm run check` and `npm test` are clean
 
 ## Out of scope
 
-Building real per-user accounts/API-key issuance for the operator-funded
-routes (if (b) is chosen for `/api/sentiment` instead of (a)). That's a much
-larger multi-tenant feature and contradicts this app's local-first,
-self-hosted framing (`CLAUDE.md`) unless the user decides otherwise
-separately.
+Building real per-user accounts tied to a person's identity (email,
+password, login). Explicitly rejected during triage: that would be Class-B
+personal data under ADR-0001 requiring its own ADR, and would push Cachy
+toward a multi-tenant SaaS shape the local-first framing doesn't currently
+intend. The self-service anonymous token above is deliberately not that.
+
+Bot-challenge integration (e.g. Turnstile) at token issuance — noted as a
+reasonable follow-up in the Fix section, not required for v1.
 
 ## Links
 
@@ -142,3 +180,10 @@ separately.
   unaffected by this item
 - `docs/GLOBAL-CHAT.md:11-13` — confirms `/api/chat-v2` no longer exists
 - `tests/unit/auth_fail_closed.test.ts`, `src/tests/security/app_auth_headers.test.ts`
+- `src/routes/api/auth/token/+server.ts` — new, to be created (token issuance)
+- `src/lib/server/rateLimit.ts` — new, to be created (shared rate limiter,
+  extracted from `external/news/+server.ts`)
+- `src/lib/server/clientToken.ts` (or similar) — new, to be created
+  (`checkClientToken()` replacing `checkAppAuth()`)
+- `docs/adr/0001-local-first-boundary.md` — the boundary this item's
+  "Local-first compatibility" section reasons against
