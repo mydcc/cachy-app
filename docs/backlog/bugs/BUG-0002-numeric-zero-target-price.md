@@ -47,26 +47,32 @@ been hiding it.
 
 ## Fix
 
-**Resolved** (commit `9df1928`, merged via PR #1605). Went with the second
-option: widened `TradeTarget.price`/`percent` and the related
-`TradeStateSnapshot` fields to `string | number | null`, and replaced the
-string comparison in `trade.svelte.ts`'s target filter
-(`t.price !== null && t.price !== "0"`) with `!new Decimal(t.price).isZero()`,
-wrapped in a try/catch that treats an unparsable value as filtered-out rather
-than throwing. `tradeState.update()`/`set()` carry the real
-`TradeStateSnapshot` type with no `eslint-disable`.
+Pick one, per `TODO.md` item 2:
+
+- **Fix the callers** to pass strings — keeps the comparisons simple.
+- **Widen the types** to `string | number` and route every comparison through
+  `Decimal` — more honest about what the store holds.
+
+The second is the better fit for a codebase whose rule is `decimal.js` for all
+financial values. Either way the `eslint-disable` on `update()`/`set()` comes
+off, which is how the fix proves itself.
+
+## Resolution
+
+Fixed in `9df1928` (widened `TradeStateSnapshot`/`TradeTarget` to
+`string | number | null` and routed the zero-price check in `load()` through
+`Decimal.isZero()`). This entry closes out the remaining bookkeeping: the
+persisted-numeric-zero path now has a direct test (`tradeStore.test.ts`,
+"BUG-0002: filters out a persisted numeric-zero target on load()") that
+seeds `localStorage` and calls the real (private) `load()`, instead of only
+re-testing a copy of its filter logic.
 
 ## Acceptance criteria
 
 - [x] A test constructs the state a numeric zero would produce and asserts the
-      target is filtered out (`tradeStore.test.ts`, "should handle numeric
-      zero prices in filter logic using Decimal") — exercises the same
-      `Decimal.isZero()` logic `trade.svelte.ts`'s `load()` runs, though
-      against an inline copy of the filter rather than calling `load()`
-      itself
+      target is filtered out; it fails before the fix
 - [x] `tradeState.update()`/`set()` carry real types with no `eslint-disable`
-- [x] All three call sites (`app.ts`, `MarketOverview.svelte`, `presets.ts`)
-      typecheck without casts
+- [x] All three call sites typecheck without casts
 - [x] `npm run check` clean, full suite green
 
 ## Links

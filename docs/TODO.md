@@ -21,7 +21,7 @@ analysis stays here as the single source:
 | 4 — GPU Choppiness field | [`BUG-0005`](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md) |
 | 7 — sentiment validation | [`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) |
 | 10 — SymbolPicker `null` | [`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md) |
-| 12 — legacy AES-CBC blobs | [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
+| 12 — legacy AES-CBC blobs | Resolved: [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
 | 14 — order-map eviction | Resolved: [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
 | 15 — `extraClasses` ignored | [`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) |
 | 18 — broader SpacetimeDB use | Decided: [ADR-0004](adr/0004-spacetimedb-data-scope.md) |
@@ -384,9 +384,13 @@ typed here per this repo's defensive-deletion rule: code whose purpose
 isn't fully clear doesn't get deleted without a person confirming it's
 safe to.
 
-## 12. Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
+## 12. ✅ Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
 
-**Roadmap item 21.** Found while looking for a home for two newly-unused
+**Roadmap item 21.** **RESOLVED.** Tracked as
+[`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md), which has the
+restored fallback chain, the fixture blob, and the tests that prove it.
+
+Found while looking for a home for two newly-unused
 constants (`LEGACY_ITERATIONS`, `IV_SIZE_CBC`) flagged by a lint pass —
 `git log`/`git show` on the file traced the regression before deciding
 whether the constants were safe to delete.
