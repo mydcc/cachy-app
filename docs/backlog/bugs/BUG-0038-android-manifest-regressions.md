@@ -278,15 +278,94 @@ Google Cloud IP ranges.
   test reads `manifest.icons` generically. This is the strongest untried lead
   in the item's history — see the January flip-flop above — but it is still
   **unverified on a real device** as of this writing.
+- **Round 3 (see below): removed `id`, reverted `start_url` to `/`, switched
+  shortcut icons to the maskable variant.** Also unverified on-device as of
+  this writing.
+
+### Round 3 — firewall logs checked (inconclusive), a third ignored field, and a new experiment
+
+The maintainer checked the actual aaPanel access logs (only a system-level
+firewall is configured — no separate WAF plugin, no Cloudflare) around the
+timestamps of the on-device install attempts. Findings:
+
+- No request to `/manifest.json` or any icon file from any IP other than the
+  maintainer's own (used for the `curl` tests and manual browser testing).
+- One unrelated vulnerability scanner (`91.92.241.196`) probing `/.git/HEAD`
+  and `/.git/config` — background internet noise, not relevant.
+- Real Googlebot traffic (`66.249.x.x`, `Googlebot/2.1` user agent) crawling
+  `/robots.txt` and `/` — normal SEO indexing, and notably **it reaches the
+  server successfully**. That's an argument against a blanket
+  "block Google Cloud IP ranges" firewall rule: if one existed and applied
+  broadly, Googlebot's own crawl would be blocked too, and it isn't.
+- No blocked/rejected entries at all for the relevant paths — but this is a
+  plain nginx access log; if a block happens at the system-firewall/packet
+  level (before nginx), it wouldn't appear here regardless. Inconclusive,
+  not a clean ruling-out.
+
+So: **no firewall involvement confirmed, but not disproven either** — the
+access log simply shows zero evidence of anyone besides the maintainer ever
+requesting `/manifest.json`, including no failed attempts. If Google's
+WebAPK-minting service ever tried, it left no trace in this log at all.
+
+**A third manifest-driven behavior found to be ignored by the installed
+app:** the maintainer separately recalled that the installed app used to be
+locked to portrait orientation, and at some point started allowing free
+rotation. `orientation: "portrait"` has been in every version of the
+manifest since its creation in January — unchanged, never touched by any
+commit in the file's history (see the table above). If the installed app
+stopped honoring a field whose declared value never changed, that's a third
+independent confirmation (alongside `background_color`/`theme_color` and
+`shortcuts`) that the *installed* app isn't actually running on the manifest
+this repo serves — everything manifest-driven degrades together, not just
+the two originally-reported symptoms.
+
+**Also re-examined: `about://webapks`'s `Manifest Start URL` field itself
+was wrong**, not just `Manifest Id`. It read `https://dev.cachy.app/` —
+missing the `?pwa=true` query string our manifest's `start_url` actually
+declares. Combined with the `id` fallback from Round 2, that's now two
+separate fields both showing the browser-context default (bare origin)
+rather than anything read from the manifest — consistent with a minting
+fetch that produced nothing at all, not a partial/selective failure.
+
+**New experiment, deployed to `dev.cachy.app`, combining three changes at
+once rather than one round-trip per field** (each on-device retest costs the
+maintainer real time, so this bundles well-justified changes instead of
+strict one-variable-at-a-time isolation):
+
+1. **Removed the `"id": "app.cachy"` field entirely**, reverting to the
+   pre-2026-02-09 baseline where identity derives from `start_url`. This was
+   added in the same suspect commit as screenshots/shortcuts/the domain
+   migration and had never been tested in isolation. Directly targets the
+   `Manifest Id` anomaly from Round 2.
+2. **Reverted `start_url` from `/?pwa=true` back to `/`**, matching the same
+   pre-2026-02-09 baseline. Confirmed safe first: `grep -rn "pwa=true"` across
+   `src/` turns up nothing — the query param is not read anywhere in the app,
+   so this is a pure manifest-identity change with no functional loss.
+3. **Shortcut icons switched from `/icon-192.png` (transparent) to
+   `/icon-192-maskable.png`** — the maintainer's own observation: shortcut
+   icons had the identical transparent-to-the-edges problem the main app icon
+   had before the Round 2 maskable fix, and were never updated when that fix
+   landed. Same reasoning applies: Android's icon treatment for shortcuts
+   plausibly needs the same safe-zone/opaque-background treatment as the main
+   icon.
+
+**Unverified on-device as of this writing.** If this resolves symptoms 1 and
+3 (and orientation), which specific change mattered stays genuinely unknown
+unless someone bisects it later — recorded as a limitation of testing three
+things at once, accepted deliberately given the cost of each on-device round
+trip.
 
 **Still open:**
 
+- Verify the Round 3 experiment on-device: splash, shortcuts, **and now also
+  orientation lock** (not tested before this round).
 - **Check the aaPanel firewall/WAF for blocked requests to `cachy.app` and
   `dev.cachy.app`** (not just `www`) around install-attempt timestamps —
-  current best lead, since it's the one thing that could uniformly affect
-  both domains the way the symptom does. Look for non-phone-browser traffic
-  or Google Cloud IP ranges getting 403/blocked on `/manifest.json` or the
-  icon files.
+  partially checked (see Round 3), inconclusive since a block below the nginx
+  layer wouldn't show in the access log checked so far. Look for
+  non-phone-browser traffic or Google Cloud IP ranges getting 403/blocked on
+  `/manifest.json` or the icon files, and check for a lower-level (iptables /
+  Hetzner Cloud Firewall console) block log specifically.
 - **Fix the `www.cachy.app` vhost anyway** — real, confirmed bug (TLS cert
   for `board.heinze-media.com` served on `www.cachy.app`), worth doing
   regardless of whether it turns out related to symptoms 1/3. Either a 301 to
