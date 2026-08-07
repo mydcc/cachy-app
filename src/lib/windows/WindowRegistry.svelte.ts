@@ -139,6 +139,22 @@ class WindowRegistry {
             }
         });
 
+        /**
+         * Generic external-URL embed. Had no registry entry before
+         * FEAT-0050's "every WindowType has a config" test caught the gap
+         * (it silently fell back to 'window' via getConfig()) --
+         * allowMultipleInstances since several embedded URLs can legitimately
+         * coexist, the same reasoning as 'channel' below.
+         */
+        this.configs.set('iframe', {
+            type: 'iframe',
+            flags: {
+                ...baseFlags,
+                allowMultipleInstances: true
+            },
+            layout: { ...baseLayout }
+        });
+
         // --- TRADING & DATA TYPES ---
 
         /** Full-featured financial chart window. */

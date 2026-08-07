@@ -4,7 +4,7 @@
 
 51 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 9
+Counts by status: 💡 idea 11 · 📋 specced 27 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 10
 
 ---
 
@@ -103,7 +103,7 @@ Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | 📋 specced | ui |
+| [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | 🟡 in-progress | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -143,7 +143,7 @@ Counts by status: 💡 idea 11 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | 📋 specced | M0 | community, pro, private | none | ADR-0006 | — |
-| [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | 📋 specced | none | community, pro, private | A | ADR-0006 | — |
+| [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | none | community, pro, private | none | none | — |

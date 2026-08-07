@@ -16,8 +16,9 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { windowManager } from "./WindowManager.svelte";
+import { windowManager, SAVE_DEBOUNCE_MS } from "./WindowManager.svelte";
 import { WindowBase } from "./WindowBase.svelte";
+import { Z_LAYERS, MAX_SAFE_WINDOW_Z_INDEX } from "./zLayers";
 
 class TestWindow extends WindowBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,6 +134,131 @@ describe("WindowManager.openAcademy (FEAT-0045)", () => {
 
         windowManager.close("academy");
         expect(windowManager.isOpen("academy")).toBe(false);
+    });
+});
+
+describe("WindowManager capacity limit (FEAT-0050)", () => {
+    it("evicts the oldest window once the 20-window cap is hit", () => {
+        const wins = Array.from({ length: 20 }, () => openTestWindow());
+        expect(windowManager.isOpen(wins[0].id)).toBe(true);
+
+        const w21 = openTestWindow();
+
+        expect(windowManager.isOpen(wins[0].id)).toBe(false);
+        expect(windowManager.isOpen(w21.id)).toBe(true);
+        expect(windowManager.windows.length).toBe(20);
+        openedIds.splice(openedIds.indexOf(wins[0].id), 1);
+    });
+
+    it("does not evict the currently focused window even if it is the oldest", () => {
+        const wins = Array.from({ length: 20 }, () => openTestWindow());
+        // Re-focus the oldest window -- bringToFront() changes its zIndex
+        // but not its position in the manager's internal list, so a naive
+        // "evict index 0" strategy would still pick it even though it's the
+        // one currently in front.
+        windowManager.bringToFront(wins[0].id);
+
+        const w21 = openTestWindow();
+
+        expect(windowManager.isOpen(wins[0].id)).toBe(true);
+        expect(windowManager.isOpen(w21.id)).toBe(true);
+        openedIds.splice(openedIds.indexOf(wins[0].id), 1);
+        windowManager.close(wins[0].id);
+    });
+});
+
+describe("WindowManager z-index stays inside the 'window' layer (FEAT-0050)", () => {
+    it("assigns a floating window a zIndex inside [Z_LAYERS.window, Z_LAYERS.windowDock)", () => {
+        const w1 = openTestWindow();
+
+        expect(w1.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.window);
+        expect(w1.zIndex).toBeLessThan(Z_LAYERS.windowDock);
+    });
+
+    it("normalizes back inside the layer once the counter approaches the unsafe ceiling", () => {
+        const w1 = openTestWindow();
+        const w2 = openTestWindow();
+
+        // Force the shared counter to the edge documented in zLayers.ts's
+        // own comment (MAX_SAFE_WINDOW_Z_INDEX must stay below
+        // Z_LAYERS.windowDock) rather than looping bringToFront() ~989,000
+        // times to reach it for real.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (windowManager as any)._nextZIndex = MAX_SAFE_WINDOW_Z_INDEX + 1;
+
+        windowManager.bringToFront(w2.id);
+
+        expect(w2.zIndex).toBeGreaterThanOrEqual(Z_LAYERS.window);
+        expect(w2.zIndex).toBeLessThan(Z_LAYERS.windowDock);
+        // Relative order survives the reset: the window not just brought to
+        // front stays behind the one that was.
+        expect(w2.zIndex).toBeGreaterThan(w1.zIndex);
+    });
+});
+
+describe("WindowManager.isOpen (FEAT-0050)", () => {
+    it("returns false for an id that matches no open window, without throwing", () => {
+        // The failure mode behind FEAT-0044's dead windowManager.isOpen("academy")
+        // branch: calling isOpen() with an id nothing currently open has.
+        expect(() => windowManager.isOpen("does-not-exist")).not.toThrow();
+        expect(windowManager.isOpen("does-not-exist")).toBe(false);
+    });
+
+    it("returns true once a window with that id is open, false after it closes", () => {
+        const w1 = openTestWindow();
+        expect(windowManager.isOpen(w1.id)).toBe(true);
+
+        windowManager.close(w1.id);
+        openedIds.splice(openedIds.indexOf(w1.id), 1);
+
+        expect(windowManager.isOpen(w1.id)).toBe(false);
+    });
+});
+
+describe("WindowManager.saveSession (FEAT-0050)", () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        sessionStorage.removeItem("cachy_open_windows");
+    });
+
+    it("debounces: nothing is written until SAVE_DEBOUNCE_MS has passed", () => {
+        vi.useFakeTimers();
+        sessionStorage.removeItem("cachy_open_windows");
+
+        const w1 = openTestWindow();
+        expect(sessionStorage.getItem("cachy_open_windows")).toBeNull();
+
+        vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 10);
+
+        const saved = sessionStorage.getItem("cachy_open_windows");
+        expect(saved).not.toBeNull();
+        const parsed = JSON.parse(saved!) as { id: string }[];
+        expect(parsed.some((w) => w.id === w1.id)).toBe(true);
+    });
+
+    it("collapses several rapid opens into a single pending timer, not one per open", () => {
+        // Counting sessionStorage.setItem calls directly is fragile here --
+        // other suites in this file open/close windows using real timers
+        // whose saves can still be in flight when this test's fake-timer
+        // window starts. Asserting on the pending-timer count instead tests
+        // the actual debounce mechanism (each saveSession() call clears the
+        // previous timer before scheduling a new one) without depending on
+        // what else is mid-flight.
+        vi.useFakeTimers();
+        const before = vi.getTimerCount();
+
+        openTestWindow();
+        const afterOne = vi.getTimerCount();
+        openTestWindow();
+        openTestWindow();
+        const afterThree = vi.getTimerCount();
+
+        // Opening the first window adds exactly one new pending timer (its
+        // debounced save); opening two more must not add two more on top --
+        // each call cancels the previous save's timer before scheduling its
+        // own.
+        expect(afterOne).toBe(before + 1);
+        expect(afterThree).toBe(afterOne);
     });
 });
 

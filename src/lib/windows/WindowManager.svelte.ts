@@ -251,8 +251,11 @@ class WindowManager {
         // Dialogs/Modals are excluded from this limit.
         const activeWindows = this._windows.filter(w => w.windowType !== 'dialog');
         if (activeWindows.length >= 20) {
-            // FIFO strategy: Close the oldest visible window to make room.
-            const oldest = activeWindows[0];
+            // FIFO strategy: close the oldest window, skipping the
+            // currently focused one -- array position tracks insertion
+            // order, not focus, so the oldest-inserted window can still be
+            // the one the user is actively looking at (FEAT-0050).
+            const oldest = activeWindows.find(w => !w.isFocused) ?? activeWindows[0];
             this.close(oldest.id);
         }
 

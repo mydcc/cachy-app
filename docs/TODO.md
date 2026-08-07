@@ -875,3 +875,28 @@ bisect is possible. That has to happen on a full clone.
    costs nothing to rule out.
 3. Verify on a real device and record which device and launcher — nothing here
    can be confirmed from a terminal.
+
+## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
+
+**FEAT-0050.** Found while writing the "every `WindowType` union member has a
+registry config" test — `iframe` had none (`getConfig()` silently fell back
+to `window`'s defaults), the same shape of gap `chatpanel` was before
+FEAT-0045 removed it. Fixed the immediate gap by adding a registry entry
+(`WindowRegistry.svelte.ts`), but that only makes the fallback correct, not
+the type reachable.
+
+`grep -rn "openIframe\|new IframeWindow" src` (excluding
+`IframeWindow.svelte.ts`'s own definition) turns up only `WindowManager`'s
+own `openIframe()` method and the `'iframe'` case in `createFromData()`
+(session rehydration) — no UI ever calls `openIframe()`. The component that
+looks like it should, `FloatingIframeButton.svelte`, opens `ChannelWindow`
+instances instead, not `IframeWindow`. Since nothing ever constructs an
+`IframeWindow`, no session could ever contain one to rehydrate either, so
+`createFromData()`'s `'iframe'` branch is unreachable too.
+
+**The decision:** same shape as items 5/8/9/11/17 — either wire a real
+caller to `openIframe()` (if generic externally-hosted iframe embedding,
+distinct from `ChannelWindow`'s more specific use, is still wanted), or
+remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
+`createFromData()` case if `ChannelWindow` already covers every case this was
+meant for. Left in place per this repo's defensive-deletion rule.
