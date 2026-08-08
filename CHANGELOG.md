@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.38](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.37...v1.2.0-beta.38) (2026-08-08)
+
+
+### Bug Fixes
+
+* correct mislabeled unrealized PnL row in the position tooltip (BUG-0066) ([96bc94a](https://github.com/mydcc/cachy-app/commit/96bc94a4eb052a605ff59f59874a110b4e90fde1))
+
 # [1.2.0-beta.37](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.36...v1.2.0-beta.37) (2026-08-08)
 
 
