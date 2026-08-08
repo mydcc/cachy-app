@@ -33,12 +33,7 @@ Data-accurate rebuild of the read side of the panel — no new trading actions
 (those are [`FEAT-0023`](FEAT-0023-position-management.md)'s scope), only
 surfacing data the API already returns.
 
-1. **Mark-price pipeline** (blocks the rest): add `markPrice` to
-   `MarketData` (`src/stores/market.svelte.ts`), parse the WS `price`
-   channel's `mp` field in `src/services/bitunixWs.ts` (currently discarded),
-   and have `PositionsSidebar.svelte`'s `mappedPositions` read mark price
-   per-symbol from `marketState` instead of the account store, where it is
-   structurally never populated (see `BUG-0055`).
+1. ~~**Mark-price pipeline**~~ — done, see `BUG-0055`'s Fix section.
 2. **Positions card**: add the fields Bitunix's `Get Pending Positions`
    already returns but the client never maps — `marginRate`
    and `realizedPNL` (`docs/bitunix-api/05_position.md:103-129`) — into
@@ -59,7 +54,7 @@ surfacing data the API already returns.
 
 ## Acceptance criteria
 
-- [ ] Mark price on an open position updates live and never renders as `0`
+- [x] Mark price on an open position updates live and never renders as `0`
       or a stale value (see `BUG-0055`'s acceptance criteria)
 - [ ] Margin rate and realized PnL are visible on an open position's card
 - [ ] A position's active TP/SL (if set) is visible on the card itself, not

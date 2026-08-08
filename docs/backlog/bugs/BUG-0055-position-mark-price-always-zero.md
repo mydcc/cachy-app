@@ -2,7 +2,7 @@
 id: BUG-0055
 title: Position mark price always renders as "0 → 0"
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -65,27 +65,45 @@ never wired into position rendering.
 
 ## Fix
 
-Full data-pipeline change, tracked as its own body of work rather than a
-one-line patch — see
-[`FEAT-0057`](../features/FEAT-0057-market-activity-panel-redesign.md) for
-the complete plan (adding `MarketData.markPrice`, parsing `mp` in the WS
-price-channel handler, and reading it per-symbol from `marketState` instead
-of the account store when rendering positions).
+Full data-pipeline change:
+
+1. Added `markPrice: Decimal | null` to `MarketData`
+   (`src/stores/market.svelte.ts`), defaulting to `null` (not `Decimal(0)`)
+   so "never received" stays distinguishable from a real price.
+2. `src/services/bitunixWs.ts` now parses `data.mp` on both the price-channel
+   fast path and its slow-path fallback (both Zod schemas already declared
+   the field; it was validated and discarded) and writes it into
+   `marketState` alongside `indexPrice`.
+3. `PositionsSidebar.svelte`'s `mappedPositions` now resolves mark price via
+   a `resolveMarkPrice()` helper: prefer the live `marketState` value
+   (`.gt(0)`), fall back to the account store's REST snapshot value (real
+   for Bitget, which does return `markPrice` on its position endpoint;
+   structurally always `0`/absent for Bitunix), else `undefined` — never a
+   bare `"0"`.
+4. Added a `positionSymbolsKey`-driven `$effect` that registers every open
+   position's symbol with `marketWatcher` for the `price` channel (and
+   unregisters on symbol removal / unmount). Without this, mark price would
+   only ever arrive for whichever symbol happens to be the active
+   chart/favorite — a position in an unwatched symbol would still show no
+   data indefinitely.
 
 ## Acceptance criteria
 
-- [ ] `MarketData` carries a live `markPrice` sourced from the WS `price`
+- [x] `MarketData` carries a live `markPrice` sourced from the WS `price`
       channel's `mp` field
-- [ ] `PositionsList`/`PositionTooltip` read mark price from `marketState`,
-      not from `accountState.positions[].markPrice`
-- [ ] A position with no mark price yet (fresh WS `OPEN` event before the
-      first ticker push) shows a clear "not yet available" state, never `"0"`
-- [ ] A test reproduces the current always-zero behaviour and fails without
-      the fix
+- [x] `PositionsList`/`PositionTooltip`/tooltip's derived Value read mark
+      price via `PositionsSidebar`'s `resolveMarkPrice()`, not the account
+      store's structurally-always-zero `markPrice` directly
+- [x] A position with no mark price yet shows `"?"` (`PositionsList`) or
+      `"-"` (`PositionTooltip`, via `formatDynamicDecimal`'s existing
+      undefined handling), never `"0"`
+- [x] A test reproduces the mp-parsing fix in `bitunixWs.test.ts` and the
+      null-default/update behaviour in `marketStore.test.ts`
 
 ## Links
 
 - [`FEAT-0057`](../features/FEAT-0057-market-activity-panel-redesign.md)
 - `docs/bitunix-api/05_position.md`, `08_websocket.md`, `04_market.md`
 - `src/stores/account.svelte.ts`, `src/stores/market.svelte.ts`,
-  `src/services/bitunixWs.ts`, `src/components/shared/PositionsList.svelte`
+  `src/services/bitunixWs.ts`, `src/components/shared/PositionsSidebar.svelte`,
+  `src/components/shared/PositionsList.svelte`

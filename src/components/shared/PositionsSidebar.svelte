@@ -20,6 +20,9 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { accountState } from "../../stores/account.svelte";
+  import { marketState } from "../../stores/market.svelte";
+  import { marketWatcher } from "../../services/marketWatcher";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
@@ -130,6 +133,20 @@
   // (accountInfo) before that, rather than showing 0 until the first push.
   let liveAsset = $derived(accountState.assets.find((a) => a.currency === "USDT"));
 
+  // Mark price for a position: Bitunix's REST/WS position endpoints never
+  // return one (see BUG-0055) — the only real source is marketState, fed by
+  // the public WS `price` channel (`mp` field) or, for exchanges that do
+  // return it on the position itself (e.g. Bitget), the account store's
+  // snapshot. Prefer the live value; `.gt(0)` treats accountState's
+  // structural `Decimal(0)` default (Bitunix: always; Bitget: only before
+  // its first snapshot) as "no data" rather than a real zero price.
+  function resolveMarkPrice(p: (typeof accountState.positions)[number]) {
+    const live = marketState.data[normalizeSymbol(p.symbol, "bitunix")]?.markPrice;
+    if (live && live.gt(0)) return live;
+    if (p.markPrice && p.markPrice.gt(0)) return p.markPrice;
+    return undefined;
+  }
+
   let mappedPositions = $derived(
     accountState.positions.map((p): OMSPosition => ({
         symbol: p.symbol,
@@ -141,10 +158,31 @@
         marginMode: p.marginMode as "cross" | "isolated",
         liquidationPrice: p.liquidationPrice,
         margin: p.margin,
-        markPrice: p.markPrice,
+        markPrice: resolveMarkPrice(p),
         size: p.size
     }))
   );
+
+  // Subscribe to live price updates for every symbol with an open position —
+  // otherwise mark price only ever arrives for whichever symbol happens to
+  // be the active chart/favorite, not for positions the user isn't actively
+  // viewing. Depends on a stable, order-independent key (not the positions
+  // array itself) so this doesn't re-subscribe on every PnL tick.
+  let positionSymbolsKey = $derived(
+    Array.from(
+      new Set(accountState.positions.map((p) => normalizeSymbol(p.symbol, "bitunix"))),
+    )
+      .sort()
+      .join(","),
+  );
+
+  $effect(() => {
+    const symbols = positionSymbolsKey ? positionSymbolsKey.split(",") : [];
+    for (const sym of symbols) marketWatcher.register(sym, "price", "stateless");
+    return () => {
+      for (const sym of symbols) marketWatcher.unregister(sym, "price", "stateless");
+    };
+  });
 
   async function fetchPositions() {
     const provider = settingsState.apiProvider || "bitunix";

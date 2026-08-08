@@ -934,6 +934,11 @@ class BitunixWebSocketService {
                   try {
                     // HARDENING: Direct property access + Warning on Numeric Types
                     const ip = data.ip !== undefined ? this.safeString(data.ip, symbol, 'indexPrice') : undefined;
+                    // Mark price: the only transport that carries it for a
+                    // position — Bitunix's REST/WS position endpoints never
+                    // return markPrice (see BUG-0055). `mp` was previously
+                    // parsed for nothing and discarded.
+                    const mp = data.mp !== undefined ? this.safeString(data.mp, symbol, 'markPrice') : undefined;
                     // fundingRate/nextFundingTime are NOT read from this WS field anymore:
                     // `fr` is undocumented and scaled differently from Bitunix's REST
                     // funding_rate/batch endpoint, which is now the sole source of truth
@@ -953,6 +958,7 @@ class BitunixWebSocketService {
                         // them and then reading `data.*` anyway.
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
+                          markPrice: mp ? new Decimal(mp) : undefined,
                         });
                     }
                     return;
@@ -1268,6 +1274,7 @@ class BitunixWebSocketService {
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
             indexPrice: d.ip ? String(d.ip) : undefined,
+            markPrice: d.mp ? String(d.mp) : undefined,
             // fundingRate/nextFundingTime: see fast path above - sourced from
             // REST (fundingRateService.ts), not this undocumented WS field.
           });
