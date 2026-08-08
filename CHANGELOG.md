@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.33](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.32...v1.2.0-beta.33) (2026-08-08)
+
+
+### Bug Fixes
+
+* unwrap the correct response envelope for positions/account fetches (BUG-0060) ([e89414f](https://github.com/mydcc/cachy-app/commit/e89414f9e05a0cd5c0d683a450d72e006bb80d2a))
+
 # [1.2.0-beta.32](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.31...v1.2.0-beta.32) (2026-08-08)
 
 
