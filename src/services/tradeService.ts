@@ -526,6 +526,7 @@ class TradeService {
                               if (sym) params.symbol = sym;
 
                               const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
+                                  exchange: "bitunix",
                                   action: view,
                                   params
                               }).catch((e): Record<string, unknown> => {
@@ -572,6 +573,7 @@ class TradeService {
 
     public async cancelTpSlOrder(order: TpSlOrder) {
         return this.signedRequest("POST", "/api/tpsl", {
+            exchange: "bitunix",
             action: "cancel",
             params: {
                 orderId: order.orderId || order.id,
@@ -589,6 +591,7 @@ class TradeService {
         qty?: string
     }) {
         return this.signedRequest("POST", "/api/tpsl", {
+            exchange: "bitunix",
             action: "modify",
             params: {
                 orderId: params.orderId,

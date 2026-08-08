@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal } from "./utils";
+import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal, formatDynamicDecimal } from "./utils";
 
 describe("parseTimestamp", () => {
   it("should return number as is (milliseconds)", () => {
@@ -210,5 +210,25 @@ describe("parseDecimal", () => {
     expect(parseDecimal("MARKET").toNumber()).toBe(0);
     expect(parseDecimal("LIMIT").toNumber()).toBe(0);
     expect(parseDecimal("abc").toNumber()).toBe(0);
+  });
+});
+
+describe("formatDynamicDecimal", () => {
+  it("should format valid numeric input", () => {
+    expect(formatDynamicDecimal("123.4500")).toBe("123.45");
+    expect(formatDynamicDecimal(100)).toBe("100");
+  });
+
+  it("should return '-' for null/undefined", () => {
+    expect(formatDynamicDecimal(null)).toBe("-");
+    expect(formatDynamicDecimal(undefined)).toBe("-");
+  });
+
+  it("should return '-' instead of throwing on a non-numeric string", () => {
+    // Regression: `new Decimal("MARKET")` throws rather than yielding NaN,
+    // and this is called from dozens of list/tooltip components with
+    // whatever field an order/position object happens to hold.
+    expect(formatDynamicDecimal("MARKET")).toBe("-");
+    expect(formatDynamicDecimal("LIMIT")).toBe("-");
   });
 });

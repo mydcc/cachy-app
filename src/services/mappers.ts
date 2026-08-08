@@ -22,7 +22,20 @@
 
 import { Decimal } from "decimal.js";
 import { logger } from "./logger";
+import { parseDecimal } from "../utils/utils";
 import type { OMSOrder, OMSPosition, OMSOrderSide, OMSOrderStatus } from "./omsTypes";
+
+/**
+ * `parseDecimal`, for the "field absent means omit it entirely" call sites
+ * below (e.g. `markPrice` on a position where the exchange sent none) —
+ * `parseDecimal` itself always falls back to `Decimal(0)`, which is right
+ * for a price/amount but wrong for an optional field consumers expect to be
+ * `undefined` when absent.
+ */
+function parseDecimalOrUndefined(value: unknown): Decimal | undefined {
+    if (value === undefined || value === null || value === "") return undefined;
+    return parseDecimal(value as string | number | Decimal);
+}
 
 /**
  * Maps raw API/WS data to a standardized OMSPosition.
@@ -36,7 +49,7 @@ import type { OMSOrder, OMSPosition, OMSOrderSide, OMSOrderStatus } from "./omsT
 export function mapToOMSPosition(data: any): OMSPosition {
     const isClose = data.event === "CLOSE";
     // If event is CLOSE, the position is effectively closed (qty 0).
-    const amount = isClose ? new Decimal(0) : new Decimal(data.qty || data.size || data.amount || 0);
+    const amount = isClose ? new Decimal(0) : parseDecimal(data.qty || data.size || data.amount);
 
     // Side normalization
     let side: "long" | "short" = "long";
@@ -46,12 +59,11 @@ export function mapToOMSPosition(data: any): OMSPosition {
     }
 
     // Price priority: avgOpenPrice (API/WS) > entryPrice (API fallback)
-    const entryPrice = new Decimal(data.avgOpenPrice || data.averagePrice || data.entryPrice || 0);
-    const upnl = new Decimal(data.unrealizedPNL || data.unrealizedPnl || 0);
-    const lev = new Decimal(data.leverage || 0);
-    const liq = (data.liquidationPrice || data.liqPrice)
-        ? new Decimal(data.liquidationPrice || data.liqPrice)
-        : undefined;
+    const entryPrice = parseDecimal(data.avgOpenPrice || data.averagePrice || data.entryPrice);
+    const upnl = parseDecimal(data.unrealizedPNL || data.unrealizedPnl);
+    const lev = parseDecimal(data.leverage);
+    const rawLiq = data.liquidationPrice || data.liqPrice;
+    const liq = rawLiq ? parseDecimalOrUndefined(rawLiq) : undefined;
 
     return {
         symbol: data.symbol || "",
@@ -64,12 +76,8 @@ export function mapToOMSPosition(data: any): OMSPosition {
         liquidationPrice: liq,
         // Hardening: Extract real values from API instead of using Decimal(0) placeholder.
         // Use undefined when the field is absent — consumers already handle optional fields.
-        margin: (data.margin || data.isolatedMargin || data.crossMargin)
-            ? new Decimal(data.margin || data.isolatedMargin || data.crossMargin)
-            : undefined,
-        markPrice: data.markPrice
-            ? new Decimal(data.markPrice)
-            : undefined,
+        margin: parseDecimalOrUndefined(data.margin || data.isolatedMargin || data.crossMargin),
+        markPrice: parseDecimalOrUndefined(data.markPrice),
         size: amount,
         lastUpdated: Date.now()
     };
@@ -116,9 +124,9 @@ export function mapToOMSOrder(data: any): OMSOrder {
         side,
         type: (data.type || "").toLowerCase() as "limit" | "market",
         status: status,
-        price: new Decimal(data.price || 0),
-        amount: new Decimal(data.qty || data.amount || 0),
-        filledAmount: new Decimal(data.dealAmount || data.filledQty || 0),
+        price: parseDecimal(data.price),
+        amount: parseDecimal(data.qty || data.amount),
+        filledAmount: parseDecimal(data.dealAmount || data.filledQty),
         timestamp: Number(data.ctime || data.timestamp || Date.now()),
     };
 }
