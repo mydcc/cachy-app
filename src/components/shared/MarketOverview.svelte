@@ -427,7 +427,7 @@
     XRP: true,
   };
 
-  function openChannel(e?: MouseEvent) {
+  function openChannel() {
     if (!symbol) return;
     const config = CHANNEL_CONFIG[baseAsset];
     if (!config) return;
@@ -787,7 +787,7 @@
                   : $_("marketOverview.tooltips.openChannel")}
                 onclick={(e) => {
                   e.stopPropagation();
-                  openChannel(e);
+                  openChannel();
                 }}>{@html icons.monitor}</button
               >
             {/if}
