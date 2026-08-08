@@ -446,7 +446,6 @@
           url,
           `${baseAsset} Channel`,
           windowId,
-          e ? { x: e.clientX, y: e.clientY } : {},
         ),
       );
     }
