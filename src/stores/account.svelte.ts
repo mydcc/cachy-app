@@ -105,6 +105,10 @@ class AccountManager {
   assets = $state<Asset[]>([]);
 
   private syncCallback: (() => void) | null = null;
+  // Fired when a WS push closes an open order (FILLED/CANCELED/...) — lets
+  // the UI eagerly refresh the (REST-only, non-live) order history instead
+  // of only picking up the fill on the next manual tab switch.
+  private orderCloseCallback: (() => void) | null = null;
 
   reset() {
     this.positions = [];
@@ -115,6 +119,10 @@ class AccountManager {
 
   registerSyncCallback(fn: () => void) {
     this.syncCallback = fn;
+  }
+
+  registerOrderCloseCallback(fn: (() => void) | null) {
+    this.orderCloseCallback = fn;
   }
 
   // --- WS Actions ---
@@ -216,6 +224,7 @@ class AccountManager {
     if (isClosed) {
       if (index !== -1) {
         this.openOrders.splice(index, 1);
+        this.orderCloseCallback?.();
       }
     } else {
       // Update or Create

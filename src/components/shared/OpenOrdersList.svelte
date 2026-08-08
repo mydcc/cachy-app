@@ -86,6 +86,20 @@
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
+  {#if loading && orders.length > 0}
+    <!-- Non-blocking refresh indicator: the list below stays visible and
+         interactive while a background refetch (e.g. after cancel) is in
+         flight, instead of the empty-state spinner hiding real data. -->
+    <div
+      class="absolute top-1 right-1 z-10"
+      role="status"
+      aria-label={$_("dashboard.refreshing") || "Refreshing"}
+    >
+      <div
+        class="animate-spin rounded-full h-3 w-3 border-b-2 border-[var(--accent-color)]"
+      ></div>
+    </div>
+  {/if}
   {#if loading && orders.length === 0}
     <div class="flex justify-center p-4">
       <div

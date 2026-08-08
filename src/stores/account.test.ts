@@ -209,6 +209,73 @@ describe('AccountManager', () => {
         });
     });
 
+    // Regression: order history has no WS push channel of its own, so
+    // PositionsSidebar relies on this callback to know when to refetch it —
+    // it used to only refresh once per session (stale trades).
+    describe('registerOrderCloseCallback', () => {
+        it('fires when a WS push closes an open order', () => {
+            accountState.updateOrderFromWs({
+                orderId: '1', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '1', dealAmount: '0', orderStatus: 'NEW',
+            });
+            expect(accountState.openOrders).toHaveLength(1);
+
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+
+            accountState.updateOrderFromWs({
+                orderId: '1', orderStatus: 'FILLED',
+            });
+
+            expect(accountState.openOrders).toHaveLength(0);
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not fire for updates that keep the order open', () => {
+            accountState.updateOrderFromWs({
+                orderId: '2', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '1', dealAmount: '0', orderStatus: 'NEW',
+            });
+
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+
+            accountState.updateOrderFromWs({
+                orderId: '2', orderStatus: 'PARTIALLY_FILLED', dealAmount: '0.5',
+            });
+
+            expect(accountState.openOrders).toHaveLength(1);
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('does not fire for a close event on an order not being tracked', () => {
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+
+            accountState.updateOrderFromWs({
+                orderId: 'unknown', orderStatus: 'CANCELED',
+            });
+
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('unregisters cleanly when passed null', () => {
+            accountState.updateOrderFromWs({
+                orderId: '3', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '1', dealAmount: '0', orderStatus: 'NEW',
+            });
+
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+            accountState.registerOrderCloseCallback(null);
+
+            expect(() =>
+                accountState.updateOrderFromWs({ orderId: '3', orderStatus: 'FILLED' }),
+            ).not.toThrow();
+            expect(onClose).not.toHaveBeenCalled();
+        });
+    });
+
     describe('totalUnrealizedPnl', () => {
         it('sums unrealizedPnl across all open positions', () => {
             accountState.hydratePositions([

@@ -22,15 +22,17 @@
   import { uiState } from "../../stores/ui.svelte";
   import { OrderType } from "../../types/orderTypes";
   import type { NormalizedOrder } from "../../types/bitunix";
+  import { icons } from "../../lib/constants";
   import Decimal from "decimal.js";
 
   interface Props {
     orders?: NormalizedOrder[];
     loading?: boolean;
     error?: string;
+    onrefresh?: () => void;
   }
 
-  let { orders = [], loading = false, error = "" }: Props = $props();
+  let { orders = [], loading = false, error = "", onrefresh }: Props = $props();
 
   // Pagination / Virtualization Lite
   let pageSize = 50;
@@ -146,6 +148,21 @@
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
+  {#if onrefresh}
+    <div class="flex justify-end mb-1">
+      <button
+        class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
+        title={$_("dashboard.orderHistory.refresh") || "Refresh"}
+        disabled={loading}
+        onclick={() => onrefresh?.()}
+      >
+        <span class:animate-spin={loading}>
+          {@html icons.refresh ||
+            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
+        </span>
+      </button>
+    </div>
+  {/if}
   {#if loading && orders.length === 0}
     <div class="flex justify-center p-4">
       <div

@@ -318,17 +318,44 @@
     }
   });
 
-  // Load orders only when switching to the tab and if not already loaded or stale
+  // Order history has no WS push channel of its own — eagerly refresh it
+  // when a WS order-close event lands while the user is looking at the tab,
+  // instead of only picking up the fill on the next manual tab switch.
   $effect(() => {
-    if (activeTab === "orders" && openOrders.length === 0) {
-      fetchPendingOrders();
+    accountState.registerOrderCloseCallback(() => {
+      if (activeTab === "history") fetchHistoryOrders();
+    });
+    return () => accountState.registerOrderCloseCallback(null);
+  });
+
+  // Load orders once per tab-activation, not on every openOrders reference
+  // change — hydrateOpenOrders() always assigns a fresh array (even when
+  // empty), so gating on `openOrders.length === 0` re-fires this effect
+  // forever while the account genuinely has no open orders (the loader never
+  // settles). `hasFetchedOrdersOnce` is reset whenever the tab is left, so
+  // returning to it still refreshes exactly once.
+  let hasFetchedOrdersOnce = $state(false);
+  $effect(() => {
+    if (activeTab === "orders") {
+      if (!hasFetchedOrdersOnce) {
+        hasFetchedOrdersOnce = true;
+        untrack(() => fetchPendingOrders());
+      }
+    } else {
+      hasFetchedOrdersOnce = false;
     }
   });
 
+  let hasFetchedHistoryOnce = $state(false);
   $effect(() => {
-    // History should only load once when requested or via manual refresh
-    if (activeTab === "history" && historyOrders.length === 0) {
-      fetchHistoryOrders();
+    // History should only load once per tab-activation or via manual refresh
+    if (activeTab === "history") {
+      if (!hasFetchedHistoryOnce) {
+        hasFetchedHistoryOnce = true;
+        untrack(() => fetchHistoryOrders());
+      }
+    } else {
+      hasFetchedHistoryOnce = false;
     }
   });
 
@@ -340,6 +367,13 @@
       untrack(() => {
         fetchAccount();
         fetchPositions();
+        // Orders/History are tab-gated above; invalidate so the next visit
+        // (or the currently active tab) re-fetches for the new key/exchange
+        // instead of silently keeping the previous account's stale data.
+        hasFetchedOrdersOnce = false;
+        hasFetchedHistoryOnce = false;
+        if (activeTab === "orders") fetchPendingOrders();
+        if (activeTab === "history") fetchHistoryOrders();
       });
     }
   });
@@ -570,6 +604,7 @@
           orders={filteredHistoryOrders}
           loading={loadingHistory}
           error={errorHistory}
+          onrefresh={fetchHistoryOrders}
         />
       {/if}
     </div>

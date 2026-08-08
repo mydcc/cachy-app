@@ -106,6 +106,7 @@
     "margin": "Margin",
     "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
+    "refreshing": "Aktualisierung läuft",
     "noHistory": "Keine Historie gefunden.",
     "noTpSlOrders": "Keine {view} TP/SL Orders gefunden.",
     "orderHistory": {
@@ -115,6 +116,7 @@
       "noFee": "-",
       "noDate": "-",
       "liq": "Liq.",
+      "refresh": "Historie aktualisieren",
       "side": {
         "buy": "Kauf",
         "sell": "Verkauf"
