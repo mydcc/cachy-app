@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.21](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.20...v1.2.0-beta.21) (2026-08-08)
+
+
+### Bug Fixes
+
+* source funding rate from Bitunix REST, not the undocumented WS field ([1907fa3](https://github.com/mydcc/cachy-app/commit/1907fa3066ba276dff931b50bfa2fe48400a668e))
+
 # [1.2.0-beta.20](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.19...v1.2.0-beta.20) (2026-08-08)
 
 
