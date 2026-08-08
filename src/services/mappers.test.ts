@@ -115,5 +115,26 @@ describe("Mappers", () => {
             expect(result.price.toString()).toBe("0");
             expect(result.amount.toString()).toBe("0");
         });
+
+        it("should not throw when a numeric field holds a non-numeric string", () => {
+            // Regression: `new Decimal("MARKET")` throws (decimal.js does not
+            // return NaN like Number() does), which used to crash the whole
+            // reactive tree consuming OMS state when a raw WS/API field ended
+            // up here malformed.
+            const raw = {
+                orderId: "1",
+                symbol: "ETHUSDT",
+                side: "BUY",
+                type: "MARKET",
+                price: "MARKET",
+                qty: "MARKET",
+                dealAmount: "MARKET",
+            };
+
+            const result = mapToOMSOrder(raw);
+            expect(result.price.toString()).toBe("0");
+            expect(result.amount.toString()).toBe("0");
+            expect(result.filledAmount.toString()).toBe("0");
+        });
     });
 });

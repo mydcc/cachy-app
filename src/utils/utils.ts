@@ -161,7 +161,17 @@ export function formatDynamicDecimal(
 ): string {
   if (value === null || value === undefined) return "-";
 
-  const dec = new Decimal(value);
+  // decimal.js throws on a non-numeric string (e.g. an order's `type` field
+  // ending up here by mistake) rather than returning NaN like Number() does.
+  // This is a render-layer choke point called from dozens of list/tooltip
+  // components on live exchange data, so one bad field must degrade to "-"
+  // rather than crash the whole reactive tree.
+  let dec: Decimal;
+  try {
+    dec = new Decimal(value);
+  } catch {
+    return "-";
+  }
   if (dec.isNaN()) return "-";
 
   // Format to a fixed number of decimal places, then remove trailing zeros

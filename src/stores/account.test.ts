@@ -81,4 +81,58 @@ describe('AccountManager', () => {
             expect.anything()
         );
     });
+
+    // Regression: `new Decimal("MARKET")` throws (decimal.js does not return
+    // NaN like Number() does), so a malformed field on a raw WS push used to
+    // crash the store outright instead of falling back safely.
+    it('should not throw when a new position has a non-numeric field', () => {
+        expect(() =>
+            accountState.updatePositionFromWs({
+                positionId: '456',
+                symbol: 'ETHUSDT',
+                side: 'long',
+                qty: '1.5', // non-zero, so this isn't treated as a CLOSE
+                averagePrice: 'MARKET',
+                leverage: 'MARKET',
+                unrealizedPNL: 'MARKET',
+                margin: 'MARKET',
+            }),
+        ).not.toThrow();
+
+        expect(accountState.positions).toHaveLength(1);
+        expect(accountState.positions[0].size.toString()).toBe('1.5');
+        expect(accountState.positions[0].entryPrice.toString()).toBe('0');
+    });
+
+    it('should not throw when a new order has a non-numeric price', () => {
+        expect(() =>
+            accountState.updateOrderFromWs({
+                orderId: '789',
+                symbol: 'ETHUSDT',
+                side: 'BUY',
+                type: 'MARKET',
+                price: 'MARKET',
+                qty: 'MARKET',
+                dealAmount: 'MARKET',
+                orderStatus: 'NEW',
+            }),
+        ).not.toThrow();
+
+        expect(accountState.openOrders).toHaveLength(1);
+        expect(accountState.openOrders[0].price.toString()).toBe('0');
+    });
+
+    it('should not throw when a balance push has a non-numeric field', () => {
+        expect(() =>
+            accountState.updateBalanceFromWs({
+                coin: 'USDT',
+                available: 'MARKET',
+                margin: 'MARKET',
+                frozen: 'MARKET',
+            }),
+        ).not.toThrow();
+
+        expect(accountState.assets).toHaveLength(1);
+        expect(accountState.assets[0].total.toString()).toBe('0');
+    });
 });

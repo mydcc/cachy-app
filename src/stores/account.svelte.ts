@@ -8,7 +8,7 @@
  */
 
 import { Decimal } from "decimal.js";
-import { parseTimestamp } from "../utils/utils";
+import { parseTimestamp, parseDecimal } from "../utils/utils";
 
 export interface Position {
   positionId: string;
@@ -88,8 +88,15 @@ interface AccountSnapshot {
   assets: Asset[];
 }
 
+/**
+ * `parseDecimal` already falls back to `Decimal(0)` on a missing or
+ * unparseable value (`new Decimal()` throws on a non-numeric string instead
+ * of returning NaN — a malformed field on a raw WS push would otherwise
+ * crash this store outright). This wraps it with a caller-supplied fallback
+ * for the "keep the existing value" update paths below.
+ */
 const safeDecimal = (val: Decimal.Value | null | undefined, fallback: Decimal) =>
-  val !== undefined && val !== null ? new Decimal(val) : fallback;
+  val === undefined || val === null ? fallback : parseDecimal(val as string | number | Decimal);
 
 class AccountManager {
   positions = $state<Position[]>([]);
@@ -119,7 +126,7 @@ class AccountManager {
     // Robust check for close event or zero quantity
     const isClose =
       data.event === "CLOSE" ||
-      new Decimal(data.qty || 0).isZero();
+      safeDecimal(data.qty, new Decimal(0)).isZero();
 
     if (isClose) {
       if (index !== -1) {
@@ -180,11 +187,11 @@ class AccountManager {
           positionId: String(data.positionId),
           symbol: data.symbol ?? "",
           side: side as "long" | "short",
-          size: new Decimal(data.qty || 0),
-          entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
-          leverage: new Decimal(data.leverage || 0),
-          unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-          margin: new Decimal(data.margin || 0),
+          size: safeDecimal(data.qty, new Decimal(0)),
+          entryPrice: safeDecimal(data.averagePrice || data.avgOpenPrice, new Decimal(0)),
+          leverage: safeDecimal(data.leverage, new Decimal(0)),
+          unrealizedPnl: safeDecimal(data.unrealizedPNL, new Decimal(0)),
+          margin: safeDecimal(data.margin, new Decimal(0)),
           marginMode: data.marginMode ? data.marginMode.toLowerCase() : "cross",
           liquidationPrice: new Decimal(0),
           markPrice: new Decimal(0),
@@ -232,9 +239,9 @@ class AccountManager {
           symbol: data.symbol ?? "",
           side: (data.side ? data.side.toLowerCase() : "buy") as "buy" | "sell",
           type: (data.type ? data.type.toLowerCase() : "limit") as "limit" | "market",
-          price: new Decimal(data.price || 0),
-          amount: new Decimal(data.qty || 0),
-          filled: new Decimal(data.dealAmount || 0),
+          price: safeDecimal(data.price, new Decimal(0)),
+          amount: safeDecimal(data.qty, new Decimal(0)),
+          filled: safeDecimal(data.dealAmount, new Decimal(0)),
           status: data.orderStatus || "",
           timestamp: parseTimestamp(data.ctime) || Date.now(),
         };
@@ -247,14 +254,15 @@ class AccountManager {
     if (data.coin === "USDT") {
       const idx = this.assets.findIndex((a) => a.currency === "USDT");
 
+      const available = safeDecimal(data.available, new Decimal(0));
+      const margin = safeDecimal(data.margin, new Decimal(0));
+      const frozen = safeDecimal(data.frozen, new Decimal(0));
       const newAsset = {
         currency: "USDT",
-        available: new Decimal(data.available || 0),
-        margin: new Decimal(data.margin || 0),
-        frozen: new Decimal(data.frozen || 0),
-        total: new Decimal(data.available || 0)
-          .plus(new Decimal(data.margin || 0))
-          .plus(new Decimal(data.frozen || 0)),
+        available,
+        margin,
+        frozen,
+        total: available.plus(margin).plus(frozen),
       };
 
       if (idx !== -1) {
