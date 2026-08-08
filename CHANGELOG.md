@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.28](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.27...v1.2.0-beta.28) (2026-08-08)
+
+
+### Bug Fixes
+
+* correct percent-vs-fraction scaling for REST funding rate ([d3cdaf9](https://github.com/mydcc/cachy-app/commit/d3cdaf966f5834ae6cc79e66dc0e51c17ff4d969)), closes [#1658](https://github.com/mydcc/cachy-app/issues/1658)
+
 # [1.2.0-beta.27](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.26...v1.2.0-beta.27) (2026-08-08)
 
 
