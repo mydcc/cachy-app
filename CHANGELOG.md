@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.36](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.35...v1.2.0-beta.36) (2026-08-08)
+
+
+### Bug Fixes
+
+* send tradeSide/positionId unconditionally when closing a position (BUG-0063) ([a5fce7e](https://github.com/mydcc/cachy-app/commit/a5fce7ee9988b999083d5cbf865f38c50c0f8a97))
+
 # [1.2.0-beta.35](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.34...v1.2.0-beta.35) (2026-08-08)
 
 
