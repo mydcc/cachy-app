@@ -90,6 +90,25 @@ describe("marketStore", () => {
     });
   });
 
+  describe("updateSymbol - mark price (BUG-0055)", () => {
+    it("stores markPrice from a partial update, defaulting to null when never set", async () => {
+      const symbol = "BTCUSDT";
+      expect(marketState.data[symbol]).toBeUndefined();
+
+      marketState.updateSymbol(symbol, { indexPrice: "50001" });
+      await vi.advanceTimersByTimeAsync(300);
+      // Position display must be able to tell "never received" (null) apart
+      // from "received a real value" — the account store's own Position type
+      // instead falls back to Decimal(0) for a missing field, which is
+      // exactly the "0 -> 0" defect this field exists to avoid repeating.
+      expect(marketState.data[symbol].markPrice).toBeNull();
+
+      marketState.updateSymbol(symbol, { markPrice: "50002" });
+      await vi.advanceTimersByTimeAsync(300);
+      expect(marketState.data[symbol].markPrice?.toString()).toBe("50002");
+    });
+  });
+
   describe("Kline Protection (Single Source of Truth)", () => {
     it("should prioritize WS updates over REST for the live candle", async () => {
       const symbol = "BTCUSDT";

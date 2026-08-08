@@ -26,6 +26,12 @@ export interface MarketData {
   symbol: string;
   lastPrice: Decimal | null;
   indexPrice: Decimal | null;
+  // Bitunix's position endpoints (REST and WS) never carry a mark price —
+  // this is the only place it's actually available, sourced from the public
+  // WS `price` channel's `mp` field (see BUG-0055). Consumers rendering a
+  // position must read it from here, keyed by symbol, not from any
+  // position-shaped object.
+  markPrice: Decimal | null;
   fundingRate: Decimal | null;
   nextFundingTime: number | null; // Unix timestamp in ms
   fundingInterval?: number | null; // Settlement interval in hours (varies per symbol)
@@ -97,6 +103,7 @@ export interface RawKline {
 interface RawPriceUpdate {
   price?: RawNumeric;
   indexPrice?: RawNumeric;
+  markPrice?: RawNumeric;
   fundingRate?: RawNumeric;
   nextFundingTime?: number | string | null;
 }
@@ -200,6 +207,7 @@ export class MarketManager {
         symbol,
         lastPrice: null,
         indexPrice: null,
+        markPrice: null,
         fundingRate: null,
         nextFundingTime: null,
         klines: {},
@@ -383,6 +391,10 @@ export class MarketManager {
       if (partial.indexPrice !== undefined) {
           const newVal = toDecimal(partial.indexPrice, current.indexPrice);
           if (newVal !== undefined) current.indexPrice = newVal;
+      }
+      if (partial.markPrice !== undefined) {
+          const newVal = toDecimal(partial.markPrice, current.markPrice);
+          if (newVal !== undefined) current.markPrice = newVal;
       }
       if (partial.highPrice !== undefined) {
           const newVal = toDecimal(partial.highPrice, current.highPrice);
@@ -781,6 +793,7 @@ export class MarketManager {
       // Just pass raw values, applyUpdate handles Decimal conversion efficiently
       if (data.price) update.lastPrice = data.price;
       if (data.indexPrice) update.indexPrice = data.indexPrice;
+      if (data.markPrice) update.markPrice = data.markPrice;
       if (data.fundingRate) update.fundingRate = data.fundingRate;
 
       this.updateSymbol(symbol, update);

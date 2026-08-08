@@ -99,6 +99,21 @@ describe('BitunixWS Fast Path Fallback', () => {
         });
     });
 
+    it('should parse mark price from the price channel (BUG-0055)', () => {
+        const msg = {
+            ch: 'price',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', fr: '0.01', ip: '50001', mp: '50002' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
+            indexPrice: new Decimal('50001'),
+            markPrice: new Decimal('50002'),
+        });
+    });
+
     it('should execute trade listeners exactly once for each trade', () => {
         const symbol = 'BTCUSDT';
         const callback = vi.fn();

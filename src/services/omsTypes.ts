@@ -55,4 +55,12 @@ export interface OMSPosition {
     markPrice?: Decimal; // Hardening: Ensure markPrice is optional but typed
     size?: Decimal; // Hardening
     lastUpdated?: number; // Freshness check
+    // Bitunix-only, REST snapshot ("Get Pending Positions") — absent for
+    // Bitget, and possibly stale relative to a fresh WS position push (the
+    // WS position channel never sends marginRate; see account.svelte.ts).
+    marginRate?: Decimal;
+    // Cumulative realized PnL for the position while it stays open (fees/
+    // funding excluded) — live via WS on Bitunix, REST-snapshot-only
+    // elsewhere.
+    realizedPnl?: Decimal;
 }

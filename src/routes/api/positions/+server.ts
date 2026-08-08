@@ -52,6 +52,8 @@ interface BitunixRawPosition {
   openLoss?: string | number;
   leverage?: string | number;
   marginMode?: string | number;
+  marginRate?: string | number;
+  realizedPNL?: string | number;
 }
 
 // Raw Bitget position fields (/api/mix/v1/position/allPosition).
@@ -217,6 +219,8 @@ async function fetchBitunixPositions(
         unrealizedPnL: formatApiNum(
           p.unrealizedPNL || p.unrealizedPnL || p.openLoss,
         ),
+        marginRate: formatApiNum(p.marginRate),
+        realizedPnl: formatApiNum(p.realizedPNL),
         leverage: formatApiNum(p.leverage),
         // marginType: "ISOLATION" | "CROSS" as per docs.
         marginMode:

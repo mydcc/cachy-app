@@ -106,6 +106,7 @@
     "margin": "Margin",
     "pnl": "Total PnL",
     "noOpenOrders": "No open orders.",
+    "refreshing": "Refreshing",
     "noHistory": "No history found.",
     "noTpSlOrders": "No {view} TP/SL orders found.",
     "orderHistory": {
@@ -115,6 +116,9 @@
       "noFee": "-",
       "noDate": "-",
       "liq": "Liq.",
+      "refresh": "Refresh history",
+      "reduceOnly": "Reduce Only",
+      "reduceOnlyShort": "R/O",
       "side": {
         "buy": "Buy",
         "sell": "Sell"
@@ -315,7 +319,8 @@
       "frozen": "Frozen",
       "mode": "Mode",
       "crossPnl": "Cross PnL",
-      "isoPnl": "Iso PnL"
+      "isoPnl": "Iso PnL",
+      "totalPositionSize": "Total Position Size"
     },
     "customModal": {
       "promptPlaceholder": "Input...",
@@ -1455,6 +1460,8 @@
     "confirmClose": "Close position for {symbol}?",
     "roi": "ROI",
     "margin": "Margin",
+    "marginRate": "Margin Rate",
+    "realizedPnl": "Realized PnL",
     "unrealizedPnl": "uPnL"
   },
   "symbolPicker": {

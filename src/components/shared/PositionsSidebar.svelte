@@ -17,9 +17,13 @@
 
 <script lang="ts">
   import { onMount, untrack } from "svelte";
+  import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { accountState } from "../../stores/account.svelte";
+  import { marketState } from "../../stores/market.svelte";
+  import { marketWatcher } from "../../services/marketWatcher";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
@@ -130,6 +134,20 @@
   // (accountInfo) before that, rather than showing 0 until the first push.
   let liveAsset = $derived(accountState.assets.find((a) => a.currency === "USDT"));
 
+  // Mark price for a position: Bitunix's REST/WS position endpoints never
+  // return one (see BUG-0055) — the only real source is marketState, fed by
+  // the public WS `price` channel (`mp` field) or, for exchanges that do
+  // return it on the position itself (e.g. Bitget), the account store's
+  // snapshot. Prefer the live value; `.gt(0)` treats accountState's
+  // structural `Decimal(0)` default (Bitunix: always; Bitget: only before
+  // its first snapshot) as "no data" rather than a real zero price.
+  function resolveMarkPrice(p: (typeof accountState.positions)[number]) {
+    const live = marketState.data[normalizeSymbol(p.symbol, "bitunix")]?.markPrice;
+    if (live && live.gt(0)) return live;
+    if (p.markPrice && p.markPrice.gt(0)) return p.markPrice;
+    return undefined;
+  }
+
   let mappedPositions = $derived(
     accountState.positions.map((p): OMSPosition => ({
         symbol: p.symbol,
@@ -141,10 +159,45 @@
         marginMode: p.marginMode as "cross" | "isolated",
         liquidationPrice: p.liquidationPrice,
         margin: p.margin,
-        markPrice: p.markPrice,
-        size: p.size
+        markPrice: resolveMarkPrice(p),
+        size: p.size,
+        // REST-only, never sent over WS — 0 means "not hydrated yet", not a
+        // real margin rate, so treat it as absent rather than show "0%".
+        marginRate: p.marginRate.gt(0) ? p.marginRate : undefined,
+        realizedPnl: p.realizedPnl,
     }))
   );
+
+  // Total notional value of every open position — client-computed (Σ size ×
+  // mark/entry price), matching how Bitunix's own Assets panel derives it;
+  // there is no API field for it.
+  let totalPositionSize = $derived(
+    mappedPositions.reduce(
+      (sum, p) => sum.plus(p.amount.mul(p.markPrice || p.entryPrice)),
+      new Decimal(0),
+    ),
+  );
+
+  // Subscribe to live price updates for every symbol with an open position —
+  // otherwise mark price only ever arrives for whichever symbol happens to
+  // be the active chart/favorite, not for positions the user isn't actively
+  // viewing. Depends on a stable, order-independent key (not the positions
+  // array itself) so this doesn't re-subscribe on every PnL tick.
+  let positionSymbolsKey = $derived(
+    Array.from(
+      new Set(accountState.positions.map((p) => normalizeSymbol(p.symbol, "bitunix"))),
+    )
+      .sort()
+      .join(","),
+  );
+
+  $effect(() => {
+    const symbols = positionSymbolsKey ? positionSymbolsKey.split(",") : [];
+    for (const sym of symbols) marketWatcher.register(sym, "price", "stateless");
+    return () => {
+      for (const sym of symbols) marketWatcher.unregister(sym, "price", "stateless");
+    };
+  });
 
   async function fetchPositions() {
     const provider = settingsState.apiProvider || "bitunix";
@@ -318,17 +371,44 @@
     }
   });
 
-  // Load orders only when switching to the tab and if not already loaded or stale
+  // Order history has no WS push channel of its own — eagerly refresh it
+  // when a WS order-close event lands while the user is looking at the tab,
+  // instead of only picking up the fill on the next manual tab switch.
   $effect(() => {
-    if (activeTab === "orders" && openOrders.length === 0) {
-      fetchPendingOrders();
+    accountState.registerOrderCloseCallback(() => {
+      if (activeTab === "history") fetchHistoryOrders();
+    });
+    return () => accountState.registerOrderCloseCallback(null);
+  });
+
+  // Load orders once per tab-activation, not on every openOrders reference
+  // change — hydrateOpenOrders() always assigns a fresh array (even when
+  // empty), so gating on `openOrders.length === 0` re-fires this effect
+  // forever while the account genuinely has no open orders (the loader never
+  // settles). `hasFetchedOrdersOnce` is reset whenever the tab is left, so
+  // returning to it still refreshes exactly once.
+  let hasFetchedOrdersOnce = $state(false);
+  $effect(() => {
+    if (activeTab === "orders") {
+      if (!hasFetchedOrdersOnce) {
+        hasFetchedOrdersOnce = true;
+        untrack(() => fetchPendingOrders());
+      }
+    } else {
+      hasFetchedOrdersOnce = false;
     }
   });
 
+  let hasFetchedHistoryOnce = $state(false);
   $effect(() => {
-    // History should only load once when requested or via manual refresh
-    if (activeTab === "history" && historyOrders.length === 0) {
-      fetchHistoryOrders();
+    // History should only load once per tab-activation or via manual refresh
+    if (activeTab === "history") {
+      if (!hasFetchedHistoryOnce) {
+        hasFetchedHistoryOnce = true;
+        untrack(() => fetchHistoryOrders());
+      }
+    } else {
+      hasFetchedHistoryOnce = false;
     }
   });
 
@@ -340,6 +420,13 @@
       untrack(() => {
         fetchAccount();
         fetchPositions();
+        // Orders/History are tab-gated above; invalidate so the next visit
+        // (or the currently active tab) re-fetches for the new key/exchange
+        // instead of silently keeping the previous account's stale data.
+        hasFetchedOrdersOnce = false;
+        hasFetchedHistoryOnce = false;
+        if (activeTab === "orders") fetchPendingOrders();
+        if (activeTab === "history") fetchHistoryOrders();
       });
     }
   });
@@ -498,6 +585,7 @@
       positionMode={accountInfo.positionMode}
       crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
       isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
+      totalPositionSize={totalPositionSize}
     />
 
     <!-- Tabs -->
@@ -570,6 +658,7 @@
           orders={filteredHistoryOrders}
           loading={loadingHistory}
           error={errorHistory}
+          onrefresh={fetchHistoryOrders}
         />
       {/if}
     </div>

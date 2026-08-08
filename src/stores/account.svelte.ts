@@ -24,6 +24,13 @@ export interface Position {
   liquidationPrice: Decimal;
   markPrice: Decimal;
   breakEvenPrice: Decimal;
+  // Bitunix REST-only ("Get Pending Positions"); the WS position channel
+  // never sends it, so it's preserved across WS updates like
+  // liquidationPrice/markPrice — see updatePositionFromWs below.
+  marginRate: Decimal;
+  // Unlike marginRate, the WS position channel *does* send realizedPNL on
+  // every push (docs/bitunix-api/08_websocket.md:287) — kept live there.
+  realizedPnl: Decimal;
 }
 
 export interface OpenOrder {
@@ -60,6 +67,7 @@ export interface RawWsPosition {
   avgOpenPrice?: string | number;
   leverage?: string | number;
   unrealizedPNL?: string | number;
+  realizedPNL?: string | number;
   margin?: string | number;
   marginMode?: string;
 }
@@ -105,6 +113,10 @@ class AccountManager {
   assets = $state<Asset[]>([]);
 
   private syncCallback: (() => void) | null = null;
+  // Fired when a WS push closes an open order (FILLED/CANCELED/...) — lets
+  // the UI eagerly refresh the (REST-only, non-live) order history instead
+  // of only picking up the fill on the next manual tab switch.
+  private orderCloseCallback: (() => void) | null = null;
 
   reset() {
     this.positions = [];
@@ -115,6 +127,10 @@ class AccountManager {
 
   registerSyncCallback(fn: () => void) {
     this.syncCallback = fn;
+  }
+
+  registerOrderCloseCallback(fn: (() => void) | null) {
+    this.orderCloseCallback = fn;
   }
 
   // --- WS Actions ---
@@ -177,10 +193,13 @@ class AccountManager {
           marginMode: data.marginMode
             ? data.marginMode.toLowerCase()
             : existing.marginMode,
-          // Preserve existing rarely updated fields
+          realizedPnl: safeDecimal(data.realizedPNL, existing.realizedPnl),
+          // Preserve existing rarely updated fields — the WS position
+          // channel never sends liqPrice/markPrice/marginRate, only REST does.
           liquidationPrice: existing.liquidationPrice,
           markPrice: existing.markPrice,
           breakEvenPrice: existing.breakEvenPrice,
+          marginRate: existing.marginRate,
         };
         this.positions[index] = newPos;
       } else {
@@ -194,9 +213,11 @@ class AccountManager {
           unrealizedPnl: safeDecimal(data.unrealizedPNL, new Decimal(0)),
           margin: safeDecimal(data.margin, new Decimal(0)),
           marginMode: data.marginMode ? data.marginMode.toLowerCase() : "cross",
+          realizedPnl: safeDecimal(data.realizedPNL, new Decimal(0)),
           liquidationPrice: new Decimal(0),
           markPrice: new Decimal(0),
           breakEvenPrice: new Decimal(0),
+          marginRate: new Decimal(0),
         };
         this.positions.push(newPos);
         this.notifyListeners();
@@ -216,6 +237,7 @@ class AccountManager {
     if (isClosed) {
       if (index !== -1) {
         this.openOrders.splice(index, 1);
+        this.orderCloseCallback?.();
       }
     } else {
       // Update or Create
@@ -327,6 +349,8 @@ class AccountManager {
       liquidationPrice: parseDecimal(p.liquidationPrice),
       markPrice: parseDecimal(p.markPrice),
       breakEvenPrice: new Decimal(0),
+      marginRate: parseDecimal(p.marginRate),
+      realizedPnl: parseDecimal(p.realizedPnl),
     }));
     this.notifyListeners();
   }
