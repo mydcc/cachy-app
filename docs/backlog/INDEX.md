@@ -2,9 +2,9 @@
 
 # Backlog index
 
-58 items. How to read and add them: [README.md](README.md).
+59 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 20
+Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 21
 
 ---
 
@@ -51,6 +51,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 20
 | --- | --- | --- | --- | --- |
 | [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | trade-panel |
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | trade-panel |
+| [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | 📋 specced | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -142,6 +143,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 20
 | [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | none | community, pro, private | none | ADR-0002 | — |
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -190,4 +192,4 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 20
 
 ---
 
-Next free number: **0059**
+Next free number: **0060**
