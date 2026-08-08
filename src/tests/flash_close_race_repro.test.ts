@@ -103,7 +103,7 @@ describe('Flash Close Race Condition Reproduction', () => {
             // Assuming generic check for now, but looking at tradeService implementation is better.
 
             // Allow Place Order
-            if (endpoint === '/api/orders' && method === 'POST' && body.side === 'SELL') {
+            if (endpoint === '/api/orders' && method === 'POST' && body.side === 'BUY') {
                 return { code: 0, msg: 'success', data: { orderId: '123' } };
             }
             return {};
@@ -121,7 +121,7 @@ describe('Flash Close Race Condition Reproduction', () => {
         // We can check if any call threw? No, we mocked it to throw.
 
         // Verify Close WAS called
-        const closeCall = calls.find((call) => call[1] === '/api/orders' && call[2] && call[2].side === 'SELL');
+        const closeCall = calls.find((call) => call[1] === '/api/orders' && call[2] && call[2].side === 'BUY');
         expect(closeCall).toBeDefined();
     });
 });

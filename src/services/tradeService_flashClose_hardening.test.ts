@@ -98,11 +98,13 @@ describe('TradeService Flash Close Vulnerability', () => {
         // Verify cancel was called
         expect(cancelSpy).toHaveBeenCalledWith('BTCUSDT', true);
 
-        // Verify close order WAS called (despite abort)
+        // Verify close order WAS called (despite abort). Closing a long:
+        // side matches the position (BUY), not inverted — see
+        // buildCloseOrderFields (BUG-0062/BUG-0063).
         expect(requestSpy).toHaveBeenCalledWith(
             'POST',
             '/api/orders',
-            expect.objectContaining({ side: 'SELL', orderType: 'MARKET', reduceOnly: true })
+            expect.objectContaining({ side: 'BUY', tradeSide: 'CLOSE', orderType: 'MARKET', reduceOnly: true })
         );
     });
 });
