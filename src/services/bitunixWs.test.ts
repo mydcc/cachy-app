@@ -91,8 +91,10 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
 
         // Price channel now updates Index Price and Funding Rate, NOT Last Price (to avoid flickering)
+        // Bitunix's price channel sends `fr` already as a percentage (0.01 = 0.01%),
+        // so it's normalized to a fraction (÷100) to match the app-wide fraction convention.
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
-            fundingRate: new Decimal('0.01'),
+            fundingRate: new Decimal('0.0001'),
             indexPrice: new Decimal('50001'),
             nextFundingTime: undefined
         });

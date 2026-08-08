@@ -152,13 +152,11 @@ class BitunixWebSocketService {
   private readonly VALIDATION_ERROR_WINDOW = 60000; // [HYBRID FIX] Increased window to 1m
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
-  // BUG-INVESTIGATION (funding rate shows ~100x the value Bitunix's own UI shows):
-  // logs the raw, unmodified "fr" field exactly as received from the "price"
-  // channel, per symbol, throttled to avoid console spam. Compare the raw value
-  // against Bitunix's own UI at the same instant to confirm whether the wire
-  // value itself is already wrong, or only the display-side `.times(100)`
-  // conversion (MarketOverview.svelte, ai.svelte.ts) is misinterpreting it.
-  // Remove once the root cause is confirmed and fixed.
+  // Logs the raw, unmodified "fr" field exactly as received from the "price"
+  // channel, per symbol, throttled to avoid console spam. Confirmed the root
+  // cause of the ~100x-too-high funding rate display: Bitunix's price channel
+  // sends `fr` already as a percentage (e.g. "-0.01" = -0.01%), not as a
+  // fraction - see normalizeFundingRatePercent() below for the fix.
   private lastFundingRateDebugLog = new Map<string, number>();
   private readonly FUNDING_RATE_DEBUG_INTERVAL = 15000;
   private debugLogRawFundingRate(symbol: string, rawFr: string): void {
@@ -185,6 +183,22 @@ class BitunixWebSocketService {
       undefined,
       true,
     );
+  }
+
+  /**
+   * Bitunix's "price" channel sends `fr` already as a percentage (e.g. "-0.01"
+   * means -0.01%), unlike the fraction convention (0.0001 = 0.01%) used by
+   * Bitunix's own REST funding-rate endpoint and by every display site in this
+   * app (MarketOverview.svelte, ai.svelte.ts both do `.times(100)`). Convert to
+   * a fraction here, once, at ingestion, so the store stays in the fraction
+   * convention the rest of the app assumes.
+   */
+  private normalizeFundingRatePercent(rawFr: string): Decimal | undefined {
+    try {
+      return new Decimal(rawFr).dividedBy(100);
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -950,7 +964,7 @@ class BitunixWebSocketService {
                         // them and then reading `data.*` anyway.
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
-                          fundingRate: fr ? new Decimal(fr) : undefined,
+                          fundingRate: fr ? this.normalizeFundingRatePercent(fr) : undefined,
                           nextFundingTime: nft
                         });
                     }
@@ -1267,7 +1281,7 @@ class BitunixWebSocketService {
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
             indexPrice: d.ip ? String(d.ip) : undefined,
-            fundingRate: d.fr ? String(d.fr) : undefined,
+            fundingRate: d.fr !== undefined ? this.normalizeFundingRatePercent(String(d.fr)) : undefined,
             nextFundingTime: d.nft ? String(d.nft) : undefined
           });
         }
