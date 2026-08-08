@@ -84,4 +84,52 @@ describe('fundingRateService', () => {
     fundingRateService.start();
     expect(vi.mocked(apiService.fetchBitunixFundingRates).mock.calls.length).toBe(callsAfterFirstStart);
   });
+
+  describe('applyCachedRateFor', () => {
+    it('backfills a symbol from the last poll immediately, without waiting for the next poll', async () => {
+      // Symbol not tracked yet when the poll happens (e.g. page just loaded,
+      // WS hasn't populated marketState for it yet) - reproduces the "row
+      // missing for up to 60s" bug.
+      const rates = new Map([
+        ['BTCUSDT', { fundingRate: new Decimal('0.0005'), nextFundingTime: '1770710400000', fundingInterval: 8 }],
+      ]);
+      vi.mocked(apiService.fetchBitunixFundingRates).mockResolvedValue(rates);
+
+      fundingRateService.start();
+      await vi.waitFor(() => {
+        expect(apiService.fetchBitunixFundingRates).toHaveBeenCalled();
+      });
+      expect(marketState.updateSymbol).not.toHaveBeenCalled(); // not tracked yet, poll skipped it
+
+      // Symbol now starts being tracked (e.g. WS delivers a price tick).
+      fundingRateService.applyCachedRateFor('BTCUSDT');
+
+      expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
+        fundingRate: new Decimal('0.0005'),
+        nextFundingTime: '1770710400000',
+        fundingInterval: 8,
+      });
+    });
+
+    it('does nothing for a symbol with no cached rate', () => {
+      fundingRateService.applyCachedRateFor('UNKNOWNUSDT');
+      expect(marketState.updateSymbol).not.toHaveBeenCalled();
+    });
+
+    it('clears the cache on stop(), so a stale rate is not applied after restart', async () => {
+      const rates = new Map([
+        ['BTCUSDT', { fundingRate: new Decimal('0.0005'), nextFundingTime: '1770710400000', fundingInterval: 8 }],
+      ]);
+      vi.mocked(apiService.fetchBitunixFundingRates).mockResolvedValue(rates);
+
+      fundingRateService.start();
+      await vi.waitFor(() => {
+        expect(apiService.fetchBitunixFundingRates).toHaveBeenCalled();
+      });
+      fundingRateService.stop();
+
+      fundingRateService.applyCachedRateFor('BTCUSDT');
+      expect(marketState.updateSymbol).not.toHaveBeenCalled();
+    });
+  });
 });
