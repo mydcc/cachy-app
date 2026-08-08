@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.24](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.23...v1.2.0-beta.24) (2026-08-08)
+
+
+### Bug Fixes
+
+* **windows:** open channel windows in top-left position with margin ([85b3eae](https://github.com/mydcc/cachy-app/commit/85b3eae64796d9ea2fd543a86be8c68b73ae21a7))
+
 # [1.2.0-beta.23](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.22...v1.2.0-beta.23) (2026-08-08)
 
 
