@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.35](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.34...v1.2.0-beta.35) (2026-08-08)
+
+
+### Bug Fixes
+
+* closing a position 500s on a HEDGE-mode account (BUG-0062) ([f45e98d](https://github.com/mydcc/cachy-app/commit/f45e98d526943c0fbc4cf8c4f09c2e7aaca63be8))
+
 # [1.2.0-beta.34](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.33...v1.2.0-beta.34) (2026-08-08)
 
 
