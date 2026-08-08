@@ -9,6 +9,7 @@
 
 import { Decimal } from "decimal.js";
 import { parseTimestamp, parseDecimal } from "../utils/utils";
+import type { NormalizedPosition, NormalizedOrder } from "../types/bitunix";
 
 export interface Position {
   positionId: string;
@@ -294,6 +295,77 @@ class AccountManager {
     for (const data of dataList) {
       this.updateBalanceFromWs(data);
     }
+  }
+
+  // --- REST snapshot hydration ---
+  //
+  // REST is the authoritative full snapshot (replaces the array outright);
+  // WS pushes then keep it live via the incremental updaters above. Routing
+  // REST responses through the same Decimal-safe parsing as WS — rather than
+  // assigning the raw (string-typed) API JSON straight into these
+  // Decimal-typed arrays — is what actually makes this the single source of
+  // truth: before this, `PositionsSidebar.svelte` wrote raw REST JSON here
+  // directly, silently violating the `Position`/`OpenOrder` types (nothing
+  // caught it because `response.json()` returns `any`) and leaving
+  // `positionId` unset, which broke matching against subsequent WS updates.
+
+  hydratePositions(raw: NormalizedPosition[]) {
+    this.positions = raw.map((p, i) => ({
+      // Bitunix always returns positionId; Bitget's normalized shape
+      // currently doesn't carry one — synthesize a stable key so hydration
+      // still works, at the cost of not correlating with WS updates for
+      // that exchange (tracked as a known gap, not silently broken).
+      positionId: p.positionId ?? `${p.symbol}-${p.side}-${i}`,
+      symbol: p.symbol,
+      side: (p.side || "long").toLowerCase() as "long" | "short",
+      size: parseDecimal(p.size),
+      entryPrice: parseDecimal(p.entryPrice),
+      leverage: parseDecimal(p.leverage),
+      unrealizedPnl: parseDecimal(p.unrealizedPnL),
+      margin: parseDecimal(p.margin),
+      marginMode: (p.marginMode || "cross").toLowerCase(),
+      liquidationPrice: parseDecimal(p.liquidationPrice),
+      markPrice: parseDecimal(p.markPrice),
+      breakEvenPrice: new Decimal(0),
+    }));
+    this.notifyListeners();
+  }
+
+  hydrateOpenOrders(raw: NormalizedOrder[]) {
+    this.openOrders = raw.map((o) => ({
+      orderId: String(o.orderId ?? o.id ?? ""),
+      symbol: o.symbol,
+      side: (o.side || "buy").toLowerCase() as "buy" | "sell",
+      type: (o.type || "limit").toLowerCase() as "limit" | "market",
+      price: parseDecimal(o.price),
+      amount: parseDecimal(o.amount),
+      filled: parseDecimal(o.filled),
+      status: o.status || "",
+      timestamp: Number(o.time) || Date.now(),
+    }));
+    this.notifyListeners();
+  }
+
+  hydrateBalance(raw: { available?: string; margin?: string; frozen?: string }) {
+    const available = parseDecimal(raw.available);
+    const margin = parseDecimal(raw.margin);
+    const frozen = parseDecimal(raw.frozen);
+    const newAsset: Asset = {
+      currency: "USDT",
+      available,
+      margin,
+      frozen,
+      total: available.plus(margin).plus(frozen),
+    };
+    const idx = this.assets.findIndex((a) => a.currency === "USDT");
+    if (idx !== -1) this.assets[idx] = newAsset;
+    else this.assets.push(newAsset);
+    this.notifyListeners();
+  }
+
+  /** Live sum of every open position's unrealized PnL — updates as the position channel pushes. */
+  get totalUnrealizedPnl(): Decimal {
+    return this.positions.reduce((sum, p) => sum.plus(p.unrealizedPnl), new Decimal(0));
   }
 
   // Compatibility

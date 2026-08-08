@@ -109,6 +109,10 @@ export const HistorySchema = BaseRequestSchema.extend({
        return isNaN(n) ? 50 : Math.min(Math.max(n, 1), 100);
     }).optional().default(50),
   symbol: z.string().optional(), // Optional filter
+  // Bitunix's get_history_orders excludes CANCELED orders unless this is
+  // true — and then it excludes everything else. There is no single call
+  // that returns both, so the client fetches once per value and merges.
+  queryCanceled: z.boolean().optional().default(false),
 });
 
 // --- Pending ---

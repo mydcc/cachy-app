@@ -111,8 +111,15 @@ class TradeService {
             ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
         };
 
+        // Every guarded route's Zod schema requires `exchange` in the body
+        // (there is no header fallback for it, only for the credentials
+        // above) — inject it here once rather than relying on every call
+        // site to remember it. Callers that already set it (none currently
+        // do) win, since they're spread after.
+        const payloadWithExchange = { exchange: provider, ...payload };
+
         // Deep serialize Decimals to strings before JSON.stringify
-        const serializedPayload = this.serializePayload(payload);
+        const serializedPayload = this.serializePayload(payloadWithExchange);
 
         const response = await appFetch(endpoint, {
             method,
@@ -282,6 +289,7 @@ class TradeService {
             }
 
             const result = await this.signedRequest("POST", "/api/orders", {
+                type: "place-order",
                 symbol,
                 side: apiSide,
                 orderType: "MARKET",
@@ -465,6 +473,7 @@ class TradeService {
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
         return this.signedRequest("POST", "/api/orders", {
+            type: "place-order",
             symbol,
             side,
             orderType: "MARKET",

@@ -55,7 +55,30 @@
     isolationUnrealizedPNL: number | string;
   }
 
-  let openOrders: NormalizedOrder[] = $state([]);
+  // Pending orders live in accountState (hydrated from REST on mount/tab
+  // switch below, kept current afterwards by the WS order channel via
+  // accountState.updateOrderFromWs) — mapped back to the NormalizedOrder
+  // shape OpenOrdersList already renders, so a new order/fill/cancel shows
+  // up immediately instead of only after the next manual tab switch.
+  let openOrders: NormalizedOrder[] = $derived(
+    accountState.openOrders.map((o) => ({
+      id: o.orderId,
+      orderId: o.orderId,
+      symbol: o.symbol,
+      type: o.type,
+      side: o.side.toUpperCase(),
+      price: o.price.toString(),
+      amount: o.amount.toString(),
+      filled: o.filled.toString(),
+      status: o.status,
+      time: o.timestamp,
+      // Pending orders haven't been filled yet, so both are always zero —
+      // OpenOrdersList doesn't render either, this only satisfies the
+      // shared NormalizedOrder shape.
+      fee: "0",
+      realizedPNL: "0",
+    })),
+  );
   let historyOrders: NormalizedOrder[] = $state([]);
   let accountInfo: AccountInfo = $state({
     available: 0,
@@ -101,6 +124,12 @@
   }
 
   // Map AccountState Position to OMSPosition
+  // Available/margin/frozen come from the WS-live balance channel once it
+  // has pushed at least once; PnL is always derived live from open
+  // positions (also WS-fed). Both fall back to the last REST snapshot
+  // (accountInfo) before that, rather than showing 0 until the first push.
+  let liveAsset = $derived(accountState.assets.find((a) => a.currency === "USDT"));
+
   let mappedPositions = $derived(
     accountState.positions.map((p): OMSPosition => ({
         symbol: p.symbol,
@@ -137,15 +166,13 @@
       });
       const data = await response.json();
       if (data.error) errorPositions = translateError(data);
-      else {
-        // Initial Population of Store if needed, or just let WS handle it?
-        // For now, let's trust the WS to update, but initial fetch is good.
-        // We'll update the local store manually? Or rely on accountStore?
-        // Since PositionsList uses `positions` prop, let's pass data.
-        // Ideally, accountStore should manage this.
-        if (data.positions) {
-          accountState.positions = data.positions;
-        }
+      else if (data.positions) {
+        // hydratePositions parses through the same safe Decimal path as WS
+        // updates and fills in positionId — a raw `accountState.positions =
+        // data.positions` assignment used to silently violate the Position
+        // type (string fields, no positionId), which both risked a render
+        // crash and broke matching against subsequent WS position pushes.
+        accountState.hydratePositions(data.positions);
       }
     } catch {
       errorPositions = $_("apiErrors.failedToLoadPositions");
@@ -154,19 +181,13 @@
     }
   }
 
-  async function fetchOrders(type: "pending" | "history") {
+  async function fetchPendingOrders() {
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
-    if (type === "pending") {
-      loadingOrders = true;
-      errorOrders = "";
-    } else {
-      loadingHistory = true;
-      errorHistory = "";
-    }
-
+    loadingOrders = true;
+    errorOrders = "";
     try {
       const response = await appFetch("/api/orders", {
         method: "POST",
@@ -175,25 +196,78 @@
           exchange: provider,
           apiKey: keys.key,
           apiSecret: keys.secret,
-          type,
+          type: "pending",
         }),
       });
       const data = await response.json();
       if (data.error) {
-        const msg = translateError(data);
-        if (type === "pending") errorOrders = msg;
-        else errorHistory = msg;
+        errorOrders = translateError(data);
       } else {
-        if (type === "pending") openOrders = data.orders || [];
-        else historyOrders = data.orders || [];
+        // Same reasoning as fetchPositions: hydrate through accountState so
+        // this list is live afterwards (WS order-channel pushes update it),
+        // instead of a snapshot that never changes until the tab is
+        // revisited.
+        accountState.hydrateOpenOrders(data.orders || []);
       }
     } catch {
-      const msg = $_("apiErrors.failedToLoadOrders");
-      if (type === "pending") errorOrders = msg;
-      else errorHistory = msg;
+      errorOrders = $_("apiErrors.failedToLoadOrders");
     } finally {
-      if (type === "pending") loadingOrders = false;
-      else loadingHistory = false;
+      loadingOrders = false;
+    }
+  }
+
+  async function fetchHistoryOrders() {
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
+    if (!keys?.key || !keys?.secret) return;
+
+    loadingHistory = true;
+    errorHistory = "";
+    try {
+      // Bitunix's get_history_orders splits FILLED/EXPIRED (queryCanceled
+      // omitted) from CANCELED (queryCanceled: true) — one call never
+      // returns both, so both are fetched and merged. Only relevant for
+      // Bitunix; Bitget's history endpoint has no such split.
+      const requests =
+        provider === "bitunix"
+          ? [{ queryCanceled: false }, { queryCanceled: true }]
+          : [{}];
+
+      const responses = await Promise.all(
+        requests.map((extra) =>
+          appFetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              exchange: provider,
+              apiKey: keys.key,
+              apiSecret: keys.secret,
+              type: "history",
+              ...extra,
+            }),
+          }).then((r) => r.json()),
+        ),
+      );
+
+      const firstError = responses.find((data) => data.error);
+      if (firstError) {
+        errorHistory = translateError(firstError);
+        return;
+      }
+
+      const merged = new Map<string, NormalizedOrder>();
+      for (const data of responses) {
+        for (const order of (data.orders || []) as NormalizedOrder[]) {
+          merged.set(order.id || order.orderId, order);
+        }
+      }
+      historyOrders = Array.from(merged.values()).sort(
+        (a, b) => (b.time || 0) - (a.time || 0),
+      );
+    } catch {
+      errorHistory = $_("apiErrors.failedToLoadOrders");
+    } finally {
+      loadingHistory = false;
     }
   }
 
@@ -215,6 +289,16 @@
       const data = await response.json();
       if (!data.error) {
         accountInfo = data;
+        // available/margin/frozen also flow into accountState so
+        // AccountSummary can prefer the WS-live balance channel over this
+        // snapshot once it starts pushing (see liveAsset below); the
+        // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
+        // have no WS equivalent and stay REST-only.
+        accountState.hydrateBalance({
+          available: data.available,
+          margin: data.margin,
+          frozen: data.frozen,
+        });
       }
     } catch (e) {
       if (import.meta.env.DEV) {
@@ -230,21 +314,21 @@
     if (keys?.key && keys?.secret) {
       fetchAccount();
       fetchPositions();
-      fetchOrders("pending");
+      fetchPendingOrders();
     }
   });
 
   // Load orders only when switching to the tab and if not already loaded or stale
   $effect(() => {
     if (activeTab === "orders" && openOrders.length === 0) {
-      fetchOrders("pending");
+      fetchPendingOrders();
     }
   });
 
   $effect(() => {
     // History should only load once when requested or via manual refresh
     if (activeTab === "history" && historyOrders.length === 0) {
-      fetchOrders("history");
+      fetchHistoryOrders();
     }
   });
 
@@ -330,7 +414,7 @@
             uiState.showError($_("dashboard.alerts.cancelOrderError", { values: { error: res.error } }) || `Cancel failed: ${res.error}`);
         } else {
              uiState.showToast($_("dashboard.alerts.cancelOrderSuccess") || "Order cancelled", "success");
-             fetchOrders("pending");
+             fetchPendingOrders();
         }
     } catch (e: unknown) {
         // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
@@ -404,11 +488,11 @@
   {#if isOpen}
     <!-- Account Summary -->
     <AccountSummary
-      available={accountInfo.available}
-      margin={accountInfo.margin}
-      pnl={accountInfo.totalUnrealizedPnL}
+      available={liveAsset ? liveAsset.available : accountInfo.available}
+      margin={liveAsset ? liveAsset.margin : accountInfo.margin}
+      pnl={accountState.totalUnrealizedPnl}
       currency={accountInfo.marginCoin}
-      frozen={accountInfo.frozen}
+      frozen={liveAsset ? liveAsset.frozen : accountInfo.frozen}
       transfer={accountInfo.transfer}
       bonus={accountInfo.bonus}
       positionMode={accountInfo.positionMode}
