@@ -63,4 +63,10 @@ export interface OMSPosition {
     // funding excluded) — live via WS on Bitunix, REST-snapshot-only
     // elsewhere.
     realizedPnl?: Decimal;
+    // Needed to close a position correctly (BUG-0062): Bitunix's place_order
+    // requires positionId whenever tradeSide="CLOSE", and tradeSide itself
+    // is required in HEDGE mode — closePosition()/flashClosePosition() use
+    // positionMode to decide which order shape to send.
+    positionId?: string;
+    positionMode?: "one_way" | "hedge";
 }

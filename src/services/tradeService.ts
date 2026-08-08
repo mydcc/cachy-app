@@ -247,10 +247,16 @@ class TradeService {
             }
 
             // 2. Execute Close
-            // Close Long -> Sell
-            // Close Short -> Buy
+            // True execution direction, for local optimistic-order bookkeeping
+            // only — accurate regardless of account mode. The API payload's
+            // own `side` (and whether tradeSide/positionId are needed) is
+            // mode-dependent; see buildCloseOrderFields.
             const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
-            const apiSide = side === "sell" ? "SELL" : "BUY";
+            const { side: apiSide, tradeSide, positionId } = this.buildCloseOrderFields(
+                positionSide,
+                position.positionMode,
+                position.positionId,
+            );
 
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
@@ -295,7 +301,8 @@ class TradeService {
                 orderType: "MARKET",
                 qty,
                 reduceOnly: true,
-                clientOrderId
+                clientOrderId,
+                ...(tradeSide ? { tradeSide, positionId } : {}),
             });
 
             return { success: true, data: result };
@@ -449,6 +456,39 @@ class TradeService {
         }
     }
 
+    /**
+     * Bitunix's place_order needs a different payload shape to close a
+     * position depending on account mode (docs/bitunix-api/07_trade.md:
+     * 583-584, see BUG-0062):
+     *  - ONE_WAY (the default, and the only shape this ever sent before
+     *    BUG-0062): `side` is the literal execution direction — closing a
+     *    long means selling — and `tradeSide`/`positionId` are absent.
+     *  - HEDGE: `side` instead identifies *which* position (BUY = the long
+     *    side, SELL = the short side, matching the position's own side, not
+     *    inverted), and `tradeSide: "CLOSE"` + `positionId` are required to
+     *    disambiguate from opening — a symbol can carry both a long and a
+     *    short position at once.
+     *
+     * Falls back to the ONE_WAY shape whenever positionMode can't be
+     * determined (e.g. no REST-hydrated position yet), since that was the
+     * only behavior this ever had — never silently switch shapes without
+     * being sure.
+     */
+    private buildCloseOrderFields(
+        positionSide: "long" | "short",
+        positionMode: "one_way" | "hedge" | undefined,
+        positionId: string | undefined,
+    ): { side: "BUY" | "SELL"; tradeSide?: "CLOSE"; positionId?: string } {
+        if (positionMode === "hedge") {
+            return {
+                side: positionSide === "long" ? "BUY" : "SELL",
+                tradeSide: "CLOSE",
+                positionId,
+            };
+        }
+        return { side: positionSide === "long" ? "SELL" : "BUY" };
+    }
+
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
         const { symbol, positionSide, amount, forceFullClose } = params;
 
@@ -459,7 +499,11 @@ class TradeService {
             throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
-        const side = positionSide === "long" ? "SELL" : "BUY";
+        const { side, tradeSide, positionId } = this.buildCloseOrderFields(
+            positionSide,
+            position.positionMode,
+            position.positionId,
+        );
 
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
@@ -478,7 +522,8 @@ class TradeService {
             side,
             orderType: "MARKET",
             qty,
-            reduceOnly: true
+            reduceOnly: true,
+            ...(tradeSide ? { tradeSide, positionId } : {}),
         });
     }
 
