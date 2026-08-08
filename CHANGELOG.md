@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.23](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.22...v1.2.0-beta.23) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ui:** position market activities window below market sentiment ([e517768](https://github.com/mydcc/cachy-app/commit/e51776820df97306049deec710e6357a75e73daf))
+
 # [1.2.0-beta.22](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.21...v1.2.0-beta.22) (2026-08-08)
 
 
