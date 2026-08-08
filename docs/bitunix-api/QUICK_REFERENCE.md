@@ -42,6 +42,12 @@ const sign = SHA256(digest + secretKey);
 | Get Pending  | GET    | `/api/v1/futures/trade/get_pending_orders` |
 | Order Detail | GET    | `/api/v1/futures/trade/get_order_detail`   |
 | Batch Order  | POST   | `/api/v1/futures/trade/batch_order`        |
+| Funding Rate (batch) | GET | `/api/v1/futures/market/funding_rate/batch` |
+| Funding Rate History | GET | `/api/v1/futures/market/get_funding_rate_history` |
+
+`fundingRate` in both REST responses is a **fraction** (`"0.0005"` = 0.05%) —
+do not confuse with the WS `price` channel's `fr` field, which is a
+**percentage** already (see `src/services/bitunixWs.ts`).
 
 ---
 
