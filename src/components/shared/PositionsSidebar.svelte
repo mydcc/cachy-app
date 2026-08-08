@@ -106,6 +106,7 @@
   let errorPositions = $state("");
   let errorOrders = $state("");
   let errorHistory = $state("");
+  let errorAccount = $state("");
 
   // Tab State
   type Tab = "positions" | "orders" | "tpsl" | "history";
@@ -340,7 +341,13 @@
         }),
       });
       const data = await response.json();
-      if (!data.error) {
+      if (data.error) {
+        // Previously silent: accountInfo stayed at its all-zero initial
+        // state forever with nothing in the UI indicating a fetch ever
+        // failed — indistinguishable from a genuinely empty account.
+        errorAccount = translateError(data);
+      } else {
+        errorAccount = "";
         accountInfo = data;
         // available/margin/frozen also flow into accountState so
         // AccountSummary can prefer the WS-live balance channel over this
@@ -353,10 +360,8 @@
           frozen: data.frozen,
         });
       }
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error(e);
-      }
+    } catch {
+      errorAccount = $_("apiErrors.generic");
     }
   }
 
@@ -586,6 +591,7 @@
       crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
       isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
       totalPositionSize={totalPositionSize}
+      error={errorAccount}
     />
 
     <!-- Tabs -->
