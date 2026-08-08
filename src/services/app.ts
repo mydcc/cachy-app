@@ -127,7 +127,7 @@ export const app = {
 
       // Settings for visibility
       settingsState.showMarketActivity = true; // Show details in tiles
-      settingsState.showSidebarActivity = false; // Hide sidebar
+      settingsState.showSidebarActivity = true; // Show sidebar activity (Positions & Orders)
       settingsState.showMarketSentiment = true;
       settingsState.showMarketSentiment = true;
       settingsState.enableNewsAnalysis = true;

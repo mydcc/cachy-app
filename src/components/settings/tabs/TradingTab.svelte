@@ -401,6 +401,21 @@
                     <label class="toggle-card mb-4">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
+                                >{$_("dashboard.marketActivity")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.showSidebarActivity")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.showSidebarActivity}
+                        />
+                    </label>
+
+                    <label class="toggle-card mb-4">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
                                 >{$_("settings.showTechnicals")}</span
                             >
                             <span
