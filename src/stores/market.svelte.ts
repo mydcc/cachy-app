@@ -293,8 +293,25 @@ export class MarketManager {
 
     // Merge partials manually to ensure nested objects like depth/technicals don't get lost if partial is shallow
     // However, partial is flat except for depth/technicals/klines.
-    // Simple spread is efficient for gathering updates.
-    this.pendingUpdates.set(symbol, { ...existing, ...partial });
+    // `{ ...existing, ...partial }` would silently clobber a real, not-yet-
+    // flushed value: callers build partial objects like
+    // `{ markPrice: mp ? new Decimal(mp) : undefined }`, so a WS push that
+    // doesn't repeat every field (e.g. an index-price-only price channel
+    // tick) still carries an explicit `markPrice: undefined` key, which a
+    // plain spread applies — wiping out an earlier, real markPrice buffered
+    // in this same flush window before it ever reaches `current` (BUG-0065).
+    // applyUpdate() already skips `undefined` fields once flushed; the
+    // buffer merge must skip them for the same reason, or that guard never
+    // gets to see the real value at all.
+    const merged: MarketUpdatePayload = { ...existing };
+    const mergedRecord = merged as Record<string, unknown>;
+    for (const key of Object.keys(partial) as (keyof MarketUpdatePayload)[]) {
+      const value = partial[key];
+      if (value !== undefined) {
+        mergedRecord[key] = value;
+      }
+    }
+    this.pendingUpdates.set(symbol, merged);
 
     // Safety: Prevent memory leak if flush interval stalls
     // Dynamic limit based on cache size (5x cache size to allow for burst)

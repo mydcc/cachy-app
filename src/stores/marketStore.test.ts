@@ -107,6 +107,28 @@ describe("marketStore", () => {
       await vi.advanceTimersByTimeAsync(300);
       expect(marketState.data[symbol].markPrice?.toString()).toBe("50002");
     });
+
+    it("does not let a later push omitting markPrice erase one buffered earlier in the same flush window (BUG-0065)", async () => {
+      const symbol = "BTCUSDT";
+
+      // Two WS pushes land inside the same 250ms flush window (throttle is
+      // 200ms, flush is 250ms — this is the normal case, not an edge case):
+      // one with a real markPrice, one that only carries indexPrice because
+      // that's the only field Bitunix's push happened to include this tick.
+      // Callers build partials like `{ markPrice: mp ? new Decimal(mp) :
+      // undefined }`, so the second push still has an explicit
+      // `markPrice: undefined` key.
+      marketState.updateSymbol(symbol, { markPrice: "50002", indexPrice: "50001" });
+      marketState.updateSymbol(symbol, { indexPrice: "50003", markPrice: undefined });
+
+      await vi.advanceTimersByTimeAsync(300);
+
+      // The real markPrice from the first push must survive the flush —
+      // not get clobbered by the second push's `undefined` before either
+      // ever reaches `current`.
+      expect(marketState.data[symbol].markPrice?.toString()).toBe("50002");
+      expect(marketState.data[symbol].indexPrice?.toString()).toBe("50003");
+    });
   });
 
   describe("Kline Protection (Single Source of Truth)", () => {

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-64 items. How to read and add them: [README.md](README.md).
+65 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 26
+Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 27
 
 ---
 
@@ -56,6 +56,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 26
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | trade-panel |
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | trade-panel |
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | trade-panel |
+| [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | 📋 specced | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -153,6 +154,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 26
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | none | community, pro, private | none | ADR-0002 | — |
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | M3 | community, pro, private | none | none | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -202,4 +204,4 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 26
 
 ---
 
-Next free number: **0065**
+Next free number: **0066**
