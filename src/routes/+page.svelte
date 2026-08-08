@@ -264,11 +264,11 @@
   {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table & Sentiment (Sticky) -->
     <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
-      {#if settingsState.effectiveShowSidebarActivity}
-        <PositionsSidebar />
-      {/if}
       {#if settingsState.showMarketSentiment}
         <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
+      {/if}
+      {#if settingsState.effectiveShowSidebarActivity}
+        <PositionsSidebar />
       {/if}
     </div>
   {/if}
@@ -688,13 +688,13 @@
     {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
+        {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
+          <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
+        {/if}
+
         {#if settingsState.effectiveShowSidebarActivity}
           <!-- Add PositionsSidebar for Mobile -->
           <PositionsSidebar />
-        {/if}
-
-        {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
-          <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
 
         {#if settingsState.showMarketOverview}
