@@ -999,6 +999,22 @@ export const apiService = {
           if (!response.ok) throw new Error("apiErrors.generic");
           const data = await apiService.safeJson(response);
 
+          // BUG-INVESTIGATION: user-reported ~100x-too-high funding rate
+          // persisting after the REST migration (#1660) for at least one
+          // symbol, despite Bitunix's REST docs confirming a fraction
+          // convention. Logs the RAW, pre-validation fundingRate string per
+          // symbol so a mismatch between what Bitunix's REST API actually
+          // returns and what its own UI shows can be confirmed directly,
+          // the same way the WS `fr` scaling bug was confirmed in #1658.
+          if (settingsState.enableNetworkLogs && data && typeof data === "object" && Array.isArray((data as { data?: unknown }).data)) {
+            for (const raw of (data as { data: unknown[] }).data) {
+              if (raw && typeof raw === "object") {
+                const r = raw as Record<string, unknown>;
+                logger.log("network", `[FUNDING RATE RAW REST] ${r.symbol}: fundingRate="${r.fundingRate}" fundingInterval=${r.fundingInterval}`, undefined, true);
+              }
+            }
+          }
+
           const validation = BitunixFundingRateBatchResponseSchema.safeParse(data);
           if (!validation.success) {
             logger.error("network", "[API] Invalid funding rate response", validation.error.issues);
