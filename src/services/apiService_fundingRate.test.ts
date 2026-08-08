@@ -32,7 +32,11 @@ describe("apiService.fetchBitunixFundingRates", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns fundingRate as a fraction (not scaled), keyed by normalized symbol", async () => {
+  it("normalizes fundingRate from percent (as returned live) to a fraction, keyed by normalized symbol", async () => {
+    // Bitunix's docs describe fundingRate as a fraction ("0.0005"), but live
+    // wire data showed it's actually already a percentage: raw "-0.005776"
+    // for BTCUSDT matched Bitunix's own UI reading of -0.0057% almost
+    // exactly, not -0.5776% (what the fraction reading would imply).
     const mockResponse = {
       code: 0,
       data: [
@@ -41,7 +45,7 @@ describe("apiService.fetchBitunixFundingRates", () => {
           markPrice: "60000",
           lastPrice: "60001",
           indexPrice: "60001",
-          fundingRate: "0.0005",
+          fundingRate: "-0.005776",
           fundingInterval: 8,
           nextFundingTime: "1770710400000",
           maxFundingRate: "0.3",
@@ -59,10 +63,34 @@ describe("apiService.fetchBitunixFundingRates", () => {
     const result = await apiService.fetchBitunixFundingRates();
 
     expect(result.get("BTCUSDT")).toEqual({
-      fundingRate: new Decimal("0.0005"),
+      fundingRate: new Decimal("-0.00005776"),
       nextFundingTime: "1770710400000",
       fundingInterval: 8,
     });
+  });
+
+  it("skips coin-margined and USDC-margined variants (only ...USDT pairs are kept)", async () => {
+    const mockResponse = {
+      code: 0,
+      data: [
+        { symbol: "BTCUSDT", fundingRate: "-0.005776", fundingInterval: 8, nextFundingTime: "1770710400000" },
+        { symbol: "BTCUSD", fundingRate: "-0.004819", fundingInterval: 8, nextFundingTime: "1770710400000" },
+        { symbol: "BTCUSDC", fundingRate: "-0.000126", fundingInterval: 8, nextFundingTime: "1770710400000" },
+      ],
+      msg: "Success",
+    };
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify(mockResponse),
+      headers: new Headers({ "content-type": "application/json" }),
+    } as unknown as Response);
+
+    const result = await apiService.fetchBitunixFundingRates();
+
+    expect(result.has("BTCUSDT")).toBe(true);
+    expect(result.has("BTCUSD")).toBe(false);
+    expect(result.has("BTCUSDC")).toBe(false);
+    expect(result.size).toBe(1);
   });
 
   it("throws on a response missing the required fundingRate field", async () => {

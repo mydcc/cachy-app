@@ -56,7 +56,7 @@ export interface Ticker24h {
 }
 
 export interface FundingRateEntry {
-  fundingRate: Decimal; // fraction, e.g. 0.0005 = 0.05%
+  fundingRate: Decimal; // normalized fraction, e.g. 0.0005 = 0.05% (see fetchBitunixFundingRates)
   nextFundingTime: number | string; // ms epoch
   fundingInterval?: number | string; // settlement interval in hours, varies per symbol
 }
@@ -980,10 +980,18 @@ export const apiService = {
   },
 
   // Source of truth for funding rate: Bitunix's REST funding_rate/batch
-  // endpoint, documented and confirmed to return `fundingRate` as a fraction,
-  // labeled "Current funding rates" (the settlement-locked value). The WS
-  // `price` channel's `fr` field is undocumented, scaled differently, and
-  // not used for this anymore - see bitunixWs.ts.
+  // endpoint. Its docs describe `fundingRate` as a fraction (example
+  // "0.0005"), but live wire data confirms it is actually already a
+  // PERCENTAGE, same as the WS `price` channel's `fr` field (see
+  // bitunixWs.ts) - raw "-0.005776" for BTCUSDT matched Bitunix's own UI
+  // reading of -0.0057% almost exactly, not -0.5776% (what the documented
+  // fraction convention would imply). Normalized to a fraction here, once,
+  // at ingestion, so the store/display (`.times(100)`) stay unchanged.
+  //
+  // Also filters to USDT-margined pairs only ("...USDT"): the batch
+  // response includes coin-margined (BTCUSD) and USDC-margined (BTCUSDC)
+  // variants of the same underlying, which are different products Cachy
+  // doesn't trade and must never be conflated with the USDT pair.
   async fetchBitunixFundingRates(
     priority: "high" | "normal" = "normal",
     timeout = 10000,
@@ -998,22 +1006,6 @@ export const apiService = {
           });
           if (!response.ok) throw new Error("apiErrors.generic");
           const data = await apiService.safeJson(response);
-
-          // BUG-INVESTIGATION: user-reported ~100x-too-high funding rate
-          // persisting after the REST migration (#1660) for at least one
-          // symbol, despite Bitunix's REST docs confirming a fraction
-          // convention. Logs the RAW, pre-validation fundingRate string per
-          // symbol so a mismatch between what Bitunix's REST API actually
-          // returns and what its own UI shows can be confirmed directly,
-          // the same way the WS `fr` scaling bug was confirmed in #1658.
-          if (settingsState.enableNetworkLogs && data && typeof data === "object" && Array.isArray((data as { data?: unknown }).data)) {
-            for (const raw of (data as { data: unknown[] }).data) {
-              if (raw && typeof raw === "object") {
-                const r = raw as Record<string, unknown>;
-                logger.log("network", `[FUNDING RATE RAW REST] ${r.symbol}: fundingRate="${r.fundingRate}" fundingInterval=${r.fundingInterval}`, undefined, true);
-              }
-            }
-          }
 
           const validation = BitunixFundingRateBatchResponseSchema.safeParse(data);
           if (!validation.success) {
@@ -1030,9 +1022,14 @@ export const apiService = {
 
           const result = new Map<string, FundingRateEntry>();
           for (const entry of validatedRes.data) {
+            if (!entry.symbol.endsWith("USDT")) continue; // skip coin-/USDC-margined variants (BTCUSD, BTCUSDC, ...)
             const symbol = apiService.normalizeSymbol(entry.symbol, "bitunix");
+            const fundingRate = entry.fundingRate.dividedBy(100);
+            if (settingsState.enableNetworkLogs) {
+              logger.log("network", `[FUNDING RATE] ${symbol}: raw="${entry.fundingRate}" -> fraction ${fundingRate} (predicted, not yet settled)`, undefined, true);
+            }
             result.set(symbol, {
-              fundingRate: entry.fundingRate,
+              fundingRate,
               nextFundingTime: entry.nextFundingTime,
               fundingInterval: entry.fundingInterval,
             });

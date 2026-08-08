@@ -39,9 +39,11 @@ export const BitunixTickerResponseSchema = z.object({
 });
 
 // Bitunix Funding Rate Schema (REST market/funding_rate/batch,
-// market/get_funding_rate_history). fundingRate here is a FRACTION
-// (e.g. "0.0005" = 0.05%) - unlike the WS `price` channel's `fr` field,
-// which is already a percentage. See bitunixWs.ts for that distinction.
+// market/get_funding_rate_history). The docs describe fundingRate as a
+// fraction (e.g. "0.0005" = 0.05%), but live wire data confirms it is
+// actually already a PERCENTAGE - same as the WS `price` channel's `fr`
+// field. This schema parses the raw value as-is; normalization to a
+// fraction happens in apiService.fetchBitunixFundingRates.
 export const BitunixFundingRateSchema = z.object({
   symbol: z.string(),
   markPrice: StrictDecimal.nullable().optional(),
