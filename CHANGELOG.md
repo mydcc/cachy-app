@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.27](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.26...v1.2.0-beta.27) (2026-08-08)
+
+
+### Bug Fixes
+
+* exchange field missing from TP/SL requests, harden Decimal parsing ([c2706e9](https://github.com/mydcc/cachy-app/commit/c2706e9da4c02e18356ac14fe6b7bf63673bbc6e))
+
 # [1.2.0-beta.26](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.25...v1.2.0-beta.26) (2026-08-08)
 
 
