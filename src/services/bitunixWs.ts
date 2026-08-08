@@ -152,6 +152,35 @@ class BitunixWebSocketService {
   private readonly VALIDATION_ERROR_WINDOW = 60000; // [HYBRID FIX] Increased window to 1m
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
+  // BUG-INVESTIGATION (funding rate shows ~100x the value Bitunix's own UI shows):
+  // logs the raw, unmodified "fr" field exactly as received from the "price"
+  // channel, per symbol, throttled to avoid console spam. Compare the raw value
+  // against Bitunix's own UI at the same instant to confirm whether the wire
+  // value itself is already wrong, or only the display-side `.times(100)`
+  // conversion (MarketOverview.svelte, ai.svelte.ts) is misinterpreting it.
+  // Remove once the root cause is confirmed and fixed.
+  private lastFundingRateDebugLog = new Map<string, number>();
+  private readonly FUNDING_RATE_DEBUG_INTERVAL = 15000;
+  private debugLogRawFundingRate(symbol: string, rawFr: string): void {
+    if (!import.meta.env.DEV) return;
+    const now = Date.now();
+    const last = this.lastFundingRateDebugLog.get(symbol) ?? 0;
+    if (now - last < this.FUNDING_RATE_DEBUG_INTERVAL) return;
+    this.lastFundingRateDebugLog.set(symbol, now);
+
+    let asPercentIfFraction = "n/a";
+    try {
+      asPercentIfFraction = new Decimal(rawFr).times(100).toFixed(4) + "%";
+    } catch {
+      // ignore parse errors, still log raw value below
+    }
+
+    logger.debug(
+      "network",
+      `[FUNDING RATE RAW] ${symbol}: fr="${rawFr}" (as currently displayed: ${asPercentIfFraction})`,
+    );
+  }
+
   /**
    * Warns (throttled) when a field the exchange should send as a string
    * arrives as a number, then normalises it. Two call sites (price and ticker
@@ -901,6 +930,7 @@ class BitunixWebSocketService {
                     // HARDENING: Direct property access + Warning on Numeric Types
                     const ip = data.ip !== undefined ? this.safeString(data.ip, symbol, 'indexPrice') : undefined;
                     const fr = data.fr !== undefined ? this.safeString(data.fr, symbol, 'fundingRate') : undefined;
+                    if (fr !== undefined) this.debugLogRawFundingRate(symbol, fr);
                     const nft = data.nft ? String(data.nft) : undefined;
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
