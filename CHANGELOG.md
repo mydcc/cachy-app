@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.29](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.28...v1.2.0-beta.29) (2026-08-08)
+
+
+### Bug Fixes
+
+* unify Positions/Orders/Account on a single live store, fix cancel/close 400s ([0bc4a5f](https://github.com/mydcc/cachy-app/commit/0bc4a5f16d45f5236182f6255e942fd117a24ff3))
+
 # [1.2.0-beta.28](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.27...v1.2.0-beta.28) (2026-08-08)
 
 
