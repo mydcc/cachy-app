@@ -185,6 +185,10 @@ class JournalManager {
       });
     });
   }
+
+  destroy() {
+    if (this.notifyTimer) clearTimeout(this.notifyTimer);
+  }
 }
 
 export const journalState = new JournalManager();

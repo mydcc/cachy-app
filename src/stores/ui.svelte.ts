@@ -474,6 +474,10 @@ class UiManager {
       }, 2000);
     }
   }
+
+  destroy() {
+    if (this.notifyTimer) clearTimeout(this.notifyTimer);
+  }
 }
 
 export const uiState = new UiManager();

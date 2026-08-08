@@ -487,6 +487,11 @@ class IndicatorManager {
     this.vwma = d.vwma;
     this.hma = d.hma;
   }
+
+  destroy() {
+    if (this.notifyTimer) clearTimeout(this.notifyTimer);
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+  }
 }
 
 export const indicatorState = new IndicatorManager();

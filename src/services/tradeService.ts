@@ -123,7 +123,8 @@ class TradeService {
         const text = await response.text();
         let data: Record<string, unknown> = {};
         try {
-            data = safeJsonParse(text);
+            const parsed = safeJsonParse(text);
+            data = typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
         } catch {
             // If response is not JSON (e.g. 502 Bad Gateway HTML, or 429 plain text)
             // use the status code as the error code. Do NOT expose raw text or statusText.
