@@ -19,8 +19,12 @@ import { apiService, type FundingRateEntry } from "./apiService";
 import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
 
-// Funding rate only changes at settlement (hours apart per fundingInterval),
-// so a slow poll is plenty fresh and stays far under Bitunix's 10 req/sec limit.
+// Bitunix's funding_rate/batch endpoint returns the currently predicted rate
+// for the *next* settlement, not the last locked-in one - it can still move
+// before settlement (Bitunix's own UI likely shows the last settled rate
+// instead, which is why the two can legitimately differ). A slow poll is
+// still plenty fresh for this purpose and stays far under Bitunix's 10
+// req/sec limit.
 const POLL_INTERVAL_MS = 60_000;
 
 class FundingRateService {

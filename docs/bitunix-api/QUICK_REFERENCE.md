@@ -45,9 +45,11 @@ const sign = SHA256(digest + secretKey);
 | Funding Rate (batch) | GET | `/api/v1/futures/market/funding_rate/batch` |
 | Funding Rate History | GET | `/api/v1/futures/market/get_funding_rate_history` |
 
-`fundingRate` in both REST responses is a **fraction** (`"0.0005"` = 0.05%) —
-do not confuse with the WS `price` channel's `fr` field, which is a
-**percentage** already (see `src/services/bitunixWs.ts`).
+`fundingRate` in both REST responses is documented as a fraction
+(`"0.0005"` = 0.05%), but live wire data confirms it's actually already a
+**percentage** — same as the WS `price` channel's `fr` field. Both get
+normalized to a fraction at ingestion (`apiService.fetchBitunixFundingRates`
+for REST, historically `bitunixWs.ts` for WS, now unused for this).
 
 ---
 
