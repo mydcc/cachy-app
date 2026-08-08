@@ -494,6 +494,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
     realizedPNL: formatApiNum(o.realizedPNL) || "0",
     fee: formatApiNum(o.fee) || "0",
+    reduceOnly: Boolean(o.reduceOnly),
     status: o.status || "UNKNOWN",
     // Hardening: Explicitly validate time, default to 0 only if missing/invalid
     time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,

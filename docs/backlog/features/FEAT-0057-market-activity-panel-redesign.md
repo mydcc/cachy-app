@@ -52,14 +52,16 @@ surfacing data the API already returns.
      an eager fetch the card doesn't otherwise need, or reusing TpSlList's
      on-demand fetch some other way. Needs its own design pass, not a
      drive-by.
-3. **History**: show the `reduceOnly` field (already in `NormalizedOrder`,
-   never rendered). A time-range filter and pagination beyond the server's
-   hard-coded last-20-per-bucket limit (`src/routes/api/orders/+server.ts:452`)
-   is real but large enough to need its own spec — tracked here as an open
-   question, not committed to in this item.
-4. **Account summary**: add a "Total Position Size" line (`Σ qty × markPrice`
-   across open positions, client-computed) alongside the existing
-   Equity/Wallet Balance/Margin figures, matching Bitunix's Assets panel.
+3. ~~**History: `reduceOnly` badge**~~ — done. The server route dropped the
+   field when mapping `get_history_orders`; now carried through and shown as
+   a small badge next to the type/side badge. A time-range filter and
+   pagination beyond the server's hard-coded last-20-per-bucket limit
+   (`src/routes/api/orders/+server.ts:452`) is real but large enough to need
+   its own spec — tracked here as an open question, not committed to in this
+   item.
+4. ~~**Account summary: Total Position Size**~~ — done. `Σ size ×
+   mark/entry price` across `mappedPositions`, client-computed exactly like
+   Bitunix's own Assets panel does (no API field exists for it).
 
 ## Acceptance criteria
 
@@ -67,11 +69,11 @@ surfacing data the API already returns.
       or a stale value (see `BUG-0055`'s acceptance criteria)
 - [x] Margin rate and realized PnL are visible on an open position's card
 - [ ] A position's active TP/SL (if set) is visible on the card itself, not
-      only in the separate TP/SL tab
-- [ ] History shows `reduceOnly` per order
-- [ ] Account summary shows total open position size
-- [ ] German and English strings for every new label
-- [ ] `npm run check` and the affected Vitest suites pass
+      only in the separate TP/SL tab — still open, see note above
+- [x] History shows `reduceOnly` per order
+- [x] Account summary shows total open position size
+- [x] German and English strings for every new label
+- [x] `npm run check` and the affected Vitest suites pass
 
 ## Out of scope
 

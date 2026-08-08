@@ -220,6 +220,14 @@
                   {getTypeLabel(order.type)}
                   {order.side === "BUY" ? $_("dashboard.orderHistory.side.buy") : $_("dashboard.orderHistory.side.sell")}
                 </span>
+                {#if order.reduceOnly}
+                  <span
+                    class="text-[9px] font-bold px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] uppercase tracking-tight"
+                    title={$_("dashboard.orderHistory.reduceOnly")}
+                  >
+                    {$_("dashboard.orderHistory.reduceOnlyShort")}
+                  </span>
+                {/if}
               </div>
 
               <span

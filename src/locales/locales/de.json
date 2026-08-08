@@ -117,6 +117,8 @@
       "noDate": "-",
       "liq": "Liq.",
       "refresh": "Historie aktualisieren",
+      "reduceOnly": "Nur Reduzierung",
+      "reduceOnlyShort": "R/O",
       "side": {
         "buy": "Kauf",
         "sell": "Verkauf"
@@ -317,7 +319,8 @@
       "frozen": "Eingefroren",
       "mode": "Modus",
       "crossPnl": "Cross PnL",
-      "isoPnl": "Iso PnL"
+      "isoPnl": "Iso PnL",
+      "totalPositionSize": "Gesamte Positionsgröße"
     },
     "customModal": {
       "promptPlaceholder": "Eingabe...",

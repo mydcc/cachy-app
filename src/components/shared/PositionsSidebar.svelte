@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { onMount, untrack } from "svelte";
+  import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { accountState } from "../../stores/account.svelte";
@@ -165,6 +166,16 @@
         marginRate: p.marginRate.gt(0) ? p.marginRate : undefined,
         realizedPnl: p.realizedPnl,
     }))
+  );
+
+  // Total notional value of every open position — client-computed (Σ size ×
+  // mark/entry price), matching how Bitunix's own Assets panel derives it;
+  // there is no API field for it.
+  let totalPositionSize = $derived(
+    mappedPositions.reduce(
+      (sum, p) => sum.plus(p.amount.mul(p.markPrice || p.entryPrice)),
+      new Decimal(0),
+    ),
   );
 
   // Subscribe to live price updates for every symbol with an open position —
@@ -574,6 +585,7 @@
       positionMode={accountInfo.positionMode}
       crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
       isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
+      totalPositionSize={totalPositionSize}
     />
 
     <!-- Tabs -->
