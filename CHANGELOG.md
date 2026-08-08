@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.17](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.16...v1.2.0-beta.17) (2026-08-08)
+
+
+### Bug Fixes
+
+* **windows:** set initial 854x480 resolution and 16:9 ratio for channel windows ([a7f0038](https://github.com/mydcc/cachy-app/commit/a7f0038ddd085fa7d31f58b6d8c04b890aeae98f))
+
 # [1.2.0-beta.16](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.15...v1.2.0-beta.16) (2026-08-08)
 
 
