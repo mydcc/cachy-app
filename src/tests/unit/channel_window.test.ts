@@ -20,20 +20,24 @@ import { ChannelWindow } from '../../lib/windows/implementations/ChannelWindow.s
 import { windowRegistry } from '../../lib/windows/WindowRegistry.svelte';
 
 describe('ChannelWindow Initial Dimensions and Aspect Ratio', () => {
-  it('should register channel window type with 854x480 layout and 16:9 ratio', () => {
+  it('should register channel window type with 854x480 layout, top-left position (20, 60), and 16:9 ratio', () => {
     const config = windowRegistry.getConfig('channel');
+    expect(config.layout.x).toBe(20);
+    expect(config.layout.y).toBe(60);
     expect(config.layout.width).toBe(854);
     expect(config.layout.height).toBe(480);
     expect(config.layout.aspectRatio).toBeCloseTo(16 / 9);
   });
 
-  it('should instantiate ChannelWindow with 854 width and 16:9 content aspect ratio', () => {
+  it('should instantiate ChannelWindow with 854 width, top-left position (20, 60), and 16:9 content aspect ratio', () => {
     const win = new ChannelWindow(
       'https://space.cachy.app/index.php?plot_id=genesis',
       'Cachy Space',
       'genesis'
     );
 
+    expect(win.x).toBe(20);
+    expect(win.y).toBe(60);
     expect(win.width).toBe(854);
     expect(win.aspectRatio).toBeCloseTo(16 / 9);
     // Total window height includes 41px header -> 480 + 41 = 521px
