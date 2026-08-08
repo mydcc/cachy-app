@@ -443,6 +443,9 @@ export abstract class WindowBase {
         this.minWidth = l.minWidth ?? 200;
         this.minHeight = l.minHeight ?? 150;
         this.aspectRatio = l.aspectRatio ?? null;
+        if (this.aspectRatio) {
+            this.updateSize(this.width, this.height);
+        }
 
         if (config.opacity !== undefined) this.opacity = config.opacity;
         if (config.defaultTitle && !this.title) this.title = config.defaultTitle;
