@@ -91,6 +91,7 @@ export interface NormalizedOrder {
 // Normalized Internal Position Interface — shared shape both exchanges'
 // /api/positions routes map their raw responses into.
 export interface NormalizedPosition {
+  positionId?: string;
   symbol: string;
   side: string;
   size?: string;

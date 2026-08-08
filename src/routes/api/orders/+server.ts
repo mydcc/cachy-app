@@ -121,7 +121,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit));
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit), payload.queryCanceled);
         result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -449,10 +449,14 @@ function cleanPayload<T extends object>(payload: T): T {
   return cleaned as T;
 }
 
-async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {
+async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20, queryCanceled = false): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
-  const params = { limit: String(limit) };
+  // Bitunix's own split: queryCanceled=false returns everything except
+  // CANCELED (up to 90 days back); true returns ONLY CANCELED (up to 3 days
+  // back). Neither call alone is a complete history.
+  const params: Record<string, string> = { limit: String(limit) };
+  if (queryCanceled) params.queryCanceled = "true";
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`, {
