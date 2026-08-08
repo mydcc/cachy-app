@@ -19,6 +19,34 @@ import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../stores/types";
 
 /**
+ * Unwraps the `{ success, data }` / `{ success, error }` envelope produced
+ * server-side by `jsonSuccess`/`jsonError`/`handleApiError`
+ * (`src/utils/apiResponse.ts`). Only some routes use this envelope (e.g.
+ * `/api/positions`, `/api/account`, `/api/sync/*`) — others (`/api/orders`)
+ * still return a flat body. Call this only for routes that are documented
+ * to use the envelope; it is not a generic "detect the shape" parser.
+ *
+ * Introduced after BUG-0060: `PositionsSidebar.svelte` read `data.positions`/
+ * `data.error` directly on an envelope-wrapped response — the real payload
+ * was nested under `data.data`/`data.error.message` — so a fetch neither
+ * populated its store nor surfaced an error; it just silently did nothing.
+ */
+export interface ApiEnvelope<T> {
+  success?: boolean;
+  data?: T;
+  error?: { code?: string | number; message?: string; details?: unknown };
+}
+
+export function unwrapApiEnvelope<T>(
+  body: ApiEnvelope<T>,
+): { data: T | null; code?: string | number; message?: string } {
+  if (body.success === false) {
+    return { data: null, code: body.error?.code, message: body.error?.message };
+  }
+  return { data: body.data ?? null };
+}
+
+/**
  * `never[]` rather than `unknown[]` in the constraint: parameters are
  * contravariant, so `unknown[]` rejects any callback with concrete parameter
  * types — it forced callers to type their debounced function as taking

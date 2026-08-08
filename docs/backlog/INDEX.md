@@ -2,9 +2,9 @@
 
 # Backlog index
 
-59 items. How to read and add them: [README.md](README.md).
+60 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 21
+Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 22
 
 ---
 
@@ -50,6 +50,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 21
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | trade-panel |
+| [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | trade-panel |
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | trade-panel |
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
@@ -134,6 +135,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 21
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 📋 specced | M0 | community, pro, private | A | none | — |
 | [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
@@ -192,4 +194,4 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 21
 
 ---
 
-Next free number: **0060**
+Next free number: **0061**
