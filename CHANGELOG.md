@@ -5,6 +5,14 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.37](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.36...v1.2.0-beta.37) (2026-08-08)
+
+
+### Bug Fixes
+
+* preserve positionId/positionMode across partial WS pushes (BUG-0064) ([7f0e200](https://github.com/mydcc/cachy-app/commit/7f0e200658dcc1933f382fa9ac2fda5210181ed1))
+* stop a partial WS price push from clobbering a buffered markPrice (BUG-0065) ([1cbda56](https://github.com/mydcc/cachy-app/commit/1cbda56dc49f5e663639853f45f07377cb59f457))
+
 # [1.2.0-beta.36](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.35...v1.2.0-beta.36) (2026-08-08)
 
 
