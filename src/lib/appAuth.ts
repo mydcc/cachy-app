@@ -60,6 +60,54 @@ export function appAuthHeaders(
   return headers;
 }
 
+// In-flight issuance request, shared across concurrent callers so a burst of
+// guarded requests with no token yet (e.g. every onMount fetch firing at
+// once) triggers one POST /api/auth/token, not one per caller.
+let issuingToken: Promise<void> | null = null;
+
+/**
+ * Requests a fresh client token from the deliberately unguarded
+ * `POST /api/auth/token` and stores it, so a caller never needs to know this
+ * happened.
+ *
+ * `checkClientToken`'s token store is in-memory and resets on server restart
+ * (see the ADR-0002 amendment for BUG-0052) — "acceptable friction for v1 (a
+ * background fetch, not a user-facing flow)". This is that background fetch:
+ * without it, a client whose token the server no longer recognises is stuck
+ * showing "Unauthorized: Invalid or missing client access token" on every
+ * guarded route until someone finds the manual "Create access token" button
+ * in Settings → Connections.
+ */
+function issueAccessToken(): Promise<void> {
+  if (!issuingToken) {
+    issuingToken = (async () => {
+      try {
+        const res = await fetch("/api/auth/token", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.token) settingsState.appAccessToken = data.token;
+        }
+      } catch {
+        // Network error: leave appAccessToken as-is, the caller's request
+        // will fail on its own and can be retried later.
+      } finally {
+        issuingToken = null;
+      }
+    })();
+  }
+  return issuingToken;
+}
+
+function isClientTokenError(body: unknown): boolean {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    "error" in body &&
+    typeof (body as { error: unknown }).error === "string" &&
+    (body as { error: string }).error.includes("client access token")
+  );
+}
+
 /**
  * `fetch` with the app access token attached.
  *
@@ -72,11 +120,34 @@ export function appAuthHeaders(
  * `onMount` — would otherwise read an empty token and take a 401 that a later,
  * hand-clicked retry of the same request does not. The headers are built after
  * the await, never before.
+ *
+ * Two self-healing steps around that: if there is no token yet, one is issued
+ * before the first attempt; if the request still comes back 401 for "invalid
+ * or missing client access token" (the server no longer recognises this
+ * token, e.g. it restarted), a fresh one is issued and the request is retried
+ * once. Neither step touches other 401s (a route-specific auth failure) or
+ * 429s (rate limiting, where retrying immediately would only make it worse).
  */
 export async function appFetch(
   input: string,
   init: RequestInit = {},
 ): Promise<Response> {
   await settingsState.secretsReady;
+  if (!settingsState.appAccessToken) {
+    await issueAccessToken();
+  }
+
+  const response = await fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
+  if (response.status !== 401) return response;
+
+  let body: unknown;
+  try {
+    body = await response.clone().json();
+  } catch {
+    return response;
+  }
+  if (!isClientTokenError(body)) return response;
+
+  await issueAccessToken();
   return fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
 }

@@ -26,7 +26,9 @@ vi.mock("../stores/settings.svelte", () => ({
         apiProvider: "bitunix",
         apiKeys: {
             bitunix: { key: "test", secret: "test" }
-        }
+        },
+        appAccessToken: "test-token",
+        secretsReady: Promise.resolve(),
     }
 }));
 
