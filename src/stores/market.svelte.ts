@@ -28,6 +28,7 @@ export interface MarketData {
   indexPrice: Decimal | null;
   fundingRate: Decimal | null;
   nextFundingTime: number | null; // Unix timestamp in ms
+  fundingInterval?: number | null; // Settlement interval in hours (varies per symbol)
   depth?: {
     bids: [string, string][]; // [price, qty]
     asks: [string, string][];
@@ -406,6 +407,11 @@ export class MarketManager {
       if (partial.fundingRate !== undefined) {
           const newVal = toDecimal(partial.fundingRate, current.fundingRate);
           if (newVal !== undefined) current.fundingRate = newVal;
+      }
+      if (partial.fundingInterval !== undefined) {
+          const raw = partial.fundingInterval;
+          const n = raw === null ? null : Number(raw);
+          if (n === null || !isNaN(n)) current.fundingInterval = n;
       }
 
       if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {

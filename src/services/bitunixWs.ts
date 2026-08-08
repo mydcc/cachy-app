@@ -153,10 +153,11 @@ class BitunixWebSocketService {
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
   // Logs the raw, unmodified "fr" field exactly as received from the "price"
-  // channel, per symbol, throttled to avoid console spam. Confirmed the root
-  // cause of the ~100x-too-high funding rate display: Bitunix's price channel
-  // sends `fr` already as a percentage (e.g. "-0.01" = -0.01%), not as a
-  // fraction - see normalizeFundingRatePercent() below for the fix.
+  // channel, per symbol, throttled to avoid console spam. This field is
+  // undocumented and scaled as a percentage, not the fraction convention
+  // Bitunix's REST funding-rate endpoints use - fundingRate is no longer
+  // sourced from it (see fundingRateService.ts). Kept for future diagnosis
+  // in case Bitunix's WS behavior needs re-investigating.
   private lastFundingRateDebugLog = new Map<string, number>();
   private readonly FUNDING_RATE_DEBUG_INTERVAL = 15000;
   private debugLogRawFundingRate(symbol: string, rawFr: string): void {
@@ -183,22 +184,6 @@ class BitunixWebSocketService {
       undefined,
       true,
     );
-  }
-
-  /**
-   * Bitunix's "price" channel sends `fr` already as a percentage (e.g. "-0.01"
-   * means -0.01%), unlike the fraction convention (0.0001 = 0.01%) used by
-   * Bitunix's own REST funding-rate endpoint and by every display site in this
-   * app (MarketOverview.svelte, ai.svelte.ts both do `.times(100)`). Convert to
-   * a fraction here, once, at ingestion, so the store stays in the fraction
-   * convention the rest of the app assumes.
-   */
-  private normalizeFundingRatePercent(rawFr: string): Decimal | undefined {
-    try {
-      return new Decimal(rawFr).dividedBy(100);
-    } catch {
-      return undefined;
-    }
   }
 
   /**
@@ -949,9 +934,13 @@ class BitunixWebSocketService {
                   try {
                     // HARDENING: Direct property access + Warning on Numeric Types
                     const ip = data.ip !== undefined ? this.safeString(data.ip, symbol, 'indexPrice') : undefined;
+                    // fundingRate/nextFundingTime are NOT read from this WS field anymore:
+                    // `fr` is undocumented and scaled differently from Bitunix's REST
+                    // funding_rate/batch endpoint, which is now the sole source of truth
+                    // for funding rate (see fundingRateService.ts). Kept as a debug log
+                    // only, in case Bitunix's WS behavior needs re-investigating later.
                     const fr = data.fr !== undefined ? this.safeString(data.fr, symbol, 'fundingRate') : undefined;
                     if (fr !== undefined) this.debugLogRawFundingRate(symbol, fr);
-                    const nft = data.nft ? String(data.nft) : undefined;
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
@@ -964,8 +953,6 @@ class BitunixWebSocketService {
                         // them and then reading `data.*` anyway.
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
-                          fundingRate: fr ? this.normalizeFundingRatePercent(fr) : undefined,
-                          nextFundingTime: nft
                         });
                     }
                     return;
@@ -1281,8 +1268,8 @@ class BitunixWebSocketService {
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
             indexPrice: d.ip ? String(d.ip) : undefined,
-            fundingRate: d.fr !== undefined ? this.normalizeFundingRatePercent(String(d.fr)) : undefined,
-            nextFundingTime: d.nft ? String(d.nft) : undefined
+            // fundingRate/nextFundingTime: see fast path above - sourced from
+            // REST (fundingRateService.ts), not this undocumented WS field.
           });
         }
       } else if (validatedChannel === "ticker") {

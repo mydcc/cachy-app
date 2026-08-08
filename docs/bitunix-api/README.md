@@ -2,7 +2,7 @@
 
 **Base URL:** `https://fapi.bitunix.com`  
 **Version:** Futures Trading API  
-**Last Updated:** 2026-01-21
+**Last Updated:** 2026-08-08
 
 ---
 
@@ -458,6 +458,112 @@ All responses follow this structure:
 
 ---
 
+## Market Data - Funding Rate
+
+Confirmed against the official docs (<https://www.bitunix.com/api-docs/futures/market/>) on 2026-08-08.
+These are REST endpoints — distinct from the WS `price` channel's `fr` field (see
+`src/services/bitunixWs.ts`), which is **not documented** on these pages and, per
+live-traffic investigation, is scaled differently (already a percentage, not a
+fraction — see `normalizeFundingRatePercent()` in that file).
+
+### Get Funding Rate Batch
+
+**GET** `/api/v1/futures/market/funding_rate/batch`
+
+**Description:** Get the current funding rate of the contract(s).
+
+**Rate Limit:** 10 req/sec/ip
+
+Note: despite the doc page being named `get_funding_rate_batch.html`, the actual
+HTTP path has no `get_` prefix and uses `funding_rate/batch`, not
+`funding_rate_batch` — verified from the page's own request example.
+
+#### Response
+
+```typescript
+{
+  code: 0,
+  data: [
+    {
+      symbol: string;          // "BTCUSDT"
+      markPrice: string;       // decimal as string
+      lastPrice: string;
+      indexPrice: string;
+      fundingRate: string;     // decimal AS A FRACTION, e.g. "0.0005" = 0.05%
+      fundingInterval: number; // settlement interval in HOURS (varies per symbol, not fixed at 8h)
+      nextFundingTime: string; // ms epoch
+      maxFundingRate: string;  // fraction, e.g. "0.3"
+      minFundingRate: string;  // fraction, e.g. "-0.3"
+    }
+  ],
+  msg: "Success"
+}
+```
+
+#### Response Example
+
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "symbol": "BTCUSDT",
+      "markPrice": "60000",
+      "lastPrice": "60001",
+      "indexPrice": "60001",
+      "fundingRate": "0.0005",
+      "fundingInterval": 8,
+      "nextFundingTime": "1770710400000",
+      "maxFundingRate": "0.3",
+      "minFundingRate": "-0.3"
+    }
+  ],
+  "msg": "Success"
+}
+```
+
+### Get Funding Rate History
+
+**GET** `/api/v1/futures/market/get_funding_rate_history`
+
+**Description:** Get the history funding rate of the contract.
+
+**Rate Limit:** 10 req/sec/ip
+
+#### Request Parameters
+
+| Parameter | Type   | Required | Description                                                  |
+| --------- | ------ | -------- | -------------------------------------------------------------- |
+| symbol    | string | true     | Trading pair, e.g. `BTCUSDT`                                    |
+| starTime  | int64  | false    | Start timestamp (funding settle time), ms epoch (sic, no `t`)  |
+| endTime   | int64  | false    | End timestamp (funding settle time), ms epoch                  |
+| limit     | int32  | false    | Default: 100, Maximum: 200                                      |
+
+#### Response
+
+```typescript
+{
+  code: 0,
+  data: [
+    {
+      markPrice: string;
+      fundingRate: string; // decimal AS A FRACTION, e.g. "-0.00001191"
+      fundingTime: string; // ms epoch
+    }
+  ],
+  msg: "Success"
+}
+```
+
+### Get Funding Rate (single symbol)
+
+**GET** `/api/v1/futures/market/get_funding_rate` (path unconfirmed — inferred from
+sidebar link, not yet verified against the actual doc page content; likely mirrors
+the batch endpoint's schema for a single symbol). **TODO:** confirm exact path and
+schema before relying on it.
+
+---
+
 ## WebSocket Support
 
 For real-time data, Bitunix provides WebSocket endpoints:
@@ -467,7 +573,8 @@ For real-time data, Bitunix provides WebSocket endpoints:
 ### Topics
 
 - **Private:** Orders, Positions, Balance (requires authentication)
-- **Public:** Tickers, Depth, Trades, Klines
+- **Public:** Tickers, Depth, Trades, Klines, MarketPrice (includes an
+  undocumented `fr` funding-rate field — see note above)
 
 ---
 
