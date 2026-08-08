@@ -209,6 +209,48 @@ describe('AccountManager', () => {
         });
     });
 
+    // Regression: marginRate is REST-only (Bitunix never sends it over WS),
+    // while realizedPNL *is* pushed live on every WS position update — the
+    // two must not be treated the same way.
+    describe('marginRate / realizedPnl (FEAT-0057)', () => {
+        it('hydratePositions parses both from the REST snapshot', () => {
+            accountState.hydratePositions([
+                {
+                    positionId: '1', symbol: 'BTCUSDT', side: 'LONG', marginMode: 'CROSS',
+                    marginRate: '0.05', realizedPnl: '12.34',
+                },
+            ]);
+            expect(accountState.positions[0].marginRate.toString()).toBe('0.05');
+            expect(accountState.positions[0].realizedPnl.toString()).toBe('12.34');
+        });
+
+        it('updatePositionFromWs updates realizedPnl but preserves marginRate across a push', () => {
+            accountState.hydratePositions([
+                {
+                    positionId: '1', symbol: 'BTCUSDT', side: 'LONG', marginMode: 'CROSS',
+                    marginRate: '0.05', realizedPnl: '0',
+                },
+            ]);
+
+            accountState.updatePositionFromWs({
+                positionId: '1', symbol: 'BTCUSDT', side: 'long',
+                qty: '1.5', realizedPNL: '3.21',
+            });
+
+            expect(accountState.positions[0].realizedPnl.toString()).toBe('3.21');
+            // marginRate has no WS field to update from — must survive unchanged.
+            expect(accountState.positions[0].marginRate.toString()).toBe('0.05');
+        });
+
+        it('a WS-only position (no prior REST hydration) defaults marginRate to 0', () => {
+            accountState.updatePositionFromWs({
+                positionId: '2', symbol: 'ETHUSDT', side: 'long',
+                qty: '1', realizedPNL: '0',
+            });
+            expect(accountState.positions[0].marginRate.toString()).toBe('0');
+        });
+    });
+
     // Regression: order history has no WS push channel of its own, so
     // PositionsSidebar relies on this callback to know when to refetch it —
     // it used to only refresh once per session (stale trades).

@@ -34,15 +34,24 @@ Data-accurate rebuild of the read side of the panel — no new trading actions
 surfacing data the API already returns.
 
 1. ~~**Mark-price pipeline**~~ — done, see `BUG-0055`'s Fix section.
-2. **Positions card**: add the fields Bitunix's `Get Pending Positions`
-   already returns but the client never maps — `marginRate`
-   and `realizedPNL` (`docs/bitunix-api/05_position.md:103-129`) — into
-   `NormalizedPosition`, `/api/positions`, and the `Position` store type.
-   Show them alongside existing Entry/Liq. Price/Margin/PnL. Add a
-   Quote-equivalent size (`qty × markPrice`, client-computed, no new call).
-   Cross-reference `accountState.openOrders` for TP/SL prices set on the
-   symbol and show them inline on the card (data already fetched for the
-   TP/SL tab, just not mirrored here).
+2. ~~**Positions card: margin rate + realized PnL**~~ — done. `marginRate`
+   and `realizedPnl` (Bitunix API field `realizedPNL`,
+   `docs/bitunix-api/05_position.md:103-129`) now flow through
+   `NormalizedPosition` → `/api/positions` → the `Position` store type →
+   `PositionsList.svelte`/`PositionTooltip.svelte`. `realizedPnl` updates
+   live over WS (the position channel sends it on every push); `marginRate`
+   is REST-only and preserved across WS updates like `liquidationPrice`.
+   Bitget is intentionally left unmapped for both — no verified field name
+   for either on Bitget's position endpoint (see BUG-0001 for why guessing
+   an exchange's wire format is the thing to avoid here).
+   - **Still open**: Quote-equivalent size (`qty × markPrice`) and inline
+     TP/SL on the card. TP/SL turned out **not** to be free: `TpSlList.svelte`
+     fetches from its own dedicated endpoint
+     (`tradeService.fetchTpSlOrders()`), not `accountState.openOrders` as
+     originally assumed here — showing it on the position card means either
+     an eager fetch the card doesn't otherwise need, or reusing TpSlList's
+     on-demand fetch some other way. Needs its own design pass, not a
+     drive-by.
 3. **History**: show the `reduceOnly` field (already in `NormalizedOrder`,
    never rendered). A time-range filter and pagination beyond the server's
    hard-coded last-20-per-bucket limit (`src/routes/api/orders/+server.ts:452`)
@@ -56,7 +65,7 @@ surfacing data the API already returns.
 
 - [x] Mark price on an open position updates live and never renders as `0`
       or a stale value (see `BUG-0055`'s acceptance criteria)
-- [ ] Margin rate and realized PnL are visible on an open position's card
+- [x] Margin rate and realized PnL are visible on an open position's card
 - [ ] A position's active TP/SL (if set) is visible on the card itself, not
       only in the separate TP/SL tab
 - [ ] History shows `reduceOnly` per order

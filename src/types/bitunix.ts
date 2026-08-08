@@ -102,6 +102,12 @@ export interface NormalizedPosition {
   unrealizedPnL?: string;
   leverage?: string;
   marginMode: string;
+  // Bitunix-only (`marginRate`/`realizedPNL` on Get Pending Positions,
+  // docs/bitunix-api/05_position.md:103-129). Not mapped for Bitget — no
+  // verified field name for either, and BUG-0001 is the standing reminder
+  // not to guess an exchange's wire format.
+  marginRate?: string;
+  realizedPnl?: string;
 }
 
 export interface BitunixOrderPayload {

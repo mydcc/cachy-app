@@ -1282,6 +1282,8 @@ export type TranslationKey =
   | "positionsList.confirmClose"
   | "positionsList.roi"
   | "positionsList.margin"
+  | "positionsList.marginRate"
+  | "positionsList.realizedPnl"
   | "positionsList.unrealizedPnl"
   | "symbolPicker.title"
   | "symbolPicker.searchPlaceholder"

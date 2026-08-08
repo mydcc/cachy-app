@@ -2171,6 +2171,8 @@
     "confirmClose": "Position {symbol} schließen?",
     "roi": "ROI",
     "margin": "Margin",
+    "marginRate": "Margin-Rate",
+    "realizedPnl": "Realisiert",
     "unrealizedPnl": "uPnL"
   },
   "trade": {

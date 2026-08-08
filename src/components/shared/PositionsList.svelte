@@ -225,6 +225,29 @@
                 </div>
               </div>
 
+              <!-- Margin | Margin Rate, Realized PnL -->
+              <div class="flex justify-between items-center text-[10px] text-[var(--text-tertiary)] py-1 border-t border-[var(--border-color)] border-opacity-30">
+                <span
+                  >{$_("positionsList.margin")}: <span class="font-mono text-[var(--text-secondary)]">{formatDynamicDecimal(pos.margin)}</span></span
+                >
+                {#if pos.marginRate}
+                  <span
+                    >{$_("positionsList.marginRate")}: <span class="font-mono text-[var(--text-secondary)]">{formatDynamicDecimal(pos.marginRate.mul(100))}%</span></span
+                  >
+                {/if}
+                {#if pos.realizedPnl}
+                  <span
+                    >{$_("positionsList.realizedPnl")}: <span
+                      class="font-mono"
+                      class:text-[var(--success-color)]={pos.realizedPnl.gt(0)}
+                      class:text-[var(--danger-color)]={pos.realizedPnl.lt(0)}
+                      class:text-[var(--text-secondary)]={pos.realizedPnl.isZero()}
+                      >{pos.realizedPnl.gt(0) ? "+" : ""}{formatDynamicDecimal(pos.realizedPnl)}</span
+                    ></span
+                  >
+                {/if}
+              </div>
+
               <!-- Footer: Buttons -->
               <div class="flex gap-2 pt-1">
                 <button

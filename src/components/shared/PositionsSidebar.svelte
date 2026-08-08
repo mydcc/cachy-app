@@ -159,7 +159,11 @@
         liquidationPrice: p.liquidationPrice,
         margin: p.margin,
         markPrice: resolveMarkPrice(p),
-        size: p.size
+        size: p.size,
+        // REST-only, never sent over WS — 0 means "not hydrated yet", not a
+        // real margin rate, so treat it as absent rather than show "0%".
+        marginRate: p.marginRate.gt(0) ? p.marginRate : undefined,
+        realizedPnl: p.realizedPnl,
     }))
   );
 
