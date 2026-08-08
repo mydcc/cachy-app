@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.31](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.30...v1.2.0-beta.31) (2026-08-08)
+
+
+### Bug Fixes
+
+* a WS position push without qty no longer closes a still-open position (BUG-0058) ([6badb70](https://github.com/mydcc/cachy-app/commit/6badb70d75e4b96138f9082b8183ca27a06cda3e))
+
 # [1.2.0-beta.30](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.29...v1.2.0-beta.30) (2026-08-08)
 
 
