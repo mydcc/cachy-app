@@ -181,13 +181,13 @@ Cachy berechnet nicht nur einen ATR. Es führt einen **Parallelen Scan** der fav
 #### 2. Technische Analyse-Engine
 
 _Ziel: Bereitstellung von Standardindikatoren ohne externe Charting-Bibliotheken._
-Der `technicalsService.ts` nutzt die **`talib-web`-Bibliothek** (WebAssembly-Port von TA-Lib) zur Berechnung von:
+Der `technicalsService.ts` routet die Berechnung über die `calculationStrategy` an das eigene **Rust/WebAssembly-Modul** (`technicals-wasm/`) bzw. dessen TypeScript-Pendant zur Berechnung von:
 
 - **Oszillatoren**: RSI, Stochastic, CCI, Awesome Oscillator, ADX, Momentum.
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Manuell berechnet aus den High/Low/Close-Werten des Vortages.
 
-**Upgrade (Januar 2026)**: Migration von `technicalindicators` auf `talib-web` für exakte Übereinstimmung mit TradingView. In der neuesten Iteration wurde dies weiter optimiert, indem wir wo möglich auf reine TypeScript-Implementierungen umgestiegen sind, um WASM-Abhängigkeiten zu entfernen und die Ladezeiten auf mobilen Geräten zu verbessern.
+**Upgrade (Januar 2026)**: Migration von `technicalindicators` auf die eigene WASM-Implementierung für exakte Übereinstimmung mit TradingView. In der neuesten Iteration wurde dies weiter optimiert, indem wir wo möglich auf reine TypeScript-Implementierungen umgestiegen sind, um WASM-Abhängigkeiten zu entfernen und die Ladezeiten auf mobilen Geräten zu verbessern.
 
 Diese Daten werden im **Technicals Panel** visualisiert, einem dedizierten Overlay für schnelle Marktbewertungen.
 
