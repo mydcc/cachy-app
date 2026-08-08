@@ -5,6 +5,15 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.26](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.25...v1.2.0-beta.26) (2026-08-08)
+
+
+### Bug Fixes
+
+* auto-recover client access token when the server forgets it ([3720903](https://github.com/mydcc/cachy-app/commit/3720903b2c39c24ff6c44c550fafb861d410ed3b))
+* correct Bitunix TP/SL and order-cancel endpoint paths ([40933dc](https://github.com/mydcc/cachy-app/commit/40933dca666cd03c7820c9bc55b34beee9ad9261))
+* satisfy i18n string linter in isClientTokenError ([91a6867](https://github.com/mydcc/cachy-app/commit/91a686756a5f4bc68aede1d8f3a4c55bf2455da0))
+
 # [1.2.0-beta.25](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.24...v1.2.0-beta.25) (2026-08-08)
 
 
