@@ -82,6 +82,16 @@
       // shared NormalizedOrder shape.
       fee: "0",
       realizedPNL: "0",
+      mtime: o.mtime,
+      leverage: o.leverage,
+      marginMode: o.marginMode,
+      positionMode: o.positionMode,
+      tpPrice: o.tpPrice,
+      tpStopType: o.tpStopType,
+      tpOrderType: o.tpOrderType,
+      slPrice: o.slPrice,
+      slStopType: o.slStopType,
+      slOrderType: o.slOrderType,
     })),
   );
   let historyOrders: NormalizedOrder[] = $state([]);

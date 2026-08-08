@@ -105,7 +105,7 @@
     </div>
     <div class="flex justify-between">
       <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.qty")}:</span>
-      <span>{formatDynamicDecimal(order.qty)}</span>
+      <span>{formatDynamicDecimal(order.amount ?? order.qty)}</span>
     </div>
     <div class="flex justify-between">
       <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.filled")}:</span>
@@ -176,9 +176,9 @@
       >
         <div class="flex justify-between">
           <span>{$_("dashboard.orderHistory.details.created")}:</span>
-          <span>{formatDate(order.ctime)}</span>
+          <span>{formatDate(order.time ?? order.ctime)}</span>
         </div>
-        {#if order.mtime && order.mtime !== order.ctime}
+        {#if order.mtime && order.mtime !== (order.time ?? order.ctime)}
           <div class="flex justify-between">
             <span>{$_("dashboard.orderHistory.details.updated")}:</span>
             <span>{formatDate(order.mtime)}</span>

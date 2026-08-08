@@ -244,6 +244,65 @@ describe('AccountManager', () => {
             expect(order.type).toBe('limit');
             expect(order.price.toString()).toBe('3000');
         });
+
+        // Regression (order tooltip): leverage/marginMode/positionMode/TP-SL
+        // were dropped at the OpenOrder type boundary even after the server
+        // started sending them — the Orders tab tooltip showed "Leverage: x"
+        // and a blank Margin Mode regardless of what the exchange returned.
+        it('carries leverage/marginMode/positionMode/TP-SL through', () => {
+            accountState.hydrateOpenOrders([
+                {
+                    id: '1', orderId: '1', symbol: 'ETHUSDT', type: 'LIMIT', side: 'BUY',
+                    price: '3000', amount: '2', filled: '0', status: 'NEW', time: 1700000000000,
+                    fee: '0', realizedPNL: '0', leverage: '15', marginMode: 'ISOLATION',
+                    positionMode: 'HEDGE', tpPrice: '3100', slPrice: '2900',
+                },
+            ]);
+
+            const order = accountState.openOrders[0];
+            expect(order.leverage).toBe('15');
+            expect(order.marginMode).toBe('ISOLATION');
+            expect(order.positionMode).toBe('HEDGE');
+            expect(order.tpPrice).toBe('3100');
+            expect(order.slPrice).toBe('2900');
+        });
+    });
+
+    describe('updateOrderFromWs — descriptive metadata (order tooltip)', () => {
+        it('sets leverage/marginMode/TP-SL from a WS push (positionType, not marginMode)', () => {
+            accountState.updateOrderFromWs({
+                orderId: '1', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '2', dealAmount: '0', orderStatus: 'NEW',
+                leverage: '15', positionType: 'ISOLATION', positionMode: 'HEDGE',
+                tpPrice: '3100', slPrice: '2900',
+            });
+
+            const order = accountState.openOrders[0];
+            expect(order.leverage).toBe('15');
+            expect(order.marginMode).toBe('ISOLATION');
+            expect(order.positionMode).toBe('HEDGE');
+            expect(order.tpPrice).toBe('3100');
+            expect(order.slPrice).toBe('2900');
+        });
+
+        it('preserves descriptive metadata across an update that omits it', () => {
+            accountState.updateOrderFromWs({
+                orderId: '1', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '2', dealAmount: '0', orderStatus: 'NEW',
+                leverage: '15', positionType: 'ISOLATION',
+            });
+
+            // A later push (e.g. a PART_FILLED update) that doesn't repeat
+            // leverage/marginMode must not wipe them.
+            accountState.updateOrderFromWs({
+                orderId: '1', dealAmount: '1', orderStatus: 'PART_FILLED',
+            });
+
+            const order = accountState.openOrders[0];
+            expect(order.leverage).toBe('15');
+            expect(order.marginMode).toBe('ISOLATION');
+            expect(order.filled.toString()).toBe('1');
+        });
     });
 
     describe('hydrateBalance', () => {
