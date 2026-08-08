@@ -140,10 +140,18 @@ class AccountManager {
       (p) => String(p.positionId) === String(data.positionId),
     );
 
-    // Robust check for close event or zero quantity
+    // Close only on an explicit CLOSE event or a push that *explicitly*
+    // carries qty: "0". A push that omits `qty` entirely (e.g. a
+    // margin/PnL-only UPDATE) must NOT be treated as a close — it
+    // previously was, because `safeDecimal(data.qty, new Decimal(0))`
+    // defaults a *missing* field to Decimal(0) the same way it defaults an
+    // explicit zero, so `.isZero()` was `true` either way. That silently
+    // deleted a still-open position from `this.positions` on the very next
+    // WS push that didn't happen to repeat `qty` (see BUG-0058).
+    const hasExplicitQty = data.qty !== undefined && data.qty !== null;
     const isClose =
       data.event === "CLOSE" ||
-      safeDecimal(data.qty, new Decimal(0)).isZero();
+      (hasExplicitQty && safeDecimal(data.qty, new Decimal(0)).isZero());
 
     if (isClose) {
       if (index !== -1) {
