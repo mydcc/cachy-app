@@ -1288,6 +1288,7 @@ export type TranslationKey =
   | "positionsList.marginRate"
   | "positionsList.realizedPnl"
   | "positionsList.unrealizedPnl"
+  | "positionsList.pnlToggleHint"
   | "symbolPicker.title"
   | "symbolPicker.searchPlaceholder"
   | "symbolPicker.favorites"

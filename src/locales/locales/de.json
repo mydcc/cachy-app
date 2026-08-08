@@ -2176,7 +2176,8 @@
     "margin": "Margin",
     "marginRate": "Margin-Rate",
     "realizedPnl": "Realisiert",
-    "unrealizedPnl": "uPnL"
+    "unrealizedPnl": "Unrealisierter PnL",
+    "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht."
   },
   "trade": {
     "apiError": "API-Fehler: {error}",

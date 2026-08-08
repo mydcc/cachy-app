@@ -1462,7 +1462,8 @@
     "margin": "Margin",
     "marginRate": "Margin Rate",
     "realizedPnl": "Realized PnL",
-    "unrealizedPnl": "uPnL"
+    "unrealizedPnl": "Unrealized PnL",
+    "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view."
   },
   "symbolPicker": {
     "title": "Select Symbol",

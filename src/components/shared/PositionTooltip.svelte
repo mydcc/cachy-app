@@ -94,7 +94,7 @@
 
     <!-- PnL & Margin -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.pnl")}:</span>
+      <span class="text-[var(--text-secondary)]">{$_("positionsList.unrealizedPnl")}:</span>
       <span
         class:text-[var(--success-color)]={position.unrealizedPnl > 0}
         class:text-[var(--danger-color)]={position.unrealizedPnl < 0}
