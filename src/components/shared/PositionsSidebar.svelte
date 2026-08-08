@@ -28,9 +28,10 @@
   import { _ } from "../../locales/i18n";
   import { tradeService } from "../../services/tradeService";
   import { getDisplayMessage } from "../../utils/errorUtils";
+  import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
   import type { OMSPosition } from "../../services/omsTypes";
-  import type { NormalizedOrder } from "../../types/bitunix";
+  import type { NormalizedOrder, NormalizedPosition } from "../../types/bitunix";
   import type { TranslationKey } from "../../locales/schema";
 
   // Sub-components
@@ -218,9 +219,20 @@
           apiSecret: keys.secret,
         }),
       });
-      const data = await response.json();
-      if (data.error) errorPositions = translateError(data);
-      else if (data.positions) {
+      const json = await response.json();
+      // /api/positions responds via jsonSuccess/jsonError
+      // (src/utils/apiResponse.ts): { success: true, data: { positions } }
+      // or { success: false, error: { code, message } } — NOT the flat
+      // { positions } / { error } shape the rest of this file's fetchers
+      // use (those hit /api/orders, which still returns the old flat
+      // format). Reading `data.positions`/`data.error` directly here used
+      // to always miss — no error ever surfaced, and hydratePositions() was
+      // never called, so the tab silently stayed empty no matter what the
+      // exchange actually returned (BUG-0060).
+      const { data, code, message } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
+      if (data === null) {
+        errorPositions = translateError({ code, error: message });
+      } else if (data.positions) {
         // hydratePositions parses through the same safe Decimal path as WS
         // updates and fills in positionId — a raw `accountState.positions =
         // data.positions` assignment used to silently violate the Position
@@ -340,12 +352,18 @@
           apiSecret: keys.secret,
         }),
       });
-      const data = await response.json();
-      if (data.error) {
-        // Previously silent: accountInfo stayed at its all-zero initial
-        // state forever with nothing in the UI indicating a fetch ever
-        // failed — indistinguishable from a genuinely empty account.
-        errorAccount = translateError(data);
+      const json = await response.json();
+      // /api/account responds via jsonSuccess/jsonError
+      // (src/utils/apiResponse.ts): { success: true, data: {...account
+      // fields} } or { success: false, error: { code, message } } — not the
+      // flat shape read here before this fix. `data.error` was always
+      // undefined and `data` itself (rather than `data.data`) was assigned
+      // to accountInfo, so every field silently stuck at its all-zero
+      // initial state — indistinguishable from a genuinely empty account,
+      // and never surfaced as an error either (BUG-0060).
+      const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
+      if (data === null) {
+        errorAccount = translateError({ code, error: message });
       } else {
         errorAccount = "";
         accountInfo = data;
@@ -355,9 +373,9 @@
         // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
         // have no WS equivalent and stay REST-only.
         accountState.hydrateBalance({
-          available: data.available,
-          margin: data.margin,
-          frozen: data.frozen,
+          available: String(data.available),
+          margin: String(data.margin),
+          frozen: String(data.frozen),
         });
       }
     } catch {
