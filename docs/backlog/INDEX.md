@@ -2,9 +2,9 @@
 
 # Backlog index
 
-63 items. How to read and add them: [README.md](README.md).
+64 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 25
+Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 26
 
 ---
 
@@ -53,6 +53,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 25
 | [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | trade-panel |
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | trade-panel |
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | trade-panel |
+| [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | trade-panel |
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | trade-panel |
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
@@ -141,6 +142,7 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 25
 | [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
+| [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
@@ -200,4 +202,4 @@ Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 25
 
 ---
 
-Next free number: **0064**
+Next free number: **0065**

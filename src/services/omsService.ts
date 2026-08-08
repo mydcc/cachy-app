@@ -131,7 +131,24 @@ class OrderManagementSystem {
         if (!position.lastUpdated) {
             position.lastUpdated = Date.now();
         }
-        this.positions.set(position.symbol + ":" + position.side, position);
+        const key = position.symbol + ":" + position.side;
+        const existing = this.positions.get(key);
+        // Bitunix's WS position channel doesn't repeat positionId/positionMode
+        // on every push (e.g. a PnL-only UPDATE) — mapToOMSPosition() then maps
+        // them to undefined, and since this used to be a blind overwrite, that
+        // wiped an already-known positionId moments before a close, resetting
+        // `lastUpdated` in the process so ensurePositionFreshness() saw the
+        // corrupted entry as "fresh" and never refetched it. Bitunix's
+        // place_order requires positionId unconditionally to close (BUG-0063),
+        // so losing it here reproduces the same "must not be null" rejection
+        // even after that fix (BUG-0064). Falling back to the previous value
+        // mirrors accountState.updatePositionFromWs's existing merge pattern.
+        const merged: OMSPosition = {
+            ...position,
+            positionId: position.positionId ?? existing?.positionId,
+            positionMode: position.positionMode ?? existing?.positionMode,
+        };
+        this.positions.set(key, merged);
         logger.log("market", `[OMS] Position Updated: ${position.symbol} ${position.side}`);
 
         if (this.positions.size > this.MAX_POSITIONS) {
