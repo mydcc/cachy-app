@@ -131,9 +131,12 @@ uniform gate blocked all of them for a reason that only applied to one route.
 per-client bearer tokens.
 
 - `POST /api/auth/token` is deliberately unguarded — it is how a client gets
-  its first token — and is itself rate-limited per IP (one issuance per IP
-  per hour for v1) so a script cannot mint unlimited tokens to route around
-  the per-token limits below.
+  its first token — and is itself rate-limited per IP (20 issuances per IP
+  per hour) so a script cannot mint unlimited tokens to route around the
+  per-token limits below. (Shipped at 1/hour initially; raised after
+  deployment showed every visitor behind a reverse proxy without
+  `ADDRESS_HEADER`/`XFF_DEPTH` configured shares one IP bucket — see
+  DEPLOYMENT.md and `.env.example`.)
 - The server stores only `{ tokenHash, createdAt, requestCount, lastSeenAt }`
   per issued token, hashed with SHA-256 — never the raw token, mirroring how
   `APP_ACCESS_TOKEN` was hashed before comparison.

@@ -341,11 +341,24 @@ APP_ACCESS_TOKEN=<openssl rand -hex 32>
 PORT=3001
 ORIGIN=https://cachy.app
 NODE_ENV=production
+ADDRESS_HEADER=X-Forwarded-For
+XFF_DEPTH=1
 ```
 
 > ⚠️ **`APP_ACCESS_TOKEN` is required, not optional.** Authentication fails closed: without it, all 17 guarded API routes answer 401 and the deployed app cannot reach its own backend. Set it on the server **before** deploying, and enter the same value in the running app under **Settings → Connections → App Access Token**. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
 
 _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions._
+
+> ⚠️ **`ADDRESS_HEADER`/`XFF_DEPTH` matter as soon as any per-IP rate limit is
+> in play** (`/api/auth/token`, `checkClientToken` — see
+> [ADR-0002's BUG-0052 amendment](docs/adr/0002-api-authentication-fails-closed.md)).
+> This deployment shape (aaPanel's nginx in front of the Node process) is a
+> reverse proxy, so without these set, `event.getClientAddress()` returns
+> nginx's own address for every request — every visitor shares one rate-limit
+> bucket instead of getting their own. Only set these because the Node process
+> here is *not* directly reachable from the internet on its own `PORT` —
+> otherwise a caller could forge the header and spoof any IP, bypassing every
+> per-IP limit.
 
 ---
 

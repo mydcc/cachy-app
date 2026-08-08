@@ -36,12 +36,14 @@ describe("POST /api/auth/token", () => {
     expect(body.token.length).toBeGreaterThan(20);
   });
 
-  it("rejects a second request from the same IP within the window", async () => {
-    const first = await POST(eventFromIp("2.2.2.2"));
-    expect(first.status).toBe(200);
+  it("rejects a request once its IP is over the issuance window's limit", async () => {
+    for (let i = 0; i < 20; i++) {
+      const response = await POST(eventFromIp("2.2.2.2"));
+      expect(response.status).toBe(200);
+    }
 
-    const second = await POST(eventFromIp("2.2.2.2"));
-    expect(second.status).toBe(429);
+    const overLimit = await POST(eventFromIp("2.2.2.2"));
+    expect(overLimit.status).toBe(429);
   });
 
   it("does not rate-limit a different IP", async () => {
