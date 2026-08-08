@@ -43,6 +43,23 @@ export interface OpenOrder {
   filled: Decimal;
   status: string;
   timestamp: number;
+  // Descriptive metadata, not live-price data — plain strings rather than
+  // Decimal since nothing here needs arithmetic. Both REST (Get Pending
+  // Orders) and the WS order channel send all of these on every push
+  // (docs/bitunix-api/07_trade.md:294-325,
+  // docs/bitunix-api/08_websocket.md:216-256) — they were previously
+  // dropped at this exact type boundary, which is why the Orders tab's
+  // tooltip showed them empty even after the server started sending them.
+  mtime?: number;
+  leverage?: string;
+  marginMode?: string;
+  positionMode?: string;
+  tpPrice?: string;
+  tpStopType?: string;
+  tpOrderType?: string;
+  slPrice?: string;
+  slStopType?: string;
+  slOrderType?: string;
 }
 
 export interface Asset {
@@ -82,6 +99,19 @@ export interface RawWsOrder {
   qty?: string | number;
   dealAmount?: string | number;
   ctime?: string | number;
+  mtime?: string | number;
+  leverage?: string | number;
+  // The order channel names margin mode "positionType", not "marginMode"
+  // (docs/bitunix-api/08_websocket.md:235) — unlike the position channel,
+  // which does use "marginMode". Not a typo to "fix" into consistency.
+  positionType?: string;
+  positionMode?: string;
+  tpPrice?: string;
+  tpStopType?: string;
+  tpOrderType?: string;
+  slPrice?: string;
+  slStopType?: string;
+  slOrderType?: string;
 }
 
 interface RawWsBalance {
@@ -262,6 +292,16 @@ class AccountManager {
           filled: safeDecimal(data.dealAmount, existing.filled),
           status: data.orderStatus || existing.status,
           timestamp: parseTimestamp(data.ctime) || existing.timestamp,
+          mtime: parseTimestamp(data.mtime) || existing.mtime,
+          leverage: data.leverage !== undefined ? String(data.leverage) : existing.leverage,
+          marginMode: data.positionType ?? existing.marginMode,
+          positionMode: data.positionMode ?? existing.positionMode,
+          tpPrice: data.tpPrice ?? existing.tpPrice,
+          tpStopType: data.tpStopType ?? existing.tpStopType,
+          tpOrderType: data.tpOrderType ?? existing.tpOrderType,
+          slPrice: data.slPrice ?? existing.slPrice,
+          slStopType: data.slStopType ?? existing.slStopType,
+          slOrderType: data.slOrderType ?? existing.slOrderType,
         };
         this.openOrders[index] = newOrder;
       } else {
@@ -275,6 +315,16 @@ class AccountManager {
           filled: safeDecimal(data.dealAmount, new Decimal(0)),
           status: data.orderStatus || "",
           timestamp: parseTimestamp(data.ctime) || Date.now(),
+          mtime: parseTimestamp(data.mtime) || undefined,
+          leverage: data.leverage !== undefined ? String(data.leverage) : undefined,
+          marginMode: data.positionType,
+          positionMode: data.positionMode,
+          tpPrice: data.tpPrice,
+          tpStopType: data.tpStopType,
+          tpOrderType: data.tpOrderType,
+          slPrice: data.slPrice,
+          slStopType: data.slStopType,
+          slOrderType: data.slOrderType,
         };
         this.openOrders.push(newOrder);
       }
@@ -374,6 +424,16 @@ class AccountManager {
       filled: parseDecimal(o.filled),
       status: o.status || "",
       timestamp: Number(o.time) || Date.now(),
+      mtime: o.mtime,
+      leverage: o.leverage,
+      marginMode: o.marginMode,
+      positionMode: o.positionMode,
+      tpPrice: o.tpPrice,
+      tpStopType: o.tpStopType,
+      tpOrderType: o.tpOrderType,
+      slPrice: o.slPrice,
+      slStopType: o.slStopType,
+      slOrderType: o.slOrderType,
     }));
     this.notifyListeners();
   }

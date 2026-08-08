@@ -419,8 +419,22 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     filled: formatApiNum(o.tradeQty) || "0",
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
+    mtime: o.mtime,
     fee: formatApiNum(o.fee) || "0",
     realizedPNL: formatApiNum(o.realizedPNL) || "0",
+    // Bitunix documents these on Get Pending Orders too ("Analog zu Get
+    // History Orders", docs/bitunix-api/07_trade.md:500) but they were
+    // never mapped through — the order tooltip's Leverage/Margin Mode/TP-SL
+    // rows always rendered empty regardless of what the exchange sent.
+    leverage: o.leverage,
+    marginMode: o.marginMode,
+    positionMode: o.positionMode,
+    tpPrice: o.tpPrice,
+    tpStopType: o.tpStopType,
+    tpOrderType: o.tpOrderType,
+    slPrice: o.slPrice,
+    slStopType: o.slStopType,
+    slOrderType: o.slOrderType,
   }));
 }
 
@@ -498,6 +512,20 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     status: o.status || "UNKNOWN",
     // Hardening: Explicitly validate time, default to 0 only if missing/invalid
     time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+    mtime: o.mtime,
+    // Bitunix documents all of these on Get History Orders
+    // (docs/bitunix-api/07_trade.md:294-325) but they were never mapped
+    // through — the order tooltip's Leverage/Margin Mode/TP-SL rows always
+    // rendered empty regardless of what the exchange sent.
+    leverage: o.leverage,
+    marginMode: o.marginMode,
+    positionMode: o.positionMode,
+    tpPrice: o.tpPrice,
+    tpStopType: o.tpStopType,
+    tpOrderType: o.tpOrderType,
+    slPrice: o.slPrice,
+    slStopType: o.slStopType,
+    slOrderType: o.slOrderType,
   }));
 }
 
