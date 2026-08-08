@@ -99,13 +99,12 @@ function issueAccessToken(): Promise<void> {
 }
 
 function isClientTokenError(body: unknown): boolean {
-  return (
-    typeof body === "object" &&
-    body !== null &&
-    "error" in body &&
-    typeof (body as { error: unknown }).error === "string" &&
-    (body as { error: string }).error.includes("client access token")
-  );
+  if (typeof body !== "object" || body === null || !("error" in body)) return false;
+  const error = (body as { error: unknown }).error;
+  if (typeof error !== "string") return false;
+  // i18n-ignore: matched against the server's own literal error string
+  // (clientToken.ts's `unauthorized()`), not rendered UI text.
+  return error.includes("client access token");
 }
 
 /**
