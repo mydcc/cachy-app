@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.19](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.18...v1.2.0-beta.19) (2026-08-08)
+
+
+### Bug Fixes
+
+* correct 100x-too-high funding rate from Bitunix price channel ([7f680b2](https://github.com/mydcc/cachy-app/commit/7f680b2a63660c245927d93c19b5932908832064))
+
 # [1.2.0-beta.18](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.17...v1.2.0-beta.18) (2026-08-08)
 
 
