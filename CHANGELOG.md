@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.34](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.33...v1.2.0-beta.34) (2026-08-08)
+
+
+### Bug Fixes
+
+* populate leverage/margin mode/qty in the order tooltip (BUG-0061) ([37cc564](https://github.com/mydcc/cachy-app/commit/37cc564c7486dc22e61c4d994e7fbe12bfd2404c))
+
 # [1.2.0-beta.33](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.32...v1.2.0-beta.33) (2026-08-08)
 
 
