@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.25](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.24...v1.2.0-beta.25) (2026-08-08)
+
+
+### Bug Fixes
+
+* funding rate row disappearing on load; add REST raw-value debug log ([a5a956b](https://github.com/mydcc/cachy-app/commit/a5a956b9e84467fd86d242031abeef55ae1a2e0f)), closes [#1660](https://github.com/mydcc/cachy-app/issues/1660)
+
 # [1.2.0-beta.24](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.23...v1.2.0-beta.24) (2026-08-08)
 
 
