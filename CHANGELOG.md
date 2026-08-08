@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.22](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.21...v1.2.0-beta.22) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ui:** enable Bitunix market activities sidebar visibility and update Pro cheatcode to TEICH ([e21d090](https://github.com/mydcc/cachy-app/commit/e21d090a24e1f63ea73326fb0cc47a7607977096))
+
 # [1.2.0-beta.21](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.20...v1.2.0-beta.21) (2026-08-08)
 
 
