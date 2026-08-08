@@ -2,7 +2,7 @@
 id: BUG-0003
 title: OMS force-prune can evict an order it was written to protect
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M0
 editions: [community, pro, private]
@@ -39,24 +39,27 @@ The protection was named and never implemented.
 
 ## Fix
 
-**A person has to pick the rule first** — the comments do not determine it:
-
-- skip force-prune entirely while `orders.size <= PRESERVE_LATEST`, or
-- always keep the most recently inserted `PRESERVE_LATEST` orders, falling back
-  to some other candidate when everything remaining is recent.
-
-This is live order-tracking state for real money. A wrong guess at the eviction
-rule is worse than the current gap — so this stays `specced`, not `ready`, until
-the rule is chosen.
+**Resolved** (commit `4ad0348`, merged via PR #1605). The chosen rule: always
+keep the most recently inserted `PRESERVE_LATEST` (20) orders. Force Prune now
+converts the map to an array, slices off everything beyond the most-recent 20
+entries, and only evicts the oldest entry within that older slice. If every
+remaining order is inside the protection window, Force Prune skips eviction
+for that call rather than deleting a just-inserted order — `updateOrder()`
+only triggers a single force-prune call per new order once the map is at
+`MAX_ORDERS` (2000), so the skip path (which only applies when total size is
+already at or below `PRESERVE_LATEST`) cannot leave the map growing unbounded
+in practice. Safe Prune (removing finalized orders first) is unchanged.
 
 ## Acceptance criteria
 
-- [ ] The intended rule is written down in this item
-- [ ] A test fills the map past `MAX_ORDERS` and asserts a just-inserted order
-      survives; it fails before the fix
-- [ ] A test asserts the map is still bounded — the fix must not turn a prune
-      into an unbounded map
-- [ ] `PRESERVE_LATEST` is read by the code that claims to honour it
+- [x] The intended rule is written down in this item
+- [x] A test fills the map past `MAX_ORDERS` and asserts a just-inserted order
+      survives (`omsService.test.ts`, "should protect recently inserted
+      orders from eviction (PRESERVE_LATEST)")
+- [x] A test asserts the map is still bounded — "should keep map bounded even
+      under sustained overflow"
+- [x] `PRESERVE_LATEST` is read by the code that claims to honour it
+      (`pruneOrders()`)
 
 ## Links
 

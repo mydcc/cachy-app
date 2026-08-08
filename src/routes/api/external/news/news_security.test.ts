@@ -17,14 +17,16 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST, _newsCache, _rateLimits } from './+server';
-import * as auth from '../../../../lib/server/auth';
+import * as clientToken from '../../../../lib/server/clientToken';
+
+const getClientAddress = () => '127.0.0.1';
 
 describe('News Service Security', () => {
     beforeEach(() => {
         _newsCache.clear();
         _rateLimits.clear();
         vi.clearAllMocks();
-        vi.spyOn(auth, 'checkAppAuth').mockReturnValue(null);
+        vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
     });
 
     it('should not serve cached data to a different API key', async () => {
@@ -60,7 +62,7 @@ describe('News Service Security', () => {
             }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
-        await POST({ request: req1, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
+        await POST({ request: req1, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
 
         // Verify it was cached
         expect(_newsCache.size).toBeGreaterThan(0);
@@ -76,7 +78,7 @@ describe('News Service Security', () => {
             url: 'http://localhost/api/news'
         } as unknown as Request;
 
-        const res2 = await POST({ request: req2, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
+        const res2 = await POST({ request: req2, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         const json2 = await res2.json();
 
         // If vulnerable, json2 will be responseData (from cache)
@@ -102,7 +104,7 @@ describe('News Service Security', () => {
                 json: async () => ({ source: 'newsapi', apiKey, params: { q: `query-${i}` } }),
                 url: 'http://localhost/api/news'
             } as unknown as Request;
-            const res = await POST({ request: requestMock, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
+            const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
             expect(res.status).not.toBe(429);
         }
 
@@ -111,7 +113,7 @@ describe('News Service Security', () => {
             json: async () => ({ source: 'newsapi', apiKey, params: { q: 'query-final' } }),
             url: 'http://localhost/api/news'
         } as unknown as Request;
-        const res = await POST({ request: requestMock, fetch: fetchMock } as unknown as Parameters<typeof POST>[0]);
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
         expect(res.status).toBe(429);
         const body = await res.json();
         expect(body.error).toContain('Rate limit exceeded');

@@ -2,7 +2,7 @@
 id: BUG-0002
 title: Trade state stores numbers where its type declares strings
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: M0
 editions: [community, pro, private]
@@ -57,13 +57,23 @@ The second is the better fit for a codebase whose rule is `decimal.js` for all
 financial values. Either way the `eslint-disable` on `update()`/`set()` comes
 off, which is how the fix proves itself.
 
+## Resolution
+
+Fixed in `9df1928` (widened `TradeStateSnapshot`/`TradeTarget` to
+`string | number | null` and routed the zero-price check in `load()` through
+`Decimal.isZero()`). This entry closes out the remaining bookkeeping: the
+persisted-numeric-zero path now has a direct test (`tradeStore.test.ts`,
+"BUG-0002: filters out a persisted numeric-zero target on load()") that
+seeds `localStorage` and calls the real (private) `load()`, instead of only
+re-testing a copy of its filter logic.
+
 ## Acceptance criteria
 
-- [ ] A test constructs the state a numeric zero would produce and asserts the
+- [x] A test constructs the state a numeric zero would produce and asserts the
       target is filtered out; it fails before the fix
-- [ ] `tradeState.update()`/`set()` carry real types with no `eslint-disable`
-- [ ] All three call sites typecheck without casts
-- [ ] `npm run check` clean, full suite green
+- [x] `tradeState.update()`/`set()` carry real types with no `eslint-disable`
+- [x] All three call sites typecheck without casts
+- [x] `npm run check` clean, full suite green
 
 ## Links
 

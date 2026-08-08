@@ -5,6 +5,155 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.16](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.15...v1.2.0-beta.16) (2026-08-08)
+
+
+### Bug Fixes
+
+* token issuance rate limit locks out every visitor behind a reverse proxy ([d0feeb8](https://github.com/mydcc/cachy-app/commit/d0feeb8709a4e35b3f518f651d41f7f32ffc0c37))
+
+# [1.2.0-beta.15](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.14...v1.2.0-beta.15) (2026-08-07)
+
+
+### Bug Fixes
+
+* **security:** restore legacy PBKDF2 fallback for AES-CBC credential blobs ([c315710](https://github.com/mydcc/cachy-app/commit/c3157101c81b21c91c85927f2066d358d690b1a3))
+
+# [1.2.0-beta.14](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.13...v1.2.0-beta.14) (2026-08-07)
+
+
+### Bug Fixes
+
+* close out BUG-0002 — verify and document the numeric-zero-target fix ([80a1585](https://github.com/mydcc/cachy-app/commit/80a158513748cf78989b3944ccb2933b7e894e84))
+
+# [1.2.0-beta.13](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.12...v1.2.0-beta.13) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** resolve BUG-0038 -- real cause was a device-side ad blocker ([41ef0e7](https://github.com/mydcc/cachy-app/commit/41ef0e7cd2f5286dbf54b43b7bfee1d45450d120))
+
+
+### Features
+
+* **pwa:** swap Settings shortcut for Market Overview, add launch_handler ([5a955bb](https://github.com/mydcc/cachy-app/commit/5a955bb0b8700cdefbee160c8027783361e678b7))
+
+# [1.2.0-beta.12](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.11...v1.2.0-beta.12) (2026-08-07)
+
+
+### Bug Fixes
+
+* replace shared APP_ACCESS_TOKEN with self-issued client tokens (BUG-0052) ([ffb6f6a](https://github.com/mydcc/cachy-app/commit/ffb6f6ab50beb1d5369d4b62e01ecc3ff96a4a0d))
+
+# [1.2.0-beta.11](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.10...v1.2.0-beta.11) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** restore full manifest, close out BUG-0038's content investigation ([41a1e6c](https://github.com/mydcc/cachy-app/commit/41a1e6c313335a892ab294895c4e9e6e615f7995))
+
+# [1.2.0-beta.10](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.9...v1.2.0-beta.10) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** revert manifest to the last confirmed-working 2026-01-15 structure ([521072e](https://github.com/mydcc/cachy-app/commit/521072e266f1c7bd8867c0e29ccd07b3e852e474))
+
+# [1.2.0-beta.9](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.8...v1.2.0-beta.9) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** drop id/start_url query param, use maskable shortcut icons ([b554a9f](https://github.com/mydcc/cachy-app/commit/b554a9fef27ac5357d027f7a1ad9b151dda400f5))
+
+# [1.2.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.7...v1.2.0-beta.8) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** add safe-zone-padded maskable icon pair for Android splash/shortcuts ([2ae9e8c](https://github.com/mydcc/cachy-app/commit/2ae9e8c1cb00e9246600d94f2f8b2e748d09655c)), closes [#0f172a](https://github.com/mydcc/cachy-app/issues/0f172a)
+
+# [1.2.0-beta.7](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.6...v1.2.0-beta.7) (2026-08-07)
+
+
+### Bug Fixes
+
+* **pwa:** drop desktop-only display_override entry from manifest ([0907d67](https://github.com/mydcc/cachy-app/commit/0907d67302197ebf861dc6968f59e4c15c8b6861))
+
+# [1.2.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.5...v1.2.0-beta.6) (2026-08-07)
+
+
+### Bug Fixes
+
+* academy content unreachable on a phone ([5c96ee5](https://github.com/mydcc/cachy-app/commit/5c96ee5d67b661bc8c891fe80660cc7bbd80e42d))
+* glassmorphism removes the Academy sidebar background ([ec66863](https://github.com/mydcc/cachy-app/commit/ec66863d2c7bf6d9fca49b6dfdbe814e102173e7))
+* quiz closes after every answer and has no close button ([e22fc77](https://github.com/mydcc/cachy-app/commit/e22fc775cbbdfb6506e042293268930b916c55b0))
+* responsive windows re-maximize themselves after a manual restore ([ea5c59a](https://github.com/mydcc/cachy-app/commit/ea5c59ae980a3576d3f5f1d9e1181575764f308d))
+* restore the SidePanel's missing render point ([941e7be](https://github.com/mydcc/cachy-app/commit/941e7be2b1b4fbc8fa85e4a245bbd954a965245c))
+* reword a doc comment tripping the i18n hardcoded-string lint ([32a5469](https://github.com/mydcc/cachy-app/commit/32a54692e626ee556a32a904206f577ae3b693c9))
+* window drag jumping and sticking on touch input ([90b7a0c](https://github.com/mydcc/cachy-app/commit/90b7a0c38da77fe55924cf8dddf3d7a5e4ca8ef2))
+
+
+### Features
+
+* give every floating surface its z-index from one layer contract ([e8c9828](https://github.com/mydcc/cachy-app/commit/e8c9828b71ae1e234a9254cb8dfdf026ea3e6665))
+* make ModalFrame an adapter over WindowFrame (FEAT-0044) ([6544bce](https://github.com/mydcc/cachy-app/commit/6544bce89b1c5e63131e5a70a435cfaee763875b))
+* register the Trading Academy as its own window type (FEAT-0045) ([5dd2b34](https://github.com/mydcc/cachy-app/commit/5dd2b349b5639789f8adb8997094c12b648a6893))
+* retire SidePanel and interactjs in favor of AssistantWindow (FEAT-0046) ([a755b44](https://github.com/mydcc/cachy-app/commit/a755b440571e280b4b52a02aea6cfcf2a42877bb))
+
+# [1.2.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2026-08-04)
+
+
+### Features
+
+* **ai:** implement institutional risk audit and full trader autonomy mode ([6129a9e](https://github.com/mydcc/cachy-app/commit/6129a9e83e6ee72fd28a962cd8f2876d2ddce72c))
+
+# [1.2.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ai:** overhaul ai setup logic algorithm to enforce mathematical constraints and proof of work ([d4f6e9f](https://github.com/mydcc/cachy-app/commit/d4f6e9f956ee8f3eb9929051da6e1b6ab4bc5114))
+* **ai:** recognize OpenRouter and Ollama API keys in AssistantView overlay ([16dbfdb](https://github.com/mydcc/cachy-app/commit/16dbfdb914cf187c19c169ddf008a44c13bb5cfc))
+* **ai:** support direct client connection & improve error messaging for local Ollama ([891ddec](https://github.com/mydcc/cachy-app/commit/891ddec361015fffa885eea6415661f77e6018cc))
+* **eslint:** replace explicit any in ollama_models.test.ts ([4dbb79b](https://github.com/mydcc/cachy-app/commit/4dbb79b496a539c7210e899e15a24b4aa839123f))
+
+# [1.2.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.2...v1.2.0-beta.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ai:** enforce strict context matching in system prompt to prevent hallucination ([24003ee](https://github.com/mydcc/cachy-app/commit/24003ee7cd86db8f5ccf542038df74346690c497))
+* **ai:** strictly prevent AI from rounding context numbers or appending USDT to indicators ([34c0fd6](https://github.com/mydcc/cachy-app/commit/34c0fd6f11e496e3147264dc169fc6f776656031))
+* **ai:** sync technicals context with UI via active market data to prevent hallucination ([6bc8991](https://github.com/mydcc/cachy-app/commit/6bc8991ed6752755aab04f139115b5518a977cc4))
+
+
+### Features
+
+* **ai:** expand AI capabilities with 11 new Trade Panel actions and settings opt-in ([e26b0bc](https://github.com/mydcc/cachy-app/commit/e26b0bcb3496f3f967033af65410141d59492bac))
+
+# [1.2.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ai:** apply 7-point audit - pre-calculate RR, AUDIT-FIRST protocol, code-level RR guard ([37bb7d2](https://github.com/mydcc/cachy-app/commit/37bb7d27d948e668017e1718ce73aedd1605d608))
+* **ai:** enforce strict risk reward ratio in system prompt ([4ddaadf](https://github.com/mydcc/cachy-app/commit/4ddaadf4ea2fe7c83de6b705fe40996034139590))
+
+# [1.2.0-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.2-beta.2...v1.2.0-beta.1) (2026-08-04)
+
+
+### Features
+
+* **ai:** improve assistant ui, prompt and context handling ([f085b27](https://github.com/mydcc/cachy-app/commit/f085b27d05cd8411079a0f2bd6905bb975cef865))
+
+## [1.1.2-beta.2](https://github.com/mydcc/cachy-app/compare/v1.1.2-beta.1...v1.1.2-beta.2) (2026-08-03)
+
+
+### Bug Fixes
+
+* **ui:** align Market Activity sidebar condition on mobile with desktop ([6a27a51](https://github.com/mydcc/cachy-app/commit/6a27a51f31923314a760af7583ff029c0fa8a04a)), closes [#if](https://github.com/mydcc/cachy-app/issues/if) [#if](https://github.com/mydcc/cachy-app/issues/if)
+
 ## [1.1.2-beta.1](https://github.com/mydcc/cachy-app/compare/v1.1.1...v1.1.2-beta.1) (2026-08-03)
 
 

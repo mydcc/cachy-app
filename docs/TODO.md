@@ -16,13 +16,13 @@ analysis stays here as the single source:
 
 | This entry | Tracked as |
 | --- | --- |
-| 2 — numbers stored where strings are declared | [`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md) |
+| 2 — numbers stored where strings are declared | Resolved: [`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md) |
 | 3 — Bitget WS field names | [`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md) |
 | 4 — GPU Choppiness field | [`BUG-0005`](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md) |
 | 7 — sentiment validation | [`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) |
 | 10 — SymbolPicker `null` | [`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md) |
-| 12 — legacy AES-CBC blobs | [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
-| 14 — order-map eviction | [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
+| 12 — legacy AES-CBC blobs | Resolved: [`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) |
+| 14 — order-map eviction | Resolved: [`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md) |
 | 15 — `extraClasses` ignored | [`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) |
 | 18 — broader SpacetimeDB use | Decided: [ADR-0004](adr/0004-spacetimedb-data-scope.md) |
 | 21, 22 — whitepaper phases 2 and 3 | Answered by [`MILESTONES.md`](MILESTONES.md); see the note on each |
@@ -51,9 +51,13 @@ known and can be rotated at any time. No silent feature breakage.
 
 ---
 
-## 2. Numbers are stored where the trade state declares strings
+## 2. ✅ Numbers are stored where the trade state declares strings
 
-**Roadmap item 21.** Surfaced by typing `tradeState.update()` / `set()`, which
+**Roadmap item 21.** **RESOLVED** (commit `9df1928`, PR #1605). Tracked as
+[`BUG-0002`](backlog/bugs/BUG-0002-numeric-zero-target-price.md), which has
+the chosen rule and the tests that prove it.
+
+Surfaced by typing `tradeState.update()` / `set()`, which
 were `(curr: any) => any`. Giving them the real `TradeStateSnapshot` type made
 the typechecker reject three call sites — so the signature was **left as `any`
 with an explicit `eslint-disable` and a comment**, rather than casting the
@@ -278,26 +282,24 @@ lint-pass finding rather than fixed inline because it adds a new rejection
 branch to a live external-AI call path, which needs its own test rather
 than a drive-by change.
 
-## 8. `src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable
+## 8. ~~`src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable~~ — resolved: deleted
 
 **Roadmap item 21.** Found while typing this file's `any` casts during a
 lint pass — the same shape of finding as item 5
 (`WasmTechnicalsCalculator.ts`).
 
-Nothing in `src/` imports or instantiates `ContentWindow` — a `grep -rl
-"ContentWindow" src` turns up only its own file. It's a small, generic
+Nothing in `src/` imported or instantiated `ContentWindow` — a `grep -rl
+"ContentWindow" src` turned up only its own file. It was a small, generic
 "wrap any Svelte component in a window" class (`component`, `title`,
-`options.props`), structurally similar to `ModalWindow` and `IframeWindow`,
-both of which *do* have real callers via `windowManager.openModal()` /
-`.openIframe()`. `ContentWindow` has no equivalent `windowManager` method
-and no direct construction site anywhere.
+`options.props`), structurally identical to `ModalWindow` except for a fixed
+`windowType: 'window'` and forwarding `options.props` into `componentProps`
+(`ModalWindow` doesn't forward props at all). Since it had zero callers,
+that difference was never exercised either.
 
-**The decision:** either wire it up (a `windowManager.openContent()` or
-similar, if the generic-component-window capability is still wanted), or
-delete it if `ModalWindow`/`IframeWindow` already cover every case it was
-meant for. Left in place and merely typed here per this repo's
-defensive-deletion rule: code whose purpose isn't fully clear doesn't get
-deleted without a person confirming it's safe to.
+**Resolved by [`FEAT-0045`](backlog/features/FEAT-0045-academy-as-window-type.md):**
+deleted. `ModalWindow`/`IframeWindow` already cover every case it was meant
+for — the props-forwarding gap only mattered if something needed it, and
+nothing ever did, in the whole time it existed unreferenced.
 
 ## 9. `src/utils/wasmTechnicals.ts` appears to be unreachable
 
@@ -382,9 +384,13 @@ typed here per this repo's defensive-deletion rule: code whose purpose
 isn't fully clear doesn't get deleted without a person confirming it's
 safe to.
 
-## 12. Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
+## 12. ✅ Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
 
-**Roadmap item 21.** Found while looking for a home for two newly-unused
+**Roadmap item 21.** **RESOLVED.** Tracked as
+[`BUG-0004`](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md), which has the
+restored fallback chain, the fixture blob, and the tests that prove it.
+
+Found while looking for a home for two newly-unused
 constants (`LEGACY_ITERATIONS`, `IV_SIZE_CBC`) flagged by a lint pass —
 `git log`/`git show` on the file traced the regression before deciding
 whether the constants were safe to delete.
@@ -475,9 +481,13 @@ every user's PWA install, which needs deliberate design and testing
 100th write evict silently or reject?), not a guess made while
 clearing an unused-variable warning.
 
-## 14. `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
+## 14. ✅ `OrderManagementSystem.pruneOrders()`'s "protected buffer" for recent orders is never enforced
 
-**Roadmap item 21.** Found while tracing an unused `PRESERVE_LATEST`
+**Roadmap item 21.** **RESOLVED** (commit `4ad0348`, PR #1605). Tracked as
+[`BUG-0003`](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md), which
+has the chosen rule and the tests that prove it.
+
+Found while tracing an unused `PRESERVE_LATEST`
 constant flagged by a lint pass.
 
 `omsService.ts`'s `pruneOrders(forceOne = false)` has two steps once
@@ -835,45 +845,58 @@ The Render service itself (on the Render dashboard) still needs to be
 disconnected/deleted by whoever owns that account — that step is not
 reachable from this repo or GitHub alone.
 
-## 24. PWA manifest — splash screen and long-press shortcuts still broken on Android
+## 24. ~~PWA manifest — splash screen and long-press shortcuts broken on Android~~ — resolved: device-side ad blocker
 
 **Raised by the maintainer**, August 2026: the installed Android PWA lost its
 splash-screen background, its install-dialog screenshots and its long-press
-context menu. These worked before and regressed.
+context menu.
 
-Tracked as [`BUG-0038`](backlog/bugs/BUG-0038-android-manifest-regressions.md),
-which has the full evidence. Summary of where it stands:
+**Root cause: an ad blocker on the test device was blocking Chrome's own
+connection to Google's WebAPK infrastructure.** Nothing in this repo, this
+server, or the manifest itself was ever the reason — five rounds of
+server-side investigation (documented in
+[`BUG-0038`](backlog/bugs/BUG-0038-android-manifest-regressions.md)) checked
+reachability from *Google's* side (Lighthouse, Googlebot) and never could
+have found a block on the *phone's* side of that connection. Worth
+remembering for any future PWA-install symptom that resists every
+server-side fix: check the installing device's own network stack (ad
+blockers, private DNS, VPNs) before spending more effort on the server.
 
-**Found and fixed.** Both mobile screenshots were **JPEG files with a `.png`
-extension**, declared `"type": "image/png"` in the manifest. A browser
-validates each entry against what it actually fetches and silently drops the
-mismatches — with both `form_factor: "narrow"` entries invalid, the mobile
-install dialog had nothing to show. Files renamed, declarations corrected, and
-`src/tests/manifest_assets.test.ts` now reads the magic bytes of every image
-the manifest declares and fails if a type or size is misdeclared. Screenshots
-have since been **disabled at your request** — the key is removed, the four
-files kept, re-enabling is re-adding the key.
+Real, independent fixes made along the way and kept regardless: the two
+mislabelled JPEG screenshots (now correctly typed), a proper safe-zone-padded
+`maskable` icon pair (fixes a genuine white-splash bug in browsers that don't
+share Chrome's specific issue, e.g. Brave), and HTTP/2 correctly enabled on
+`dev.cachy.app`. A follow-up bug found once shortcuts started rendering —
+empty icon slots in the shortcut menu, traced to a `maskable`-only shortcut
+icon Android's shortcut renderer doesn't handle — was fixed by reverting
+those to a plain `purpose: "any"` icon.
 
-**Not explained, and this is what needs you.** The splash screen and the
-long-press shortcuts depend on manifest fields that are all present and
-well-formed: `background_color` and `theme_color` are both `#0f172a`, a valid
-512×512 icon exists, and two `shortcuts` entries are declared with valid
-icons. Nothing in the file accounts for those two symptoms.
+Still open, tracked in `BUG-0038`'s acceptance criteria, unrelated to this
+item: `www.cachy.app` still serves the wrong TLS certificate (a real,
+separate infra bug); `cachy.app` hasn't had the `http2 on;` fix applied yet
+(only `dev.cachy.app` was).
 
-`git log` cannot help: this working copy is a **shallow clone**, so
-`manifest.json` shows as "new file" in every commit that touches it and no
-bisect is possible. That has to happen on a full clone.
+## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 
-**What would move this forward, in order:**
+**FEAT-0050.** Found while writing the "every `WindowType` union member has a
+registry config" test — `iframe` had none (`getConfig()` silently fell back
+to `window`'s defaults), the same shape of gap `chatpanel` was before
+FEAT-0045 removed it. Fixed the immediate gap by adding a registry entry
+(`WindowRegistry.svelte.ts`), but that only makes the fallback correct, not
+the type reachable.
 
-1. On a full clone, `git log -p -- static/manifest.json src/app.html` to find
-   what actually changed when it broke.
-2. Test with `display_override` reduced to `["standalone"]`. It currently
-   reads `["window-controls-overlay", "standalone"]`, and
-   `window-controls-overlay` is a desktop-only mode sitting ahead of the one
-   Android uses. Per spec a browser skips an unsupported value, so this
-   *should* be harmless — but it is the only field in the file whose first
-   entry does not apply to the platform where the symptoms appear, and it
-   costs nothing to rule out.
-3. Verify on a real device and record which device and launcher — nothing here
-   can be confirmed from a terminal.
+`grep -rn "openIframe\|new IframeWindow" src` (excluding
+`IframeWindow.svelte.ts`'s own definition) turns up only `WindowManager`'s
+own `openIframe()` method and the `'iframe'` case in `createFromData()`
+(session rehydration) — no UI ever calls `openIframe()`. The component that
+looks like it should, `FloatingIframeButton.svelte`, opens `ChannelWindow`
+instances instead, not `IframeWindow`. Since nothing ever constructs an
+`IframeWindow`, no session could ever contain one to rehydrate either, so
+`createFromData()`'s `'iframe'` branch is unreachable too.
+
+**The decision:** same shape as items 5/8/9/11/17 — either wire a real
+caller to `openIframe()` (if generic externally-hosted iframe embedding,
+distinct from `ChannelWindow`'s more specific use, is still wanted), or
+remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
+`createFromData()` case if `ChannelWindow` already covers every case this was
+meant for. Left in place per this repo's defensive-deletion rule.

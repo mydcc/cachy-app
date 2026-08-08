@@ -19,9 +19,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { POST } from './+server';
 
 // Mock dependencies
-vi.mock('../../../lib/server/auth', () => ({
-  checkAppAuth: vi.fn().mockReturnValue(null),
+vi.mock('../../../lib/server/clientToken', () => ({
+  checkClientToken: vi.fn().mockReturnValue(null),
 }));
+
+const getClientAddress = () => '127.0.0.1';
 
 vi.mock('../../../utils/server/bitunix', () => ({
   validateBitunixKeys: vi.fn(),
@@ -44,7 +46,7 @@ describe('POST /api/account Security', () => {
       text: vi.fn().mockResolvedValue('{ "broken": '),
     } as unknown as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -57,7 +59,7 @@ describe('POST /api/account Security', () => {
       text: vi.fn().mockResolvedValue('null'),
     } as unknown as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -81,7 +83,7 @@ describe('POST /api/account Security', () => {
         json: async () => ({ code: 0, data: [{ available: "100" }] })
     });
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     await response.json();
 
     expect(response.status).not.toBe(400);

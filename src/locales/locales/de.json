@@ -74,7 +74,13 @@
     "quotaExceeded": "Generative AI Quote überschritten. Bitte versuchen Sie es später erneut oder überprüfen Sie die API-Einstellungen.",
     "smallerFont": "Kleinere Schrift",
     "suggestedChanges": "Vorgeschlagene Änderungen",
-    "thinking": "Denkt nach..."
+    "thinking": "Denkt nach...",
+    "quickActions": {
+      "marketCheck":  "Analysiere den Markt für {symbol}",
+      "techAnalysis": "Erstelle eine technische Analyse für {symbol}",
+      "riskAudit":    "Prüfe mein Setup auf Fehler und Risiken.",
+      "newsCheck":    "Gibt es wichtige News?"
+    }
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -938,8 +944,9 @@
       "historyDesc": "Anzahl der letzten Trades im KI-Kontext",
       "safetyTitle": "Sicherheit & Bestätigungen",
       "confirmActions": "Aktionen bestätigen",
-      "confirmClear": "Verlauf löschen bestätigen",
       "confirmActionsDesc": "Fordert Bestätigung vor KI-Aktionen",
+      "allowSettingsChanges": "Einstellungen ändern",
+      "allowSettingsChangesDesc": "Erlaubt der KI, allgemeine Einstellungen zu ändern (z.B. Live-Preis)",
       "confirmClearHistory": "Verlauf löschen bestätigen",
       "confirmClearHistoryDesc": "Fordert Bestätigung vor dem Löschen des Chat-Verlaufs",
       "behavior": "Verhalten & Persona",
@@ -1198,7 +1205,9 @@
     "connections": {
       "exchanges": "Börsen",
       "serverSecurity": "Server Sicherheit",
-      "appAccessToken": "App Zugangstoken (Server Sicherheit)",
+      "appAccessToken": "Zugangstoken (selbst ausgestellt)",
+      "createToken": "Zugangstoken erstellen",
+      "createTokenError": "Token konnte nicht erstellt werden. Bitte erneut versuchen.",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
       "passphrase": "Passphrase",
@@ -1219,7 +1228,8 @@
         "apiKey": "API-Schlüssel",
         "apiSecret": "API-Secret",
         "passphrase": "Passphrase",
-        "url": "https://..."
+        "url": "https://...",
+        "appAccessToken": "\"Zugangstoken erstellen\" klicken oder einfügen"
       },
       "providers": {
         "bitunix": "Bitunix",
@@ -2121,7 +2131,8 @@
     "known": "Gewusst",
     "categoryLabel": "Kategorie",
     "categoryTrading": "Trading & Strategien",
-    "categoryTech": "Cachy App-Wissen"
+    "categoryTech": "Cachy App-Wissen",
+    "notReady": "Die Quiz-Fragen werden noch geladen, versuche es gleich noch einmal."
   },
   "cloud": {
     "title": "Community Cloud (Beta)",

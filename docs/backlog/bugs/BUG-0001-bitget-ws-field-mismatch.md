@@ -2,7 +2,7 @@
 id: BUG-0001
 title: Bitget WebSocket account sync sends field names the account store never reads
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: M0
 editions: [community, pro, private]
@@ -85,18 +85,29 @@ exist only to mark this bug.
 
 ## Acceptance criteria
 
-- [ ] A test replays a recorded Bitget login acknowledgement and asserts
+- [x] A test replays a recorded Bitget login acknowledgement and asserts
       `isAuthenticated` becomes `true`; it fails against the current schema
-- [ ] A test replays a recorded Bitget position push and asserts the position
+- [x] A test replays a recorded Bitget position push and asserts the position
       is added to `accountState.positions` under its own key; it fails without
       the fix
-- [ ] Two different symbols produce two entries, not one overwritten one
-- [ ] The `as RawWsOrder` / `as RawWsPosition` casts in `bitgetWs.ts` are gone
-- [ ] Bitunix behaviour is unchanged — its existing tests still pass untouched
+- [x] Two different symbols produce two entries, not one overwritten one
+- [x] The `as RawWsOrder` / `as RawWsPosition` casts in `bitgetWs.ts` are gone
+- [x] Bitunix behaviour is unchanged — its existing tests still pass untouched
 
 ## Out of scope
 
 The exchange adapter refactor. Normalise at the boundary; do not start M2 here.
+
+## Resolution
+
+Fixed by normalizing Bitget's payload to the shared `RawWsOrder`/`RawWsPosition`
+shape in `bitgetWs.ts` (`normalizeOrderData()`, `normalizePositionData()`)
+before it reaches `accountState`, and by fixing `BitgetWSMessageSchema` to
+accept the login acknowledgement's `event`/`code` fields. Bitget positions now
+key on `symbol` (Bitget's WS payload never sends a `positionId`). Verified by
+`src/services/bitgetWs.test.ts`, which replays a recorded login ack and
+position/order pushes; svelte-check and the full Bitunix WS test suite pass
+unchanged. Shipped in `1.0.0-beta.11` — commit `9924365`, PR #1607/#1609.
 
 ## Links
 

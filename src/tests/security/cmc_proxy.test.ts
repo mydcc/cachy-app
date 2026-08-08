@@ -18,19 +18,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- route module import without its generated $types, which are unavailable outside the SvelteKit build
 import { GET } from '../../routes/api/external/cmc/+server';
+import { issueToken, _resetForTests } from '../../lib/server/clientToken';
 
-// checkAppAuth now fails closed (ADR-0002), so this suite must supply a token —
-// otherwise every request is rejected at the auth layer and the whitelist and
-// path-traversal behaviour under test is never reached.
-const mockEnv = vi.hoisted(() => ({ APP_ACCESS_TOKEN: 'test-app-token' }));
-vi.mock('$env/dynamic/private', () => ({ env: mockEnv }));
+// checkClientToken fails closed (ADR-0002, amended for BUG-0052), so this
+// suite must supply a real, issued token — otherwise every request is
+// rejected at the auth layer and the whitelist and path-traversal behaviour
+// under test is never reached.
+const getClientAddress = () => '127.0.0.1';
 
 describe('CMC Proxy Security', () => {
+  let token: string;
+
   beforeEach(() => {
     global.fetch = vi.fn();
     // Mock console to reduce noise
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    _resetForTests();
+    token = issueToken();
   });
 
   afterEach(() => {
@@ -40,12 +45,12 @@ describe('CMC Proxy Security', () => {
   it('should allow whitelisted endpoints', async () => {
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/global-metrics/quotes/latest');
     const request = new Request(url, {
-      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
+      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': token }
     });
 
     vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({ data: 'ok' })));
 
-    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -55,10 +60,10 @@ describe('CMC Proxy Security', () => {
   it('should block non-whitelisted endpoints', async () => {
     const url = new URL('http://localhost/api/external/cmc?endpoint=/v1/unknown');
     const request = new Request(url, {
-      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
+      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': token }
     });
 
-    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
 
     expect(response.status).toBe(403);
     const body = await response.json();
@@ -69,13 +74,13 @@ describe('CMC Proxy Security', () => {
     const exploitEndpoint = '/v1/global-metrics/quotes/latest/../sensitive';
     const url = new URL(`http://localhost/api/external/cmc?endpoint=${encodeURIComponent(exploitEndpoint)}`);
     const request = new Request(url, {
-      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': 'test-app-token' }
+      headers: { 'x-cmc-api-key': 'test-key', 'x-app-access-token': token }
     });
 
     // Mock successful fetch to simulate successful exploitation if passed through
     vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({ secret: 'exposed' })));
 
-    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
 
     // If vulnerable, this will be 200. We want 403.
     expect(response.status).toBe(403);

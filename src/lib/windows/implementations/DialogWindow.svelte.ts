@@ -53,7 +53,7 @@ export class DialogWindow extends WindowBase {
 
     // Handle destruction to ensure promises don't hang if closed externally
     destroy() {
-        super.destroy(); // Call WindowBase destroy (removes resize listener)
+        super.destroy();
         if (this.resolve) {
             this.resolve(false); // Resolve with false/cancel if destroyed without explicit closeWith
             this.resolve = null;

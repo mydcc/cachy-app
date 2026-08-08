@@ -74,7 +74,13 @@
     "quotaExceeded": "Generative AI Quota exceeded. Please try again later or check API settings.",
     "smallerFont": "Smaller Font",
     "suggestedChanges": "Suggested Changes",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "quickActions": {
+      "marketCheck":  "Analyze the market for {symbol}",
+      "techAnalysis": "Create a technical analysis for {symbol}",
+      "riskAudit":    "Audit my setup for errors and risks.",
+      "newsCheck":    "Are there any important news?"
+    }
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
@@ -910,8 +916,9 @@
       "historyDesc": "Number of recent trades sent to AI for context",
       "safetyTitle": "Safety & Verifications",
       "confirmActions": "Confirm Actions",
-      "confirmClear": "Confirm Clear History",
       "confirmActionsDesc": "Requires confirmation before AI actions",
+      "allowSettingsChanges": "Allow Settings Changes",
+      "allowSettingsChangesDesc": "Allows the AI to modify general settings (e.g. live price)",
       "confirmClearHistory": "Confirm Clear History",
       "confirmClearHistoryDesc": "Requires confirmation before clearing chat history",
       "behavior": "Behavior & Persona",
@@ -1261,7 +1268,9 @@
     },
     "connections": {
       "serverSecurity": "Server Security",
-      "appAccessToken": "App Access Token (Server Security)",
+      "appAccessToken": "Access Token (self-issued)",
+      "createToken": "Create access token",
+      "createTokenError": "Could not create a token. Try again.",
       "addFeed": "Add Feed",
       "apiKey": "API Key",
       "apiSecret": "API Secret",
@@ -1283,7 +1292,8 @@
         "apiKey": "API Key",
         "apiSecret": "API Secret",
         "passphrase": "Passphrase",
-        "url": "https://..."
+        "url": "https://...",
+        "appAccessToken": "Click \"Create access token\" or paste one"
       },
       "providers": {
         "bitunix": "Bitunix",
@@ -2137,7 +2147,8 @@
     "known": "I knew it",
     "categoryLabel": "Category",
     "categoryTrading": "Trading & Strategies",
-    "categoryTech": "Cachy App Knowledge"
+    "categoryTech": "Cachy App Knowledge",
+    "notReady": "Quiz questions are still loading, try again in a moment."
   },
   "cloud": {
     "title": "Community Cloud (Beta)",

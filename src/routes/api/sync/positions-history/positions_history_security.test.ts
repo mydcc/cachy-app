@@ -18,9 +18,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 
-vi.mock('../../../../lib/server/auth', () => ({
-  checkAppAuth: vi.fn(() => null)
+vi.mock('../../../../lib/server/clientToken', () => ({
+  checkClientToken: vi.fn(() => null)
 }));
+
+const getClientAddress = () => '127.0.0.1';
 
 
 // Mock fetch globally
@@ -54,7 +56,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       json: async () => ({ apiKey, apiSecret, limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     const body = await response.json();
 
     // Verify fetch was called
@@ -85,7 +87,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       json: async () => ({ apiKey: 'validApiKey', apiSecret: 'validSecret', limit: 10 }),
     } as Request;
 
-    const response = await POST({ request } as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data).toEqual([]);

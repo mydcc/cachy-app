@@ -23,6 +23,7 @@
     type ThemeColors,
     DEFAULT_PATTERN_COLORS
   } from "../../services/chartPatterns";
+  import { portal } from "../../lib/actions/portal";
 
   let { pattern }: { pattern: ChartPatternDefinition } = $props();
 
@@ -222,8 +223,17 @@
   ></canvas>
 
   {#if tooltip.visible}
+    <!-- Portaled to <body>: this chart only ever renders inside the Trading
+         Academy modal, and that modal's glass background gives backdrop-filter
+         to an ancestor, which makes it the containing block for `position:
+         fixed` descendants. Left in place, the tooltip's viewport-relative
+         clientX/clientY coordinates would resolve against the modal instead
+         (BUG-0048). Portaling out means its z-index now competes globally
+         rather than only within the modal, hence --z-toast (above --z-modal)
+         instead of the previous, now-too-low literal. -->
     <div
-        class="fixed z-[9999] px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm rounded-lg shadow-xl border border-[var(--border-color)] pointer-events-none transform -translate-y-full -translate-x-1/2 mt-[-10px]"
+        use:portal
+        class="fixed z-[var(--z-toast)] px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm rounded-lg shadow-xl border border-[var(--border-color)] pointer-events-none transform -translate-y-full -translate-x-1/2 mt-[-10px]"
         style="left: {tooltip.x}px; top: {tooltip.y}px;"
     >
         {tooltip.text}

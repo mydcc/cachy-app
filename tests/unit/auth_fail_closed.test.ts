@@ -15,32 +15,50 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { checkAppAuth } from '../../src/lib/server/auth';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { checkClientToken, issueToken, _resetForTests } from '../../src/lib/server/clientToken';
 
-// Mock SvelteKit modules
-vi.mock('$env/dynamic/private', () => ({
-  env: {
-    APP_ACCESS_TOKEN: undefined
-  }
-}));
+// BUG-0052: checkClientToken replaced checkAppAuth's single shared
+// APP_ACCESS_TOKEN with self-issued, per-client tokens. This test used to
+// assert that a missing APP_ACCESS_TOKEN fails closed; the equivalent
+// guarantee now is that a request with no token — or one this server never
+// issued — is denied, never let through. See the ADR-0002 amendment.
 
-vi.mock('@sveltejs/kit', () => ({
-  json: vi.fn((data, init) => ({
-    status: init?.status || 200,
-    json: async () => data
-  }))
-}));
+describe('checkClientToken fail-closed validation', () => {
+  beforeEach(() => {
+    _resetForTests();
+  });
 
-describe('checkAppAuth fail-closed validation', () => {
-  it('should DENY access when APP_ACCESS_TOKEN is missing', () => {
+  it('should DENY access when no client token is provided', () => {
     const request = new Request('http://localhost/api/test', {
-      headers: {}
+      headers: {},
     });
 
-    const result = checkAppAuth(request);
+    const result = checkClientToken(request, '127.0.0.1');
 
     expect(result).not.toBeNull();
     expect(result?.status).toBe(401);
+  });
+
+  it('should DENY access when the token was not issued by this server', () => {
+    const request = new Request('http://localhost/api/test', {
+      headers: { 'x-app-access-token': 'not-a-token-we-ever-issued' },
+    });
+
+    const result = checkClientToken(request, '127.0.0.1');
+
+    expect(result).not.toBeNull();
+    expect(result?.status).toBe(401);
+  });
+
+  it('should ALLOW access with a token this server issued', () => {
+    const token = issueToken();
+    const request = new Request('http://localhost/api/test', {
+      headers: { 'x-app-access-token': token },
+    });
+
+    const result = checkClientToken(request, '127.0.0.1');
+
+    expect(result).toBeNull();
   });
 });

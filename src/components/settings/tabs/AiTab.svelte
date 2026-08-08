@@ -265,6 +265,19 @@
                     <label class="toggle-card">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
+                                >{$_("settings.ai.allowSettingsChanges")}</span
+                            >
+                            <span class="text-xs text-[var(--text-secondary)]"
+                                >{$_("settings.ai.allowSettingsChangesDesc")}</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.aiAllowSettingsChanges} />
+                    </label>
+
+
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
                                 >{$_("settings.ai.confirmClearHistory")}</span
                             >
                             <span class="text-xs text-[var(--text-secondary)]"

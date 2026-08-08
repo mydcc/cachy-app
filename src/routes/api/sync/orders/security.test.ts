@@ -18,9 +18,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { POST } from './+server';
 
-vi.mock('../../../../lib/server/auth', () => ({
-  checkAppAuth: vi.fn(() => null)
+vi.mock('../../../../lib/server/clientToken', () => ({
+  checkClientToken: vi.fn(() => null)
 }));
+
+const getClientAddress = () => '127.0.0.1';
 
 
 describe('POST /api/sync/orders', () => {
@@ -47,6 +49,7 @@ describe('POST /api/sync/orders', () => {
     // lint ratchet, and new code should not add to the backlog.
     const response = await POST({
       request,
+      getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
 
@@ -65,7 +68,7 @@ describe('POST /api/sync/orders', () => {
       },
     } as unknown as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid JSON');
@@ -76,7 +79,7 @@ describe('POST /api/sync/orders', () => {
       json: async () => ({ limit: 10 }),
     } as unknown as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid request data');
@@ -87,7 +90,7 @@ describe('POST /api/sync/orders', () => {
       json: async () => ({ apiKey: 'key', apiSecret: 'secret', limit: 'invalid' }),
     } as unknown as Request;
 
-    const response = await POST({ request } as unknown as Parameters<typeof POST>[0]);
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
   });
 });

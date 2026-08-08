@@ -27,7 +27,7 @@ import {
 } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
-import { checkAppAuth } from "../../../lib/server/auth";
+import { checkClientToken } from "../../../lib/server/clientToken";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
@@ -47,8 +47,8 @@ interface ExchangeAccountData {
   equity?: string;
 }
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let body: unknown;

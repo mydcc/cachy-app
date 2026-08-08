@@ -17,7 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkAppAuth } from "../../../../../lib/server/auth";
+import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface AnthropicModel {
@@ -26,8 +26,8 @@ interface AnthropicModel {
   max_input_tokens?: number;
 }
 
-export const GET: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const GET: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const apiKey = request.headers.get("x-api-key");

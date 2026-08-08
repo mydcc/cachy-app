@@ -41,5 +41,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0003](0003-edition-boundary.md) | The core runs without a server; editions are additive | Proposed |
 | [0004](0004-spacetimedb-data-scope.md) | What SpacetimeDB is allowed to hold, and who operates it | Proposed |
 | [0005](0005-extension-model.md) | Extensions are tiered by capability, and isolation comes first | Proposed |
+| [0006](0006-one-window-stacking-authority.md) | Every overlay goes through the window manager, and there is one stacking authority | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

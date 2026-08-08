@@ -27,12 +27,13 @@ import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 
 /**
- * Keeps the client in step with `checkAppAuth`.
+ * Keeps the client in step with `checkClientToken`.
  *
- * Since ADR-0002 authentication fails closed: every route that calls
- * `checkAppAuth` answers 401 unless the caller sends `x-app-access-token`. That
- * makes a plain `fetch("/api/orders", …)` a silent breakage — it compiles, it
- * type-checks, and it fails only in the browser of whoever deployed it.
+ * Since ADR-0002 (amended for BUG-0052) authentication fails closed: every
+ * route that calls `checkClientToken` answers 401 unless the caller sends
+ * `x-app-access-token`. That makes a plain `fetch("/api/orders", …)` a silent
+ * breakage — it compiles, it type-checks, and it fails only in the browser of
+ * whoever deployed it.
  *
  * It has already happened twice. `chat.svelte.ts` never sent the header
  * (docs/archive/engineering-log-2026-h1.md, item 12), and the balance,
@@ -66,7 +67,7 @@ function collectClientFiles(dir: string, found: string[] = []): string[] {
   return found;
 }
 
-/** Every `src/routes/api/**\/+server.ts` that calls `checkAppAuth`. */
+/** Every `src/routes/api/**\/+server.ts` that calls `checkClientToken`. */
 function collectGuardedRoutes(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
@@ -75,7 +76,7 @@ function collectGuardedRoutes(dir: string, found: string[] = []): string[] {
       continue;
     }
     if (entry !== "+server.ts") continue;
-    if (!/\bcheckAppAuth\s*\(/.test(readFileSync(path, "utf-8"))) continue;
+    if (!/\bcheckClientToken\s*\(/.test(readFileSync(path, "utf-8"))) continue;
 
     // src/routes/api/sync/orders/+server.ts -> /api/sync/orders
     const route = path
@@ -145,7 +146,7 @@ describe("client callers of guarded API routes send the app access token", () =>
 
     expect(
       offenders,
-      "These call plain fetch() on a route guarded by checkAppAuth, so the " +
+      "These call plain fetch() on a route guarded by checkClientToken, so the " +
         "server answers 401. Use appFetch from $lib/appAuth instead:\n" +
         offenders.map((o) => `  ${o}`).join("\n"),
     ).toEqual([]);

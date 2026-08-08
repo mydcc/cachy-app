@@ -30,7 +30,6 @@ const SENSITIVE_KEYS: (keyof Settings)[] = [
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
-export type SidePanelLayout = "standard" | "floating";
 export type AiProvider = "openai" | "gemini" | "anthropic" | "ollama" | "openrouter";
 export type BackgroundType =
   | "none"
@@ -48,6 +47,7 @@ export type BackgroundAnimationPreset =
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
+export type AiAnalysisMode = "risk" | "coach" | "scalper" | "analyst";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode =
@@ -96,13 +96,6 @@ export interface ApiKeys {
   key: string;
   secret: string;
   passphrase?: string;
-}
-
-export interface PanelState {
-  width: number;
-  height: number;
-  x: number;
-  y: number;
 }
 
 export interface GalaxySettings {
@@ -178,7 +171,6 @@ export interface Settings {
   imgbbExpiration: number;
   isDeepDiveUnlocked?: boolean;
   imgurClientId?: string;
-  enableSidePanel: boolean;
   /**
    * Global Chat over SpacetimeDB. Class B under ADR-0001, so it is opt-in and
    * off by default: nothing connects until the user turns this on and supplies
@@ -197,9 +189,7 @@ export interface Settings {
   cloudToken: string;
   showSidebarActivity: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
-  sidePanelLayout: SidePanelLayout;
   chatStyle: "minimal" | "bubble" | "terminal";
-  panelState: PanelState;
   maxPrivateNotes: number;
   customSystemPrompt: string;
   aiProvider: AiProvider;
@@ -215,8 +205,10 @@ export interface Settings {
   openrouterModel: string;
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
+  aiAllowSettingsChanges: boolean;
   aiTradeHistoryLimit: number;
   aiConfirmClear: boolean;
+  aiAnalysisMode: AiAnalysisMode;
   showSpinButtons: boolean | "hover";
   disclaimerAccepted: boolean;
   useUtcDateParsing: boolean;
@@ -226,7 +218,6 @@ export interface Settings {
   confirmTradeDeletion: boolean;
   confirmBulkDeletion: boolean;
   chatFontSize: number;
-  panelIsExpanded: boolean;
   fontFamily: string;
   cryptoPanicApiKey?: string;
   newsApiKey?: string;
@@ -363,7 +354,6 @@ const defaultSettings: Settings = {
   imgbbApiKey: "25e953ac23d0704c1adc548c9a61b382",
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
-  enableSidePanel: false,
   // Class B defaults per ADR-0001: off, and pointing at a local module rather
   // than at any Cachy-operated server. Turning it on is a deliberate act.
   cloudEnabled: false,
@@ -371,14 +361,7 @@ const defaultSettings: Settings = {
   cloudDbName: "cachy-server",
   cloudToken: "",
   sidePanelMode: "ai",
-  sidePanelLayout: "floating",
   chatStyle: "minimal",
-  panelState: {
-    width: 450,
-    height: 550,
-    x: 20,
-    y: 20,
-  },
   customSystemPrompt: "",
   aiProvider: "gemini",
   openaiApiKey: "",
@@ -393,7 +376,9 @@ const defaultSettings: Settings = {
   openrouterModel: "",
   analysisDepth: "standard",
   aiConfirmActions: false,
+  aiAllowSettingsChanges: false,
   aiTradeHistoryLimit: 50,
+  aiAnalysisMode: "risk" as AiAnalysisMode,
   showSpinButtons: "hover",
   disclaimerAccepted: false,
   useUtcDateParsing: true,
@@ -403,7 +388,6 @@ const defaultSettings: Settings = {
   confirmTradeDeletion: true,
   confirmBulkDeletion: true,
   chatFontSize: 13,
-  panelIsExpanded: false,
   maxPrivateNotes: 50,
   aiConfirmClear: true,
   fontFamily: "Inter",
@@ -592,7 +576,6 @@ export class SettingsManager {
   );
   imgurClientId = $state<string | undefined>(defaultSettings.imgurClientId);
 
-  enableSidePanel = $state<boolean>(defaultSettings.enableSidePanel);
   cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
   cloudHost = $state<string>(defaultSettings.cloudHost);
   cloudDbName = $state<string>(defaultSettings.cloudDbName);
@@ -600,11 +583,9 @@ export class SettingsManager {
   sidePanelMode = $state<"chat" | "notes" | "ai">(
     defaultSettings.sidePanelMode,
   );
-  sidePanelLayout = $state<SidePanelLayout>(defaultSettings.sidePanelLayout);
   chatStyle = $state<"minimal" | "bubble" | "terminal">(
     defaultSettings.chatStyle,
   );
-  panelState = $state(defaultSettings.panelState);
   maxPrivateNotes = $state<number>(defaultSettings.maxPrivateNotes);
 
   customSystemPrompt = $state<string>(defaultSettings.customSystemPrompt);
@@ -628,8 +609,10 @@ export class SettingsManager {
   openrouterModel = $state<string>(defaultSettings.openrouterModel);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
+  aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
+  aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
 
   rssFilterBySymbol = $state<boolean | undefined>(
     defaultSettings.rssFilterBySymbol,
@@ -646,7 +629,6 @@ export class SettingsManager {
   confirmTradeDeletion = $state<boolean>(defaultSettings.confirmTradeDeletion);
   confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
   chatFontSize = $state<number>(defaultSettings.chatFontSize);
-  panelIsExpanded = $state<boolean>(defaultSettings.panelIsExpanded);
   fontFamily = $state<string>(defaultSettings.fontFamily);
   cryptoPanicApiKey = $state<string | undefined>(
     defaultSettings.cryptoPanicApiKey,
@@ -1306,24 +1288,12 @@ export class SettingsManager {
       this.imgbbExpiration = merged.imgbbExpiration;
       this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
       this.imgurClientId = merged.imgurClientId;
-      this.enableSidePanel = merged.enableSidePanel;
       this.cloudEnabled = merged.cloudEnabled;
       this.cloudHost = merged.cloudHost;
       this.cloudDbName = merged.cloudDbName;
       this.cloudToken = merged.cloudToken;
       this.sidePanelMode = merged.sidePanelMode;
-      this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
-
-      // Copy panelState properties individually to preserve $state reactivity
-      if (merged.panelState) {
-        this.panelState.width =
-          merged.panelState.width ?? this.panelState.width;
-        this.panelState.height =
-          merged.panelState.height ?? this.panelState.height;
-        this.panelState.x = merged.panelState.x ?? this.panelState.x;
-        this.panelState.y = merged.panelState.y ?? this.panelState.y;
-      }
       this.maxPrivateNotes = merged.maxPrivateNotes;
       this.customSystemPrompt = merged.customSystemPrompt;
       this.aiProvider = merged.aiProvider;
@@ -1339,11 +1309,12 @@ export class SettingsManager {
       this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
       this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
       this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
-      this.analysisDepth =
-        merged.analysisDepth || defaultSettings.analysisDepth;
+      this.analysisDepth = merged.analysisDepth;
       this.aiConfirmActions = merged.aiConfirmActions;
+      this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
       this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
       this.aiConfirmClear = merged.aiConfirmClear;
+      this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
       this.showSpinButtons = merged.showSpinButtons;
       this.disclaimerAccepted = merged.disclaimerAccepted;
       this.useUtcDateParsing = merged.useUtcDateParsing;
@@ -1353,7 +1324,6 @@ export class SettingsManager {
       this.confirmTradeDeletion = merged.confirmTradeDeletion;
       this.confirmBulkDeletion = merged.confirmBulkDeletion;
       this.chatFontSize = merged.chatFontSize;
-      this.panelIsExpanded = merged.panelIsExpanded;
       this.fontFamily = merged.fontFamily;
       this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
       this.newsApiKey = merged.newsApiKey;
@@ -1662,15 +1632,12 @@ export class SettingsManager {
       imgbbExpiration: this.imgbbExpiration,
       isDeepDiveUnlocked: this.isDeepDiveUnlocked,
       imgurClientId: this.imgurClientId,
-      enableSidePanel: this.enableSidePanel,
       cloudEnabled: this.cloudEnabled,
       cloudHost: this.cloudHost,
       cloudDbName: this.cloudDbName,
       cloudToken: this.cloudToken,
       sidePanelMode: this.sidePanelMode,
-      sidePanelLayout: this.sidePanelLayout,
       chatStyle: this.chatStyle,
-      panelState: $state.snapshot(this.panelState),
       maxPrivateNotes: this.maxPrivateNotes,
       customSystemPrompt: this.customSystemPrompt,
       aiProvider: this.aiProvider,
@@ -1686,8 +1653,10 @@ export class SettingsManager {
       openrouterModel: this.openrouterModel,
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
+      aiAllowSettingsChanges: this.aiAllowSettingsChanges,
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,
       aiConfirmClear: this.aiConfirmClear,
+      aiAnalysisMode: this.aiAnalysisMode,
       showSpinButtons: this.showSpinButtons,
       disclaimerAccepted: this.disclaimerAccepted,
       useUtcDateParsing: this.useUtcDateParsing,
@@ -1697,7 +1666,6 @@ export class SettingsManager {
       confirmTradeDeletion: this.confirmTradeDeletion,
       confirmBulkDeletion: this.confirmBulkDeletion,
       chatFontSize: this.chatFontSize,
-      panelIsExpanded: this.panelIsExpanded,
       enableBurningBorders: this.enableBurningBorders,
       borderEffect: this.borderEffect,
       borderEffectColorMode: this.borderEffectColorMode,

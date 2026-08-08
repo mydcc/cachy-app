@@ -30,7 +30,7 @@
 -->
 
 <script lang="ts">
-    import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+    import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
     import { effectsState } from "../../../stores/effects.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
@@ -39,9 +39,12 @@
     interface Props {
         /** The logic instance representing this window. contains state and behavioral rules. */
         window: WindowBase;
+        /** Extra CSS classes applied to the root .window-frame element (e.g.
+         * a caller-specific desktop size preset). Optional, additive. */
+        extraClasses?: string;
     }
 
-    let { window: win }: Props = $props();
+    let { window: win, extraClasses = "" }: Props = $props();
 
     // --- LOCAL INTERACTION STATE ---
     let isDragging = $state(false);
@@ -98,15 +101,22 @@
             );
         };
 
-        const onPointerUp = (upEvent: PointerEvent) => {
+        const endDrag = (endEvent: PointerEvent) => {
             isDragging = false;
-            target.releasePointerCapture(upEvent.pointerId);
+            target.releasePointerCapture(endEvent.pointerId);
             target.removeEventListener("pointermove", onPointerMove);
-            target.removeEventListener("pointerup", onPointerUp);
+            target.removeEventListener("pointerup", endDrag);
+            target.removeEventListener("pointercancel", endDrag);
+            flushSaveState();
         };
 
         target.addEventListener("pointermove", onPointerMove);
-        target.addEventListener("pointerup", onPointerUp);
+        target.addEventListener("pointerup", endDrag);
+        // The browser can cancel pointer capture mid-gesture (a system
+        // gesture, a long-press menu) without ever firing pointerup. Without
+        // this, isDragging and the listeners above never clear, and the
+        // window keeps following stray pointer input.
+        target.addEventListener("pointercancel", endDrag);
     }
 
     /**
@@ -201,25 +211,59 @@
             win.updateSize(newWidth, newHeight);
         };
 
-        const onPointerUp = (upEvent: PointerEvent) => {
+        const endResize = (endEvent: PointerEvent) => {
             isResizing = false;
-            target.releasePointerCapture(upEvent.pointerId);
+            target.releasePointerCapture(endEvent.pointerId);
             target.removeEventListener("pointermove", onPointerMove);
-            target.removeEventListener("pointerup", onPointerUp);
+            target.removeEventListener("pointerup", endResize);
+            target.removeEventListener("pointercancel", endResize);
+            flushSaveState();
         };
 
         target.addEventListener("pointermove", onPointerMove);
-        target.addEventListener("pointerup", onPointerUp);
+        target.addEventListener("pointerup", endResize);
+        // See the matching comment in startDrag(): a cancelled pointer
+        // capture must still clear isResizing and the listeners, or a
+        // resize handle keeps reacting to input after the gesture ended.
+        target.addEventListener("pointercancel", endResize);
     }
 
     /**
      * Persistent State Auto-Save
-     * Triggers a state save to LocalStorage whenever reactive properties change.
+     *
+     * Debounced: win.x/win.y/win.width/win.height change on every single
+     * pointermove during a drag or resize, and writing to localStorage on
+     * each one is a real cost, most visible as jank during a touch drag
+     * (BUG-0042). flushSaveState() below is called when a drag/resize
+     * gesture ends, so the debounce here never delays the *final* geometry
+     * — only the intermediate writes during the gesture are skipped.
      */
-    $effect(() => {
+    let saveStateTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function flushSaveState() {
+        if (saveStateTimer) {
+            clearTimeout(saveStateTimer);
+            saveStateTimer = null;
+        }
         if (win.persistent) {
             win.saveState();
         }
+    }
+
+    $effect(() => {
+        if (!win.persistent) return;
+        // Reads the same fields saveState() itself reads, so this effect
+        // re-runs exactly when a save would be needed, without hand-copying
+        // the field list here.
+        void win.persistedSnapshot;
+
+        const timer = setTimeout(() => {
+            saveStateTimer = null;
+            win.saveState();
+        }, SAVE_DEBOUNCE_MS);
+        saveStateTimer = timer;
+
+        return () => clearTimeout(timer);
     });
 
     // --- INTERACTION UTILITIES ---
@@ -264,6 +308,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+    class={extraClasses}
     class:window-frame={true}
     class:glass-panel={true}
     class:focused={win.isFocused}
@@ -302,7 +347,7 @@
           : win.isPinned && (win.pinSide === "left" || win.pinSide === "right")
             ? "100vh"
             : `${win.height}px`}
-    style:z-index={win.zIndex}
+    style:z-index={win.isMaximized ? win.maximizedZIndex : win.zIndex}
     style:opacity={win.opacity}
     onpointerdown={handlePointerDown}
     oncontextmenu={handleContextMenu}
@@ -340,20 +385,10 @@
                 win.restore();
                 windowManager.bringToFront(win.id);
             } else {
-                // Respect doubleClickBehavior flag
-                if (
-                    win.doubleClickBehavior === "maximize" &&
-                    win.allowMaximize
-                ) {
-                    win.toggleMaximize();
-                } else if (win.doubleClickBehavior === "pin") {
-                    win.togglePin();
-                } else if (win.allowMinimize && (win.doubleClickBehavior as string) === "minimize") {
-                    // Widened to string: doubleClickBehavior's declared type no longer
-                    // includes 'minimize', but windows restored from persisted config
-                    // saved before that narrowing can still carry the old value.
-                    win.minimize();
-                }
+                const action = win.resolveDoubleClickAction();
+                if (action === "maximize") win.toggleMaximize();
+                else if (action === "pin") win.togglePin();
+                else if (action === "minimize") win.minimize();
             }
         }}
     >
@@ -366,17 +401,10 @@
                     win.restore();
                     windowManager.bringToFront(win.id);
                 } else {
-                    // Respect doubleClickBehavior flag instead of blindly minimizing
-                    if (
-                        win.doubleClickBehavior === "maximize" &&
-                        win.allowMaximize
-                    ) {
-                        win.toggleMaximize();
-                    } else if (win.doubleClickBehavior === "pin") {
-                        win.togglePin();
-                    } else if (win.allowMinimize && (win.doubleClickBehavior as string) === "minimize") {
-                        win.minimize();
-                    }
+                    const action = win.resolveDoubleClickAction();
+                    if (action === "maximize") win.toggleMaximize();
+                    else if (action === "pin") win.togglePin();
+                    else if (action === "minimize") win.minimize();
                 }
             }}
         >
@@ -702,6 +730,11 @@
         transition: none !important;
     }
     .window-frame.maximized {
+        /* z-index is NOT set here -- it used to be a flat !important
+           constant, which meant bringToFront() could never reorder two
+           maximized windows (FEAT-0044). The template binds
+           style:z-index to win.maximizedZIndex instead, which stays
+           correctly ordered by recency via refreshMaximizedZIndex(). */
         position: fixed;
         left: 0 !important;
         top: 0 !important;
@@ -710,7 +743,6 @@
         border-radius: 0;
         border: none;
         box-shadow: none;
-        z-index: 20000 !important;
     }
     .window-frame.minimized {
         position: relative !important;
@@ -783,6 +815,10 @@
         user-select: none;
         border-bottom: 1px solid var(--border-color);
         opacity: 0.9;
+        /* Without this, touch devices interpret the first drag movement as a
+           page scroll/pan gesture, which competes with the pointer-based drag
+           below and makes the window jump instead of following the finger. */
+        touch-action: none;
     }
     .header-content {
         display: flex;
@@ -1089,6 +1125,9 @@
     .resize-grip {
         position: absolute;
         z-index: 100;
+        /* Same reasoning as .window-header: without this, touch devices treat
+           the first movement as a scroll gesture instead of a resize. */
+        touch-action: none;
     }
     .resize-grip.n,
     .resize-grip.s {

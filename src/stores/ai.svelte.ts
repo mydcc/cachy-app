@@ -28,6 +28,8 @@ import { logger } from "../services/logger";
 import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
+import { app } from "../services/app";
+import { TechnicalsPresenter } from "../utils/technicalsPresenter";
 
 // Shape returned by gatherContext(), passed to the AI provider and exposed
 // to the UI via lastContext for the context-gathered indicators.
@@ -62,6 +64,7 @@ export interface AiAction {
   index?: number;
   percent?: number | string;
   atrMultiplier?: number | string;
+  tags?: string[];
 }
 
 export interface PendingAction {
@@ -79,6 +82,13 @@ class AiManager {
   error = $state<string | null>(null);
   pendingActions = $state<Map<string, PendingAction>>(new Map());
   lastContext = $state<AiContext | null>(null); // Expose context for UI indicators
+  contextSummary = $state<{
+    durationMs: number;
+    newsCount: number;
+    hasTechnicals: boolean;
+    hasCmc: boolean;
+    timedOut: boolean;
+  } | null>(null);
 
   constructor() {
     if (browser) {
@@ -144,8 +154,8 @@ class AiManager {
     this.save();
 
     try {
-      // 2. Gather Context (Async)
-      // Timeout wrapper for gathering context to prevent hanging
+      // 2b. Measure context gathering duration
+      const contextStart = Date.now();
       const contextPromise = this.gatherContext();
       const timeoutPromise = new Promise<null>((resolve) =>
         setTimeout(() => resolve(null), 5000),
@@ -159,8 +169,70 @@ class AiManager {
       };
       this.lastContext = context; // Update exposed context
 
+      // Record real measured facts — no fake states
+      const timedOut = !!(context as AiContext).error?.includes("timed out");
+      this.contextSummary = {
+        durationMs: Date.now() - contextStart,
+        newsCount: context.latestNews?.length ?? 0,
+        hasTechnicals: !!(context as AiContext).technicals,
+        hasCmc: !!(context as AiContext).marketIntelligence?.global && (context as AiContext).marketIntelligence?.global !== "Unavailable",
+        timedOut,
+      };
+
       // 3. Prepare Messages (History + System + User)
-      const identity = `You are a Senior Risk Manager and Quantitative Trading Strategist. Your goal is to protect the user's capital first and optimize profit second.`;
+      // Determine language for AI response: follow the user's app locale
+      const appLocale = (typeof localStorage !== "undefined"
+        ? localStorage.getItem("locale")
+        : null) ?? "en";
+      const langLabel = appLocale === "de" ? "German" : "English";
+
+      const identity = `You are an institutional-grade Trading Analyst specializing in Risk Management and Quantitative Strategy. You operate like a senior desk analyst at a prop firm: precise, skeptical, and always capital-first.
+
+LANGUAGE RULE:
+- RESPOND IN THE SAME LANGUAGE AS THE USER'S MESSAGE.
+- If the user writes in German, respond in German. If in English, respond in English.
+- If the user's intent is unclear (e.g. quick commands like "Market Check"), use the app language: ${langLabel}.
+- NEVER mention this rule in your response.
+
+PRICE CLASSIFICATION RULE (CRITICAL — read before every analysis):
+The REAL_TIME_PRICE in your context is a REFERENCE POINT ONLY, not a trade signal.
+Your job is to CLASSIFY the current price:
+  1. LOCATION: Is price at an Order Block, FVG, Pivot, or psychological level?
+  2. MOMENTUM: Is it extended (>1 ATR from the last structure) or discounted (OTE 0.618–0.786 Fib)?
+  3. DISTANCE: How far is the user's Entry (from tradeSetup) from the live price? Is it realistic?
+NEVER: Set EntryPrice = REAL_TIME_PRICE without an explicit user request.
+NEVER: Recommend chasing a move that is more than 1 ATR extended from the last clear structure.`;
+
+      // Mode-specific instructions
+      const mode = settings.aiAnalysisMode || "risk";
+      const modeInstructions: Record<string, string> = {
+        risk: "",  // Standard — baseRoleInstructions applies fully
+        coach: [
+          "ANALYSIS MODE: TRADE COACH",
+          "- Your primary goal is to TEACH, not to signal.",
+          "- Explain every concept in simple terms, as if talking to an intermediate trader.",
+          "- Do NOT output a JSON action block. Do NOT suggest specific entry/SL/TP values.",
+          "- Instead, explain the PRINCIPLE behind good entries, stop placement, and targets.",
+          "- End every response with a learning takeaway: 'Key Takeaway: ...'",
+        ].join("\n"),
+        scalper: [
+          "ANALYSIS MODE: SCALPER",
+          "- Be BRIEF and DIRECT. Maximum 5 bullet points per response.",
+          "- No explanations of why. Just: Direction, Level, Invalidation.",
+          "- Format: 🟢 Long / 🔴 Short | Entry: X | SL: Y | TP: Z",
+          "- If no clear setup exists, say so in ONE sentence.",
+          "- Skip the 'Quellen' section. Skip long markdown formatting.",
+          "- R:R rules still apply. If the R:R verdict in context is REJECT, say 'No setup — bad R:R' instead of forcing one.",
+        ].join("\n"),
+        analyst: [
+          "ANALYSIS MODE: MARKET ANALYST",
+          "- Focus purely on market structure and macro context. No trade setup.",
+          "- Do NOT output a JSON action block.",
+          "- Do NOT suggest entry, SL, or TP values.",
+          "- Describe: Trend, Key Levels, Sentiment, and what to watch for next.",
+        ].join("\n"),
+      };
+      const modeOverride = modeInstructions[mode] ? `\n\n${modeInstructions[mode]}` : "";
 
       const baseRoleInstructions = [
         "EXPERT KNOWLEDGE:",
@@ -174,15 +246,37 @@ class AiManager {
         "- NO REPETITION: Do NOT repeat the user's question.",
         "- START IMMEDIATELY: Start with 'Hi' or 'Moin' and the first data point.",
         "",
+        "AUDIT-FIRST PROTOCOL (MANDATORY — applies when user shares a trade setup):",
+        "When the user provides a setup (entry, SL, TP), you MUST follow this order:",
+        "  STEP 1 — AUDIT: Read the 'tradeSetup.rrVerdict' from context. Use 'tradeSetup.calculatedRR' as the pre-verified R:R — do NOT recalculate it yourself.",
+        "  STEP 2 — VERDICT: State the R:R clearly and give a verdict: VALID / WARNING / REJECT.",
+        "  STEP 3 — ONLY IF ASKED: Suggest an alternative setup ONLY if the user explicitly asks 'What would you do?' or 'Give me a better entry'.",
+        "  NEVER auto-generate a JSON action block to 'fix' the user's setup unless they explicitly request it.",
+        "",
         "STRICT OPERATING RULES:",
-        "1. CAPITAL PROTECTION: If a trade setup has a Risk/Reward (R:R) ratio below 1:2, warn the user explicitly.",
-        "2. NO CHASING: Do not suggest entries at the top/bottom of a move. Wait for pullbacks to OTE (Optimal Trade Entry - 0.618/0.786 Fibonacci).",
-        "3. SMART TARGETS: Take Profit (TP) levels must NEVER be arbitrary round numbers. Place them slightly BEFORE psychological levels or historical liquidity zones.",
-        "4. ORDER LOGIC: ",
-        "   - TP1: Close 50% to secure profits and set SL to Breakeven.",
-        "   - TP2: Technical target (Next major resistance/support).",
-        "   - TP3: Moon/Runner (Trend extension).",
-        "5. NO DUPLICATES: Each TP level must be unique and follow the price progression.",
+        "1. INSTITUTIONAL QUANTITATIVE RISK AUDIT (MANDATORY RENDER):",
+        "   Before providing any JSON action block for a trade setup, you MUST render this markdown audit block in your response:",
+        "   **Institutional Risk Audit:**",
+        "   - Setup-Typ: [Long / Short]",
+        "   - Entry: [Value]",
+        "   - Stop Loss: [Value] (Distance: X.X * ATR / Y.YY %)",
+        "   - Take Profit 1: [Value] (Distance: Z.ZZ %)",
+        "   - Mathematisches CRV: 1 : [Calculated R:R]",
+        "   - Charttechnische Hindernisse: [e.g. Pivot R1 at X / None]",
+        "   - Risk Rating: [🟢 VALID (R:R ≥ 2.0) | 🟡 WARNING (R:R 1.2–1.9) | 🔴 HIGH RISK (R:R < 1.2 or Pivot Obstacle)]",
+        "",
+        "2. FULL TRADER AUTONOMY & NON-BLOCKING JSON:",
+        "   - The trader has ultimate sovereignty. NEVER refuse to output a JSON action block because of high risk or poor R:R.",
+        "   - ALWAYS output the JSON action block when suggesting, updating, or auditing a setup so the trader can apply it with a single click.",
+        "   - If the Risk Rating is 🔴 HIGH RISK or 🟡 WARNING, explain the quantitative risks clearly in the text, but ALWAYS provide the actionable JSON block.",
+        "",
+        "3. FLEXIBLE VOLATILITY & STOP LOSS LOGIC:",
+        "   - Respect user preferences! If the user requests a specific SL distance or ATR multiplier (e.g. 0.8x ATR or structural SL), use it.",
+        "   - Fallback Default: If no user preference is given, use 1.5 * ATR as the mathematical baseline.",
+        "   - NEVER invent random numbers; derive all levels strictly from ATR, Pivots, EMAs, or 24h High/Low in context.",
+        "",
+        "4. NO CHASING: Do not suggest market-order entries at extreme extension. Recommend pullbacks to logical support/resistance.",
+        "5. NO DUPLICATES: Each TP level must be unique and follow price progression.",
         "",
         "ANALYTICAL RIGOR:",
         "- RATIONALE: For every calculation or trade setup shared, provide a specific reason based on the provided context data. Explain WHY you chose certain TP/SL levels.",
@@ -207,16 +301,15 @@ class AiManager {
         "   - Use EXACT numbers from context (e.g., '47245.32') for calculations.",
         "   - In the text, follow the rounding rules defined in TONE & STYLE.",
         "",
-        "6. TEMPORAL GROUNDING (use internally, don't verbalize unless relevant):",
-        "   - Current time is provided in the context",
-        "   - ONLY use timestamps from 'latestNews.publishedAt' or 'currentTime' fields",
-        "   - For news: Use the 'ago' field naturally in your sentence. (e.g., 'Vor 2 Stunden wurde gemeldet...' instead of mentioning the variable).",
-        "   - NEVER reference events from your training cutoff date",
-        "",
-        "7. UNCERTAINTY MARKERS:",
+        "6. UNCERTAINTY MARKERS:",
         "   - If confidence < 90%, prefix with: 'Basierend auf begrenzten Daten: ...'",
         "   - If speculating (e.g., market psychology), prefix with: 'Spekulation: ...'",
         "   - NEVER present guesses as facts",
+        "",
+        "8. NO FORCED SETUPS:",
+        "   - You are a Risk Manager, not a signal group. You do NOT have to provide a setup if the market is choppy or undefined.",
+        "   - STRICT RULE: You must use the EXACT numbers provided in the 'technicals' and 'marketDetails' context blocks. NEVER invent, estimate, or modify these numbers.",
+        "   - NEVER invent random price levels just to generate a JSON action block.",
         "",
         "- MARKET NOISE & VOLATILITY (CRITICAL):",
         "  * **SNAPSHOT DATA**: Treat 'spread' and 'imbalance' as high-frequency noise. These values change every millisecond and have ZERO predictive power in isolation.",
@@ -226,7 +319,7 @@ class AiManager {
         "",
         "TONE & STYLE:",
         "- Professional, objective, and data-driven.",
-        "- LANGUAGE: Use natural, precise, and concise German. Avoid robotic or template-like phrasing.",
+        "- LANGUAGE: Use natural, precise, and concise language. Avoid robotic or template-like phrasing.",
         "- Be skeptical of 'easy' trades; challenge the user's assumptions if data suggests otherwise.",
         "- HUMOR: Occasionally use dry trading humor and well-known crypto culture references. Don't overdo it.",
         "  * 'Bitcoin only goes right'",
@@ -247,17 +340,16 @@ class AiManager {
         "  * 📊 for analysis",
         "  * 🦆 for absurd/market manipulation hints",
         "- FORMATTING RULES (STRICT):",
-        "  * **NUMBERS**: ALWAYS round numbers. Max 2 decimal places for percentages (e.g. 1.54%). Max 4 decimal places for prices. Do NOT show raw long floats.",
+        "  * **EXACT STRINGS**: DO NOT round numbers yourself! Output them EXACTLY as they appear in the JSON context. If the JSON says '72.3566', you must write '72.3566', not '72.35'.",
+        "  * **NO CURRENCY SUFFIXES FOR INDICATORS**: Do not append 'USDT' or 'USD' to technical indicators like ATR, RSI, or Pivot Points. Just use the raw number as provided in the context.",
         "  * **STRUCTURE**: Use Markdown bullet points, standard lists, and bold text for keys.",
         "  * **READABILITY**: Use short paragraphs. Avoid 'wall of text'.",
         "  * **SEPARATORS**: Use '---' to separate major sections if the response is long.",
         "- Use structured bullet points and bold text for key metrics.",
       ].join("\n");
 
-      const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}
+      const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}${modeOverride}
 
-IMPORTANT: You MUST answer in GERMAN language. Even if the instructions above are in English, your final output to the user MUST be in German.
-IMPORTANT: Your previous responses might have lacked emojis. Disregard that style. From now on, you MUST use emojis to structure your response.
 IMPORTANT (CRITICAL FOR JSON ACTIONS):
 When generating the JSON block for actions (e.g., setEntryPrice, setTakeProfit), you MUST use STANDARD ENGLISH NUMBER FORMAT.
 - Decimal separator: DOT (.)
@@ -294,15 +386,18 @@ CORE CAPABILITIES:
 FORMAT: To update values, output a JSON block at the very end:
 \`\`\`json
 [
+  { "action": "setTradeType", "value": "short" },
   { "action": "setSymbol", "value": "BTCUSDT" },
   { "action": "setEntryPrice", "value": 50000 },
   { "action": "setStopLoss", "value": 49000 },
+  { "action": "addTakeProfit", "value": 52000, "percent": 50 },
   { "action": "setTakeProfit", "index": 0, "value": 52000, "percent": 50 },
-  { "action": "setTakeProfit", "index": 1, "value": 53000, "percent": 30 },
-  { "action": "setTakeProfit", "index": 2, "value": 55000, "percent": 20 }
+  { "action": "removeTakeProfit", "index": 1 },
+  { "action": "setAutoPrice", "value": false },
+  { "action": "setNotes", "value": "Short due to bearish divergence" }
 ]
 \`\`\`
-Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk, setLeverage, setAtrMultiplier, setUseAtrSl.
+Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, addTakeProfit, removeTakeProfit, setTradeType, setRisk, setLeverage, setAtrMultiplier, setAtrMode, setAtrTimeframe, setAnalysisTimeframe, setAutoPrice, setAccountSize, setUseAtrSl, resetSetup, setNotes, setTags.
 
 BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 1. Review your answer
@@ -311,7 +406,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
    - Remove it, OR
    - Mark it as speculation with low confidence
 4. Verify all numbers match the context exactly
-5. Check that you cited sources for all key data points`;
+5. Check that you cited sources for all key data points
+6. FATAL ERROR CHECK: Did I invent a Pivot point, ATR, or price level? If the number does not exist in the REAL-TIME CONTEXT JSON verbatim, DO NOT USE IT.`;
 
       // Construct Payload Messages
       const payloadMessages = [
@@ -373,7 +469,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       let attempt = 0;
       const MAX_RETRIES = 3;
 
-      while (attempt < MAX_RETRIES) {
+      if (provider === "ollama") {
+        const targetUrl = (baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
+        try {
+          const directRes = await fetch(`${targetUrl}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: payloadMessages,
+              stream: true,
+            }),
+          });
+          if (directRes.ok) {
+            res = directRes;
+            this.error = null;
+          }
+        } catch {
+          // Direct browser fetch failed — fallback to server proxy
+        }
+      }
+
+      while (!res && attempt < MAX_RETRIES) {
         try {
           res = await appFetch(endpoint, {
             method: "POST",
@@ -429,6 +546,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
+      let isFirstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -447,7 +565,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               let delta = "";
 
               if (provider === "openai" || provider === "openrouter" || provider === "ollama") {
-                // All three speak the OpenAI chat-completions streaming shape.
                 delta = data.choices?.[0]?.delta?.content || "";
               } else if (provider === "gemini") {
                 delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -458,8 +575,16 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               }
 
               if (delta) {
+                // Guard against Gemma/Gemini first-chunk system-prompt leak:
+                // If the very first delta is suspiciously long (>600 chars), it likely
+                // contains the system prompt echoed back. Skip rendering until next chunk.
+                if (isFirstChunk && provider === "gemini" && delta.length > 600) {
+                  isFirstChunk = false;
+                  fullContent += delta;
+                  continue; // Don't render this chunk to the user
+                }
+                isFirstChunk = false;
                 fullContent += delta;
-                // Update specific message in place
                 const idx = this.messages.findIndex((m) => m.id === aiMsgId);
                 if (idx !== -1) {
                   this.messages[idx].content = fullContent;
@@ -478,7 +603,30 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         const actions = this.parseActions(safeContent) || [];
 
         if (Array.isArray(actions) && actions.length > 0) {
-          // 1. Hide ALL JSON code blocks that contain trading actions
+          // 1. Code-level R:R guard: block execution if the suggested setup is mathematically poor
+          const entryAction = actions.find((a) => a.action === "setEntryPrice");
+          const slAction = actions.find((a) => a.action === "setStopLoss");
+          const tp1Action = actions.find((a) => (a.action === "setTakeProfit" && (a.index ?? -1) === 0) || a.action === "addTakeProfit");
+
+          if (entryAction?.value != null && slAction?.value != null && tp1Action?.value != null) {
+            try {
+              const entryD = new Decimal(entryAction.value as string | number);
+              const slD = new Decimal(slAction.value as string | number);
+              const tp1D = new Decimal(tp1Action.value as string | number);
+              const risk = entryD.minus(slD).abs();
+              const reward = tp1D.minus(entryD).abs();
+              if (!risk.isZero() && reward.div(risk).lt(1.5)) {
+                // Low R:R detected — log warning for audit, but do NOT strip JSON block (Trader Autonomy)
+                logger.warn("ai", "Low R:R setup generated (Trader Autonomy Mode)", {
+                  rr: reward.div(risk).toFixed(2),
+                });
+              }
+            } catch {
+              // Parsing failed — allow through (conservative approach)
+            }
+          }
+
+          // 2. Hide ALL JSON code blocks that contain trading actions
           const cleanedContent = safeContent
             .replace(/```json\s*[\s\S]*?"action"[\s\S]*?```/g, "")
             .trim();
@@ -488,7 +636,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             this.messages[idx].content = cleanedContent;
           }
 
-          // 2. Execute Actions
+          // 3. Execute Actions
           const confirmActions = settings.aiConfirmActions ?? false;
 
           if (confirmActions) {
@@ -660,87 +808,89 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     if (symbol && settings.showTechnicals) {
       try {
         const timeframe = trade.analysisTimeframe || "1h";
-        const limit = indicatorState.historyLimit || 750;
-        const klines = await apiService.fetchBitunixKlines(
-          symbol,
-          timeframe,
-          limit,
-        );
-        if (klines && klines.length > 0) {
-          const data = await technicalsService.calculateTechnicals(
-            klines,
-            indicatorState,
-          );
-          if (data) {
-            technicalsContext = {
-              timeframe,
-              summary: data.summary,
-              confluence: data.confluence
-                ? {
-                  score: Number(data.confluence.score.toFixed(2)),
-                  level: data.confluence.level,
-                  contributing: data.confluence.contributing,
-                }
-                : "N/A",
-              divergences:
-                data.divergences && data.divergences.length > 0
-                  ? data.divergences.map((d) => ({
-                    type: d.type,
-                    indicator: d.indicator,
-                    side: d.side,
-                    priceStart: Number(d.priceStart).toFixed(4),
-                    priceEnd: Number(d.priceEnd).toFixed(4),
-                  }))
-                  : [],
-              oscillators: Object.fromEntries(
-                data.oscillators.map((v) => [
-                  v.name,
-                  new Decimal(v.value || 0).toFixed(2),
+        let data = marketData?.technicals?.[timeframe];
+
+        if (!data) {
+          const limit = indicatorState.historyLimit || 750;
+          const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
+          if (klines && klines.length > 0) {
+            data = await technicalsService.calculateTechnicals(klines, indicatorState);
+          }
+        }
+
+        if (data) {
+          const precision = indicatorState.precision ?? 4;
+          technicalsContext = {
+            timeframe,
+            summary: data.summary,
+            confluence: data.confluence
+              ? {
+                score: Number(data.confluence.score.toFixed(2)),
+                level: data.confluence.level,
+                contributing: data.confluence.contributing,
+              }
+              : "N/A",
+            divergences:
+              data.divergences && data.divergences.length > 0
+                ? data.divergences.map((d) => ({
+                  type: d.type,
+                  indicator: d.indicator,
+                  side: d.side,
+                  priceStart: TechnicalsPresenter.formatVal(d.priceStart, precision),
+                  priceEnd: TechnicalsPresenter.formatVal(d.priceEnd, precision),
+                }))
+                : [],
+            oscillators: Object.fromEntries(
+              data.oscillators.map((v) => [
+                v.name,
+                TechnicalsPresenter.formatVal(v.value, 2),
+              ]),
+            ),
+            movingAverages: data.movingAverages.map((m) => ({
+              name: m.name,
+              value: TechnicalsPresenter.formatVal(m.value, precision),
+              action: m.action,
+            })),
+            pivots: data.pivots?.classic ? {
+              type: indicatorState.pivots.type,
+              classic: Object.fromEntries(
+                Object.entries(data.pivots.classic).map(([k, v]) => [
+                  k,
+                  TechnicalsPresenter.formatVal(Number(v), precision),
                 ]),
               ),
-              movingAverages: data.movingAverages.map((m) => ({
-                name: m.name,
-                value: Number(Number(m.value).toFixed(4)),
-                action: m.action,
-              })),
-              pivots: data.pivots?.classic ? {
-                type: indicatorState.pivots.type,
-                classic: Object.fromEntries(
-                  Object.entries(data.pivots.classic).map(([k, v]) => [
-                    k,
-                    Number(v).toFixed(4),
-                  ]),
-                ),
-              } : undefined,
-              volatility: data.volatility
-                ? {
-                  atr: Number(Number(data.volatility.atr ?? 0).toFixed(4)),
-                  bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
-                    ? Number(Number(data.volatility.bb.percentP).toFixed(2))
-                    : 0,
-                }
-                : "N/A",
-            };
-          }
+            } : undefined,
+            volatility: data.volatility
+              ? {
+                atr: TechnicalsPresenter.formatVal(data.volatility.atr, precision),
+                bbPercentP: (data.volatility.bb && typeof data.volatility.bb.percentP !== 'undefined')
+                  ? TechnicalsPresenter.formatVal(data.volatility.bb.percentP, 2)
+                  : "0",
+              }
+              : "N/A",
+          };
         }
 
         // --- Multi-Timeframe Trend Context (New) ---
         // Fetch higher timeframe (e.g. 4h) for trend bias
         const trendTimeframe = "4h";
         if (technicalsContext && timeframe !== trendTimeframe) {
-          const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
-          if (trendKlines && trendKlines.length > 0) {
-            const trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
-            if (trendData) {
-              // Merge into technicalsContext or add as separate field
-              // We'll add it as 'trendBias'
-              technicalsContext.higherTimeframe = {
-                timeframe: trendTimeframe,
-                summary: trendData.summary, // e.g. "STRONG_BUY"
-                ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
-                rsi: trendData.oscillators.find(o => o.name === "RSI")?.value?.toFixed(2) ?? "N/A"
-              };
+          let trendData = marketData?.technicals?.[trendTimeframe];
+          if (!trendData) {
+            const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
+            if (trendKlines && trendKlines.length > 0) {
+              trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
             }
+          }
+          if (trendData) {
+            // Merge into technicalsContext or add as separate field
+            // We'll add it as 'trendBias'
+            technicalsContext.higherTimeframe = {
+              timeframe: trendTimeframe,
+              summary: trendData.summary, // e.g. "STRONG_BUY"
+              ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
+              rsi: TechnicalsPresenter.formatVal(trendData.oscillators.find(o => o.name === "RSI")?.value, 2)
+            };
           }
         }
 
@@ -862,16 +1012,60 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         : [],
       recentHistory: recentTrades,
       tradeSetup: {
+        tradeType: trade.tradeType,
         entry: trade.entryPrice,
         sl: trade.stopLossPrice,
         tp: trade.targets,
         risk: trade.riskPercentage + "%",
         atrMultiplier: trade.atrMultiplier,
         useAtrSl: trade.useAtrSl,
+        ...this.calculateRR(trade),
       },
       marketIntelligence: cmcContext,
       latestNews: newsContext,
     };
+  }
+
+  /**
+   * Pre-calculate Risk/Reward so the AI doesn't have to (and hallucinate).
+   * Returns calculatedRR (string like "1:2.5") and rrVerdict (VALID / WARNING / REJECT).
+   */
+  private calculateRR(trade: typeof tradeState): {
+    calculatedRR: string;
+    rrVerdict: "VALID" | "WARNING" | "REJECT" | "N/A";
+  } {
+    try {
+      const entry = trade.entryPrice ? new Decimal(trade.entryPrice) : null;
+      const sl = trade.stopLossPrice ? new Decimal(trade.stopLossPrice) : null;
+      const tps = trade.targets?.filter((t) => t.price != null && t.price !== "");
+
+      if (!entry || !sl || !tps || tps.length === 0) {
+        return { calculatedRR: "N/A", rrVerdict: "N/A" };
+      }
+
+      const risk = entry.minus(sl).abs();
+      if (risk.isZero()) return { calculatedRR: "N/A", rrVerdict: "N/A" };
+
+      // Use the first TP (TP1) as the reference reward
+      const tp1 = new Decimal(tps[0].price as string | number);
+      const reward = tp1.minus(entry).abs();
+
+      const rrRatio = reward.div(risk);
+      const rrFormatted = `1:${rrRatio.toFixed(2)}`;
+
+      let verdict: "VALID" | "WARNING" | "REJECT";
+      if (rrRatio.gte(2)) {
+        verdict = "VALID";
+      } else if (rrRatio.gte(1.5)) {
+        verdict = "WARNING";
+      } else {
+        verdict = "REJECT";
+      }
+
+      return { calculatedRR: rrFormatted, rrVerdict: verdict };
+    } catch {
+      return { calculatedRR: "N/A", rrVerdict: "N/A" };
+    }
   }
 
   private parseActions(text: string): AiAction[] {
@@ -973,6 +1167,67 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             tradeState.useAtrSl = action.value;
           }
           break;
+        case "setTradeType":
+          if (action.value === "long" || action.value === "short") {
+            tradeState.tradeType = action.value;
+          }
+          break;
+        case "addTakeProfit": {
+          app.addTakeProfitRow();
+          const newIdx = tradeState.targets.length - 1;
+          if (newIdx >= 0 && action.value !== undefined) {
+            tradeState.targets[newIdx].price = String(parseAiValue(action.value as string));
+            if (action.percent !== undefined) {
+              tradeState.targets[newIdx].percent = String(parseAiValue(action.percent as string));
+            }
+          }
+          break;
+        }
+        case "removeTakeProfit":
+          if (typeof action.index === "number" && tradeState.targets.length > 1) {
+            app.removeTakeProfitRow(action.index);
+          }
+          break;
+        case "setAtrMode":
+          if (action.value === "auto" || action.value === "manual") {
+            tradeState.atrMode = action.value;
+          }
+          break;
+        case "setAtrTimeframe":
+          if (typeof action.value === "string") {
+            tradeState.atrTimeframe = action.value;
+          }
+          break;
+        case "setAnalysisTimeframe":
+          if (typeof action.value === "string") {
+            tradeState.analysisTimeframe = action.value;
+          }
+          break;
+        case "setAutoPrice":
+          if (typeof action.value === "boolean" && settingsState.aiAllowSettingsChanges) {
+            settingsState.autoUpdatePriceInput = action.value;
+          }
+          break;
+        case "setAccountSize":
+          if (action.value !== undefined) {
+            tradeState.accountSize = String(parseAiValue(action.value as string));
+          }
+          break;
+        case "resetSetup":
+          tradeState.resetInputs(true, true);
+          break;
+        case "setNotes":
+          if (typeof action.value === "string") {
+            tradeState.tradeNotes = action.value.substring(0, 500);
+          }
+          break;
+        case "setTags":
+          if (Array.isArray(action.tags)) {
+            tradeState.tags = action.tags.map(String).slice(0, 10);
+          } else if (Array.isArray(action.value)) {
+            tradeState.tags = action.value.map(String).slice(0, 10);
+          }
+          break;
       }
       return true;
     } catch (e) {
@@ -1007,6 +1262,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       }
       case "setUseAtrSl":
         return action.value ? "ATR SL: AN" : "ATR SL: AUS";
+      case "setTradeType":
+        return `Richtung: ${String(action.value).toUpperCase()}`;
+      case "addTakeProfit":
+        return `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
+      case "removeTakeProfit":
+        return `TP Entfernen: Index ${(action.index ?? 0) + 1}`;
+      case "setAtrMode":
+        return `ATR Modus: ${action.value}`;
+      case "setAtrTimeframe":
+        return `ATR Timeframe: ${action.value}`;
+      case "setAnalysisTimeframe":
+        return `Analyse Timeframe: ${action.value}`;
+      case "setAutoPrice":
+        return action.value ? "Live-Preis: AN" : "Live-Preis: AUS";
+      case "setAccountSize":
+        return `Kontogröße: ${action.value}`;
+      case "resetSetup":
+        return "Setup zurücksetzen";
+      case "setNotes":
+        return "Trade-Notizen aktualisiert";
+      case "setTags":
+        return "Tags aktualisiert";
       default:
         return `Aktion: ${action.action}`;
     }

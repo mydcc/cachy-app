@@ -18,7 +18,7 @@
 import { settingsState } from "../stores/settings.svelte";
 
 /**
- * The single way client code reaches an API route guarded by `checkAppAuth`.
+ * The single way client code reaches an API route guarded by `checkClientToken`.
  *
  * Since ADR-0002 those routes fail closed: without the `x-app-access-token`
  * header they answer 401, and the app cannot talk to its own backend. The

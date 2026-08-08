@@ -52,7 +52,6 @@
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
-  import AcademyModal from "../components/shared/AcademyModal.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import QuizButton from "../components/shared/QuizButton.svelte";
   import FlashCard from "../components/shared/FlashCard.svelte";
@@ -200,7 +199,12 @@
         uiState.toggleWhitepaperModal(false);
       if (windowManager.isOpen("changelog"))
         uiState.toggleChangelogModal(false);
-      if (windowManager.isOpen("academy")) uiState.toggleAcademyModal(false);
+      // Academy is its own window type now (FEAT-0045), with a real fixed
+      // "academy" id, closed directly rather than through a uiState
+      // wrapper. Market Dashboard and TpSlEdit stay `modal`-type windows,
+      // which close on Escape via WindowManager's own closeOnBlur handling
+      // (FEAT-0044) instead of a branch here.
+      if (windowManager.isOpen("academy")) windowManager.close("academy");
       return;
     }
 
@@ -684,7 +688,7 @@
     {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
-        {#if settingsState.isPro}
+        {#if settingsState.effectiveShowSidebarActivity}
           <!-- Add PositionsSidebar for Mobile -->
           <PositionsSidebar />
         {/if}
@@ -844,7 +848,6 @@
   </div>
 </footer>
 
-<!-- No ModalFrames for Guide/Changelog etc. anymore - they are managed by WindowManager -->
+<!-- No ModalFrames for Guide/Changelog/Academy etc. anymore - they are managed by WindowManager -->
 
-<AcademyModal />
 <FlashCard />

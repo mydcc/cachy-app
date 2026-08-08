@@ -19,7 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
-import { checkAppAuth } from "../../../../lib/server/auth";
+import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 
 const RequestSchema = z.object({
@@ -28,8 +28,8 @@ const RequestSchema = z.object({
   orderId: z.string().min(1),
 });
 
-export const POST: RequestHandler = async ({ request }) => {
-  const authError = checkAppAuth(request);
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   let body;
