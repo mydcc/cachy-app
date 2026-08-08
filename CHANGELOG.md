@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.18](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.17...v1.2.0-beta.18) (2026-08-08)
+
+
+### Bug Fixes
+
+* funding-rate debug log never fires from the Settings toggle ([3e007c9](https://github.com/mydcc/cachy-app/commit/3e007c9a5a977a3a7b2c1b5caabd3b7732d9f574))
+
 # [1.2.0-beta.17](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.16...v1.2.0-beta.17) (2026-08-08)
 
 
