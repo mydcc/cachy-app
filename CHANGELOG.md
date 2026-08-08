@@ -5,6 +5,20 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.30](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.29...v1.2.0-beta.30) (2026-08-08)
+
+
+### Bug Fixes
+
+* stop Market Activity's Orders/History tabs from breaking their own loading state ([1440ba1](https://github.com/mydcc/cachy-app/commit/1440ba1c7a5273cd1762c64b2af0f6a25bf4c292))
+* wire up the live mark price Bitunix never returns on the position endpoint (BUG-0055) ([f1ad6ce](https://github.com/mydcc/cachy-app/commit/f1ad6cee6ef8741521c7f4fcb6526eb46c8df8c6))
+
+
+### Features
+
+* show margin rate and realized PnL on open positions (FEAT-0057) ([97eb8af](https://github.com/mydcc/cachy-app/commit/97eb8af067f5c25d3a383869a62b8a397a7d0970))
+* show reduceOnly in order history and total position size (FEAT-0057) ([a9dd0c9](https://github.com/mydcc/cachy-app/commit/a9dd0c968f37bec1a3b70263fbc0cece77ee5452))
+
 # [1.2.0-beta.29](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.28...v1.2.0-beta.29) (2026-08-08)
 
 
