@@ -248,13 +248,11 @@ class TradeService {
 
             // 2. Execute Close
             // True execution direction, for local optimistic-order bookkeeping
-            // only — accurate regardless of account mode. The API payload's
-            // own `side` (and whether tradeSide/positionId are needed) is
-            // mode-dependent; see buildCloseOrderFields.
+            // only — the API payload's own `side` matches the position side
+            // instead (not inverted); see buildCloseOrderFields.
             const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
             const { side: apiSide, tradeSide, positionId } = this.buildCloseOrderFields(
                 positionSide,
-                position.positionMode,
                 position.positionId,
             );
 
@@ -302,7 +300,8 @@ class TradeService {
                 qty,
                 reduceOnly: true,
                 clientOrderId,
-                ...(tradeSide ? { tradeSide, positionId } : {}),
+                tradeSide,
+                positionId,
             });
 
             return { success: true, data: result };
@@ -457,36 +456,31 @@ class TradeService {
     }
 
     /**
-     * Bitunix's place_order needs a different payload shape to close a
-     * position depending on account mode (docs/bitunix-api/07_trade.md:
-     * 583-584, see BUG-0062):
-     *  - ONE_WAY (the default, and the only shape this ever sent before
-     *    BUG-0062): `side` is the literal execution direction — closing a
-     *    long means selling — and `tradeSide`/`positionId` are absent.
-     *  - HEDGE: `side` instead identifies *which* position (BUY = the long
-     *    side, SELL = the short side, matching the position's own side, not
-     *    inverted), and `tradeSide: "CLOSE"` + `positionId` are required to
-     *    disambiguate from opening — a symbol can carry both a long and a
-     *    short position at once.
-     *
-     * Falls back to the ONE_WAY shape whenever positionMode can't be
-     * determined (e.g. no REST-hydrated position yet), since that was the
-     * only behavior this ever had — never silently switch shapes without
-     * being sure.
+     * Bitunix's place_order/batch_order docs (docs/bitunix-api/07_trade.md:
+     * 32/583) list `tradeSide` as unconditionally `Required: true` — the
+     * "nur im Hedge-Modus erforderlich" wording only describes when the
+     * value matters for disambiguation, not when the field may be omitted.
+     * BUG-0062 trusted the wording and only sent `tradeSide`/`positionId`
+     * when `positionMode === "hedge"`, falling back to the old
+     * inverted-`side`-only shape otherwise — confirmed live (BUG-0063) that
+     * this fallback still 500s with "must not be null" on a ONE_WAY
+     * account, so it was never a working shape to begin with. `positionId`
+     * is documented as required whenever `tradeSide = CLOSE`, again with no
+     * Hedge-only qualifier, so it's sent unconditionally too. `side`
+     * matches the position's own side (BUY closes a long, SELL closes a
+     * short) per the documented request example — not inverted — since
+     * `tradeSide`/`positionId` now carry the open/close and which-position
+     * disambiguation in all modes.
      */
     private buildCloseOrderFields(
         positionSide: "long" | "short",
-        positionMode: "one_way" | "hedge" | undefined,
         positionId: string | undefined,
-    ): { side: "BUY" | "SELL"; tradeSide?: "CLOSE"; positionId?: string } {
-        if (positionMode === "hedge") {
-            return {
-                side: positionSide === "long" ? "BUY" : "SELL",
-                tradeSide: "CLOSE",
-                positionId,
-            };
-        }
-        return { side: positionSide === "long" ? "SELL" : "BUY" };
+    ): { side: "BUY" | "SELL"; tradeSide: "CLOSE"; positionId?: string } {
+        return {
+            side: positionSide === "long" ? "BUY" : "SELL",
+            tradeSide: "CLOSE",
+            positionId,
+        };
     }
 
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
@@ -501,7 +495,6 @@ class TradeService {
 
         const { side, tradeSide, positionId } = this.buildCloseOrderFields(
             positionSide,
-            position.positionMode,
             position.positionId,
         );
 
@@ -523,7 +516,8 @@ class TradeService {
             orderType: "MARKET",
             qty,
             reduceOnly: true,
-            ...(tradeSide ? { tradeSide, positionId } : {}),
+            tradeSide,
+            positionId,
         });
     }
 

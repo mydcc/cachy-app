@@ -150,7 +150,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // [HARDENING FIX] Now that we call cancelAllOrders first, we must find the CLOSE order
         const calls = signedRequestSpy.mock.calls;
-        const callArgs = calls.find((c) => c[2] && c[2].side === 'SELL');
+        const callArgs = calls.find((c) => c[2] && c[2].side === 'BUY');
 
         if (!callArgs) {
             throw new Error(`Flash close order not found in ${calls.length} calls: ${JSON.stringify(calls)}`);
@@ -216,12 +216,14 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // [HARDENING FIX] Find the CLOSE order call
         const calls = signedRequestSpy.mock.calls;
-        const callArgs = calls.find((c) => c[2] && c[2].side === 'SELL');
+        const callArgs = calls.find((c) => c[2] && c[2].side === 'BUY');
         const body = callArgs![2];
 
-        // Opposite side for long = sell
-        expect(body.side).toBe('SELL');
-        // CRITICAL: reduceOnly prevents opening short position
+        // side matches the position being closed (BUY = long), not
+        // inverted — see buildCloseOrderFields (BUG-0062/BUG-0063).
+        expect(body.side).toBe('BUY');
+        expect(body.tradeSide).toBe('CLOSE');
+        // CRITICAL: reduceOnly prevents opening a bigger opposite position
         expect(body.reduceOnly).toBe(true);
     });
 
@@ -247,7 +249,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         expect(cancelCall).toBeDefined();
 
         // Ensure Close call is also present
-        const closeCall = calls.find((call) => call[2] && call[2].side === 'SELL');
+        const closeCall = calls.find((call) => call[2] && call[2].side === 'BUY');
         expect(closeCall).toBeDefined();
 
         // Ensure Cancel happens BEFORE Close

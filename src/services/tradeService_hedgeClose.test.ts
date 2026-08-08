@@ -20,14 +20,17 @@ import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
 import { Decimal } from "decimal.js";
 
-// Regression (BUG-0062): closing a position on a HEDGE-mode account 500'd
-// with no usable error message. Root cause: Bitunix's place_order requires
-// `tradeSide: "CLOSE"` (and, with it, `positionId`) whenever the account is
-// in HEDGE mode — a symbol can carry both a long and a short position at
-// once, so `side` alone doesn't disambiguate — but neither closePosition()
-// nor flashClosePosition() ever sent either field, and `side` itself needs
-// to mean something different in HEDGE mode (the position's own side, not
-// inverted) per docs/bitunix-api/07_trade.md:583-584.
+// Regression (BUG-0062/BUG-0063): closing a position 500'd with "must not
+// be null" for every account, HEDGE or ONE_WAY alike. Root cause: Bitunix's
+// place_order docs (docs/bitunix-api/07_trade.md:32/583) list `tradeSide` as
+// unconditionally `Required: true`, and `positionId` as required whenever
+// `tradeSide = CLOSE` — neither is scoped to HEDGE mode, despite the
+// description text ("nur im Hedge-Modus erforderlich") suggesting otherwise.
+// BUG-0062 trusted that text and only sent tradeSide/positionId when
+// positionMode === "hedge", so ONE_WAY accounts (confirmed live, BUG-0063)
+// kept 500ing exactly as before. The fix sends tradeSide="CLOSE" and
+// positionId unconditionally, with `side` matching the position's own side
+// (not inverted) per the documented request example.
 
 vi.mock("./omsService", () => ({
   omsService: {
@@ -60,7 +63,7 @@ vi.mock("./logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), log: vi.fn(), debug: vi.fn() },
 }));
 
-describe("TradeService close-order fields by account mode (BUG-0062)", () => {
+describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -103,7 +106,31 @@ describe("TradeService close-order fields by account mode (BUG-0062)", () => {
       expect(body.positionId).toBe("662491704776252252");
     });
 
-    it("sends the inverted side with no tradeSide/positionId when positionMode is unknown (unchanged behavior)", async () => {
+    it("sends tradeSide=CLOSE and positionId, with side matching the position (not inverted), in ONE_WAY mode too", async () => {
+      vi.mocked(omsService.getPositions).mockReturnValue([
+        {
+          symbol: "XRPUSDT",
+          side: "long",
+          amount: new Decimal(9.1),
+          lastUpdated: Date.now(),
+          positionId: "662491704776252252",
+          positionMode: "one_way",
+        },
+      ]);
+
+      await tradeService.closePosition({
+        symbol: "XRPUSDT",
+        positionSide: "long",
+        forceFullClose: true,
+      });
+
+      const body = lastBody();
+      expect(body.side).toBe("BUY");
+      expect(body.tradeSide).toBe("CLOSE");
+      expect(body.positionId).toBe("662491704776252252");
+    });
+
+    it("still sends tradeSide=CLOSE when positionMode is unknown, omitting positionId only if truly absent", async () => {
       vi.mocked(omsService.getPositions).mockReturnValue([
         {
           symbol: "XRPUSDT",
@@ -120,12 +147,12 @@ describe("TradeService close-order fields by account mode (BUG-0062)", () => {
       });
 
       const body = lastBody();
-      expect(body.side).toBe("SELL");
-      expect(body.tradeSide).toBeUndefined();
+      expect(body.side).toBe("BUY");
+      expect(body.tradeSide).toBe("CLOSE");
       expect(body.positionId).toBeUndefined();
     });
 
-    it("uses SELL (not BUY) to close a short position in HEDGE mode", async () => {
+    it("uses SELL (not BUY) to close a short position", async () => {
       vi.mocked(omsService.getPositions).mockReturnValue([
         {
           symbol: "XRPUSDT",
@@ -170,22 +197,24 @@ describe("TradeService close-order fields by account mode (BUG-0062)", () => {
       expect(body.positionId).toBe("662491704776252252");
     });
 
-    it("sends the inverted side with no tradeSide/positionId when positionMode is unknown (unchanged behavior)", async () => {
+    it("sends tradeSide=CLOSE and positionId in ONE_WAY mode too", async () => {
       vi.mocked(omsService.getPositions).mockReturnValue([
         {
           symbol: "XRPUSDT",
           side: "long",
           amount: new Decimal(9.1),
           lastUpdated: Date.now(),
+          positionId: "662491704776252252",
+          positionMode: "one_way",
         },
       ]);
 
       await tradeService.flashClosePosition("XRPUSDT", "long");
 
       const body = lastBody();
-      expect(body.side).toBe("SELL");
-      expect(body.tradeSide).toBeUndefined();
-      expect(body.positionId).toBeUndefined();
+      expect(body.side).toBe("BUY");
+      expect(body.tradeSide).toBe("CLOSE");
+      expect(body.positionId).toBe("662491704776252252");
     });
   });
 });
