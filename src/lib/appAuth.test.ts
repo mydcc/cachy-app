@@ -115,4 +115,78 @@ describe("appFetch", () => {
 
     readySpy.mockRestore();
   });
+
+  it("issues a token before the first request when none is configured yet", async () => {
+    settingsState.appAccessToken = "";
+    globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
+      if (String(input) === "/api/auth/token") {
+        return Promise.resolve(new Response(JSON.stringify({ token: "fresh-token" })));
+      }
+      return Promise.resolve(new Response("{}"));
+    }) as typeof fetch;
+
+    await appFetch("/api/balance", { method: "POST" });
+
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(1, "/api/auth/token", { method: "POST" });
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/balance",
+      expect.objectContaining({
+        headers: { "x-app-access-token": "fresh-token" },
+      }),
+    );
+    expect(settingsState.appAccessToken).toBe("fresh-token");
+  });
+
+  it("re-issues the token and retries once when the server no longer recognises it", async () => {
+    // Mirrors checkClientToken's in-memory store resetting on a server
+    // restart: the client still has a token, the server has forgotten it.
+    settingsState.appAccessToken = "stale-token";
+    let balanceCalls = 0;
+    globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
+      if (String(input) === "/api/auth/token") {
+        return Promise.resolve(new Response(JSON.stringify({ token: "fresh-token" })));
+      }
+      balanceCalls += 1;
+      if (balanceCalls === 1) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ error: "Unauthorized: Invalid or missing client access token" }),
+            { status: 401 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response("{}"));
+    }) as typeof fetch;
+
+    const response = await appFetch("/api/balance", { method: "POST" });
+
+    expect(response.status).toBe(200);
+    expect(balanceCalls).toBe(2);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/balance",
+      expect.objectContaining({ headers: { "x-app-access-token": "fresh-token" } }),
+    );
+    expect(settingsState.appAccessToken).toBe("fresh-token");
+  });
+
+  it("does not retry a 401 that is unrelated to the client token", async () => {
+    settingsState.appAccessToken = "secret-token";
+    let balanceCalls = 0;
+    globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
+      if (String(input) === "/api/auth/token") {
+        throw new Error("should not re-issue a token for this error");
+      }
+      balanceCalls += 1;
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: "Missing API Credentials" }), { status: 401 }),
+      );
+    }) as typeof fetch;
+
+    const response = await appFetch("/api/balance", { method: "POST" });
+
+    expect(response.status).toBe(401);
+    expect(balanceCalls).toBe(1);
+    expect(settingsState.appAccessToken).toBe("secret-token");
+  });
 });

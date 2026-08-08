@@ -11,6 +11,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getModels } from "./aiModelsService";
 
+// appFetch auto-issues a client token when settingsState.appAccessToken is
+// empty (the real default). Pre-set one here so that background request
+// doesn't consume the fetch mocks these tests set up for the Ollama calls.
+vi.mock("../stores/settings.svelte", () => ({
+  settingsState: {
+    appAccessToken: "test-token",
+    secretsReady: Promise.resolve(),
+  },
+}));
+
 describe("aiModelsService", () => {
   beforeEach(() => {
     localStorage.clear();

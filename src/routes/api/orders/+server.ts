@@ -261,13 +261,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: string, orderId: string) {
     const baseUrl = "https://fapi.bitunix.com";
-    const path = "/api/v1/futures/trade/cancel_order";
+    const path = "/api/v1/futures/trade/cancel_orders";
 
-    const payload = { symbol, orderId };
+    const payload = { symbol, orderList: [{ orderId }] };
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
     const response = await fetch(`${baseUrl}${path}`, {
-        method: "DELETE", // Bitunix typically uses DELETE or POST for cancel. Assuming DELETE based on common REST standards.
+        method: "POST",
         headers: {
             "api-key": apiKey,
             "timestamp": timestamp,
@@ -288,6 +288,13 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
     const text = await response.text();
     const res = safeJsonParse(text);
     if (String(res.code) !== "0") throw new Error(res.msg);
+
+    // cancel_orders reports per-order outcomes rather than failing the whole
+    // call — surface a rejected order (e.g. already filled) as an error
+    // instead of a silent success.
+    const failure = res.data?.failureList?.[0];
+    if (failure) throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+
     return res.data;
 }
 
