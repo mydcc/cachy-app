@@ -23,8 +23,8 @@
 
     // SHA-256 Hash of the cheat code (not stored in plaintext)
     const CHEAT_CODE_HASH =
-        "6c7de706af22343c9919ce5addec8b8341cfbcf82e5854f30fa98a3990bbc556";
-    const CHEAT_CODE_LENGTH = 9;
+        "ee49857c95936c560e923fb24e0af4b65814fa8937cd0437a7b3a0b3893e6daf";
+    const CHEAT_CODE_LENGTH = 5;
 
     let typedBuffer = $state("");
 
