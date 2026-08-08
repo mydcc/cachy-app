@@ -38,6 +38,28 @@ export const BitunixTickerResponseSchema = z.object({
   data: z.array(BitunixTickerSchema).optional(),
 });
 
+// Bitunix Funding Rate Schema (REST market/funding_rate/batch,
+// market/get_funding_rate_history). fundingRate here is a FRACTION
+// (e.g. "0.0005" = 0.05%) - unlike the WS `price` channel's `fr` field,
+// which is already a percentage. See bitunixWs.ts for that distinction.
+export const BitunixFundingRateSchema = z.object({
+  symbol: z.string(),
+  markPrice: StrictDecimal.nullable().optional(),
+  lastPrice: StrictDecimal.nullable().optional(),
+  indexPrice: StrictDecimal.nullable().optional(),
+  fundingRate: StrictDecimal,
+  nextFundingTime: z.union([z.number(), z.string()]),
+  fundingInterval: z.union([z.number(), z.string()]).optional(),
+  maxFundingRate: StrictDecimal.nullable().optional(),
+  minFundingRate: StrictDecimal.nullable().optional(),
+});
+
+export const BitunixFundingRateBatchResponseSchema = z.object({
+  code: z.union([z.number(), z.string()]),
+  msg: z.string().optional(),
+  data: z.array(BitunixFundingRateSchema).optional(),
+});
+
 // Bitunix Kline Schema
 export const BitunixKlineSchema = z.object({
   open: StrictDecimal,

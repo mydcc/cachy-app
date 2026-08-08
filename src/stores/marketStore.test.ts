@@ -68,6 +68,28 @@ describe("marketStore", () => {
     expect(data.priceChangePercent?.toNumber()).toBe(4);
   });
 
+  describe("updateSymbol - funding rate", () => {
+    it("stores fundingRate, nextFundingTime, and fundingInterval as given (REST is the source of truth)", async () => {
+      marketState.updateSymbol("BTCUSDT", {
+        fundingRate: "0.0005",
+        nextFundingTime: "1770710400000",
+        fundingInterval: 8,
+      });
+      await vi.advanceTimersByTimeAsync(300);
+
+      const data = marketState.data["BTCUSDT"];
+      expect(data.fundingRate?.toString()).toBe("0.0005");
+      expect(data.nextFundingTime).toBe(1770710400000);
+      expect(data.fundingInterval).toBe(8);
+    });
+
+    it("accepts a variable fundingInterval per symbol (not fixed at 8h)", async () => {
+      marketState.updateSymbol("XRPUSDT", { fundingInterval: 6 });
+      await vi.advanceTimersByTimeAsync(300);
+      expect(marketState.data["XRPUSDT"].fundingInterval).toBe(6);
+    });
+  });
+
   describe("Kline Protection (Single Source of Truth)", () => {
     it("should prioritize WS updates over REST for the live candle", async () => {
       const symbol = "BTCUSDT";

@@ -4,6 +4,7 @@ import { settingsState, type Settings } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
+import { fundingRateService } from "./fundingRateService";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { Decimal } from "decimal.js";
 
@@ -102,6 +103,14 @@ export function setupRealtimeUpdatesEffect(app: any) {
           }
         }
       });
+    });
+
+    // 5. Funding Rate Polling (REST, Bitunix only - see fundingRateService)
+    $effect(() => {
+      const provider = settingsState.apiProvider;
+      if (provider !== "bitunix") return;
+      fundingRateService.start();
+      return () => fundingRateService.stop();
     });
   });
 }

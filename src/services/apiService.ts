@@ -35,6 +35,7 @@ export class ApiStatusError extends Error {
 
 import {
   BitunixTickerResponseSchema,
+  BitunixFundingRateBatchResponseSchema,
   BitunixKlineSchema,
   BitgetKlineSchema,
   validateResponseSize,
@@ -52,6 +53,12 @@ export interface Ticker24h {
   lowPrice: Decimal;
   volume: Decimal; // Base volume usually
   quoteVolume?: Decimal;
+}
+
+export interface FundingRateEntry {
+  fundingRate: Decimal; // fraction, e.g. 0.0005 = 0.05%
+  nextFundingTime: number | string; // ms epoch
+  fundingInterval?: number | string; // settlement interval in hours, varies per symbol
 }
 
 // Raw Bitget kline shape when the endpoint returns objects instead of
@@ -956,6 +963,67 @@ export const apiService = {
         } catch (e: unknown) {
           logger.error("network", "fetchTicker24h error", e);
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
+          if (
+            e instanceof Error &&
+            (e.message.startsWith("apiErrors.") ||
+              e.message.startsWith("bitunixErrors."))
+          ) {
+            throw e;
+          }
+          throw new Error("apiErrors.generic", { cause: e });
+        }
+      },
+      priority,
+      1,
+      timeout,
+    );
+  },
+
+  // Source of truth for funding rate: Bitunix's REST funding_rate/batch
+  // endpoint, documented and confirmed to return `fundingRate` as a fraction,
+  // labeled "Current funding rates" (the settlement-locked value). The WS
+  // `price` channel's `fr` field is undocumented, scaled differently, and
+  // not used for this anymore - see bitunixWs.ts.
+  async fetchBitunixFundingRates(
+    priority: "high" | "normal" = "normal",
+    timeout = 10000,
+  ): Promise<Map<string, FundingRateEntry>> {
+    const key = "FUNDING_RATE:bitunix:ALL";
+    return requestManager.schedule(
+      key,
+      async (signal) => {
+        try {
+          const response = await fetch(`/api/funding-rate?provider=bitunix`, {
+            signal,
+          });
+          if (!response.ok) throw new Error("apiErrors.generic");
+          const data = await apiService.safeJson(response);
+
+          const validation = BitunixFundingRateBatchResponseSchema.safeParse(data);
+          if (!validation.success) {
+            logger.error("network", "[API] Invalid funding rate response", validation.error.issues);
+            throw new Error("apiErrors.invalidResponse");
+          }
+          const validatedRes = validation.data;
+          if (validatedRes.code !== undefined && validatedRes.code !== 0) {
+            throw new Error(getBitunixErrorKey(validatedRes.code));
+          }
+          if (!validatedRes.data) {
+            throw new Error("apiErrors.invalidResponse");
+          }
+
+          const result = new Map<string, FundingRateEntry>();
+          for (const entry of validatedRes.data) {
+            const symbol = apiService.normalizeSymbol(entry.symbol, "bitunix");
+            result.set(symbol, {
+              fundingRate: entry.fundingRate,
+              nextFundingTime: entry.nextFundingTime,
+              fundingInterval: entry.fundingInterval,
+            });
+          }
+          return result;
+        } catch (e: unknown) {
+          if (e instanceof Error && e.name === "AbortError") throw e;
           if (
             e instanceof Error &&
             (e.message.startsWith("apiErrors.") ||
