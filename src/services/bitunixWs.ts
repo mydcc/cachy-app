@@ -162,7 +162,11 @@ class BitunixWebSocketService {
   private lastFundingRateDebugLog = new Map<string, number>();
   private readonly FUNDING_RATE_DEBUG_INTERVAL = 15000;
   private debugLogRawFundingRate(symbol: string, rawFr: string): void {
-    if (!import.meta.env.DEV) return;
+    // Gated on `enableNetworkLogs` (the "Netzwerk-Logs" toggle in Settings),
+    // matching every other network debug log in this file. `logger.debug()`
+    // checks a different, UI-disconnected flag (`logSettings.network`) and
+    // would silently never fire from the Settings toggle a user would reach for.
+    if (!settingsState.enableNetworkLogs) return;
     const now = Date.now();
     const last = this.lastFundingRateDebugLog.get(symbol) ?? 0;
     if (now - last < this.FUNDING_RATE_DEBUG_INTERVAL) return;
@@ -175,9 +179,11 @@ class BitunixWebSocketService {
       // ignore parse errors, still log raw value below
     }
 
-    logger.debug(
+    logger.log(
       "network",
       `[FUNDING RATE RAW] ${symbol}: fr="${rawFr}" (as currently displayed: ${asPercentIfFraction})`,
+      undefined,
+      true,
     );
   }
 
