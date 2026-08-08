@@ -163,6 +163,7 @@
                   onclick={togglePnlMode}
                   role="button"
                   tabindex="0"
+                  title={$_("positionsList.pnlToggleHint")}
                   onkeydown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -273,6 +274,7 @@
                 onclick={togglePnlMode}
                 role="button"
                 tabindex="0"
+                title={$_("positionsList.pnlToggleHint")}
                 onkeydown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
