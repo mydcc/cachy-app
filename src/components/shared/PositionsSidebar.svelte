@@ -522,8 +522,14 @@
         );
         // Trigger refresh or wait for WS
       }
-    } catch {
-      uiState.showError($_("dashboard.alerts.failedClose"));
+    } catch (e: unknown) {
+      // Previously discarded `e` entirely and showed a fixed generic
+      // message — the exchange's actual rejection reason (e.g. a HEDGE-mode
+      // account rejecting a close that's missing tradeSide/positionId, see
+      // BUG-0062) was never visible to the user. Same pattern
+      // handleCancelOrder already used correctly below.
+      const msg = getDisplayMessage(e);
+      uiState.showError(msg || $_("dashboard.alerts.failedClose"));
     }
   }
 

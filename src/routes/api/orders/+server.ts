@@ -133,6 +133,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           price: payload.price,
           reduceOnly: Boolean(payload.reduceOnly),
           triggerPrice: payload.triggerPrice || payload.stopPrice,
+          // HEDGE-mode close (BUG-0062) — see PlaceOrderSchema's comment.
+          tradeSide: payload.tradeSide,
+          positionId: payload.positionId,
         };
         // Remove undefined safe
         const cleanedPayload = cleanPayload(orderPayload);

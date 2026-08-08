@@ -124,7 +124,14 @@ export const PositionRawSchema = z.object({
     leverage: z.union([z.string(), z.number()]).optional(),
     marginMode: z.string().optional(),
     liquidationPrice: z.union([z.string(), z.number()]).optional(),
-    liqPrice: z.union([z.string(), z.number()]).optional()
+    liqPrice: z.union([z.string(), z.number()]).optional(),
+    // Bitunix sends both on Get Pending Positions (docs/bitunix-api/05_position.md)
+    // and the position WS channel. Without positionId/positionMode surviving
+    // this schema, closePosition()/flashClosePosition() can't tell a
+    // HEDGE-mode account from a ONE_WAY one, or which position to target —
+    // see BUG-0062.
+    positionId: z.union([z.string(), z.number()]).optional(),
+    positionMode: z.string().optional()
 }).refine(data => {
     // Hardening: A position must have at least one quantity field to be valid.
     // Otherwise it's likely a malformed response or an empty object from a weird API state.

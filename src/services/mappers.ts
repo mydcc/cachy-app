@@ -79,7 +79,11 @@ export function mapToOMSPosition(data: any): OMSPosition {
         margin: parseDecimalOrUndefined(data.margin || data.isolatedMargin || data.crossMargin),
         markPrice: parseDecimalOrUndefined(data.markPrice),
         size: amount,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        positionId: data.positionId !== undefined ? String(data.positionId) : undefined,
+        positionMode: data.positionMode
+            ? (String(data.positionMode).toUpperCase() === "HEDGE" ? "hedge" : "one_way")
+            : undefined,
     };
 }
 

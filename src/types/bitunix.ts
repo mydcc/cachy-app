@@ -118,6 +118,9 @@ export interface BitunixOrderPayload {
   price?: string | number;
   reduceOnly?: boolean;
   leverage?: string | number;
+  // HEDGE-mode-only (docs/bitunix-api/07_trade.md:583-584) — see BUG-0062.
+  tradeSide?: "OPEN" | "CLOSE";
+  positionId?: string;
   [key: string]: unknown;
 }
 

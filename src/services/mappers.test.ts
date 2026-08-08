@@ -79,6 +79,31 @@ describe("Mappers", () => {
             const result = mapToOMSPosition(raw);
             expect(result.entryPrice.toString()).toBe("200");
         });
+
+        // Regression (BUG-0062): closePosition()/flashClosePosition() need
+        // positionId/positionMode to close a HEDGE-mode position correctly.
+        // Both are present on Bitunix's raw position payload but were
+        // silently dropped before reaching OMSPosition.
+        it("carries positionId through and normalizes positionMode to lowercase", () => {
+            const result = mapToOMSPosition({
+                symbol: "BTCUSDT",
+                positionId: "662491704776252252",
+                positionMode: "HEDGE",
+            });
+            expect(result.positionId).toBe("662491704776252252");
+            expect(result.positionMode).toBe("hedge");
+        });
+
+        it("normalizes ONE_WAY to one_way", () => {
+            const result = mapToOMSPosition({ symbol: "BTCUSDT", positionMode: "ONE_WAY" });
+            expect(result.positionMode).toBe("one_way");
+        });
+
+        it("leaves positionId/positionMode undefined when absent", () => {
+            const result = mapToOMSPosition({ symbol: "BTCUSDT" });
+            expect(result.positionId).toBeUndefined();
+            expect(result.positionMode).toBeUndefined();
+        });
     });
 
     describe("mapToOMSOrder", () => {
