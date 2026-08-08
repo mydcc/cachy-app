@@ -54,6 +54,53 @@ describe('AccountManager', () => {
         expect(accountState.positions[0].side).toBe('long'); // Should persist
     });
 
+    // Regression (BUG-0058): a WS push that omits `qty` entirely (e.g. an
+    // UPDATE carrying only a margin/PnL change) used to be treated as a
+    // close, because the same `Decimal(0)` fallback used for "field absent"
+    // was also what `.isZero()` checked against — silently deleting a still
+    // -open position from the store on the very next such push.
+    it('does not close an existing position when a WS push omits qty', () => {
+        accountState.updatePositionFromWs({
+            positionId: '123', symbol: 'BTCUSDT', side: 'long',
+            qty: '1.0', averagePrice: '50000', leverage: '10',
+            unrealizedPNL: '100', margin: '500', marginMode: 'cross',
+        });
+        expect(accountState.positions).toHaveLength(1);
+
+        // Margin/PnL-only update, no qty field at all.
+        accountState.updatePositionFromWs({
+            positionId: '123', unrealizedPNL: '150', margin: '520',
+        });
+
+        expect(accountState.positions).toHaveLength(1);
+        expect(accountState.positions[0].size.toString()).toBe('1'); // preserved
+        expect(accountState.positions[0].unrealizedPnl.toString()).toBe('150');
+    });
+
+    it('still closes a position when the push explicitly carries qty "0"', () => {
+        accountState.updatePositionFromWs({
+            positionId: '123', symbol: 'BTCUSDT', side: 'long',
+            qty: '1.0', averagePrice: '50000', marginMode: 'cross',
+        });
+        expect(accountState.positions).toHaveLength(1);
+
+        accountState.updatePositionFromWs({ positionId: '123', qty: '0' });
+
+        expect(accountState.positions).toHaveLength(0);
+    });
+
+    it('still closes a position on an explicit CLOSE event with no qty', () => {
+        accountState.updatePositionFromWs({
+            positionId: '123', symbol: 'BTCUSDT', side: 'long',
+            qty: '1.0', averagePrice: '50000', marginMode: 'cross',
+        });
+        expect(accountState.positions).toHaveLength(1);
+
+        accountState.updatePositionFromWs({ positionId: '123', event: 'CLOSE' });
+
+        expect(accountState.positions).toHaveLength(0);
+    });
+
     it('should trigger sync callback on partial update for unknown position (Race Condition Fix)', () => {
         const consoleSpy = vi.spyOn(console, 'warn');
         const syncCallback = vi.fn();
