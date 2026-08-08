@@ -5,6 +5,14 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.20](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.19...v1.2.0-beta.20) (2026-08-08)
+
+
+### Bug Fixes
+
+* **eslint:** remove unused parameter e from openChannel in MarketOverview ([e5d4d68](https://github.com/mydcc/cachy-app/commit/e5d4d6872a0e45459a5be14d0ff47e8b172dcd6b))
+* **windows:** open channel windows in top-left position with margin ([11e97a7](https://github.com/mydcc/cachy-app/commit/11e97a7063a541ae487faeb367088c4745168373))
+
 # [1.2.0-beta.19](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.18...v1.2.0-beta.19) (2026-08-08)
 
 
