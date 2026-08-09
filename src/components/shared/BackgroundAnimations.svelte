@@ -29,7 +29,12 @@
     const tradeHistorySize = 50;
     let sentiment = $state(0); // -1 to 1
 
-    function onTrade(trade: any) {
+    interface RawTradeEvent {
+        s?: string;
+        side?: string;
+    }
+
+    function onTrade(trade: RawTradeEvent) {
         const side = trade.s || trade.side;
         if (!side) return;
         
