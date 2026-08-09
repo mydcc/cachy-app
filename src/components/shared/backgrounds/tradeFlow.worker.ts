@@ -48,12 +48,13 @@ let camera: THREE.PerspectiveCamera;
 let activeEngine: BaseEngine | null = null;
 let settings: FlowSettings;
 
-const colorUp = new THREE.Color(0x00ff88);
-const colorDown = new THREE.Color(0xff4444);
-const colorBg = new THREE.Color(0x000000);
-
+let colorUp = new THREE.Color(0x00ff88);
+let colorDown = new THREE.Color(0xff4444);
+let colorBg = new THREE.Color(0x0a0e27);
 let targetSentiment = 0;
 let currentSentiment = 0;
+let currentAtmosphereColor = new THREE.Color(0x0a0e27);
+let targetAtmosphereColor = new THREE.Color(0x0a0e27);
 
 self.onmessage = (event) => {
     const { type, data } = event.data;
@@ -107,7 +108,32 @@ function animate(time: number) {
     // Smoothing Sentiment
     currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.02;
 
+    // Dynamic Atmosphere
+    if (settings.enableAtmosphere) {
+        if (currentSentiment > 0.05) {
+            targetAtmosphereColor.copy(colorBg).lerp(colorUp, currentSentiment * 0.15);
+        } else if (currentSentiment < -0.05) {
+            targetAtmosphereColor.copy(colorBg).lerp(colorDown, Math.abs(currentSentiment) * 0.15);
+        } else {
+            targetAtmosphereColor.copy(colorBg);
+        }
+    } else {
+        targetAtmosphereColor.copy(colorBg);
+    }
+    
+    currentAtmosphereColor.lerp(targetAtmosphereColor, 0.02);
+    scene.background = currentAtmosphereColor;
+    
+    if (!scene.fog) {
+        scene.fog = new THREE.FogExp2(currentAtmosphereColor.getHex(), 0.012);
+    } else {
+        (scene.fog as THREE.FogExp2).color.copy(currentAtmosphereColor);
+    }
+
     if (activeEngine) {
+        // Share interpolated atmosphere with engine context
+        activeEngine.context.currentAtmosphere = currentAtmosphereColor;
+        
         activeEngine.update(now, 0.016);
         updateSentimentUniforms();
     }

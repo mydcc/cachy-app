@@ -167,7 +167,7 @@ class AccountManager {
     this.notifyListeners();
   }
 
-  registerSyncCallback(fn: () => void) {
+  registerSyncCallback(fn: (() => void) | null) {
     this.syncCallback = fn;
   }
 
@@ -271,6 +271,18 @@ class AccountManager {
         };
         this.positions.push(newPos);
         this.notifyListeners();
+
+        // The WS position channel never carries entryPrice/liquidationPrice/
+        // marginRate (docs/bitunix-api/08_websocket.md's Position Channel),
+        // so a position that reaches Cachy via WS before the one-time REST
+        // hydration on mount (e.g. opened directly on the exchange while
+        // Cachy was already running) is stuck showing 0/"-" for those
+        // forever — nothing else ever re-fetches REST for it. Re-use the
+        // existing "state we can't trust, get the truth from REST" signal
+        // (see the missing-`side` case above) to trigger a backfill.
+        if (this.syncCallback) {
+          this.syncCallback();
+        }
       }
     }
   }

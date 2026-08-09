@@ -182,12 +182,6 @@ export class CityEngine extends BaseEngine {
         this.context.colorUp = colorUp;
         this.context.colorDown = colorDown;
         this.context.currentAtmosphere = atmosphere;
-        if (this.cityMesh && (this.cityMesh.material as THREE.ShaderMaterial).uniforms) {
-            const mat = this.cityMesh.material as THREE.ShaderMaterial;
-            mat.uniforms.uColorUp.value = colorUp;
-            mat.uniforms.uColorDown.value = colorDown;
-            mat.uniforms.uAtmosphere.value = atmosphere;
-        }
     }
 
     // `any` matches BaseEngine.context.settings' own declared type ("Generic settings

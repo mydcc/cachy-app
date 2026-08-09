@@ -179,6 +179,33 @@
             prevStructureKey = key;
         }
     });
+
+    // Gyroscope Effect
+    $effect(() => {
+        if (!browser || !worker) return;
+        
+        const handleOrientation = (event: DeviceOrientationEvent) => {
+            if (event.alpha === null || event.beta === null || event.gamma === null) return;
+            worker!.postMessage({
+                type: 'gyro',
+                data: {
+                    alpha: event.alpha,
+                    beta: event.beta,
+                    gamma: event.gamma
+                }
+            });
+        };
+        
+        if (settingsState.galaxySettings.enableGyroscope) {
+            window.addEventListener('deviceorientation', handleOrientation);
+        } else {
+            window.removeEventListener('deviceorientation', handleOrientation);
+        }
+        
+        return () => {
+            window.removeEventListener('deviceorientation', handleOrientation);
+        };
+    });
 </script>
 
 <div bind:this={container} class="w-full h-full absolute inset-0 overflow-hidden" aria-hidden="true" tabindex="-1"></div>
