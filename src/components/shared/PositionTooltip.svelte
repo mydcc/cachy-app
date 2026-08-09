@@ -94,7 +94,7 @@
 
     <!-- PnL & Margin -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.pnl")}:</span>
+      <span class="text-[var(--text-secondary)]">{$_("positionsList.unrealizedPnl")}:</span>
       <span
         class:text-[var(--success-color)]={position.unrealizedPnl > 0}
         class:text-[var(--danger-color)]={position.unrealizedPnl < 0}
@@ -122,6 +122,28 @@
         <span class="text-[var(--warning-color)]"
           >{formatDynamicDecimal(position.liquidationPrice)}</span
         >
+      {:else}
+        <span>-</span>
+      {/if}
+    </div>
+
+    <div class="flex justify-between">
+      <span class="text-[var(--text-secondary)]">{$_("positionsList.marginRate")}:</span>
+      {#if position.marginRate && new Decimal(position.marginRate).gt(0)}
+        <span>{formatDynamicDecimal(new Decimal(position.marginRate).mul(100))}%</span>
+      {:else}
+        <span>-</span>
+      {/if}
+    </div>
+    <div class="flex justify-between">
+      <span class="text-[var(--text-secondary)]">{$_("positionsList.realizedPnl")}:</span>
+      {#if position.realizedPnl !== undefined && position.realizedPnl !== null}
+        <span
+          class:text-[var(--success-color)]={new Decimal(position.realizedPnl).gt(0)}
+          class:text-[var(--danger-color)]={new Decimal(position.realizedPnl).lt(0)}
+        >
+          {new Decimal(position.realizedPnl).gt(0) ? "+" : ""}{formatDynamicDecimal(position.realizedPnl)}
+        </span>
       {:else}
         <span>-</span>
       {/if}

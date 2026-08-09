@@ -16,7 +16,63 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal } from "./utils";
+import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal, formatDynamicDecimal, unwrapApiEnvelope } from "./utils";
+
+// Regression (BUG-0060): PositionsSidebar.svelte read `data.positions`/
+// `data.error` straight off the response of /api/positions and /api/account,
+// which actually respond via jsonSuccess/jsonError (src/utils/apiResponse.ts)
+// wrapping the payload under `data.data` / `data.error.message`. Neither
+// check ever matched, so a real position/account fetch silently populated
+// nothing and surfaced no error — indistinguishable from a genuinely empty
+// account. This is the real response body a user pasted while reporting it.
+describe("unwrapApiEnvelope", () => {
+  it("unwraps a real /api/positions success response", () => {
+    const body = {
+      success: true,
+      data: {
+        positions: [
+          {
+            positionId: "662491704776252252",
+            symbol: "XRPUSDT",
+            side: "LONG",
+            size: "9.1",
+            entryPrice: "1.0434",
+            liquidationPrice: "0.9441",
+            margin: "0.9540751212993",
+            unrealizedPnL: "0.02639",
+            marginRate: "0.0486",
+            realizedPnl: "-0.0052172855007",
+            leverage: "10",
+            marginMode: "isolated",
+          },
+        ],
+      },
+    };
+    const result = unwrapApiEnvelope<{ positions: unknown[] }>(body);
+    expect(result.data?.positions).toHaveLength(1);
+    expect(result.code).toBeUndefined();
+  });
+
+  it("unwraps an error response into { data: null, code, message }", () => {
+    const body = {
+      success: false,
+      error: { code: "AUTH_ERROR", message: "Unauthorized" },
+    };
+    const result = unwrapApiEnvelope(body);
+    expect(result.data).toBeNull();
+    expect(result.code).toBe("AUTH_ERROR");
+    expect(result.message).toBe("Unauthorized");
+  });
+
+  it("treats a missing success field as success with no data", () => {
+    // A route that doesn't use this envelope at all (e.g. /api/orders)
+    // should never be passed here — this documents the fallback behavior
+    // rather than endorsing the call site.
+    const result = unwrapApiEnvelope({});
+    expect(result.data).toBeNull();
+    expect(result.code).toBeUndefined();
+  });
+});
 
 describe("parseTimestamp", () => {
   it("should return number as is (milliseconds)", () => {
@@ -210,5 +266,25 @@ describe("parseDecimal", () => {
     expect(parseDecimal("MARKET").toNumber()).toBe(0);
     expect(parseDecimal("LIMIT").toNumber()).toBe(0);
     expect(parseDecimal("abc").toNumber()).toBe(0);
+  });
+});
+
+describe("formatDynamicDecimal", () => {
+  it("should format valid numeric input", () => {
+    expect(formatDynamicDecimal("123.4500")).toBe("123.45");
+    expect(formatDynamicDecimal(100)).toBe("100");
+  });
+
+  it("should return '-' for null/undefined", () => {
+    expect(formatDynamicDecimal(null)).toBe("-");
+    expect(formatDynamicDecimal(undefined)).toBe("-");
+  });
+
+  it("should return '-' instead of throwing on a non-numeric string", () => {
+    // Regression: `new Decimal("MARKET")` throws rather than yielding NaN,
+    // and this is called from dozens of list/tooltip components with
+    // whatever field an order/position object happens to hold.
+    expect(formatDynamicDecimal("MARKET")).toBe("-");
+    expect(formatDynamicDecimal("LIMIT")).toBe("-");
   });
 });

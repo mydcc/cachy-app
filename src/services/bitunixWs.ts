@@ -152,6 +152,40 @@ class BitunixWebSocketService {
   private readonly VALIDATION_ERROR_WINDOW = 60000; // [HYBRID FIX] Increased window to 1m
   private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
+  // Logs the raw, unmodified "fr" field exactly as received from the "price"
+  // channel, per symbol, throttled to avoid console spam. This field is
+  // undocumented and scaled as a percentage, not the fraction convention
+  // Bitunix's REST funding-rate endpoints use - fundingRate is no longer
+  // sourced from it (see fundingRateService.ts). Kept for future diagnosis
+  // in case Bitunix's WS behavior needs re-investigating.
+  private lastFundingRateDebugLog = new Map<string, number>();
+  private readonly FUNDING_RATE_DEBUG_INTERVAL = 15000;
+  private debugLogRawFundingRate(symbol: string, rawFr: string): void {
+    // Gated on `enableNetworkLogs` (the "Netzwerk-Logs" toggle in Settings),
+    // matching every other network debug log in this file. `logger.debug()`
+    // checks a different, UI-disconnected flag (`logSettings.network`) and
+    // would silently never fire from the Settings toggle a user would reach for.
+    if (!settingsState.enableNetworkLogs) return;
+    const now = Date.now();
+    const last = this.lastFundingRateDebugLog.get(symbol) ?? 0;
+    if (now - last < this.FUNDING_RATE_DEBUG_INTERVAL) return;
+    this.lastFundingRateDebugLog.set(symbol, now);
+
+    let asPercentIfFraction = "n/a";
+    try {
+      asPercentIfFraction = new Decimal(rawFr).times(100).toFixed(4) + "%";
+    } catch {
+      // ignore parse errors, still log raw value below
+    }
+
+    logger.log(
+      "network",
+      `[FUNDING RATE RAW] ${symbol}: fr="${rawFr}" (as currently displayed: ${asPercentIfFraction})`,
+      undefined,
+      true,
+    );
+  }
+
   /**
    * Warns (throttled) when a field the exchange should send as a string
    * arrives as a number, then normalises it. Two call sites (price and ticker
@@ -900,8 +934,18 @@ class BitunixWebSocketService {
                   try {
                     // HARDENING: Direct property access + Warning on Numeric Types
                     const ip = data.ip !== undefined ? this.safeString(data.ip, symbol, 'indexPrice') : undefined;
+                    // Mark price: the only transport that carries it for a
+                    // position — Bitunix's REST/WS position endpoints never
+                    // return markPrice (see BUG-0055). `mp` was previously
+                    // parsed for nothing and discarded.
+                    const mp = data.mp !== undefined ? this.safeString(data.mp, symbol, 'markPrice') : undefined;
+                    // fundingRate/nextFundingTime are NOT read from this WS field anymore:
+                    // `fr` is undocumented and scaled differently from Bitunix's REST
+                    // funding_rate/batch endpoint, which is now the sole source of truth
+                    // for funding rate (see fundingRateService.ts). Kept as a debug log
+                    // only, in case Bitunix's WS behavior needs re-investigating later.
                     const fr = data.fr !== undefined ? this.safeString(data.fr, symbol, 'fundingRate') : undefined;
-                    const nft = data.nft ? String(data.nft) : undefined;
+                    if (fr !== undefined) this.debugLogRawFundingRate(symbol, fr);
 
                     // Check precision loss on lastPrice if present (though we don't use it currently)
                     if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
@@ -914,8 +958,7 @@ class BitunixWebSocketService {
                         // them and then reading `data.*` anyway.
                         marketState.updateSymbol(symbol, {
                           indexPrice: ip ? new Decimal(ip) : undefined,
-                          fundingRate: fr ? new Decimal(fr) : undefined,
-                          nextFundingTime: nft
+                          markPrice: mp ? new Decimal(mp) : undefined,
                         });
                     }
                     return;
@@ -1231,8 +1274,9 @@ class BitunixWebSocketService {
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
             indexPrice: d.ip ? String(d.ip) : undefined,
-            fundingRate: d.fr ? String(d.fr) : undefined,
-            nextFundingTime: d.nft ? String(d.nft) : undefined
+            markPrice: d.mp ? String(d.mp) : undefined,
+            // fundingRate/nextFundingTime: see fast path above - sourced from
+            // REST (fundingRateService.ts), not this undocumented WS field.
           });
         }
       } else if (validatedChannel === "ticker") {

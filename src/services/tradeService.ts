@@ -111,8 +111,15 @@ class TradeService {
             ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
         };
 
+        // Every guarded route's Zod schema requires `exchange` in the body
+        // (there is no header fallback for it, only for the credentials
+        // above) — inject it here once rather than relying on every call
+        // site to remember it. Callers that already set it (none currently
+        // do) win, since they're spread after.
+        const payloadWithExchange = { exchange: provider, ...payload };
+
         // Deep serialize Decimals to strings before JSON.stringify
-        const serializedPayload = this.serializePayload(payload);
+        const serializedPayload = this.serializePayload(payloadWithExchange);
 
         const response = await appFetch(endpoint, {
             method,
@@ -240,10 +247,14 @@ class TradeService {
             }
 
             // 2. Execute Close
-            // Close Long -> Sell
-            // Close Short -> Buy
+            // True execution direction, for local optimistic-order bookkeeping
+            // only — the API payload's own `side` matches the position side
+            // instead (not inverted); see buildCloseOrderFields.
             const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
-            const apiSide = side === "sell" ? "SELL" : "BUY";
+            const { side: apiSide, tradeSide, positionId } = this.buildCloseOrderFields(
+                positionSide,
+                position.positionId,
+            );
 
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
@@ -282,12 +293,15 @@ class TradeService {
             }
 
             const result = await this.signedRequest("POST", "/api/orders", {
+                type: "place-order",
                 symbol,
                 side: apiSide,
                 orderType: "MARKET",
                 qty,
                 reduceOnly: true,
-                clientOrderId
+                clientOrderId,
+                tradeSide,
+                positionId,
             });
 
             return { success: true, data: result };
@@ -441,6 +455,34 @@ class TradeService {
         }
     }
 
+    /**
+     * Bitunix's place_order/batch_order docs (docs/bitunix-api/07_trade.md:
+     * 32/583) list `tradeSide` as unconditionally `Required: true` — the
+     * "nur im Hedge-Modus erforderlich" wording only describes when the
+     * value matters for disambiguation, not when the field may be omitted.
+     * BUG-0062 trusted the wording and only sent `tradeSide`/`positionId`
+     * when `positionMode === "hedge"`, falling back to the old
+     * inverted-`side`-only shape otherwise — confirmed live (BUG-0063) that
+     * this fallback still 500s with "must not be null" on a ONE_WAY
+     * account, so it was never a working shape to begin with. `positionId`
+     * is documented as required whenever `tradeSide = CLOSE`, again with no
+     * Hedge-only qualifier, so it's sent unconditionally too. `side`
+     * matches the position's own side (BUY closes a long, SELL closes a
+     * short) per the documented request example — not inverted — since
+     * `tradeSide`/`positionId` now carry the open/close and which-position
+     * disambiguation in all modes.
+     */
+    private buildCloseOrderFields(
+        positionSide: "long" | "short",
+        positionId: string | undefined,
+    ): { side: "BUY" | "SELL"; tradeSide: "CLOSE"; positionId?: string } {
+        return {
+            side: positionSide === "long" ? "BUY" : "SELL",
+            tradeSide: "CLOSE",
+            positionId,
+        };
+    }
+
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
         const { symbol, positionSide, amount, forceFullClose } = params;
 
@@ -451,7 +493,10 @@ class TradeService {
             throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
-        const side = positionSide === "long" ? "SELL" : "BUY";
+        const { side, tradeSide, positionId } = this.buildCloseOrderFields(
+            positionSide,
+            position.positionId,
+        );
 
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
@@ -465,11 +510,14 @@ class TradeService {
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
         return this.signedRequest("POST", "/api/orders", {
+            type: "place-order",
             symbol,
             side,
             orderType: "MARKET",
             qty,
-            reduceOnly: true
+            reduceOnly: true,
+            tradeSide,
+            positionId,
         });
     }
 
@@ -526,6 +574,7 @@ class TradeService {
                               if (sym) params.symbol = sym;
 
                               const data = await this.signedRequest<Record<string, unknown>>("POST", "/api/tpsl", {
+                                  exchange: "bitunix",
                                   action: view,
                                   params
                               }).catch((e): Record<string, unknown> => {
@@ -572,6 +621,7 @@ class TradeService {
 
     public async cancelTpSlOrder(order: TpSlOrder) {
         return this.signedRequest("POST", "/api/tpsl", {
+            exchange: "bitunix",
             action: "cancel",
             params: {
                 orderId: order.orderId || order.id,
@@ -589,6 +639,7 @@ class TradeService {
         qty?: string
     }) {
         return this.signedRequest("POST", "/api/tpsl", {
+            exchange: "bitunix",
             action: "modify",
             params: {
                 orderId: params.orderId,

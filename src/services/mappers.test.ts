@@ -79,6 +79,31 @@ describe("Mappers", () => {
             const result = mapToOMSPosition(raw);
             expect(result.entryPrice.toString()).toBe("200");
         });
+
+        // Regression (BUG-0062): closePosition()/flashClosePosition() need
+        // positionId/positionMode to close a HEDGE-mode position correctly.
+        // Both are present on Bitunix's raw position payload but were
+        // silently dropped before reaching OMSPosition.
+        it("carries positionId through and normalizes positionMode to lowercase", () => {
+            const result = mapToOMSPosition({
+                symbol: "BTCUSDT",
+                positionId: "662491704776252252",
+                positionMode: "HEDGE",
+            });
+            expect(result.positionId).toBe("662491704776252252");
+            expect(result.positionMode).toBe("hedge");
+        });
+
+        it("normalizes ONE_WAY to one_way", () => {
+            const result = mapToOMSPosition({ symbol: "BTCUSDT", positionMode: "ONE_WAY" });
+            expect(result.positionMode).toBe("one_way");
+        });
+
+        it("leaves positionId/positionMode undefined when absent", () => {
+            const result = mapToOMSPosition({ symbol: "BTCUSDT" });
+            expect(result.positionId).toBeUndefined();
+            expect(result.positionMode).toBeUndefined();
+        });
     });
 
     describe("mapToOMSOrder", () => {
@@ -114,6 +139,27 @@ describe("Mappers", () => {
             const result = mapToOMSOrder({});
             expect(result.price.toString()).toBe("0");
             expect(result.amount.toString()).toBe("0");
+        });
+
+        it("should not throw when a numeric field holds a non-numeric string", () => {
+            // Regression: `new Decimal("MARKET")` throws (decimal.js does not
+            // return NaN like Number() does), which used to crash the whole
+            // reactive tree consuming OMS state when a raw WS/API field ended
+            // up here malformed.
+            const raw = {
+                orderId: "1",
+                symbol: "ETHUSDT",
+                side: "BUY",
+                type: "MARKET",
+                price: "MARKET",
+                qty: "MARKET",
+                dealAmount: "MARKET",
+            };
+
+            const result = mapToOMSOrder(raw);
+            expect(result.price.toString()).toBe("0");
+            expect(result.amount.toString()).toBe("0");
+            expect(result.filledAmount.toString()).toBe("0");
         });
     });
 });

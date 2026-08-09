@@ -54,7 +54,8 @@ vi.mock('../../src/services/logger', () => ({
     logger: {
         warn: vi.fn(),
         error: vi.fn(),
-        log: vi.fn()
+        log: vi.fn(),
+        debug: vi.fn()
     }
 }));
 
@@ -80,7 +81,7 @@ describe('BitunixWS Fast Path Fallback', () => {
         }
     });
 
-    it('should use Fast Path for valid price message (Price Channel updates Funding/Index)', () => {
+    it('should use Fast Path for valid price message (Price Channel updates Index Price)', () => {
         const msg = {
             ch: 'price',
             symbol: 'BTCUSDT',
@@ -89,11 +90,27 @@ describe('BitunixWS Fast Path Fallback', () => {
 
         wsService.handleMessage(msg, 'public');
 
-        // Price channel now updates Index Price and Funding Rate, NOT Last Price (to avoid flickering)
+        // Price channel updates Index Price, NOT Last Price (to avoid flickering).
+        // fundingRate is intentionally NOT set from `fr` here: it's undocumented
+        // and scaled differently from Bitunix's REST funding-rate endpoints, which
+        // are the sole source of truth for fundingRate (see fundingRateService.ts).
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
-            fundingRate: new Decimal('0.01'),
             indexPrice: new Decimal('50001'),
-            nextFundingTime: undefined
+        });
+    });
+
+    it('should parse mark price from the price channel (BUG-0055)', () => {
+        const msg = {
+            ch: 'price',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', fr: '0.01', ip: '50001', mp: '50002' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
+            indexPrice: new Decimal('50001'),
+            markPrice: new Decimal('50002'),
         });
     });
 

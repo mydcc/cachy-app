@@ -74,7 +74,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = await fetchBitunixTpSl(
           apiKey,
           apiSecret,
-          "/api/v1/futures/tp_sl/get_pending_tp_sl_order",
+          "/api/v1/futures/tpsl/get_pending_orders",
           params,
         );
         break;
@@ -82,7 +82,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = await fetchBitunixTpSl(
           apiKey,
           apiSecret,
-          "/api/v1/futures/tp_sl/get_history_tp_sl_order",
+          "/api/v1/futures/tpsl/get_history_orders",
           params,
         );
         break;
@@ -90,7 +90,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = await executeBitunixAction(
           apiKey,
           apiSecret,
-          "/api/v1/futures/tp_sl/cancel_tp_sl_order",
+          "/api/v1/futures/tpsl/cancel_order",
           params,
         );
         break;
@@ -98,7 +98,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = await executeBitunixAction(
           apiKey,
           apiSecret,
-          "/api/v1/futures/tp_sl/modify_tp_sl_order",
+          "/api/v1/futures/tpsl/modify_order",
           params,
         );
         break;

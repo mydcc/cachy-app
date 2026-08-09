@@ -30,6 +30,7 @@ import type { NormalizedPosition } from "../../../types/bitunix";
 // Raw Bitunix position fields — names vary across API versions/endpoints,
 // hence the fallback chains at each read site below.
 interface BitunixRawPosition {
+  positionId?: string | number;
   side?: string | number;
   positionSide?: string;
   symbol: string;
@@ -51,6 +52,8 @@ interface BitunixRawPosition {
   openLoss?: string | number;
   leverage?: string | number;
   marginMode?: string | number;
+  marginRate?: string | number;
+  realizedPNL?: string | number;
 }
 
 // Raw Bitget position fields (/api/mix/v1/position/allPosition).
@@ -195,6 +198,7 @@ async function fetchBitunixPositions(
       }
 
       return {
+        positionId: p.positionId !== undefined ? String(p.positionId) : undefined,
         symbol: p.symbol,
         side: side,
         // size: "qty" as per docs. Fallback to older fields.
@@ -215,6 +219,8 @@ async function fetchBitunixPositions(
         unrealizedPnL: formatApiNum(
           p.unrealizedPNL || p.unrealizedPnL || p.openLoss,
         ),
+        marginRate: formatApiNum(p.marginRate),
+        realizedPnl: formatApiNum(p.realizedPNL),
         leverage: formatApiNum(p.leverage),
         // marginType: "ISOLATION" | "CROSS" as per docs.
         marginMode:

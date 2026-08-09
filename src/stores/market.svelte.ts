@@ -26,8 +26,15 @@ export interface MarketData {
   symbol: string;
   lastPrice: Decimal | null;
   indexPrice: Decimal | null;
+  // Bitunix's position endpoints (REST and WS) never carry a mark price —
+  // this is the only place it's actually available, sourced from the public
+  // WS `price` channel's `mp` field (see BUG-0055). Consumers rendering a
+  // position must read it from here, keyed by symbol, not from any
+  // position-shaped object.
+  markPrice: Decimal | null;
   fundingRate: Decimal | null;
   nextFundingTime: number | null; // Unix timestamp in ms
+  fundingInterval?: number | null; // Settlement interval in hours (varies per symbol)
   depth?: {
     bids: [string, string][]; // [price, qty]
     asks: [string, string][];
@@ -96,6 +103,7 @@ export interface RawKline {
 interface RawPriceUpdate {
   price?: RawNumeric;
   indexPrice?: RawNumeric;
+  markPrice?: RawNumeric;
   fundingRate?: RawNumeric;
   nextFundingTime?: number | string | null;
 }
@@ -199,6 +207,7 @@ export class MarketManager {
         symbol,
         lastPrice: null,
         indexPrice: null,
+        markPrice: null,
         fundingRate: null,
         nextFundingTime: null,
         klines: {},
@@ -284,8 +293,25 @@ export class MarketManager {
 
     // Merge partials manually to ensure nested objects like depth/technicals don't get lost if partial is shallow
     // However, partial is flat except for depth/technicals/klines.
-    // Simple spread is efficient for gathering updates.
-    this.pendingUpdates.set(symbol, { ...existing, ...partial });
+    // `{ ...existing, ...partial }` would silently clobber a real, not-yet-
+    // flushed value: callers build partial objects like
+    // `{ markPrice: mp ? new Decimal(mp) : undefined }`, so a WS push that
+    // doesn't repeat every field (e.g. an index-price-only price channel
+    // tick) still carries an explicit `markPrice: undefined` key, which a
+    // plain spread applies — wiping out an earlier, real markPrice buffered
+    // in this same flush window before it ever reaches `current` (BUG-0065).
+    // applyUpdate() already skips `undefined` fields once flushed; the
+    // buffer merge must skip them for the same reason, or that guard never
+    // gets to see the real value at all.
+    const merged: MarketUpdatePayload = { ...existing };
+    const mergedRecord = merged as Record<string, unknown>;
+    for (const key of Object.keys(partial) as (keyof MarketUpdatePayload)[]) {
+      const value = partial[key];
+      if (value !== undefined) {
+        mergedRecord[key] = value;
+      }
+    }
+    this.pendingUpdates.set(symbol, merged);
 
     // Safety: Prevent memory leak if flush interval stalls
     // Dynamic limit based on cache size (5x cache size to allow for burst)
@@ -383,6 +409,10 @@ export class MarketManager {
           const newVal = toDecimal(partial.indexPrice, current.indexPrice);
           if (newVal !== undefined) current.indexPrice = newVal;
       }
+      if (partial.markPrice !== undefined) {
+          const newVal = toDecimal(partial.markPrice, current.markPrice);
+          if (newVal !== undefined) current.markPrice = newVal;
+      }
       if (partial.highPrice !== undefined) {
           const newVal = toDecimal(partial.highPrice, current.highPrice);
           if (newVal !== undefined) current.highPrice = newVal;
@@ -406,6 +436,11 @@ export class MarketManager {
       if (partial.fundingRate !== undefined) {
           const newVal = toDecimal(partial.fundingRate, current.fundingRate);
           if (newVal !== undefined) current.fundingRate = newVal;
+      }
+      if (partial.fundingInterval !== undefined) {
+          const raw = partial.fundingInterval;
+          const n = raw === null ? null : Number(raw);
+          if (n === null || !isNaN(n)) current.fundingInterval = n;
       }
 
       if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
@@ -775,6 +810,7 @@ export class MarketManager {
       // Just pass raw values, applyUpdate handles Decimal conversion efficiently
       if (data.price) update.lastPrice = data.price;
       if (data.indexPrice) update.indexPrice = data.indexPrice;
+      if (data.markPrice) update.markPrice = data.markPrice;
       if (data.fundingRate) update.fundingRate = data.fundingRate;
 
       this.updateSymbol(symbol, update);

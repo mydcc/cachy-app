@@ -5,6 +5,171 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.2.0-beta.38](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.37...v1.2.0-beta.38) (2026-08-08)
+
+
+### Bug Fixes
+
+* correct mislabeled unrealized PnL row in the position tooltip (BUG-0066) ([96bc94a](https://github.com/mydcc/cachy-app/commit/96bc94a4eb052a605ff59f59874a110b4e90fde1))
+
+# [1.2.0-beta.37](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.36...v1.2.0-beta.37) (2026-08-08)
+
+
+### Bug Fixes
+
+* preserve positionId/positionMode across partial WS pushes (BUG-0064) ([7f0e200](https://github.com/mydcc/cachy-app/commit/7f0e200658dcc1933f382fa9ac2fda5210181ed1))
+* stop a partial WS price push from clobbering a buffered markPrice (BUG-0065) ([1cbda56](https://github.com/mydcc/cachy-app/commit/1cbda56dc49f5e663639853f45f07377cb59f457))
+
+# [1.2.0-beta.36](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.35...v1.2.0-beta.36) (2026-08-08)
+
+
+### Bug Fixes
+
+* send tradeSide/positionId unconditionally when closing a position (BUG-0063) ([a5fce7e](https://github.com/mydcc/cachy-app/commit/a5fce7ee9988b999083d5cbf865f38c50c0f8a97))
+
+# [1.2.0-beta.35](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.34...v1.2.0-beta.35) (2026-08-08)
+
+
+### Bug Fixes
+
+* closing a position 500s on a HEDGE-mode account (BUG-0062) ([f45e98d](https://github.com/mydcc/cachy-app/commit/f45e98d526943c0fbc4cf8c4f09c2e7aaca63be8))
+
+# [1.2.0-beta.34](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.33...v1.2.0-beta.34) (2026-08-08)
+
+
+### Bug Fixes
+
+* populate leverage/margin mode/qty in the order tooltip (BUG-0061) ([37cc564](https://github.com/mydcc/cachy-app/commit/37cc564c7486dc22e61c4d994e7fbe12bfd2404c))
+
+# [1.2.0-beta.33](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.32...v1.2.0-beta.33) (2026-08-08)
+
+
+### Bug Fixes
+
+* unwrap the correct response envelope for positions/account fetches (BUG-0060) ([e89414f](https://github.com/mydcc/cachy-app/commit/e89414f9e05a0cd5c0d683a450d72e006bb80d2a))
+
+# [1.2.0-beta.32](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.31...v1.2.0-beta.32) (2026-08-08)
+
+
+### Bug Fixes
+
+* surface account-fetch errors instead of silently leaving the summary at zero (BUG-0059) ([38514eb](https://github.com/mydcc/cachy-app/commit/38514eb50190d152060c8d4cea10a20ac3ab66e1))
+
+# [1.2.0-beta.31](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.30...v1.2.0-beta.31) (2026-08-08)
+
+
+### Bug Fixes
+
+* a WS position push without qty no longer closes a still-open position (BUG-0058) ([6badb70](https://github.com/mydcc/cachy-app/commit/6badb70d75e4b96138f9082b8183ca27a06cda3e))
+
+# [1.2.0-beta.30](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.29...v1.2.0-beta.30) (2026-08-08)
+
+
+### Bug Fixes
+
+* stop Market Activity's Orders/History tabs from breaking their own loading state ([1440ba1](https://github.com/mydcc/cachy-app/commit/1440ba1c7a5273cd1762c64b2af0f6a25bf4c292))
+* wire up the live mark price Bitunix never returns on the position endpoint (BUG-0055) ([f1ad6ce](https://github.com/mydcc/cachy-app/commit/f1ad6cee6ef8741521c7f4fcb6526eb46c8df8c6))
+
+
+### Features
+
+* show margin rate and realized PnL on open positions (FEAT-0057) ([97eb8af](https://github.com/mydcc/cachy-app/commit/97eb8af067f5c25d3a383869a62b8a397a7d0970))
+* show reduceOnly in order history and total position size (FEAT-0057) ([a9dd0c9](https://github.com/mydcc/cachy-app/commit/a9dd0c968f37bec1a3b70263fbc0cece77ee5452))
+
+# [1.2.0-beta.29](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.28...v1.2.0-beta.29) (2026-08-08)
+
+
+### Bug Fixes
+
+* unify Positions/Orders/Account on a single live store, fix cancel/close 400s ([0bc4a5f](https://github.com/mydcc/cachy-app/commit/0bc4a5f16d45f5236182f6255e942fd117a24ff3))
+
+# [1.2.0-beta.28](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.27...v1.2.0-beta.28) (2026-08-08)
+
+
+### Bug Fixes
+
+* correct percent-vs-fraction scaling for REST funding rate ([d3cdaf9](https://github.com/mydcc/cachy-app/commit/d3cdaf966f5834ae6cc79e66dc0e51c17ff4d969)), closes [#1658](https://github.com/mydcc/cachy-app/issues/1658)
+
+# [1.2.0-beta.27](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.26...v1.2.0-beta.27) (2026-08-08)
+
+
+### Bug Fixes
+
+* exchange field missing from TP/SL requests, harden Decimal parsing ([c2706e9](https://github.com/mydcc/cachy-app/commit/c2706e9da4c02e18356ac14fe6b7bf63673bbc6e))
+
+# [1.2.0-beta.26](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.25...v1.2.0-beta.26) (2026-08-08)
+
+
+### Bug Fixes
+
+* auto-recover client access token when the server forgets it ([3720903](https://github.com/mydcc/cachy-app/commit/3720903b2c39c24ff6c44c550fafb861d410ed3b))
+* correct Bitunix TP/SL and order-cancel endpoint paths ([40933dc](https://github.com/mydcc/cachy-app/commit/40933dca666cd03c7820c9bc55b34beee9ad9261))
+* satisfy i18n string linter in isClientTokenError ([91a6867](https://github.com/mydcc/cachy-app/commit/91a686756a5f4bc68aede1d8f3a4c55bf2455da0))
+
+# [1.2.0-beta.25](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.24...v1.2.0-beta.25) (2026-08-08)
+
+
+### Bug Fixes
+
+* funding rate row disappearing on load; add REST raw-value debug log ([a5a956b](https://github.com/mydcc/cachy-app/commit/a5a956b9e84467fd86d242031abeef55ae1a2e0f)), closes [#1660](https://github.com/mydcc/cachy-app/issues/1660)
+
+# [1.2.0-beta.24](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.23...v1.2.0-beta.24) (2026-08-08)
+
+
+### Bug Fixes
+
+* **windows:** open channel windows in top-left position with margin ([85b3eae](https://github.com/mydcc/cachy-app/commit/85b3eae64796d9ea2fd543a86be8c68b73ae21a7))
+
+# [1.2.0-beta.23](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.22...v1.2.0-beta.23) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ui:** position market activities window below market sentiment ([e517768](https://github.com/mydcc/cachy-app/commit/e51776820df97306049deec710e6357a75e73daf))
+
+# [1.2.0-beta.22](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.21...v1.2.0-beta.22) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ui:** enable Bitunix market activities sidebar visibility and update Pro cheatcode to TEICH ([e21d090](https://github.com/mydcc/cachy-app/commit/e21d090a24e1f63ea73326fb0cc47a7607977096))
+
+# [1.2.0-beta.21](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.20...v1.2.0-beta.21) (2026-08-08)
+
+
+### Bug Fixes
+
+* source funding rate from Bitunix REST, not the undocumented WS field ([1907fa3](https://github.com/mydcc/cachy-app/commit/1907fa3066ba276dff931b50bfa2fe48400a668e))
+
+# [1.2.0-beta.20](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.19...v1.2.0-beta.20) (2026-08-08)
+
+
+### Bug Fixes
+
+* **eslint:** remove unused parameter e from openChannel in MarketOverview ([e5d4d68](https://github.com/mydcc/cachy-app/commit/e5d4d6872a0e45459a5be14d0ff47e8b172dcd6b))
+* **windows:** open channel windows in top-left position with margin ([11e97a7](https://github.com/mydcc/cachy-app/commit/11e97a7063a541ae487faeb367088c4745168373))
+
+# [1.2.0-beta.19](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.18...v1.2.0-beta.19) (2026-08-08)
+
+
+### Bug Fixes
+
+* correct 100x-too-high funding rate from Bitunix price channel ([7f680b2](https://github.com/mydcc/cachy-app/commit/7f680b2a63660c245927d93c19b5932908832064))
+
+# [1.2.0-beta.18](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.17...v1.2.0-beta.18) (2026-08-08)
+
+
+### Bug Fixes
+
+* funding-rate debug log never fires from the Settings toggle ([3e007c9](https://github.com/mydcc/cachy-app/commit/3e007c9a5a977a3a7b2c1b5caabd3b7732d9f574))
+
+# [1.2.0-beta.17](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.16...v1.2.0-beta.17) (2026-08-08)
+
+
+### Bug Fixes
+
+* **windows:** set initial 854x480 resolution and 16:9 ratio for channel windows ([a7f0038](https://github.com/mydcc/cachy-app/commit/a7f0038ddd085fa7d31f58b6d8c04b890aeae98f))
+
 # [1.2.0-beta.16](https://github.com/mydcc/cachy-app/compare/v1.2.0-beta.15...v1.2.0-beta.16) (2026-08-08)
 
 

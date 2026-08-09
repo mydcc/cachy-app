@@ -365,6 +365,10 @@ class WindowRegistry {
             },
             layout: {
                 ...baseLayout,
+                x: 20,
+                y: 60,
+                width: 854,
+                height: 480,
                 aspectRatio: 16 / 9
             }
         });

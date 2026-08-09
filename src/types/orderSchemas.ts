@@ -75,6 +75,12 @@ export const PlaceOrderSchema = BaseRequestSchema.extend({
       return false;
     }).optional().default(false),
   marginCoin: z.string().optional().default("USDT"), // For Bitget
+  // HEDGE-mode-only fields (docs/bitunix-api/07_trade.md:583-584): tradeSide
+  // is required to disambiguate OPEN vs CLOSE when a symbol can carry both a
+  // long and a short position at once; positionId is then required too, to
+  // say which one. Omitted entirely for ONE_WAY accounts — see BUG-0062.
+  tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
+  positionId: z.string().optional(),
 });
 
 // --- Close Position ---
@@ -109,6 +115,10 @@ export const HistorySchema = BaseRequestSchema.extend({
        return isNaN(n) ? 50 : Math.min(Math.max(n, 1), 100);
     }).optional().default(50),
   symbol: z.string().optional(), // Optional filter
+  // Bitunix's get_history_orders excludes CANCELED orders unless this is
+  // true — and then it excludes everything else. There is no single call
+  // that returns both, so the client fetches once per value and merges.
+  queryCanceled: z.boolean().optional().default(false),
 });
 
 // --- Pending ---

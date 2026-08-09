@@ -55,4 +55,19 @@ export interface OMSPosition {
     markPrice?: Decimal; // Hardening: Ensure markPrice is optional but typed
     size?: Decimal; // Hardening
     lastUpdated?: number; // Freshness check
+    // Bitunix-only, REST snapshot ("Get Pending Positions") — absent for
+    // Bitget, and possibly stale relative to a fresh WS position push (the
+    // WS position channel never sends marginRate; see account.svelte.ts).
+    marginRate?: Decimal;
+    // Cumulative realized PnL for the position while it stays open (fees/
+    // funding excluded) — live via WS on Bitunix, REST-snapshot-only
+    // elsewhere.
+    realizedPnl?: Decimal;
+    // Needed to close a position correctly (BUG-0062/BUG-0063): Bitunix's
+    // place_order requires both tradeSide="CLOSE" and positionId
+    // unconditionally to close a position — see buildCloseOrderFields() in
+    // tradeService.ts. positionMode itself is display-only now (Account
+    // Summary "Mode: HEDGE/ONE_WAY").
+    positionId?: string;
+    positionMode?: "one_way" | "hedge";
 }

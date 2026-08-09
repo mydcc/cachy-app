@@ -54,6 +54,53 @@ describe('AccountManager', () => {
         expect(accountState.positions[0].side).toBe('long'); // Should persist
     });
 
+    // Regression (BUG-0058): a WS push that omits `qty` entirely (e.g. an
+    // UPDATE carrying only a margin/PnL change) used to be treated as a
+    // close, because the same `Decimal(0)` fallback used for "field absent"
+    // was also what `.isZero()` checked against — silently deleting a still
+    // -open position from the store on the very next such push.
+    it('does not close an existing position when a WS push omits qty', () => {
+        accountState.updatePositionFromWs({
+            positionId: '123', symbol: 'BTCUSDT', side: 'long',
+            qty: '1.0', averagePrice: '50000', leverage: '10',
+            unrealizedPNL: '100', margin: '500', marginMode: 'cross',
+        });
+        expect(accountState.positions).toHaveLength(1);
+
+        // Margin/PnL-only update, no qty field at all.
+        accountState.updatePositionFromWs({
+            positionId: '123', unrealizedPNL: '150', margin: '520',
+        });
+
+        expect(accountState.positions).toHaveLength(1);
+        expect(accountState.positions[0].size.toString()).toBe('1'); // preserved
+        expect(accountState.positions[0].unrealizedPnl.toString()).toBe('150');
+    });
+
+    it('still closes a position when the push explicitly carries qty "0"', () => {
+        accountState.updatePositionFromWs({
+            positionId: '123', symbol: 'BTCUSDT', side: 'long',
+            qty: '1.0', averagePrice: '50000', marginMode: 'cross',
+        });
+        expect(accountState.positions).toHaveLength(1);
+
+        accountState.updatePositionFromWs({ positionId: '123', qty: '0' });
+
+        expect(accountState.positions).toHaveLength(0);
+    });
+
+    it('still closes a position on an explicit CLOSE event with no qty', () => {
+        accountState.updatePositionFromWs({
+            positionId: '123', symbol: 'BTCUSDT', side: 'long',
+            qty: '1.0', averagePrice: '50000', marginMode: 'cross',
+        });
+        expect(accountState.positions).toHaveLength(1);
+
+        accountState.updatePositionFromWs({ positionId: '123', event: 'CLOSE' });
+
+        expect(accountState.positions).toHaveLength(0);
+    });
+
     it('should trigger sync callback on partial update for unknown position (Race Condition Fix)', () => {
         const consoleSpy = vi.spyOn(console, 'warn');
         const syncCallback = vi.fn();
@@ -80,5 +127,315 @@ describe('AccountManager', () => {
             expect.stringContaining('Ignored position update'),
             expect.anything()
         );
+    });
+
+    // Regression: `new Decimal("MARKET")` throws (decimal.js does not return
+    // NaN like Number() does), so a malformed field on a raw WS push used to
+    // crash the store outright instead of falling back safely.
+    it('should not throw when a new position has a non-numeric field', () => {
+        expect(() =>
+            accountState.updatePositionFromWs({
+                positionId: '456',
+                symbol: 'ETHUSDT',
+                side: 'long',
+                qty: '1.5', // non-zero, so this isn't treated as a CLOSE
+                averagePrice: 'MARKET',
+                leverage: 'MARKET',
+                unrealizedPNL: 'MARKET',
+                margin: 'MARKET',
+            }),
+        ).not.toThrow();
+
+        expect(accountState.positions).toHaveLength(1);
+        expect(accountState.positions[0].size.toString()).toBe('1.5');
+        expect(accountState.positions[0].entryPrice.toString()).toBe('0');
+    });
+
+    it('should not throw when a new order has a non-numeric price', () => {
+        expect(() =>
+            accountState.updateOrderFromWs({
+                orderId: '789',
+                symbol: 'ETHUSDT',
+                side: 'BUY',
+                type: 'MARKET',
+                price: 'MARKET',
+                qty: 'MARKET',
+                dealAmount: 'MARKET',
+                orderStatus: 'NEW',
+            }),
+        ).not.toThrow();
+
+        expect(accountState.openOrders).toHaveLength(1);
+        expect(accountState.openOrders[0].price.toString()).toBe('0');
+    });
+
+    it('should not throw when a balance push has a non-numeric field', () => {
+        expect(() =>
+            accountState.updateBalanceFromWs({
+                coin: 'USDT',
+                available: 'MARKET',
+                margin: 'MARKET',
+                frozen: 'MARKET',
+            }),
+        ).not.toThrow();
+
+        expect(accountState.assets).toHaveLength(1);
+        expect(accountState.assets[0].total.toString()).toBe('0');
+    });
+
+    // Regression: PositionsSidebar.svelte used to assign the raw REST JSON
+    // straight into accountState.positions (string fields, no positionId),
+    // silently violating the Position type (`response.json()` is `any`, so
+    // nothing caught it) and breaking correlation with subsequent WS
+    // updates. hydratePositions/hydrateOpenOrders/hydrateBalance replace
+    // that with the same Decimal-safe parsing WS updates already use.
+    describe('hydratePositions', () => {
+        it('converts REST NormalizedPosition[] into typed Decimal positions', () => {
+            accountState.hydratePositions([
+                {
+                    positionId: '456',
+                    symbol: 'BTCUSDT',
+                    side: 'LONG',
+                    size: '1.5',
+                    entryPrice: '50000',
+                    unrealizedPnL: '100',
+                    margin: '500',
+                    leverage: '10',
+                    marginMode: 'CROSS',
+                },
+            ]);
+
+            expect(accountState.positions).toHaveLength(1);
+            const pos = accountState.positions[0];
+            expect(pos.positionId).toBe('456');
+            expect(pos.side).toBe('long');
+            expect(pos.size.toString()).toBe('1.5');
+            expect(pos.entryPrice.toString()).toBe('50000');
+            expect(pos.marginMode).toBe('cross');
+        });
+
+        it('does not throw on a malformed field and replaces the whole array', () => {
+            accountState.hydratePositions([
+                { positionId: '1', symbol: 'BTCUSDT', side: 'LONG', size: 'MARKET', marginMode: 'CROSS' },
+            ]);
+            expect(accountState.positions).toHaveLength(1);
+            expect(accountState.positions[0].size.toString()).toBe('0');
+
+            // A second hydration fully replaces the first (REST is a full snapshot).
+            accountState.hydratePositions([]);
+            expect(accountState.positions).toHaveLength(0);
+        });
+    });
+
+    describe('hydrateOpenOrders', () => {
+        it('converts REST NormalizedOrder[] into typed Decimal orders', () => {
+            accountState.hydrateOpenOrders([
+                {
+                    id: '1', orderId: '1', symbol: 'ETHUSDT', type: 'LIMIT', side: 'BUY',
+                    price: '3000', amount: '2', filled: '0', status: 'NEW', time: 1700000000000,
+                    fee: '0', realizedPNL: '0',
+                },
+            ]);
+
+            expect(accountState.openOrders).toHaveLength(1);
+            const order = accountState.openOrders[0];
+            expect(order.orderId).toBe('1');
+            expect(order.side).toBe('buy');
+            expect(order.type).toBe('limit');
+            expect(order.price.toString()).toBe('3000');
+        });
+
+        // Regression (order tooltip): leverage/marginMode/positionMode/TP-SL
+        // were dropped at the OpenOrder type boundary even after the server
+        // started sending them — the Orders tab tooltip showed "Leverage: x"
+        // and a blank Margin Mode regardless of what the exchange returned.
+        it('carries leverage/marginMode/positionMode/TP-SL through', () => {
+            accountState.hydrateOpenOrders([
+                {
+                    id: '1', orderId: '1', symbol: 'ETHUSDT', type: 'LIMIT', side: 'BUY',
+                    price: '3000', amount: '2', filled: '0', status: 'NEW', time: 1700000000000,
+                    fee: '0', realizedPNL: '0', leverage: '15', marginMode: 'ISOLATION',
+                    positionMode: 'HEDGE', tpPrice: '3100', slPrice: '2900',
+                },
+            ]);
+
+            const order = accountState.openOrders[0];
+            expect(order.leverage).toBe('15');
+            expect(order.marginMode).toBe('ISOLATION');
+            expect(order.positionMode).toBe('HEDGE');
+            expect(order.tpPrice).toBe('3100');
+            expect(order.slPrice).toBe('2900');
+        });
+    });
+
+    describe('updateOrderFromWs — descriptive metadata (order tooltip)', () => {
+        it('sets leverage/marginMode/TP-SL from a WS push (positionType, not marginMode)', () => {
+            accountState.updateOrderFromWs({
+                orderId: '1', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '2', dealAmount: '0', orderStatus: 'NEW',
+                leverage: '15', positionType: 'ISOLATION', positionMode: 'HEDGE',
+                tpPrice: '3100', slPrice: '2900',
+            });
+
+            const order = accountState.openOrders[0];
+            expect(order.leverage).toBe('15');
+            expect(order.marginMode).toBe('ISOLATION');
+            expect(order.positionMode).toBe('HEDGE');
+            expect(order.tpPrice).toBe('3100');
+            expect(order.slPrice).toBe('2900');
+        });
+
+        it('preserves descriptive metadata across an update that omits it', () => {
+            accountState.updateOrderFromWs({
+                orderId: '1', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '2', dealAmount: '0', orderStatus: 'NEW',
+                leverage: '15', positionType: 'ISOLATION',
+            });
+
+            // A later push (e.g. a PART_FILLED update) that doesn't repeat
+            // leverage/marginMode must not wipe them.
+            accountState.updateOrderFromWs({
+                orderId: '1', dealAmount: '1', orderStatus: 'PART_FILLED',
+            });
+
+            const order = accountState.openOrders[0];
+            expect(order.leverage).toBe('15');
+            expect(order.marginMode).toBe('ISOLATION');
+            expect(order.filled.toString()).toBe('1');
+        });
+    });
+
+    describe('hydrateBalance', () => {
+        it('sets available/margin/frozen and derives total', () => {
+            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' });
+            expect(accountState.assets).toHaveLength(1);
+            const asset = accountState.assets[0];
+            expect(asset.available.toString()).toBe('1000');
+            expect(asset.total.toString()).toBe('1060');
+        });
+    });
+
+    // Regression: marginRate is REST-only (Bitunix never sends it over WS),
+    // while realizedPNL *is* pushed live on every WS position update — the
+    // two must not be treated the same way.
+    describe('marginRate / realizedPnl (FEAT-0057)', () => {
+        it('hydratePositions parses both from the REST snapshot', () => {
+            accountState.hydratePositions([
+                {
+                    positionId: '1', symbol: 'BTCUSDT', side: 'LONG', marginMode: 'CROSS',
+                    marginRate: '0.05', realizedPnl: '12.34',
+                },
+            ]);
+            expect(accountState.positions[0].marginRate.toString()).toBe('0.05');
+            expect(accountState.positions[0].realizedPnl.toString()).toBe('12.34');
+        });
+
+        it('updatePositionFromWs updates realizedPnl but preserves marginRate across a push', () => {
+            accountState.hydratePositions([
+                {
+                    positionId: '1', symbol: 'BTCUSDT', side: 'LONG', marginMode: 'CROSS',
+                    marginRate: '0.05', realizedPnl: '0',
+                },
+            ]);
+
+            accountState.updatePositionFromWs({
+                positionId: '1', symbol: 'BTCUSDT', side: 'long',
+                qty: '1.5', realizedPNL: '3.21',
+            });
+
+            expect(accountState.positions[0].realizedPnl.toString()).toBe('3.21');
+            // marginRate has no WS field to update from — must survive unchanged.
+            expect(accountState.positions[0].marginRate.toString()).toBe('0.05');
+        });
+
+        it('a WS-only position (no prior REST hydration) defaults marginRate to 0', () => {
+            accountState.updatePositionFromWs({
+                positionId: '2', symbol: 'ETHUSDT', side: 'long',
+                qty: '1', realizedPNL: '0',
+            });
+            expect(accountState.positions[0].marginRate.toString()).toBe('0');
+        });
+    });
+
+    // Regression: order history has no WS push channel of its own, so
+    // PositionsSidebar relies on this callback to know when to refetch it —
+    // it used to only refresh once per session (stale trades).
+    describe('registerOrderCloseCallback', () => {
+        it('fires when a WS push closes an open order', () => {
+            accountState.updateOrderFromWs({
+                orderId: '1', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '1', dealAmount: '0', orderStatus: 'NEW',
+            });
+            expect(accountState.openOrders).toHaveLength(1);
+
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+
+            accountState.updateOrderFromWs({
+                orderId: '1', orderStatus: 'FILLED',
+            });
+
+            expect(accountState.openOrders).toHaveLength(0);
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not fire for updates that keep the order open', () => {
+            accountState.updateOrderFromWs({
+                orderId: '2', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '1', dealAmount: '0', orderStatus: 'NEW',
+            });
+
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+
+            accountState.updateOrderFromWs({
+                orderId: '2', orderStatus: 'PARTIALLY_FILLED', dealAmount: '0.5',
+            });
+
+            expect(accountState.openOrders).toHaveLength(1);
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('does not fire for a close event on an order not being tracked', () => {
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+
+            accountState.updateOrderFromWs({
+                orderId: 'unknown', orderStatus: 'CANCELED',
+            });
+
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('unregisters cleanly when passed null', () => {
+            accountState.updateOrderFromWs({
+                orderId: '3', symbol: 'ETHUSDT', side: 'BUY', type: 'LIMIT',
+                price: '3000', qty: '1', dealAmount: '0', orderStatus: 'NEW',
+            });
+
+            const onClose = vi.fn();
+            accountState.registerOrderCloseCallback(onClose);
+            accountState.registerOrderCloseCallback(null);
+
+            expect(() =>
+                accountState.updateOrderFromWs({ orderId: '3', orderStatus: 'FILLED' }),
+            ).not.toThrow();
+            expect(onClose).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('totalUnrealizedPnl', () => {
+        it('sums unrealizedPnl across all open positions', () => {
+            accountState.hydratePositions([
+                { symbol: 'BTCUSDT', side: 'LONG', unrealizedPnL: '100', marginMode: 'CROSS' },
+                { symbol: 'ETHUSDT', side: 'SHORT', unrealizedPnL: '-30', marginMode: 'CROSS' },
+            ]);
+            expect(accountState.totalUnrealizedPnl.toString()).toBe('70');
+        });
+
+        it('is zero with no open positions', () => {
+            accountState.hydratePositions([]);
+            expect(accountState.totalUnrealizedPnl.toString()).toBe('0');
+        });
     });
 });

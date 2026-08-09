@@ -16,7 +16,25 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { sanitizeErrorMessage } from './apiSchemas';
+import { sanitizeErrorMessage, PositionRawSchema } from './apiSchemas';
+
+// Regression (BUG-0062): PositionRawSchema didn't declare positionId/
+// positionMode, so Zod silently stripped both from a raw position object
+// before it reached mapToOMSPosition — closePosition() then had no way to
+// tell a HEDGE-mode account apart from ONE_WAY, or which position to
+// target.
+describe('PositionRawSchema', () => {
+  it('preserves positionId and positionMode', () => {
+    const result = PositionRawSchema.parse({
+      symbol: 'XRPUSDT',
+      qty: '9.1',
+      positionId: '662491704776252252',
+      positionMode: 'HEDGE',
+    });
+    expect(result.positionId).toBe('662491704776252252');
+    expect(result.positionMode).toBe('HEDGE');
+  });
+});
 
 describe('sanitizeErrorMessage', () => {
   it('should redact simple key=value pairs', () => {

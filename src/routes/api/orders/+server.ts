@@ -121,7 +121,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit));
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit), payload.queryCanceled);
         result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -133,6 +133,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           price: payload.price,
           reduceOnly: Boolean(payload.reduceOnly),
           triggerPrice: payload.triggerPrice || payload.stopPrice,
+          // HEDGE-mode close (BUG-0062) — see PlaceOrderSchema's comment.
+          tradeSide: payload.tradeSide,
+          positionId: payload.positionId,
         };
         // Remove undefined safe
         const cleanedPayload = cleanPayload(orderPayload);
@@ -261,13 +264,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: string, orderId: string) {
     const baseUrl = "https://fapi.bitunix.com";
-    const path = "/api/v1/futures/trade/cancel_order";
+    const path = "/api/v1/futures/trade/cancel_orders";
 
-    const payload = { symbol, orderId };
+    const payload = { symbol, orderList: [{ orderId }] };
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
     const response = await fetch(`${baseUrl}${path}`, {
-        method: "DELETE", // Bitunix typically uses DELETE or POST for cancel. Assuming DELETE based on common REST standards.
+        method: "POST",
         headers: {
             "api-key": apiKey,
             "timestamp": timestamp,
@@ -288,6 +291,13 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
     const text = await response.text();
     const res = safeJsonParse(text);
     if (String(res.code) !== "0") throw new Error(res.msg);
+
+    // cancel_orders reports per-order outcomes rather than failing the whole
+    // call — surface a rejected order (e.g. already filled) as an error
+    // instead of a silent success.
+    const failure = res.data?.failureList?.[0];
+    if (failure) throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+
     return res.data;
 }
 
@@ -412,8 +422,22 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     filled: formatApiNum(o.tradeQty) || "0",
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
+    mtime: o.mtime,
     fee: formatApiNum(o.fee) || "0",
     realizedPNL: formatApiNum(o.realizedPNL) || "0",
+    // Bitunix documents these on Get Pending Orders too ("Analog zu Get
+    // History Orders", docs/bitunix-api/07_trade.md:500) but they were
+    // never mapped through — the order tooltip's Leverage/Margin Mode/TP-SL
+    // rows always rendered empty regardless of what the exchange sent.
+    leverage: o.leverage,
+    marginMode: o.marginMode,
+    positionMode: o.positionMode,
+    tpPrice: o.tpPrice,
+    tpStopType: o.tpStopType,
+    tpOrderType: o.tpOrderType,
+    slPrice: o.slPrice,
+    slStopType: o.slStopType,
+    slOrderType: o.slOrderType,
   }));
 }
 
@@ -442,10 +466,14 @@ function cleanPayload<T extends object>(payload: T): T {
   return cleaned as T;
 }
 
-async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {
+async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20, queryCanceled = false): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
-  const params = { limit: String(limit) };
+  // Bitunix's own split: queryCanceled=false returns everything except
+  // CANCELED (up to 90 days back); true returns ONLY CANCELED (up to 3 days
+  // back). Neither call alone is a complete history.
+  const params: Record<string, string> = { limit: String(limit) };
+  if (queryCanceled) params.queryCanceled = "true";
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`, {
@@ -483,9 +511,24 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
     realizedPNL: formatApiNum(o.realizedPNL) || "0",
     fee: formatApiNum(o.fee) || "0",
+    reduceOnly: Boolean(o.reduceOnly),
     status: o.status || "UNKNOWN",
     // Hardening: Explicitly validate time, default to 0 only if missing/invalid
     time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+    mtime: o.mtime,
+    // Bitunix documents all of these on Get History Orders
+    // (docs/bitunix-api/07_trade.md:294-325) but they were never mapped
+    // through — the order tooltip's Leverage/Margin Mode/TP-SL rows always
+    // rendered empty regardless of what the exchange sent.
+    leverage: o.leverage,
+    marginMode: o.marginMode,
+    positionMode: o.positionMode,
+    tpPrice: o.tpPrice,
+    tpStopType: o.tpStopType,
+    tpOrderType: o.tpOrderType,
+    slPrice: o.slPrice,
+    slStopType: o.slStopType,
+    slOrderType: o.slOrderType,
   }));
 }
 

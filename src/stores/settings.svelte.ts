@@ -402,7 +402,7 @@ const defaultSettings: Settings = {
   showMarketOverview: true,
   showMarketActivity: true,
   showMarketSentiment: true,
-  showSidebarActivity: false,
+  showSidebarActivity: true,
   showTechnicalsSummary: true,
   showTechnicalsConfluence: true,
   showTechnicalsVolatility: true,
@@ -655,7 +655,18 @@ export class SettingsManager {
   analysisTimeframes = $state<string[]>(defaultSettings.analysisTimeframes);
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
   get effectiveShowSidebarActivity() {
-    return this.isPro && this.showSidebarActivity;
+    const hasBitgetKeys = Boolean(
+      this.apiKeys?.bitget?.key &&
+      this.apiKeys?.bitget?.secret &&
+      this.apiKeys?.bitget?.passphrase,
+    );
+    const hasBitunixKeys = Boolean(
+      this.apiKeys?.bitunix?.key && this.apiKeys?.bitunix?.secret,
+    );
+    const hasApiKeys =
+      this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
+
+    return (this.isPro || hasApiKeys) && this.showSidebarActivity;
   }
 
   get capabilities() {

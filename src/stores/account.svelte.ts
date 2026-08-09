@@ -8,7 +8,8 @@
  */
 
 import { Decimal } from "decimal.js";
-import { parseTimestamp } from "../utils/utils";
+import { parseTimestamp, parseDecimal } from "../utils/utils";
+import type { NormalizedPosition, NormalizedOrder } from "../types/bitunix";
 
 export interface Position {
   positionId: string;
@@ -23,6 +24,13 @@ export interface Position {
   liquidationPrice: Decimal;
   markPrice: Decimal;
   breakEvenPrice: Decimal;
+  // Bitunix REST-only ("Get Pending Positions"); the WS position channel
+  // never sends it, so it's preserved across WS updates like
+  // liquidationPrice/markPrice — see updatePositionFromWs below.
+  marginRate: Decimal;
+  // Unlike marginRate, the WS position channel *does* send realizedPNL on
+  // every push (docs/bitunix-api/08_websocket.md:287) — kept live there.
+  realizedPnl: Decimal;
 }
 
 export interface OpenOrder {
@@ -35,6 +43,23 @@ export interface OpenOrder {
   filled: Decimal;
   status: string;
   timestamp: number;
+  // Descriptive metadata, not live-price data — plain strings rather than
+  // Decimal since nothing here needs arithmetic. Both REST (Get Pending
+  // Orders) and the WS order channel send all of these on every push
+  // (docs/bitunix-api/07_trade.md:294-325,
+  // docs/bitunix-api/08_websocket.md:216-256) — they were previously
+  // dropped at this exact type boundary, which is why the Orders tab's
+  // tooltip showed them empty even after the server started sending them.
+  mtime?: number;
+  leverage?: string;
+  marginMode?: string;
+  positionMode?: string;
+  tpPrice?: string;
+  tpStopType?: string;
+  tpOrderType?: string;
+  slPrice?: string;
+  slStopType?: string;
+  slOrderType?: string;
 }
 
 export interface Asset {
@@ -59,6 +84,7 @@ export interface RawWsPosition {
   avgOpenPrice?: string | number;
   leverage?: string | number;
   unrealizedPNL?: string | number;
+  realizedPNL?: string | number;
   margin?: string | number;
   marginMode?: string;
 }
@@ -73,6 +99,19 @@ export interface RawWsOrder {
   qty?: string | number;
   dealAmount?: string | number;
   ctime?: string | number;
+  mtime?: string | number;
+  leverage?: string | number;
+  // The order channel names margin mode "positionType", not "marginMode"
+  // (docs/bitunix-api/08_websocket.md:235) — unlike the position channel,
+  // which does use "marginMode". Not a typo to "fix" into consistency.
+  positionType?: string;
+  positionMode?: string;
+  tpPrice?: string;
+  tpStopType?: string;
+  tpOrderType?: string;
+  slPrice?: string;
+  slStopType?: string;
+  slOrderType?: string;
 }
 
 interface RawWsBalance {
@@ -88,8 +127,15 @@ interface AccountSnapshot {
   assets: Asset[];
 }
 
+/**
+ * `parseDecimal` already falls back to `Decimal(0)` on a missing or
+ * unparseable value (`new Decimal()` throws on a non-numeric string instead
+ * of returning NaN — a malformed field on a raw WS push would otherwise
+ * crash this store outright). This wraps it with a caller-supplied fallback
+ * for the "keep the existing value" update paths below.
+ */
 const safeDecimal = (val: Decimal.Value | null | undefined, fallback: Decimal) =>
-  val !== undefined && val !== null ? new Decimal(val) : fallback;
+  val === undefined || val === null ? fallback : parseDecimal(val as string | number | Decimal);
 
 class AccountManager {
   positions = $state<Position[]>([]);
@@ -97,6 +143,10 @@ class AccountManager {
   assets = $state<Asset[]>([]);
 
   private syncCallback: (() => void) | null = null;
+  // Fired when a WS push closes an open order (FILLED/CANCELED/...) — lets
+  // the UI eagerly refresh the (REST-only, non-live) order history instead
+  // of only picking up the fill on the next manual tab switch.
+  private orderCloseCallback: (() => void) | null = null;
 
   reset() {
     this.positions = [];
@@ -109,6 +159,10 @@ class AccountManager {
     this.syncCallback = fn;
   }
 
+  registerOrderCloseCallback(fn: (() => void) | null) {
+    this.orderCloseCallback = fn;
+  }
+
   // --- WS Actions ---
 
   updatePositionFromWs(data: RawWsPosition) {
@@ -116,10 +170,18 @@ class AccountManager {
       (p) => String(p.positionId) === String(data.positionId),
     );
 
-    // Robust check for close event or zero quantity
+    // Close only on an explicit CLOSE event or a push that *explicitly*
+    // carries qty: "0". A push that omits `qty` entirely (e.g. a
+    // margin/PnL-only UPDATE) must NOT be treated as a close — it
+    // previously was, because `safeDecimal(data.qty, new Decimal(0))`
+    // defaults a *missing* field to Decimal(0) the same way it defaults an
+    // explicit zero, so `.isZero()` was `true` either way. That silently
+    // deleted a still-open position from `this.positions` on the very next
+    // WS push that didn't happen to repeat `qty` (see BUG-0058).
+    const hasExplicitQty = data.qty !== undefined && data.qty !== null;
     const isClose =
       data.event === "CLOSE" ||
-      new Decimal(data.qty || 0).isZero();
+      (hasExplicitQty && safeDecimal(data.qty, new Decimal(0)).isZero());
 
     if (isClose) {
       if (index !== -1) {
@@ -169,10 +231,13 @@ class AccountManager {
           marginMode: data.marginMode
             ? data.marginMode.toLowerCase()
             : existing.marginMode,
-          // Preserve existing rarely updated fields
+          realizedPnl: safeDecimal(data.realizedPNL, existing.realizedPnl),
+          // Preserve existing rarely updated fields — the WS position
+          // channel never sends liqPrice/markPrice/marginRate, only REST does.
           liquidationPrice: existing.liquidationPrice,
           markPrice: existing.markPrice,
           breakEvenPrice: existing.breakEvenPrice,
+          marginRate: existing.marginRate,
         };
         this.positions[index] = newPos;
       } else {
@@ -180,15 +245,17 @@ class AccountManager {
           positionId: String(data.positionId),
           symbol: data.symbol ?? "",
           side: side as "long" | "short",
-          size: new Decimal(data.qty || 0),
-          entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
-          leverage: new Decimal(data.leverage || 0),
-          unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-          margin: new Decimal(data.margin || 0),
+          size: safeDecimal(data.qty, new Decimal(0)),
+          entryPrice: safeDecimal(data.averagePrice || data.avgOpenPrice, new Decimal(0)),
+          leverage: safeDecimal(data.leverage, new Decimal(0)),
+          unrealizedPnl: safeDecimal(data.unrealizedPNL, new Decimal(0)),
+          margin: safeDecimal(data.margin, new Decimal(0)),
           marginMode: data.marginMode ? data.marginMode.toLowerCase() : "cross",
+          realizedPnl: safeDecimal(data.realizedPNL, new Decimal(0)),
           liquidationPrice: new Decimal(0),
           markPrice: new Decimal(0),
           breakEvenPrice: new Decimal(0),
+          marginRate: new Decimal(0),
         };
         this.positions.push(newPos);
         this.notifyListeners();
@@ -208,6 +275,7 @@ class AccountManager {
     if (isClosed) {
       if (index !== -1) {
         this.openOrders.splice(index, 1);
+        this.orderCloseCallback?.();
       }
     } else {
       // Update or Create
@@ -224,6 +292,16 @@ class AccountManager {
           filled: safeDecimal(data.dealAmount, existing.filled),
           status: data.orderStatus || existing.status,
           timestamp: parseTimestamp(data.ctime) || existing.timestamp,
+          mtime: parseTimestamp(data.mtime) || existing.mtime,
+          leverage: data.leverage !== undefined ? String(data.leverage) : existing.leverage,
+          marginMode: data.positionType ?? existing.marginMode,
+          positionMode: data.positionMode ?? existing.positionMode,
+          tpPrice: data.tpPrice ?? existing.tpPrice,
+          tpStopType: data.tpStopType ?? existing.tpStopType,
+          tpOrderType: data.tpOrderType ?? existing.tpOrderType,
+          slPrice: data.slPrice ?? existing.slPrice,
+          slStopType: data.slStopType ?? existing.slStopType,
+          slOrderType: data.slOrderType ?? existing.slOrderType,
         };
         this.openOrders[index] = newOrder;
       } else {
@@ -232,11 +310,21 @@ class AccountManager {
           symbol: data.symbol ?? "",
           side: (data.side ? data.side.toLowerCase() : "buy") as "buy" | "sell",
           type: (data.type ? data.type.toLowerCase() : "limit") as "limit" | "market",
-          price: new Decimal(data.price || 0),
-          amount: new Decimal(data.qty || 0),
-          filled: new Decimal(data.dealAmount || 0),
+          price: safeDecimal(data.price, new Decimal(0)),
+          amount: safeDecimal(data.qty, new Decimal(0)),
+          filled: safeDecimal(data.dealAmount, new Decimal(0)),
           status: data.orderStatus || "",
           timestamp: parseTimestamp(data.ctime) || Date.now(),
+          mtime: parseTimestamp(data.mtime) || undefined,
+          leverage: data.leverage !== undefined ? String(data.leverage) : undefined,
+          marginMode: data.positionType,
+          positionMode: data.positionMode,
+          tpPrice: data.tpPrice,
+          tpStopType: data.tpStopType,
+          tpOrderType: data.tpOrderType,
+          slPrice: data.slPrice,
+          slStopType: data.slStopType,
+          slOrderType: data.slOrderType,
         };
         this.openOrders.push(newOrder);
       }
@@ -247,14 +335,15 @@ class AccountManager {
     if (data.coin === "USDT") {
       const idx = this.assets.findIndex((a) => a.currency === "USDT");
 
+      const available = safeDecimal(data.available, new Decimal(0));
+      const margin = safeDecimal(data.margin, new Decimal(0));
+      const frozen = safeDecimal(data.frozen, new Decimal(0));
       const newAsset = {
         currency: "USDT",
-        available: new Decimal(data.available || 0),
-        margin: new Decimal(data.margin || 0),
-        frozen: new Decimal(data.frozen || 0),
-        total: new Decimal(data.available || 0)
-          .plus(new Decimal(data.margin || 0))
-          .plus(new Decimal(data.frozen || 0)),
+        available,
+        margin,
+        frozen,
+        total: available.plus(margin).plus(frozen),
       };
 
       if (idx !== -1) {
@@ -286,6 +375,89 @@ class AccountManager {
     for (const data of dataList) {
       this.updateBalanceFromWs(data);
     }
+  }
+
+  // --- REST snapshot hydration ---
+  //
+  // REST is the authoritative full snapshot (replaces the array outright);
+  // WS pushes then keep it live via the incremental updaters above. Routing
+  // REST responses through the same Decimal-safe parsing as WS — rather than
+  // assigning the raw (string-typed) API JSON straight into these
+  // Decimal-typed arrays — is what actually makes this the single source of
+  // truth: before this, `PositionsSidebar.svelte` wrote raw REST JSON here
+  // directly, silently violating the `Position`/`OpenOrder` types (nothing
+  // caught it because `response.json()` returns `any`) and leaving
+  // `positionId` unset, which broke matching against subsequent WS updates.
+
+  hydratePositions(raw: NormalizedPosition[]) {
+    this.positions = raw.map((p, i) => ({
+      // Bitunix always returns positionId; Bitget's normalized shape
+      // currently doesn't carry one — synthesize a stable key so hydration
+      // still works, at the cost of not correlating with WS updates for
+      // that exchange (tracked as a known gap, not silently broken).
+      positionId: p.positionId ?? `${p.symbol}-${p.side}-${i}`,
+      symbol: p.symbol,
+      side: (p.side || "long").toLowerCase() as "long" | "short",
+      size: parseDecimal(p.size),
+      entryPrice: parseDecimal(p.entryPrice),
+      leverage: parseDecimal(p.leverage),
+      unrealizedPnl: parseDecimal(p.unrealizedPnL),
+      margin: parseDecimal(p.margin),
+      marginMode: (p.marginMode || "cross").toLowerCase(),
+      liquidationPrice: parseDecimal(p.liquidationPrice),
+      markPrice: parseDecimal(p.markPrice),
+      breakEvenPrice: new Decimal(0),
+      marginRate: parseDecimal(p.marginRate),
+      realizedPnl: parseDecimal(p.realizedPnl),
+    }));
+    this.notifyListeners();
+  }
+
+  hydrateOpenOrders(raw: NormalizedOrder[]) {
+    this.openOrders = raw.map((o) => ({
+      orderId: String(o.orderId ?? o.id ?? ""),
+      symbol: o.symbol,
+      side: (o.side || "buy").toLowerCase() as "buy" | "sell",
+      type: (o.type || "limit").toLowerCase() as "limit" | "market",
+      price: parseDecimal(o.price),
+      amount: parseDecimal(o.amount),
+      filled: parseDecimal(o.filled),
+      status: o.status || "",
+      timestamp: Number(o.time) || Date.now(),
+      mtime: o.mtime,
+      leverage: o.leverage,
+      marginMode: o.marginMode,
+      positionMode: o.positionMode,
+      tpPrice: o.tpPrice,
+      tpStopType: o.tpStopType,
+      tpOrderType: o.tpOrderType,
+      slPrice: o.slPrice,
+      slStopType: o.slStopType,
+      slOrderType: o.slOrderType,
+    }));
+    this.notifyListeners();
+  }
+
+  hydrateBalance(raw: { available?: string; margin?: string; frozen?: string }) {
+    const available = parseDecimal(raw.available);
+    const margin = parseDecimal(raw.margin);
+    const frozen = parseDecimal(raw.frozen);
+    const newAsset: Asset = {
+      currency: "USDT",
+      available,
+      margin,
+      frozen,
+      total: available.plus(margin).plus(frozen),
+    };
+    const idx = this.assets.findIndex((a) => a.currency === "USDT");
+    if (idx !== -1) this.assets[idx] = newAsset;
+    else this.assets.push(newAsset);
+    this.notifyListeners();
+  }
+
+  /** Live sum of every open position's unrealized PnL — updates as the position channel pushes. */
+  get totalUnrealizedPnl(): Decimal {
+    return this.positions.reduce((sum, p) => sum.plus(p.unrealizedPnl), new Decimal(0));
   }
 
   // Compatibility

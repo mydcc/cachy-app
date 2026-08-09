@@ -254,17 +254,25 @@ export abstract class WindowBase {
         // Position Logic: Only apply staggering/cursor-vicinity if NO valid saved state exists.
         if (typeof window !== 'undefined' && !this.hasRestoredPosition) {
             if (options.x !== undefined && options.y !== undefined) {
-                // If opened via mouse click (e.g. from MarketOverview), position near cursor.
+                // If opened via mouse click, position near cursor.
                 // Clamping avoids windows spawning partially outside viewport.
                 this.x = Math.max(10, Math.min(window.innerWidth - this.width - 10, options.x - 20));
                 this.y = Math.max(10, Math.min(window.innerHeight - this.height - 10, options.y - 20));
             } else if (options.x === undefined && options.y === undefined) {
-                // Standard staggering for new windows
-                const stagger = this.centerByDefault ? 0 : (WindowBase.staggerCount % 10) * 40;
-                this.x = (window.innerWidth - this.width) / 2 + stagger;
-                this.y = (window.innerHeight - this.height) / 2 + stagger;
-
-                if (!this.centerByDefault) {
+                const configLayout = windowRegistry.getConfig(this.windowType).layout;
+                if (configLayout.x !== undefined && configLayout.y !== undefined) {
+                    const stagger = (WindowBase.staggerCount % 10) * 30;
+                    this.x = configLayout.x + stagger;
+                    this.y = configLayout.y + stagger;
+                    WindowBase.staggerCount++;
+                } else if (this.centerByDefault) {
+                    this.x = (window.innerWidth - this.width) / 2;
+                    this.y = (window.innerHeight - this.height) / 2;
+                } else {
+                    // Standard staggering for new windows
+                    const stagger = (WindowBase.staggerCount % 10) * 40;
+                    this.x = (window.innerWidth - this.width) / 2 + stagger;
+                    this.y = (window.innerHeight - this.height) / 2 + stagger;
                     WindowBase.staggerCount++;
                 }
             }
@@ -438,11 +446,16 @@ export abstract class WindowBase {
         this.doubleClickBehavior = f.doubleClickBehavior ?? 'maximize';
 
         const l = config.layout;
+        if (l.x !== undefined) this.x = l.x;
+        if (l.y !== undefined) this.y = l.y;
         this.width = l.width ?? 640;
         this.height = l.height ?? 480;
         this.minWidth = l.minWidth ?? 200;
         this.minHeight = l.minHeight ?? 150;
         this.aspectRatio = l.aspectRatio ?? null;
+        if (this.aspectRatio) {
+            this.updateSize(this.width, this.height);
+        }
 
         if (config.opacity !== undefined) this.opacity = config.opacity;
         if (config.defaultTitle && !this.title) this.title = config.defaultTitle;

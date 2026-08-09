@@ -38,6 +38,30 @@ export const BitunixTickerResponseSchema = z.object({
   data: z.array(BitunixTickerSchema).optional(),
 });
 
+// Bitunix Funding Rate Schema (REST market/funding_rate/batch,
+// market/get_funding_rate_history). The docs describe fundingRate as a
+// fraction (e.g. "0.0005" = 0.05%), but live wire data confirms it is
+// actually already a PERCENTAGE - same as the WS `price` channel's `fr`
+// field. This schema parses the raw value as-is; normalization to a
+// fraction happens in apiService.fetchBitunixFundingRates.
+export const BitunixFundingRateSchema = z.object({
+  symbol: z.string(),
+  markPrice: StrictDecimal.nullable().optional(),
+  lastPrice: StrictDecimal.nullable().optional(),
+  indexPrice: StrictDecimal.nullable().optional(),
+  fundingRate: StrictDecimal,
+  nextFundingTime: z.union([z.number(), z.string()]),
+  fundingInterval: z.union([z.number(), z.string()]).optional(),
+  maxFundingRate: StrictDecimal.nullable().optional(),
+  minFundingRate: StrictDecimal.nullable().optional(),
+});
+
+export const BitunixFundingRateBatchResponseSchema = z.object({
+  code: z.union([z.number(), z.string()]),
+  msg: z.string().optional(),
+  data: z.array(BitunixFundingRateSchema).optional(),
+});
+
 // Bitunix Kline Schema
 export const BitunixKlineSchema = z.object({
   open: StrictDecimal,
@@ -100,7 +124,14 @@ export const PositionRawSchema = z.object({
     leverage: z.union([z.string(), z.number()]).optional(),
     marginMode: z.string().optional(),
     liquidationPrice: z.union([z.string(), z.number()]).optional(),
-    liqPrice: z.union([z.string(), z.number()]).optional()
+    liqPrice: z.union([z.string(), z.number()]).optional(),
+    // Bitunix sends both on Get Pending Positions (docs/bitunix-api/05_position.md)
+    // and the position WS channel. Without positionId/positionMode surviving
+    // this schema, closePosition()/flashClosePosition() can't tell a
+    // HEDGE-mode account from a ONE_WAY one, or which position to target —
+    // see BUG-0062.
+    positionId: z.union([z.string(), z.number()]).optional(),
+    positionMode: z.string().optional()
 }).refine(data => {
     // Hardening: A position must have at least one quantity field to be valid.
     // Otherwise it's likely a malformed response or an empty object from a weird API state.

@@ -68,6 +68,69 @@ describe("marketStore", () => {
     expect(data.priceChangePercent?.toNumber()).toBe(4);
   });
 
+  describe("updateSymbol - funding rate", () => {
+    it("stores fundingRate, nextFundingTime, and fundingInterval as given (REST is the source of truth)", async () => {
+      marketState.updateSymbol("BTCUSDT", {
+        fundingRate: "0.0005",
+        nextFundingTime: "1770710400000",
+        fundingInterval: 8,
+      });
+      await vi.advanceTimersByTimeAsync(300);
+
+      const data = marketState.data["BTCUSDT"];
+      expect(data.fundingRate?.toString()).toBe("0.0005");
+      expect(data.nextFundingTime).toBe(1770710400000);
+      expect(data.fundingInterval).toBe(8);
+    });
+
+    it("accepts a variable fundingInterval per symbol (not fixed at 8h)", async () => {
+      marketState.updateSymbol("XRPUSDT", { fundingInterval: 6 });
+      await vi.advanceTimersByTimeAsync(300);
+      expect(marketState.data["XRPUSDT"].fundingInterval).toBe(6);
+    });
+  });
+
+  describe("updateSymbol - mark price (BUG-0055)", () => {
+    it("stores markPrice from a partial update, defaulting to null when never set", async () => {
+      const symbol = "BTCUSDT";
+      expect(marketState.data[symbol]).toBeUndefined();
+
+      marketState.updateSymbol(symbol, { indexPrice: "50001" });
+      await vi.advanceTimersByTimeAsync(300);
+      // Position display must be able to tell "never received" (null) apart
+      // from "received a real value" — the account store's own Position type
+      // instead falls back to Decimal(0) for a missing field, which is
+      // exactly the "0 -> 0" defect this field exists to avoid repeating.
+      expect(marketState.data[symbol].markPrice).toBeNull();
+
+      marketState.updateSymbol(symbol, { markPrice: "50002" });
+      await vi.advanceTimersByTimeAsync(300);
+      expect(marketState.data[symbol].markPrice?.toString()).toBe("50002");
+    });
+
+    it("does not let a later push omitting markPrice erase one buffered earlier in the same flush window (BUG-0065)", async () => {
+      const symbol = "BTCUSDT";
+
+      // Two WS pushes land inside the same 250ms flush window (throttle is
+      // 200ms, flush is 250ms — this is the normal case, not an edge case):
+      // one with a real markPrice, one that only carries indexPrice because
+      // that's the only field Bitunix's push happened to include this tick.
+      // Callers build partials like `{ markPrice: mp ? new Decimal(mp) :
+      // undefined }`, so the second push still has an explicit
+      // `markPrice: undefined` key.
+      marketState.updateSymbol(symbol, { markPrice: "50002", indexPrice: "50001" });
+      marketState.updateSymbol(symbol, { indexPrice: "50003", markPrice: undefined });
+
+      await vi.advanceTimersByTimeAsync(300);
+
+      // The real markPrice from the first push must survive the flush —
+      // not get clobbered by the second push's `undefined` before either
+      // ever reaches `current`.
+      expect(marketState.data[symbol].markPrice?.toString()).toBe("50002");
+      expect(marketState.data[symbol].indexPrice?.toString()).toBe("50003");
+    });
+  });
+
   describe("Kline Protection (Single Source of Truth)", () => {
     it("should prioritize WS updates over REST for the live candle", async () => {
       const symbol = "BTCUSDT";

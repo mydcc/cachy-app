@@ -91,6 +91,7 @@ export interface NormalizedOrder {
 // Normalized Internal Position Interface — shared shape both exchanges'
 // /api/positions routes map their raw responses into.
 export interface NormalizedPosition {
+  positionId?: string;
   symbol: string;
   side: string;
   size?: string;
@@ -101,6 +102,12 @@ export interface NormalizedPosition {
   unrealizedPnL?: string;
   leverage?: string;
   marginMode: string;
+  // Bitunix-only (`marginRate`/`realizedPNL` on Get Pending Positions,
+  // docs/bitunix-api/05_position.md:103-129). Not mapped for Bitget — no
+  // verified field name for either, and BUG-0001 is the standing reminder
+  // not to guess an exchange's wire format.
+  marginRate?: string;
+  realizedPnl?: string;
 }
 
 export interface BitunixOrderPayload {
@@ -111,6 +118,9 @@ export interface BitunixOrderPayload {
   price?: string | number;
   reduceOnly?: boolean;
   leverage?: string | number;
+  // HEDGE-mode-only (docs/bitunix-api/07_trade.md:583-584) — see BUG-0062.
+  tradeSide?: "OPEN" | "CLOSE";
+  positionId?: string;
   [key: string]: unknown;
 }
 

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-53 items. How to read and add them: [README.md](README.md).
+66 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
+Counts by status: 💡 idea 11 · 📋 specced 25 · 🟢 ready 2 · ✅ done 28
 
 ---
 
@@ -49,11 +49,24 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | trade-panel |
+| [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | trade-panel |
+| [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | trade-panel |
+| [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | trade-panel |
+| [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | trade-panel |
+| [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | trade-panel |
+| [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | trade-panel |
+| [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | 📋 specced | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | trade-panel |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
+| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | trade-panel |
+| [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
+| [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
+| [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | trade-panel |
+| [BUG-0066](bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md) | Position tooltip labels the live unrealized PnL row "Realized PnL | P2 | ✅ done | trade-panel |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
 
 ### M4
@@ -127,6 +140,11 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 📋 specced | M0 | community, pro, private | A | none | — |
+| [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
+| [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
@@ -135,6 +153,9 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0047](bugs/BUG-0047-academy-unusable-on-mobile.md) | The Trading Academy content is unreachable on a phone because the pattern list fills the screen | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | none | community, pro, private | none | ADR-0002 | — |
+| [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | M3 | community, pro, private | none | none | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -148,6 +169,7 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | 📋 specced | M0 | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
+| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | none | community, pro, private | none | none | — |
@@ -156,6 +178,10 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | none | community, pro, private | none | ADR-0006 | — |
+| [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0066](bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md) | Position tooltip labels the live unrealized PnL row "Realized PnL | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -180,4 +206,4 @@ Counts by status: 💡 idea 11 · 📋 specced 24 · 🟢 ready 2 · ✅ done 16
 
 ---
 
-Next free number: **0054**
+Next free number: **0067**

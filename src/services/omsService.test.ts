@@ -266,4 +266,74 @@ describe('OrderManagementSystem', () => {
     // After all overflows, map should be at exactly MAX_ORDERS
     expect(omsService.getAllOrders().length).toBe(limit);
   });
+
+  describe('updatePosition preserves positionId/positionMode across partial pushes (BUG-0064)', () => {
+    it('keeps a previously known positionId/positionMode when a later push omits them', () => {
+      omsService.updatePosition({
+        symbol: 'BTCUSDT',
+        side: 'long',
+        amount: new Decimal('1.5'),
+        entryPrice: new Decimal('50000'),
+        unrealizedPnl: new Decimal('0'),
+        leverage: new Decimal('10'),
+        marginMode: 'isolated',
+        positionId: '662491704776252252',
+        positionMode: 'one_way',
+        lastUpdated: Date.now(),
+      });
+
+      // A PnL-only WS UPDATE push, mapped without positionId/positionMode —
+      // mapToOMSPosition() returns undefined for both when the raw WS item
+      // doesn't repeat them, which is not the same as "this position has no
+      // positionId".
+      omsService.updatePosition({
+        symbol: 'BTCUSDT',
+        side: 'long',
+        amount: new Decimal('1.5'),
+        entryPrice: new Decimal('50000'),
+        unrealizedPnl: new Decimal('12.34'),
+        leverage: new Decimal('10'),
+        marginMode: 'isolated',
+        lastUpdated: Date.now(),
+      });
+
+      const [position] = omsService.getPositions();
+      expect(position.positionId).toBe('662491704776252252');
+      expect(position.positionMode).toBe('one_way');
+      // The rest of the push still applies fresh.
+      expect(position.unrealizedPnl.toString()).toBe('12.34');
+    });
+
+    it('adopts a newly provided positionId/positionMode over the previous value', () => {
+      omsService.updatePosition({
+        symbol: 'ETHUSDT',
+        side: 'short',
+        amount: new Decimal('2'),
+        entryPrice: new Decimal('3000'),
+        unrealizedPnl: new Decimal('0'),
+        leverage: new Decimal('5'),
+        marginMode: 'cross',
+        positionId: 'old-id',
+        positionMode: 'hedge',
+        lastUpdated: Date.now(),
+      });
+
+      omsService.updatePosition({
+        symbol: 'ETHUSDT',
+        side: 'short',
+        amount: new Decimal('2'),
+        entryPrice: new Decimal('3000'),
+        unrealizedPnl: new Decimal('0'),
+        leverage: new Decimal('5'),
+        marginMode: 'cross',
+        positionId: 'new-id',
+        positionMode: 'one_way',
+        lastUpdated: Date.now(),
+      });
+
+      const [position] = omsService.getPositions();
+      expect(position.positionId).toBe('new-id');
+      expect(position.positionMode).toBe('one_way');
+    });
+  });
 });

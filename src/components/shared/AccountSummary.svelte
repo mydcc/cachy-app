@@ -35,6 +35,14 @@
     positionMode?: string;
     crossUnrealizedPNL?: FinancialValue;
     isolationUnrealizedPNL?: FinancialValue;
+    // Client-computed (Σ open position size × mark/entry price) — Bitunix
+    // has no API field for this either, its own Assets panel derives it
+    // the same way.
+    totalPositionSize?: FinancialValue;
+    // Set when the REST account fetch failed. Previously a failure here
+    // left every field at its all-zero default with nothing in the UI
+    // distinguishing that from a genuinely empty account.
+    error?: string;
   }
 
   let {
@@ -47,13 +55,20 @@
     bonus = 0,
     positionMode = "",
     crossUnrealizedPNL = 0,
-    isolationUnrealizedPNL = 0
+    isolationUnrealizedPNL = 0,
+    totalPositionSize = 0,
+    error = ""
   }: Props = $props();
 </script>
 
 <div
   class="p-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-primary)] flex flex-col gap-2 relative"
 >
+  {#if error}
+    <div class="text-xs text-[var(--danger-color)] flex justify-between items-center gap-2">
+      <span>{error}</span>
+    </div>
+  {/if}
   <div
     class="flex justify-between items-center group cursor-help relative"
     role="tooltip"
@@ -110,4 +125,15 @@
       {currency}
     </span>
   </div>
+
+  {#if new Decimal(totalPositionSize || 0).gt(0)}
+    <div class="flex justify-between items-center">
+      <span class="text-xs text-[var(--text-secondary)]"
+        >{$_("dashboard.account.totalPositionSize")}</span
+      >
+      <span class="text-sm font-bold text-[var(--text-primary)]"
+        >{formatDynamicDecimal(totalPositionSize, 2)} {currency}</span
+      >
+    </div>
+  {/if}
 </div>

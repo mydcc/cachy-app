@@ -4,6 +4,7 @@ import { settingsState, type Settings } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
+import { fundingRateService } from "./fundingRateService";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { Decimal } from "decimal.js";
 
@@ -18,6 +19,7 @@ export function setupRealtimeUpdatesEffect(app: any) {
   let lastKeys = settingsState.apiKeys ? computeKeys(settingsState) : "";
   let currentWatchedSymbol: string | null = null;
   let symbolDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const knownFundingRateSymbols = new Set<string>();
 
   return $effect.root(() => {
     // 1. Settings / Connection Manager
@@ -100,6 +102,30 @@ export function setupRealtimeUpdatesEffect(app: any) {
           if (settings.autoUpdatePriceInput) {
             // Fallback handled by marketWatcher polling
           }
+        }
+      });
+    });
+
+    // 5. Funding Rate Polling (REST, Bitunix only - see fundingRateService)
+    $effect(() => {
+      const provider = settingsState.apiProvider;
+      if (provider !== "bitunix") return;
+      fundingRateService.start();
+      return () => fundingRateService.stop();
+    });
+
+    // 6. Backfill funding rate immediately for symbols newly added to
+    // marketState (from fundingRateService's cache of the last REST poll).
+    // Without this, a symbol that starts being tracked between polls - e.g.
+    // right after page load, before the first poll's tracked-symbol set
+    // includes it - would show no funding rate for up to POLL_INTERVAL_MS.
+    $effect(() => {
+      const symbols = Object.keys(marketState.data);
+      untrack(() => {
+        for (const symbol of symbols) {
+          if (knownFundingRateSymbols.has(symbol)) continue;
+          knownFundingRateSymbols.add(symbol);
+          fundingRateService.applyCachedRateFor(symbol);
         }
       });
     });

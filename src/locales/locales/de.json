@@ -106,6 +106,7 @@
     "margin": "Margin",
     "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
+    "refreshing": "Aktualisierung läuft",
     "noHistory": "Keine Historie gefunden.",
     "noTpSlOrders": "Keine {view} TP/SL Orders gefunden.",
     "orderHistory": {
@@ -115,6 +116,9 @@
       "noFee": "-",
       "noDate": "-",
       "liq": "Liq.",
+      "refresh": "Historie aktualisieren",
+      "reduceOnly": "Nur Reduzierung",
+      "reduceOnlyShort": "R/O",
       "side": {
         "buy": "Kauf",
         "sell": "Verkauf"
@@ -315,7 +319,8 @@
       "frozen": "Eingefroren",
       "mode": "Modus",
       "crossPnl": "Cross PnL",
-      "isoPnl": "Iso PnL"
+      "isoPnl": "Iso PnL",
+      "totalPositionSize": "Gesamte Positionsgröße"
     },
     "customModal": {
       "promptPlaceholder": "Eingabe...",
@@ -2169,7 +2174,10 @@
     "confirmClose": "Position {symbol} schließen?",
     "roi": "ROI",
     "margin": "Margin",
-    "unrealizedPnl": "uPnL"
+    "marginRate": "Margin-Rate",
+    "realizedPnl": "Realisiert",
+    "unrealizedPnl": "Unrealisierter PnL",
+    "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht."
   },
   "trade": {
     "apiError": "API-Fehler: {error}",
