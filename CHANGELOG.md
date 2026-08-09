@@ -5,6 +5,18 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.3.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.3...v1.3.0-beta.4) (2026-08-09)
+
+
+### Bug Fixes
+
+* resolve incomplete WS position hydration, add gyroscope support to Galaxy engine, and implement sentiment-based background animations ([8fe5355](https://github.com/mydcc/cachy-app/commit/8fe5355b3884f9da2526f8c951d6dd2a41bb575d))
+
+
+### Features
+
+* define RawTradeEvent interface and update onTrade parameter type for improved type safety ([d63ea23](https://github.com/mydcc/cachy-app/commit/d63ea23cb5d3405c1c16e07e88175b9f2f823219))
+
 # [1.3.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.2...v1.3.0-beta.3) (2026-08-09)
 
 
