@@ -459,14 +459,26 @@ class AccountManager {
     const available = parseDecimal(raw.available);
     const margin = parseDecimal(raw.margin);
     const frozen = parseDecimal(raw.frozen);
+    const idx = this.assets.findIndex((a) => a.currency === "USDT");
+    // REST /api/account has no isolationMargin/crossMargin/isolationFrozen/
+    // crossFrozen/expMoney — only the WS wallet channel does. Without this,
+    // a REST poll here would silently erase whatever the wallet channel had
+    // last pushed (BUG found during dev.cachy.app testing: the AccountTooltip
+    // rows for those fields never appeared because this REST hydration kept
+    // winning the race against the WS push).
+    const existing = idx !== -1 ? this.assets[idx] : null;
     const newAsset: Asset = {
       currency: "USDT",
       available,
       margin,
       frozen,
       total: available.plus(margin).plus(frozen),
+      isolationMargin: existing?.isolationMargin,
+      crossMargin: existing?.crossMargin,
+      isolationFrozen: existing?.isolationFrozen,
+      crossFrozen: existing?.crossFrozen,
+      expMoney: existing?.expMoney,
     };
-    const idx = this.assets.findIndex((a) => a.currency === "USDT");
     if (idx !== -1) this.assets[idx] = newAsset;
     else this.assets.push(newAsset);
     this.notifyListeners();
