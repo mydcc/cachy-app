@@ -76,10 +76,10 @@
     "suggestedChanges": "Vorgeschlagene Änderungen",
     "thinking": "Denkt nach...",
     "quickActions": {
-      "marketCheck":  "Analysiere den Markt für {symbol}",
+      "marketCheck": "Analysiere den Markt für {symbol}",
       "techAnalysis": "Erstelle eine technische Analyse für {symbol}",
-      "riskAudit":    "Prüfe mein Setup auf Fehler und Risiken.",
-      "newsCheck":    "Gibt es wichtige News?"
+      "riskAudit": "Prüfe mein Setup auf Fehler und Risiken.",
+      "newsCheck": "Gibt es wichtige News?"
     }
   },
   "legal": {
@@ -231,7 +231,8 @@
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "feesPlaceholder": "Gebühren pro Trade (%)",
       "syncedWithApi": "Synchronisiert mit API",
-      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})"
+      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})",
+      "marginMode": "Margin-Modus"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -320,7 +321,10 @@
       "mode": "Modus",
       "crossPnl": "Cross PnL",
       "isoPnl": "Iso PnL",
-      "totalPositionSize": "Gesamte Positionsgröße"
+      "totalPositionSize": "Gesamte Positionsgröße",
+      "isolationFrozen": "Isolation gesperrt",
+      "crossFrozen": "Cross gesperrt",
+      "expMoney": "Erfahrungsguthaben"
     },
     "customModal": {
       "promptPlaceholder": "Eingabe...",
@@ -341,7 +345,15 @@
     "riskRewardRatio": "Chance-Risiko-Verhältnis",
     "promptForData": "Bitte geben Sie die erforderlichen Handelsdaten ein, um die Berechnung zu starten.",
     "instructionsTitle": "Anleitung: Dashboard",
-    "triggerPulse": "Quantenpuls auslösen"
+    "triggerPulse": "Quantenpuls auslösen",
+    "symbolInfo": {
+      "precision": "Präzision",
+      "minSize": "Min. Größe",
+      "leverageRange": "Hebel-Bereich",
+      "statusCancelOnly": "Nur Stornierung möglich",
+      "statusStop": "Handel gestoppt",
+      "apiNotSupported": "API-Trading deaktiviert"
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -2177,7 +2189,9 @@
     "marginRate": "Margin-Rate",
     "realizedPnl": "Realisiert",
     "unrealizedPnl": "Unrealisierter PnL",
-    "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht."
+    "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht.",
+    "tierMmr": "Maint.-Margin-Rate (Stufe)",
+    "nextTierAt": "Nächste Stufe ab"
   },
   "trade": {
     "apiError": "API-Fehler: {error}",

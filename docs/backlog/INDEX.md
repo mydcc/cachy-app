@@ -4,7 +4,7 @@
 
 75 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 14 · 📋 specced 31 · 🟢 ready 2 · ✅ done 28
+Counts by status: 💡 idea 13 · 📋 specced 29 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 28
 
 ---
 
@@ -63,8 +63,8 @@ Counts by status: 💡 idea 14 · 📋 specced 31 · 🟢 ready 2 · ✅ done 28
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | trade-panel |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | trade-panel |
-| [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | exchange |
-| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
+| [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 🟡 in-progress | exchange |
+| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 🟡 in-progress | exchange |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | execution |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | execution |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
@@ -135,10 +135,10 @@ Counts by status: 💡 idea 14 · 📋 specced 31 · 🟢 ready 2 · ✅ done 28
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
+| [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 🟡 in-progress | calculation |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0074](ideas/IDEA-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | 💡 idea | exchange |
-| [IDEA-0075](ideas/IDEA-0075-bitunix-position-tiers.md) | Use Bitunix position tiers for precise liquidation and margin estimates | P3 | 💡 idea | calculation |
 
 ---
 
@@ -179,8 +179,8 @@ Counts by status: 💡 idea 14 · 📋 specced 31 · 🟢 ready 2 · ✅ done 28
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | 📋 specced | M0 | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
-| [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | M3 | community, pro, private | C | none | — |
-| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
+| [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 🟡 in-progress | M3 | community, pro, private | C | none | — |
+| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 🟡 in-progress | M3 | community, pro, private | A | none | — |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
@@ -216,11 +216,11 @@ Counts by status: 💡 idea 14 · 📋 specced 31 · 🟢 ready 2 · ✅ done 28
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 🟡 in-progress | none | community, pro, private | C | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
 | [IDEA-0074](ideas/IDEA-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | 💡 idea | none | community, pro, private | C | none | — |
-| [IDEA-0075](ideas/IDEA-0075-bitunix-position-tiers.md) | Use Bitunix position tiers for precise liquidation and margin estimates | P3 | 💡 idea | none | community, pro, private | C | none | — |
 
 ---
 

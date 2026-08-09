@@ -38,6 +38,30 @@ describe('MarketManager', () => {
     volume: new Decimal(1000)
   });
 
+  // symbolMeta/positionTiers are static-ish Bitunix read-only metadata
+  // (trading_pairs, get_position_tiers), fetched by tradeService and kept
+  // separate from `data` so a price tick never overwrites them.
+  it('stores trading-pair metadata per symbol', () => {
+    market.setSymbolMeta('BTCUSDT', {
+      symbol: 'BTCUSDT',
+      basePrecision: 4,
+      minLeverage: 1,
+      maxLeverage: 125,
+      symbolStatus: 'OPEN',
+      isApiSupported: true,
+    });
+    expect(market.symbolMeta['BTCUSDT'].maxLeverage).toBe(125);
+    expect(market.symbolMeta['ETHUSDT']).toBeUndefined();
+  });
+
+  it('stores position tiers per symbol', () => {
+    market.setPositionTiers('BTCUSDT', [
+      { level: 1, startValue: new Decimal(0), endValue: new Decimal(50000), leverage: 125, maintenanceMarginRate: new Decimal('0.004') },
+    ]);
+    expect(market.positionTiers['BTCUSDT']).toHaveLength(1);
+    expect(market.positionTiers['BTCUSDT'][0].maintenanceMarginRate?.toString()).toBe('0.004');
+  });
+
   it('should initialize empty klines', () => {
     market.updateSymbolKlines('BTC', '1m', []);
     const data = market.data['BTC'];

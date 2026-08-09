@@ -33,6 +33,9 @@
     crossUnrealizedPNL?: FinancialValue;
     isolationUnrealizedPNL?: FinancialValue;
     totalUnrealizedPnL?: FinancialValue;
+    isolationFrozen?: FinancialValue;
+    crossFrozen?: FinancialValue;
+    expMoney?: FinancialValue;
   }
 
   interface Props {
@@ -167,6 +170,34 @@
         >
           {formatDynamicDecimal(account.isolationUnrealizedPNL)}
         </span>
+      </div>
+    {/if}
+
+    <!-- Wallet-channel-only fields: undefined until the first WS push, so
+         each renders only once real data has arrived rather than showing a
+         misleading 0. -->
+    {#if account.isolationFrozen !== undefined}
+      <div class="flex justify-between">
+        <span class="text-[var(--text-secondary)]"
+          >{$_("dashboard.account.isolationFrozen")}:</span
+        >
+        <span>{formatDynamicDecimal(account.isolationFrozen)}</span>
+      </div>
+    {/if}
+    {#if account.crossFrozen !== undefined}
+      <div class="flex justify-between">
+        <span class="text-[var(--text-secondary)]"
+          >{$_("dashboard.account.crossFrozen")}:</span
+        >
+        <span>{formatDynamicDecimal(account.crossFrozen)}</span>
+      </div>
+    {/if}
+    {#if account.expMoney !== undefined && !new Decimal(account.expMoney || 0).isZero()}
+      <div class="flex justify-between">
+        <span class="text-[var(--text-secondary)]"
+          >{$_("dashboard.account.expMoney")}:</span
+        >
+        <span>{formatDynamicDecimal(account.expMoney)}</span>
       </div>
     {/if}
   </div>

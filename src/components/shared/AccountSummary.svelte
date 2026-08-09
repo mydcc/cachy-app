@@ -35,6 +35,11 @@
     positionMode?: string;
     crossUnrealizedPNL?: FinancialValue;
     isolationUnrealizedPNL?: FinancialValue;
+    // Wallet-channel-only fields (WS "Balance Channel", 08_websocket.md) —
+    // no REST equivalent, so these stay undefined until the first WS push.
+    isolationFrozen?: FinancialValue;
+    crossFrozen?: FinancialValue;
+    expMoney?: FinancialValue;
     // Client-computed (Σ open position size × mark/entry price) — Bitunix
     // has no API field for this either, its own Assets panel derives it
     // the same way.
@@ -56,6 +61,9 @@
     positionMode = "",
     crossUnrealizedPNL = 0,
     isolationUnrealizedPNL = 0,
+    isolationFrozen,
+    crossFrozen,
+    expMoney,
     totalPositionSize = 0,
     error = ""
   }: Props = $props();
@@ -95,6 +103,9 @@
           positionMode,
           crossUnrealizedPNL,
           isolationUnrealizedPNL,
+          isolationFrozen,
+          crossFrozen,
+          expMoney,
           totalUnrealizedPnL: pnl,
         }}
       />

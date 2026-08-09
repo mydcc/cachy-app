@@ -34,9 +34,15 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { safeJsonParse } from "../utils/safeJson";
-import { PositionRawSchema } from "../types/apiSchemas";
+import {
+    PositionRawSchema,
+    BitunixLeverageMarginModeSchema,
+    BitunixTradingPairResponseSchema,
+    BitunixPositionTierResponseSchema,
+} from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 import { appFetch } from "../lib/appAuth";
+import { unwrapApiEnvelope } from "../utils/utils";
 
 export interface TpSlOrder {
     orderId: string;
@@ -152,6 +158,105 @@ class TradeService {
         }
 
         return data as T;
+    }
+
+    // Read-only: current leverage + margin mode for a symbol, straight from
+    // the exchange (not the local calculator input). Populates
+    // tradeState.remoteLeverage/remoteMarginMode, which GeneralInputs.svelte
+    // already reads for its "synced with API" indicator but which nothing
+    // has ever set until now.
+    public async fetchLeverageMarginMode(symbol: string): Promise<void> {
+        const provider = settingsState.apiProvider;
+        if (provider !== "bitunix") return; // Bitget equivalent: follow the M2 adapter shape
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) return;
+
+        try {
+            const response = await appFetch("/api/leverage-margin-mode", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    exchange: provider,
+                    apiKey: keys.key,
+                    apiSecret: keys.secret,
+                    symbol,
+                }),
+            });
+            const json = await response.json();
+            const { data } = unwrapApiEnvelope<Record<string, unknown>>(json);
+            if (!data) return;
+
+            const validation = BitunixLeverageMarginModeSchema.safeParse(data);
+            if (!validation.success) {
+                logger.error("network", "[TradeService] Invalid leverage/margin-mode response", validation.error.issues);
+                return;
+            }
+            tradeState.remoteLeverage = new Decimal(validation.data.leverage);
+            tradeState.remoteMarginMode = validation.data.marginMode;
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchLeverageMarginMode failed", e);
+        }
+    }
+
+    // Read-only: precision, order-size limits, leverage range and status for
+    // a symbol (market/trading_pairs). Public endpoint, no credentials.
+    public async fetchTradingPairInfo(symbol: string): Promise<void> {
+        try {
+            const response = await appFetch(`/api/trading-pairs?symbols=${encodeURIComponent(symbol)}`);
+            if (!response.ok) return;
+            const json = await response.json();
+
+            const validation = BitunixTradingPairResponseSchema.safeParse(json);
+            if (!validation.success) {
+                logger.error("network", "[TradeService] Invalid trading-pairs response", validation.error.issues);
+                return;
+            }
+            const entry = validation.data.data?.[0];
+            if (!entry) return;
+
+            marketState.setSymbolMeta(symbol, {
+                symbol: entry.symbol,
+                basePrecision: entry.basePrecision,
+                quotePrecision: entry.quotePrecision,
+                minTradeVolume: entry.minTradeVolume ?? null,
+                maxLimitOrderVolume: entry.maxLimitOrderVolume ?? null,
+                maxMarketOrderVolume: entry.maxMarketOrderVolume ?? null,
+                minLeverage: entry.minLeverage,
+                maxLeverage: entry.maxLeverage,
+                defaultLeverage: entry.defaultLeverage,
+                priceProtectScope: entry.priceProtectScope ?? null,
+                symbolStatus: entry.symbolStatus,
+                isApiSupported: entry.isApiSupported,
+            });
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchTradingPairInfo failed", e);
+        }
+    }
+
+    // Read-only: maintenance-margin tiers for a symbol
+    // (position/get_position_tiers). Public endpoint, no credentials.
+    public async fetchPositionTiers(symbol: string): Promise<void> {
+        try {
+            const response = await appFetch(`/api/position-tiers?symbol=${encodeURIComponent(symbol)}`);
+            if (!response.ok) return;
+            const json = await response.json();
+
+            const validation = BitunixPositionTierResponseSchema.safeParse(json);
+            if (!validation.success) {
+                logger.error("network", "[TradeService] Invalid position-tiers response", validation.error.issues);
+                return;
+            }
+            const tiers = (validation.data.data ?? []).map(t => ({
+                level: t.level,
+                startValue: t.startValue ?? null,
+                endValue: t.endValue ?? null,
+                leverage: t.leverage,
+                maintenanceMarginRate: t.maintenanceMarginRate ?? null,
+            }));
+            marketState.setPositionTiers(symbol, tiers);
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchPositionTiers failed", e);
+        }
     }
 
     // Helper to safely serialize Decimals to strings
