@@ -334,6 +334,31 @@ describe('AccountManager', () => {
             expect(asset.available.toString()).toBe('1000');
             expect(asset.total.toString()).toBe('1060');
         });
+
+        // Bug found during dev.cachy.app testing: REST /api/account has no
+        // isolationFrozen/crossFrozen/expMoney (WS-only fields, see
+        // updateBalanceFromWs). A later REST poll was silently erasing
+        // whatever the wallet WS push had set for these, so the
+        // AccountTooltip rows for them never appeared in practice even
+        // though the WS parsing itself was correct.
+        it('preserves WS-only wallet fields across a later REST poll', () => {
+            accountState.updateBalanceFromWs({
+                coin: 'USDT',
+                available: '1000',
+                margin: '50',
+                frozen: '10',
+                isolationFrozen: '5',
+                crossFrozen: '2',
+                expMoney: '3.5',
+            });
+
+            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' });
+
+            const asset = accountState.assets.find((a) => a.currency === 'USDT');
+            expect(asset?.isolationFrozen?.toString()).toBe('5');
+            expect(asset?.crossFrozen?.toString()).toBe('2');
+            expect(asset?.expMoney?.toString()).toBe('3.5');
+        });
     });
 
     // Regression: marginRate is REST-only (Bitunix never sends it over WS),
