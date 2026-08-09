@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.3.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.2...v1.3.0-beta.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* **account:** stop hydrateBalance from erasing WS-only wallet fields ([7ec5928](https://github.com/mydcc/cachy-app/commit/7ec5928622be99f89021bff38f41725f5b1519a4))
+
 # [1.3.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.1...v1.3.0-beta.2) (2026-08-09)
 
 
