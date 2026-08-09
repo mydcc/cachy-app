@@ -48,11 +48,12 @@ const config = {
         "img-src": [
           "self",
           "data:",
-          "https://s.cachy.app",
-          "https://*.imgbb.com",
-          "https://avatars.githubusercontent.com",
-          "https://cdn.discordapp.com",
-          "https://*.githubusercontent.com",
+          "https:",
+        ],
+        "media-src": [
+          "self",
+          "blob:",
+          "https:",
         ],
         "font-src": [
           "self",

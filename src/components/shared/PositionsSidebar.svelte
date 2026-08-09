@@ -216,6 +216,11 @@
     const keys = settingsState.apiKeys[provider];
 
     if (!keys?.key || !keys?.secret) return;
+    // The sync callback (registered below) can fire once per malformed/
+    // REST-incomplete WS position push — several arriving in a burst (e.g.
+    // multiple positions opening near-simultaneously) must not fan out into
+    // that many concurrent REST calls.
+    if (loadingPositions) return;
 
     loadingPositions = true;
     errorPositions = "";
@@ -412,6 +417,18 @@
       if (activeTab === "history") fetchHistoryOrders();
     });
     return () => accountState.registerOrderCloseCallback(null);
+  });
+
+  // A position that reaches the WS position channel before this component's
+  // one-time onMount REST fetch (e.g. opened directly on the exchange while
+  // Cachy was already running) gets created with entryPrice/liquidationPrice/
+  // marginRate hard-defaulted to 0 — the WS channel never carries them. This
+  // is accountState's signal to go get the real values from REST.
+  $effect(() => {
+    accountState.registerSyncCallback(() => {
+      fetchPositions();
+    });
+    return () => accountState.registerSyncCallback(null);
   });
 
   // Load orders once per tab-activation, not on every openOrders reference

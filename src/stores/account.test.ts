@@ -129,6 +129,44 @@ describe('AccountManager', () => {
         );
     });
 
+    // Bug found during dev.cachy.app testing: a position opened directly on
+    // the exchange (not through Cachy) reaches the WS position channel
+    // before PositionsSidebar's one-time onMount REST fetch has hydrated it.
+    // The WS position channel never carries entryPrice/liqPrice/marginRate
+    // (see docs/bitunix-api/08_websocket.md's Position Channel — only qty,
+    // side, leverage, margin, PnL, funding, fee), so a brand-new position
+    // was created with those fields hard-defaulted to 0 and *nothing* ever
+    // corrected it afterwards: fetchPositions() only runs on mount/key
+    // change, never in response to a new-position WS event, and the
+    // pre-existing syncCallback hook (already used for the "missing side"
+    // case above) was never invoked for this case either.
+    it('triggers sync callback when a brand-new WS position has no REST-only fields yet', () => {
+        const syncCallback = vi.fn();
+        accountState.registerSyncCallback(syncCallback);
+
+        accountState.updatePositionFromWs({
+            positionId: '777',
+            symbol: 'ETHUSDT',
+            side: 'short',
+            qty: '0.003',
+            leverage: '10',
+            margin: '0.58',
+            marginMode: 'ISOLATION',
+            // No averagePrice/avgOpenPrice — matches the real WS position
+            // channel payload shape.
+        });
+
+        expect(accountState.positions).toHaveLength(1);
+        const pos = accountState.positions[0];
+        expect(pos.entryPrice.toString()).toBe('0');
+        expect(pos.liquidationPrice.toString()).toBe('0');
+
+        // The position is usable immediately (qty/side/leverage/margin are
+        // all live), but its REST-only fields are placeholders — the
+        // callback signals "go fetch the real values".
+        expect(syncCallback).toHaveBeenCalledTimes(1);
+    });
+
     // Regression: `new Decimal("MARKET")` throws (decimal.js does not return
     // NaN like Number() does), so a malformed field on a raw WS push used to
     // crash the store outright instead of falling back safely.

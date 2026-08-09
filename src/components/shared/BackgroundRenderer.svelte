@@ -44,24 +44,25 @@
 
   $effect(() => {
     if (!videoEl) return;
+    const el = videoEl; // Capture for cleanup
+
     // When the video element mounts or changes, attempt to play it immediately
-    videoEl.play().catch(() => {});
+    el.play().catch(() => {});
 
     // Fallback observer
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!videoEl) return;
         if (entry.isIntersecting) {
-          videoEl.play().catch(() => {});
+          el.play().catch(() => {});
         } else {
-          videoEl.pause();
+          el.pause();
         }
       },
       { threshold: 0.05 },
     );
-    observer.observe(videoEl);
+    observer.observe(el);
     return () => {
-      if (videoEl) observer.unobserve(videoEl);
+      observer.disconnect();
     };
   });
 
@@ -99,10 +100,15 @@
         crossorigin="anonymous"
         preload="auto"
         oncanplay={() => {
-            if (videoEl) videoEl.play().catch(() => {});
+            if (videoEl) {
+              videoEl.playbackRate = settingsState.videoPlaybackSpeed;
+              videoEl.play().catch(() => {});
+            }
         }}
         onerror={() => (videoError = true)}
       ></video>
+    {:else if (settingsState.backgroundType === "image" || settingsState.backgroundType === "video")}
+      <!-- Fallback empty state if URL is missing or errored -->
     {:else if settingsState.backgroundType === "animation"}
       <BackgroundAnimations />
     {:else if settingsState.backgroundType === "threejs"}

@@ -1235,8 +1235,8 @@
                             <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.flow")}</h3>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <!-- Volume Scale (Eq, City, Sonar) -->
-                                {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                <!-- Volume Scale (Eq, City, Sonar, Block) -->
+                                {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
                                     <label for="tf-volscale">{$_("settings.visuals.tradeFlow.volumeScale")}: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
                                     <input
@@ -1252,7 +1252,7 @@
                                 {/if}
 
                                 <!-- Persistence Duration (All Modes) -->
-                                {#if ['equalizer', 'city', 'raindrops', 'sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
                                     <label for="tf-persistence">{$_("settings.visuals.tradeFlow.timeWindow")}: {
                                         settingsState.tradeFlowSettings.persistenceDuration < 60 
@@ -1285,9 +1285,12 @@
                                 <!-- Min Volume -->
                                 <div class="field-group">
                                     <label for="tf-minvol">{$_("settings.visuals.tradeFlow.minVolumeLabel")}: {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
-                                    <input id="tf-minvol" type="range" min="0" max="1000000" step="1000"
+                                    <input id="tf-minvol" type="range" min="0" max="250000" step="100"
                                         bind:value={settingsState.tradeFlowSettings.minVolume}
                                         class="range-input" />
+                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                        High values (e.g. > 10,000) may filter out almost all trades on smaller pairs.
+                                    </p>
                                 </div>
                             </div>
                         </div>
