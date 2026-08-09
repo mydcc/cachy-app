@@ -17,7 +17,7 @@
 
 import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
-import { mapToOMSPosition, mapToOMSOrder } from "./mappers";
+import { mapToOMSPosition, mapToOMSOrder, calculateLiveUnrealizedPnl } from "./mappers";
 
 describe("Mappers", () => {
     describe("mapToOMSPosition", () => {
@@ -160,6 +160,51 @@ describe("Mappers", () => {
             expect(result.price.toString()).toBe("0");
             expect(result.amount.toString()).toBe("0");
             expect(result.filledAmount.toString()).toBe("0");
+        });
+    });
+
+    // Bug: a user reported PnL on an open position only refreshing after a
+    // full page reload — Bitunix's WS position channel doesn't push on
+    // every price tick, only on order events, so a value read straight off
+    // the account store goes stale between those.
+    describe("calculateLiveUnrealizedPnl", () => {
+        it("computes long PnL as (mark - entry) * size", () => {
+            const pnl = calculateLiveUnrealizedPnl(
+                "long",
+                new Decimal("100"),
+                new Decimal("110"),
+                new Decimal("2"),
+            );
+            expect(pnl.toString()).toBe("20");
+        });
+
+        it("computes short PnL as (entry - mark) * size", () => {
+            const pnl = calculateLiveUnrealizedPnl(
+                "short",
+                new Decimal("100"),
+                new Decimal("90"),
+                new Decimal("2"),
+            );
+            expect(pnl.toString()).toBe("20");
+        });
+
+        it("is negative when a long position is underwater", () => {
+            const pnl = calculateLiveUnrealizedPnl(
+                "long",
+                new Decimal("100"),
+                new Decimal("95"),
+                new Decimal("1"),
+            );
+            expect(pnl.toString()).toBe("-5");
+        });
+
+        it("tracks a rising mark price the way a page reload's REST snapshot would", () => {
+            const entry = new Decimal("1921.34");
+            const size = new Decimal("0.003");
+            const atOpen = calculateLiveUnrealizedPnl("short", entry, new Decimal("1921.34"), size);
+            const afterMove = calculateLiveUnrealizedPnl("short", entry, new Decimal("1918.00"), size);
+            expect(atOpen.toString()).toBe("0");
+            expect(afterMove.gt(atOpen)).toBe(true);
         });
     });
 });
