@@ -624,6 +624,9 @@
       positionMode={accountInfo.positionMode}
       crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
       isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
+      isolationFrozen={liveAsset?.isolationFrozen}
+      crossFrozen={liveAsset?.crossFrozen}
+      expMoney={liveAsset?.expMoney}
       totalPositionSize={totalPositionSize}
       error={errorAccount}
     />

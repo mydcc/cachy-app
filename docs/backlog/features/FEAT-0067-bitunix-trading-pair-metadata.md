@@ -2,7 +2,7 @@
 id: FEAT-0067
 title: Fetch Bitunix trading-pair metadata and validate orders against it
 type: feature
-status: specced
+status: in-progress
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -12,7 +12,15 @@ adr: none
 depends_on: []
 ---
 
+Branch: `feat/bitunix-readonly-data-display`
+
 # FEAT-0067 — Fetch Bitunix trading-pair metadata and validate orders against it
+
+**Progress note (this branch):** the read side is done — metadata is fetched
+per symbol into `marketState.symbolMeta` and shown in `TradeSetupInputs.svelte`
+(precision, min size, leverage range, status). The validation/rounding
+acceptance criteria below are execution-path work and stay open — there is no
+order-submit action yet to enable or refuse.
 
 ## Problem
 

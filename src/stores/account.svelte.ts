@@ -68,6 +68,13 @@ export interface Asset {
   margin: Decimal;
   frozen: Decimal;
   total: Decimal;
+  // Wallet-channel fields the WS payload carries but this store discarded
+  // until now (08_websocket.md's Balance Channel) — read-only display only.
+  isolationMargin?: Decimal;
+  crossMargin?: Decimal;
+  isolationFrozen?: Decimal;
+  crossFrozen?: Decimal;
+  expMoney?: Decimal;
 }
 
 // Raw WS position/order/balance payload fields as read below, named after
@@ -119,6 +126,11 @@ interface RawWsBalance {
   available?: string | number;
   margin?: string | number;
   frozen?: string | number;
+  isolationMargin?: string | number;
+  crossMargin?: string | number;
+  isolationFrozen?: string | number;
+  crossFrozen?: string | number;
+  expMoney?: string | number;
 }
 
 interface AccountSnapshot {
@@ -344,6 +356,11 @@ class AccountManager {
         margin,
         frozen,
         total: available.plus(margin).plus(frozen),
+        isolationMargin: safeDecimal(data.isolationMargin, new Decimal(0)),
+        crossMargin: safeDecimal(data.crossMargin, new Decimal(0)),
+        isolationFrozen: safeDecimal(data.isolationFrozen, new Decimal(0)),
+        crossFrozen: safeDecimal(data.crossFrozen, new Decimal(0)),
+        expMoney: safeDecimal(data.expMoney, new Decimal(0)),
       };
 
       if (idx !== -1) {

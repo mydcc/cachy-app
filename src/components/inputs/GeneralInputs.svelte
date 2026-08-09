@@ -67,6 +67,10 @@
     remoteLev !== undefined && leverage === String(remoteLev),
   );
 
+  // Exchange margin mode (ISOLATION/CROSS) for the active symbol — read-only
+  // display, not editable here (changing it is a separate, later feature).
+  let remoteMarginMode = $derived(tradeState.remoteMarginMode);
+
   function syncLeverage() {
     if (remoteLev !== undefined) {
       // Direct assignment
@@ -221,6 +225,16 @@
         {/if}
       </div>
     </div>
+
+    {#if remoteMarginMode !== undefined}
+      <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)] -mt-2">
+        <span>{$_("dashboard.generalInputs.marginMode")}:</span>
+        <span class="font-semibold uppercase text-[var(--text-primary)]"
+          >{remoteMarginMode}</span
+        >
+      </div>
+    {/if}
+
     <!-- Spacer -->
     <div class="mb-0"></div>
   </div>

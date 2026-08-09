@@ -76,10 +76,10 @@
     "suggestedChanges": "Suggested Changes",
     "thinking": "Thinking...",
     "quickActions": {
-      "marketCheck":  "Analyze the market for {symbol}",
+      "marketCheck": "Analyze the market for {symbol}",
       "techAnalysis": "Create a technical analysis for {symbol}",
-      "riskAudit":    "Audit my setup for errors and risks.",
-      "newsCheck":    "Are there any important news?"
+      "riskAudit": "Audit my setup for errors and risks.",
+      "newsCheck": "Are there any important news?"
     }
   },
   "legal": {
@@ -231,7 +231,8 @@
       "leveragePlaceholder": "Leverage (e.g. 10x)",
       "feesPlaceholder": "Fees per Trade (%)",
       "syncedWithApi": "Synced with API",
-      "manualOverride": "Manual Override (Click to sync to {value})"
+      "manualOverride": "Manual Override (Click to sync to {value})",
+      "marginMode": "Margin Mode"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -320,7 +321,10 @@
       "mode": "Mode",
       "crossPnl": "Cross PnL",
       "isoPnl": "Iso PnL",
-      "totalPositionSize": "Total Position Size"
+      "totalPositionSize": "Total Position Size",
+      "isolationFrozen": "Isolation Frozen",
+      "crossFrozen": "Cross Frozen",
+      "expMoney": "Experience Money"
     },
     "customModal": {
       "promptPlaceholder": "Input...",
@@ -341,7 +345,15 @@
     "riskRewardRatio": "Risk/Reward Ratio",
     "promptForData": "Please enter required trade data to start calculation.",
     "instructionsTitle": "Instructions: Dashboard",
-    "triggerPulse": "Trigger Quantum Pulse"
+    "triggerPulse": "Trigger Quantum Pulse",
+    "symbolInfo": {
+      "precision": "Precision",
+      "minSize": "Min. Size",
+      "leverageRange": "Leverage Range",
+      "statusCancelOnly": "Cancel-only",
+      "statusStop": "Trading stopped",
+      "apiNotSupported": "API trading disabled"
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -1463,7 +1475,9 @@
     "marginRate": "Margin Rate",
     "realizedPnl": "Realized PnL",
     "unrealizedPnl": "Unrealized PnL",
-    "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view."
+    "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view.",
+    "tierMmr": "Maint. Margin Rate (Tier)",
+    "nextTierAt": "Next Tier at"
   },
   "symbolPicker": {
     "title": "Select Symbol",

@@ -19,6 +19,8 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
+  import { marketState } from "../../stores/market.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
 
   // Populated from UiState's tooltip.data (typed `unknown` there, since
   // different tooltip variants carry different shapes). Expected
@@ -41,6 +43,37 @@
     const margin = new Decimal(pos.margin);
     return new Decimal(pnl.div(margin).mul(100)).toNumber();
   }
+
+  // Which maintenance-margin tier the position's current notional value
+  // falls into (position/get_position_tiers) — read-only context next to
+  // the existing liquidation price, not a recomputation of it.
+  let notionalValue = $derived(
+    position.size && (position.markPrice || position.entryPrice)
+      ? new Decimal(position.size).mul(position.markPrice || position.entryPrice)
+      : null,
+  );
+  let tiers = $derived(
+    position.symbol
+      ? marketState.positionTiers[normalizeSymbol(position.symbol, "bitunix")]
+      : undefined,
+  );
+  let currentTierIndex = $derived(
+    tiers && notionalValue
+      ? tiers.findIndex(
+          (t) =>
+            (t.startValue ? notionalValue.gte(t.startValue) : true) &&
+            (t.endValue ? notionalValue.lt(t.endValue) : true),
+        )
+      : -1,
+  );
+  let currentTier = $derived(
+    currentTierIndex >= 0 && tiers ? tiers[currentTierIndex] : undefined,
+  );
+  let nextTier = $derived(
+    currentTierIndex >= 0 && tiers && currentTierIndex + 1 < tiers.length
+      ? tiers[currentTierIndex + 1]
+      : undefined,
+  );
 </script>
 
 <div
@@ -135,6 +168,23 @@
         <span>-</span>
       {/if}
     </div>
+
+    {#if currentTier}
+      <div class="flex justify-between">
+        <span class="text-[var(--text-secondary)]">{$_("positionsList.tierMmr")}:</span>
+        <span
+          >{formatDynamicDecimal(
+            new Decimal(currentTier.maintenanceMarginRate || 0).mul(100),
+          )}%</span
+        >
+      </div>
+      {#if nextTier?.startValue}
+        <div class="flex justify-between">
+          <span class="text-[var(--text-secondary)]">{$_("positionsList.nextTierAt")}:</span>
+          <span>{formatDynamicDecimal(nextTier.startValue)}</span>
+        </div>
+      {/if}
+    {/if}
     <div class="flex justify-between">
       <span class="text-[var(--text-secondary)]">{$_("positionsList.realizedPnl")}:</span>
       {#if position.realizedPnl !== undefined && position.realizedPnl !== null}

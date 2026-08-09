@@ -2,7 +2,7 @@
 id: FEAT-0068
 title: Read and change leverage, margin mode and position margin from the trade panel
 type: feature
-status: specced
+status: in-progress
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -12,7 +12,14 @@ adr: none
 depends_on: []
 ---
 
+Branch: `feat/bitunix-readonly-data-display`
+
 # FEAT-0068 — Read and change leverage, margin mode and position margin from the trade panel
+
+**Progress note (this branch):** the read side is done — `get_leverage_margin_mode`
+is fetched per symbol and shown in `GeneralInputs.svelte` (leverage sync
+indicator + a margin-mode badge). The four `change_*`/`adjust_*` write actions
+below stay open for the execution milestone.
 
 ## Problem
 
@@ -40,7 +47,7 @@ the private WebSocket state rather than trusting the REST response alone.
 
 ## Acceptance criteria
 
-- [ ] The trade panel shows current leverage and margin mode for the active
+- [x] The trade panel shows current leverage and margin mode for the active
       symbol, fetched from the API rather than assumed.
 - [ ] Leverage can be changed within the pair's `minLeverage`/`maxLeverage`
       range; values outside are rejected client-side.

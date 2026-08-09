@@ -77,6 +77,60 @@ export const BitunixKlineSchema = z.object({
 
 export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);
 
+// Bitunix Trading Pair Schema (market/trading_pairs) — precision, order-size
+// limits, leverage range and symbol status. Read-only metadata used to
+// validate/round order inputs client-side (no order placement yet).
+export const BitunixTradingPairSchema = z.object({
+  symbol: z.string(),
+  base: z.string().optional(),
+  quote: z.string().optional(),
+  minTradeVolume: StrictDecimal.nullable().optional(),
+  maxLimitOrderVolume: StrictDecimal.nullable().optional(),
+  maxMarketOrderVolume: StrictDecimal.nullable().optional(),
+  basePrecision: z.number().optional(),
+  quotePrecision: z.number().optional(),
+  minLeverage: z.number().optional(),
+  maxLeverage: z.number().optional(),
+  defaultLeverage: z.number().optional(),
+  priceProtectScope: StrictDecimal.nullable().optional(),
+  symbolStatus: z.string().optional(),
+  isApiSupported: z.boolean().optional(),
+});
+
+export const BitunixTradingPairResponseSchema = z.object({
+  code: z.union([z.number(), z.string()]),
+  msg: z.string().optional(),
+  data: z.array(BitunixTradingPairSchema).optional(),
+});
+
+// Bitunix Position Tier Schema (position/get_position_tiers) — maintenance
+// margin per position-size bracket.
+export const BitunixPositionTierSchema = z.object({
+  symbol: z.string(),
+  level: z.number(),
+  startValue: StrictDecimal.nullable().optional(),
+  endValue: StrictDecimal.nullable().optional(),
+  leverage: z.number().optional(),
+  maintenanceMarginRate: StrictDecimal.nullable().optional(),
+});
+
+export const BitunixPositionTierResponseSchema = z.object({
+  code: z.union([z.number(), z.string()]),
+  msg: z.string().optional(),
+  data: z.array(BitunixPositionTierSchema).optional(),
+});
+
+// Bitunix Leverage/Margin-Mode Schema (account/get_leverage_margin_mode).
+// Our own proxy route already unwraps {code,msg,data} into a flat object
+// (see routes/api/leverage-margin-mode), so this validates that flat shape,
+// not the raw Bitunix envelope.
+export const BitunixLeverageMarginModeSchema = z.object({
+  symbol: z.string(),
+  marginCoin: z.string(),
+  leverage: z.number(),
+  marginMode: z.string(),
+});
+
 // Bitget Kline Schema
 // Format: [timestamp, open, high, low, close, volume, ...]
 // Can be string or number

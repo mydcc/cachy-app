@@ -183,6 +183,27 @@ describe('AccountManager', () => {
         expect(accountState.assets[0].total.toString()).toBe('0');
     });
 
+    // The wallet channel (08_websocket.md's Balance Channel) also carries
+    // isolationMargin/crossMargin/isolationFrozen/crossFrozen/expMoney, which
+    // updateBalanceFromWs discarded before parsing anything but
+    // available/margin/frozen.
+    it('parses isolationFrozen/crossFrozen/expMoney from a wallet push', () => {
+        accountState.updateBalanceFromWs({
+            coin: 'USDT',
+            available: '1000',
+            margin: '10',
+            frozen: '0',
+            isolationFrozen: '5',
+            crossFrozen: '2',
+            expMoney: '3.5',
+        });
+
+        const asset = accountState.assets.find((a) => a.currency === 'USDT');
+        expect(asset?.isolationFrozen?.toString()).toBe('5');
+        expect(asset?.crossFrozen?.toString()).toBe('2');
+        expect(asset?.expMoney?.toString()).toBe('3.5');
+    });
+
     // Regression: PositionsSidebar.svelte used to assign the raw REST JSON
     // straight into accountState.positions (string fields, no positionId),
     // silently violating the Position type (`response.json()` is `any`, so
