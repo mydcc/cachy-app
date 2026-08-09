@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.3.0-beta.1](https://github.com/mydcc/cachy-app/compare/v1.2.0...v1.3.0-beta.1) (2026-08-09)
+
+
+### Features
+
+* **exchange:** show read-only Bitunix leverage, margin-mode, symbol and tier data ([91dd055](https://github.com/mydcc/cachy-app/commit/91dd05579209b82a206d8f70c4bcee53f796a3a4))
+
 # [1.2.0](https://github.com/mydcc/cachy-app/compare/v1.1.1...v1.2.0) (2026-08-09)
 
 
