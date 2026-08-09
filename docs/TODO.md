@@ -826,7 +826,7 @@ No feature list, no target customer definition, nothing scoped.
 > push, which ADR-0004 forbids — and now matches
 > [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 
-## 23. ~~Orphaned Render.com integration still auto-deploys and fails~~ — done
+## 23. Orphaned Render.com integration still auto-deploys and fails — repo-side done, dashboard step still open
 
 **Roadmap item 24**'s scripts audit already flagged half of this
 (`docs/archive/engineering-log-2026-h1.md`: *"`render_build.sh` targets Render.com, while the
@@ -844,6 +844,13 @@ Both files have been removed from the repository:
 The Render service itself (on the Render dashboard) still needs to be
 disconnected/deleted by whoever owns that account — that step is not
 reachable from this repo or GitHub alone.
+
+**Confirmed still open, 2026-08-09:** the same Render service failed again
+on `develop`/PR #1682 (`cachy-app-pr-1682.onrender.com`, exit 127 —
+`./scripts/render_build.sh: No such file or directory`), i.e. it is still
+attached and still building every push more than a week after the repo-side
+files were deleted. The dashboard disconnect from whoever owns the Render
+account is the only remaining step.
 
 ## 24. ~~PWA manifest — splash screen and long-press shortcuts broken on Android~~ — resolved: device-side ad blocker
 
