@@ -290,7 +290,7 @@
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" bind:checked={hideAlts} />
                 <span class="uppercase tracking-wider opacity-60"
-                    >Majors Only</span
+                    >{$_("symbolPicker.hideAlts")}</span
                 >
             </label>
 
