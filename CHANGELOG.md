@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.3.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.4...v1.3.0-beta.5) (2026-08-10)
+
+
+### Bug Fixes
+
+* **positions:** recompute unrealized PnL from live mark price ([257f7e6](https://github.com/mydcc/cachy-app/commit/257f7e6dc2492803ca06f3208f130603d4bc5834))
+
 # [1.3.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.3...v1.3.0-beta.4) (2026-08-09)
 
 
