@@ -801,7 +801,15 @@
         "rotationY": "Rot Y",
         "rotationZ": "Rot Z",
         "initializing": "Neuraler Kern wird gestartet...",
-        "error": "Visuelle Effekte deaktiviert"
+        "error": "Visuelle Effekte deaktiviert",
+        "tooltipMode": "Wähle den Visualisierungsstil für Echtzeit-Trades. Jeder Modus stellt Kauf- und Verkaufsaufträge unterschiedlich dar — probiere aus, welcher am besten zu deinem Workflow passt.",
+        "tooltipVolumeScale": "Bestimmt, wie stark die Visualisierung auf das Handelsvolumen reagiert. Höhere Werte = dramatischere Reaktionen auf große Orders. Niedrigere Werte = gleichmäßigeres Erscheinungsbild.",
+        "tooltipTimeWindow": "Wie lange vergangene Trades sichtbar bleiben, bevor sie ausblenden. Längere Zeitfenster zeigen mehr historischen Kontext, können aber unübersichtlich wirken.",
+        "tooltipMinVolume": "Filtert Trades unter diesem Dollarwert heraus. Nutze dies, um dich auf große Wal-Orders zu fokussieren. Achtung: Hohe Werte bei kleineren Handelspaaren können alle Trades ausblenden.",
+        "tooltipDynamicAtmosphere": "Wenn aktiviert, verschieben sich Szenenbeleuchtung, Nebel und Umgebungspartikel farblich basierend auf der Marktstimmung — grün bei bullischer, rot bei bärischer Dynamik.",
+        "tooltipGridWidth": "Anzahl der Punkte entlang der X-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
+        "tooltipGridLength": "Anzahl der Punkte entlang der Z-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
+        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild."
       },
       "coordinates": {
         "x": "X",

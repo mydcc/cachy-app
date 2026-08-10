@@ -183,13 +183,53 @@
   // ========================================
 
 
+  // Structural settings — changes here require a full engine reinit
+  let prevStructuralKey = '';
   $effect(() => {
-    if (lifecycleState === LifecycleState.READY && worker) {
+    if (lifecycleState !== LifecycleState.READY || !worker) return;
+    const s = settingsState.tradeFlowSettings;
+    const structuralKey = `${s.flowMode}_${s.gridWidth}_${s.gridLength}_${s.spread}_${s.size}`;
+    
+    if (structuralKey !== prevStructuralKey) {
+      prevStructuralKey = structuralKey;
       worker.postMessage({
         type: 'updateSettings',
-        data: { settings: JSON.parse(JSON.stringify(settingsState.tradeFlowSettings)) }
+        data: { settings: JSON.parse(JSON.stringify(s)) }
       });
     }
+  });
+
+  // Lightweight settings — no engine reinit, just forward values
+  $effect(() => {
+    if (lifecycleState !== LifecycleState.READY || !worker) return;
+    const s = settingsState.tradeFlowSettings;
+    // Access these to track them as dependencies
+    const _vol = s.volumeScale;
+    const _persist = s.persistenceDuration;
+    const _speed = s.speed;
+    const _atmo = s.enableAtmosphere;
+    const _camH = s.cameraHeight;
+    const _camD = s.cameraDistance;
+    const _camPX = s.cameraPositionX;
+    const _camRX = s.cameraRotationX;
+    const _camRY = s.cameraRotationY;
+    const _camRZ = s.cameraRotationZ;
+    
+    worker.postMessage({
+      type: 'updateLightSettings',
+      data: {
+        volumeScale: _vol,
+        persistenceDuration: _persist,
+        speed: _speed,
+        enableAtmosphere: _atmo,
+        cameraHeight: _camH,
+        cameraDistance: _camD,
+        cameraPositionX: _camPX,
+        cameraRotationX: _camRX,
+        cameraRotationY: _camRY,
+        cameraRotationZ: _camRZ,
+      }
+    });
   });
 
   // Dynamic Subscription

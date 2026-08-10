@@ -70,7 +70,7 @@ export class EqualizerEngine extends BaseEngine {
                 atmos = uColorDown * sentimentIntensity * hFactor * 0.6;
             }
             
-            vec3 finalColor = vColor + atmos * pulse + uAtmosphere * 0.1;
+            vec3 finalColor = vColor + atmos * pulse + uAtmosphere * 0.02;
             gl_FragColor = vec4(finalColor, alpha);
         }
     `;
@@ -113,11 +113,11 @@ export class EqualizerEngine extends BaseEngine {
                 positions[3 * k] = (i / width - 0.5) * width * 2.0;
                 positions[3 * k + 1] = 0;
                 positions[3 * k + 2] = (j / length - 0.5) * length * 2.0;
-                const baseCol = this.context.colorUp || new THREE.Color(0x00ff88);
-                const intensity = (Math.random() * 0.1) + 0.1;
-                colors[3 * k] = baseCol.r * intensity;
-                colors[3 * k + 1] = baseCol.g * intensity;
-                colors[3 * k + 2] = baseCol.b * intensity;
+                // Start with neutral dark gray — trades will set the actual color
+                const dimIntensity = (Math.random() * 0.03) + 0.02;
+                colors[3 * k] = dimIntensity;
+                colors[3 * k + 1] = dimIntensity;
+                colors[3 * k + 2] = dimIntensity;
                 amplitudes[k] = 0.0;
                 k++;
             }
