@@ -56,6 +56,19 @@ const NewsCacheEntrySchema = z.object({
   lastApiCall: z.number(),
 });
 
+const SentimentAnalysisSchema = z.object({
+  score: z.number(),
+  regime: z.enum(["BULLISH", "BEARISH", "NEUTRAL", "UNCERTAIN"]),
+  summary: z.string(),
+  keyFactors: z.array(z.string()),
+});
+
+const SentimentCacheSchema = z.object({
+  data: SentimentAnalysisSchema,
+  timestamp: z.number(),
+  newsHash: z.string(),
+});
+
 const COIN_ALIASES: Record<string, string[]> = {
   BTC: ["Bitcoin", "BTC"],
   ETH: ["Ethereum", "Ether", "ETH"],
@@ -421,7 +434,18 @@ export const newsService = {
     return pendingSentimentFetches.execute(newsHash, async (): Promise<SentimentAnalysis | null> => {
       try {
         // IDB Read
-        const cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
+        const rawCached = await dbService.get("sentiment", newsHash);
+
+        let cached: { data: SentimentAnalysis; timestamp: number; newsHash: string } | undefined;
+        if (rawCached) {
+          const validation = SentimentCacheSchema.safeParse(rawCached);
+          if (validation.success) {
+            cached = validation.data;
+          } else {
+            logger.warn("ai", `[newsService] Schema mismatch in DB for sentiment/${newsHash}. Clearing.`, validation.error);
+            await dbService.delete("sentiment", newsHash);
+          }
+        }
 
         if (
           cached &&
@@ -480,7 +504,12 @@ export const newsService = {
           throw new Error("apiErrors.generic");
         }
 
-        const analysis: SentimentAnalysis = data.analysis;
+        const analysisValidation = SentimentAnalysisSchema.safeParse(data.analysis);
+        if (!analysisValidation.success) {
+          logger.error("ai", "Sentiment API returned a malformed analysis", analysisValidation.error);
+          throw new Error("apiErrors.generic");
+        }
+        const analysis: SentimentAnalysis = analysisValidation.data;
 
         // IDB Write - use newsHash as key
         await dbService.put("sentiment", {
