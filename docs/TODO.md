@@ -542,9 +542,23 @@ survives. Left as a lint-pass finding rather than guessed at inline:
 this is live order-tracking state for a real-money trading engine: a
 wrong guess about the eviction rule is worse than the current gap.
 
-## 15. `modalState.show()`'s `extraClasses` parameter is accepted but never applied
+## 15. ✅ `modalState.show()`'s `extraClasses` parameter is accepted but never applied
 
-**Roadmap item 21.** Found while typing/cleaning an unused-parameter
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md), which has
+the fix and a second, related bug it surfaced while verifying live.
+
+**Decision:** wired as described below — `DialogWindow` now takes
+`extraClasses` and applies it via `WindowBase.extraClasses` (the same
+mechanism `ModalFrameWindow` already uses). Applying the class alone turned
+out insufficient for the actual width, since `WindowFrame.svelte`'s inline
+`style:width` always beats a class-based CSS rule — so `DialogWindow` also
+sets `this.width`/`this.height` directly for known `extraClasses` presets,
+the same way `WindowRegistry`'s `'academy'` entry already approximates the
+same preset in JS instead of relying on the (inert, for this reason) CSS
+class.
+
+Found while typing/cleaning an unused-parameter
 warning on `ModalManager.show()`.
 
 `show(title, message, type, defaultValue, extraClasses)` in
