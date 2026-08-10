@@ -24,6 +24,7 @@ EXTENSIONS = {
     '.html': 'html',
     '.py': 'hash',
     '.sh': 'hash',
+    '.rs': 'block',
 }
 
 SKIP_DIRS = {'node_modules', '.git', '.svelte-kit', 'dist', 'coverage', 'test-results', 'info', 'docs', '.github', '.vscode', 'benchmarks', 'static'}
@@ -75,7 +76,7 @@ def process_file(filepath):
         f.write(new_content)
 
 def main():
-    root_dirs = ['src', 'server', 'scripts', 'tests']
+    root_dirs = ['src', 'server', 'scripts', 'tests', 'technicals-wasm']
 
     # Process root directories
     for root_dir in root_dirs:
