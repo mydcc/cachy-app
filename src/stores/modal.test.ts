@@ -77,6 +77,23 @@ describe("ModalManager", () => {
         expect(callArgs.windowType).toBe("symbolpicker");
     });
 
+    it("BUG-0009: resolves with false (not null) when the symbol picker is cancelled", async () => {
+        const resultPromise = modalState.show("Select Symbol", "Please select a symbol", "symbolPicker");
+
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
+        const win = callArgs as SymbolPickerWindow;
+
+        // Simulate cancel: the window is destroyed without a selection.
+        win.destroy();
+
+        const result = await resultPromise;
+
+        // The declared return type is Promise<boolean | string> — null is
+        // not a member of it. false matches DialogWindow's own cancel value.
+        expect(result).toBe(false);
+        expect(result).not.toBeNull();
+    });
+
     it("should open DialogWindow with correct arguments for alert type", async () => {
         modalState.show("Alert Title", "Alert Message", "alert");
 

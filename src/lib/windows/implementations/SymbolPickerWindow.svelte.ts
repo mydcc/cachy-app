@@ -24,18 +24,13 @@ import { WindowBase } from "../WindowBase.svelte";
 import SymbolPickerView from "./SymbolPickerView.svelte";
 
 export class SymbolPickerWindow extends WindowBase {
-    // Left as `any`: this class calls resolve with a string (closeWith,
-    // e.g. from SymbolPickerView.svelte's selectSymbol) or null (destroy,
-    // on close-without-selection) — but its one real caller,
+    // Matches DialogWindow.svelte.ts's resolve type: its one real caller,
     // stores/modal.svelte.ts's showModal(), constructs a Promise<boolean |
-    // string>, whose resolve type has no null case. See docs/TODO.md item
-    // 10 for that mismatch; narrowing the type here would just relocate
-    // the error to that unrelated call site rather than fix it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolve: ((value: any) => void) | null = null;
+    // string> (see BUG-0009 / docs/TODO.md item 10 for the mismatch this
+    // used to have with a null resolve value).
+    resolve: ((value: boolean | string) => void) | null = null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(resolve?: (value: any) => void) {
+    constructor(resolve?: (value: boolean | string) => void) {
         super({
             title: "Symbol Selection",
             windowType: "symbolpicker"
@@ -47,8 +42,7 @@ export class SymbolPickerWindow extends WindowBase {
         return SymbolPickerView;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    closeWith(value: any) {
+    closeWith(value: string) {
         if (this.resolve) {
             this.resolve(value);
             this.resolve = null;
@@ -58,7 +52,8 @@ export class SymbolPickerWindow extends WindowBase {
     destroy() {
         super.destroy();
         if (this.resolve) {
-            this.resolve(null); // Resolve with null/false if closed without selection
+            // Matches DialogWindow's cancel behavior: false, not null.
+            this.resolve(false);
             this.resolve = null;
         }
     }
