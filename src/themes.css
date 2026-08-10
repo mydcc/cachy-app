@@ -3012,11 +3012,14 @@ svg {
  *
  * The width/aspect-ratio below no longer take effect either, in practice:
  * WindowFrame binds width/height as inline styles (style:width={...}),
- * which always win over a class-based rule regardless of specificity. The
- * adapter in ModalFrame.svelte computes the equivalent size in JS instead,
- * from this same class name. Left here non-destructively rather than
- * removed, since modalState's DialogWindow path also references this class
- * name (currently inert there too -- see BUG-0010).
+ * which always win over a class-based rule regardless of specificity.
+ * Every place that wants this preset's actual size computes the equivalent
+ * pixels in JS instead, from this same class name: WindowRegistry's
+ * 'academy' entry (1200x800) and, since BUG-0010,
+ * DialogWindow.svelte.ts's EXTRA_CLASS_SIZE_OVERRIDES (also 1200x800).
+ * Left here non-destructively rather than removed -- both of those still
+ * apply the class itself to the rendered root (for whatever non-size
+ * styling a theme might hook onto it), just not for sizing.
  */
 .modal-size-instructions {
   width: 80vw;

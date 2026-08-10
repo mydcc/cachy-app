@@ -19,6 +19,21 @@ import { WindowBase } from "../WindowBase.svelte";
 import DialogView from "./DialogView.svelte";
 import type { WindowOptions } from "../types";
 
+/**
+ * `extraClasses` presets that need an actual size override, not just a CSS
+ * class (BUG-0010). WindowFrame.svelte binds width/height as inline styles
+ * (`style:width`/`style:height`), which always beat a class-based rule
+ * regardless of specificity — and this.width/this.height also drive
+ * WindowBase's own centering math, so a CSS-only override would leave the
+ * dialog visually resized but positioned as if it were still the small
+ * 'dialog' registry default. Mirrors how WindowRegistry's 'academy' entry
+ * already approximates this same "80vw capped 1320px, 3:2" preset with
+ * fixed pixels instead of relying on the (inert, for this reason) CSS class.
+ */
+const EXTRA_CLASS_SIZE_OVERRIDES: Record<string, { width: number; height: number }> = {
+    "modal-size-instructions": { width: 1200, height: 800 },
+};
+
 export class DialogWindow extends WindowBase {
     message = $state("");
     type: 'alert' | 'confirm' | 'prompt' = $state('alert');
@@ -31,13 +46,34 @@ export class DialogWindow extends WindowBase {
         type: 'alert' | 'confirm' | 'prompt' = 'alert',
         defaultValue: string = "",
         resolve: (value: boolean | string) => void,
+        extraClasses: string = "",
         options: WindowOptions = {}
     ) {
-        super({ title, windowType: 'dialog', ...options });
+        const sizeOverride = Object.entries(EXTRA_CLASS_SIZE_OVERRIDES)
+            .find(([className]) => extraClasses.includes(className))?.[1];
+
+        // 'dialog' is not in allowMultipleInstances, so every plain alert/
+        // confirm/prompt shares one stable id ("dialog") -- and WindowBase
+        // persists width/height to localStorage under that id by default
+        // (no registry entry sets persistent: false for 'dialog'). Without
+        // a distinct id here, the FIRST time this preset opens and resizes
+        // to 1200x800, that size gets saved under the shared key and every
+        // later plain alert/confirm/prompt restores it too, silently
+        // breaking "unaffected" (verified live: reproduced exactly this
+        // when the id wasn't separated, before landing on this fix).
+        const sizeOverrideId = sizeOverride ? `dialog-${extraClasses}` : undefined;
+
+        super({ title, windowType: 'dialog', id: sizeOverrideId, ...options });
         this.message = message;
         this.type = type;
         this.defaultValue = defaultValue;
         this.resolve = resolve;
+        this.extraClasses = extraClasses;
+
+        if (sizeOverride && !options.width && !options.height) {
+            this.width = sizeOverride.width;
+            this.height = sizeOverride.height;
+        }
     }
 
     get component() {
