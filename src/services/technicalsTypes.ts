@@ -188,6 +188,20 @@ export type SerializedTechnicalsData = TechnicalsData;
 export type SerializedIndicatorResult = IndicatorResult;
 export type SerializedDivergenceItem = DivergenceItem;
 
+/**
+ * Single source of truth for turning a raw Choppiness Index value into the
+ * shape `TechnicalsData.advanced.choppiness` declares. Shared between the
+ * WASM and WebGPU acceleration paths so they cannot drift apart the way
+ * they did before BUG-0005 (GPU wrote a different value under a different,
+ * undeclared field).
+ */
+export function deriveChoppinessState(value: number): { value: number; state: "Trend" | "Range" | "Neutral" } {
+  return {
+    value,
+    state: value > 61.8 ? "Range" : (value < 38.2 ? "Trend" : "Range")
+  };
+}
+
 export function getEmptyData(): TechnicalsData {
   return {
     oscillators: [],

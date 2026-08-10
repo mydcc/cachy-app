@@ -23,7 +23,7 @@
  */
 
 import type { Kline, TechnicalsData, IndicatorSettings } from './technicalsTypes';
-import { getEmptyData } from './technicalsTypes';
+import { getEmptyData, deriveChoppinessState } from './technicalsTypes';
 import { toNumFast } from '../utils/fastConversion';
 
 // The WASM glue module and calculator instance it exports — both are
@@ -339,10 +339,7 @@ class WasmCalculator {
                      data.volatility.atr = val;
                  }
              } else if (key.startsWith("CHOP")) {
-                  data.advanced.choppiness = { 
-                      value: val, 
-                      state: val > 61.8 ? "Range" : (val < 38.2 ? "Trend" : "Range") // Simple logic, refine if needed
-                  };
+                  data.advanced.choppiness = deriveChoppinessState(val);
              } else if (key.startsWith("VWAP")) {
                   data.advanced.vwap = val;
              }
