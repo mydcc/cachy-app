@@ -125,7 +125,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | --- | --- | --- | --- | --- |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
-| [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | ui |
+| [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
@@ -186,7 +186,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
-| [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | M0 | community, pro, private | none | none | — |

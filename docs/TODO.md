@@ -341,9 +341,18 @@ re-flag it. Left in place and merely typed here per this repo's
 defensive-deletion rule: code whose purpose isn't fully clear doesn't
 get deleted without a person confirming it's safe to.
 
-## 10. `SymbolPickerWindow` can resolve its Promise with `null`, but the Promise's type says `boolean | string`
+## 10. ✅ `SymbolPickerWindow` can resolve its Promise with `null`, but the Promise's type says `boolean | string`
 
-**Roadmap item 21.** Found while typing this class's `any` casts during a
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md), which
+has the caller audit and the fix.
+
+**Decision:** `SymbolPickerWindow.destroy()` now resolves `false` instead
+of `null`, matching `DialogWindow`'s existing cancel behavior — no caller
+needed changes, since the audit found none in production code call
+`showModal(..., 'symbolPicker')` today.
+
+Found while typing this class's `any` casts during a
 lint pass — recording before the typing makes the mismatch invisible
 again.
 
