@@ -252,9 +252,17 @@ removed, since a fully-built feature with prepared translations is not
 "purpose unclear" — it's "purpose clear, UI incomplete," which needs a
 placement decision, not deletion.
 
-## 7. Sentiment cache and AI response are trusted without schema validation
+## 7. ✅ Sentiment cache and AI response are trusted without schema validation
 
-**Roadmap item 21.** Found while removing two unused Zod schemas from
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md), which
+has the reinstated schemas and the tests proving the fallback now fires.
+
+**Decision:** wired the two schemas back in exactly as decided below —
+`safeParse()` on both the IDB read and the AI response, falling back to the
+existing neutral-sentiment response on mismatch.
+
+Found while removing two unused Zod schemas from
 `newsService.ts` during a lint pass — worth recording before the removal
 makes the gap invisible.
 
