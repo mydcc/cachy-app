@@ -1149,7 +1149,7 @@
 
                         <!-- Visualization Mode -->
                         <div class="field-group mb-4">
-                            <label for="tf-mode">{$_("settings.visuals.tradeFlow.mode")}</label>
+                            <label for="tf-mode" title={$_("settings.visuals.tradeFlow.tooltipMode")}>{$_("settings.visuals.tradeFlow.mode")}</label>
                             <div class="flex flex-wrap gap-2">
                                 {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as const as mode}
                                     <button
@@ -1224,7 +1224,7 @@
                                     {/each}
                                 </div>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.dynamicAtmosphere")}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipDynamicAtmosphere")}>{$_("settings.visuals.tradeFlow.dynamicAtmosphere")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
                                 </label>
                             </div>
@@ -1238,7 +1238,7 @@
                                 <!-- Volume Scale (Eq, City, Sonar, Block) -->
                                 {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-volscale">{$_("settings.visuals.tradeFlow.volumeScale")}: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
+                                    <label for="tf-volscale" title={$_("settings.visuals.tradeFlow.tooltipVolumeScale")}>{$_("settings.visuals.tradeFlow.volumeScale")}: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
                                     <input
                                         id="tf-volscale"
                                         type="range"
@@ -1268,14 +1268,14 @@
                                         step="10"
                                         class="range-input"
                                     />
-                                    <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.tradeFlow.timeWindowHelp")}</p>
+                                    <p class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipTimeWindow")}>{$_("settings.visuals.tradeFlow.timeWindowHelp")}</p>
                                 </div>
                                 {/if}
                                 
                                 <!-- Speed (Sonar) -->
                                 {#if ['sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
-                                    <label for="tf-speed">{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                                    <label for="tf-speed" title={$_("settings.visuals.tradeFlow.tooltipSpeed")}>{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
                                     <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
                                         bind:value={settingsState.tradeFlowSettings.speed}
                                         class="range-input" />
@@ -1284,12 +1284,12 @@
                                 
                                 <!-- Min Volume -->
                                 <div class="field-group">
-                                    <label for="tf-minvol">{$_("settings.visuals.tradeFlow.minVolumeLabel")}: {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
+                                    <label for="tf-minvol" title={$_("settings.visuals.tradeFlow.tooltipMinVolume")}>{$_("settings.visuals.tradeFlow.minVolumeLabel")}: {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
                                     <input id="tf-minvol" type="range" min="0" max="250000" step="100"
                                         bind:value={settingsState.tradeFlowSettings.minVolume}
                                         class="range-input" />
                                     <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                                        High values (e.g. > 10,000) may filter out almost all trades on smaller pairs.
+                                        {$_("settings.visuals.tradeFlow.tooltipMinVolume")}
                                     </p>
                                 </div>
                             </div>
@@ -1301,14 +1301,14 @@
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div class="field-group">
-                                    <label for="tf-width">{$_("settings.visuals.tradeFlow.gridPointsX")}: {settingsState.tradeFlowSettings.gridWidth}</label>
+                                    <label for="tf-width" title={$_("settings.visuals.tradeFlow.tooltipGridWidth")}>{$_("settings.visuals.tradeFlow.gridPointsX")}: {settingsState.tradeFlowSettings.gridWidth}</label>
                                     <input id="tf-width" type="range" min="10" max="800" step="10"
                                         value={settingsState.tradeFlowSettings.gridWidth}
                                         oninput={handleWidthChange}
                                         class="range-input" />
                                 </div>
                                 <div class="field-group">
-                                    <label for="tf-length">{$_("settings.visuals.tradeFlow.gridPointsZ")}: {settingsState.tradeFlowSettings.gridLength}</label>
+                                    <label for="tf-length" title={$_("settings.visuals.tradeFlow.tooltipGridLength")}>{$_("settings.visuals.tradeFlow.gridPointsZ")}: {settingsState.tradeFlowSettings.gridLength}</label>
                                     <input id="tf-length" type="range" min="10" max="800" step="10"
                                         value={settingsState.tradeFlowSettings.gridLength}
                                         oninput={handleLengthChange}

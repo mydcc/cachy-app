@@ -56,6 +56,90 @@ let currentSentiment = 0;
 let currentAtmosphereColor = new THREE.Color(0x0a0e27);
 let targetAtmosphereColor = new THREE.Color(0x0a0e27);
 
+// Atmosphere lighting
+let ambientLight: THREE.AmbientLight | null = null;
+let dirLight: THREE.DirectionalLight | null = null;
+
+// Atmosphere nebula particles
+let nebulaPoints: THREE.Points | null = null;
+let nebulaMaterial: THREE.ShaderMaterial | null = null;
+const NEBULA_COUNT = 120;
+
+const nebulaVertexShader = `
+    attribute float aSize;
+    attribute float aPhase;
+    uniform float uTime;
+    varying float vAlpha;
+    void main() {
+        vec3 pos = position;
+        pos.x += sin(uTime * 0.05 + aPhase * 6.28) * 8.0;
+        pos.y += cos(uTime * 0.03 + aPhase * 3.14) * 4.0;
+        pos.z += sin(uTime * 0.04 + aPhase * 4.71) * 6.0;
+        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+        gl_PointSize = aSize * (600.0 / -mvPos.z);
+        gl_Position = projectionMatrix * mvPos;
+        vAlpha = smoothstep(800.0, 100.0, -mvPos.z);
+    }
+`;
+
+const nebulaFragmentShader = `
+    uniform vec3 uColor;
+    uniform float uOpacity;
+    varying float vAlpha;
+    void main() {
+        vec2 c = gl_PointCoord - 0.5;
+        float d = length(c);
+        if (d > 0.5) discard;
+        float alpha = (1.0 - smoothstep(0.0, 0.5, d)) * vAlpha * uOpacity;
+        gl_FragColor = vec4(uColor, alpha * 0.35);
+    }
+`;
+
+function initAtmosphere() {
+    ambientLight = new THREE.AmbientLight(0x111111, 0.3);
+    scene.add(ambientLight);
+
+    dirLight = new THREE.DirectionalLight(0x222222, 0.2);
+    dirLight.position.set(0, 50, -30);
+    scene.add(dirLight);
+
+    const positions = new Float32Array(NEBULA_COUNT * 3);
+    const sizes = new Float32Array(NEBULA_COUNT);
+    const phases = new Float32Array(NEBULA_COUNT);
+    for (let i = 0; i < NEBULA_COUNT; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = 40 + Math.random() * 120;
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = (Math.random() - 0.3) * 60;
+        positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta) - 40;
+        sizes[i] = 15 + Math.random() * 40;
+        phases[i] = Math.random();
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+
+    nebulaMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0 },
+            uColor: { value: new THREE.Color(0x222233) },
+            uOpacity: { value: 0.0 },
+        },
+        vertexShader: nebulaVertexShader,
+        fragmentShader: nebulaFragmentShader,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+    });
+
+    nebulaPoints = new THREE.Points(geo, nebulaMaterial);
+    nebulaPoints.renderOrder = -1;
+    scene.add(nebulaPoints);
+}
+
 self.onmessage = (event) => {
     const { type, data } = event.data;
 
@@ -68,6 +152,9 @@ self.onmessage = (event) => {
             break;
         case 'updateSettings':
             updateSettings(data.settings);
+            break;
+        case 'updateLightSettings':
+            updateLightSettings(data);
             break;
         case 'updateColors':
             updateColors(data.colorUp, data.colorDown, data.background);
@@ -96,6 +183,7 @@ function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
 
+    initAtmosphere();
     updateCamera();
     switchMode(settings.flowMode);
     
@@ -108,32 +196,76 @@ function animate(time: number) {
     // Smoothing Sentiment
     currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.02;
 
-    // Dynamic Atmosphere
-    if (settings.enableAtmosphere) {
+    const atmoEnabled = settings.enableAtmosphere;
+    const sentimentAbs = Math.abs(currentSentiment);
+
+    // === Dynamic Atmosphere ===
+    if (atmoEnabled) {
+        // Background color: subtle tint toward sentiment
         if (currentSentiment > 0.05) {
-            targetAtmosphereColor.copy(colorBg).lerp(colorUp, currentSentiment * 0.15);
+            targetAtmosphereColor.copy(colorBg).lerp(colorUp, currentSentiment * 0.12);
         } else if (currentSentiment < -0.05) {
-            targetAtmosphereColor.copy(colorBg).lerp(colorDown, Math.abs(currentSentiment) * 0.15);
+            targetAtmosphereColor.copy(colorBg).lerp(colorDown, sentimentAbs * 0.12);
         } else {
             targetAtmosphereColor.copy(colorBg);
         }
+
+        // Ambient light: shift color + intensity with sentiment
+        if (ambientLight) {
+            const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
+            ambientLight.color.copy(colorBg).lerp(sentimentColor, sentimentAbs * 0.4);
+            ambientLight.intensity = 0.3 + sentimentAbs * 0.5;
+        }
+
+        // Directional light: stronger with stronger sentiment
+        if (dirLight) {
+            const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
+            dirLight.color.copy(sentimentColor);
+            dirLight.intensity = 0.1 + sentimentAbs * 0.6;
+        }
+
+        // Nebula: fade in with sentiment, color follows market mood
+        if (nebulaMaterial) {
+            nebulaMaterial.uniforms.uTime.value = now;
+            const targetOpacity = Math.min(sentimentAbs * 2.0, 1.0);
+            const curOp = nebulaMaterial.uniforms.uOpacity.value as number;
+            nebulaMaterial.uniforms.uOpacity.value = curOp + (targetOpacity - curOp) * 0.03;
+            const nebulaColor = currentSentiment > 0 ? colorUp : colorDown;
+            (nebulaMaterial.uniforms.uColor.value as THREE.Color).lerp(nebulaColor, 0.02);
+        }
+
+        // Fog: denser with stronger sentiment for dramatic depth
+        const baseDensity = 0.008;
+        const sentimentDensity = baseDensity + sentimentAbs * 0.015;
+        if (!scene.fog) {
+            scene.fog = new THREE.FogExp2(currentAtmosphereColor.getHex(), sentimentDensity);
+        } else {
+            const fog = scene.fog as THREE.FogExp2;
+            fog.density += (sentimentDensity - fog.density) * 0.02;
+            fog.color.copy(currentAtmosphereColor);
+        }
     } else {
         targetAtmosphereColor.copy(colorBg);
-    }
-    
-    currentAtmosphereColor.lerp(targetAtmosphereColor, 0.02);
-    scene.background = currentAtmosphereColor;
-    
-    if (!scene.fog) {
-        scene.fog = new THREE.FogExp2(currentAtmosphereColor.getHex(), 0.012);
-    } else {
-        (scene.fog as THREE.FogExp2).color.copy(currentAtmosphereColor);
+        // Reset atmosphere elements when disabled
+        if (ambientLight) { ambientLight.intensity = 0.15; ambientLight.color.set(0x111111); }
+        if (dirLight) { dirLight.intensity = 0.1; dirLight.color.set(0x222222); }
+        if (nebulaMaterial) {
+            nebulaMaterial.uniforms.uTime.value = now;
+            const curOp = nebulaMaterial.uniforms.uOpacity.value as number;
+            nebulaMaterial.uniforms.uOpacity.value = curOp * 0.95; // fade out
+        }
+        if (scene.fog) {
+            const fog = scene.fog as THREE.FogExp2;
+            fog.density += (0.005 - fog.density) * 0.02;
+            fog.color.copy(colorBg);
+        }
     }
 
+    currentAtmosphereColor.lerp(targetAtmosphereColor, 0.02);
+    scene.background = currentAtmosphereColor;
+
     if (activeEngine) {
-        // Share interpolated atmosphere with engine context
         activeEngine.context.currentAtmosphere = currentAtmosphereColor;
-        
         activeEngine.update(now, 0.016);
         updateSentimentUniforms();
     }
@@ -171,6 +303,16 @@ function updateSettings(newSettings: FlowSettings) {
         switchMode(newSettings.flowMode);
     } else if (activeEngine) {
         activeEngine.updateSettings(settings);
+    }
+}
+
+function updateLightSettings(data: Record<string, unknown>) {
+    // Merge lightweight fields into settings without triggering engine reinit
+    Object.assign(settings, data);
+    updateCamera();
+    // Update engine context settings reference so engines read fresh values
+    if (activeEngine) {
+        activeEngine.context.settings = settings;
     }
 }
 
