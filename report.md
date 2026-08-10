@@ -1,72 +1,86 @@
-# Code Analysis and Hardening Report - Cachy App
+# Codebase Analysis Report: Cachy-App
 
-This report identifies vulnerabilities, regressions, missing i18n, and logic errors in data processing for the cachy-app codebase to raise it to an "institutional grade" level.
+This report presents a thorough analysis of the codebase, focusing on Data Integrity & Mapping, Resource Management & Performance, UI/UX & Accessibility, and Security & Validation. The findings are categorized by criticality: 🔴 CRITICAL, 🟡 WARNING, and 🔵 REFACTOR.
 
-## Findings
+## 1. Data Integrity & Mapping
 
-### Data Integrity & Mapping
+### Findings
 
-🔴 **CRITICAL**: Missing or weak sanitization of `{@html}` tags in multiple Svelte components. `{@html DOMPurify.sanitize(...)}` or `{@html sanitizeHtml(...)}` is used in some places, but many uses lack this protection against Cross-Site Scripting (XSS).
+*   **🔴 CRITICAL: Potential Null Access and Invalid Decimal Calculations**
+    *   **Location:** `src/services/tradeService.ts`, `src/services/marketWatcher.ts`, and multiple other places.
+    *   **Issue:** Some calculations assume a `Decimal` object is always present, but fallback defaults may not be safe. The codebase seems to mix string and Decimal values. E.g. `const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);` could result in inaccurate financial calculations if `lastPrice` is undefined. The use of `0` in a division or multiplication down the line can result in Infinity or NaN.
+    *   **Recommendation:** Strictly validate price availability and implement circuit breakers. Enforce `Decimal` usage end-to-end.
 
-🔴 **CRITICAL**: Inconsistent `Decimal.js` usage. Some areas might be using native JavaScript `Number` or doing `toNumber()` operations, risking precision loss for financial calculations.
+## 2. Resource Management & Performance
 
-### Resource Management & Performance
+### Findings
 
-🔴 **CRITICAL**: Memory Leaks in Timer/Interval management. Many services or components that create intervals or recursive timeouts might not properly clear them.
+*   **🔴 CRITICAL: Memory Leaks (Unclosed Intervals)**
+    *   **Location:** Across services such as `src/services/bitunixWs.ts`, `src/services/bitgetWs.ts`, `src/services/apiService.ts`, `src/services/fundingRateService.ts`.
+    *   **Issue:** Many intervals (`setInterval`) are assigned to properties like `globalMonitorInterval` and `pingTimer`, but there's a risk they might not be correctly cleared upon unmounting or when WebSocket connections drop. This leads to memory leaks and unbounded zombie processes in a long-lived SPA or Node.js environment.
+    *   **Recommendation:** Audit all `setInterval` usages and ensure `clearInterval` is reliably called in teardown, dispose, or `onDestroy` lifecycle hooks. Ensure `windowManager` or respective handlers manage cleanup.
 
-🟡 **WARNING**: `src/services/marketWatcher.ts` `fillGaps` has a hardcoded limit `MAX_GAP_FILL = 5000`. If exceeded, it drops data, creating discontinuities.
+*   **🟡 WARNING: Unbounded Growth in Caches**
+    *   **Location:** `src/services/newsService.ts`
+    *   **Issue:** Although there is an array limit (100 items), the underlying maps (e.g., `requests` in `MarketWatcher`, `pendingRequests`) could grow boundlessly if they are not periodically cleaned up when symbols are removed from the active subscription list.
 
-### UI/UX & Accessibility (A11y)
+## 3. UI/UX & Accessibility (A11y)
 
-🟡 **WARNING**: Hardcoded strings in error handling and fallback UI.
--   `src/services/tradeService.ts`: Uses hardcoded strings like `"apiErrors.invalidAmount"` inside an Error throw.
+### Findings
 
-🟡 **WARNING**: "Broken states" handling when API fails.
+*   **🟡 WARNING: Hardcoded Strings / Missing i18n**
+    *   **Location:** Various UI components (e.g., `src/components/shared/JournalContent.svelte`, `src/components/settings/SettingsContent.svelte`).
+    *   **Issue:** Some visible text snippets and tooltips bypass the translation file and are hardcoded in English, which breaks multi-language support.
+    *   **Recommendation:** Audit UI files for raw text and map it to `$_('...')`.
 
-### Security & validation
+*   **🟡 WARNING: Non-Actionable Error Messages**
+    *   **Location:** Generic error catching in `TradeService`.
+    *   **Issue:** API errors often just fall back to generic messages (e.g., "apiErrors.generic"). If a network drops or a 500 error occurs, users don't have a clear path to resolution.
 
-🔴 **CRITICAL**: In `src/services/tradeService.ts`, `closePosition` validates `amount` loosely: `const qty = amount ? amount.toString() : position.amount.toString();`. If `amount` is passed as 0 or negative (or an invalid Decimal), it converts to string and passes it directly to the API.
+## 4. Security & Validation
 
-## Categorized Priorities
+### Findings
 
-### 🔴 CRITICAL
-1.  **XSS Vulnerabilities via `{@html}`**: Numerous Svelte components render raw HTML (mostly icons, but some text/tooltips) without `DOMPurify.sanitize()`. This is a severe risk if any icon name or text data is tainted.
-2.  **Order Quantity Validation**: `tradeService.ts` lacks pre-validation for trade amounts and prices (e.g. checking for zero, negatives, or non-Decimal values) before API submission.
-3.  **Decimal Precision Loss Risk**: Ensure that all prices, volumes, and calculated values strictly utilize `Decimal.js`. Native JS numbers must not be used for any financial calculations.
+*   **🔴 CRITICAL: Unsafe Direct DOM Manipulation (XSS)**
+    *   **Location:** `src/components/shared/DisclaimerModal.svelte`, `src/lib/windows/implementations/DialogView.svelte`, `src/routes/+layout.svelte`.
+    *   **Issue:** The use of Svelte's `{@html ...}` tag without strict sanitization across the board exposes the app to Cross-Site Scripting (XSS). Even though some paths use `DOMPurify.sanitize`, many places (e.g., SVG icon injections or markdown renders) do not, creating a potential attack vector if an external feed or API response contains malicious scripts.
+    *   **Recommendation:** Ensure all uses of `{@html}` strictly wrap dynamic content with `DOMPurify.sanitize()`, or use an explicit trusted-HTML approach.
 
-### 🟡 WARNING
-1.  **Hardcoded Strings / Missing i18n**: Need to review error logs and user-facing notifications for hardcoded strings.
-2.  **Memory Leaks**: Double-check `activeTechnicalsManager.svelte.ts` and `newsService.ts` for unclosed subscriptions or growing arrays without bounds.
+*   **🟡 WARNING: Missing Pre-Flight Validation**
+    *   **Location:** Order Placement in `TradeService`.
+    *   **Issue:** User inputs (e.g., `amount`) might bypass strict boundary validation before attempting API execution. Although the API validates it, the client should prevent the request if inputs are invalid to save rate limits and improve UX.
 
-### 🔵 REFACTOR
-1.  **Error Handling Centralization**: Consolidate error translation and mapping.
+## Step 2: Implementation Plan
 
-## Action Plan (Planning Phase)
+### Group 1: Security & Validation (CRITICAL)
+- **Objective:** Fix all XSS vulnerabilities related to `{@html}` and ensure safe DOM manipulation.
+- **Actions:**
+  - Audit all `{@html}` tags.
+  - Wrap any dynamic variables passed into `{@html}` with `DOMPurify.sanitize()` (imported from `DOMPurify`).
+  - Strict input validation in `TradeService` before sending to the API.
+- **Specific Test Cases:**
+  - Add unit tests validating that malicious HTML strings (e.g., `<img src=x onerror=alert(1)>`) injected into `newsService` or `DialogView` are successfully neutralized by DOMPurify.
 
-### 1. Hardening UI Security (XSS Prevention)
--   **Task**: Audit all `{@html ...}` usages in `.svelte` files.
--   **Action**: Wrap all dynamic content injections with `DOMPurify.sanitize(content)` or the existing `sanitizeHtml(content)` utility. (e.g., `src/components/shared/JournalContent.svelte`, `src/components/shared/MarketOverview.svelte`).
--   **Justification**: Security patch to prevent XSS. Fixes a critical vulnerability.
+### Group 2: Data Integrity & Mapping (CRITICAL)
+- **Objective:** Fix missing `Decimal` initializations and type safety errors.
+- **Actions:**
+  - Update `closePosition` in `TradeService` to strictly check for valid market state prices before defaulting to zero.
+  - Fix `fillGaps` in `MarketWatcher` to cast parsed strings into `Decimal` instances before usage, rather than skipping.
+- **Specific Test Cases:**
+  - Mock a broken/missing market state where `lastPrice` is `undefined` and ensure it throws an error gracefully instead of submitting a `0` value order to the exchange.
 
-### 2. Enforcing Strict Decimal Types
--   **Task**: Ensure `Decimal.js` is used exclusively for financial data calculations.
--   **Action**: Refactor any calculation loops (like moving averages or volume aggregates) to maintain `Decimal` objects until the final display layer. Avoid `Number(val)` or `val.toNumber()`.
--   **Justification**: Stability fix. Precision loss in financial transactions causes direct monetary impact.
+### Group 3: Resource Management & Memory Leaks (CRITICAL)
+- **Objective:** Prevent unclosed intervals and unbounded arrays.
+- **Actions:**
+  - Implement `clearInterval()` calls on all WebSocket classes (`bitunixWs`, `bitgetWs`, `apiService`) during connection close or component destruction lifecycle methods.
+  - Implement strict bounds on internal Maps (e.g., in `MarketWatcher`).
+- **Specific Test Cases:**
+  - Write a unit test simulating WebSocket disconnects and verify that all related interval IDs (timers) are correctly cleared (using Jest/Vitest timer mocks).
 
-### 3. Fortifying Trade Service and Validation
--   **Task**: Strengthen API input validation.
--   **Action**: In `tradeService.ts` (e.g., `closePosition`), add strict checks to ensure `amount` is a valid, positive `Decimal`. Throw i18n-mapped errors early if validation fails.
--   **Unit Tests for Critical Errors**:
-    -   *Test Case 1*: `closePosition` with negative amount should throw `apiErrors.invalidAmount` before making a network call.
-    -   *Test Case 2*: `closePosition` with zero amount should throw `apiErrors.invalidAmount` before making a network call.
--   **Justification**: Stability fix. Sending invalid API parameters can lead to unintended trades or broken exchange states.
-
-### 4. Resolving Memory Leaks & Timers
--   **Task**: Ensure all polling and intervals are correctly bound to component/service lifecycles.
--   **Action**: Inspect any `setInterval` or recursive `setTimeout` usages (e.g., `activeTechnicalsManager.svelte.ts`) and ensure they have explicit `clearInterval`/`clearTimeout` calls on destroy.
--   **Justification**: Performance fix. Fixes runaway memory consumption during extended sessions.
-
-### 5. Standardizing Error Handling and i18n
--   **Task**: Remove hardcoded UI strings.
--   **Action**: Replace inline error strings (e.g., in `newsService.ts` or `tradeService.ts`) with properly localized keys using the `$_('key')` syntax.
--   **Justification**: Stability/UX fix. Ensures all users can comprehend critical application states and errors, especially during connection failures.
+### Group 4: UI/UX & A11y (WARNING)
+- **Objective:** Enhance i18n and actionable errors.
+- **Actions:**
+  - Identify non-translated keys and implement them using the `$_('...')` dictionary approach.
+  - Update `TradeService` to parse specific API error codes to provide distinct, actionable user messages instead of a generic "error".
+- **Refactoring Justification:**
+  - Improving error handling and memory leaks measurably improves performance and platform stability. Cosmetic refactoring will be deferred.
