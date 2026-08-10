@@ -38,6 +38,26 @@ function parseDecimalOrUndefined(value: unknown): Decimal | undefined {
 }
 
 /**
+ * Recomputes unrealized PnL from a live mark price instead of trusting the
+ * account-channel snapshot. Bitunix's WS position channel only pushes on
+ * order lifecycle events — create/fill/cancel (docs/bitunix-api/
+ * 08_websocket.md's Position Channel) — not on every price tick, so
+ * `unrealizedPnl` read straight off the account store goes stale between
+ * those events even though markPrice (fed continuously by the public
+ * `price` channel) keeps updating. Reported by a user seeing PnL only
+ * refresh on a full page reload.
+ */
+export function calculateLiveUnrealizedPnl(
+    side: "long" | "short",
+    entryPrice: Decimal,
+    markPrice: Decimal,
+    size: Decimal,
+): Decimal {
+    const priceDiff = side === "long" ? markPrice.minus(entryPrice) : entryPrice.minus(markPrice);
+    return priceDiff.times(size);
+}
+
+/**
  * Maps raw API/WS data to a standardized OMSPosition.
  * Handles different field names (API vs WS) and ensures Decimal precision.
  */
