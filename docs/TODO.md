@@ -162,9 +162,18 @@ non-functional rather than merely wrong. Needs the same treatment: confirm
 against a real Bitget login response, then fix the schema (or the check)
 with a test.
 
-## 4. GPU-accelerated CHOP (Choppiness) indicator writes to a field nobody reads
+## 4. ✅ GPU-accelerated CHOP (Choppiness) indicator writes to a field nobody reads
 
-**Roadmap item 21.** Found while typing `webGpuCalculator.ts`'s
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0005`](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md), which has the
+confirmed UI read site and the fix.
+
+**Decision:** the GPU path now matches the WASM/CPU reference —
+`result.advanced.choppiness = { value, state }` — confirmed against
+`TechnicalsPanel.svelte:568-582`, the UI read site. `TechnicalsData` keeps
+that field as already declared; nothing changed there.
+
+Found while typing `webGpuCalculator.ts`'s
 `injectResult()`. Low severity (WebGPU is the optional acceleration path,
 most users run the WASM/CPU calculator), not fixed here — needs the same
 "confirm with a test" treatment as everything else in this file.

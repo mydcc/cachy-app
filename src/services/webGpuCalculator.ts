@@ -33,6 +33,7 @@ import wrShader from '../shaders/williams_r.wgsl?raw';
 import momShader from '../shaders/momentum.wgsl?raw';
 
 import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
+import { deriveChoppinessState } from './technicalsTypes';
 import type { IndicatorSettings } from '../types/indicators';
 import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator'; // Fallback
 import { toNumFast } from '../utils/fastConversion';
@@ -522,8 +523,11 @@ export class WebGpuCalculator {
 
             // Choppiness Index
             if (settings.choppiness.enabled !== false && settings.choppiness.length > 0) {
-                const chop = await this.calculateChoppiness(highs32, lows32, closes32, settings.choppiness.length);
-                this.injectResult(result, 'CHOP', chop as Float32Array, closes, 'volatility');
+                const chop = await this.calculateChoppiness(highs32, lows32, closes32, settings.choppiness.length) as Float32Array;
+                if (!result.advanced) result.advanced = {};
+                // Shares deriveChoppinessState with wasmCalculator.ts's CHOP branch, so
+                // the two acceleration paths agree on both location and value (BUG-0005).
+                result.advanced.choppiness = deriveChoppinessState(chop[chop.length - 1]);
             }
             
             // VWAP
@@ -552,35 +556,25 @@ export class WebGpuCalculator {
     return result;
   }
 
-  private injectResult(result: TechnicalsData, name: string, values: Float32Array, closes: Float64Array, category: 'movingAverages' | 'oscillators' | 'volatility') {
+  private injectResult(result: TechnicalsData, name: string, values: Float32Array, closes: Float64Array, category: 'movingAverages' | 'oscillators') {
       const lastIdx = values.length - 1;
       const val = values[lastIdx];
 
-      if (category === 'movingAverages' || category === 'oscillators') {
-          if (!result[category]) result[category] = [];
-          const arr = result[category];
-          const existing = arr.find(x => x.name === name);
-          if (existing) {
-              existing.value = val;
-              if (category === 'movingAverages') existing.price = closes[lastIdx];
-          } else {
-              const entry: IndicatorResult = {
-                  name: name,
-                  value: val,
-                  signal: 0,
-                  action: "Neutral"
-              };
-              if (category === 'movingAverages') entry.price = closes[lastIdx];
-              arr.push(entry);
-          }
+      if (!result[category]) result[category] = [];
+      const arr = result[category];
+      const existing = arr.find(x => x.name === name);
+      if (existing) {
+          existing.value = val;
+          if (category === 'movingAverages') existing.price = closes[lastIdx];
       } else {
-          // 'volatility' category. TechnicalsData.volatility only declares
-          // atr/bb — this writes an undeclared key (currently only "CHOP",
-          // which the WASM/CPU path puts under result.advanced.choppiness
-          // instead, not result.volatility.CHOP). Cast preserves the
-          // existing (inconsistent) behavior; see docs/TODO.md item 4.
-          if (!result.volatility) result.volatility = {};
-          (result.volatility as Record<string, number>)[name] = val;
+          const entry: IndicatorResult = {
+              name: name,
+              value: val,
+              signal: 0,
+              action: "Neutral"
+          };
+          if (category === 'movingAverages') entry.price = closes[lastIdx];
+          arr.push(entry);
       }
   }
 
