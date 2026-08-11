@@ -1,0 +1,1 @@
+echo "Testing commit lint"
