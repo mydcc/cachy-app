@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { debounce } from "../../utils/utils";
+  import { debounce, formatDynamicDecimal } from "../../utils/utils";
   import { createEventDispatcher, untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
@@ -68,6 +68,12 @@
     symbolSuggestions = [],
     showSymbolSuggestions,
   }: Props = $props();
+
+  // Read-only trading-pair metadata (precision, order-size limits, leverage
+  // range, status) for the active symbol — see tradeService.fetchTradingPairInfo.
+  let symbolMeta = $derived(
+    symbol ? marketState.symbolMeta[normalizeSymbol(symbol, "bitunix")] : undefined,
+  );
 
   // Local state for input to prevent immediate store updates
   let localSymbol = $state(symbol || "");
@@ -562,6 +568,42 @@
       ></button>
     </div>
   </div>
+
+  {#if symbolMeta}
+    <div
+      class="flex flex-wrap items-center gap-x-3 gap-y-1 -mt-2 mb-4 text-[10px] text-[var(--text-secondary)]"
+    >
+      {#if symbolMeta.basePrecision !== undefined}
+        <span>{$_("dashboard.symbolInfo.precision")}: {symbolMeta.basePrecision}</span>
+      {/if}
+      {#if symbolMeta.minTradeVolume}
+        <span
+          >{$_("dashboard.symbolInfo.minSize")}: {formatDynamicDecimal(
+            symbolMeta.minTradeVolume,
+          )}</span
+        >
+      {/if}
+      {#if symbolMeta.minLeverage !== undefined && symbolMeta.maxLeverage !== undefined}
+        <span
+          >{$_("dashboard.symbolInfo.leverageRange")}: {symbolMeta.minLeverage}x–{symbolMeta.maxLeverage}x</span
+        >
+      {/if}
+      {#if symbolMeta.symbolStatus === "CANCEL_ONLY"}
+        <span class="font-semibold text-[var(--warning-color)]"
+          >{$_("dashboard.symbolInfo.statusCancelOnly")}</span
+        >
+      {:else if symbolMeta.symbolStatus === "STOP"}
+        <span class="font-semibold text-[var(--danger-color)]"
+          >{$_("dashboard.symbolInfo.statusStop")}</span
+        >
+      {/if}
+      {#if symbolMeta.isApiSupported === false}
+        <span class="font-semibold text-[var(--danger-color)]"
+          >{$_("dashboard.symbolInfo.apiNotSupported")}</span
+        >
+      {/if}
+    </div>
+  {/if}
 
   <div
     class="p-2 rounded-lg mb-4"

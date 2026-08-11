@@ -162,9 +162,18 @@ non-functional rather than merely wrong. Needs the same treatment: confirm
 against a real Bitget login response, then fix the schema (or the check)
 with a test.
 
-## 4. GPU-accelerated CHOP (Choppiness) indicator writes to a field nobody reads
+## 4. ✅ GPU-accelerated CHOP (Choppiness) indicator writes to a field nobody reads
 
-**Roadmap item 21.** Found while typing `webGpuCalculator.ts`'s
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0005`](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md), which has the
+confirmed UI read site and the fix.
+
+**Decision:** the GPU path now matches the WASM/CPU reference —
+`result.advanced.choppiness = { value, state }` — confirmed against
+`TechnicalsPanel.svelte:568-582`, the UI read site. `TechnicalsData` keeps
+that field as already declared; nothing changed there.
+
+Found while typing `webGpuCalculator.ts`'s
 `injectResult()`. Low severity (WebGPU is the optional acceleration path,
 most users run the WASM/CPU calculator), not fixed here — needs the same
 "confirm with a test" treatment as everything else in this file.
@@ -243,9 +252,17 @@ removed, since a fully-built feature with prepared translations is not
 "purpose unclear" — it's "purpose clear, UI incomplete," which needs a
 placement decision, not deletion.
 
-## 7. Sentiment cache and AI response are trusted without schema validation
+## 7. ✅ Sentiment cache and AI response are trusted without schema validation
 
-**Roadmap item 21.** Found while removing two unused Zod schemas from
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0006`](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md), which
+has the reinstated schemas and the tests proving the fallback now fires.
+
+**Decision:** wired the two schemas back in exactly as decided below —
+`safeParse()` on both the IDB read and the AI response, falling back to the
+existing neutral-sentiment response on mismatch.
+
+Found while removing two unused Zod schemas from
 `newsService.ts` during a lint pass — worth recording before the removal
 makes the gap invisible.
 
@@ -324,9 +341,18 @@ re-flag it. Left in place and merely typed here per this repo's
 defensive-deletion rule: code whose purpose isn't fully clear doesn't
 get deleted without a person confirming it's safe to.
 
-## 10. `SymbolPickerWindow` can resolve its Promise with `null`, but the Promise's type says `boolean | string`
+## 10. ✅ `SymbolPickerWindow` can resolve its Promise with `null`, but the Promise's type says `boolean | string`
 
-**Roadmap item 21.** Found while typing this class's `any` casts during a
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0009`](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md), which
+has the caller audit and the fix.
+
+**Decision:** `SymbolPickerWindow.destroy()` now resolves `false` instead
+of `null`, matching `DialogWindow`'s existing cancel behavior — no caller
+needed changes, since the audit found none in production code call
+`showModal(..., 'symbolPicker')` today.
+
+Found while typing this class's `any` casts during a
 lint pass — recording before the typing makes the mismatch invisible
 again.
 
@@ -525,9 +551,23 @@ survives. Left as a lint-pass finding rather than guessed at inline:
 this is live order-tracking state for a real-money trading engine: a
 wrong guess about the eviction rule is worse than the current gap.
 
-## 15. `modalState.show()`'s `extraClasses` parameter is accepted but never applied
+## 15. ✅ `modalState.show()`'s `extraClasses` parameter is accepted but never applied
 
-**Roadmap item 21.** Found while typing/cleaning an unused-parameter
+**Roadmap item 21.** **RESOLVED** (2026-08-10). Tracked as
+[`BUG-0010`](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md), which has
+the fix and a second, related bug it surfaced while verifying live.
+
+**Decision:** wired as described below — `DialogWindow` now takes
+`extraClasses` and applies it via `WindowBase.extraClasses` (the same
+mechanism `ModalFrameWindow` already uses). Applying the class alone turned
+out insufficient for the actual width, since `WindowFrame.svelte`'s inline
+`style:width` always beats a class-based CSS rule — so `DialogWindow` also
+sets `this.width`/`this.height` directly for known `extraClasses` presets,
+the same way `WindowRegistry`'s `'academy'` entry already approximates the
+same preset in JS instead of relying on the (inert, for this reason) CSS
+class.
+
+Found while typing/cleaning an unused-parameter
 warning on `ModalManager.show()`.
 
 `show(title, message, type, defaultValue, extraClasses)` in

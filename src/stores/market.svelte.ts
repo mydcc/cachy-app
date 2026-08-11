@@ -50,6 +50,33 @@ export interface MarketData {
   lastUpdated?: number; // Optimization: only snapshot fresh data
 }
 
+// Static-ish per-symbol metadata from market/trading_pairs (precision, order
+// limits, leverage range, status). Kept separate from MarketData since it
+// doesn't arrive on every price tick and shouldn't be overwritten by one.
+export interface TradingPairInfo {
+  symbol: string;
+  basePrecision?: number;
+  quotePrecision?: number;
+  minTradeVolume?: Decimal | null;
+  maxLimitOrderVolume?: Decimal | null;
+  maxMarketOrderVolume?: Decimal | null;
+  minLeverage?: number;
+  maxLeverage?: number;
+  defaultLeverage?: number;
+  priceProtectScope?: Decimal | null;
+  symbolStatus?: string;
+  isApiSupported?: boolean;
+}
+
+// One maintenance-margin bracket from position/get_position_tiers.
+export interface PositionTier {
+  level: number;
+  startValue: Decimal | null;
+  endValue: Decimal | null;
+  leverage?: number;
+  maintenanceMarginRate: Decimal | null;
+}
+
 // Permissive update type for WebSocket data (allows strings/numbers for Decimals)
 export type MarketUpdatePayload = {
   [K in keyof MarketData]?: MarketData[K] | string | number | null;
@@ -137,6 +164,20 @@ interface RawKlineWsMessage {
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
+
+  // Read-only Bitunix metadata, fetched lazily per symbol (see
+  // tradeService.fetchTradingPairInfo / fetchPositionTiers). Not part of
+  // `data` — static-ish, not a live tick field.
+  symbolMeta = $state<Record<string, TradingPairInfo>>({});
+  positionTiers = $state<Record<string, PositionTier[]>>({});
+
+  setSymbolMeta(symbol: string, info: TradingPairInfo) {
+    this.symbolMeta[symbol] = info;
+  }
+
+  setPositionTiers(symbol: string, tiers: PositionTier[]) {
+    this.positionTiers[symbol] = tiers;
+  }
 
   // Telemetry Metrics
   telemetry = $state({

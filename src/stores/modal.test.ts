@@ -77,6 +77,23 @@ describe("ModalManager", () => {
         expect(callArgs.windowType).toBe("symbolpicker");
     });
 
+    it("BUG-0009: resolves with false (not null) when the symbol picker is cancelled", async () => {
+        const resultPromise = modalState.show("Select Symbol", "Please select a symbol", "symbolPicker");
+
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
+        const win = callArgs as SymbolPickerWindow;
+
+        // Simulate cancel: the window is destroyed without a selection.
+        win.destroy();
+
+        const result = await resultPromise;
+
+        // The declared return type is Promise<boolean | string> — null is
+        // not a member of it. false matches DialogWindow's own cancel value.
+        expect(result).toBe(false);
+        expect(result).not.toBeNull();
+    });
+
     it("should open DialogWindow with correct arguments for alert type", async () => {
         modalState.show("Alert Title", "Alert Message", "alert");
 
@@ -88,6 +105,11 @@ describe("ModalManager", () => {
         expect(callArgs.message).toBe("Alert Message");
         expect(callArgs.type).toBe("alert");
         expect(callArgs.defaultValue).toBe("");
+        // BUG-0010: no extraClasses passed — alert must render unchanged,
+        // at the 'dialog' registry's default size.
+        expect(callArgs.extraClasses).toBe("");
+        expect(callArgs.width).toBe(450);
+        expect(callArgs.height).toBe(250);
     });
 
     it("should open DialogWindow with correct arguments for confirm type", async () => {
@@ -114,5 +136,67 @@ describe("ModalManager", () => {
         expect(callArgs.message).toBe("Prompt Message");
         expect(callArgs.type).toBe("prompt");
         expect(callArgs.defaultValue).toBe("Default Value");
+        // BUG-0010: prompt dialogs are unaffected by the extraClasses fix.
+        expect(callArgs.extraClasses).toBe("");
+        expect(callArgs.width).toBe(450);
+        expect(callArgs.height).toBe(250);
+    });
+
+    it("BUG-0010: threads extraClasses through to DialogWindow so it reaches the rendered root", async () => {
+        modalState.show(
+            "Instructions",
+            "<p>Read me</p>",
+            "alert",
+            "",
+            "modal-size-instructions",
+        );
+
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
+        expect(callArgs).toBeInstanceOf(DialogWindow);
+        // WindowContainer passes win.extraClasses straight to WindowFrame's
+        // root `class={extraClasses}` — this is the value that ends up there.
+        expect(callArgs.extraClasses).toBe("modal-size-instructions");
+    });
+
+    it("BUG-0010: renders the instructions modal at its intended (wider) size, not the default dialog size", async () => {
+        modalState.show(
+            "Instructions",
+            "<p>Read me</p>",
+            "alert",
+            "",
+            "modal-size-instructions",
+        );
+
+        const callArgs = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0];
+
+        // A CSS class alone can't do this: WindowFrame binds width/height as
+        // inline styles, which always beat a class-based rule, and
+        // WindowBase's own centering math reads this.width/this.height too
+        // — so the actual state must change, not just the class list.
+        expect(callArgs.width).toBe(1200);
+        expect(callArgs.height).toBe(800);
+        expect(callArgs.width).not.toBe(450); // the plain 'dialog' default
+    });
+
+    it("BUG-0010: a persisted instructions-modal size does not leak into a later plain alert", async () => {
+        // 'dialog' is not in allowMultipleInstances, so without a distinct
+        // id every dialog variant would share one localStorage key
+        // (cachy_win_dialog) and inherit each other's persisted width/
+        // height. Reproduced live in the browser before this test was
+        // written: opening the instructions modal once, then a plain
+        // alert, rendered the alert at 1200x800 too.
+        localStorage.clear();
+
+        modalState.show("Instructions", "<p>Read me</p>", "alert", "", "modal-size-instructions");
+        const instructionsWin = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0] as DialogWindow;
+        instructionsWin.saveState(); // simulate the drag/resize/close event that would normally persist it
+
+        modalState.show("Plain Alert", "Just a message", "alert");
+        const alertWin = vi.mocked(windowManager.open).mock.calls[vi.mocked(windowManager.open).mock.calls.length - 1][0] as DialogWindow;
+
+        expect(alertWin.width).toBe(450);
+        expect(alertWin.height).toBe(250);
+
+        localStorage.clear();
     });
 });

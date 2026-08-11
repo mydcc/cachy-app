@@ -2,7 +2,7 @@
 id: BUG-0008
 title: The toast array grows without a bound
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -38,9 +38,18 @@ entry.
 
 ## Acceptance criteria
 
-- [ ] Pushing more than the cap leaves exactly the cap in the array
-- [ ] Dropped toasts have their timers cleared, asserted with fake timers
-- [ ] Existing toast tests still pass
+- [x] Pushing more than the cap leaves exactly the cap in the array
+- [x] Dropped toasts have their timers cleared, asserted with fake timers
+- [x] Existing toast tests still pass
+
+## Resolution
+
+**RESOLVED** (2026-08-10). `src/services/toastService.svelte.ts` now caps the
+array at `MAX_TOASTS = 5`; pushing past the cap evicts the oldest toast via
+`shift()` and clears its pending `setTimeout` through a private `#timers`
+map keyed by toast id, so an evicted toast's timer never fires against a
+removed entry. Covered by `src/services/toastService.test.ts` (3 tests,
+fake timers).
 
 ## Links
 

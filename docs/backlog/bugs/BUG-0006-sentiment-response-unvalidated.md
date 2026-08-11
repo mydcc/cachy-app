@@ -2,7 +2,7 @@
 id: BUG-0006
 title: Sentiment cache and AI response are trusted without schema validation
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: M0
 editions: [community, pro, private]
@@ -44,10 +44,35 @@ returns for every other failure.
 
 ## Acceptance criteria
 
-- [ ] A test feeds a malformed provider response and asserts the neutral
+- [x] A test feeds a malformed provider response and asserts the neutral
       fallback, not a crash or a bad `regime`
-- [ ] A test feeds a corrupted IDB entry and asserts the same
-- [ ] Both tests fail before the fix
+- [x] A test feeds a corrupted IDB entry and asserts the same
+- [x] Both tests fail before the fix
+
+## Resolution
+
+**RESOLVED** (2026-08-10). Reinstated `SentimentAnalysisSchema` and
+`SentimentCacheSchema` in `newsService.ts` (recovered from the commit that
+removed them, unchanged) and wired `safeParse()` into both reads:
+
+- The IDB read now validates through `SentimentCacheSchema.safeParse()`,
+  mirroring `fetchNews()`'s existing pattern — on mismatch it logs a
+  warning, deletes the corrupted entry, and falls through as if there were
+  no cache, rather than returning a value with an untrustworthy shape.
+- The AI provider response now validates `data.analysis` through
+  `SentimentAnalysisSchema.safeParse()` before assigning it to the typed
+  `analysis` variable — on mismatch it logs and throws, landing in the
+  existing `catch` block's neutral-sentiment fallback (`{ score: 0, regime:
+  "UNCERTAIN", ... }`), the same path every other failure mode in this
+  function already takes.
+
+Verified by `src/services/newsService_sentiment.test.ts` (3 tests): a
+malformed provider response falls back to neutral instead of propagating a
+bad `regime`; a corrupted IDB cache entry is discarded (and deleted) rather
+than trusted, falling through to a fresh fetch; a well-formed cache entry
+still returns unchanged without hitting the network. The first two were
+confirmed to fail against the pre-fix code (temporarily reverting
+`newsService.ts` while keeping the tests) before being made to pass.
 
 ## Links
 

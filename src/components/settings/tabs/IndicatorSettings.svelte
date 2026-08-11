@@ -131,7 +131,7 @@
                                 step={50}
                             />
                             <div class="flex justify-between items-center pt-2">
-                                <span class="text-sm">Auto Optimize</span>
+                                <span class="text-sm">{$_("settings.technicals.optimization.autoOptimize")}</span>
                                 <Toggle bind:checked={indicatorState.autoOptimize} />
                             </div>
                             <!-- Performance -->

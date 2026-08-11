@@ -129,6 +129,44 @@ describe('AccountManager', () => {
         );
     });
 
+    // Bug found during dev.cachy.app testing: a position opened directly on
+    // the exchange (not through Cachy) reaches the WS position channel
+    // before PositionsSidebar's one-time onMount REST fetch has hydrated it.
+    // The WS position channel never carries entryPrice/liqPrice/marginRate
+    // (see docs/bitunix-api/08_websocket.md's Position Channel — only qty,
+    // side, leverage, margin, PnL, funding, fee), so a brand-new position
+    // was created with those fields hard-defaulted to 0 and *nothing* ever
+    // corrected it afterwards: fetchPositions() only runs on mount/key
+    // change, never in response to a new-position WS event, and the
+    // pre-existing syncCallback hook (already used for the "missing side"
+    // case above) was never invoked for this case either.
+    it('triggers sync callback when a brand-new WS position has no REST-only fields yet', () => {
+        const syncCallback = vi.fn();
+        accountState.registerSyncCallback(syncCallback);
+
+        accountState.updatePositionFromWs({
+            positionId: '777',
+            symbol: 'ETHUSDT',
+            side: 'short',
+            qty: '0.003',
+            leverage: '10',
+            margin: '0.58',
+            marginMode: 'ISOLATION',
+            // No averagePrice/avgOpenPrice — matches the real WS position
+            // channel payload shape.
+        });
+
+        expect(accountState.positions).toHaveLength(1);
+        const pos = accountState.positions[0];
+        expect(pos.entryPrice.toString()).toBe('0');
+        expect(pos.liquidationPrice.toString()).toBe('0');
+
+        // The position is usable immediately (qty/side/leverage/margin are
+        // all live), but its REST-only fields are placeholders — the
+        // callback signals "go fetch the real values".
+        expect(syncCallback).toHaveBeenCalledTimes(1);
+    });
+
     // Regression: `new Decimal("MARKET")` throws (decimal.js does not return
     // NaN like Number() does), so a malformed field on a raw WS push used to
     // crash the store outright instead of falling back safely.
@@ -181,6 +219,27 @@ describe('AccountManager', () => {
 
         expect(accountState.assets).toHaveLength(1);
         expect(accountState.assets[0].total.toString()).toBe('0');
+    });
+
+    // The wallet channel (08_websocket.md's Balance Channel) also carries
+    // isolationMargin/crossMargin/isolationFrozen/crossFrozen/expMoney, which
+    // updateBalanceFromWs discarded before parsing anything but
+    // available/margin/frozen.
+    it('parses isolationFrozen/crossFrozen/expMoney from a wallet push', () => {
+        accountState.updateBalanceFromWs({
+            coin: 'USDT',
+            available: '1000',
+            margin: '10',
+            frozen: '0',
+            isolationFrozen: '5',
+            crossFrozen: '2',
+            expMoney: '3.5',
+        });
+
+        const asset = accountState.assets.find((a) => a.currency === 'USDT');
+        expect(asset?.isolationFrozen?.toString()).toBe('5');
+        expect(asset?.crossFrozen?.toString()).toBe('2');
+        expect(asset?.expMoney?.toString()).toBe('3.5');
     });
 
     // Regression: PositionsSidebar.svelte used to assign the raw REST JSON
@@ -312,6 +371,31 @@ describe('AccountManager', () => {
             const asset = accountState.assets[0];
             expect(asset.available.toString()).toBe('1000');
             expect(asset.total.toString()).toBe('1060');
+        });
+
+        // Bug found during dev.cachy.app testing: REST /api/account has no
+        // isolationFrozen/crossFrozen/expMoney (WS-only fields, see
+        // updateBalanceFromWs). A later REST poll was silently erasing
+        // whatever the wallet WS push had set for these, so the
+        // AccountTooltip rows for them never appeared in practice even
+        // though the WS parsing itself was correct.
+        it('preserves WS-only wallet fields across a later REST poll', () => {
+            accountState.updateBalanceFromWs({
+                coin: 'USDT',
+                available: '1000',
+                margin: '50',
+                frozen: '10',
+                isolationFrozen: '5',
+                crossFrozen: '2',
+                expMoney: '3.5',
+            });
+
+            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' });
+
+            const asset = accountState.assets.find((a) => a.currency === 'USDT');
+            expect(asset?.isolationFrozen?.toString()).toBe('5');
+            expect(asset?.crossFrozen?.toString()).toBe('2');
+            expect(asset?.expMoney?.toString()).toBe('3.5');
         });
     });
 

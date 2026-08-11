@@ -76,10 +76,10 @@
     "suggestedChanges": "Suggested Changes",
     "thinking": "Thinking...",
     "quickActions": {
-      "marketCheck":  "Analyze the market for {symbol}",
+      "marketCheck": "Analyze the market for {symbol}",
       "techAnalysis": "Create a technical analysis for {symbol}",
-      "riskAudit":    "Audit my setup for errors and risks.",
-      "newsCheck":    "Are there any important news?"
+      "riskAudit": "Audit my setup for errors and risks.",
+      "newsCheck": "Are there any important news?"
     }
   },
   "legal": {
@@ -231,7 +231,8 @@
       "leveragePlaceholder": "Leverage (e.g. 10x)",
       "feesPlaceholder": "Fees per Trade (%)",
       "syncedWithApi": "Synced with API",
-      "manualOverride": "Manual Override (Click to sync to {value})"
+      "manualOverride": "Manual Override (Click to sync to {value})",
+      "marginMode": "Margin Mode"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -320,7 +321,10 @@
       "mode": "Mode",
       "crossPnl": "Cross PnL",
       "isoPnl": "Iso PnL",
-      "totalPositionSize": "Total Position Size"
+      "totalPositionSize": "Total Position Size",
+      "isolationFrozen": "Isolation Frozen",
+      "crossFrozen": "Cross Frozen",
+      "expMoney": "Experience Money"
     },
     "customModal": {
       "promptPlaceholder": "Input...",
@@ -341,7 +345,15 @@
     "riskRewardRatio": "Risk/Reward Ratio",
     "promptForData": "Please enter required trade data to start calculation.",
     "instructionsTitle": "Instructions: Dashboard",
-    "triggerPulse": "Trigger Quantum Pulse"
+    "triggerPulse": "Trigger Quantum Pulse",
+    "symbolInfo": {
+      "precision": "Precision",
+      "minSize": "Min. Size",
+      "leverageRange": "Leverage Range",
+      "statusCancelOnly": "Cancel-only",
+      "statusStop": "Trading stopped",
+      "apiNotSupported": "API trading disabled"
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -789,7 +801,15 @@
         "rotationY": "Rot Y",
         "rotationZ": "Rot Z",
         "initializing": "Warming Neural Core...",
-        "error": "Visual Effects Disabled"
+        "error": "Visual Effects Disabled",
+        "tooltipMode": "Choose the visualization style for real-time trades. Each mode represents buy and sell orders differently — experiment to find the one that fits your workflow.",
+        "tooltipVolumeScale": "Controls how strongly the visualization reacts to trade volume. Higher values = more dramatic reactions to large orders. Lower values = more uniform appearance.",
+        "tooltipTimeWindow": "How long past trades remain visible before fading out. Longer windows show more historical context but may feel cluttered.",
+        "tooltipMinVolume": "Filters out trades below this dollar value. Use this to focus on whale-sized orders only. Warning: high values on smaller pairs may hide all trades.",
+        "tooltipDynamicAtmosphere": "When enabled, the scene lighting, fog, and ambient particles shift color based on market sentiment — green for bullish, red for bearish momentum.",
+        "tooltipGridWidth": "Number of points along the X-axis of the visualization grid. More points = finer detail but higher GPU load.",
+        "tooltipGridLength": "Number of points along the Z-axis of the visualization grid. More points = finer detail but higher GPU load.",
+        "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance."
       },
       "coordinates": {
         "x": "X",
@@ -1463,7 +1483,9 @@
     "marginRate": "Margin Rate",
     "realizedPnl": "Realized PnL",
     "unrealizedPnl": "Unrealized PnL",
-    "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view."
+    "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view.",
+    "tierMmr": "Maint. Margin Rate (Tier)",
+    "nextTierAt": "Next Tier at"
   },
   "symbolPicker": {
     "title": "Select Symbol",

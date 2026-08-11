@@ -68,6 +68,13 @@ export interface Asset {
   margin: Decimal;
   frozen: Decimal;
   total: Decimal;
+  // Wallet-channel fields the WS payload carries but this store discarded
+  // until now (08_websocket.md's Balance Channel) — read-only display only.
+  isolationMargin?: Decimal;
+  crossMargin?: Decimal;
+  isolationFrozen?: Decimal;
+  crossFrozen?: Decimal;
+  expMoney?: Decimal;
 }
 
 // Raw WS position/order/balance payload fields as read below, named after
@@ -119,6 +126,11 @@ interface RawWsBalance {
   available?: string | number;
   margin?: string | number;
   frozen?: string | number;
+  isolationMargin?: string | number;
+  crossMargin?: string | number;
+  isolationFrozen?: string | number;
+  crossFrozen?: string | number;
+  expMoney?: string | number;
 }
 
 interface AccountSnapshot {
@@ -155,7 +167,7 @@ class AccountManager {
     this.notifyListeners();
   }
 
-  registerSyncCallback(fn: () => void) {
+  registerSyncCallback(fn: (() => void) | null) {
     this.syncCallback = fn;
   }
 
@@ -259,6 +271,18 @@ class AccountManager {
         };
         this.positions.push(newPos);
         this.notifyListeners();
+
+        // The WS position channel never carries entryPrice/liquidationPrice/
+        // marginRate (docs/bitunix-api/08_websocket.md's Position Channel),
+        // so a position that reaches Cachy via WS before the one-time REST
+        // hydration on mount (e.g. opened directly on the exchange while
+        // Cachy was already running) is stuck showing 0/"-" for those
+        // forever — nothing else ever re-fetches REST for it. Re-use the
+        // existing "state we can't trust, get the truth from REST" signal
+        // (see the missing-`side` case above) to trigger a backfill.
+        if (this.syncCallback) {
+          this.syncCallback();
+        }
       }
     }
   }
@@ -344,6 +368,11 @@ class AccountManager {
         margin,
         frozen,
         total: available.plus(margin).plus(frozen),
+        isolationMargin: safeDecimal(data.isolationMargin, new Decimal(0)),
+        crossMargin: safeDecimal(data.crossMargin, new Decimal(0)),
+        isolationFrozen: safeDecimal(data.isolationFrozen, new Decimal(0)),
+        crossFrozen: safeDecimal(data.crossFrozen, new Decimal(0)),
+        expMoney: safeDecimal(data.expMoney, new Decimal(0)),
       };
 
       if (idx !== -1) {
@@ -442,14 +471,26 @@ class AccountManager {
     const available = parseDecimal(raw.available);
     const margin = parseDecimal(raw.margin);
     const frozen = parseDecimal(raw.frozen);
+    const idx = this.assets.findIndex((a) => a.currency === "USDT");
+    // REST /api/account has no isolationMargin/crossMargin/isolationFrozen/
+    // crossFrozen/expMoney — only the WS wallet channel does. Without this,
+    // a REST poll here would silently erase whatever the wallet channel had
+    // last pushed (BUG found during dev.cachy.app testing: the AccountTooltip
+    // rows for those fields never appeared because this REST hydration kept
+    // winning the race against the WS push).
+    const existing = idx !== -1 ? this.assets[idx] : null;
     const newAsset: Asset = {
       currency: "USDT",
       available,
       margin,
       frozen,
       total: available.plus(margin).plus(frozen),
+      isolationMargin: existing?.isolationMargin,
+      crossMargin: existing?.crossMargin,
+      isolationFrozen: existing?.isolationFrozen,
+      crossFrozen: existing?.crossFrozen,
+      expMoney: existing?.expMoney,
     };
-    const idx = this.assets.findIndex((a) => a.currency === "USDT");
     if (idx !== -1) this.assets[idx] = newAsset;
     else this.assets.push(newAsset);
     this.notifyListeners();

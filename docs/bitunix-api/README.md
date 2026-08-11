@@ -25,6 +25,7 @@ OpenAPI-Dokumentation unter:
 | `08_websocket.md` | WebSocket-Verbindung, Login, alle Private- & Public-Channels |
 | `09_error_codes.md` | Vollständige Fehlercode-Tabelle |
 | `10_change_log.md` | Änderungsprotokoll der offiziellen Doku |
+| `INTEGRATION_STATUS.md` | Abgleich: welche Endpunkte/Channels Cachy bereits nutzt, was fehlt |
 
 ## Kurzüberblick über die API-Struktur
 

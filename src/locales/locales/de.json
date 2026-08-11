@@ -76,10 +76,10 @@
     "suggestedChanges": "Vorgeschlagene Änderungen",
     "thinking": "Denkt nach...",
     "quickActions": {
-      "marketCheck":  "Analysiere den Markt für {symbol}",
+      "marketCheck": "Analysiere den Markt für {symbol}",
       "techAnalysis": "Erstelle eine technische Analyse für {symbol}",
-      "riskAudit":    "Prüfe mein Setup auf Fehler und Risiken.",
-      "newsCheck":    "Gibt es wichtige News?"
+      "riskAudit": "Prüfe mein Setup auf Fehler und Risiken.",
+      "newsCheck": "Gibt es wichtige News?"
     }
   },
   "legal": {
@@ -231,7 +231,8 @@
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "feesPlaceholder": "Gebühren pro Trade (%)",
       "syncedWithApi": "Synchronisiert mit API",
-      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})"
+      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})",
+      "marginMode": "Margin-Modus"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -320,7 +321,10 @@
       "mode": "Modus",
       "crossPnl": "Cross PnL",
       "isoPnl": "Iso PnL",
-      "totalPositionSize": "Gesamte Positionsgröße"
+      "totalPositionSize": "Gesamte Positionsgröße",
+      "isolationFrozen": "Isolation gesperrt",
+      "crossFrozen": "Cross gesperrt",
+      "expMoney": "Erfahrungsguthaben"
     },
     "customModal": {
       "promptPlaceholder": "Eingabe...",
@@ -341,7 +345,15 @@
     "riskRewardRatio": "Chance-Risiko-Verhältnis",
     "promptForData": "Bitte geben Sie die erforderlichen Handelsdaten ein, um die Berechnung zu starten.",
     "instructionsTitle": "Anleitung: Dashboard",
-    "triggerPulse": "Quantenpuls auslösen"
+    "triggerPulse": "Quantenpuls auslösen",
+    "symbolInfo": {
+      "precision": "Präzision",
+      "minSize": "Min. Größe",
+      "leverageRange": "Hebel-Bereich",
+      "statusCancelOnly": "Nur Stornierung möglich",
+      "statusStop": "Handel gestoppt",
+      "apiNotSupported": "API-Trading deaktiviert"
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -789,7 +801,15 @@
         "rotationY": "Rot Y",
         "rotationZ": "Rot Z",
         "initializing": "Neuraler Kern wird gestartet...",
-        "error": "Visuelle Effekte deaktiviert"
+        "error": "Visuelle Effekte deaktiviert",
+        "tooltipMode": "Wähle den Visualisierungsstil für Echtzeit-Trades. Jeder Modus stellt Kauf- und Verkaufsaufträge unterschiedlich dar — probiere aus, welcher am besten zu deinem Workflow passt.",
+        "tooltipVolumeScale": "Bestimmt, wie stark die Visualisierung auf das Handelsvolumen reagiert. Höhere Werte = dramatischere Reaktionen auf große Orders. Niedrigere Werte = gleichmäßigeres Erscheinungsbild.",
+        "tooltipTimeWindow": "Wie lange vergangene Trades sichtbar bleiben, bevor sie ausblenden. Längere Zeitfenster zeigen mehr historischen Kontext, können aber unübersichtlich wirken.",
+        "tooltipMinVolume": "Filtert Trades unter diesem Dollarwert heraus. Nutze dies, um dich auf große Wal-Orders zu fokussieren. Achtung: Hohe Werte bei kleineren Handelspaaren können alle Trades ausblenden.",
+        "tooltipDynamicAtmosphere": "Wenn aktiviert, verschieben sich Szenenbeleuchtung, Nebel und Umgebungspartikel farblich basierend auf der Marktstimmung — grün bei bullischer, rot bei bärischer Dynamik.",
+        "tooltipGridWidth": "Anzahl der Punkte entlang der X-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
+        "tooltipGridLength": "Anzahl der Punkte entlang der Z-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
+        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild."
       },
       "coordinates": {
         "x": "X",
@@ -2177,7 +2197,9 @@
     "marginRate": "Margin-Rate",
     "realizedPnl": "Realisiert",
     "unrealizedPnl": "Unrealisierter PnL",
-    "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht."
+    "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht.",
+    "tierMmr": "Maint.-Margin-Rate (Stufe)",
+    "nextTierAt": "Nächste Stufe ab"
   },
   "trade": {
     "apiError": "API-Fehler: {error}",

@@ -24,6 +24,7 @@ import { _ } from "../locales/i18n";
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
 import { apiService } from "./apiService";
+import { tradeService } from "./tradeService";
 import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
 import { APP_VERSION } from "../lib/version";
@@ -589,5 +590,16 @@ export const app = {
     }
     await app.handleFetchPrice(isAuto);
     await app.fetchAtr(isAuto);
+
+    // Read-only Bitunix metadata for the trade panel (leverage/margin-mode,
+    // trading-pair limits, position tiers). Not on the critical path for
+    // price/ATR, so fire-and-forget — each fetch fails silently and leaves
+    // its store slice unset, which every consumer already renders as "-".
+    const activeSymbol = symbol || tradeState.symbol;
+    if (activeSymbol) {
+      tradeService.fetchLeverageMarginMode(activeSymbol);
+      tradeService.fetchTradingPairInfo(activeSymbol);
+      tradeService.fetchPositionTiers(activeSymbol);
+    }
   },
 };

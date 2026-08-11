@@ -16,7 +16,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { sanitizeErrorMessage, PositionRawSchema } from './apiSchemas';
+import {
+  sanitizeErrorMessage,
+  PositionRawSchema,
+  BitunixTradingPairResponseSchema,
+  BitunixPositionTierResponseSchema,
+  BitunixLeverageMarginModeSchema,
+} from './apiSchemas';
 
 // Regression (BUG-0062): PositionRawSchema didn't declare positionId/
 // positionMode, so Zod silently stripped both from a raw position object
@@ -33,6 +39,51 @@ describe('PositionRawSchema', () => {
     });
     expect(result.positionId).toBe('662491704776252252');
     expect(result.positionMode).toBe('HEDGE');
+  });
+});
+
+// Response shapes documented in docs/bitunix-api/{02_account,04_market,05_position}.md
+describe('BitunixTradingPairResponseSchema', () => {
+  it('parses a real trading_pairs response', () => {
+    const result = BitunixTradingPairResponseSchema.parse({
+      code: 0,
+      msg: 'Success',
+      data: [{
+        symbol: 'BTCUSDT', base: 'BTC', quote: 'USDT',
+        minTradeVolume: '0.0001', maxLimitOrderVolume: '100000', maxMarketOrderVolume: '50000',
+        basePrecision: 4, quotePrecision: 1,
+        minLeverage: 1, maxLeverage: 125, defaultLeverage: 20,
+        priceProtectScope: '0.02', symbolStatus: 'OPEN', isApiSupported: true,
+      }],
+    });
+    expect(result.data?.[0].maxLeverage).toBe(125);
+    expect(result.data?.[0].isApiSupported).toBe(true);
+    expect(result.data?.[0].minTradeVolume?.toString()).toBe('0.0001');
+  });
+});
+
+describe('BitunixPositionTierResponseSchema', () => {
+  it('parses a real position_tiers response', () => {
+    const result = BitunixPositionTierResponseSchema.parse({
+      code: 0,
+      msg: 'Success',
+      data: [
+        { symbol: 'BTCUSDT', level: 1, startValue: '0', endValue: '50000', leverage: 125, maintenanceMarginRate: '0.004' },
+        { symbol: 'BTCUSDT', level: 2, startValue: '50000', endValue: '200000', leverage: 100, maintenanceMarginRate: '0.005' },
+      ],
+    });
+    expect(result.data).toHaveLength(2);
+    expect(result.data?.[1].maintenanceMarginRate?.toString()).toBe('0.005');
+  });
+});
+
+describe('BitunixLeverageMarginModeSchema', () => {
+  it('parses the flat shape our own proxy route returns', () => {
+    const result = BitunixLeverageMarginModeSchema.parse({
+      symbol: 'BTCUSDT', marginCoin: 'USDT', leverage: 10, marginMode: 'ISOLATION',
+    });
+    expect(result.leverage).toBe(10);
+    expect(result.marginMode).toBe('ISOLATION');
   });
 });
 

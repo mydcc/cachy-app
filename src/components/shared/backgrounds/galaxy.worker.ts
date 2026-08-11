@@ -101,6 +101,9 @@ self.onmessage = (e: MessageEvent) => {
         case 'generate':
             if (galaxyEngine) galaxyEngine.generate();
             break;
+        case 'gyro':
+            handleGyro(data);
+            break;
     }
 };
 
@@ -143,9 +146,26 @@ function init(data: InitMessageData) {
     requestAnimationFrame(animate);
 }
 
+let targetGyroOffset = { x: 0, y: 0 };
+let currentGyroOffset = { x: 0, y: 0 };
+
 function animate(time: number) {
     if (!isInitialized) return;
     requestAnimationFrame(animate);
+
+    currentGyroOffset.x += (targetGyroOffset.x - currentGyroOffset.x) * 0.05;
+    currentGyroOffset.y += (targetGyroOffset.y - currentGyroOffset.y) * 0.05;
+
+    if (camera && settings.camPos) {
+        camera.position.set(
+            settings.camPos.x + currentGyroOffset.x,
+            settings.camPos.y + currentGyroOffset.y,
+            settings.camPos.z
+        );
+        if (settings.autoCenter !== false) {
+            camera.lookAt(0, 0, 0);
+        }
+    }
 
     const t = time * 0.001;
     galaxyEngine?.update(t);
@@ -190,4 +210,14 @@ function updateColors(data: UpdateColorsMessageData) {
     if (starDustEngine) {
         starDustEngine.updateColor(colors.inside);
     }
+}
+
+function handleGyro(data: { alpha: number; beta: number; gamma: number }) {
+    const maxAngle = 45; 
+    let gx = Math.max(-maxAngle, Math.min(maxAngle, data.gamma)) / maxAngle;
+    // Assuming holding phone at ~45 deg
+    let gy = Math.max(-maxAngle, Math.min(maxAngle, data.beta - 45)) / maxAngle; 
+
+    targetGyroOffset.x = gx * 2.0;
+    targetGyroOffset.y = -gy * 2.0;
 }

@@ -31,6 +31,7 @@
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
   import type { OMSPosition } from "../../services/omsTypes";
+  import { calculateLiveUnrealizedPnl } from "../../services/mappers";
   import type { NormalizedOrder, NormalizedPosition } from "../../types/bitunix";
   import type { TranslationKey } from "../../locales/schema";
 
@@ -160,24 +161,40 @@
     return undefined;
   }
 
+  // unrealizedPnl on accountState.positions only updates when Bitunix's WS
+  // position channel pushes — order create/fill/cancel events, NOT every
+  // price tick (08_websocket.md's Position Channel) — so it goes stale
+  // between those even while markPrice keeps updating live via the public
+  // price channel. Recompute it from the live mark price whenever one is
+  // available and the position has a real entry price (a brand-new WS-only
+  // position can still be at the placeholder 0 — see updatePositionFromWs —
+  // in which case fall back to the account-channel value rather than
+  // produce a nonsense PnL).
   let mappedPositions = $derived(
-    accountState.positions.map((p): OMSPosition => ({
+    accountState.positions.map((p): OMSPosition => {
+      const markPrice = resolveMarkPrice(p);
+      const liveUnrealizedPnl =
+        markPrice && p.entryPrice.gt(0)
+          ? calculateLiveUnrealizedPnl(p.side, p.entryPrice, markPrice, p.size)
+          : undefined;
+      return {
         symbol: p.symbol,
         side: p.side,
         amount: p.size, // Map size to amount
         entryPrice: p.entryPrice,
-        unrealizedPnl: p.unrealizedPnl,
+        unrealizedPnl: liveUnrealizedPnl ?? p.unrealizedPnl,
         leverage: p.leverage,
         marginMode: p.marginMode as "cross" | "isolated",
         liquidationPrice: p.liquidationPrice,
         margin: p.margin,
-        markPrice: resolveMarkPrice(p),
+        markPrice,
         size: p.size,
         // REST-only, never sent over WS — 0 means "not hydrated yet", not a
         // real margin rate, so treat it as absent rather than show "0%".
         marginRate: p.marginRate.gt(0) ? p.marginRate : undefined,
         realizedPnl: p.realizedPnl,
-    }))
+      };
+    })
   );
 
   // Total notional value of every open position — client-computed (Σ size ×
@@ -188,6 +205,14 @@
       (sum, p) => sum.plus(p.amount.mul(p.markPrice || p.entryPrice)),
       new Decimal(0),
     ),
+  );
+
+  // Sum of the live-recomputed per-position PnL above, NOT
+  // accountState.totalUnrealizedPnl — that getter sums the stale
+  // account-channel unrealizedPnl directly, so the account summary's
+  // "Total PnL" would go stale between order events too.
+  let totalUnrealizedPnl = $derived(
+    mappedPositions.reduce((sum, p) => sum.plus(p.unrealizedPnl), new Decimal(0)),
   );
 
   // Subscribe to live price updates for every symbol with an open position —
@@ -216,6 +241,11 @@
     const keys = settingsState.apiKeys[provider];
 
     if (!keys?.key || !keys?.secret) return;
+    // The sync callback (registered below) can fire once per malformed/
+    // REST-incomplete WS position push — several arriving in a burst (e.g.
+    // multiple positions opening near-simultaneously) must not fan out into
+    // that many concurrent REST calls.
+    if (loadingPositions) return;
 
     loadingPositions = true;
     errorPositions = "";
@@ -412,6 +442,18 @@
       if (activeTab === "history") fetchHistoryOrders();
     });
     return () => accountState.registerOrderCloseCallback(null);
+  });
+
+  // A position that reaches the WS position channel before this component's
+  // one-time onMount REST fetch (e.g. opened directly on the exchange while
+  // Cachy was already running) gets created with entryPrice/liquidationPrice/
+  // marginRate hard-defaulted to 0 — the WS channel never carries them. This
+  // is accountState's signal to go get the real values from REST.
+  $effect(() => {
+    accountState.registerSyncCallback(() => {
+      fetchPositions();
+    });
+    return () => accountState.registerSyncCallback(null);
   });
 
   // Load orders once per tab-activation, not on every openOrders reference
@@ -616,7 +658,7 @@
     <AccountSummary
       available={liveAsset ? liveAsset.available : accountInfo.available}
       margin={liveAsset ? liveAsset.margin : accountInfo.margin}
-      pnl={accountState.totalUnrealizedPnl}
+      pnl={totalUnrealizedPnl}
       currency={accountInfo.marginCoin}
       frozen={liveAsset ? liveAsset.frozen : accountInfo.frozen}
       transfer={accountInfo.transfer}
@@ -624,6 +666,9 @@
       positionMode={accountInfo.positionMode}
       crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
       isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
+      isolationFrozen={liveAsset?.isolationFrozen}
+      crossFrozen={liveAsset?.crossFrozen}
+      expMoney={liveAsset?.expMoney}
       totalPositionSize={totalPositionSize}
       error={errorAccount}
     />

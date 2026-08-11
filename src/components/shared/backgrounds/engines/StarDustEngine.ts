@@ -70,7 +70,10 @@ export class StarDustEngine extends BaseEngine {
     }
 
     public update(): void {
-        // StarDust implementation
+        if (this.starDustPoints) {
+            this.starDustPoints.rotation.y -= 0.0002;
+            this.starDustPoints.rotation.x -= 0.0001;
+        }
     }
     
     public updateColor(color: THREE.Color) {
