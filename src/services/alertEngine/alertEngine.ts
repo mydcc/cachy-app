@@ -22,7 +22,7 @@ interface WasmAlertEngineInstance {
   set_alerts(alertsJson: string): void;
   add_alert(alertJson: string): void;
   remove_alert(id: string): void;
-  evaluate(symbol: string, currentPrice: number, timestamp: number): any;
+  evaluate(symbol: string, currentPrice: number, timestamp: number): AlertEvent[];
   free(): void;
 }
 

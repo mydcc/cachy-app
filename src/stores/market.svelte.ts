@@ -463,7 +463,7 @@ export class MarketManager {
                   try {
                       // Pass to alert engine
                       alertEngine.evaluate(symbol, newVal.toNumber(), Date.now());
-                  } catch(e) {}
+                  } catch { /* Ignore */ }
               }
           }
       }

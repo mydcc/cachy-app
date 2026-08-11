@@ -2,8 +2,8 @@
   import { alertState } from "../../stores/alerts.svelte";
   import ModalFrame from "../shared/ModalFrame.svelte";
   import { _ as t } from "svelte-i18n";
-  import { onMount } from "svelte";
-  import { alertEngine } from "../../services/alertEngine/alertEngine";
+
+
 
   import { uiState } from "../../stores/ui.svelte";
 
@@ -19,7 +19,7 @@
       alertState.removeAlert(id);
   }
 
-  function formatCondition(condition: any) {
+  function formatCondition(condition: Record<string, unknown>) {
       if (condition.price_cross_up) return `Crosses Up ${condition.price_cross_up}`;
       if (condition.price_cross_down) return `Crosses Down ${condition.price_cross_down}`;
       if (condition.price_reached) return `Reaches ${condition.price_reached}`;
@@ -39,7 +39,7 @@
 
       alertState.addAlert(newAlert);
       newAlertPrice = "";
-      uiState.showToast($t('dashboard.alerts.createSuccess') || "Alert created", "success");
+      uiState.showToast($t('dashboard.alerts.createSuccess') as string, "success");
   }
 </script>
 
