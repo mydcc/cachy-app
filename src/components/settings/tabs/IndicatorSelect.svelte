@@ -25,7 +25,7 @@
         // a precise union here would have to be re-derived per call site.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value: any;
-        options: string[];
+        options: string[] | {value: string, label: string}[];
     }
 
     let { label, id, value = $bindable(), options }: Props = $props();
@@ -41,7 +41,7 @@
         class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full outline-none focus:ring-1 focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] transition-shadow"
     >
         {#each options as opt}
-            <option value={opt}>{opt.toUpperCase()}</option>
+            <option value={typeof opt === "string" ? opt : opt.value}>{typeof opt === "string" ? opt.toUpperCase() : opt.label}</option>
         {/each}
     </select>
 </div>

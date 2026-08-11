@@ -43,10 +43,10 @@
     // Options
     const sourceOptions = ["close", "open", "high", "low", "hl2", "hlc3"];
     const pivotTypes = [
-        { value: "classic", label: "Classic" },
-        { value: "woodie", label: "Woodie" },
-        { value: "camarilla", label: "Camarilla" },
-        { value: "fibonacci", label: "Fibonacci" }
+        { value: "classic", label: $_("settings.technicals.pivotClassic") },
+        { value: "woodie", label: $_("settings.technicals.pivotWoodie") },
+        { value: "camarilla", label: $_("settings.technicals.pivotCamarilla") },
+        { value: "fibonacci", label: $_("settings.technicals.pivotFibonacci") }
     ];
 </script>
 
@@ -77,40 +77,40 @@
                 <!-- Panel Sections Visibility -->
                 <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
                     <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)] flex items-center justify-between">
-                        <span>Panel Configuration</span>
-                        <span class="text-xs font-normal text-[var(--text-secondary)]">Toggle visibility</span>
+                        <span>{$_("settings.technicals.panelConfiguration")}</span>
+                        <span class="text-xs font-normal text-[var(--text-secondary)]">{$_("settings.technicals.toggleVisibility")}</span>
                     </h4>
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Summary</span>
+                            <span class="text-sm">{$_("settings.technicals.summary")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.summary} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Oscillators</span>
+                            <span class="text-sm">{$_("settings.technicals.oscillatorsTitle")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.oscillators} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Moving Averages</span>
+                            <span class="text-sm">{$_("settings.technicals.movingAveragesTitle")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.movingAverages} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Pivots</span>
+                            <span class="text-sm">{$_("settings.technicals.pivotsTitle")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.pivots} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Confluence</span>
+                            <span class="text-sm">{$_("settings.technicals.marketConfluence")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.confluence} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Volatility</span>
+                            <span class="text-sm">{$_("settings.technicals.tabs.volatility")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.volatility} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Advanced</span>
+                            <span class="text-sm">{$_("settings.technicals.advancedTitle")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.advanced} />
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm">Signals</span>
+                            <span class="text-sm">{$_("settings.technicals.signals")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.signals} />
                         </div>
                     </div>
@@ -120,12 +120,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <section class="p-5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] shadow-sm">
                         <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
-                            Calculation Engine
+                            {$_("settings.technicals.calculationEngine")}
                         </h4>
                         <div class="space-y-2">
                              <Field
                                 id="hist-limit"
-                                label="History Limit"
+                                label={$_("settings.technicals.historyLimit")}
                                 type="number"
                                 bind:value={indicatorState.historyLimit}
                                 step={50}
@@ -138,19 +138,19 @@
                             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)] mt-2">
                                 <Select
                                     id="perf-engine"
-                                    label="Engine"
+                                    label={$_("settings.technicals.engine")}
                                     bind:value={indicatorState.preferredEngine}
-                                    options={["auto", "ts", "wasm", "gpu"]}
+                                    options={[{value: "auto", label: $_("settings.technicals.optimization.engines.auto")}, {value: "ts", label: $_("settings.technicals.optimization.engines.ts")}, {value: "wasm", label: $_("settings.technicals.optimization.engines.wasm")}, {value: "gpu", label: $_("settings.technicals.optimization.engines.gpu")}]}
                                 />
                                 <Select
                                     id="perf-mode"
-                                    label="Mode"
+                                    label={$_("settings.technicals.mode")}
                                     bind:value={indicatorState.performanceMode}
-                                    options={["balanced", "quality", "speed"]}
+                                    options={[{value: "balanced", label: $_("settings.technicals.optimization.modes.balanced")}, {value: "quality", label: $_("settings.technicals.optimization.modes.quality")}, {value: "speed", label: $_("settings.technicals.optimization.modes.speed")}]}
                                 />
                             </div>
                             <div class="flex justify-between items-center pt-2 border-t border-[var(--border-color)] mt-2">
-                                <span class="text-sm">Sync RSI Timeframe</span>
+                                <span class="text-sm">{$_("settings.technicals.syncRsi")}</span>
                                 <Toggle bind:checked={settingsState.syncRsiTimeframe} />
                             </div>
                         </div>
@@ -158,21 +158,21 @@
 
                     <section class="p-5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] shadow-sm">
                          <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
-                            Display Preferences
+                            {$_("settings.technicals.displayPreferences")}
                         </h4>
                          <div class="space-y-2">
                             <Field
                                 id="precision"
-                                label="Precision"
+                                label={$_("settings.technicals.precision")}
                                 type="number"
                                 bind:value={indicatorState.precision}
                                 min={0}
                                 max={8}
                             />
                             <div class="flex flex-col gap-2 mt-2">
-                                <span class="text-xs text-[var(--text-secondary)]">PnL Display Mode</span>
+                                <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.pnlMode")}</span>
                                 <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
-                                    {#each [{ value: "value", label: "Value" }, { value: "percent", label: "%" }, { value: "bar", label: "Bar" }] as mode}
+                                    {#each [{ value: "value", label: $_("settings.technicals.pnlModes.absolute") }, { value: "percent", label: $_("settings.technicals.pnlModes.percent") }, { value: "bar", label: $_("settings.technicals.pnlModes.bar") }] as mode}
                                         <button
                                             class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'text-[var(--text-secondary)]'}"
                                             onclick={() => (settingsState.pnlViewMode = mode.value as PnlViewMode)}
@@ -189,7 +189,7 @@
                 <!-- Timeframes -->
                 <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
                     <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
-                        Favorite Timeframes
+                        {$_("settings.technicals.favorites")}
                     </h4>
                     <TimeframeSelector
                         bind:selected={settingsState.favoriteTimeframes}
@@ -200,111 +200,111 @@
 
         {:else if activeCategory === "oscillators"}
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
-                <IndicatorCard title="RSI" bind:enabled={indicatorState.rsi.enabled}>
+                <IndicatorCard title={$_("settings.technicals.rsi.title")} bind:enabled={indicatorState.rsi.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="rsi-len" label="Length" type="number" bind:value={indicatorState.rsi.length} min={2} />
-                        <Select id="rsi-src" label="Source" bind:value={indicatorState.rsi.source} options={sourceOptions} />
-                        <Field id="rsi-ob" label="Overbought" type="number" bind:value={indicatorState.rsi.overbought} />
-                        <Field id="rsi-os" label="Oversold" type="number" bind:value={indicatorState.rsi.oversold} />
+                        <Field id="rsi-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.rsi.length} min={2} />
+                        <Select id="rsi-src" label={$_("settings.technicals.labels.source")} bind:value={indicatorState.rsi.source} options={sourceOptions} />
+                        <Field id="rsi-ob" label={$_("settings.technicals.overbought")} type="number" bind:value={indicatorState.rsi.overbought} />
+                        <Field id="rsi-os" label={$_("settings.technicals.oversold")} type="number" bind:value={indicatorState.rsi.oversold} />
                         <div class="col-span-2 flex justify-between items-center mt-1">
-                            <span class="text-xs">Show Signal (MA)</span>
+                            <span class="text-xs">{$_("settings.technicals.rsi.showSignal")}</span>
                             <Toggle bind:checked={indicatorState.rsi.showSignal} />
                         </div>
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Stoch RSI" bind:enabled={indicatorState.stochRsi.enabled}>
+                <IndicatorCard title={$_("settings.technicals.stochRsi.title")} bind:enabled={indicatorState.stochRsi.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="srsi-len" label="Length" type="number" bind:value={indicatorState.stochRsi.length} />
-                        <Field id="srsi-rlen" label="RSI Len" type="number" bind:value={indicatorState.stochRsi.rsiLength} />
-                        <Field id="srsi-k" label="%K" type="number" bind:value={indicatorState.stochRsi.kPeriod} />
-                        <Field id="srsi-d" label="%D" type="number" bind:value={indicatorState.stochRsi.dPeriod} />
+                        <Field id="srsi-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.stochRsi.length} />
+                        <Field id="srsi-rlen" label={$_("settings.technicals.stochRsi.rsiLen")} type="number" bind:value={indicatorState.stochRsi.rsiLength} />
+                        <Field id="srsi-k" label={$_("settings.technicals.kPeriod")} type="number" bind:value={indicatorState.stochRsi.kPeriod} />
+                        <Field id="srsi-d" label={$_("settings.technicals.dPeriod")} type="number" bind:value={indicatorState.stochRsi.dPeriod} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Stochastic" bind:enabled={indicatorState.stochastic.enabled}>
+                <IndicatorCard title={$_("settings.technicals.stochasticTitle")} bind:enabled={indicatorState.stochastic.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="stoch-k" label="%K" type="number" bind:value={indicatorState.stochastic.kPeriod} />
-                        <Field id="stoch-d" label="%D" type="number" bind:value={indicatorState.stochastic.dPeriod} />
-                        <Field id="stoch-s" label="Smooth" type="number" bind:value={indicatorState.stochastic.kSmoothing} />
+                        <Field id="stoch-k" label={$_("settings.technicals.kPeriod")} type="number" bind:value={indicatorState.stochastic.kPeriod} />
+                        <Field id="stoch-d" label={$_("settings.technicals.dPeriod")} type="number" bind:value={indicatorState.stochastic.dPeriod} />
+                        <Field id="stoch-s" label={$_("settings.technicals.smooth")} type="number" bind:value={indicatorState.stochastic.kSmoothing} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Williams %R" bind:enabled={indicatorState.williamsR.enabled}>
-                    <Field id="wr-len" label="Length" type="number" bind:value={indicatorState.williamsR.length} />
+                <IndicatorCard title={$_("settings.technicals.williamsR")} bind:enabled={indicatorState.williamsR.enabled}>
+                    <Field id="wr-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.williamsR.length} />
                 </IndicatorCard>
 
-                <IndicatorCard title="CCI" bind:enabled={indicatorState.cci.enabled}>
+                <IndicatorCard title={$_("settings.technicals.cci")} bind:enabled={indicatorState.cci.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="cci-len" label="Length" type="number" bind:value={indicatorState.cci.length} />
-                        <Select id="cci-src" label="Source" bind:value={indicatorState.cci.source} options={sourceOptions} />
+                        <Field id="cci-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.cci.length} />
+                        <Select id="cci-src" label={$_("settings.technicals.labels.source")} bind:value={indicatorState.cci.source} options={sourceOptions} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Momentum" bind:enabled={indicatorState.momentum.enabled}>
+                <IndicatorCard title={$_("settings.technicals.momentum")} bind:enabled={indicatorState.momentum.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="mom-len" label="Length" type="number" bind:value={indicatorState.momentum.length} />
-                        <Select id="mom-src" label="Source" bind:value={indicatorState.momentum.source} options={sourceOptions} />
+                        <Field id="mom-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.momentum.length} />
+                        <Select id="mom-src" label={$_("settings.technicals.labels.source")} bind:value={indicatorState.momentum.source} options={sourceOptions} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Awesome Osc." bind:enabled={indicatorState.ao.enabled}>
+                <IndicatorCard title={$_("settings.technicals.awesomeOsc")} bind:enabled={indicatorState.ao.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="ao-fast" label="Fast" type="number" bind:value={indicatorState.ao.fastLength} />
-                        <Field id="ao-slow" label="Slow" type="number" bind:value={indicatorState.ao.slowLength} />
+                        <Field id="ao-fast" label={$_("settings.technicals.labels.fast")} type="number" bind:value={indicatorState.ao.fastLength} />
+                        <Field id="ao-slow" label={$_("settings.technicals.labels.slow")} type="number" bind:value={indicatorState.ao.slowLength} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="MFI" bind:enabled={indicatorState.mfi.enabled}>
-                    <Field id="mfi-len" label="Length" type="number" bind:value={indicatorState.mfi.length} />
+                <IndicatorCard title={$_("settings.technicals.mfi")} bind:enabled={indicatorState.mfi.enabled}>
+                    <Field id="mfi-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.mfi.length} />
                 </IndicatorCard>
             </div>
 
         {:else if activeCategory === "trend"}
              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
-                <IndicatorCard title="MACD" bind:enabled={indicatorState.macd.enabled}>
+                <IndicatorCard title={$_("settings.technicals.macd.title")} bind:enabled={indicatorState.macd.enabled}>
                     <div class="grid grid-cols-3 gap-2">
-                        <Field id="macd-fast" label="Fast" type="number" bind:value={indicatorState.macd.fastLength} />
-                        <Field id="macd-slow" label="Slow" type="number" bind:value={indicatorState.macd.slowLength} />
-                        <Field id="macd-sig" label="Signal" type="number" bind:value={indicatorState.macd.signalLength} />
+                        <Field id="macd-fast" label={$_("settings.technicals.labels.fast")} type="number" bind:value={indicatorState.macd.fastLength} />
+                        <Field id="macd-slow" label={$_("settings.technicals.labels.slow")} type="number" bind:value={indicatorState.macd.slowLength} />
+                        <Field id="macd-sig" label={$_("settings.technicals.labels.signal")} type="number" bind:value={indicatorState.macd.signalLength} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="ADX" bind:enabled={indicatorState.adx.enabled}>
+                <IndicatorCard title={$_("settings.technicals.adx")} bind:enabled={indicatorState.adx.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                         <Field id="adx-len" label="DI Length" type="number" bind:value={indicatorState.adx.diLength} />
-                         <Field id="adx-smooth" label="Smoothing" type="number" bind:value={indicatorState.adx.adxSmoothing} />
-                         <Field id="adx-thr" label="Threshold" type="number" bind:value={indicatorState.adx.threshold} />
+                         <Field id="adx-len" label={$_("settings.technicals.diLength")} type="number" bind:value={indicatorState.adx.diLength} />
+                         <Field id="adx-smooth" label={$_("settings.technicals.smoothing")} type="number" bind:value={indicatorState.adx.adxSmoothing} />
+                         <Field id="adx-thr" label={$_("settings.technicals.threshold")} type="number" bind:value={indicatorState.adx.threshold} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="SuperTrend" bind:enabled={indicatorState.superTrend.enabled}>
+                <IndicatorCard title={$_("settings.technicals.superTrend.title")} bind:enabled={indicatorState.superTrend.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="st-per" label="Period" type="number" bind:value={indicatorState.superTrend.period} />
-                        <Field id="st-fac" label="Factor" type="number" step={0.1} bind:value={indicatorState.superTrend.factor} />
+                        <Field id="st-per" label={$_("settings.technicals.labels.period")} type="number" bind:value={indicatorState.superTrend.period} />
+                        <Field id="st-fac" label={$_("settings.technicals.labels.factor")} type="number" step={0.1} bind:value={indicatorState.superTrend.factor} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Ichimoku" bind:enabled={indicatorState.ichimoku.enabled}>
+                <IndicatorCard title={$_("settings.technicals.ichimoku")} bind:enabled={indicatorState.ichimoku.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="ichi-conv" label="Conversion" type="number" bind:value={indicatorState.ichimoku.conversionPeriod} />
-                        <Field id="ichi-base" label="Base" type="number" bind:value={indicatorState.ichimoku.basePeriod} />
-                        <Field id="ichi-spanb" label="Span B" type="number" bind:value={indicatorState.ichimoku.spanBPeriod} />
-                        <Field id="ichi-disp" label="Displacement" type="number" bind:value={indicatorState.ichimoku.displacement} />
+                        <Field id="ichi-conv" label={$_("settings.technicals.conversion")} type="number" bind:value={indicatorState.ichimoku.conversionPeriod} />
+                        <Field id="ichi-base" label={$_("settings.technicals.base")} type="number" bind:value={indicatorState.ichimoku.basePeriod} />
+                        <Field id="ichi-spanb" label={$_("settings.technicals.spanB")} type="number" bind:value={indicatorState.ichimoku.spanBPeriod} />
+                        <Field id="ichi-disp" label={$_("settings.technicals.displacement")} type="number" bind:value={indicatorState.ichimoku.displacement} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Parabolic SAR" bind:enabled={indicatorState.parabolicSar.enabled}>
+                <IndicatorCard title={$_("settings.technicals.parabolicSar")} bind:enabled={indicatorState.parabolicSar.enabled}>
                      <div class="grid grid-cols-3 gap-2">
-                        <Field id="psar-start" label="Start" type="number" step={0.01} bind:value={indicatorState.parabolicSar.start} />
-                        <Field id="psar-inc" label="Inc" type="number" step={0.01} bind:value={indicatorState.parabolicSar.increment} />
-                        <Field id="psar-max" label="Max" type="number" step={0.01} bind:value={indicatorState.parabolicSar.max} />
+                        <Field id="psar-start" label={$_("settings.technicals.start")} type="number" step={0.01} bind:value={indicatorState.parabolicSar.start} />
+                        <Field id="psar-inc" label={$_("settings.technicals.inc")} type="number" step={0.01} bind:value={indicatorState.parabolicSar.increment} />
+                        <Field id="psar-max" label={$_("settings.technicals.max")} type="number" step={0.01} bind:value={indicatorState.parabolicSar.max} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Pivot Points" bind:enabled={indicatorState.pivots.enabled}>
+                <IndicatorCard title={$_("settings.technicals.pivotsTitle")} bind:enabled={indicatorState.pivots.enabled}>
                     <div class="grid grid-cols-1 gap-2">
-                        <span class="text-xs text-[var(--text-secondary)]">Calculation Mode</span>
+                        <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.calculationMode")}</span>
                         <div class="grid grid-cols-2 gap-2">
                             {#each pivotTypes as pType}
                                 <button
@@ -318,82 +318,82 @@
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="EMA" bind:enabled={indicatorState.ema.enabled}>
+                <IndicatorCard title={$_("settings.technicals.emaTitle")} bind:enabled={indicatorState.ema.enabled}>
                     <div class="flex flex-col gap-2">
                         <div class="grid grid-cols-3 gap-2">
-                             <Field id="ema-1" label="EMA 1" type="number" bind:value={indicatorState.ema.ema1.length} />
-                             <Field id="ema-2" label="EMA 2" type="number" bind:value={indicatorState.ema.ema2.length} />
-                             <Field id="ema-3" label="EMA 3" type="number" bind:value={indicatorState.ema.ema3.length} />
+                             <Field id="ema-1" label={$_("settings.technicals.ema1")} type="number" bind:value={indicatorState.ema.ema1.length} />
+                             <Field id="ema-2" label={$_("settings.technicals.ema2")} type="number" bind:value={indicatorState.ema.ema2.length} />
+                             <Field id="ema-3" label={$_("settings.technicals.ema3")} type="number" bind:value={indicatorState.ema.ema3.length} />
                         </div>
-                        <Select id="ema-src" label="Source" bind:value={indicatorState.ema.source} options={sourceOptions} />
+                        <Select id="ema-src" label={$_("settings.technicals.labels.source")} bind:value={indicatorState.ema.source} options={sourceOptions} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="SMA" bind:enabled={indicatorState.sma.enabled}>
+                <IndicatorCard title={$_("settings.technicals.smaTitle")} bind:enabled={indicatorState.sma.enabled}>
                     <div class="grid grid-cols-3 gap-2">
-                            <Field id="sma-1" label="SMA 1" type="number" bind:value={indicatorState.sma.sma1.length} />
-                            <Field id="sma-2" label="SMA 2" type="number" bind:value={indicatorState.sma.sma2.length} />
-                            <Field id="sma-3" label="SMA 3" type="number" bind:value={indicatorState.sma.sma3.length} />
+                            <Field id="sma-1" label={$_("settings.technicals.sma1")} type="number" bind:value={indicatorState.sma.sma1.length} />
+                            <Field id="sma-2" label={$_("settings.technicals.sma2")} type="number" bind:value={indicatorState.sma.sma2.length} />
+                            <Field id="sma-3" label={$_("settings.technicals.sma3")} type="number" bind:value={indicatorState.sma.sma3.length} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="WMA" bind:enabled={indicatorState.wma.enabled}>
-                    <Field id="wma-len" label="Length" type="number" bind:value={indicatorState.wma.length} />
+                <IndicatorCard title={$_("settings.technicals.wma")} bind:enabled={indicatorState.wma.enabled}>
+                    <Field id="wma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.wma.length} />
                 </IndicatorCard>
-                <IndicatorCard title="VWMA" bind:enabled={indicatorState.vwma.enabled}>
-                    <Field id="vwma-len" label="Length" type="number" bind:value={indicatorState.vwma.length} />
+                <IndicatorCard title={$_("settings.technicals.vwma")} bind:enabled={indicatorState.vwma.enabled}>
+                    <Field id="vwma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.vwma.length} />
                 </IndicatorCard>
-                <IndicatorCard title="HMA" bind:enabled={indicatorState.hma.enabled}>
-                    <Field id="hma-len" label="Length" type="number" bind:value={indicatorState.hma.length} />
+                <IndicatorCard title={$_("settings.technicals.hma")} bind:enabled={indicatorState.hma.enabled}>
+                    <Field id="hma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.hma.length} />
                 </IndicatorCard>
             </div>
 
         {:else if activeCategory === "volatility"}
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
-                <IndicatorCard title="Bollinger Bands" bind:enabled={indicatorState.bollingerBands.enabled}>
+                <IndicatorCard title={$_("settings.technicals.bollingerBands.title")} bind:enabled={indicatorState.bollingerBands.enabled}>
                     <div class="grid grid-cols-2 gap-2">
-                        <Field id="bb-len" label="Length" type="number" bind:value={indicatorState.bollingerBands.length} />
-                        <Field id="bb-std" label="Std Dev" type="number" step={0.1} bind:value={indicatorState.bollingerBands.stdDev} />
+                        <Field id="bb-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.bollingerBands.length} />
+                        <Field id="bb-std" label={$_("settings.technicals.bollingerBands.stdDev")} type="number" step={0.1} bind:value={indicatorState.bollingerBands.stdDev} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="ATR" bind:enabled={indicatorState.atr.enabled}>
-                    <Field id="atr-len" label="Length" type="number" bind:value={indicatorState.atr.length} />
+                <IndicatorCard title={$_("settings.technicals.atr")} bind:enabled={indicatorState.atr.enabled}>
+                    <Field id="atr-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.atr.length} />
                 </IndicatorCard>
 
-                <IndicatorCard title="Choppiness Idx" bind:enabled={indicatorState.choppiness.enabled}>
-                    <Field id="chop-len" label="Length" type="number" bind:value={indicatorState.choppiness.length} />
+                <IndicatorCard title={$_("settings.technicals.choppiness")} bind:enabled={indicatorState.choppiness.enabled}>
+                    <Field id="chop-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.choppiness.length} />
                 </IndicatorCard>
 
-                <IndicatorCard title="ATR Trailing Stop" bind:enabled={indicatorState.atrTrailingStop.enabled}>
+                <IndicatorCard title={$_("settings.technicals.atrStop.title")} bind:enabled={indicatorState.atrTrailingStop.enabled}>
                      <div class="grid grid-cols-2 gap-2">
-                        <Field id="ats-per" label="Period" type="number" bind:value={indicatorState.atrTrailingStop.period} />
-                        <Field id="ats-mult" label="Multiplier" type="number" step={0.1} bind:value={indicatorState.atrTrailingStop.multiplier} />
+                        <Field id="ats-per" label={$_("settings.technicals.labels.period")} type="number" bind:value={indicatorState.atrTrailingStop.period} />
+                        <Field id="ats-mult" label={$_("settings.technicals.multiplier")} type="number" step={0.1} bind:value={indicatorState.atrTrailingStop.multiplier} />
                     </div>
                 </IndicatorCard>
             </div>
 
         {:else if activeCategory === "volume"}
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
-                <IndicatorCard title="Volume MA" bind:enabled={indicatorState.volumeMa.enabled}>
+                <IndicatorCard title={$_("settings.technicals.volumeMa.title")} bind:enabled={indicatorState.volumeMa.enabled}>
                      <div class="grid grid-cols-2 gap-2">
-                        <Field id="vma-len" label="Length" type="number" bind:value={indicatorState.volumeMa.length} />
-                        <Select id="vma-type" label="Type" bind:value={indicatorState.volumeMa.maType} options={["sma", "ema", "wma"]} />
+                        <Field id="vma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.volumeMa.length} />
+                        <Select id="vma-type" label={$_("settings.technicals.labels.type")} bind:value={indicatorState.volumeMa.maType} options={[{value: "sma", label: $_("settings.technicals.maTypeSma")}, {value: "ema", label: $_("settings.technicals.maTypeEma")}, {value: "wma", label: $_("settings.technicals.maTypeWma")}]} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="OBV" bind:enabled={indicatorState.obv.enabled}>
-                    <div class="text-xs text-[var(--text-secondary)] italic">On Balance Volume has no configurable parameters.</div>
+                <IndicatorCard title={$_("settings.technicals.obv")} bind:enabled={indicatorState.obv.enabled}>
+                    <div class="text-xs text-[var(--text-secondary)] italic">{$_("settings.technicals.obvNoParams")}</div>
                 </IndicatorCard>
 
-                <IndicatorCard title="VWAP" bind:enabled={indicatorState.vwap.enabled}>
+                <IndicatorCard title={$_("settings.technicals.vwap")} bind:enabled={indicatorState.vwap.enabled}>
                      <div class="grid grid-cols-1 gap-2">
-                         <Select id="vwap-anchor" label="Anchor" bind:value={indicatorState.vwap.anchor} options={["session", "fixed"]} />
+                         <Select id="vwap-anchor" label={$_("settings.technicals.anchor")} bind:value={indicatorState.vwap.anchor} options={[{value: "session", label: $_("settings.technicals.anchorSession")}, {value: "fixed", label: $_("settings.technicals.anchorFixed")}]} />
                     </div>
                 </IndicatorCard>
 
-                <IndicatorCard title="Volume Profile" bind:enabled={indicatorState.volumeProfile.enabled}>
-                     <Field id="vp-rows" label="Rows" type="number" bind:value={indicatorState.volumeProfile.rows} />
+                <IndicatorCard title={$_("settings.technicals.volumeProfile")} bind:enabled={indicatorState.volumeProfile.enabled}>
+                     <Field id="vp-rows" label={$_("settings.technicals.rows")} type="number" bind:value={indicatorState.volumeProfile.rows} />
                 </IndicatorCard>
             </div>
         {/if}
