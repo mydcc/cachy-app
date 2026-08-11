@@ -1,0 +1,39 @@
+name: Backlog Dispatch (Jules)
+
+# Schickt docs/backlog/-Items mit status: ready automatisch an Jules —
+# siehe scripts/jules/dispatch-backlog.mjs für den genauen Filter/Ablauf.
+# execution/security/exchange und P0 bleiben bewusst außen vor (manuell
+# per scripts/jules/create-session.sh --file ...).
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # montags 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Nur anzeigen, was dispatcht würde, nichts wirklich erstellen'
+        type: boolean
+        default: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Dispatch ready backlog items
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          JULES_SOURCE: ${{ vars.JULES_SOURCE }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            node scripts/jules/dispatch-backlog.mjs --dry-run
+          else
+            node scripts/jules/dispatch-backlog.mjs
+          fi
