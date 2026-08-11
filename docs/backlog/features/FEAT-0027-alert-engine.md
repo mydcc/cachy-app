@@ -2,7 +2,7 @@
 id: FEAT-0027
 title: A local alert engine with price alerts
 type: feature
-status: specced
+status: ready
 priority: P1
 milestone: M4
 editions: [community, pro, private]
