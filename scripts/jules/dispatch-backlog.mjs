@@ -26,8 +26,13 @@
  *   2. area not in EXCLUDE_AREAS                    (execution/security/exchange stay manual —
  *                                                     see AGENTS.md scope-hinweis)
  *   3. priority !== 'P0'                            (money/security-consequence items stay manual)
- *   4. no existing Jules session already mentions this item's ID (best-effort de-dup
- *      over the last LOOKBACK_SESSIONS sessions)
+ *   4. no existing Jules session already mentions this item's ID (de-dup over the
+ *      most recent SESSION_PAGE_SIZE sessions). This is the only thing standing
+ *      between a re-run and a duplicate session: an item stays `ready` on
+ *      `develop` while Jules works on it, because Jules writes `status:
+ *      in-progress` on its own branch, which is not merged yet. So the check is
+ *      mandatory — if the session list cannot be loaded, the run aborts rather
+ *      than dispatching without it.
  *   5. capped at MAX_PER_RUN dispatches per run, to respect the daily/concurrent quota
  *
  * This script never edits the backlog or pushes to git. Jules is instructed
@@ -52,13 +57,23 @@ const EXCLUDE_AREAS = (process.env.JULES_EXCLUDE_AREAS ?? "execution,security,ex
   .filter(Boolean);
 const MAX_PER_RUN = Number(process.env.JULES_MAX_PER_RUN ?? 5);
 const STARTING_BRANCH = process.env.JULES_STARTING_BRANCH ?? "develop";
+const SESSION_PAGE_SIZE = Number(process.env.JULES_SESSION_PAGE_SIZE ?? 100);
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const API_KEY = process.env.JULES_API_KEY;
 const SOURCE = process.env.JULES_SOURCE;
 
-if (!DRY_RUN && (!API_KEY || !SOURCE)) {
-  console.error("❌ JULES_API_KEY und JULES_SOURCE müssen gesetzt sein (oder --dry-run nutzen).");
+// --dry-run needs the key too: it reads the session list for the de-dup check,
+// so that a dry run reports what a real run would actually do. It still creates
+// nothing, so JULES_SOURCE stays optional there.
+if (!API_KEY) {
+  console.error(
+    "❌ JULES_API_KEY muss gesetzt sein — auch für --dry-run, weil der Dedup-Check die bestehenden Sessions liest.",
+  );
+  process.exit(1);
+}
+if (!DRY_RUN && !SOURCE) {
+  console.error("❌ JULES_SOURCE muss gesetzt sein (oder --dry-run nutzen).");
   process.exit(1);
 }
 
@@ -99,14 +114,26 @@ function loadBacklogItems() {
   return items;
 }
 
+/**
+ * Loads recent sessions for the de-dup check. Runs in --dry-run as well —
+ * skipping it there would make the dry run claim it dispatches items a real run
+ * skips, which is worse than not having a dry run at all.
+ *
+ * Throws instead of returning empty on failure. An empty result silently
+ * disables de-dup, so one failed request would re-dispatch every ready item at
+ * once; aborting the run is the cheaper mistake.
+ */
 async function fetchRecentSessionText() {
-  if (DRY_RUN) return "";
-  const res = await fetch("https://jules.googleapis.com/v1alpha/sessions?pageSize=100", {
-    headers: { "x-goog-api-key": API_KEY },
-  });
+  let res;
+  try {
+    res = await fetch(`https://jules.googleapis.com/v1alpha/sessions?pageSize=${SESSION_PAGE_SIZE}`, {
+      headers: { "x-goog-api-key": API_KEY },
+    });
+  } catch (err) {
+    throw new Error(`Sessions nicht erreichbar (${err.message}).`);
+  }
   if (!res.ok) {
-    console.error(`⚠️  Konnte bestehende Sessions nicht laden (HTTP ${res.status}) — dedup übersprungen.`);
-    return "";
+    throw new Error(`Sessions nicht ladbar (HTTP ${res.status}).`);
   }
   const data = await res.json();
   return JSON.stringify(data.sessions ?? []);
@@ -139,7 +166,9 @@ Halte dich an den Scope-Hinweis in AGENTS.md. Öffne einen PR gegen develop, mer
 
   if (DRY_RUN) {
     console.log(`[dry-run] würde Session erstellen für ${item.id}`);
-    return;
+    // Counts towards MAX_PER_RUN like a real dispatch, so the dry run stops at
+    // the same item a real run would instead of listing the whole backlog.
+    return true;
   }
 
   const res = await fetch("https://jules.googleapis.com/v1alpha/sessions", {
@@ -171,7 +200,14 @@ if (ready.length === 0) {
   process.exit(0);
 }
 
-const recentSessionsText = await fetchRecentSessionText();
+let recentSessionsText;
+try {
+  recentSessionsText = await fetchRecentSessionText();
+} catch (err) {
+  console.error(`❌ ${err.message} — Abbruch, statt ohne Dedup-Schutz zu dispatchen.`);
+  process.exit(1);
+}
+
 let dispatched = 0;
 
 for (const item of ready) {
@@ -187,4 +223,4 @@ for (const item of ready) {
   if (ok) dispatched++;
 }
 
-console.log(`${dispatched} Session(s) erstellt.`);
+console.log(DRY_RUN ? `${dispatched} Session(s) würden erstellt.` : `${dispatched} Session(s) erstellt.`);

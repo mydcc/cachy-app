@@ -55,9 +55,8 @@ PRODUCTION_URL=https://cachy.app ./scripts/jules/monitor-production.sh
 Der Dispatcher nimmt genau diese Items, keine eigene Interpretation.
 
 **Damit überhaupt etwas passiert, muss zuerst ein Item auf `ready` stehen.**
-Aktuell (Stand Einrichtung) hat kein einziges Backlog-Item diesen Status — nur
-`idea`/`specced`/`in-progress`/`done`. Ein Item von `specced` auf `ready`
-heben heißt: im Front-Matter `status: ready` setzen, `depends_on` sind
+Welche das gerade sind, steht in `docs/backlog/INDEX.md` — der Dispatcher
+nimmt genau diese. Ein Item von `specced` auf `ready` heben heißt: im Front-Matter `status: ready` setzen, `depends_on` sind
 tatsächlich alle `done`, ein `adr: required` hat eine existierende ADR — dann
 `npm run backlog:index` laufen lassen und committen. Das bleibt bewusst ein
 manueller Schritt: die Einschätzung "ist das wirklich unblockiert" soll ein
@@ -72,12 +71,20 @@ Diese Items bleiben absichtlich manuell — per `create-session.sh --file
 docs/backlog/....md`, wenn du im Einzelfall doch möchtest.
 
 ```bash
-# Testlauf ohne echte API-Calls
+# Testlauf: erstellt nichts, liest aber die bestehenden Sessions,
+# damit er zeigt was ein echter Lauf täte (JULES_API_KEY nötig)
 node scripts/jules/dispatch-backlog.mjs --dry-run
 
 # Echt dispatchen (max. 5 pro Lauf, Env JULES_MAX_PER_RUN zum Anpassen)
 node scripts/jules/dispatch-backlog.mjs
 ```
+
+**Dedup:** Ein Item wird übersprungen, sobald seine ID in einer der letzten 100
+Jules-Sessions vorkommt (`JULES_SESSION_PAGE_SIZE` zum Anpassen). Das ist der
+einzige Schutz gegen doppelte Sessions: Jules setzt zwar `status: in-progress`,
+aber auf seinem eigenen Branch — auf `develop` steht das Item bis zum Merge
+weiterhin auf `ready`. Deshalb bricht der Lauf ab, wenn die Session-Liste nicht
+ladbar ist, statt ungeschützt zu dispatchen.
 
 ## Sicherheitsgrenzen (wichtig)
 
