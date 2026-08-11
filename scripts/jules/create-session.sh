@@ -27,6 +27,7 @@
 #   ./scripts/jules/create-session.sh --file docs/backlog/bugs/BUG-0001-....md
 #   ./scripts/jules/create-session.sh --branch develop "Fix flaky e2e selector in ..."
 #   ./scripts/jules/create-session.sh --title "BUG-0001: short summary" "free-form prompt"
+#   ./scripts/jules/create-session.sh --no-auto-pr --file docs/backlog/bugs/BUG-0053-....md
 #
 # Titles matter beyond cosmetics: dispatch-backlog.mjs skips a backlog item that
 # an existing session already covers, and it recognises that from the session's
@@ -34,6 +35,12 @@
 # "<ID>: <title>" title derived automatically, so the dispatcher will not
 # re-dispatch the same item later. A free-form prompt naming an item but no
 # title is warned about below.
+#
+# By default the session publishes its own PR once the work is done
+# (automationMode: AUTO_CREATE_PR) — without it, Jules finishes the change and
+# waits in the Jules UI for a human to click "Publish" before a PR exists at
+# all. --no-auto-pr (or JULES_AUTOMATION_MODE=) restores that manual-publish
+# behaviour, for a case where you want to see the diff before it becomes a PR.
 #
 # Fails loudly (not silently) if JULES_API_KEY / JULES_SOURCE are missing —
 # unlike discord-notify.sh, an unconfigured Jules call is a mistake, not an
@@ -45,6 +52,7 @@ JULES_API_URL="https://jules.googleapis.com/v1alpha/sessions"
 STARTING_BRANCH="develop"
 PROMPT=""
 TITLE=""
+AUTOMATION_MODE="${JULES_AUTOMATION_MODE-AUTO_CREATE_PR}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -59,6 +67,10 @@ while [[ $# -gt 0 ]]; do
     --file)
       PROMPT="$(cat "$2")"
       shift 2
+      ;;
+    --no-auto-pr)
+      AUTOMATION_MODE=""
+      shift
       ;;
     *)
       PROMPT="$1"
@@ -113,7 +125,7 @@ if [[ -z "$TITLE" ]] && grep -qE '(FEAT|BUG|IDEA)-[0-9]{4}' <<<"$PROMPT"; then
 fi
 
 PAYLOAD=$(node -e '
-  const [prompt, source, branch, title] = process.argv.slice(1);
+  const [prompt, source, branch, title, automationMode] = process.argv.slice(1);
   const body = {
     prompt,
     sourceContext: {
@@ -122,11 +134,17 @@ PAYLOAD=$(node -e '
     }
   };
   if (title) body.title = title;
+  if (automationMode) body.automationMode = automationMode;
   process.stdout.write(JSON.stringify(body));
-' -- "$PROMPT" "$JULES_SOURCE" "$STARTING_BRANCH" "$TITLE")
+' -- "$PROMPT" "$JULES_SOURCE" "$STARTING_BRANCH" "$TITLE" "$AUTOMATION_MODE")
 
 if [[ -n "$TITLE" ]]; then
   echo "🏷️  Titel: $TITLE"
+fi
+if [[ -n "$AUTOMATION_MODE" ]]; then
+  echo "🤖 automationMode: $AUTOMATION_MODE (PR wird nach Abschluss automatisch veröffentlicht)"
+else
+  echo "✋ Kein automationMode gesetzt — PR muss in der Jules-UI manuell freigegeben werden."
 fi
 
 echo "🚀 Starte Jules-Session (Branch: $STARTING_BRANCH)..."

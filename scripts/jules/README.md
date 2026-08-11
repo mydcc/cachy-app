@@ -119,6 +119,22 @@ fälschlich als „nur erwähnt" übersprungen wird, starte es von Hand per
 > den Titel automatisch) oder `--title "<ID>: …"` mitgeben. Nennt ein
 > Freiform-Prompt eine Item-ID ohne Titel, warnt `create-session.sh` davor.
 
+### Automatische PR-Veröffentlichung
+
+Beide Wege — Dispatcher und `create-session.sh` — setzen standardmäßig
+`automationMode: AUTO_CREATE_PR`. Ohne dieses Feld beendet Jules die Arbeit,
+aber der PR existiert erst, nachdem jemand die Session in der Jules-UI öffnet
+und manuell auf „Publish" klickt — bei automatisiertem Dispatch (wöchentlicher
+Cron) ist das der Bruch, der die Automatisierung nutzlos macht.
+
+Zum Abschalten (z. B. um den Diff zu sehen, bevor er zum PR wird):
+- Dispatcher: `JULES_AUTOMATION_MODE=` (leer) als Env-Var
+- `create-session.sh`: `--no-auto-pr` oder ebenfalls `JULES_AUTOMATION_MODE=`
+
+`requirePlanApproval` bleibt unangetastet — API-Sessions haben Pläne laut
+Jules-Doku bereits standardmäßig auto-approved; das war nie der blockierende
+Schritt.
+
 ## Sicherheitsgrenzen (wichtig)
 
 - Jules erhält über `sourceContext` nur Lesezugriff auf den Git-Verlauf/Code des angegebenen Branches — **keine** Exchange-API-Keys, **keine** Deploy-Credentials, **keine** `.env`-Secrets. Diese sind ohnehin Klasse-A-Daten und dürfen laut `AGENTS.md`/`CLAUDE.md` nie einen Server oder eine fremde Cloud-VM erreichen.
