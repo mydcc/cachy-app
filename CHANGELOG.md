@@ -5,6 +5,22 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.5...v1.4.0-beta.6) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ui:** extract hardcoded English strings in indicator settings ([2911c4d](https://github.com/mydcc/cachy-app/commit/2911c4d04dac7e8628223b0d73b69cd6e26b30a6))
+
+
+### Features
+
+* **alerts:** implement local alert engine ([fc9af83](https://github.com/mydcc/cachy-app/commit/fc9af837db9e42dd2440bfe7e0f6947328f2549d))
+* **alerts:** implement local alert engine ([c654918](https://github.com/mydcc/cachy-app/commit/c654918c1843097ca0d3fccfd479619a18cfc687))
+* **alerts:** implement local alert engine ([3245aa3](https://github.com/mydcc/cachy-app/commit/3245aa3053af5297f3a39cde609e4700edb2c4f2))
+* **alerts:** implement local alert engine ([348e7bb](https://github.com/mydcc/cachy-app/commit/348e7bbf12251a2cf21539af11a5d5f5675e62cd))
+* **alerts:** implement local alert engine ([d3ffaba](https://github.com/mydcc/cachy-app/commit/d3ffaba4e69859752a5279f7544bd8323018d7f2))
+
 # [1.4.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.4...v1.4.0-beta.5) (2026-08-11)
 
 
