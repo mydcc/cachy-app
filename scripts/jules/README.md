@@ -79,12 +79,39 @@ node scripts/jules/dispatch-backlog.mjs --dry-run
 node scripts/jules/dispatch-backlog.mjs
 ```
 
-**Dedup:** Ein Item wird übersprungen, sobald seine ID in einer der letzten 100
-Jules-Sessions vorkommt (`JULES_SESSION_PAGE_SIZE` zum Anpassen). Das ist der
-einzige Schutz gegen doppelte Sessions: Jules setzt zwar `status: in-progress`,
-aber auf seinem eigenen Branch — auf `develop` steht das Item bis zum Merge
-weiterhin auf `ready`. Deshalb bricht der Lauf ab, wenn die Session-Liste nicht
-ladbar ist, statt ungeschützt zu dispatchen.
+### Dedup — der einzige Schutz gegen doppelte Sessions
+
+Jules setzt zwar `status: in-progress`, aber auf seinem eigenen Branch — auf
+`develop` steht das Item bis zum Merge weiterhin auf `ready`. Der Status
+schützt dich also **nicht**; nur der Abgleich mit den bestehenden Sessions tut
+das. Deshalb bricht der Lauf ab, wenn die Session-Liste nicht ladbar ist,
+statt ungeschützt zu dispatchen.
+
+Geprüft werden die letzten 100 Sessions (`JULES_SESSION_PAGE_SIZE`), sofern sie
+nicht älter als 30 Tage sind (`JULES_SESSION_MAX_AGE_DAYS`). Das Zeitfenster
+sorgt dafür, dass ein Item, das du nach einem gescheiterten Versuch wieder auf
+`ready` setzt, erneut drankommt, statt dauerhaft von einer alten Session
+blockiert zu werden.
+
+Gelesen werden nur `title` und `prompt` einer Session — nicht Outputs, PR-Links
+oder Branch-Namen. Eine ID, die dort auftaucht, ist ein Nebenprodukt der Arbeit,
+kein Anspruch auf das Item. Innerhalb dieser beiden Felder wird unterschieden:
+
+| Fall | Erkannt an | Meldung |
+| --- | --- | --- |
+| Session **bearbeitet** das Item | `BUG-0001: …` im Titel, `Backlog-Item BUG-0001` im Prompt, oder `id: BUG-0001` im Front-Matter (bei `create-session.sh --file`) | `Session bearbeitet dieses Item bereits` |
+| Session **erwähnt** das Item nur | ID steht irgendwo sonst im Prompt — z. B. weil ein per `--file` gesendetes Backlog-Item in seinem `Links`-Abschnitt auf andere IDs verweist | `nur in einer fremden Session erwähnt` |
+
+Beide Fälle überspringen das Item. Das ist Absicht: ein zu viel übersprungenes
+Item kostet eine Woche Verzögerung und bleibt `ready`, zwei Agenten auf einem
+Item kosten zwei widersprüchliche PRs. Der Unterschied steckt in der Meldung,
+damit eine unerwartete Unterdrückung sichtbar ist statt still. Wenn ein Item
+fälschlich als „nur erwähnt" übersprungen wird, starte es von Hand per
+`create-session.sh --file docs/backlog/…`.
+
+> **Freiform-Prompts umgehen den Dedup.** `create-session.sh "Fix das Ding in
+> IndicatorSettings"` nennt keine ID und wird deshalb nicht als Bearbeitung
+> erkannt. Für Backlog-Arbeit immer `--file` mit der Item-Datei nutzen.
 
 ## Sicherheitsgrenzen (wichtig)
 
