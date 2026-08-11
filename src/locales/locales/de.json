@@ -232,7 +232,8 @@
       "conditionReached": "Kreuzt",
       "priceLimit": "Preis",
       "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
-      "createSuccess": "Alarm erfolgreich erstellt."
+      "createSuccess": "Alarm erfolgreich erstellt.",
+      "noHistory": "Kein Verlauf"
     },
     "generalInputs": {
       "header": "Allgemein",

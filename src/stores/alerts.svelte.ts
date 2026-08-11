@@ -85,7 +85,7 @@ class AlertsManager {
 alertEngine.onAlertFired((event) => {
     // 1. Toast Notification
     const t = get(_);
-    const msg = (t as any)("dashboard.alerts.priceReached", { values: { symbol: event.symbol, price: event.price.toString() } }) || `${event.symbol} reached ${event.price}`;
+    const msg = (t as (key: string, options?: Record<string, unknown>) => string)("dashboard.alerts.priceReached", { values: { symbol: event.symbol, price: event.price.toString() } }) || `${event.symbol} reached ${event.price}`;
     toastService.success(msg);
 
     // 2. Mark alert as inactive locally so UI updates

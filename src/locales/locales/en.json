@@ -232,7 +232,8 @@
       "conditionReached": "Crosses",
       "priceLimit": "Price",
       "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
-      "createSuccess": "Alert created successfully."
+      "createSuccess": "Alert created successfully.",
+      "noHistory": "No history"
     },
     "generalInputs": {
       "header": "General",

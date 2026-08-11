@@ -395,7 +395,7 @@ export class MarketManager {
         if (this.lastFlushTime && now - this.lastFlushTime > 10000) {
              import('../services/toastService.svelte').then(m => {
                  const t = get(_);
-                 m.toastService.error((t as any)("dashboard.alerts.gapDetected") || "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.");
+                 m.toastService.error((t as (key: string) => string)("dashboard.alerts.gapDetected") || "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.");
              }).catch(() => {});
         }
         this.lastFlushTime = now;
