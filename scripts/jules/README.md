@@ -39,10 +39,14 @@ export JULES_SOURCE="sources/github/mydcc/cachy-app"
 # Einzelne Aufgabe anstoßen
 ./scripts/jules/create-session.sh "Add unit tests for src/utils/heatmapUtils.ts"
 
-# Mehrere Backlog-Items parallel anstoßen (Pro-Plan: bis zu 15 gleichzeitig)
-for f in docs/backlog/ready-for-jules/*.md; do
-  ./scripts/jules/create-session.sh --file "$f"
-done
+# Ein konkretes Backlog-Item anstoßen — der Weg für alles, was der
+# Dispatcher bewusst auslässt (execution/security/exchange, P0).
+# Der Titel "<ID>: <Titel>" wird aus dem Front-Matter abgeleitet, damit
+# dispatch-backlog.mjs das Item später nicht doppelt startet.
+./scripts/jules/create-session.sh --file docs/backlog/bugs/BUG-0053-device-key-loss-orphans-secrets.md
+
+# Freiform-Prompt, der trotzdem einem Item zugeordnet bleiben soll
+./scripts/jules/create-session.sh --title "BUG-0053: Kurzfassung" "Nur den Canary-Teil umsetzen"
 
 # Production-Check von Hand auslösen (statt auf den täglichen Cron zu warten)
 PRODUCTION_URL=https://cachy.app ./scripts/jules/monitor-production.sh
@@ -111,7 +115,9 @@ fälschlich als „nur erwähnt" übersprungen wird, starte es von Hand per
 
 > **Freiform-Prompts umgehen den Dedup.** `create-session.sh "Fix das Ding in
 > IndicatorSettings"` nennt keine ID und wird deshalb nicht als Bearbeitung
-> erkannt. Für Backlog-Arbeit immer `--file` mit der Item-Datei nutzen.
+> erkannt. Für Backlog-Arbeit immer `--file` mit der Item-Datei nutzen (setzt
+> den Titel automatisch) oder `--title "<ID>: …"` mitgeben. Nennt ein
+> Freiform-Prompt eine Item-ID ohne Titel, warnt `create-session.sh` davor.
 
 ## Sicherheitsgrenzen (wichtig)
 

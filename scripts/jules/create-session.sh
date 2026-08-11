@@ -24,8 +24,16 @@
 #
 # Usage:
 #   ./scripts/jules/create-session.sh "Add unit tests for src/utils/heatmapUtils.ts"
-#   ./scripts/jules/create-session.sh --file scripts/jules/prompts/some-task.md
+#   ./scripts/jules/create-session.sh --file docs/backlog/bugs/BUG-0001-....md
 #   ./scripts/jules/create-session.sh --branch develop "Fix flaky e2e selector in ..."
+#   ./scripts/jules/create-session.sh --title "BUG-0001: short summary" "free-form prompt"
+#
+# Titles matter beyond cosmetics: dispatch-backlog.mjs skips a backlog item that
+# an existing session already covers, and it recognises that from the session's
+# title and prompt. A --file pointing at a backlog item gets its
+# "<ID>: <title>" title derived automatically, so the dispatcher will not
+# re-dispatch the same item later. A free-form prompt naming an item but no
+# title is warned about below.
 #
 # Fails loudly (not silently) if JULES_API_KEY / JULES_SOURCE are missing —
 # unlike discord-notify.sh, an unconfigured Jules call is a mistake, not an
@@ -36,11 +44,16 @@ set -euo pipefail
 JULES_API_URL="https://jules.googleapis.com/v1alpha/sessions"
 STARTING_BRANCH="develop"
 PROMPT=""
+TITLE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --branch)
       STARTING_BRANCH="$2"
+      shift 2
+      ;;
+    --title)
+      TITLE="$2"
       shift 2
       ;;
     --file)
@@ -70,16 +83,51 @@ if [[ -z "$PROMPT" ]]; then
   exit 1
 fi
 
+# Derive "<ID>: <title>" from a backlog item's front matter — the same shape
+# dispatch-backlog.mjs writes, so its de-dup recognises this session as covering
+# that item. Prints nothing for a prompt that is not a backlog item.
+if [[ -z "$TITLE" ]]; then
+  TITLE=$(node -e '
+    const text = process.argv[1] ?? "";
+    if (!text.startsWith("---\n")) process.exit(0);
+    const end = text.indexOf("\n---", 4);
+    if (end === -1) process.exit(0);
+    const fm = {};
+    for (const line of text.slice(4, end).split("\n")) {
+      const i = line.indexOf(":");
+      if (i === -1) continue;
+      fm[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    }
+    if (!/^(?:FEAT|BUG|IDEA)-\d{4}$/.test(fm.id ?? "")) process.exit(0);
+    process.stdout.write(`${fm.id}: ${fm.title ?? ""}`.trim().slice(0, 200));
+  ' -- "$PROMPT")
+fi
+
+# A free-form prompt that names an item but carries no title is invisible to the
+# dispatcher's de-dup, which is how the same item ends up with two agents on it.
+if [[ -z "$TITLE" ]] && grep -qE '(FEAT|BUG|IDEA)-[0-9]{4}' <<<"$PROMPT"; then
+  echo "⚠️  Der Prompt nennt ein Backlog-Item, aber es ist kein Titel gesetzt." >&2
+  echo "   dispatch-backlog.mjs erkennt diese Session dann nicht als Bearbeitung" >&2
+  echo "   und könnte dasselbe Item erneut dispatchen." >&2
+  echo "   Besser: --file docs/backlog/... oder --title \"BUG-0000: Kurzfassung\"" >&2
+fi
+
 PAYLOAD=$(node -e '
-  const [prompt, source, branch] = process.argv.slice(1);
-  process.stdout.write(JSON.stringify({
+  const [prompt, source, branch, title] = process.argv.slice(1);
+  const body = {
     prompt,
     sourceContext: {
       source,
       githubRepoContext: { startingBranch: branch }
     }
-  }));
-' "$PROMPT" "$JULES_SOURCE" "$STARTING_BRANCH")
+  };
+  if (title) body.title = title;
+  process.stdout.write(JSON.stringify(body));
+' -- "$PROMPT" "$JULES_SOURCE" "$STARTING_BRANCH" "$TITLE")
+
+if [[ -n "$TITLE" ]]; then
+  echo "🏷️  Titel: $TITLE"
+fi
 
 echo "🚀 Starte Jules-Session (Branch: $STARTING_BRANCH)..."
 
