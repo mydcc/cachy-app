@@ -664,12 +664,11 @@
                 </h4>
                 <div class="flex flex-col gap-2">
                     {#if settingsState.customRssFeeds}
-                        {#each settingsState.customRssFeeds as feed, i}
+                        {#each settingsState.customRssFeeds as _feed, i}
                             <div class="flex items-center gap-2">
                                 <input
                                     type="url"
                                     bind:value={settingsState.customRssFeeds[i]}
-                                    data-feed={feed}
                                     class="api-input"
                                     placeholder={$_("settings.connections.placeholders.url")}
                                 />
