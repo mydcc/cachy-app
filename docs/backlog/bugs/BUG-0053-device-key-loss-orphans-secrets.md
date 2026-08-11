@@ -2,7 +2,7 @@
 id: BUG-0053
 title: A lost or regenerated IndexedDB device key silently orphans every encrypted secret
 type: bug
-status: specced
+status: ready
 priority: P0
 milestone: M0
 editions: [community, pro, private]
@@ -92,8 +92,9 @@ holding a version-change lock — and could itself be *why* the key looked
 "missing" to `getOrGenerateDeviceKey()` in the first place, rather than it
 truly being gone), or upstream of it entirely (e.g. lazy-chunk load latency
 for the JS bundle hosting this code, unrelated to IndexedDB). That
-measurement should happen before picking among the fix options below, since
-it changes which one actually addresses the root cause.
+measurement is the first step of the Fix below (option 0). It does not gate
+the rest of the work — its result decides whether a *separate* performance
+item is needed, not whether 1 and 2 are worth building.
 
 ## Cause
 
@@ -105,34 +106,39 @@ silently strands existing data instead.
 
 ## Fix
 
-Not decided yet; options to weigh. Start with measurement, then pick:
+Decided: **measure first (0), then build 1 and 2 together.** Option 3 from the
+original list (hardening the device key against IndexedDB eviction) is
+deliberately excluded — see Out of scope.
 
 0. **Instrument first.** Time `loadKeyFromDB()`/`indexedDB.open()` directly
    (e.g. `performance.now()` around each await in `getOrGenerateDeviceKey()`)
    to find out where the observed ~5s actually goes, per the timing note in
-   Evidence above. If it is inside the IndexedDB call itself, that changes the
-   likely cause (storage-layer contention, not necessarily key loss) and may
-   deserve its own performance fix independent of 1-3 below.
+   Evidence above. This is the first step of the work, not a gate on it: 1 and
+   2 are worth building whatever the number says. If the time turns out to sit
+   inside the IndexedDB call itself, that points at storage-layer contention
+   rather than key loss — record the measurement here and raise a separate
+   performance item; do not widen this one to chase it.
 1. **Detect the mismatch before minting a new key.** Store a small canary
-   alongside `encryptedSecrets` (e.g. a fixed known plaintext encrypted with
-   the current device key) so `getOrGenerateDeviceKey()` — or the caller in
+   alongside `encryptedSecrets` (a fixed known plaintext encrypted with the
+   current device key) so `getOrGenerateDeviceKey()` — or the caller in
    `settings.svelte.ts` — can tell "no key and no data" apart from "no key but
-   orphaned data" and react differently (e.g. refuse to silently regenerate;
-   surface a recovery prompt instead).
+   orphaned data", and refuse to silently regenerate in the second case,
+   surfacing a recovery prompt instead.
 2. **Make the failure user-visible.** Today the only signal is
-   `console.error`. At minimum, when one or more `SENSITIVE_KEYS` fail to
-   decrypt, Settings should show something a user can act on ("N saved keys
-   could not be read and need to be re-entered") instead of quietly leaving
-   fields blank.
-3. **Reduce how often this can happen.** Investigate whether the device key
-   can be made to survive independently of IndexedDB's eviction policy (e.g.
-   a secondary copy, a different storage API), while keeping ADR-0001's
-   local-only guarantee intact.
+   `console.error`. When one or more `SENSITIVE_KEYS` fail to decrypt,
+   Settings shows something the user can act on ("N saved keys could not be
+   read and need to be re-entered") instead of quietly leaving fields blank.
 
-Whichever is chosen, recovery for a user who already hit this is necessarily
-"re-enter the affected keys" — the plaintext is gone once the device key that
-encrypted it is gone. This item is about detection and a recoverable UX, not
-about recovering already-orphaned ciphertext.
+1 and 2 are both needed and neither substitutes for the other: 1 addresses the
+cause (the silent regeneration that strands the data), 2 addresses the symptom
+(a failure with no signal). The canary cannot help a user whose key is already
+gone, and a visible message alone would still let the app strand freshly
+entered secrets under a newly minted key.
+
+Recovery for a user who already hit this is necessarily "re-enter the affected
+keys" — the plaintext is gone once the device key that encrypted it is gone.
+This item is about detection and a recoverable UX, not about recovering
+already-orphaned ciphertext.
 
 ## Acceptance criteria
 
@@ -141,14 +147,30 @@ about recovering already-orphaned ciphertext.
       (simulating a lost IndexedDB key) with `encryptedSecrets` still present,
       and show today's code either silently regenerates a key or fails with no
       user-visible signal
-- [ ] The chosen fix makes that scenario either refuse to silently mint a
-      replacement key, or surface a clear, actionable message to the user (per
-      whichever option above is chosen) — not just a `console.error`
+- [ ] `getOrGenerateDeviceKey()` refuses to mint a replacement key when the
+      canary shows `encryptedSecrets` exists but cannot be opened — asserted by
+      a test that no new key is persisted on that path
+- [ ] The first-run path still works: no key and no encrypted secrets
+      generates a key without prompting, asserted by a test
+- [ ] When one or more `SENSITIVE_KEYS` fail to decrypt, Settings surfaces an
+      actionable message naming how many keys are affected — not just a
+      `console.error`
+- [ ] German and English strings for every new user-facing message
+- [ ] The timing of `loadKeyFromDB()`/`indexedDB.open()` is measured and the
+      result recorded in this item; if it points at storage-layer contention, a
+      separate performance item is raised rather than fixed here
 - [ ] Existing decrypt/unlock tests for the normal (matching device key) path
       are unaffected
 - [ ] `npm run check` and `npm test` are clean
 
 ## Out of scope
+
+Hardening the device key against IndexedDB's eviction policy — a secondary
+copy, a different storage API — which was option 3 in the original list. It
+touches ADR-0001's local-only guarantee directly and needs its own
+investigation; this item must not grow into a storage-architecture change.
+Worth raising as its own item if the measurement in option 0 shows key loss is
+frequent rather than incidental.
 
 Recovering plaintext for secrets already orphaned by a device key that is
 gone — there is nothing left to recover it from, by design (ADR-0001, no
@@ -159,8 +181,8 @@ Master-password mode's `unlock()` path (`settings.svelte.ts:989-1043`) has the
 same "per-key catch, only `console.error`" shape and would benefit from the
 same user-visible-failure fix (option 2 above), but the mismatch-detection
 question (option 1) doesn't apply there the same way, since a wrong password
-is a different failure class than a lost device key. Worth revisiting once
-this item's approach is chosen, not bundled into it.
+is a different failure class than a lost device key. Worth raising as its own
+item once option 2 has landed here, not bundled into this one.
 
 ## Links
 
