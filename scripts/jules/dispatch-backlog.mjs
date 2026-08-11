@@ -26,8 +26,14 @@
  *   2. area not in EXCLUDE_AREAS                    (execution/security/exchange stay manual —
  *                                                     see AGENTS.md scope-hinweis)
  *   3. priority !== 'P0'                            (money/security-consequence items stay manual)
- *   4. no existing Jules session already mentions this item's ID (best-effort de-dup
- *      over the last LOOKBACK_SESSIONS sessions)
+ *   4. no recent Jules session already covers this item — de-dup over the most
+ *      recent SESSION_PAGE_SIZE sessions, ignoring any older than
+ *      SESSION_MAX_AGE_DAYS, and reading only each session's title and prompt.
+ *      This is the only thing standing between a re-run and a duplicate
+ *      session: an item stays `ready` on `develop` while Jules works on it,
+ *      because Jules writes `status: in-progress` on its own branch, which is
+ *      not merged yet. So the check is mandatory — if the session list cannot
+ *      be loaded, the run aborts rather than dispatching without it.
  *   5. capped at MAX_PER_RUN dispatches per run, to respect the daily/concurrent quota
  *
  * This script never edits the backlog or pushes to git. Jules is instructed
@@ -52,13 +58,40 @@ const EXCLUDE_AREAS = (process.env.JULES_EXCLUDE_AREAS ?? "execution,security,ex
   .filter(Boolean);
 const MAX_PER_RUN = Number(process.env.JULES_MAX_PER_RUN ?? 5);
 const STARTING_BRANCH = process.env.JULES_STARTING_BRANCH ?? "develop";
+const SESSION_PAGE_SIZE = Number(process.env.JULES_SESSION_PAGE_SIZE ?? 100);
+const SESSION_MAX_AGE_DAYS = Number(process.env.JULES_SESSION_MAX_AGE_DAYS ?? 30);
 const DRY_RUN = process.argv.includes("--dry-run");
+
+const ITEM_ID = String.raw`(?:FEAT|BUG|IDEA)-\d{4}`;
+
+/**
+ * Ways a session names the item it is *about*, as opposed to merely mentioning
+ * it. Both creation paths are covered:
+ *   - `${item.id}: ${item.title}` — the title createSession() writes below
+ *   - "Bearbeite das Backlog-Item <ID>" — the prompt createSession() writes
+ *   - "id: <ID>" — front matter, from `create-session.sh --file <backlog item>`,
+ *     which sends the file's contents as the prompt and sets no title at all
+ */
+const SUBJECT_PATTERNS = [
+  new RegExp(String.raw`^\s*(${ITEM_ID})\s*:`, "m"),
+  new RegExp(String.raw`Backlog-Item\s+(${ITEM_ID})\b`),
+  new RegExp(String.raw`^\s*id:\s*(${ITEM_ID})\s*$`, "m"),
+];
 
 const API_KEY = process.env.JULES_API_KEY;
 const SOURCE = process.env.JULES_SOURCE;
 
-if (!DRY_RUN && (!API_KEY || !SOURCE)) {
-  console.error("❌ JULES_API_KEY und JULES_SOURCE müssen gesetzt sein (oder --dry-run nutzen).");
+// --dry-run needs the key too: it reads the session list for the de-dup check,
+// so that a dry run reports what a real run would actually do. It still creates
+// nothing, so JULES_SOURCE stays optional there.
+if (!API_KEY) {
+  console.error(
+    "❌ JULES_API_KEY muss gesetzt sein — auch für --dry-run, weil der Dedup-Check die bestehenden Sessions liest.",
+  );
+  process.exit(1);
+}
+if (!DRY_RUN && !SOURCE) {
+  console.error("❌ JULES_SOURCE muss gesetzt sein (oder --dry-run nutzen).");
   process.exit(1);
 }
 
@@ -99,17 +132,87 @@ function loadBacklogItems() {
   return items;
 }
 
-async function fetchRecentSessionText() {
-  if (DRY_RUN) return "";
-  const res = await fetch("https://jules.googleapis.com/v1alpha/sessions?pageSize=100", {
-    headers: { "x-goog-api-key": API_KEY },
-  });
+/**
+ * Loads recent sessions for the de-dup check. Runs in --dry-run as well —
+ * skipping it there would make the dry run claim it dispatches items a real run
+ * skips, which is worse than not having a dry run at all.
+ *
+ * Throws instead of returning empty on failure. An empty result silently
+ * disables de-dup, so one failed request would re-dispatch every ready item at
+ * once; aborting the run is the cheaper mistake.
+ */
+async function fetchRecentSessions() {
+  let res;
+  try {
+    res = await fetch(`https://jules.googleapis.com/v1alpha/sessions?pageSize=${SESSION_PAGE_SIZE}`, {
+      headers: { "x-goog-api-key": API_KEY },
+    });
+  } catch (err) {
+    throw new Error(`Sessions nicht erreichbar (${err.message}).`);
+  }
   if (!res.ok) {
-    console.error(`⚠️  Konnte bestehende Sessions nicht laden (HTTP ${res.status}) — dedup übersprungen.`);
-    return "";
+    throw new Error(`Sessions nicht ladbar (HTTP ${res.status}).`);
   }
   const data = await res.json();
-  return JSON.stringify(data.sessions ?? []);
+  return data.sessions ?? [];
+}
+
+/**
+ * The fields where an item ID means "this session is about that item". Session
+ * outputs, PR links, branch names and state are deliberately not searched — an
+ * ID that shows up there is a by-product of the work, not a claim on the item.
+ */
+function sessionText(session) {
+  return [session?.title, session?.prompt].filter((s) => typeof s === "string").join("\n");
+}
+
+/**
+ * A session older than the window stops blocking its item, so an item put back
+ * to `ready` after a failed or abandoned attempt gets picked up again instead
+ * of being suppressed forever by a session nobody is watching any more.
+ *
+ * A session with no parseable timestamp counts as recent. Blocking one dispatch
+ * too many is a delay; two agents on one item is two conflicting PRs.
+ */
+function isWithinAgeWindow(session, nowMs) {
+  const raw = session?.createTime ?? session?.create_time ?? session?.createdAt;
+  if (typeof raw !== "string") return true;
+  const created = Date.parse(raw);
+  if (Number.isNaN(created)) return true;
+  return nowMs - created <= SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * Splits ID mentions into the ones a session declares as its subject and the
+ * ones it merely contains — a backlog file sent as a prompt carries its whole
+ * Links section, so a session for BUG-0053 also names BUG-0004.
+ *
+ * Both still suppress a dispatch: over-blocking costs a week's delay, and the
+ * item stays `ready` for the next run. They are reported differently so a
+ * suppression you did not expect is visible rather than silent.
+ */
+function indexSessions(sessions) {
+  const nowMs = Date.now();
+  const subjects = new Set();
+  const mentions = new Set();
+  let expired = 0;
+
+  for (const session of sessions) {
+    if (!isWithinAgeWindow(session, nowMs)) {
+      expired++;
+      continue;
+    }
+    const text = sessionText(session);
+    for (const pattern of SUBJECT_PATTERNS) {
+      const match = pattern.exec(text);
+      if (match) subjects.add(match[1]);
+    }
+    for (const match of text.matchAll(new RegExp(ITEM_ID, "g"))) {
+      mentions.add(match[0]);
+    }
+  }
+
+  return { subjects, mentions, expired };
 }
 
 async function createSession(item) {
@@ -139,7 +242,9 @@ Halte dich an den Scope-Hinweis in AGENTS.md. Öffne einen PR gegen develop, mer
 
   if (DRY_RUN) {
     console.log(`[dry-run] würde Session erstellen für ${item.id}`);
-    return;
+    // Counts towards MAX_PER_RUN like a real dispatch, so the dry run stops at
+    // the same item a real run would instead of listing the whole backlog.
+    return true;
   }
 
   const res = await fetch("https://jules.googleapis.com/v1alpha/sessions", {
@@ -171,7 +276,19 @@ if (ready.length === 0) {
   process.exit(0);
 }
 
-const recentSessionsText = await fetchRecentSessionText();
+let sessions;
+try {
+  sessions = await fetchRecentSessions();
+} catch (err) {
+  console.error(`❌ ${err.message} — Abbruch, statt ohne Dedup-Schutz zu dispatchen.`);
+  process.exit(1);
+}
+
+const { subjects, mentions, expired } = indexSessions(sessions);
+console.log(
+  `${sessions.length} Session(s) geladen, ${expired} älter als ${SESSION_MAX_AGE_DAYS} Tage (zählen nicht mehr).`,
+);
+
 let dispatched = 0;
 
 for (const item of ready) {
@@ -179,12 +296,20 @@ for (const item of ready) {
     console.log(`Limit von ${MAX_PER_RUN} pro Lauf erreicht, Rest bleibt für den nächsten Lauf.`);
     break;
   }
-  if (recentSessionsText.includes(item.id)) {
-    console.log(`⏭️  ${item.id}: existierende Session gefunden, überspringe.`);
+  if (subjects.has(item.id)) {
+    console.log(`⏭️  ${item.id}: Session bearbeitet dieses Item bereits, überspringe.`);
+    continue;
+  }
+  if (mentions.has(item.id)) {
+    console.log(
+      `⏭️  ${item.id}: nur in einer fremden Session erwähnt (z. B. als verlinktes Item), ` +
+        `nicht deren Thema — trotzdem übersprungen. Falls das falsch ist, Item per ` +
+        `create-session.sh manuell starten.`,
+    );
     continue;
   }
   const ok = await createSession(item);
   if (ok) dispatched++;
 }
 
-console.log(`${dispatched} Session(s) erstellt.`);
+console.log(DRY_RUN ? `${dispatched} Session(s) würden erstellt.` : `${dispatched} Session(s) erstellt.`);

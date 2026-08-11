@@ -39,10 +39,14 @@ export JULES_SOURCE="sources/github/mydcc/cachy-app"
 # Einzelne Aufgabe anstoßen
 ./scripts/jules/create-session.sh "Add unit tests for src/utils/heatmapUtils.ts"
 
-# Mehrere Backlog-Items parallel anstoßen (Pro-Plan: bis zu 15 gleichzeitig)
-for f in docs/backlog/ready-for-jules/*.md; do
-  ./scripts/jules/create-session.sh --file "$f"
-done
+# Ein konkretes Backlog-Item anstoßen — der Weg für alles, was der
+# Dispatcher bewusst auslässt (execution/security/exchange, P0).
+# Der Titel "<ID>: <Titel>" wird aus dem Front-Matter abgeleitet, damit
+# dispatch-backlog.mjs das Item später nicht doppelt startet.
+./scripts/jules/create-session.sh --file docs/backlog/bugs/BUG-0053-device-key-loss-orphans-secrets.md
+
+# Freiform-Prompt, der trotzdem einem Item zugeordnet bleiben soll
+./scripts/jules/create-session.sh --title "BUG-0053: Kurzfassung" "Nur den Canary-Teil umsetzen"
 
 # Production-Check von Hand auslösen (statt auf den täglichen Cron zu warten)
 PRODUCTION_URL=https://cachy.app ./scripts/jules/monitor-production.sh
@@ -55,9 +59,8 @@ PRODUCTION_URL=https://cachy.app ./scripts/jules/monitor-production.sh
 Der Dispatcher nimmt genau diese Items, keine eigene Interpretation.
 
 **Damit überhaupt etwas passiert, muss zuerst ein Item auf `ready` stehen.**
-Aktuell (Stand Einrichtung) hat kein einziges Backlog-Item diesen Status — nur
-`idea`/`specced`/`in-progress`/`done`. Ein Item von `specced` auf `ready`
-heben heißt: im Front-Matter `status: ready` setzen, `depends_on` sind
+Welche das gerade sind, steht in `docs/backlog/INDEX.md` — der Dispatcher
+nimmt genau diese. Ein Item von `specced` auf `ready` heben heißt: im Front-Matter `status: ready` setzen, `depends_on` sind
 tatsächlich alle `done`, ein `adr: required` hat eine existierende ADR — dann
 `npm run backlog:index` laufen lassen und committen. Das bleibt bewusst ein
 manueller Schritt: die Einschätzung "ist das wirklich unblockiert" soll ein
@@ -72,12 +75,49 @@ Diese Items bleiben absichtlich manuell — per `create-session.sh --file
 docs/backlog/....md`, wenn du im Einzelfall doch möchtest.
 
 ```bash
-# Testlauf ohne echte API-Calls
+# Testlauf: erstellt nichts, liest aber die bestehenden Sessions,
+# damit er zeigt was ein echter Lauf täte (JULES_API_KEY nötig)
 node scripts/jules/dispatch-backlog.mjs --dry-run
 
 # Echt dispatchen (max. 5 pro Lauf, Env JULES_MAX_PER_RUN zum Anpassen)
 node scripts/jules/dispatch-backlog.mjs
 ```
+
+### Dedup — der einzige Schutz gegen doppelte Sessions
+
+Jules setzt zwar `status: in-progress`, aber auf seinem eigenen Branch — auf
+`develop` steht das Item bis zum Merge weiterhin auf `ready`. Der Status
+schützt dich also **nicht**; nur der Abgleich mit den bestehenden Sessions tut
+das. Deshalb bricht der Lauf ab, wenn die Session-Liste nicht ladbar ist,
+statt ungeschützt zu dispatchen.
+
+Geprüft werden die letzten 100 Sessions (`JULES_SESSION_PAGE_SIZE`), sofern sie
+nicht älter als 30 Tage sind (`JULES_SESSION_MAX_AGE_DAYS`). Das Zeitfenster
+sorgt dafür, dass ein Item, das du nach einem gescheiterten Versuch wieder auf
+`ready` setzt, erneut drankommt, statt dauerhaft von einer alten Session
+blockiert zu werden.
+
+Gelesen werden nur `title` und `prompt` einer Session — nicht Outputs, PR-Links
+oder Branch-Namen. Eine ID, die dort auftaucht, ist ein Nebenprodukt der Arbeit,
+kein Anspruch auf das Item. Innerhalb dieser beiden Felder wird unterschieden:
+
+| Fall | Erkannt an | Meldung |
+| --- | --- | --- |
+| Session **bearbeitet** das Item | `BUG-0001: …` im Titel, `Backlog-Item BUG-0001` im Prompt, oder `id: BUG-0001` im Front-Matter (bei `create-session.sh --file`) | `Session bearbeitet dieses Item bereits` |
+| Session **erwähnt** das Item nur | ID steht irgendwo sonst im Prompt — z. B. weil ein per `--file` gesendetes Backlog-Item in seinem `Links`-Abschnitt auf andere IDs verweist | `nur in einer fremden Session erwähnt` |
+
+Beide Fälle überspringen das Item. Das ist Absicht: ein zu viel übersprungenes
+Item kostet eine Woche Verzögerung und bleibt `ready`, zwei Agenten auf einem
+Item kosten zwei widersprüchliche PRs. Der Unterschied steckt in der Meldung,
+damit eine unerwartete Unterdrückung sichtbar ist statt still. Wenn ein Item
+fälschlich als „nur erwähnt" übersprungen wird, starte es von Hand per
+`create-session.sh --file docs/backlog/…`.
+
+> **Freiform-Prompts umgehen den Dedup.** `create-session.sh "Fix das Ding in
+> IndicatorSettings"` nennt keine ID und wird deshalb nicht als Bearbeitung
+> erkannt. Für Backlog-Arbeit immer `--file` mit der Item-Datei nutzen (setzt
+> den Titel automatisch) oder `--title "<ID>: …"` mitgeben. Nennt ein
+> Freiform-Prompt eine Item-ID ohne Titel, warnt `create-session.sh` davor.
 
 ## Sicherheitsgrenzen (wichtig)
 
