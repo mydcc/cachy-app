@@ -982,3 +982,5 @@ mod tests {
         assert_eq!(state.multiplier, 4.5, "Multiplier should be 4.5 as set in settings");
     }
 }
+pub mod alert_engine; pub mod alert_engine_tests;
+pub mod alert_exports;
