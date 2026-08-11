@@ -1,0 +1,42 @@
+name: Production Monitor
+
+# Synthetic monitoring of the LIVE deployment (cachy.app), not CI/localhost.
+# Runs daily, checks health/security-headers/Lighthouse against the running
+# app, and — on a regression — triggers a Jules session via the API to
+# propose a fix as a PR against develop. See scripts/jules/monitor-production.sh
+# and scripts/jules/README.md.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC täglich
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Run production monitor
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://cachy.app' }}
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          JULES_SOURCE: ${{ vars.JULES_SOURCE }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: bash scripts/jules/monitor-production.sh
+
+      # Wie benchmarks.yml: Report als Artifact, kein direkter Push auf
+      # develop/main (siehe AGENTS.md Branch-Workflow). Ein Verlauf über Zeit
+      # entsteht über die Artifact-Historie in den Workflow-Runs, nicht im Git-Log.
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-monitor-${{ github.run_id }}
+          path: reports/production-monitor/
+          retention-days: 90
