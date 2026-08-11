@@ -60,6 +60,11 @@ const MAX_PER_RUN = Number(process.env.JULES_MAX_PER_RUN ?? 5);
 const STARTING_BRANCH = process.env.JULES_STARTING_BRANCH ?? "develop";
 const SESSION_PAGE_SIZE = Number(process.env.JULES_SESSION_PAGE_SIZE ?? 100);
 const SESSION_MAX_AGE_DAYS = Number(process.env.JULES_SESSION_MAX_AGE_DAYS ?? 30);
+// Without this, Jules finishes the work but leaves the PR unpublished until
+// someone opens the Jules UI and clicks "Publish" by hand — the whole point of
+// unattended dispatch is defeated by a manual step at the end of it. Empty
+// string opts back out (e.g. to require a human look at the diff first).
+const AUTOMATION_MODE = process.env.JULES_AUTOMATION_MODE ?? "AUTO_CREATE_PR";
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const ITEM_ID = String.raw`(?:FEAT|BUG|IDEA)-\d{4}`;
@@ -239,6 +244,7 @@ Halte dich an den Scope-Hinweis in AGENTS.md. Öffne einen PR gegen develop, mer
       githubRepoContext: { startingBranch: STARTING_BRANCH },
     },
   };
+  if (AUTOMATION_MODE) body.automationMode = AUTOMATION_MODE;
 
   if (DRY_RUN) {
     console.log(`[dry-run] würde Session erstellen für ${item.id}`);
