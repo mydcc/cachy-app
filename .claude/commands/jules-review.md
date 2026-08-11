@@ -6,11 +6,15 @@ Find open PRs that Jules created, review each against the backlog item it claims
 
 ## Identifying a Jules PR
 
-**Do not filter by GitHub author.** Jules publishes PRs through the connected `mydcc` account, so `user.login` is `mydcc` for a Jules PR exactly like it is for a human-created one — filtering on it would find nothing. The only reliable marker is the **head branch name**, which Jules always prefixes with `jules-` (e.g. `jules-4456775863240942894-f4c6e19b`), confirmed directly against PR #1709.
+**Do not filter by GitHub author.** Jules publishes PRs through the connected `mydcc` account, so `user.login` is `mydcc` for a Jules PR exactly like it is for a human-created one — filtering on it would find nothing.
+
+**Do not filter by branch prefix either — it's inconsistent.** PR #1709's branch was `jules-4456775863240942894-f4c6e19b` (literal `jules-` prefix), but PR #1711's was `feat-0027-alert-engine-15368306375605769828` (a title-derived slug, no `jules-` anywhere). Relying on the prefix silently missed a real Jules PR the first time this command ran.
+
+**The reliable marker is the PR body.** Every Jules-created PR ends with a fixed footer: `*PR created automatically by Jules for task [<id>](https://jules.google.com/task/<id>) started by @<user>*`. Match on that footer text (e.g. `PR created automatically by Jules for task`), not on the branch name.
 
 ## Steps
 
-1. List open PRs in `mydcc/cachy-app` (`list_pull_requests`, `state=open`). Filter client-side to `head.ref` starting with `jules-`.
+1. List open PRs in `mydcc/cachy-app` (`list_pull_requests`, `state=open`, include `body`). Filter to PRs whose body contains `PR created automatically by Jules for task`.
 2. If none are found, say so briefly and stop — don't invent work.
 3. For each Jules PR found, check whether a comment already exists that names its current head SHA (marker format: `Jules-Review für <sha>`). If yes, skip it — already reviewed, nothing has changed since. If no (new PR, or new commits since the last review), continue.
 4. Read the PR title — it usually starts with the backlog item ID (e.g. `BUG-0076: ...`). Read that item's full file under `docs/backlog/bugs/` or `docs/backlog/features/`, especially **Acceptance criteria** and **Out of scope**.
