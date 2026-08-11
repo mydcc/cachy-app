@@ -26,6 +26,7 @@ check.
 | `backlog-index.mjs` | `.github/workflows/audit.yml`, `npm run backlog:index` / `backlog:check` | Validates every `docs/backlog/` item's front matter and regenerates `INDEX.md`. `--check` fails if the index is stale, so a hand-edited or forgotten index is a red build rather than a document that quietly stops matching the files. No dependencies. |
 | `check-doc-links.mjs` | `.github/workflows/audit.yml`, `npm run docs:links` | Fails if a relative Markdown link points at a missing file. Moving a document breaks every pointer to it and nothing notices until a reader follows one — archiving the old roadmap broke six links in one commit. External URLs are not checked. |
 | `jules/monitor-production.sh` | `.github/workflows/production-monitor.yml` (daily, 06:00 UTC) | Synthetic monitoring of the live deployment (`cachy.app`, not CI/localhost): health check, security headers, Lighthouse score. Writes a report artifact and, on a regression, opens a Jules session via `jules/create-session.sh` to propose a fix PR. Never touches deploy or exchange credentials. |
+| `jules/dispatch-backlog.mjs` | `.github/workflows/backlog-dispatch.yml` (weekly, Mon 07:00 UTC) | Sends `docs/backlog/` items with `status: ready` to Jules, excluding `execution`/`security`/`exchange` areas and `P0` priority (those stay manual). De-dups against recent Jules sessions, capped at `JULES_MAX_PER_RUN` (default 5) per run. |
 
 ## Run by hand, and worth keeping
 

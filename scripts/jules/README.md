@@ -9,6 +9,8 @@ automatisiert:
 | `create-session.sh` | Eine Jules-Session (Task) programmatisch anstoßen — manuell oder aus einem anderen Script heraus. |
 | `list-sources.sh` | Zeigt die verbundenen Repos (`sources/...`-IDs) — einmalig zum Ermitteln von `JULES_SOURCE`. |
 | `monitor-production.sh` | Prüft die **laufende** Produktion (`cachy.app`), nicht CI/localhost: Health-Check, Security-Header, Lighthouse-Score. Bei Auffälligkeiten wird automatisch eine Jules-Session gestartet. Läuft täglich über `.github/workflows/production-monitor.yml`. |
+| `list-sessions.sh` | Zeigt kürzlich erstellte Jules-Sessions — zum manuellen Nachschauen oder für den Dedup-Check in `dispatch-backlog.mjs`. |
+| `dispatch-backlog.mjs` | Schickt `docs/backlog/`-Items mit `status: ready` automatisch an Jules, ohne dass du pro Item selbst `create-session.sh` aufrufen musst. Läuft wöchentlich über `.github/workflows/backlog-dispatch.yml`. Siehe Abschnitt „Backlog automatisch abarbeiten" unten. |
 
 > Beispiele unten sind `bash`-Syntax. In `fish` entsprechend `set -x NAME wert`
 > statt `export NAME="wert"`, und Befehle nicht mit `\` über mehrere Zeilen
@@ -44,6 +46,37 @@ done
 
 # Production-Check von Hand auslösen (statt auf den täglichen Cron zu warten)
 PRODUCTION_URL=https://cachy.app ./scripts/jules/monitor-production.sh
+```
+
+## Backlog automatisch abarbeiten
+
+`dispatch-backlog.mjs` folgt exakt der Definition aus `docs/backlog/README.md`:
+`status: ready` heißt dort bereits "an agent or a developer could start now".
+Der Dispatcher nimmt genau diese Items, keine eigene Interpretation.
+
+**Damit überhaupt etwas passiert, muss zuerst ein Item auf `ready` stehen.**
+Aktuell (Stand Einrichtung) hat kein einziges Backlog-Item diesen Status — nur
+`idea`/`specced`/`in-progress`/`done`. Ein Item von `specced` auf `ready`
+heben heißt: im Front-Matter `status: ready` setzen, `depends_on` sind
+tatsächlich alle `done`, ein `adr: required` hat eine existierende ADR — dann
+`npm run backlog:index` laufen lassen und committen. Das bleibt bewusst ein
+manueller Schritt: die Einschätzung "ist das wirklich unblockiert" soll ein
+Mensch treffen, nicht der Dispatcher.
+
+Sicherheitsfilter zusätzlich zu `status: ready`:
+- `area` nicht in `execution`, `security`, `exchange` (Env `JULES_EXCLUDE_AREAS`
+  zum Anpassen)
+- `priority` nicht `P0`
+
+Diese Items bleiben absichtlich manuell — per `create-session.sh --file
+docs/backlog/....md`, wenn du im Einzelfall doch möchtest.
+
+```bash
+# Testlauf ohne echte API-Calls
+node scripts/jules/dispatch-backlog.mjs --dry-run
+
+# Echt dispatchen (max. 5 pro Lauf, Env JULES_MAX_PER_RUN zum Anpassen)
+node scripts/jules/dispatch-backlog.mjs
 ```
 
 ## Sicherheitsgrenzen (wichtig)

@@ -2,7 +2,7 @@
 id: BUG-0076
 title: IndicatorSettings.svelte has extensive hardcoded English UI strings
 type: bug
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]
