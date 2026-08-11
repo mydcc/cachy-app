@@ -5,6 +5,15 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.3...v1.4.0-beta.4) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ci:** make Jules backlog dedup mandatory and honest in dry runs ([15508f7](https://github.com/mydcc/cachy-app/commit/15508f7b7807df8a0374beaaa5bea04d4f707652))
+* **ci:** repair create-session.sh --file and give sessions an item title ([04677ba](https://github.com/mydcc/cachy-app/commit/04677bab50ee01d01be8bfa59fc8c7659783bd78))
+* **ci:** scope Jules dedup to session subject fields and add an age window ([c56af82](https://github.com/mydcc/cachy-app/commit/c56af82fbf000933eb877bad7c6624c0b7b0dfa5))
+
 # [1.4.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.2...v1.4.0-beta.3) (2026-08-11)
 
 
