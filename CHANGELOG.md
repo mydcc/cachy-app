@@ -5,6 +5,20 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.4...v1.4.0-beta.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ci:** auto-publish Jules PRs instead of requiring a manual click ([055e2fd](https://github.com/mydcc/cachy-app/commit/055e2fd5312fa98dbf33205b2543c1398427a9ca)), closes [#1709](https://github.com/mydcc/cachy-app/issues/1709)
+* correct Jules PR detection to use the PR body footer, not branch prefix ([c922d86](https://github.com/mydcc/cachy-app/commit/c922d865e7bcaee41a04a5b67b5bc6432d0e0f70))
+* stop /jules-review from duplicating what CI already reports ([b5ae317](https://github.com/mydcc/cachy-app/commit/b5ae317c71de255b98ee27c7e6c233fb4a4aa43e)), closes [#1711](https://github.com/mydcc/cachy-app/issues/1711)
+
+
+### Features
+
+* add /jules-review command for auditing Jules pull requests ([93460a1](https://github.com/mydcc/cachy-app/commit/93460a13a2773ba28c1e5ce55e113108e5d01946))
+
 # [1.4.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.3...v1.4.0-beta.4) (2026-08-11)
 
 
