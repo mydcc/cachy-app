@@ -143,7 +143,7 @@
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                     onclick={() => toggleKeyVisibility("app_token")}
-                                    aria-label="Toggle token visibility"
+                                    aria-label={$_("settings.connections.aria.toggleToken")}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
@@ -194,7 +194,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitunix_k")}
-                                        aria-label="Toggle key visibility"
+                                        aria-label={$_("settings.connections.aria.toggleKey")}
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -237,7 +237,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitunix_s")}
-                                        aria-label="Toggle secret visibility"
+                                        aria-label={$_("settings.connections.aria.toggleSecret")}
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -296,7 +296,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitget_k")}
-                                        aria-label="Toggle key visibility"
+                                        aria-label={$_("settings.connections.aria.toggleKey")}
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -341,7 +341,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitget_s")}
-                                        aria-label="Toggle secret visibility"
+                                        aria-label={$_("settings.connections.aria.toggleSecret")}
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -385,7 +385,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitget_p")}
-                                        aria-label="Toggle passphrase visibility"
+                                        aria-label={$_("settings.connections.aria.togglePassphrase")}
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -440,7 +440,7 @@
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                     onclick={() => toggleKeyVisibility("app_token")}
-                                    aria-label="Toggle token visibility"
+                                    aria-label={$_("settings.connections.aria.toggleToken")}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
@@ -593,7 +593,7 @@
                                         <button
                                             class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                             onclick={() => toggleKeyVisibility("imgbb_k")}
-                                            aria-label="Toggle key visibility"
+                                            aria-label={$_("settings.connections.aria.toggleKey")}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                         </button>
@@ -675,7 +675,7 @@
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
                                     onclick={() => removeCustomFeed(i)}
-                                    aria-label="Remove feed"
+                                    aria-label={$_("settings.connections.aria.removeFeed")}
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"

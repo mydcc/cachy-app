@@ -369,6 +369,10 @@
       "statusCancelOnly": "Cancel-only",
       "statusStop": "Trading stopped",
       "apiNotSupported": "API trading disabled"
+    },
+    "positionsAria": {
+      "positionDetails": "Position Details",
+      "symbolDetails": "Symbol Details"
     }
   },
   "journal": {
@@ -738,7 +742,10 @@
       "interval2sTooltip": "Great for intraday trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Good for day trading (15min+). Balanced.",
       "interval10sTooltip": "Ideal for swing trading (1h+). Low CPU.",
-      "intervalDesc": "Controls data freshness vs CPU usage"
+      "intervalDesc": "Controls data freshness vs CPU usage",
+      "aria": {
+        "removeTimeframe": "Remove timeframe"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -978,6 +985,10 @@
         "token": "Bot Token",
         "channelId": "Channel ID",
         "addChannel": "+ Add Channel"
+      },
+      "aria": {
+        "removeChannel": "Remove channel",
+        "addChannel": "Add Channel"
       }
     },
     "technicals": {
@@ -1399,6 +1410,13 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
+      },
+      "aria": {
+        "toggleToken": "Toggle token visibility",
+        "toggleKey": "Toggle key visibility",
+        "toggleSecret": "Toggle secret visibility",
+        "togglePassphrase": "Toggle passphrase visibility",
+        "removeFeed": "Remove feed"
       }
     },
     "imgbbExpiration": "Expiration Time",
@@ -1598,7 +1616,12 @@
     "copy": "Copy Content",
     "ignore": "Ignore",
     "send": "Send message",
-    "analyzing": "Analyzing..."
+    "analyzing": "Analyzing...",
+    "aria": {
+      "startQuiz": "Start Quiz",
+      "toggleVideo": "Toggle Video",
+      "removeTag": "Remove tag"
+    }
   },
   "analyst": {
     "trend": {
