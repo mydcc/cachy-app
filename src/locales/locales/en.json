@@ -220,7 +220,19 @@
       "orderCancelled": "Order cancelled",
       "cancelFailed": "Failed to cancel order",
       "confirmCancel": "Cancel this TP/SL order?",
-      "noApiKeys": "No API keys configured"
+      "noApiKeys": "No API keys configured",
+      "title": "Price Alerts",
+      "active": "Active",
+      "history": "History",
+      "noActive": "No active alerts",
+      "fired": "Alert Fired!",
+      "priceReached": "{symbol} reached {price}",
+      "manage": "Manage Alerts",
+      "addAlert": "Add Alert",
+      "conditionReached": "Crosses",
+      "priceLimit": "Price",
+      "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
+      "createSuccess": "Alert created successfully."
     },
     "generalInputs": {
       "header": "General",

@@ -220,7 +220,19 @@
       "orderCancelled": "Bestellung storniert",
       "cancelFailed": "Stornierung fehlgeschlagen",
       "confirmCancel": "Diesen TP/SL Auftrag stornieren?",
-      "noApiKeys": "Keine API-Keys konfiguriert"
+      "noApiKeys": "Keine API-Keys konfiguriert",
+      "title": "Preisalarme",
+      "active": "Aktiv",
+      "history": "Verlauf",
+      "noActive": "Keine aktiven Alarme",
+      "fired": "Alarm ausgelöst!",
+      "priceReached": "{symbol} hat {price} erreicht",
+      "manage": "Alarme verwalten",
+      "addAlert": "Alarm hinzufügen",
+      "conditionReached": "Kreuzt",
+      "priceLimit": "Preis",
+      "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
+      "createSuccess": "Alarm erfolgreich erstellt."
     },
     "generalInputs": {
       "header": "Allgemein",

@@ -33,6 +33,7 @@ export type LogCategory =
     | "market"
     | "general"
     | "governance"
+    | "alerts"
     | "journal"
     | "data"
     | "ui"

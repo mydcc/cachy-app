@@ -1,3 +1,6 @@
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
+import { alertEngine } from "../services/alertEngine/alertEngine";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -199,6 +202,7 @@ export class MarketManager {
   // browser and a Timeout object under Node, and these run in both.
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
   private flushIntervalId: ReturnType<typeof setInterval> | null = null;
+  private lastFlushTime: number = 0;
   private telemetryIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
@@ -384,6 +388,19 @@ export class MarketManager {
         this.pendingUpdates.clear();
       }
 
+      // Gap detection for alerts
+      if (this.pendingUpdates.size > 0 || this.pendingKlineUpdates.size > 0) {
+        const now = Date.now();
+        // Determine if we experienced a data gap (>10s)
+        if (this.lastFlushTime && now - this.lastFlushTime > 10000) {
+             import('../services/toastService.svelte').then(m => {
+                 const t = get(_);
+                 m.toastService.error((t as any)("dashboard.alerts.gapDetected") || "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.");
+             }).catch(() => {});
+        }
+        this.lastFlushTime = now;
+      }
+
       // 2. Apply Kline Updates
       if (this.pendingKlineUpdates.size > 0) {
         this.pendingKlineUpdates.forEach((rawKlines, key) => {
@@ -444,6 +461,13 @@ export class MarketManager {
                   console.warn(`[Market] Received null lastPrice for ${symbol}`);
               }
               current.lastPrice = newVal;
+
+              if (newVal !== null) {
+                  try {
+                      // Pass to alert engine
+                      alertEngine.evaluate(symbol, newVal.toString(), Date.now());
+                  } catch { /* Ignore */ }
+              }
           }
       }
       if (partial.indexPrice !== undefined) {
