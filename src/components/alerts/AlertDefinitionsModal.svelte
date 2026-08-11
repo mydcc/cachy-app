@@ -20,15 +20,15 @@
   }
 
   function formatCondition(condition: Record<string, unknown>) {
-      if (condition.price_cross_up) return `${$t('dashboard.alerts.conditionReached')} Up ${condition.price_cross_up}`;
-      if (condition.price_cross_down) return `${$t('dashboard.alerts.conditionReached')} Down ${condition.price_cross_down}`;
-      if (condition.price_reached) return `${$t('dashboard.alerts.conditionReached')} ${condition.price_reached}`;
+      if (condition.price_cross_up) return `${$t('dashboard.alerts.crossesUp') as string || "Crosses Up"} ${condition.price_cross_up}`;
+      if (condition.price_cross_down) return `${$t('dashboard.alerts.crossesDown') as string || "Crosses Down"} ${condition.price_cross_down}`;
+      if (condition.price_reached) return `${$t('dashboard.alerts.reaches') as string || "Reaches"} ${condition.price_reached}`;
       return JSON.stringify(condition);
   }
 
   function createAlert() {
-      const targetPrice = parseFloat(newAlertPrice);
-      if (isNaN(targetPrice) || targetPrice <= 0) return;
+      if (!newAlertPrice || isNaN(Number(newAlertPrice))) return;
+      const targetPrice = newAlertPrice.toString();
 
       const newAlert = {
           id: String(Math.floor(Math.random() * 100000000)),
@@ -47,7 +47,7 @@
     <div class="alert-form">
         <h4>{$t('dashboard.alerts.addAlert', { default: 'Add Alert' })}</h4>
         <div class="input-group">
-            <input type="text" bind:value={newAlertSymbol} placeholder="Symbol" class="form-input" />
+            <input type="text" bind:value={newAlertSymbol} placeholder={$t('dashboard.alerts.symbol') as string || "Symbol"} class="form-input" />
             <input type="number" bind:value={newAlertPrice} placeholder={$t('dashboard.alerts.priceLimit') as string} class="form-input" />
             <button class="add-btn" onclick={createAlert}>+</button>
         </div>

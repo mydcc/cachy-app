@@ -32,7 +32,7 @@ interface WasmModule {
 }
 
 export interface AlertCondition {
-  [key: string]: number; // e.g. { price_cross_up: 60000.0 } or { price_reached: 50000.0 }
+  [key: string]: string | number; // e.g. { price_cross_up: 60000.0 } or { price_reached: 50000.0 }
 }
 
 export interface AlertDefinition {
@@ -46,7 +46,7 @@ export interface AlertEvent {
   alert_id: string;
   symbol: string;
   timestamp: number;
-  price: number;
+  price: string;
 }
 
 class AlertEngineService {

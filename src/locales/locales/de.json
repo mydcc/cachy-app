@@ -229,11 +229,14 @@
       "priceReached": "{symbol} hat {price} erreicht",
       "manage": "Alarme verwalten",
       "addAlert": "Alarm hinzufügen",
-      "conditionReached": "Kreuzt",
       "priceLimit": "Preis",
       "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
       "createSuccess": "Alarm erfolgreich erstellt.",
-      "noHistory": "Kein Verlauf"
+      "noHistory": "Kein Verlauf",
+      "crossesUp": "Kreuzt nach oben",
+      "crossesDown": "Kreuzt nach unten",
+      "reaches": "Erreicht",
+      "symbol": "Symbol"
     },
     "generalInputs": {
       "header": "Allgemein",
