@@ -5,6 +5,29 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.3.0](https://github.com/mydcc/cachy-app/compare/v1.2.0...v1.3.0) (2026-08-11)
+
+
+### Bug Fixes
+
+* **account:** stop hydrateBalance from erasing WS-only wallet fields ([7ec5928](https://github.com/mydcc/cachy-app/commit/7ec5928622be99f89021bff38f41725f5b1519a4))
+* **account:** stop hydrateBalance from erasing WS-only wallet fields ([914bed9](https://github.com/mydcc/cachy-app/commit/914bed936ce997543f295d55c7be23eda43e43e6))
+* **ai:** validate sentiment cache and AI response before trusting them ([0927ccf](https://github.com/mydcc/cachy-app/commit/0927ccfce35f9c6d4790515f98c97770287595f5))
+* **indicators:** make GPU Choppiness write to the field the UI reads ([1cc3f40](https://github.com/mydcc/cachy-app/commit/1cc3f403f9518263d52a63fbedeb2ef9450e8e95))
+* **positions:** recompute unrealized PnL from live mark price ([257f7e6](https://github.com/mydcc/cachy-app/commit/257f7e6dc2492803ca06f3208f130603d4bc5834))
+* resolve incomplete WS position hydration, add gyroscope support to Galaxy engine, and implement sentiment-based background animations ([8fe5355](https://github.com/mydcc/cachy-app/commit/8fe5355b3884f9da2526f8c951d6dd2a41bb575d))
+* **ui:** apply modalState.show()'s extraClasses to the dialog it opens ([ab564cd](https://github.com/mydcc/cachy-app/commit/ab564cd29cc4e2b68ac7e10e8654a28d016aabff))
+* **ui:** cap unbounded toast array and clear evicted timers ([5380be3](https://github.com/mydcc/cachy-app/commit/5380be397bcd389770885683decf4d1a7db0e96b))
+* **ui:** resolve the symbol picker's cancel with false, not null ([1e6f54d](https://github.com/mydcc/cachy-app/commit/1e6f54da2eddc6dc30bea358c3dbf22d975b3522))
+* **ui:** route four hardcoded UI strings through existing locale keys ([bea277f](https://github.com/mydcc/cachy-app/commit/bea277fad7c87a7f88ccd323e36cc3e0d04bbfb6))
+
+
+### Features
+
+* add descriptive tooltips to trade flow settings in UI and localization files ([cbebaeb](https://github.com/mydcc/cachy-app/commit/cbebaeb2dd2ef632862992c427923d4c24b270bc))
+* define RawTradeEvent interface and update onTrade parameter type for improved type safety ([d63ea23](https://github.com/mydcc/cachy-app/commit/d63ea23cb5d3405c1c16e07e88175b9f2f823219))
+* **exchange:** show read-only Bitunix leverage, margin-mode, symbol and tier data ([91dd055](https://github.com/mydcc/cachy-app/commit/91dd05579209b82a206d8f70c4bcee53f796a3a4))
+
 # [1.3.0-beta.11](https://github.com/mydcc/cachy-app/compare/v1.3.0-beta.10...v1.3.0-beta.11) (2026-08-10)
 
 
