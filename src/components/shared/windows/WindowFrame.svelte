@@ -586,7 +586,7 @@
                         class="tool-btn success"
                         onclick={(e) => {
                             e.stopPropagation();
-                            effectsState.triggerFeed(10);
+                            effectsState.triggerDuckEvent({ type: "feed", amount: 10 });
                         }}
                         ondblclick={(e) => e.stopPropagation()}
                         title="Feed Duck (Profit)">🍞</button
