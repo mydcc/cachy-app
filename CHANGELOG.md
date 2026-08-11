@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.1...v1.4.0-beta.2) (2026-08-11)
+
+
+### Features
+
+* dispatch ready backlog items to Jules automatically ([6f49528](https://github.com/mydcc/cachy-app/commit/6f495288205fe0c3d6058326529e90e10acce721))
+
 # [1.4.0-beta.1](https://github.com/mydcc/cachy-app/compare/v1.3.0...v1.4.0-beta.1) (2026-08-11)
 
 
