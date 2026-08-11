@@ -466,7 +466,7 @@ export class MarketManager {
                   try {
                       // Pass to alert engine
                       alertEngine.evaluate(symbol, newVal.toString(), Date.now());
-                  } catch (e) { if (import.meta.env.DEV) { import("../services/logger").then(m => m.logger.warn("alerts", `[Market] Alert evaluation failed for ${symbol}`, e)).catch(() => {}); } }
+                  } catch (e) { import("../services/logger").then(m => m.logger.warn("alerts", `[Market] Alert evaluation failed for ${symbol}`, e)).catch(() => {}); }
               }
           }
       }
