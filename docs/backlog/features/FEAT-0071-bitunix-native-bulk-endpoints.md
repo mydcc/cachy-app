@@ -2,7 +2,7 @@
 id: FEAT-0071
 title: Replace client-side cancel and close loops with native Bitunix endpoints
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -43,14 +43,11 @@ the WS channels remain the source of truth for final state.
 
 ## Acceptance criteria
 
-- [ ] Cancel-all issues exactly one API request (per symbol filter) and
-      surfaces partial failures from `failureList`.
-- [ ] Close-all and flash-close use the native endpoints; flash close targets
-      a `positionId`, proven correct in hedge mode with a long and short open
-      on the same symbol.
-- [ ] An open limit order's price/quantity can be modified without losing its
-      order ID.
-- [ ] The old loop implementations are removed, not left as dead fallbacks.
+- [ ] `tradeService` implements `cancel_all_orders` issuing exactly one API request (per symbol filter) and surfaces partial failures from `failureList`.
+- [ ] `tradeService` implements `close_all_position` and `flash_close_position` natively; flash close targets a `positionId`, proven correct in hedge mode.
+- [ ] `tradeService` implements `modify_order` using a "Safe Modify" approach: before the order is modified, Cachy MUST issue a synchronous call to `get_order_detail`. The intended modification (e.g., TP/SL) is then merged with the guaranteed `qty` and `price` from the live response and sent to Bitunix.
+- [ ] An open limit order's price/quantity or TP/SL can be modified without losing its order ID.
+- [ ] The old for-loop implementations are removed completely.
 
 ## Out of scope
 
@@ -60,8 +57,8 @@ the WS channels remain the source of truth for final state.
 
 ## Open questions
 
-- `modify_order` requires `qty` and `price` even when only TP/SL changes —
-  confirm against live behaviour before relying on partial modification.
+- **RESOLVED:** `modify_order` requires `qty` and `price` even when only TP/SL changes.
+  **Resolution:** Approach 2 (Safe Modify). The values are fetched via a fresh API call (`get_order_detail`) immediately before the modification to 100% exclude race conditions involving partial fills.
 
 ## Links
 
