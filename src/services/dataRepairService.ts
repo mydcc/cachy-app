@@ -289,59 +289,137 @@ export const dataRepairService = {
 
     const limit = pLimit(5); // Concurrency limit
 
-    const promises = targets.map((trade) => limit(async () => {
-      try {
-        if (!trade.entryDate || !trade.exitDate) {
-          failed++;
+    // Helper to parse interval to ms
+    const parseIntervalMs = (inv: string) => {
+      const unit = inv.slice(-1);
+      const val = parseInt(inv.slice(0, -1)) || 1;
+      switch(unit) {
+        case 'm': return val * 60 * 1000;
+        case 'h': return val * 60 * 60 * 1000;
+        case 'd': return val * 24 * 60 * 60 * 1000;
+        case 'w': return val * 7 * 24 * 60 * 60 * 1000;
+        default: return 5 * 60 * 1000; // default 5m
+      }
+    };
+    const msPerCandle = parseIntervalMs(interval);
+    const MAX_SPAN_MS = 900 * msPerCandle; // safe limit < 1000
+
+    // Group by symbol and provider
+    const chunks: { symbol: string, provider?: "bitunix" | "bitget" | "custom", startTs: number, endTs: number, trades: typeof targets }[] = [];
+
+    const symbolGroups = new Map<string, typeof targets>();
+    for (const t of targets) {
+      if (!t.entryDate || !t.exitDate) {
+        failed++;
+        processed++;
+        onProgress(processed, total, `Skipped ${t.symbol}...`);
+        continue;
+      }
+      const s = new Date(t.entryDate).getTime();
+      const e = new Date(t.exitDate).getTime();
+      if (isNaN(s) || isNaN(e) || e <= s) {
+        failed++;
+        processed++;
+        onProgress(processed, total, `Skipped ${t.symbol}...`);
+        continue;
+      }
+      const k = `${t.symbol}_${t.provider || 'default'}`;
+      if (!symbolGroups.has(k)) symbolGroups.set(k, []);
+      symbolGroups.get(k)!.push(t);
+    }
+
+    for (const groupTrades of symbolGroups.values()) {
+      // Sort by entry time
+      groupTrades.sort((a, b) => new Date(a.entryDate!).getTime() - new Date(b.entryDate!).getTime());
+
+      let currentChunk: typeof chunks[0] | null = null;
+      for (const t of groupTrades) {
+        const s = new Date(t.entryDate!).getTime();
+        const e = new Date(t.exitDate!).getTime();
+
+        if (!currentChunk) {
+          currentChunk = { symbol: t.symbol, provider: t.provider, startTs: s, endTs: e, trades: [t] };
         } else {
-          const startTs = new Date(trade.entryDate).getTime();
-          const endTs = new Date(trade.exitDate).getTime();
-
-          if (isNaN(startTs) || isNaN(endTs) || endTs <= startTs) {
-            failed++;
+          const proposedEnd = Math.max(currentChunk.endTs, e);
+          if (proposedEnd - currentChunk.startTs <= MAX_SPAN_MS) {
+            currentChunk.endTs = proposedEnd;
+            currentChunk.trades.push(t);
           } else {
-            const result = await fetchSmartKlines(
-              trade.symbol,
-              interval,
-              1000,
-              startTs,
-              endTs,
-              trade.provider,
-            );
+            chunks.push(currentChunk);
+            currentChunk = { symbol: t.symbol, provider: t.provider, startTs: s, endTs: e, trades: [t] };
+          }
+        }
+      }
+      if (currentChunk) chunks.push(currentChunk);
+    }
 
-            if (result && result.klines.length > 0) {
-              let highest = new Decimal(0);
-              let lowest = new Decimal(result.klines[0].low);
+    const promises = chunks.map((chunk) => limit(async () => {
+      try {
+        const result = await fetchSmartKlines(
+          chunk.symbol,
+          interval,
+          1000,
+          chunk.startTs,
+          chunk.endTs,
+          chunk.provider
+        );
 
-              for (const k of result.klines) {
-                const h = new Decimal(k.high);
-                const l = new Decimal(k.low);
-                if (h.gt(highest)) highest = h;
-                if (l.lt(lowest)) lowest = l;
-                if (new Decimal(lowest).eq(0)) lowest = l;
-              }
+        if (result && result.klines.length > 0) {
+          for (const trade of chunk.trades) {
+            try {
+              const startTs = new Date(trade.entryDate!).getTime();
+              const endTs = new Date(trade.exitDate!).getTime();
 
-              const entryPrice = new Decimal(trade.entryPrice);
-              let mfe = new Decimal(0);
-              let mae = new Decimal(0);
-
-              if (trade.tradeType === "Long") {
-                mfe = highest.minus(entryPrice);
-                mae = entryPrice.minus(lowest);
-              } else {
-                mfe = entryPrice.minus(lowest);
-                mae = highest.minus(entryPrice);
-              }
-
-              journalState.updateEntry({
-                ...trade,
-                mfe: mfe,
-                mae: mae,
-                provider: result.provider,
+              const tradeKlines = result.klines.filter(k => {
+                const kt = Number(k.time);
+                return kt + msPerCandle > startTs && kt <= endTs;
               });
-            } else {
+
+              if (tradeKlines.length > 0) {
+                let highest = new Decimal(0);
+                let lowest = new Decimal(tradeKlines[0].low);
+
+                for (const k of tradeKlines) {
+                  const h = new Decimal(k.high);
+                  const l = new Decimal(k.low);
+                  if (h.gt(highest)) highest = h;
+                  if (l.lt(lowest)) lowest = l;
+                  if (new Decimal(lowest).eq(0)) lowest = l;
+                }
+
+                const entryPrice = new Decimal(trade.entryPrice);
+                let mfe = new Decimal(0);
+                let mae = new Decimal(0);
+
+                if (trade.tradeType === "Long") {
+                  mfe = highest.minus(entryPrice);
+                  mae = entryPrice.minus(lowest);
+                } else {
+                  mfe = entryPrice.minus(lowest);
+                  mae = highest.minus(entryPrice);
+                }
+
+                journalState.updateEntry({
+                  ...trade,
+                  mfe: mfe,
+                  mae: mae,
+                  provider: result.provider,
+                });
+              } else {
+                failed++;
+              }
+            } catch {
               failed++;
+            } finally {
+              processed++;
+              onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
             }
+          }
+        } else {
+          for (const trade of chunk.trades) {
+            failed++;
+            processed++;
+            onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
           }
         }
       } catch (e) {
@@ -349,14 +427,15 @@ export const dataRepairService = {
         if (msg !== "apiErrors.symbolNotFound") {
           logger.error(
             "journal",
-            `[DataRepair] MFE/MAE Err ${trade.symbol}`,
+            `[DataRepair] MFE/MAE Err ${chunk.symbol}`,
             e,
           );
         }
-        failed++;
-      } finally {
-        processed++;
-        onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
+        for (const trade of chunk.trades) {
+          failed++;
+          processed++;
+          onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
+        }
       }
     }));
 
