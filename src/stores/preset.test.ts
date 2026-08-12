@@ -65,15 +65,6 @@ describe('PresetManager', () => {
         presetState.selectedPreset = 'p1';
         presetState.availablePresets = ['p1', 'p2'];
 
-        // The debounce lives in an $effect inside $effect.root. flushSync() does
-        // not run effects in a detached root, so the previous version of this
-        // test never got as far as scheduling the 20ms timer — notifyTimer stayed
-        // null and the synchronous advanceTimersByTime had nothing to fire.
-        //
-        // The async timer helpers flush microtasks between ticks, which lets
-        // Svelte's scheduler run the effect first. favorites.test.ts already
-        // documents this ("advancing timers without tick sometimes misses the
-        // batched update"); this follows the same pattern.
         await vi.advanceTimersByTimeAsync(25);
 
         // Should be called exactly once more with the final state
@@ -122,5 +113,36 @@ describe('PresetManager', () => {
 
         // Should still be 1 — the pending timer must have been cleared
         expect(subscriber).toHaveBeenCalledTimes(1);
+    });
+
+    it('should notify all subscribers independently and not drop updates for remaining subscribers when one unsubscribes', async () => {
+        const subscriber1 = vi.fn();
+        const subscriber2 = vi.fn();
+
+        const unsubscribe1 = presetState.subscribe(subscriber1);
+        const unsubscribe2 = presetState.subscribe(subscriber2);
+
+        expect(subscriber1).toHaveBeenCalledTimes(1);
+        expect(subscriber2).toHaveBeenCalledTimes(1);
+
+        // Mutate state to schedule a debounced notification
+        presetState.availablePresets = ['p1'];
+        // wait for the effects to run and schedule timers
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Before the timer finishes (20ms), subscriber1 unsubscribes.
+        // In the flawed implementation, unsubscribe clears `this.notifyTimer` for EVERYONE.
+        unsubscribe1();
+
+        // Advance the rest of the time
+        await vi.advanceTimersByTimeAsync(15);
+
+        // subscriber1 should not have been called again
+        expect(subscriber1).toHaveBeenCalledTimes(1);
+
+        // subscriber2 SHOULD be called with the new state
+        expect(subscriber2).toHaveBeenCalledTimes(2);
+
+        unsubscribe2();
     });
 });
