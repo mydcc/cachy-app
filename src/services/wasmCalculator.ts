@@ -114,9 +114,10 @@ class WasmCalculator {
     await this.ensureLoaded();
     if (!this.wasmModule) throw new Error('WASM unavailable');
 
-    if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
-    
-    const len = klines.length;
+    try {
+        if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
+
+        const len = klines.length;
     const closes: string[] = new Array(len);
     const highs: string[] = new Array(len);
     const lows: string[] = new Array(len);
@@ -170,6 +171,13 @@ class WasmCalculator {
     const resultJson = this.instance.update(last.open.toString(), highs[len-1], lows[len-1], closes[len-1], volumes[len-1], last.time);
     
     return this.convertResult(JSON.parse(resultJson), klines, settings);
+    } catch (e) {
+        if (this.instance) {
+            try { (this.instance as any).free?.(); } catch { /* Ignore */ }
+            this.instance = null;
+        }
+        throw e;
+    }
   }
   
   private convertResult(raw: WasmRawResult, klines: Kline[], settings: IndicatorSettings): TechnicalsData {
