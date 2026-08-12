@@ -43,11 +43,11 @@ the WS channels remain the source of truth for final state.
 
 ## Acceptance criteria
 
-- `tradeService` implements `cancel_all_orders` issuing exactly one API request (per symbol filter) and surfaces partial failures from `failureList`.
-- `tradeService` implements `close_all_position` and `flash_close_position` natively; flash close targets a `positionId`, proven correct in hedge mode.
-- `tradeService` implements `modify_order` mit "Safe Modify" Ansatz: Bevor die Order modifiziert wird, muss Cachy zwingend einen synchronen Call an `get_order_detail` durchführen. Die Modifikation (z.B. TP/SL) wird dann mit der garantierten `qty` und `price` aus der Live-Antwort gemergt und an Bitunix gesendet.
-- Ein offenes Limit-Order-Preis/Menge oder TP/SL kann modifiziert werden, ohne die Order-ID zu verlieren.
-- Die alten For-Schleifen-Implementierungen werden komplett gelöscht.
+- [ ] `tradeService` implements `cancel_all_orders` issuing exactly one API request (per symbol filter) and surfaces partial failures from `failureList`.
+- [ ] `tradeService` implements `close_all_position` and `flash_close_position` natively; flash close targets a `positionId`, proven correct in hedge mode.
+- [ ] `tradeService` implements `modify_order` using a "Safe Modify" approach: before the order is modified, Cachy MUST issue a synchronous call to `get_order_detail`. The intended modification (e.g., TP/SL) is then merged with the guaranteed `qty` and `price` from the live response and sent to Bitunix.
+- [ ] An open limit order's price/quantity or TP/SL can be modified without losing its order ID.
+- [ ] The old for-loop implementations are removed completely.
 
 ## Out of scope
 
@@ -57,8 +57,8 @@ the WS channels remain the source of truth for final state.
 
 ## Open questions
 
-- **GELÖST:** `modify_order` requires `qty` and `price` even when only TP/SL changes.
-  **Lösung:** Ansatz 2 (Safe Modify). Die Werte werden durch einen frischen API-Call (`get_order_detail`) unmittelbar vor der Modifikation beschafft, um Race Conditions bei Teil-Fills zu 100% auszuschließen.
+- **RESOLVED:** `modify_order` requires `qty` and `price` even when only TP/SL changes.
+  **Resolution:** Approach 2 (Safe Modify). The values are fetched via a fresh API call (`get_order_detail`) immediately before the modification to 100% exclude race conditions involving partial fills.
 
 ## Links
 
