@@ -81,7 +81,7 @@
     "marked-katex-extension": "^5.1.10",
     "openai": "^6.45.0",
     "p-limit": "^7.3.0",
-    "postcss": "^8.5.16",
+    "postcss": "^8.5.26",
     "rss-parser": "^3.13.0",
     "spacetimedb": "^1.11.4",
     "svelte": "^5.56.4",
