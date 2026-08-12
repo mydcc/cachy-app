@@ -2,7 +2,7 @@
 id: BUG-0079
 title: Legacy subscribe() causes memory leaks and race conditions via shared debounce timers
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -111,6 +111,12 @@ Remove `private notifyTimer` from these stores.
 - [ ] All `notifyTimer` instance properties are removed from `src/stores/*.svelte.ts`.
 - [ ] All instances of `subscribe` use a closure-local timer and clear it on unsubscribe.
 
+## Out of scope
+
+- Refactoring UI components to stop calling `.subscribe()` — this item fixes the `.subscribe()` store contract implementation, not the consuming component code.
+- HMR auto-save cleanup and module disposal — handled separately in BUG-0078.
+
 ## Links
 
 - N/A
+
