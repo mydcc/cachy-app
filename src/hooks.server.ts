@@ -30,19 +30,8 @@ const globalWithPatchFlag = globalThis as typeof globalThis & {
 if (!globalWithPatchFlag._isConsolePatched) {
   globalWithPatchFlag._isConsolePatched = true;
 
-  const originalLog = console.log;
   const originalWarn = console.warn;
   const originalError = console.error;
-
-  console.log = (...args: unknown[]) => {
-    const msg = args
-      .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-      .join(" ");
-    // Prevent infinite loop if logger calls console.log (it shouldn't, but safety first)
-    // We use a specific prefix if we wanted to detect our own logs, but logger.ts is clean.
-    logger.info(msg);
-    originalLog.apply(console, args);
-  };
 
   console.warn = (...args: unknown[]) => {
     const msg = args
