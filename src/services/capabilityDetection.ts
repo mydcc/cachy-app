@@ -88,10 +88,6 @@ export async function detectWasmSIMD(): Promise<boolean> {
     // Try to validate the SIMD module
     const hasSIMD = await WebAssembly.validate(simdTestModule);
     
-    if (import.meta.env.DEV && hasSIMD) {
-      console.log('[Capabilities] SIMD supported - array operations will be accelerated');
-    }
-    
     return hasSIMD;
   } catch {
     return false;
@@ -141,10 +137,6 @@ export async function detectWebGPU(): Promise<{ available: boolean; features?: s
     
     // Get supported features
     const features = Array.from(adapter.features as Set<string>);
-    
-    if (import.meta.env.DEV) {
-      console.log('[Capabilities] WebGPU supported with features:', features);
-    }
     
     return { available: true, features };
   } catch {
@@ -223,10 +215,6 @@ export async function detectBrowserCapabilities(): Promise<BrowserCapabilities> 
     isMobile: isMobileDevice(),
     battery
   };
-  
-  if (import.meta.env.DEV) {
-    console.log('[Capabilities] Detection complete:', capabilities);
-  }
   
   return capabilities;
 }
