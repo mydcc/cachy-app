@@ -348,12 +348,13 @@ class CryptoServiceImpl {
    * This provides better security than localStorage as the key material cannot be easily exfiltrated via XSS.
    * For backward compatibility, legacy hex keys are imported as PBKDF2 keys to maintain the same derivation path.
    */
-  public async getOrGenerateDeviceKey(legacyHexKey?: string): Promise<CryptoKey> {
+  public async getOrGenerateDeviceKey(legacyHexKey?: string, allowRegenerate = true): Promise<CryptoKey> {
     if (!browser) throw new Error("Browser environment required for Device Key");
 
     // 1. Try to load from IndexedDB
     let key = await this.loadKeyFromDB(DEVICE_KEY_ALIAS);
     if (key) return key;
+    if (!allowRegenerate) throw new Error("Device key not found in DB");
 
     // 2. Migration or Generation
     if (legacyHexKey) {
@@ -385,17 +386,23 @@ class CryptoServiceImpl {
   }
 
   private async loadKeyFromDB(alias: string): Promise<CryptoKey | null> {
+    const startOpen = performance.now();
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(SECURE_DB_NAME, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore(SECURE_STORE_NAME);
       };
       request.onsuccess = () => {
+        console.debug("[cryptoService] loadKeyFromDB open DB took", performance.now() - startOpen, "ms");
         const db = request.result;
         try {
           const tx = db.transaction(SECURE_STORE_NAME, "readonly");
+          const startGet = performance.now();
           const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
-          getReq.onsuccess = () => resolve(getReq.result || null);
+          getReq.onsuccess = () => {
+             console.debug("[cryptoService] loadKeyFromDB get req took", performance.now() - startGet, "ms");
+             resolve(getReq.result || null);
+          };
           getReq.onerror = () => reject(getReq.error);
         } catch {
           resolve(null);

@@ -162,6 +162,7 @@ export interface Settings {
     bitget?: EncryptedBlob;
   };
   encryptedSecrets?: Record<string, EncryptedBlob>;
+  deviceKeyCanary?: EncryptedBlob;
   isEncrypted?: boolean;
   customHotkeys: Record<string, string>;
   favoriteTimeframes: string[];
@@ -878,8 +879,10 @@ export class SettingsManager {
   // Security State
   encryptedApiKeys = $state<Settings["encryptedApiKeys"]>(undefined);
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
+  deviceKeyCanary = $state<Settings["deviceKeyCanary"]>(undefined);
   isEncrypted = $state(false);
   isLocked = $state(false);
+  decryptionFailures = $state<string[]>([]);
 
   /**
    * Resolves once `load()` has restored the encrypted secrets into memory.
@@ -969,7 +972,7 @@ export class SettingsManager {
    * Securely retrieves the device key.
    * Migrates from localStorage to IndexedDB if necessary.
    */
-  private async getDeviceKey(): Promise<string | CryptoKey> {
+  private async getDeviceKey(allowRegenerate = true): Promise<string | CryptoKey> {
     if (!browser) return "server-side-key-placeholder";
     if (this._deviceKey) return this._deviceKey;
 
@@ -979,6 +982,7 @@ export class SettingsManager {
     // 2. Get or Generate secure key (handles migration if legacyKey provided)
     const key = await cryptoService.getOrGenerateDeviceKey(
       legacyKey || undefined,
+      allowRegenerate
     );
 
     // 3. Cleanup legacy key if migration happened
@@ -1244,6 +1248,9 @@ export class SettingsManager {
       }
 
       // Security: Load Encrypted Secrets (Generic)
+      if (merged.deviceKeyCanary) {
+         this.deviceKeyCanary = merged.deviceKeyCanary;
+      }
       if (merged.encryptedSecrets) {
         this.encryptedSecrets = merged.encryptedSecrets;
 
@@ -1254,7 +1261,19 @@ export class SettingsManager {
           secretsPending = true;
           void (async () => {
             try {
-              const deviceKey = await this.getDeviceKey();
+              if (this.deviceKeyCanary) {
+                try {
+                  const checkKey = await this.getDeviceKey(false);
+                  await cryptoService.decrypt(this.deviceKeyCanary, checkKey);
+                } catch (e) {
+                  console.error("[Settings] Canary failed. Device key is lost.", e);
+                  Object.keys(this.encryptedSecrets || {}).forEach(k => this.decryptionFailures.push(k));
+                                    secretsPending = false;
+                  this.resolveSecretsReady();
+                  return;
+                }
+              }
+              const deviceKey = await this.getDeviceKey(true);
               const entries = Object.entries(this.encryptedSecrets || {});
               await Promise.all(
                 entries.map(async ([key, blob]) => {
@@ -1542,6 +1561,7 @@ export class SettingsManager {
       }
 
       if (canEncrypt) {
+
         const encryptionTasks = SENSITIVE_KEYS.map(async (key) => {
           const value = data[key];
 
@@ -1554,6 +1574,7 @@ export class SettingsManager {
                 encryptionPassword,
               );
               data.encryptedSecrets![key] = blob;
+              this.decryptionFailures = this.decryptionFailures.filter(f => f !== key);
 
               // Redact plain text from saved object
               // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
@@ -1569,6 +1590,20 @@ export class SettingsManager {
           }
         });
         await Promise.all(encryptionTasks);
+
+        // Generate canary only if the state is healthy (no failures)
+        if (this.decryptionFailures.length === 0) {
+            try {
+                // Canary is ALWAYS encrypted with the device key
+                const deviceKeyForCanary = await this.getDeviceKey(true);
+                data.deviceKeyCanary = await cryptoService.encrypt("cachy_canary_v1", deviceKeyForCanary);
+            } catch (e) {
+                console.error("[Settings] failed to encrypt canary", e);
+            }
+        } else {
+            // Keep the old canary if we are still in a failure state
+            data.deviceKeyCanary = this.deviceKeyCanary;
+        }
       } else {
         // Locked mode: Ensure plain text fields are empty
         for (const key of SENSITIVE_KEYS) {
@@ -1633,6 +1668,9 @@ export class SettingsManager {
         : undefined,
       encryptedSecrets: this.encryptedSecrets
         ? $state.snapshot(this.encryptedSecrets)
+        : undefined,
+      deviceKeyCanary: this.deviceKeyCanary
+        ? $state.snapshot(this.deviceKeyCanary)
         : undefined,
       isEncrypted: this.isEncrypted,
       customHotkeys: $state.snapshot(this.customHotkeys),
