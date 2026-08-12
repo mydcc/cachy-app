@@ -15,7 +15,7 @@ jobs:
     permissions:
       issues: write
       contents: read
-      projects: write
+      repository-projects: write
     
     steps:
       - name: Checkout Repository
