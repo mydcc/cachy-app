@@ -5,6 +5,18 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.7...v1.4.0-beta.8) (2026-08-12)
+
+
+### Bug Fixes
+
+* **aria:** extract hardcoded aria-labels to locale files ([#1725](https://github.com/mydcc/cachy-app/issues/1725)) ([121dabe](https://github.com/mydcc/cachy-app/commit/121dabe71d9c470a118d0bc0d794649d19ab6213)), closes [#1716](https://github.com/mydcc/cachy-app/issues/1716)
+
+
+### Performance Improvements
+
+* **render:** remove inline array allocations in render paths ([#1724](https://github.com/mydcc/cachy-app/issues/1724)) ([db8ed28](https://github.com/mydcc/cachy-app/commit/db8ed281447042b59971ad50e20fb76ba1225b7f)), closes [#each](https://github.com/mydcc/cachy-app/issues/each) [#1715](https://github.com/mydcc/cachy-app/issues/1715)
+
 # [1.4.0-beta.7](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.6...v1.4.0-beta.7) (2026-08-12)
 
 
