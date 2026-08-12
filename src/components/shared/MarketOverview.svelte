@@ -48,6 +48,7 @@
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { burn } from "../../actions/burn";
+  import DOMPurify from "dompurify";
 
   interface Props {
     customSymbol?: string | undefined;
@@ -499,8 +500,9 @@
           onToggleTechnicals?.();
         }}
       >
-        {@html icons.chart ||
-          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html DOMPurify.sanitize(icons.chart ||
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>')}
       </button>
     {/if}
 
@@ -543,8 +545,9 @@
         app.handleFetchPrice();
       }}
     >
-      {@html icons.refresh ||
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+      {@html DOMPurify.sanitize(icons.refresh ||
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>')}
     </button>
   </div>
 
@@ -788,7 +791,10 @@
                 onclick={(e) => {
                   e.stopPropagation();
                   openChannel();
-                }}>{@html icons.monitor}</button
+                }}>
+                  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                  {@html DOMPurify.sanitize(icons.monitor)}
+                </button
               >
             {/if}
 
@@ -807,9 +813,11 @@
                 : $_("marketOverview.tooltips.addFavorite")}
             >
               {#if isFavorite}
-                {@html icons.starFilled}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                {@html DOMPurify.sanitize(icons.starFilled)}
               {:else}
-                {@html icons.starEmpty}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                {@html DOMPurify.sanitize(icons.starEmpty)}
               {/if}
             </button>
           </div>
