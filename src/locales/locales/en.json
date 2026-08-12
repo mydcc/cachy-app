@@ -1621,7 +1621,13 @@
       "startQuiz": "Start Quiz",
       "toggleVideo": "Toggle Video",
       "removeTag": "Remove tag"
-    }
+    },
+    "export": "Export",
+    "delete": "Delete",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "feedDuck": "Feed Duck (Profit)"
   },
   "analyst": {
     "trend": {

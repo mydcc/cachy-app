@@ -1638,7 +1638,13 @@
       "startQuiz": "Quiz starten",
       "toggleVideo": "Video umschalten",
       "removeTag": "Tag entfernen"
-    }
+    },
+    "export": "Exportieren",
+    "delete": "Löschen",
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "restore": "Wiederherstellen",
+    "feedDuck": "Ente füttern (Profit)"
   },
   "analyst": {
     "trend": {
