@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 // Additional indicator settings structures for missing indicators
 
 #[derive(Serialize, Deserialize, Clone, Default)] 
@@ -27,7 +28,7 @@ pub struct IchimokuSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
-pub struct KeltnerSettings { pub length: usize, pub multiplier: f64, pub atr_length: usize }
+pub struct KeltnerSettings { pub length: usize, pub multiplier: Decimal, pub atr_length: usize }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct DonchianSettings { pub length: usize }

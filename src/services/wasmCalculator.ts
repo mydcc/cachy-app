@@ -30,8 +30,8 @@ import { toNumFast } from '../utils/fastConversion';
 // dynamically imported from a static asset (see ensureLoaded below), so
 // there is no static type from the module itself to import.
 interface WasmTechnicalsInstance {
-  initialize(closes: Float64Array, highs: Float64Array, lows: Float64Array, volumes: Float64Array, times: Float64Array, settingsJson: string): void;
-  update(open: number, high: number, low: number, close: number, volume: number, time: number): string;
+  initialize(closes: string[], highs: string[], lows: string[], volumes: string[], times: Float64Array, settingsJson: string): void;
+  update(open: string, high: string, low: string, close: string, volume: string, time: number): string;
 }
 
 interface WasmModule {
@@ -117,18 +117,18 @@ class WasmCalculator {
     if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
     
     const len = klines.length;
-    const closes = new Float64Array(len);
-    const highs = new Float64Array(len);
-    const lows = new Float64Array(len);
-    const volumes = new Float64Array(len);
+    const closes: string[] = new Array(len);
+    const highs: string[] = new Array(len);
+    const lows: string[] = new Array(len);
+    const volumes: string[] = new Array(len);
     const times = new Float64Array(len);
     
     for (let i = 0; i < len; i++) {
       const k = klines[i];
-      closes[i] = toNumFast(k.close);
-      highs[i] = toNumFast(k.high);
-      lows[i] = toNumFast(k.low);
-      volumes[i] = toNumFast(k.volume || 0);
+      closes[i] = k.close.toString();
+      highs[i] = k.high.toString();
+      lows[i] = k.low.toString();
+      volumes[i] = k.volume ? k.volume.toString() : "0.0";
       times[i] = k.time;
     }
     
@@ -167,7 +167,7 @@ class WasmCalculator {
     this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(wasmSettings));
     
     const last = klines[len - 1];
-    const resultJson = this.instance.update(toNumFast(last.open), highs[len-1], lows[len-1], closes[len-1], volumes[len-1], last.time);
+    const resultJson = this.instance.update(last.open.toString(), highs[len-1], lows[len-1], closes[len-1], volumes[len-1], last.time);
     
     return this.convertResult(JSON.parse(resultJson), klines, settings);
   }
