@@ -345,20 +345,18 @@
                 </div>
                 <div class="flex flex-col gap-2 mb-6">
                     {#if settingsState.discordChannels}
-                        {#each settingsState.discordChannels.map((_, i) => i) as i}
+                        {#each settingsState.discordChannels as _channel, i}
                             <div class="flex items-center gap-2">
                                 <input
                                     type="text"
-                                    bind:value={
-                                        settingsState.discordChannels[i]
-                                    }
+                                    bind:value={settingsState.discordChannels[i]}
                                     class="input-field"
                                     placeholder={$_("settings.ai.discord.channelId")}
                                 />
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
                                     onclick={() => removeDiscordChannel(i)}
-                                    aria-label="Remove channel"
+                                    aria-label={$_("settings.ai.aria.removeChannel")}
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -381,7 +379,7 @@
                     <button
                         class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
                         onclick={addDiscordChannel}
-                        aria-label="Add Channel"
+                        aria-label={$_("settings.ai.aria.addChannel")}
                     >
                         {$_("settings.ai.discord.addChannel")}
                     </button>

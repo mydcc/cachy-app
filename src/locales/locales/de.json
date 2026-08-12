@@ -220,7 +220,23 @@
       "orderCancelled": "Bestellung storniert",
       "cancelFailed": "Stornierung fehlgeschlagen",
       "confirmCancel": "Diesen TP/SL Auftrag stornieren?",
-      "noApiKeys": "Keine API-Keys konfiguriert"
+      "noApiKeys": "Keine API-Keys konfiguriert",
+      "title": "Preisalarme",
+      "active": "Aktiv",
+      "history": "Verlauf",
+      "noActive": "Keine aktiven Alarme",
+      "fired": "Alarm ausgelöst!",
+      "priceReached": "{symbol} hat {price} erreicht",
+      "manage": "Alarme verwalten",
+      "addAlert": "Alarm hinzufügen",
+      "priceLimit": "Preis",
+      "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
+      "createSuccess": "Alarm erfolgreich erstellt.",
+      "noHistory": "Kein Verlauf",
+      "crossesUp": "Kreuzt nach oben",
+      "crossesDown": "Kreuzt nach unten",
+      "reaches": "Erreicht",
+      "symbol": "Symbol"
     },
     "generalInputs": {
       "header": "Allgemein",
@@ -353,6 +369,10 @@
       "statusCancelOnly": "Nur Stornierung möglich",
       "statusStop": "Handel gestoppt",
       "apiNotSupported": "API-Trading deaktiviert"
+    },
+    "positionsAria": {
+      "positionDetails": "Positionsdetails",
+      "symbolDetails": "Symboldetails"
     }
   },
   "journal": {
@@ -722,7 +742,10 @@
       "interval2sTooltip": "Gut für Intraday-Trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Gut für Day-Trading (15min+). Ausgewogen.",
       "interval10sTooltip": "Ideal für Swing-Trading (1h+). Niedrige CPU.",
-      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung"
+      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung",
+      "aria": {
+        "removeTimeframe": "Zeitrahmen entfernen"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -990,6 +1013,10 @@
         "token": "Bot Token",
         "channelId": "Kanal ID",
         "addChannel": "+ Kanal hinzufügen"
+      },
+      "aria": {
+        "removeChannel": "Kanal entfernen",
+        "addChannel": "Kanal hinzufügen"
       }
     },
     "technicals": {
@@ -1104,7 +1131,61 @@
         "strong sell": "Stark Verkaufen",
         "overbought": "Überkauft",
         "oversold": "Überverkauft"
-      }
+      },
+      "panelConfiguration": "Panel-Konfiguration",
+      "toggleVisibility": "Sichtbarkeit umschalten",
+      "signals": "Signale",
+      "calculationEngine": "Berechnungs-Engine",
+      "engine": "Engine",
+      "mode": "Modus",
+      "displayPreferences": "Anzeigeeinstellungen",
+      "calculationMode": "Berechnungsmodus",
+      "obvNoParams": "On Balance Volume hat keine konfigurierbaren Parameter.",
+      "awesomeOsc": "Awesome Osc.",
+      "anchor": "Anker",
+      "rows": "Reihen",
+      "maType": "MA-Typ",
+      "volumeProfile": "Volumenprofil",
+      "williamsR": "Williams %R",
+      "cci": "CCI",
+      "momentum": "Momentum",
+      "wma": "WMA",
+      "vwma": "VWMA",
+      "hma": "HMA",
+      "choppiness": "Choppiness Idx",
+      "stochasticTitle": "Stochastik",
+      "parabolicSar": "Parabolic SAR",
+      "emaTitle": "EMA",
+      "smaTitle": "SMA",
+      "pivotClassic": "Classic",
+      "pivotWoodie": "Woodie",
+      "pivotCamarilla": "Camarilla",
+      "pivotFibonacci": "Fibonacci",
+      "kPeriod": "%K",
+      "dPeriod": "%D",
+      "smooth": "Glättung",
+      "diLength": "DI Länge",
+      "smoothing": "Glättung",
+      "threshold": "Schwellenwert",
+      "conversion": "Konvertierung",
+      "base": "Basis",
+      "spanB": "Span B",
+      "displacement": "Verschiebung",
+      "start": "Start",
+      "inc": "Inkr",
+      "max": "Max",
+      "multiplier": "Multiplikator",
+      "ema1": "EMA 1",
+      "ema2": "EMA 2",
+      "ema3": "EMA 3",
+      "sma1": "SMA 1",
+      "sma2": "SMA 2",
+      "sma3": "SMA 3",
+      "maTypeSma": "SMA",
+      "maTypeEma": "EMA",
+      "maTypeWma": "WMA",
+      "anchorSession": "Sitzung",
+      "anchorFixed": "Fixiert"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -1265,6 +1346,13 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
+      },
+      "aria": {
+        "toggleToken": "Token-Sichtbarkeit umschalten",
+        "toggleKey": "Schlüssel-Sichtbarkeit umschalten",
+        "toggleSecret": "Geheimnis-Sichtbarkeit umschalten",
+        "togglePassphrase": "Passwort-Sichtbarkeit umschalten",
+        "removeFeed": "Feed entfernen"
       }
     },
     "trading": {
@@ -1545,7 +1633,18 @@
     "copy": "Inhalt kopieren",
     "ignore": "Ignorieren",
     "send": "Nachricht senden",
-    "analyzing": "Analysiere..."
+    "analyzing": "Analysiere...",
+    "aria": {
+      "startQuiz": "Quiz starten",
+      "toggleVideo": "Video umschalten",
+      "removeTag": "Tag entfernen"
+    },
+    "export": "Exportieren",
+    "delete": "Löschen",
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "restore": "Wiederherstellen",
+    "feedDuck": "Ente füttern (Profit)"
   },
   "analyst": {
     "trend": {

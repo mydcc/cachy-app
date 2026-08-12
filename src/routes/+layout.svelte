@@ -20,6 +20,7 @@
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
+import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
@@ -414,7 +415,10 @@ import { afterNavigate } from "$app/navigation";
   {@render children?.()}
 
   <!-- Global Modals -->
-  <MarketDashboardModal />
+  {#if uiState.showAlertsModal}
+  <AlertDefinitionsModal onClose={() => (uiState.showAlertsModal = false)} />
+{/if}
+<MarketDashboardModal />
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 

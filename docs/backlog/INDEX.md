@@ -2,9 +2,9 @@
 
 # Backlog index
 
-76 items. How to read and add them: [README.md](README.md).
+79 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ done 33
+Counts by status: 💡 idea 13 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 36
 
 ---
 
@@ -16,7 +16,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | --- | --- | --- | --- | --- |
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | exchange |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | calculation |
-| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 📋 specced | security |
+| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 🟢 ready | security |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | ✅ done | execution |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | security |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | ui |
@@ -79,7 +79,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | 📋 specced | alerts |
+| [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
@@ -124,17 +124,20 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
+| [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | 📋 specced | ui |
+| [BUG-0080](bugs/BUG-0080-bitget-ws-decimal-crash.md) | BitgetWS decimal initializations are vulnerable to unvalidated string crashes | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
+| [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | 📋 specced | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
-| [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | 📋 specced | i18n |
+| [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | i18n |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 🟡 in-progress | calculation |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
@@ -149,7 +152,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | M0 | community, pro, private | A | none | — |
-| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 📋 specced | M0 | community, pro, private | A | none | — |
+| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 🟢 ready | M0 | community, pro, private | A | none | — |
 | [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |
@@ -166,6 +169,8 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | M3 | community, pro, private | none | none | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) |
+| [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0080](bugs/BUG-0080-bitget-ws-decimal-crash.md) | BitgetWS decimal initializations are vulnerable to unvalidated string crashes | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -176,7 +181,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0021](features/FEAT-0021-order-types.md) |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
-| [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
+| [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | 📋 specced | M0 | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
@@ -196,6 +201,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0066](bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md) | Position tooltip labels the live unrealized PnL row "Realized PnL | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -216,7 +222,7 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 🟡 in-progress | none | community, pro, private | C | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
@@ -226,4 +232,4 @@ Counts by status: 💡 idea 13 · 📋 specced 27 · 🟡 in-progress 3 · ✅ d
 
 ---
 
-Next free number: **0077**
+Next free number: **0081**

@@ -139,7 +139,7 @@
                 <div
                   class="flex items-center gap-2 cursor-help"
                   role="group"
-                  aria-label="Position Details"
+                  aria-label={$_("dashboard.positionsAria.positionDetails")}
                   onmouseenter={(e) => handleMouseEnter(e, pos)}
                   onmouseleave={handleMouseLeave}
                 >
@@ -295,7 +295,7 @@
               <div
                 class="flex flex-col items-center px-2 cursor-help"
                 role="group"
-                aria-label="Symbol Details"
+                aria-label={$_("dashboard.positionsAria.symbolDetails")}
                 onmouseenter={(e) => handleMouseEnter(e, pos)}
                 onmouseleave={handleMouseLeave}
               >

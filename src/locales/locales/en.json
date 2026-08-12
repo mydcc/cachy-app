@@ -220,7 +220,23 @@
       "orderCancelled": "Order cancelled",
       "cancelFailed": "Failed to cancel order",
       "confirmCancel": "Cancel this TP/SL order?",
-      "noApiKeys": "No API keys configured"
+      "noApiKeys": "No API keys configured",
+      "title": "Price Alerts",
+      "active": "Active",
+      "history": "History",
+      "noActive": "No active alerts",
+      "fired": "Alert Fired!",
+      "priceReached": "{symbol} reached {price}",
+      "manage": "Manage Alerts",
+      "addAlert": "Add Alert",
+      "priceLimit": "Price",
+      "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
+      "createSuccess": "Alert created successfully.",
+      "noHistory": "No history",
+      "crossesUp": "Crosses Up",
+      "crossesDown": "Crosses Down",
+      "reaches": "Reaches",
+      "symbol": "Symbol"
     },
     "generalInputs": {
       "header": "General",
@@ -353,6 +369,10 @@
       "statusCancelOnly": "Cancel-only",
       "statusStop": "Trading stopped",
       "apiNotSupported": "API trading disabled"
+    },
+    "positionsAria": {
+      "positionDetails": "Position Details",
+      "symbolDetails": "Symbol Details"
     }
   },
   "journal": {
@@ -722,7 +742,10 @@
       "interval2sTooltip": "Great for intraday trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Good for day trading (15min+). Balanced.",
       "interval10sTooltip": "Ideal for swing trading (1h+). Low CPU.",
-      "intervalDesc": "Controls data freshness vs CPU usage"
+      "intervalDesc": "Controls data freshness vs CPU usage",
+      "aria": {
+        "removeTimeframe": "Remove timeframe"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -962,6 +985,10 @@
         "token": "Bot Token",
         "channelId": "Channel ID",
         "addChannel": "+ Add Channel"
+      },
+      "aria": {
+        "removeChannel": "Remove channel",
+        "addChannel": "Add Channel"
       }
     },
     "technicals": {
@@ -1076,7 +1103,61 @@
         "strong sell": "Strong Sell",
         "overbought": "Overbought",
         "oversold": "Oversold"
-      }
+      },
+      "panelConfiguration": "Panel Configuration",
+      "toggleVisibility": "Toggle visibility",
+      "signals": "Signals",
+      "calculationEngine": "Calculation Engine",
+      "engine": "Engine",
+      "mode": "Mode",
+      "displayPreferences": "Display Preferences",
+      "calculationMode": "Calculation Mode",
+      "obvNoParams": "On Balance Volume has no configurable parameters.",
+      "awesomeOsc": "Awesome Osc.",
+      "anchor": "Anchor",
+      "rows": "Rows",
+      "maType": "MA Type",
+      "volumeProfile": "Volume Profile",
+      "williamsR": "Williams %R",
+      "cci": "CCI",
+      "momentum": "Momentum",
+      "wma": "WMA",
+      "vwma": "VWMA",
+      "hma": "HMA",
+      "choppiness": "Choppiness Idx",
+      "stochasticTitle": "Stochastic",
+      "parabolicSar": "Parabolic SAR",
+      "emaTitle": "EMA",
+      "smaTitle": "SMA",
+      "pivotClassic": "Classic",
+      "pivotWoodie": "Woodie",
+      "pivotCamarilla": "Camarilla",
+      "pivotFibonacci": "Fibonacci",
+      "kPeriod": "%K",
+      "dPeriod": "%D",
+      "smooth": "Smooth",
+      "diLength": "DI Length",
+      "smoothing": "Smoothing",
+      "threshold": "Threshold",
+      "conversion": "Conversion",
+      "base": "Base",
+      "spanB": "Span B",
+      "displacement": "Displacement",
+      "start": "Start",
+      "inc": "Inc",
+      "max": "Max",
+      "multiplier": "Multiplier",
+      "ema1": "EMA 1",
+      "ema2": "EMA 2",
+      "ema3": "EMA 3",
+      "sma1": "SMA 1",
+      "sma2": "SMA 2",
+      "sma3": "SMA 3",
+      "maTypeSma": "SMA",
+      "maTypeEma": "EMA",
+      "maTypeWma": "WMA",
+      "anchorSession": "Session",
+      "anchorFixed": "Fixed"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
@@ -1329,6 +1410,13 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
+      },
+      "aria": {
+        "toggleToken": "Toggle token visibility",
+        "toggleKey": "Toggle key visibility",
+        "toggleSecret": "Toggle secret visibility",
+        "togglePassphrase": "Toggle passphrase visibility",
+        "removeFeed": "Remove feed"
       }
     },
     "imgbbExpiration": "Expiration Time",
@@ -1528,7 +1616,18 @@
     "copy": "Copy Content",
     "ignore": "Ignore",
     "send": "Send message",
-    "analyzing": "Analyzing..."
+    "analyzing": "Analyzing...",
+    "aria": {
+      "startQuiz": "Start Quiz",
+      "toggleVideo": "Toggle Video",
+      "removeTag": "Remove tag"
+    },
+    "export": "Export",
+    "delete": "Delete",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "feedDuck": "Feed Duck (Profit)"
   },
   "analyst": {
     "trend": {

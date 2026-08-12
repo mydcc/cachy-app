@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+  import { _ } from "../../locales/i18n";
   import { quizState } from "../../stores/quiz.svelte";
   import { trackClick } from "../../lib/actions";
 </script>
@@ -29,7 +30,7 @@
     action: "Click",
     name: "StartQuiz",
   }}
-  aria-label="Start Quiz"
+  aria-label={$_("common.aria.startQuiz")}
   title="Quick Quiz"
 >
   <svg

@@ -84,6 +84,11 @@ export default defineConfig({
             if (id.includes("katex") || id.includes("marked")) return "markdown-vendor";
             if (id.includes("@google/generative-ai") || id.includes("openai")) return "ai-vendor";
             if (id.includes("svelte-i18n") || id.includes("intl-messageformat")) return "i18n-vendor";
+            if (id.includes("dompurify")) return "dompurify-vendor";
+            if (id.includes("zod")) return "zod-vendor";
+            if (id.includes("lodash-es")) return "lodash-vendor";
+            if (id.includes("lightweight-charts")) return "charts-vendor";
+            if (id.includes("spacetimedb")) return "spacetimedb-vendor";
             return "vendor";
           }
           // Production Hardening: Split Shaders and WASM into dedicated chunks

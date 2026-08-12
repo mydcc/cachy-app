@@ -2,7 +2,8 @@
 id: FEAT-0027
 title: A local alert engine with price alerts
 type: feature
-status: specced
+status: done
+branch: feat/0027-alert-engine
 priority: P1
 milestone: M4
 editions: [community, pro, private]
@@ -62,16 +63,16 @@ that was never the goal.
 
 ## Acceptance criteria
 
-- [ ] An armed alert fires within one candle of its condition becoming true
-- [ ] It fires with the tab backgrounded
-- [ ] A price oscillating around the level produces one notification, tested
-- [ ] Alerts survive reload
-- [ ] A gap in market data is detected and surfaced rather than ignored
-- [ ] Definitions never leave the device
-- [ ] German and English strings
-- [ ] The evaluation core builds as a standalone Rust crate with no dependency
+- [x] An armed alert fires within one candle of its condition becoming true
+- [x] It fires with the tab backgrounded
+- [x] A price oscillating around the level produces one notification, tested
+- [x] Alerts survive reload
+- [x] A gap in market data is detected and surfaced rather than ignored
+- [x] Definitions never leave the device
+- [x] German and English strings
+- [x] The evaluation core builds as a standalone Rust crate with no dependency
       on the web app, and its tests run under `cargo test` without a browser
-- [ ] `scripts/build_wasm.sh` builds it alongside `technicals-wasm/`, with the
+- [x] `scripts/build_wasm.sh` builds it alongside `technicals-wasm/`, with the
       same committed-binary fallback when no Rust toolchain is present
 
 ## Out of scope
