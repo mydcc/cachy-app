@@ -177,57 +177,156 @@ export const dataRepairService = {
 
     const limit = pLimit(5); // Concurrency limit
 
-    const promises = targets.map((trade) => limit(async () => {
-      try {
-        const timeStr = trade.entryDate || trade.date;
-        const timestamp = new Date(timeStr).getTime();
+    // Helper to parse interval to ms
+    const parseIntervalMs = (inv: string) => {
+      const unit = inv.slice(-1);
+      const val = parseInt(inv.slice(0, -1)) || 1;
+      switch(unit) {
+        case 'm': return val * 60 * 1000;
+        case 'h': return val * 60 * 60 * 1000;
+        case 'd': return val * 24 * 60 * 60 * 1000;
+        case 'w': return val * 7 * 24 * 60 * 60 * 1000;
+        default: return 15 * 60 * 1000; // default 15m
+      }
+    };
+    const msPerCandle = parseIntervalMs(interval);
+    const MAX_SPAN_MS = 900 * msPerCandle; // safe limit < 1000
 
-        if (isNaN(timestamp)) {
-          logger.warn(
-            "journal",
-            `[DataRepair] Invalid date for trade ${trade.id}, skipping.`,
-          );
-          failed++;
+    // We need up to 25 candles BEFORE the trade
+    const CANDLES_NEEDED = 25;
+
+    const chunks: { symbol: string, provider?: "bitunix" | "bitget" | "custom", startTs: number, endTs: number, trades: (typeof targets[0] & { ts: number })[] }[] = [];
+    const symbolGroups = new Map<string, (typeof targets[0] & { ts: number })[]>();
+
+    for (const t of targets) {
+      const timeStr = t.entryDate || t.date;
+      const ts = new Date(timeStr).getTime();
+      if (isNaN(ts)) {
+        logger.warn(
+          "journal",
+          `[DataRepair] Invalid date for trade ${t.id}, skipping.`,
+        );
+        failed++;
+        processed++;
+        onProgress(processed, total, `Skipped ${t.symbol}...`);
+        continue;
+      }
+      const k = `${t.symbol}_${t.provider || 'default'}`;
+      if (!symbolGroups.has(k)) symbolGroups.set(k, []);
+      symbolGroups.get(k)!.push({ ...t, ts });
+    }
+
+    for (const groupTrades of symbolGroups.values()) {
+      groupTrades.sort((a, b) => a.ts - b.ts);
+      let currentChunk: typeof chunks[0] | null = null;
+
+      for (const t of groupTrades) {
+        // We fetch 25 candles leading up to the trade
+        const neededStart = t.ts - CANDLES_NEEDED * msPerCandle;
+        const neededEnd = t.ts;
+
+        if (!currentChunk) {
+          currentChunk = { symbol: t.symbol, provider: t.provider, startTs: neededStart, endTs: neededEnd, trades: [t] };
         } else {
-          const result = await fetchSmartKlines(
-            trade.symbol,
-            interval,
-            25,
-            undefined,
-            timestamp,
-            trade.provider,
-          );
-
-          if (result && result.klines.length >= 14) {
-            const atr = calculator.calculateATR(result.klines, 14);
-
-            if (atr && !atr.isNaN()) {
-              journalState.updateEntry({
-                ...trade,
-                atrValue: atr,
-                provider: result.provider, // Update provider for future ref
-              });
-            } else {
-              failed++;
-            }
+          const proposedEnd = Math.max(currentChunk.endTs, neededEnd);
+          const proposedStart = Math.min(currentChunk.startTs, neededStart);
+          if (proposedEnd - proposedStart <= MAX_SPAN_MS) {
+            currentChunk.endTs = proposedEnd;
+            currentChunk.startTs = proposedStart;
+            currentChunk.trades.push(t);
           } else {
+            chunks.push(currentChunk);
+            currentChunk = { symbol: t.symbol, provider: t.provider, startTs: neededStart, endTs: neededEnd, trades: [t] };
+          }
+        }
+      }
+      if (currentChunk) chunks.push(currentChunk);
+    }
+
+    const promises = chunks.map((chunk) => limit(async () => {
+      try {
+        const result = await fetchSmartKlines(
+          chunk.symbol,
+          interval,
+          1000, // Batch limit
+          chunk.startTs,
+          chunk.endTs,
+          chunk.provider
+        );
+
+        if (result && result.klines.length > 0) {
+          for (const trade of chunk.trades) {
+            try {
+              const tradeTs = trade.ts;
+              const neededStart = tradeTs - CANDLES_NEEDED * msPerCandle;
+
+              // Filter klines that fall within the needed window
+              const tradeKlines = result.klines.filter(k => {
+                const kt = Number(k.time);
+                // Inclusive of tradeTs, but strictly greater than neededStart to match 25 intervals
+                return kt > neededStart && kt <= tradeTs;
+              });
+
+              // Ensure sorted by time ascending
+              tradeKlines.sort((a, b) => Number(a.time) - Number(b.time));
+
+              // Grab the most recent up to 25 candles
+              const finalKlines = tradeKlines.slice(-CANDLES_NEEDED);
+
+              if (finalKlines.length >= 14) {
+                const atr = calculator.calculateATR(finalKlines, 14);
+
+                if (atr && !atr.isNaN()) {
+                  // We remove the temporary `ts` property if needed, but spreading is fine since journalState only updates known keys or it ignores extra
+                  const { ts, ...tradeUpdate } = trade;
+                  journalState.updateEntry({
+                    ...tradeUpdate,
+                    atrValue: atr,
+                    provider: result.provider,
+                  });
+                } else {
+                  failed++;
+                }
+              } else {
+                failed++;
+              }
+            } catch (e) {
+              failed++;
+            } finally {
+              processed++;
+              onProgress(
+                processed,
+                total,
+                `Repariere ${trade.symbol} (${trade.date})...`,
+              );
+            }
+          }
+        } else {
+          for (const trade of chunk.trades) {
             failed++;
+            processed++;
+            onProgress(
+              processed,
+              total,
+              `Repariere ${trade.symbol} (${trade.date})...`,
+            );
           }
         }
       } catch (e) {
         logger.error(
           "journal",
-          `[DataRepair] Failed to repair ${trade.symbol}`,
+          `[DataRepair] Failed to repair ${chunk.symbol}`,
           e,
         );
-        failed++;
-      } finally {
-        processed++;
-        onProgress(
-          processed,
-          total,
-          `Repariere ${trade.symbol} (${trade.date})...`,
-        );
+        for (const trade of chunk.trades) {
+          failed++;
+          processed++;
+          onProgress(
+            processed,
+            total,
+            `Repariere ${trade.symbol} (${trade.date})...`,
+          );
+        }
       }
     }));
 
