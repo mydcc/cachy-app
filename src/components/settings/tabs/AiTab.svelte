@@ -345,13 +345,11 @@
                 </div>
                 <div class="flex flex-col gap-2 mb-6">
                     {#if settingsState.discordChannels}
-                        {#each settingsState.discordChannels.map((_, i) => i) as i}
+                        {#each settingsState.discordChannels as _channel, i}
                             <div class="flex items-center gap-2">
                                 <input
                                     type="text"
-                                    bind:value={
-                                        settingsState.discordChannels[i]
-                                    }
+                                    bind:value={settingsState.discordChannels[i]}
                                     class="input-field"
                                     placeholder={$_("settings.ai.discord.channelId")}
                                 />

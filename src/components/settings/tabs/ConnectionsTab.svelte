@@ -664,7 +664,7 @@
                 </h4>
                 <div class="flex flex-col gap-2">
                     {#if settingsState.customRssFeeds}
-                        {#each settingsState.customRssFeeds.map((_, i) => i) as i}
+                        {#each settingsState.customRssFeeds as _feed, i}
                             <div class="flex items-center gap-2">
                                 <input
                                     type="url"
