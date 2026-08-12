@@ -18,6 +18,7 @@
 <script lang="ts">
     import { uiState } from "../../stores/ui.svelte";
     import { modalState } from "../../stores/modal.svelte";
+    import { settingsState } from "../../stores/settings.svelte";
     import { _ } from "../../locales/i18n";
     import {
         createBackup,
@@ -256,6 +257,16 @@
 
     <!-- Tab Content Area -->
     <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+        {#if settingsState.decryptionFailures.length > 0}
+            <div class="mb-6 p-4 bg-[var(--danger-color)]/10 text-[var(--danger-color)] rounded-lg border border-[var(--danger-color)]/20 shadow-sm flex gap-3 items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <div>
+                    <h3 class="font-bold text-sm mb-1">{$_("settings.decryptionFailureTitle") || "Security Warning"}</h3>
+                    <p class="text-xs opacity-90">{settingsState.decryptionFailures.length} {$_("settings.decryptionFailureMessage") || "saved keys could not be read and need to be re-entered. This usually happens if the browser cleared the local device encryption key."}</p>
+                </div>
+            </div>
+        {/if}
+
         {#if activeTab === "trading"}
             <TradingTab />
         {:else if activeTab === "visuals"}

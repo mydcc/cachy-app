@@ -348,11 +348,17 @@ class CryptoServiceImpl {
    * This provides better security than localStorage as the key material cannot be easily exfiltrated via XSS.
    * For backward compatibility, legacy hex keys are imported as PBKDF2 keys to maintain the same derivation path.
    */
-  public async getOrGenerateDeviceKey(legacyHexKey?: string): Promise<CryptoKey> {
+  public async getOrGenerateDeviceKey(legacyHexKey?: string, allowGenerate = true): Promise<CryptoKey | null> {
     if (!browser) throw new Error("Browser environment required for Device Key");
 
+    const t0 = performance.now();
     // 1. Try to load from IndexedDB
     let key = await this.loadKeyFromDB(DEVICE_KEY_ALIAS);
+    const t1 = performance.now();
+    if (import.meta.env.DEV) {
+      console.debug(`[cryptoService] loadKeyFromDB / indexedDB.open took ${t1 - t0}ms`);
+    }
+
     if (key) return key;
 
     // 2. Migration or Generation
@@ -367,6 +373,9 @@ class CryptoServiceImpl {
         ["deriveKey"]
       );
     } else {
+      if (!allowGenerate) {
+        return null;
+      }
       // Generate fresh non-extractable key.
       // We use PBKDF2 even for new keys to keep the EncryptedBlob structure (with salt) consistent.
       const randomData = window.crypto.getRandomValues(new Uint8Array(32));

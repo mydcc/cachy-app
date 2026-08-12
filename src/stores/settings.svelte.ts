@@ -162,6 +162,7 @@ export interface Settings {
     bitget?: EncryptedBlob;
   };
   encryptedSecrets?: Record<string, EncryptedBlob>;
+  deviceKeyCanary?: EncryptedBlob;
   isEncrypted?: boolean;
   customHotkeys: Record<string, string>;
   favoriteTimeframes: string[];
@@ -878,6 +879,8 @@ export class SettingsManager {
   // Security State
   encryptedApiKeys = $state<Settings["encryptedApiKeys"]>(undefined);
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
+  deviceKeyCanary = $state<Settings["deviceKeyCanary"]>(undefined);
+  decryptionFailures = $state<string[]>([]);
   isEncrypted = $state(false);
   isLocked = $state(false);
 
@@ -969,7 +972,7 @@ export class SettingsManager {
    * Securely retrieves the device key.
    * Migrates from localStorage to IndexedDB if necessary.
    */
-  private async getDeviceKey(): Promise<string | CryptoKey> {
+  private async getDeviceKey(allowGenerate = true): Promise<string | CryptoKey | null> {
     if (!browser) return "server-side-key-placeholder";
     if (this._deviceKey) return this._deviceKey;
 
@@ -979,10 +982,11 @@ export class SettingsManager {
     // 2. Get or Generate secure key (handles migration if legacyKey provided)
     const key = await cryptoService.getOrGenerateDeviceKey(
       legacyKey || undefined,
+      allowGenerate
     );
 
     // 3. Cleanup legacy key if migration happened
-    if (legacyKey) {
+    if (legacyKey && key) {
       if (import.meta.env.DEV) {
         console.warn(
           "[Settings] Migrated device key from localStorage to secure storage.",
@@ -1246,6 +1250,7 @@ export class SettingsManager {
       // Security: Load Encrypted Secrets (Generic)
       if (merged.encryptedSecrets) {
         this.encryptedSecrets = merged.encryptedSecrets;
+        this.deviceKeyCanary = merged.deviceKeyCanary;
 
         // If Obfuscation Mode (no master password), decrypt immediately
         if (!this.isEncrypted) {
@@ -1254,14 +1259,49 @@ export class SettingsManager {
           secretsPending = true;
           void (async () => {
             try {
-              const deviceKey = await this.getDeviceKey();
+              let deviceKey = await this.getDeviceKey(false);
+              const hasSecrets = Object.keys(this.encryptedSecrets || {}).length > 0;
+              let isOrphaned = false;
+
+              if (hasSecrets) {
+                if (!deviceKey) {
+                  isOrphaned = true;
+                } else if (this.deviceKeyCanary) {
+                  try {
+                    await cryptoService.decrypt(this.deviceKeyCanary, deviceKey as CryptoKey);
+                  } catch (e) {
+                    isOrphaned = true;
+                  }
+                }
+              }
+
+              if (isOrphaned) {
+                const failedKeys = Object.keys(this.encryptedSecrets || {});
+                this.decryptionFailures = failedKeys;
+                for (const key of failedKeys) {
+                  console.error(`[Settings] Failed to decrypt secret ${key} OperationError (Orphaned data)`);
+                }
+                return;
+              }
+
+              if (!deviceKey) {
+                deviceKey = await this.getDeviceKey(true);
+              }
+
+              if (!this.deviceKeyCanary && deviceKey) {
+                this.deviceKeyCanary = await cryptoService.encrypt("cachy_canary_v1", deviceKey as CryptoKey);
+                if (!this.saveLock && this.effectActive) {
+                  this.save();
+                }
+              }
+
               const entries = Object.entries(this.encryptedSecrets || {});
               await Promise.all(
                 entries.map(async ([key, blob]) => {
                   try {
                     const decrypted = await cryptoService.decrypt(
                       blob as EncryptedBlob,
-                      deviceKey,
+                      deviceKey as CryptoKey,
                     );
                     if (SENSITIVE_KEYS.includes(key as keyof Settings)) {
                       // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
@@ -1272,6 +1312,7 @@ export class SettingsManager {
                       "[Settings] Failed to decrypt secret " + key,
                       e,
                     );
+                    this.decryptionFailures = [...this.decryptionFailures, key];
                   }
                 }),
               );
@@ -1633,6 +1674,9 @@ export class SettingsManager {
         : undefined,
       encryptedSecrets: this.encryptedSecrets
         ? $state.snapshot(this.encryptedSecrets)
+        : undefined,
+      deviceKeyCanary: this.deviceKeyCanary
+        ? $state.snapshot(this.deviceKeyCanary)
         : undefined,
       isEncrypted: this.isEncrypted,
       customHotkeys: $state.snapshot(this.customHotkeys),

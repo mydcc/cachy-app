@@ -126,6 +126,32 @@ describe("SettingsManager Security", () => {
     expect(cryptoService.decrypt).toHaveBeenCalled();
     expect(settingsState.apiKeys.bitunix.key).toBe("decrypted-key");
   });
+
+  it("should not generate a new device key if canary decryption fails (orphaned state)", async () => {
+    // Setup state simulating orphaned data in obfuscation mode
+    localStorageMock.setItem(
+      "cachy_settings",
+      JSON.stringify({
+        isEncrypted: false,
+        encryptedSecrets: {
+          testSecret: { ciphertext: "abc", iv: "iv", salt: "s", method: "AES-GCM" }
+        },
+        deviceKeyCanary: { ciphertext: "canary", iv: "iv", salt: "s", method: "AES-GCM" }
+      })
+    );
+
+    // Mock device key missing and generating a new one
+    // Wait, getOrGenerateDeviceKey with allowGenerate=false will return null
+    (cryptoService.getOrGenerateDeviceKey as any).mockResolvedValueOnce(null);
+
+    // Call load and wait for secretsReady
+    settingsState.load();
+    await settingsState.secretsReady;
+
+    expect(settingsState.decryptionFailures).toContain("testSecret");
+    // It should not have attempted to decrypt the secret since canary check or key missing failed
+    expect(settingsState.isEncrypted).toBe(false);
+  });
 });
 
 /**
