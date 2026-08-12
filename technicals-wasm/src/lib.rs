@@ -178,10 +178,10 @@ impl TechnicalsCalculator {
     }
 
     pub fn initialize(&mut self, closes_str: Vec<String>, highs_str: Vec<String>, lows_str: Vec<String>, volumes_str: Vec<String>, _times: Vec<f64>, settings_json: &str) {
-        let closes: Vec<Decimal> = closes_str.iter().map(|s| Decimal::from_str(s).unwrap_or(Decimal::ZERO)).collect();
-        let highs: Vec<Decimal> = highs_str.iter().map(|s| Decimal::from_str(s).unwrap_or(Decimal::ZERO)).collect();
-        let lows: Vec<Decimal> = lows_str.iter().map(|s| Decimal::from_str(s).unwrap_or(Decimal::ZERO)).collect();
-        let volumes: Vec<Decimal> = volumes_str.iter().map(|s| Decimal::from_str(s).unwrap_or(Decimal::ZERO)).collect();
+        let closes: Vec<Decimal> = closes_str.iter().map(|s| Decimal::from_str(s).expect("Invalid decimal string")).collect();
+        let highs: Vec<Decimal> = highs_str.iter().map(|s| Decimal::from_str(s).expect("Invalid decimal string")).collect();
+        let lows: Vec<Decimal> = lows_str.iter().map(|s| Decimal::from_str(s).expect("Invalid decimal string")).collect();
+        let volumes: Vec<Decimal> = volumes_str.iter().map(|s| Decimal::from_str(s).expect("Invalid decimal string")).collect();
         self.settings = serde_json::from_str(settings_json).unwrap_or_else(|e| { println!("JSON Parse Error: {:?}", e); IndicatorSettings::default() });
         let len = closes.len();
         if len == 0 { return; }
@@ -244,7 +244,7 @@ impl TechnicalsCalculator {
         // HMA Init (Hull Moving Average) - WMA(2*WMA(n/2) - WMA(n), sqrt(n))
         for s in &self.settings.hma {
             let half_len = s.length / 2;
-            let sqrt_len = Decimal::from(s.length).to_f64().unwrap().sqrt() as usize;
+            let sqrt_len = Decimal::from(s.length).sqrt().unwrap().to_usize().unwrap();
             let mut wma_half = Decimal::ZERO; let mut wma_full = Decimal::ZERO; let mut _sqrt_wma = Decimal::ZERO; let mut init = false;
             
             if len >= s.length + sqrt_len {
@@ -489,10 +489,10 @@ impl TechnicalsCalculator {
     }
 
     pub fn update(&self, _o_str: String, h_str: String, l_str: String, c_str: String, v_str: String, _t: f64) -> String {
-        let h = Decimal::from_str(&h_str).unwrap_or(Decimal::ZERO);
-        let l = Decimal::from_str(&l_str).unwrap_or(Decimal::ZERO);
-        let c = Decimal::from_str(&c_str).unwrap_or(Decimal::ZERO);
-        let v = Decimal::from_str(&v_str).unwrap_or(Decimal::ZERO);
+        let h = Decimal::from_str(&h_str).expect("Invalid decimal string");
+        let l = Decimal::from_str(&l_str).expect("Invalid decimal string");
+        let c = Decimal::from_str(&c_str).expect("Invalid decimal string");
+        let v = Decimal::from_str(&v_str).expect("Invalid decimal string");
         let mut out = OutputData {
             moving_averages: HashMap::new(), oscillators: HashMap::new(), volatility: HashMap::new(), pivots: HashMap::new(),
         };
@@ -532,7 +532,7 @@ impl TechnicalsCalculator {
         for (&len, s) in &self.hma_states {
             if s.initialized && self.price_history_closes.len() >= len {
                 let _half = len / 2;
-                let _sqrt_len = Decimal::from(len).to_f64().unwrap().sqrt() as usize;
+                let _sqrt_len = Decimal::from(len).sqrt().unwrap().to_usize().unwrap();
                 
                 // Simplified HMA calculation (proper implementation requires more state)
                 // HMA = WMA(2 * WMA(n/2) - WMA(n), sqrt(n))
@@ -553,7 +553,7 @@ impl TechnicalsCalculator {
         for (&len, s) in &self.bb_states { if s.initialized && self.price_history_closes.len() >= len {
             let old = self.price_history_closes[self.price_history_closes.len() - len];
             let ns = s.sum - old + c; let nsq = s.sum_sq - (old*old) + (c*c);
-            let sma = ns / Decimal::from(len); let sd = if (nsq - (ns*ns) / Decimal::from(len)) / Decimal::from(len) > Decimal::ZERO { Decimal::from_f64(((nsq - (ns*ns) / Decimal::from(len)) / Decimal::from(len)).to_f64().unwrap().sqrt()).unwrap() } else { Decimal::ZERO };
+            let sma = ns / Decimal::from(len); let sd = if (nsq - (ns*ns) / Decimal::from(len)) / Decimal::from(len) > Decimal::ZERO { ((nsq - (ns*ns) / Decimal::from(len)) / Decimal::from(len)).sqrt().unwrap() } else { Decimal::ZERO };
             out.volatility.insert(format!("BB{}_upper", len), sma + s.std_dev_mult * sd); out.volatility.insert(format!("BB{}_lower", len), sma - s.std_dev_mult * sd); out.volatility.insert(format!("BB{}_basis", len), sma);
         }}
         for (&len, s) in &self.atr_states { if s.initialized {
@@ -717,10 +717,10 @@ impl TechnicalsCalculator {
     }
 
     pub fn shift(&mut self, _o_str: String, h_str: String, l_str: String, c_str: String, v_str: String, _t: f64) {
-        let h = Decimal::from_str(&h_str).unwrap_or(Decimal::ZERO);
-        let l = Decimal::from_str(&l_str).unwrap_or(Decimal::ZERO);
-        let c = Decimal::from_str(&c_str).unwrap_or(Decimal::ZERO);
-        let v = Decimal::from_str(&v_str).unwrap_or(Decimal::ZERO);
+        let h = Decimal::from_str(&h_str).expect("Invalid decimal string");
+        let l = Decimal::from_str(&l_str).expect("Invalid decimal string");
+        let c = Decimal::from_str(&c_str).expect("Invalid decimal string");
+        let v = Decimal::from_str(&v_str).expect("Invalid decimal string");
         let mut popped_c = None;
         let mut popped_v = None;
 
@@ -965,7 +965,7 @@ impl TechnicalsCalculator {
             s.cum_vol += v;
             // s.last_t = t; // t is not Decimal::from(passed) in shift sig in all versions?
             // Check shift sig: shift(&mut self, _o: f64, h: f64, l: f64, c: f64, v: f64, _t: f64)
-            s.last_t = Decimal::from_f64(_t).unwrap_or(Decimal::ZERO);
+            s.last_t = Decimal::from_f64(_t).expect("Invalid decimal string");
         }
     }
 }
