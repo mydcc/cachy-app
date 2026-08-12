@@ -369,6 +369,10 @@
       "statusCancelOnly": "Nur Stornierung möglich",
       "statusStop": "Handel gestoppt",
       "apiNotSupported": "API-Trading deaktiviert"
+    },
+    "positionsAria": {
+      "positionDetails": "Positionsdetails",
+      "symbolDetails": "Symboldetails"
     }
   },
   "journal": {
@@ -738,7 +742,10 @@
       "interval2sTooltip": "Gut für Intraday-Trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Gut für Day-Trading (15min+). Ausgewogen.",
       "interval10sTooltip": "Ideal für Swing-Trading (1h+). Niedrige CPU.",
-      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung"
+      "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung",
+      "aria": {
+        "removeTimeframe": "Zeitrahmen entfernen"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -1006,6 +1013,10 @@
         "token": "Bot Token",
         "channelId": "Kanal ID",
         "addChannel": "+ Kanal hinzufügen"
+      },
+      "aria": {
+        "removeChannel": "Kanal entfernen",
+        "addChannel": "Kanal hinzufügen"
       }
     },
     "technicals": {
@@ -1335,6 +1346,13 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
+      },
+      "aria": {
+        "toggleToken": "Token-Sichtbarkeit umschalten",
+        "toggleKey": "Schlüssel-Sichtbarkeit umschalten",
+        "toggleSecret": "Geheimnis-Sichtbarkeit umschalten",
+        "togglePassphrase": "Passwort-Sichtbarkeit umschalten",
+        "removeFeed": "Feed entfernen"
       }
     },
     "trading": {
@@ -1615,7 +1633,12 @@
     "copy": "Inhalt kopieren",
     "ignore": "Ignorieren",
     "send": "Nachricht senden",
-    "analyzing": "Analysiere..."
+    "analyzing": "Analysiere...",
+    "aria": {
+      "startQuiz": "Quiz starten",
+      "toggleVideo": "Video umschalten",
+      "removeTag": "Tag entfernen"
+    }
   },
   "analyst": {
     "trend": {

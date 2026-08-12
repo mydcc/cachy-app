@@ -69,7 +69,7 @@
         <button
           class="hover:text-[var(--danger-color)]"
           onclick={() => removeTag(tag)}
-          aria-label="Remove tag {tag}">{$_("common.remove")}</button
+          aria-label={`${$_("common.aria.removeTag")} ${tag}`}>{$_("common.remove")}</button
         >
       </span>
     {/each}

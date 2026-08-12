@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import { _ } from "../../locales/i18n";
     import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
     import { scale } from "svelte/transition";
@@ -73,7 +74,7 @@
         class:active={isGenesisOpen}
         onclick={toggleMain}
         oncontextmenu={handleContextMenu}
-        aria-label="Toggle Video"
+        aria-label={$_("common.aria.toggleVideo")}
         title="Left-Click: Toggle Genesis | Right-Click: More Channels"
     >
         <svg
