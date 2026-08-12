@@ -141,6 +141,7 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
             const is429 = msg.includes("429");
             msg = sanitizeErrorMessage(msg);
 
+            // eslint-disable-next-line preserve-caught-error
             if (is429) throw new Error(msg);
             console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
             lastError = msg;
