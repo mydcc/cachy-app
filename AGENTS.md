@@ -46,6 +46,7 @@ Nach jeder Änderung: `npm run check` und die betroffenen Tests ausführen. Eine
 
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `refactor`, `BREAKING CHANGE:` im Footer).
 - **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request, Ziel-Branch ist immer `develop`.
+- **Pull Request Linking:** Jeder Pull Request MUSS am Anfang der Beschreibung `Fixes #<github_issue_number>` (z. B. `Fixes #1770`) enthalten, damit GitHub den PR automatisch mit dem Issue verknüpft und die Kanban-Karte weiterschiebt.
 - Keinen Code löschen, dessen Zweck unklar ist. Copyright-Header und Metadaten unangetastet lassen. `console.log`-Debug-Statements nur auf ausdrückliche Anweisung entfernen.
 
 ## Backlog-Items: nicht autonom selbst auswählen und lösen
