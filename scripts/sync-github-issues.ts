@@ -67,6 +67,57 @@ async function fetchAllIssues(): Promise<GitHubIssue[]> {
     return allIssues;
 }
 
+interface GitHubPullRequest {
+    number: number;
+    title: string;
+    body: string | null;
+    head: { ref: string };
+    url: string;
+}
+
+async function fetchAllOpenPRs(): Promise<GitHubPullRequest[]> {
+    try {
+        const prUrl = `https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100`;
+        const res = await fetch(prUrl, {
+            headers: {
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            }
+        });
+        if (!res.ok) return [];
+        return await res.json();
+    } catch {
+        return [];
+    }
+}
+
+async function ensurePRsAreLinked(item: BacklogItem, issueNumber: number, openPRs: GitHubPullRequest[]) {
+    const matchingPRs = openPRs.filter(pr =>
+        pr.title.includes(item.id) ||
+        pr.body?.includes(item.id) ||
+        pr.head.ref.includes(item.id)
+    );
+
+    for (const pr of matchingPRs) {
+        const hasIssueLink = pr.body?.match(new RegExp(`Fixes #${issueNumber}|Closes #${issueNumber}|Resolves #${issueNumber}`, 'i'));
+        if (!hasIssueLink) {
+            console.log(`[PR Auto-Link] Prepending 'Fixes #${issueNumber}' to PR #${pr.number} for ${item.id}`);
+            const updatedBody = `Fixes #${issueNumber}\n\n${pr.body || ''}`;
+            await fetch(pr.url, {
+                method: 'PATCH',
+                headers: {
+                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                    "Accept": "application/vnd.github+json",
+                    "Content-Type": "application/json",
+                    "X-GitHub-Api-Version": "2022-11-28"
+                },
+                body: JSON.stringify({ body: updatedBody })
+            });
+        }
+    }
+}
+
 // Parse markdown file to extract frontmatter and body
 function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | null {
     const match = rawContent.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -351,6 +402,10 @@ async function main() {
     console.log("Fetching existing GitHub issues...");
     const existingIssues = await fetchAllIssues();
     console.log(`Found ${existingIssues.length} existing issues.`);
+
+    console.log("Fetching open pull requests for auto-linking...");
+    const openPRs = await fetchAllOpenPRs();
+    console.log(`Found ${openPRs.length} open pull requests.`);
     
     console.log("Parsing local backlog files...");
     const localItems = await findBacklogFiles();
@@ -366,6 +421,9 @@ async function main() {
         );
         
         await createOrUpdateIssue(item, existing);
+        if (existing?.number) {
+            await ensurePRsAreLinked(item, existing.number, openPRs);
+        }
         // Small delay to avoid hitting GitHub API rate limits too aggressively
         await new Promise(resolve => setTimeout(resolve, 300));
     }
