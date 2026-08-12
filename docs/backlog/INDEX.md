@@ -2,9 +2,9 @@
 
 # Backlog index
 
-79 items. How to read and add them: [README.md](README.md).
+180 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 13 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 36
+Counts by status: 💡 idea 13 · 📋 specced 127 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 36
 
 ---
 
@@ -126,6 +126,107 @@ Counts by status: 💡 idea 13 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | 📋 specced | ui |
 | [BUG-0080](bugs/BUG-0080-bitget-ws-decimal-crash.md) | BitgetWS decimal initializations are vulnerable to unvalidated string crashes | P1 | 📋 specced | execution |
+| [BUG-0081](bugs/BUG-0081-float-arithmetic-types-ts-25.md) | Native float arithmetic used for financial values in types.ts:25 | P1 | 📋 specced | services |
+| [BUG-0082](bugs/BUG-0082-float-arithmetic-types-ts-35.md) | Native float arithmetic used for financial values in types.ts:35 | P1 | 📋 specced | services |
+| [BUG-0083](bugs/BUG-0083-float-arithmetic-calculatorService-ts-499.md) | Native float arithmetic used for financial values in calculatorService.ts:499 | P1 | 📋 specced | services |
+| [BUG-0084](bugs/BUG-0084-float-arithmetic-calculatorService-ts-505.md) | Native float arithmetic used for financial values in calculatorService.ts:505 | P1 | 📋 specced | services |
+| [BUG-0085](bugs/BUG-0085-float-arithmetic-calculatorService-ts-512.md) | Native float arithmetic used for financial values in calculatorService.ts:512 | P1 | 📋 specced | services |
+| [BUG-0086](bugs/BUG-0086-float-arithmetic-calculatorService-ts-518.md) | Native float arithmetic used for financial values in calculatorService.ts:518 | P1 | 📋 specced | services |
+| [BUG-0087](bugs/BUG-0087-float-arithmetic-technicalsTypes-ts-91.md) | Native float arithmetic used for financial values in technicalsTypes.ts:91 | P1 | 📋 specced | services |
+| [BUG-0088](bugs/BUG-0088-float-arithmetic-technicalsTypes-ts-104.md) | Native float arithmetic used for financial values in technicalsTypes.ts:104 | P1 | 📋 specced | services |
+| [BUG-0089](bugs/BUG-0089-float-arithmetic-technicalsTypes-ts-105.md) | Native float arithmetic used for financial values in technicalsTypes.ts:105 | P1 | 📋 specced | services |
+| [BUG-0090](bugs/BUG-0090-float-arithmetic-technicalsTypes-ts-148.md) | Native float arithmetic used for financial values in technicalsTypes.ts:148 | P1 | 📋 specced | services |
+| [BUG-0091](bugs/BUG-0091-float-arithmetic-technicalsTypes-ts-176.md) | Native float arithmetic used for financial values in technicalsTypes.ts:176 | P1 | 📋 specced | services |
+| [BUG-0092](bugs/BUG-0092-float-arithmetic-technicalsTypes-ts-283.md) | Native float arithmetic used for financial values in technicalsTypes.ts:283 | P1 | 📋 specced | services |
+| [BUG-0093](bugs/BUG-0093-float-arithmetic-alertEngine-ts-25.md) | Native float arithmetic used for financial values in alertEngine.ts:25 | P1 | 📋 specced | services |
+| [BUG-0094](bugs/BUG-0094-float-arithmetic-alertEngine-ts-110.md) | Native float arithmetic used for financial values in alertEngine.ts:110 | P1 | 📋 specced | services |
+| [BUG-0095](bugs/BUG-0095-float-arithmetic-uiManager-ts-72.md) | Native float arithmetic used for financial values in uiManager.ts:72 | P1 | 📋 specced | services |
+| [BUG-0096](bugs/BUG-0096-float-arithmetic-uiManager-ts-73.md) | Native float arithmetic used for financial values in uiManager.ts:73 | P1 | 📋 specced | services |
+| [BUG-0097](bugs/BUG-0097-float-arithmetic-uiManager-ts-77.md) | Native float arithmetic used for financial values in uiManager.ts:77 | P1 | 📋 specced | services |
+| [BUG-0098](bugs/BUG-0098-float-arithmetic-syncService-ts-251.md) | Native float arithmetic used for financial values in syncService.ts:251 | P1 | 📋 specced | services |
+| [BUG-0099](bugs/BUG-0099-float-arithmetic-activeTechnicalsManager-svelte-ts-658.md) | Native float arithmetic used for financial values in activeTechnicalsManager.svelte.ts:658 | P1 | 📋 specced | services |
+| [BUG-0100](bugs/BUG-0100-float-arithmetic-activeTechnicalsManager-svelte-ts-670.md) | Native float arithmetic used for financial values in activeTechnicalsManager.svelte.ts:670 | P1 | 📋 specced | services |
+| [BUG-0101](bugs/BUG-0101-float-arithmetic-technicalsService-ts-163.md) | Native float arithmetic used for financial values in technicalsService.ts:163 | P1 | 📋 specced | services |
+| [BUG-0102](bugs/BUG-0102-float-arithmetic-csvService-ts-95.md) | Native float arithmetic used for financial values in csvService.ts:95 | P1 | 📋 specced | services |
+| [BUG-0103](bugs/BUG-0103-float-arithmetic-csvService-ts-109.md) | Native float arithmetic used for financial values in csvService.ts:109 | P1 | 📋 specced | services |
+| [BUG-0104](bugs/BUG-0104-float-arithmetic-csvService-ts-110.md) | Native float arithmetic used for financial values in csvService.ts:110 | P1 | 📋 specced | services |
+| [BUG-0105](bugs/BUG-0105-float-arithmetic-csvService-ts-111.md) | Native float arithmetic used for financial values in csvService.ts:111 | P1 | 📋 specced | services |
+| [BUG-0106](bugs/BUG-0106-float-arithmetic-csvService-ts-115.md) | Native float arithmetic used for financial values in csvService.ts:115 | P1 | 📋 specced | services |
+| [BUG-0107](bugs/BUG-0107-float-arithmetic-csvService-ts-118.md) | Native float arithmetic used for financial values in csvService.ts:118 | P1 | 📋 specced | services |
+| [BUG-0108](bugs/BUG-0108-float-arithmetic-csvService-ts-119.md) | Native float arithmetic used for financial values in csvService.ts:119 | P1 | 📋 specced | services |
+| [BUG-0109](bugs/BUG-0109-float-arithmetic-csvService-ts-127.md) | Native float arithmetic used for financial values in csvService.ts:127 | P1 | 📋 specced | services |
+| [BUG-0110](bugs/BUG-0110-float-arithmetic-csvService-ts-128.md) | Native float arithmetic used for financial values in csvService.ts:128 | P1 | 📋 specced | services |
+| [BUG-0111](bugs/BUG-0111-float-arithmetic-AiModelPicker-svelte-84.md) | Native float arithmetic used for financial values in AiModelPicker.svelte:84 | P1 | 📋 specced | ui |
+| [BUG-0112](bugs/BUG-0112-float-arithmetic-ConnectionsTab-svelte-74.md) | Native float arithmetic used for financial values in ConnectionsTab.svelte:74 | P1 | 📋 specced | ui |
+| [BUG-0113](bugs/BUG-0113-float-arithmetic-AlertDefinitionsModal-svelte-33.md) | Native float arithmetic used for financial values in AlertDefinitionsModal.svelte:33 | P1 | 📋 specced | ui |
+| [BUG-0114](bugs/BUG-0114-float-arithmetic-TakeProfitRow-svelte-94.md) | Native float arithmetic used for financial values in TakeProfitRow.svelte:94 | P1 | 📋 specced | ui |
+| [BUG-0115](bugs/BUG-0115-float-arithmetic-VisualBar-svelte-45.md) | Native float arithmetic used for financial values in VisualBar.svelte:45 | P1 | 📋 specced | ui |
+| [BUG-0116](bugs/BUG-0116-float-arithmetic-VisualBar-svelte-48.md) | Native float arithmetic used for financial values in VisualBar.svelte:48 | P1 | 📋 specced | ui |
+| [BUG-0117](bugs/BUG-0117-float-arithmetic-VisualBar-svelte-58.md) | Native float arithmetic used for financial values in VisualBar.svelte:58 | P1 | 📋 specced | ui |
+| [BUG-0118](bugs/BUG-0118-float-arithmetic-VisualBar-svelte-77.md) | Native float arithmetic used for financial values in VisualBar.svelte:77 | P1 | 📋 specced | ui |
+| [BUG-0119](bugs/BUG-0119-float-arithmetic-MarketOverview-svelte-133.md) | Native float arithmetic used for financial values in MarketOverview.svelte:133 | P1 | 📋 specced | ui |
+| [BUG-0120](bugs/BUG-0120-float-arithmetic-MarketOverview-svelte-343.md) | Native float arithmetic used for financial values in MarketOverview.svelte:343 | P1 | 📋 specced | ui |
+| [BUG-0121](bugs/BUG-0121-float-arithmetic-tradeFlow-worker-ts-42.md) | Native float arithmetic used for financial values in tradeFlow.worker.ts:42 | P1 | 📋 specced | ui |
+| [BUG-0122](bugs/BUG-0122-float-arithmetic-TradeFlowBackground-svelte-147.md) | Native float arithmetic used for financial values in TradeFlowBackground.svelte:147 | P1 | 📋 specced | ui |
+| [BUG-0123](bugs/BUG-0123-float-arithmetic-TradeFlowBackground-svelte-148.md) | Native float arithmetic used for financial values in TradeFlowBackground.svelte:148 | P1 | 📋 specced | ui |
+| [BUG-0124](bugs/BUG-0124-float-arithmetic-RaindropsEngine-ts-186.md) | Native float arithmetic used for financial values in RaindropsEngine.ts:186 | P1 | 📋 specced | ui |
+| [BUG-0125](bugs/BUG-0125-float-arithmetic-SonarEngine-ts-198.md) | Native float arithmetic used for financial values in SonarEngine.ts:198 | P1 | 📋 specced | ui |
+| [BUG-0126](bugs/BUG-0126-float-arithmetic-EqualizerEngine-ts-24.md) | Native float arithmetic used for financial values in EqualizerEngine.ts:24 | P1 | 📋 specced | ui |
+| [BUG-0127](bugs/BUG-0127-float-arithmetic-EqualizerEngine-ts-161.md) | Native float arithmetic used for financial values in EqualizerEngine.ts:161 | P1 | 📋 specced | ui |
+| [BUG-0128](bugs/BUG-0128-float-arithmetic-BlockEngine-ts-276.md) | Native float arithmetic used for financial values in BlockEngine.ts:276 | P1 | 📋 specced | ui |
+| [BUG-0129](bugs/BUG-0129-float-arithmetic-BaseEngine-ts-53.md) | Native float arithmetic used for financial values in BaseEngine.ts:53 | P1 | 📋 specced | ui |
+| [BUG-0130](bugs/BUG-0130-float-arithmetic-CityEngine-ts-162.md) | Native float arithmetic used for financial values in CityEngine.ts:162 | P1 | 📋 specced | ui |
+| [BUG-0131](bugs/BUG-0131-float-arithmetic-OrderDetailsTooltip-svelte-131.md) | Native float arithmetic used for financial values in OrderDetailsTooltip.svelte:131 | P1 | 📋 specced | ui |
+| [BUG-0132](bugs/BUG-0132-float-arithmetic-OrderDetailsTooltip-svelte-137.md) | Native float arithmetic used for financial values in OrderDetailsTooltip.svelte:137 | P1 | 📋 specced | ui |
+| [BUG-0133](bugs/BUG-0133-float-arithmetic-OrderDetailsTooltip-svelte-145.md) | Native float arithmetic used for financial values in OrderDetailsTooltip.svelte:145 | P1 | 📋 specced | ui |
+| [BUG-0134](bugs/BUG-0134-float-arithmetic-MarketDashboardModal-svelte-138.md) | Native float arithmetic used for financial values in MarketDashboardModal.svelte:138 | P1 | 📋 specced | ui |
+| [BUG-0135](bugs/BUG-0135-float-arithmetic-MarketDashboardModal-svelte-144.md) | Native float arithmetic used for financial values in MarketDashboardModal.svelte:144 | P1 | 📋 specced | ui |
+| [BUG-0136](bugs/BUG-0136-float-arithmetic-TradeSetupInputs-svelte-362.md) | Native float arithmetic used for financial values in TradeSetupInputs.svelte:362 | P1 | 📋 specced | ui |
+| [BUG-0137](bugs/BUG-0137-float-arithmetic-TradeSetupInputs-svelte-550.md) | Native float arithmetic used for financial values in TradeSetupInputs.svelte:550 | P1 | 📋 specced | ui |
+| [BUG-0138](bugs/BUG-0138-float-arithmetic-confluenceAnalyzer-ts-41.md) | Native float arithmetic used for financial values in confluenceAnalyzer.ts:41 | P1 | 📋 specced | core |
+| [BUG-0139](bugs/BUG-0139-float-arithmetic-statefulTechnicalsCalculator-ts-77.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:77 | P1 | 📋 specced | core |
+| [BUG-0140](bugs/BUG-0140-float-arithmetic-statefulTechnicalsCalculator-ts-315.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:315 | P1 | 📋 specced | core |
+| [BUG-0141](bugs/BUG-0141-float-arithmetic-statefulTechnicalsCalculator-ts-319.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:319 | P1 | 📋 specced | core |
+| [BUG-0142](bugs/BUG-0142-float-arithmetic-statefulTechnicalsCalculator-ts-346.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:346 | P1 | 📋 specced | core |
+| [BUG-0143](bugs/BUG-0143-float-arithmetic-statefulTechnicalsCalculator-ts-371.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:371 | P1 | 📋 specced | core |
+| [BUG-0144](bugs/BUG-0144-float-arithmetic-indicators-ts-1257.md) | Native float arithmetic used for financial values in indicators.ts:1257 | P1 | 📋 specced | core |
+| [BUG-0145](bugs/BUG-0145-float-arithmetic-indicators-ts-1258.md) | Native float arithmetic used for financial values in indicators.ts:1258 | P1 | 📋 specced | core |
+| [BUG-0146](bugs/BUG-0146-float-arithmetic-divergenceScanner-ts-36.md) | Native float arithmetic used for financial values in divergenceScanner.ts:36 | P1 | 📋 specced | core |
+| [BUG-0147](bugs/BUG-0147-float-arithmetic-divergenceScanner-ts-37.md) | Native float arithmetic used for financial values in divergenceScanner.ts:37 | P1 | 📋 specced | core |
+| [BUG-0148](bugs/BUG-0148-float-arithmetic-ai-svelte-ts-941.md) | Native float arithmetic used for financial values in ai.svelte.ts:941 | P1 | 📋 specced | core |
+| [BUG-0149](bugs/BUG-0149-float-arithmetic-ai-svelte-ts-993.md) | Native float arithmetic used for financial values in ai.svelte.ts:993 | P1 | 📋 specced | core |
+| [BUG-0150](bugs/BUG-0150-float-arithmetic-effects-svelte-ts-47.md) | Native float arithmetic used for financial values in effects.svelte.ts:47 | P1 | 📋 specced | core |
+| [BUG-0151](bugs/BUG-0151-float-arithmetic-effects-svelte-ts-49.md) | Native float arithmetic used for financial values in effects.svelte.ts:49 | P1 | 📋 specced | core |
+| [BUG-0152](bugs/BUG-0152-float-arithmetic--server-ts-55.md) | Native float arithmetic used for financial values in +server.ts:55 | P1 | 📋 specced | ui |
+| [BUG-0153](bugs/BUG-0153-float-arithmetic-DuckLogic-ts-158.md) | Native float arithmetic used for financial values in DuckLogic.ts:158 | P1 | 📋 specced | ui |
+| [BUG-0154](bugs/BUG-0154-float-arithmetic-charts-ts-330.md) | Native float arithmetic used for financial values in charts.ts:330 | P1 | 📋 specced | core |
+| [BUG-0155](bugs/BUG-0155-float-arithmetic-charts-ts-447.md) | Native float arithmetic used for financial values in charts.ts:447 | P1 | 📋 specced | core |
+| [BUG-0156](bugs/BUG-0156-float-arithmetic-charts-ts-450.md) | Native float arithmetic used for financial values in charts.ts:450 | P1 | 📋 specced | core |
+| [BUG-0157](bugs/BUG-0157-float-arithmetic-charts-ts-727.md) | Native float arithmetic used for financial values in charts.ts:727 | P1 | 📋 specced | core |
+| [BUG-0158](bugs/BUG-0158-float-arithmetic-charts-ts-878.md) | Native float arithmetic used for financial values in charts.ts:878 | P1 | 📋 specced | core |
+| [BUG-0159](bugs/BUG-0159-float-arithmetic-stats-ts-497.md) | Native float arithmetic used for financial values in stats.ts:497 | P1 | 📋 specced | core |
+| [BUG-0160](bugs/BUG-0160-float-arithmetic-stats-ts-620.md) | Native float arithmetic used for financial values in stats.ts:620 | P1 | 📋 specced | core |
+| [BUG-0161](bugs/BUG-0161-float-arithmetic-stats-ts-625.md) | Native float arithmetic used for financial values in stats.ts:625 | P1 | 📋 specced | core |
+| [BUG-0162](bugs/BUG-0162-float-arithmetic-stats-ts-658.md) | Native float arithmetic used for financial values in stats.ts:658 | P1 | 📋 specced | core |
+| [BUG-0163](bugs/BUG-0163-float-arithmetic-stats-ts-818.md) | Native float arithmetic used for financial values in stats.ts:818 | P1 | 📋 specced | core |
+| [BUG-0164](bugs/BUG-0164-float-arithmetic-SymbolPickerView-svelte-107.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:107 | P1 | 📋 specced | ui |
+| [BUG-0165](bugs/BUG-0165-float-arithmetic-SymbolPickerView-svelte-119.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:119 | P1 | 📋 specced | ui |
+| [BUG-0166](bugs/BUG-0166-float-arithmetic-SymbolPickerView-svelte-120.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:120 | P1 | 📋 specced | ui |
+| [BUG-0167](bugs/BUG-0167-float-arithmetic-SymbolPickerView-svelte-125.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:125 | P1 | 📋 specced | ui |
+| [BUG-0168](bugs/BUG-0168-float-arithmetic-SymbolPickerView-svelte-126.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:126 | P1 | 📋 specced | ui |
+| [BUG-0169](bugs/BUG-0169-float-arithmetic-CandleChartView-svelte-348.md) | Native float arithmetic used for financial values in CandleChartView.svelte:348 | P1 | 📋 specced | ui |
+| [BUG-0170](bugs/BUG-0170-float-arithmetic-ai-ts-54.md) | Native float arithmetic used for financial values in ai.ts:54 | P1 | 📋 specced | ui |
+| [BUG-0171](bugs/BUG-0171-float-arithmetic-ai-ts-55.md) | Native float arithmetic used for financial values in ai.ts:55 | P1 | 📋 specced | ui |
+| [BUG-0172](bugs/BUG-0172-float-arithmetic-lib-rs-72.md) | Native float arithmetic used for financial values in lib.rs:72 | P1 | 📋 specced | core |
+| [BUG-0173](bugs/BUG-0173-float-arithmetic-lib-rs-115.md) | Native float arithmetic used for financial values in lib.rs:115 | P1 | 📋 specced | core |
+| [BUG-0174](bugs/BUG-0174-float-arithmetic-lib-rs-116.md) | Native float arithmetic used for financial values in lib.rs:116 | P1 | 📋 specced | core |
+| [BUG-0175](bugs/BUG-0175-float-arithmetic-lib-rs-117.md) | Native float arithmetic used for financial values in lib.rs:117 | P1 | 📋 specced | core |
+| [BUG-0176](bugs/BUG-0176-float-arithmetic-lib-rs-118.md) | Native float arithmetic used for financial values in lib.rs:118 | P1 | 📋 specced | core |
+| [BUG-0177](bugs/BUG-0177-float-arithmetic-lib-rs-502.md) | Native float arithmetic used for financial values in lib.rs:502 | P1 | 📋 specced | core |
+| [BUG-0178](bugs/BUG-0178-float-arithmetic-lib-rs-745.md) | Native float arithmetic used for financial values in lib.rs:745 | P1 | 📋 specced | core |
+| [BUG-0179](bugs/BUG-0179-float-arithmetic-lib-rs-778.md) | Native float arithmetic used for financial values in lib.rs:778 | P1 | 📋 specced | core |
+| [BUG-0180](bugs/BUG-0180-float-arithmetic-lib-rs-787.md) | Native float arithmetic used for financial values in lib.rs:787 | P1 | 📋 specced | core |
+| [BUG-0181](bugs/BUG-0181-float-arithmetic-alert-exports-rs-42.md) | Native float arithmetic used for financial values in alert_exports.rs:42 | P1 | 📋 specced | core |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -171,6 +272,107 @@ Counts by status: 💡 idea 13 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | M3 | community, pro, private | none | none | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0080](bugs/BUG-0080-bitget-ws-decimal-crash.md) | BitgetWS decimal initializations are vulnerable to unvalidated string crashes | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0081](bugs/BUG-0081-float-arithmetic-types-ts-25.md) | Native float arithmetic used for financial values in types.ts:25 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0082](bugs/BUG-0082-float-arithmetic-types-ts-35.md) | Native float arithmetic used for financial values in types.ts:35 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0083](bugs/BUG-0083-float-arithmetic-calculatorService-ts-499.md) | Native float arithmetic used for financial values in calculatorService.ts:499 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0084](bugs/BUG-0084-float-arithmetic-calculatorService-ts-505.md) | Native float arithmetic used for financial values in calculatorService.ts:505 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0085](bugs/BUG-0085-float-arithmetic-calculatorService-ts-512.md) | Native float arithmetic used for financial values in calculatorService.ts:512 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0086](bugs/BUG-0086-float-arithmetic-calculatorService-ts-518.md) | Native float arithmetic used for financial values in calculatorService.ts:518 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0087](bugs/BUG-0087-float-arithmetic-technicalsTypes-ts-91.md) | Native float arithmetic used for financial values in technicalsTypes.ts:91 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0088](bugs/BUG-0088-float-arithmetic-technicalsTypes-ts-104.md) | Native float arithmetic used for financial values in technicalsTypes.ts:104 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0089](bugs/BUG-0089-float-arithmetic-technicalsTypes-ts-105.md) | Native float arithmetic used for financial values in technicalsTypes.ts:105 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0090](bugs/BUG-0090-float-arithmetic-technicalsTypes-ts-148.md) | Native float arithmetic used for financial values in technicalsTypes.ts:148 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0091](bugs/BUG-0091-float-arithmetic-technicalsTypes-ts-176.md) | Native float arithmetic used for financial values in technicalsTypes.ts:176 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0092](bugs/BUG-0092-float-arithmetic-technicalsTypes-ts-283.md) | Native float arithmetic used for financial values in technicalsTypes.ts:283 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0093](bugs/BUG-0093-float-arithmetic-alertEngine-ts-25.md) | Native float arithmetic used for financial values in alertEngine.ts:25 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0094](bugs/BUG-0094-float-arithmetic-alertEngine-ts-110.md) | Native float arithmetic used for financial values in alertEngine.ts:110 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0095](bugs/BUG-0095-float-arithmetic-uiManager-ts-72.md) | Native float arithmetic used for financial values in uiManager.ts:72 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0096](bugs/BUG-0096-float-arithmetic-uiManager-ts-73.md) | Native float arithmetic used for financial values in uiManager.ts:73 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0097](bugs/BUG-0097-float-arithmetic-uiManager-ts-77.md) | Native float arithmetic used for financial values in uiManager.ts:77 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0098](bugs/BUG-0098-float-arithmetic-syncService-ts-251.md) | Native float arithmetic used for financial values in syncService.ts:251 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0099](bugs/BUG-0099-float-arithmetic-activeTechnicalsManager-svelte-ts-658.md) | Native float arithmetic used for financial values in activeTechnicalsManager.svelte.ts:658 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0100](bugs/BUG-0100-float-arithmetic-activeTechnicalsManager-svelte-ts-670.md) | Native float arithmetic used for financial values in activeTechnicalsManager.svelte.ts:670 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0101](bugs/BUG-0101-float-arithmetic-technicalsService-ts-163.md) | Native float arithmetic used for financial values in technicalsService.ts:163 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0102](bugs/BUG-0102-float-arithmetic-csvService-ts-95.md) | Native float arithmetic used for financial values in csvService.ts:95 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0103](bugs/BUG-0103-float-arithmetic-csvService-ts-109.md) | Native float arithmetic used for financial values in csvService.ts:109 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0104](bugs/BUG-0104-float-arithmetic-csvService-ts-110.md) | Native float arithmetic used for financial values in csvService.ts:110 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0105](bugs/BUG-0105-float-arithmetic-csvService-ts-111.md) | Native float arithmetic used for financial values in csvService.ts:111 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0106](bugs/BUG-0106-float-arithmetic-csvService-ts-115.md) | Native float arithmetic used for financial values in csvService.ts:115 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0107](bugs/BUG-0107-float-arithmetic-csvService-ts-118.md) | Native float arithmetic used for financial values in csvService.ts:118 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0108](bugs/BUG-0108-float-arithmetic-csvService-ts-119.md) | Native float arithmetic used for financial values in csvService.ts:119 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0109](bugs/BUG-0109-float-arithmetic-csvService-ts-127.md) | Native float arithmetic used for financial values in csvService.ts:127 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0110](bugs/BUG-0110-float-arithmetic-csvService-ts-128.md) | Native float arithmetic used for financial values in csvService.ts:128 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0111](bugs/BUG-0111-float-arithmetic-AiModelPicker-svelte-84.md) | Native float arithmetic used for financial values in AiModelPicker.svelte:84 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0112](bugs/BUG-0112-float-arithmetic-ConnectionsTab-svelte-74.md) | Native float arithmetic used for financial values in ConnectionsTab.svelte:74 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0113](bugs/BUG-0113-float-arithmetic-AlertDefinitionsModal-svelte-33.md) | Native float arithmetic used for financial values in AlertDefinitionsModal.svelte:33 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0114](bugs/BUG-0114-float-arithmetic-TakeProfitRow-svelte-94.md) | Native float arithmetic used for financial values in TakeProfitRow.svelte:94 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0115](bugs/BUG-0115-float-arithmetic-VisualBar-svelte-45.md) | Native float arithmetic used for financial values in VisualBar.svelte:45 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0116](bugs/BUG-0116-float-arithmetic-VisualBar-svelte-48.md) | Native float arithmetic used for financial values in VisualBar.svelte:48 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0117](bugs/BUG-0117-float-arithmetic-VisualBar-svelte-58.md) | Native float arithmetic used for financial values in VisualBar.svelte:58 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0118](bugs/BUG-0118-float-arithmetic-VisualBar-svelte-77.md) | Native float arithmetic used for financial values in VisualBar.svelte:77 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0119](bugs/BUG-0119-float-arithmetic-MarketOverview-svelte-133.md) | Native float arithmetic used for financial values in MarketOverview.svelte:133 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0120](bugs/BUG-0120-float-arithmetic-MarketOverview-svelte-343.md) | Native float arithmetic used for financial values in MarketOverview.svelte:343 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0121](bugs/BUG-0121-float-arithmetic-tradeFlow-worker-ts-42.md) | Native float arithmetic used for financial values in tradeFlow.worker.ts:42 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0122](bugs/BUG-0122-float-arithmetic-TradeFlowBackground-svelte-147.md) | Native float arithmetic used for financial values in TradeFlowBackground.svelte:147 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0123](bugs/BUG-0123-float-arithmetic-TradeFlowBackground-svelte-148.md) | Native float arithmetic used for financial values in TradeFlowBackground.svelte:148 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0124](bugs/BUG-0124-float-arithmetic-RaindropsEngine-ts-186.md) | Native float arithmetic used for financial values in RaindropsEngine.ts:186 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0125](bugs/BUG-0125-float-arithmetic-SonarEngine-ts-198.md) | Native float arithmetic used for financial values in SonarEngine.ts:198 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0126](bugs/BUG-0126-float-arithmetic-EqualizerEngine-ts-24.md) | Native float arithmetic used for financial values in EqualizerEngine.ts:24 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0127](bugs/BUG-0127-float-arithmetic-EqualizerEngine-ts-161.md) | Native float arithmetic used for financial values in EqualizerEngine.ts:161 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0128](bugs/BUG-0128-float-arithmetic-BlockEngine-ts-276.md) | Native float arithmetic used for financial values in BlockEngine.ts:276 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0129](bugs/BUG-0129-float-arithmetic-BaseEngine-ts-53.md) | Native float arithmetic used for financial values in BaseEngine.ts:53 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0130](bugs/BUG-0130-float-arithmetic-CityEngine-ts-162.md) | Native float arithmetic used for financial values in CityEngine.ts:162 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0131](bugs/BUG-0131-float-arithmetic-OrderDetailsTooltip-svelte-131.md) | Native float arithmetic used for financial values in OrderDetailsTooltip.svelte:131 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0132](bugs/BUG-0132-float-arithmetic-OrderDetailsTooltip-svelte-137.md) | Native float arithmetic used for financial values in OrderDetailsTooltip.svelte:137 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0133](bugs/BUG-0133-float-arithmetic-OrderDetailsTooltip-svelte-145.md) | Native float arithmetic used for financial values in OrderDetailsTooltip.svelte:145 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0134](bugs/BUG-0134-float-arithmetic-MarketDashboardModal-svelte-138.md) | Native float arithmetic used for financial values in MarketDashboardModal.svelte:138 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0135](bugs/BUG-0135-float-arithmetic-MarketDashboardModal-svelte-144.md) | Native float arithmetic used for financial values in MarketDashboardModal.svelte:144 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0136](bugs/BUG-0136-float-arithmetic-TradeSetupInputs-svelte-362.md) | Native float arithmetic used for financial values in TradeSetupInputs.svelte:362 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0137](bugs/BUG-0137-float-arithmetic-TradeSetupInputs-svelte-550.md) | Native float arithmetic used for financial values in TradeSetupInputs.svelte:550 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0138](bugs/BUG-0138-float-arithmetic-confluenceAnalyzer-ts-41.md) | Native float arithmetic used for financial values in confluenceAnalyzer.ts:41 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0139](bugs/BUG-0139-float-arithmetic-statefulTechnicalsCalculator-ts-77.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:77 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0140](bugs/BUG-0140-float-arithmetic-statefulTechnicalsCalculator-ts-315.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:315 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0141](bugs/BUG-0141-float-arithmetic-statefulTechnicalsCalculator-ts-319.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:319 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0142](bugs/BUG-0142-float-arithmetic-statefulTechnicalsCalculator-ts-346.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:346 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0143](bugs/BUG-0143-float-arithmetic-statefulTechnicalsCalculator-ts-371.md) | Native float arithmetic used for financial values in statefulTechnicalsCalculator.ts:371 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0144](bugs/BUG-0144-float-arithmetic-indicators-ts-1257.md) | Native float arithmetic used for financial values in indicators.ts:1257 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0145](bugs/BUG-0145-float-arithmetic-indicators-ts-1258.md) | Native float arithmetic used for financial values in indicators.ts:1258 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0146](bugs/BUG-0146-float-arithmetic-divergenceScanner-ts-36.md) | Native float arithmetic used for financial values in divergenceScanner.ts:36 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0147](bugs/BUG-0147-float-arithmetic-divergenceScanner-ts-37.md) | Native float arithmetic used for financial values in divergenceScanner.ts:37 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0148](bugs/BUG-0148-float-arithmetic-ai-svelte-ts-941.md) | Native float arithmetic used for financial values in ai.svelte.ts:941 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0149](bugs/BUG-0149-float-arithmetic-ai-svelte-ts-993.md) | Native float arithmetic used for financial values in ai.svelte.ts:993 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0150](bugs/BUG-0150-float-arithmetic-effects-svelte-ts-47.md) | Native float arithmetic used for financial values in effects.svelte.ts:47 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0151](bugs/BUG-0151-float-arithmetic-effects-svelte-ts-49.md) | Native float arithmetic used for financial values in effects.svelte.ts:49 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0152](bugs/BUG-0152-float-arithmetic--server-ts-55.md) | Native float arithmetic used for financial values in +server.ts:55 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0153](bugs/BUG-0153-float-arithmetic-DuckLogic-ts-158.md) | Native float arithmetic used for financial values in DuckLogic.ts:158 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0154](bugs/BUG-0154-float-arithmetic-charts-ts-330.md) | Native float arithmetic used for financial values in charts.ts:330 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0155](bugs/BUG-0155-float-arithmetic-charts-ts-447.md) | Native float arithmetic used for financial values in charts.ts:447 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0156](bugs/BUG-0156-float-arithmetic-charts-ts-450.md) | Native float arithmetic used for financial values in charts.ts:450 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0157](bugs/BUG-0157-float-arithmetic-charts-ts-727.md) | Native float arithmetic used for financial values in charts.ts:727 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0158](bugs/BUG-0158-float-arithmetic-charts-ts-878.md) | Native float arithmetic used for financial values in charts.ts:878 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0159](bugs/BUG-0159-float-arithmetic-stats-ts-497.md) | Native float arithmetic used for financial values in stats.ts:497 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0160](bugs/BUG-0160-float-arithmetic-stats-ts-620.md) | Native float arithmetic used for financial values in stats.ts:620 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0161](bugs/BUG-0161-float-arithmetic-stats-ts-625.md) | Native float arithmetic used for financial values in stats.ts:625 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0162](bugs/BUG-0162-float-arithmetic-stats-ts-658.md) | Native float arithmetic used for financial values in stats.ts:658 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0163](bugs/BUG-0163-float-arithmetic-stats-ts-818.md) | Native float arithmetic used for financial values in stats.ts:818 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0164](bugs/BUG-0164-float-arithmetic-SymbolPickerView-svelte-107.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:107 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0165](bugs/BUG-0165-float-arithmetic-SymbolPickerView-svelte-119.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:119 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0166](bugs/BUG-0166-float-arithmetic-SymbolPickerView-svelte-120.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:120 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0167](bugs/BUG-0167-float-arithmetic-SymbolPickerView-svelte-125.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:125 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0168](bugs/BUG-0168-float-arithmetic-SymbolPickerView-svelte-126.md) | Native float arithmetic used for financial values in SymbolPickerView.svelte:126 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0169](bugs/BUG-0169-float-arithmetic-CandleChartView-svelte-348.md) | Native float arithmetic used for financial values in CandleChartView.svelte:348 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0170](bugs/BUG-0170-float-arithmetic-ai-ts-54.md) | Native float arithmetic used for financial values in ai.ts:54 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0171](bugs/BUG-0171-float-arithmetic-ai-ts-55.md) | Native float arithmetic used for financial values in ai.ts:55 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0172](bugs/BUG-0172-float-arithmetic-lib-rs-72.md) | Native float arithmetic used for financial values in lib.rs:72 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0173](bugs/BUG-0173-float-arithmetic-lib-rs-115.md) | Native float arithmetic used for financial values in lib.rs:115 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0174](bugs/BUG-0174-float-arithmetic-lib-rs-116.md) | Native float arithmetic used for financial values in lib.rs:116 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0175](bugs/BUG-0175-float-arithmetic-lib-rs-117.md) | Native float arithmetic used for financial values in lib.rs:117 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0176](bugs/BUG-0176-float-arithmetic-lib-rs-118.md) | Native float arithmetic used for financial values in lib.rs:118 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0177](bugs/BUG-0177-float-arithmetic-lib-rs-502.md) | Native float arithmetic used for financial values in lib.rs:502 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0178](bugs/BUG-0178-float-arithmetic-lib-rs-745.md) | Native float arithmetic used for financial values in lib.rs:745 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0179](bugs/BUG-0179-float-arithmetic-lib-rs-778.md) | Native float arithmetic used for financial values in lib.rs:778 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0180](bugs/BUG-0180-float-arithmetic-lib-rs-787.md) | Native float arithmetic used for financial values in lib.rs:787 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0181](bugs/BUG-0181-float-arithmetic-alert-exports-rs-42.md) | Native float arithmetic used for financial values in alert_exports.rs:42 | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -232,4 +434,4 @@ Counts by status: 💡 idea 13 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0081**
+Next free number: **0182**
