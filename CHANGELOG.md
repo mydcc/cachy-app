@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.9](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.8...v1.4.0-beta.9) (2026-08-12)
+
+
+### Bug Fixes
+
+* **security:** resolve missing security headers and improve performance ([#1728](https://github.com/mydcc/cachy-app/issues/1728)) ([a0f8ef1](https://github.com/mydcc/cachy-app/commit/a0f8ef1ff85ce90954d0a52622ea8ab0de790ea4))
+
 # [1.4.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.7...v1.4.0-beta.8) (2026-08-12)
 
 
