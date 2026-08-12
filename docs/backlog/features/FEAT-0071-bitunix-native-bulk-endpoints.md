@@ -2,7 +2,7 @@
 id: FEAT-0071
 title: Replace client-side cancel and close loops with native Bitunix endpoints
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -43,14 +43,11 @@ the WS channels remain the source of truth for final state.
 
 ## Acceptance criteria
 
-- [ ] Cancel-all issues exactly one API request (per symbol filter) and
-      surfaces partial failures from `failureList`.
-- [ ] Close-all and flash-close use the native endpoints; flash close targets
-      a `positionId`, proven correct in hedge mode with a long and short open
-      on the same symbol.
-- [ ] An open limit order's price/quantity can be modified without losing its
-      order ID.
-- [ ] The old loop implementations are removed, not left as dead fallbacks.
+- `tradeService` implements `cancel_all_orders` issuing exactly one API request (per symbol filter) and surfaces partial failures from `failureList`.
+- `tradeService` implements `close_all_position` and `flash_close_position` natively; flash close targets a `positionId`, proven correct in hedge mode.
+- `tradeService` implements `modify_order` mit "Safe Modify" Ansatz: Bevor die Order modifiziert wird, muss Cachy zwingend einen synchronen Call an `get_order_detail` durchführen. Die Modifikation (z.B. TP/SL) wird dann mit der garantierten `qty` und `price` aus der Live-Antwort gemergt und an Bitunix gesendet.
+- Ein offenes Limit-Order-Preis/Menge oder TP/SL kann modifiziert werden, ohne die Order-ID zu verlieren.
+- Die alten For-Schleifen-Implementierungen werden komplett gelöscht.
 
 ## Out of scope
 
@@ -60,8 +57,8 @@ the WS channels remain the source of truth for final state.
 
 ## Open questions
 
-- `modify_order` requires `qty` and `price` even when only TP/SL changes —
-  confirm against live behaviour before relying on partial modification.
+- **GELÖST:** `modify_order` requires `qty` and `price` even when only TP/SL changes.
+  **Lösung:** Ansatz 2 (Safe Modify). Die Werte werden durch einen frischen API-Call (`get_order_detail`) unmittelbar vor der Modifikation beschafft, um Race Conditions bei Teil-Fills zu 100% auszuschließen.
 
 ## Links
 
