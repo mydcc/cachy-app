@@ -264,7 +264,7 @@ export class WebGpuCalculator {
       await Promise.all(stagingBuffers.map(buf => buf.mapAsync(GPUMapMode.READ)));
 
       for (const staging of stagingBuffers) {
-          results.push(new Float32Array(staging.getMappedRange().slice(0)));
+          results.push(new Float32Array(new Float32Array(staging.getMappedRange())));
           staging.unmap();
       }
       
