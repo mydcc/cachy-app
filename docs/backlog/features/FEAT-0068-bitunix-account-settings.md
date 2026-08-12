@@ -2,7 +2,7 @@
 id: FEAT-0068
 title: Read and change leverage, margin mode and position margin from the trade panel
 type: feature
-status: in-progress
+status: specced
 priority: P1
 milestone: M3
 editions: [community, pro, private]
