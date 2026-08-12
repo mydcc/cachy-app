@@ -166,6 +166,31 @@ one.
 
 ---
 
+## GitHub Issues mirror
+
+Every push to `develop`/`main` touching `docs/backlog/**/*.md` syncs the
+backlog to GitHub Issues (`.github/workflows/sync-backlog.yml`,
+`scripts/sync-github-issues.ts`) — for a Projects board view, nothing else.
+The direction only ever goes file → issue, never back:
+
+- Title and body are fully overwritten on every sync run. Editing them
+  directly on the Issue has no lasting effect — the next backlog push wipes
+  it out again, silently, no warning.
+- Labels are the one exception: everything except the `status:*` and
+  `backlog-id:*` labels the script owns is preserved across syncs. A
+  manually added label survives.
+- `backlog-id:<ID>` (as a label, and as an HTML comment in the body) is the
+  reconciliation key back to the actual file.
+
+**An Issue is a read-only mirror of its backlog file, not an editable
+copy.** Pointing an agent at an Issue to read/orient is fine — the title,
+body and `status:*` label are accurate as of the last sync. But grooming,
+filling in Acceptance Criteria, resolving an open question, or changing
+`status`: always through `docs/backlog/{bugs,features,ideas}/<ID>-*.md`,
+resolved via the `backlog-id:` label, never by editing the Issue directly.
+
+---
+
 ## Adding an item
 
 ```bash
