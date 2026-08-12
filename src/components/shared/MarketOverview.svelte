@@ -24,6 +24,7 @@
 -->
 
 <script lang="ts">
+  /* eslint-disable svelte/no-at-html-tags */
   import { fade } from "svelte/transition";
   import { untrack } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
