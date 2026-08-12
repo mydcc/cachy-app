@@ -268,22 +268,38 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
             })
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+            console.error(`[Kanban Sync] HTTP error fetching projects for issue #${issueNumber}: ${res.status} ${await res.text()}`);
+            return;
+        }
         const json = await res.json();
+        if (json.errors) {
+            console.error(`[Kanban Sync] GraphQL query errors for issue #${issueNumber}:`, JSON.stringify(json.errors));
+        }
+
         const projectItems = json?.data?.repository?.issue?.projectItems?.nodes;
-        if (!projectItems || projectItems.length === 0) return;
+        if (!projectItems || projectItems.length === 0) {
+            console.log(`[Kanban Sync] No project items returned for issue #${issueNumber}`);
+            return;
+        }
 
         for (const itemNode of projectItems) {
             const projectId = itemNode.project?.id;
             const statusField = itemNode.project?.field;
-            if (!projectId || !statusField || !statusField.options) continue;
+            if (!projectId || !statusField || !statusField.options) {
+                console.log(`[Kanban Sync] Status field or project missing for issue #${issueNumber}`);
+                continue;
+            }
 
             const targetOption = statusField.options.find(
                 (opt: { id: string; name: string }) =>
                     opt.name.toLowerCase() === targetOptionName.toLowerCase()
             );
 
-            if (!targetOption) continue;
+            if (!targetOption) {
+                console.log(`[Kanban Sync] Target option '${targetOptionName}' not found for issue #${issueNumber}. Available:`, statusField.options.map((o: { name: string }) => o.name));
+                continue;
+            }
 
             const mutation = `
               mutation UpdateStatus($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
@@ -300,7 +316,7 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
               }
             `;
 
-            await fetch("https://api.github.com/graphql", {
+            const mutRes = await fetch("https://api.github.com/graphql", {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -316,7 +332,13 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
                     }
                 })
             });
-            console.log(`Synced Project V2 Kanban Status for issue #${issueNumber} -> '${targetOption.name}'`);
+
+            const mutJson = await mutRes.json();
+            if (mutJson.errors) {
+                console.error(`[Kanban Sync] Mutation error for issue #${issueNumber}:`, JSON.stringify(mutJson.errors));
+            } else {
+                console.log(`[Kanban Sync] Successfully synced issue #${issueNumber} -> '${targetOption.name}' on project '${itemNode.project.title}'`);
+            }
         }
     } catch (e) {
         console.warn(`Could not sync Project V2 field for issue #${issueNumber}:`, e);
