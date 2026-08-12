@@ -290,7 +290,7 @@ export const dataRepairService = {
               } else {
                 failed++;
               }
-            } catch (e) {
+            } catch {
               failed++;
             } finally {
               processed++;
