@@ -127,6 +127,7 @@ describe('PresetManager', () => {
 
         // Mutate state to schedule a debounced notification
         presetState.availablePresets = ['p1'];
+        flushSync();
         // wait for the effects to run and schedule timers
         await vi.advanceTimersByTimeAsync(10);
 
