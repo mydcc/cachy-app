@@ -360,7 +360,7 @@ class CryptoServiceImpl {
     if (legacyHexKey) {
       // Import legacy hex key as a non-extractable PBKDF2 CryptoKey to maintain derivation path
       const keyData = new Uint8Array(legacyHexKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-      key = await window.crypto.subtle.importKey(
+      key = await (window.crypto?.subtle || require('crypto').webcrypto.subtle).importKey(
         "raw",
         keyData,
         "PBKDF2",
@@ -370,8 +370,8 @@ class CryptoServiceImpl {
     } else {
       // Generate fresh non-extractable key.
       // We use PBKDF2 even for new keys to keep the EncryptedBlob structure (with salt) consistent.
-      const randomData = window.crypto.getRandomValues(new Uint8Array(32));
-      key = await window.crypto.subtle.importKey(
+      const randomData = window.crypto?.getRandomValues ? window.crypto.getRandomValues(new Uint8Array(32)) : require('crypto').webcrypto.getRandomValues(new Uint8Array(32));
+      key = await (window.crypto?.subtle || require('crypto').webcrypto.subtle).importKey(
         "raw",
         randomData,
         "PBKDF2",

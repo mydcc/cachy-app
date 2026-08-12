@@ -1,17 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SettingsManager } from '../../stores/settings.svelte';
 import { CONSTANTS } from '../../lib/constants';
-import type { EncryptedBlob } from '../../services/cryptoService';
 
 vi.mock("$app/environment", () => ({ browser: true, dev: true }));
 
-let getOrGenerateDeviceKeyMock: any;
-let encryptMock: any;
-let decryptMock: any;
-let loadKeyFromDBMock: any;
 
-let dbStorage: any = {};
-let dbGetCalls = 0;
+let dbStorage: Record<string, string> = {};
 
 vi.mock('../../services/cryptoService', () => {
   return {
@@ -23,7 +17,7 @@ vi.mock('../../services/cryptoService', () => {
          }
          return dbStorage['device_key'];
       }),
-      encrypt: vi.fn().mockImplementation(async (text, pwd) => {
+      encrypt: vi.fn().mockImplementation(async (text) => {
         return {
             ciphertext: "enc:" + text,
             iv: 'mock-iv',
@@ -56,8 +50,7 @@ describe('BUG-0053: Orphaned Data Canary', () => {
     // Simulate setting up data
     dbStorage['device_key'] = "generated-key";
 
-    const settings = new SettingsManager();
-    // Simulate a manual save of a secret (since the internals are tricky to access)
+        // Simulate a manual save of a secret (since the internals are tricky to access)
     const initialData = {
         apiProvider: "bitunix",
         encryptedSecrets: {
