@@ -11,6 +11,11 @@ if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
 
 const BASE_URL = `https://api.github.com/repos/${GITHUB_REPOSITORY}/issues`;
 
+// docs/backlog/README.md defines the full status lifecycle; only these two mean "no longer active work".
+const CLOSED_STATUSES = new Set(['done', 'dropped']);
+const STATUS_LABEL_PREFIX = 'status:';
+const BACKLOG_ID_LABEL_PREFIX = 'backlog-id:';
+
 interface BacklogItem {
     id: string;
     title: string;
@@ -25,9 +30,10 @@ interface BacklogItem {
 async function fetchAllIssues() {
     let page = 1;
     let allIssues: any[] = [];
-    
+    const perPage = 100;
+
     while (true) {
-        const res = await fetch(`${BASE_URL}?state=all&per_page=100&page=${page}`, {
+        const res = await fetch(`${BASE_URL}?state=all&per_page=${perPage}&page=${page}`, {
             headers: {
                 "Authorization": `Bearer ${GITHUB_TOKEN}`,
                 "Accept": "application/vnd.github+json",
@@ -36,12 +42,12 @@ async function fetchAllIssues() {
         });
         if (!res.ok) throw new Error(`Failed to fetch issues: ${await res.text()}`);
         const data = await res.json();
-        
+
         // We only care about real issues, not pull requests
         const issuesOnly = data.filter((item: any) => !item.pull_request);
         allIssues = allIssues.concat(issuesOnly);
-        
-        if (data.length === 0) break;
+
+        if (data.length < perPage) break;
         page++;
     }
     return allIssues;
@@ -95,13 +101,31 @@ async function findBacklogFiles() {
 
 // Create or update a single issue
 async function createOrUpdateIssue(item: BacklogItem, existingIssue: any | undefined) {
-    const isClosed = item.status === 'done';
-    
-    const labels = [item.type, item.area].filter(Boolean);
+    const isClosed = CLOSED_STATUSES.has(item.status);
+
+    // `status:*` is what lets a GitHub Projects board bucket cards by backlog stage
+    // (idea/specced/ready/in-progress), not just the two-state open/closed the Issues API offers.
+    // `backlog-id:*` is the stable lookup key for matching, independent of title/body edits.
+    const managedLabels = [
+        item.type,
+        item.area,
+        item.status ? `${STATUS_LABEL_PREFIX}${item.status}` : '',
+        `${BACKLOG_ID_LABEL_PREFIX}${item.id}`
+    ].filter(Boolean);
     const body = `${item.content}\n\n<!-- backlog-id: ${item.id} -->`;
     const title = `[${item.id}] ${item.title}`;
 
     if (existingIssue) {
+        // Keep manually-added labels (triage, "good first issue", ...) intact; only replace the
+        // labels this script owns (status/backlog-id prefixes plus the current type/area values).
+        const existingLabelNames: string[] = (existingIssue.labels ?? []).map((l: any) =>
+            typeof l === 'string' ? l : l.name
+        );
+        const preservedLabels = existingLabelNames.filter(
+            (name) => !name.startsWith(STATUS_LABEL_PREFIX) && !name.startsWith(BACKLOG_ID_LABEL_PREFIX)
+        );
+        const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
+
         // Update existing issue
         const payload = {
             title,
@@ -129,7 +153,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: any | undef
         const payload = {
             title,
             body,
-            labels,
+            labels: managedLabels,
         };
         const res = await fetch(BASE_URL, {
             method: 'POST',
@@ -177,11 +201,16 @@ async function main() {
     console.log(`Found ${localItems.length} local items.`);
 
     for (const item of localItems) {
-        // Find existing issue by hidden marker or title prefix
-        const existing = existingIssues.find(issue => 
-            issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) || 
-            issue.title.startsWith(`[${item.id}]`)
-        );
+        // Match by backlog-id label first (survives title/body edits), then fall back to the
+        // hidden marker or title prefix for issues created before the label existed.
+        const existing = existingIssues.find(issue => {
+            const labelNames: string[] = (issue.labels ?? []).map((l: any) => (typeof l === 'string' ? l : l.name));
+            return (
+                labelNames.includes(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`) ||
+                issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) ||
+                issue.title.startsWith(`[${item.id}]`)
+            );
+        });
         
         await createOrUpdateIssue(item, existing);
         // Small delay to avoid hitting GitHub API rate limits too aggressively
