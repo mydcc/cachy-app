@@ -15,6 +15,9 @@
   let newAlertSymbol = $state("BTCUSDT");
   let newAlertPrice = $state("");
 
+  let activeAlerts = $derived(alertState.definitions.filter(a => a.active));
+  let historyAlerts = $derived(alertState.definitions.filter(a => !a.active));
+
   function removeAlert(id: string) {
       alertState.removeAlert(id);
   }
@@ -64,7 +67,7 @@
 
     {#if activeTab === "active"}
         <div class="alert-list">
-            {#each alertState.definitions.filter(a => a.active) as alert}
+            {#each activeAlerts as alert}
                 <div class="alert-item">
                     <div class="alert-info">
                         <strong>{alert.symbol}</strong>
@@ -82,7 +85,7 @@
         </div>
     {:else}
          <div class="alert-list">
-            {#each alertState.definitions.filter(a => !a.active) as alert}
+            {#each historyAlerts as alert}
                 <div class="alert-item history-item">
                     <div class="alert-info">
                         <strong>{alert.symbol}</strong>

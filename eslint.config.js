@@ -91,7 +91,7 @@ export default [
       "@typescript-eslint/no-redeclare": "off",
       // Roadmap item 21's backlog reached zero — both rules are gates now.
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
     },
   },
 
@@ -125,7 +125,7 @@ export default [
       "@typescript-eslint/no-redeclare": "off",
       // Same gate as the .{js,ts} block above.
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
     },
   },
 
