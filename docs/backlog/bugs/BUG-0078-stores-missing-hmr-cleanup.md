@@ -2,7 +2,7 @@
 id: BUG-0078
 title: Core stores leak auto-save $effect.root closures and timers during HMR
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
