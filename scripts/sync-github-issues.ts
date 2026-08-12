@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
 const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY; // e.g. "mydcc/cachy-app"
 
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
@@ -224,7 +225,7 @@ function mapStatusToOptionName(status: string): string {
 
 async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: string) {
     console.log(`[Kanban Sync] Triggered for issue #${issueNumber} with status '${backlogStatus}'`);
-    if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) return;
+    if (!PROJECT_SYNC_TOKEN || !GITHUB_REPOSITORY) return;
     const [owner, repo] = GITHUB_REPOSITORY.split('/');
     const targetOptionName = mapStatusToOptionName(backlogStatus);
 
@@ -260,7 +261,7 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
         const res = await fetch("https://api.github.com/graphql", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
@@ -320,7 +321,7 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
             const mutRes = await fetch("https://api.github.com/graphql", {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                    "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
