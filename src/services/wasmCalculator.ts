@@ -32,6 +32,7 @@ import { toNumFast } from '../utils/fastConversion';
 interface WasmTechnicalsInstance {
   initialize(closes: string[], highs: string[], lows: string[], volumes: string[], times: Float64Array, settingsJson: string): void;
   update(open: string, high: string, low: string, close: string, volume: string, time: number): string;
+  free?(): void;
 }
 
 interface WasmModule {
@@ -173,7 +174,7 @@ class WasmCalculator {
     return this.convertResult(JSON.parse(resultJson), klines, settings);
     } catch (e) {
         if (this.instance) {
-            try { (this.instance as any).free?.(); } catch { /* Ignore */ }
+            try { this.instance.free?.(); } catch { /* Ignore */ }
             this.instance = null;
         }
         throw e;
