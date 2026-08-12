@@ -5,6 +5,66 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.5...v1.4.0-beta.6) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ui:** extract hardcoded English strings in indicator settings ([2911c4d](https://github.com/mydcc/cachy-app/commit/2911c4d04dac7e8628223b0d73b69cd6e26b30a6))
+
+
+### Features
+
+* **alerts:** implement local alert engine ([fc9af83](https://github.com/mydcc/cachy-app/commit/fc9af837db9e42dd2440bfe7e0f6947328f2549d))
+* **alerts:** implement local alert engine ([c654918](https://github.com/mydcc/cachy-app/commit/c654918c1843097ca0d3fccfd479619a18cfc687))
+* **alerts:** implement local alert engine ([3245aa3](https://github.com/mydcc/cachy-app/commit/3245aa3053af5297f3a39cde609e4700edb2c4f2))
+* **alerts:** implement local alert engine ([348e7bb](https://github.com/mydcc/cachy-app/commit/348e7bbf12251a2cf21539af11a5d5f5675e62cd))
+* **alerts:** implement local alert engine ([d3ffaba](https://github.com/mydcc/cachy-app/commit/d3ffaba4e69859752a5279f7544bd8323018d7f2))
+
+# [1.4.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.4...v1.4.0-beta.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ci:** auto-publish Jules PRs instead of requiring a manual click ([055e2fd](https://github.com/mydcc/cachy-app/commit/055e2fd5312fa98dbf33205b2543c1398427a9ca)), closes [#1709](https://github.com/mydcc/cachy-app/issues/1709)
+* correct Jules PR detection to use the PR body footer, not branch prefix ([c922d86](https://github.com/mydcc/cachy-app/commit/c922d865e7bcaee41a04a5b67b5bc6432d0e0f70))
+* stop /jules-review from duplicating what CI already reports ([b5ae317](https://github.com/mydcc/cachy-app/commit/b5ae317c71de255b98ee27c7e6c233fb4a4aa43e)), closes [#1711](https://github.com/mydcc/cachy-app/issues/1711)
+
+
+### Features
+
+* add /jules-review command for auditing Jules pull requests ([93460a1](https://github.com/mydcc/cachy-app/commit/93460a13a2773ba28c1e5ce55e113108e5d01946))
+
+# [1.4.0-beta.4](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.3...v1.4.0-beta.4) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ci:** make Jules backlog dedup mandatory and honest in dry runs ([15508f7](https://github.com/mydcc/cachy-app/commit/15508f7b7807df8a0374beaaa5bea04d4f707652))
+* **ci:** repair create-session.sh --file and give sessions an item title ([04677ba](https://github.com/mydcc/cachy-app/commit/04677bab50ee01d01be8bfa59fc8c7659783bd78))
+* **ci:** scope Jules dedup to session subject fields and add an age window ([c56af82](https://github.com/mydcc/cachy-app/commit/c56af82fbf000933eb877bad7c6624c0b7b0dfa5))
+
+# [1.4.0-beta.3](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.2...v1.4.0-beta.3) (2026-08-11)
+
+
+### Features
+
+* add /backlog-groom slash command ([62136d8](https://github.com/mydcc/cachy-app/commit/62136d8eb23f381505d92094b960122b369f6aec))
+
+# [1.4.0-beta.2](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.1...v1.4.0-beta.2) (2026-08-11)
+
+
+### Features
+
+* dispatch ready backlog items to Jules automatically ([6f49528](https://github.com/mydcc/cachy-app/commit/6f495288205fe0c3d6058326529e90e10acce721))
+
+# [1.4.0-beta.1](https://github.com/mydcc/cachy-app/compare/v1.3.0...v1.4.0-beta.1) (2026-08-11)
+
+
+### Features
+
+* add AGENTS.md and Jules-based production monitoring ([47c5dcf](https://github.com/mydcc/cachy-app/commit/47c5dcf864ecdd176f532135ee3c80aa5326359e))
+
 # [1.3.0](https://github.com/mydcc/cachy-app/compare/v1.2.0...v1.3.0) (2026-08-11)
 
 

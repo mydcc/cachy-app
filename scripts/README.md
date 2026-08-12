@@ -25,6 +25,8 @@ check.
 | `discord-notify.sh` | `deploy.sh` (sourced) | Deployment notifications. Silent no-op without `DISCORD_WEBHOOK_URL`; run it directly with `test` to check a webhook. |
 | `backlog-index.mjs` | `.github/workflows/audit.yml`, `npm run backlog:index` / `backlog:check` | Validates every `docs/backlog/` item's front matter and regenerates `INDEX.md`. `--check` fails if the index is stale, so a hand-edited or forgotten index is a red build rather than a document that quietly stops matching the files. No dependencies. |
 | `check-doc-links.mjs` | `.github/workflows/audit.yml`, `npm run docs:links` | Fails if a relative Markdown link points at a missing file. Moving a document breaks every pointer to it and nothing notices until a reader follows one — archiving the old roadmap broke six links in one commit. External URLs are not checked. |
+| `jules/monitor-production.sh` | `.github/workflows/production-monitor.yml` (daily, 06:00 UTC) | Synthetic monitoring of the live deployment (`cachy.app`, not CI/localhost): health check, security headers, Lighthouse score. Writes a report artifact and, on a regression, opens a Jules session via `jules/create-session.sh` to propose a fix PR. Never touches deploy or exchange credentials. |
+| `jules/dispatch-backlog.mjs` | `.github/workflows/backlog-dispatch.yml` (weekly, Mon 07:00 UTC) | Sends `docs/backlog/` items with `status: ready` to Jules, excluding `execution`/`security`/`exchange` areas and `P0` priority (those stay manual). De-dups against recent Jules sessions, capped at `JULES_MAX_PER_RUN` (default 5) per run. |
 
 ## Run by hand, and worth keeping
 
@@ -55,6 +57,7 @@ Real tools with a clear job. None of them run on their own.
 | `brain/` | A separate Python project — `train.py`, `export.py`, `requirements.txt` and its own README. Not part of the app build. |
 | `pine/` | 18 TradingView Pine Script indicator sources (ADX, MACD, Ichimoku, SuperTrend, …). Reference material for the indicator implementations in `src/utils/indicators.ts`, not executable here. |
 | `maintenance/` | Four one-shot patch scripts (`fix_left_panel.py`, `fix_registry_journal.py`, `fix_window_container.py`, `patch_news_final_clean.js`) written to perform a specific refactor once. They are **not idempotent** and are not meant to be run again — they are kept as a record of what was changed. Do not run one to find out what it does. |
+| `jules/` | Wrappers around the [Jules API](https://developers.google.com/jules/api) (`create-session.sh`, `list-sources.sh`) plus `monitor-production.sh` (wired into `production-monitor.yml`). See `jules/README.md` for setup. Needs `JULES_API_KEY` / `JULES_SOURCE`, never commit the key. |
 
 ---
 

@@ -2,7 +2,8 @@
 id: BUG-0076
 title: IndicatorSettings.svelte has extensive hardcoded English UI strings
 type: bug
-status: specced
+status: done
+branch: jules-4456775863240942894-f4c6e19b
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -70,11 +71,11 @@ those too, or file a follow-up if the scope turns out larger than expected.
 
 ## Acceptance criteria
 
-- [ ] Every string listed in Evidence reads through `$_`, in both `de.json`
+- [x] Every string listed in Evidence reads through `$_`, in both `de.json`
       and `en.json`
-- [ ] The other four tabs are checked; findings fixed or listed here
-- [ ] `npm run check` clean; `scripts/lint-i18n.js` passes
-- [ ] Existing IndicatorSettings-related tests (if any) still pass
+- [x] The other four tabs are checked; findings fixed or listed here
+- [x] `npm run check` clean; `scripts/lint-i18n.js` passes
+- [x] Existing IndicatorSettings-related tests (if any) still pass
 
 ## Links
 
