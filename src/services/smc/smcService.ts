@@ -245,7 +245,13 @@ export class SMCService {
         }
 
         // Post-processing: Check FVG mitigation
+        // FVGs are generated in sequential order of startIndex, so they are naturally sorted.
         this.checkMitigation(candles, result.fairValueGaps);
+
+        // OBs are generated based on swing highs/lows and structure breaks, meaning
+        // they can be pushed out of sequential order. We MUST sort them by startIndex
+        // before using the sweep-line mitigation logic.
+        result.orderBlocks.sort((a, b) => a.startIndex - b.startIndex);
         this.checkMitigationOB(candles, result.orderBlocks);
 
         result.currentTrend = trend;
