@@ -15,6 +15,7 @@ jobs:
     permissions:
       issues: write
       contents: read
+      repository-projects: write
     
     steps:
       - name: Checkout Repository
@@ -33,5 +34,6 @@ jobs:
       - name: Run Sync Script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_SYNC_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: npx tsx scripts/sync-github-issues.ts
