@@ -22,14 +22,26 @@ interface BacklogItem {
     type: string;
     status: string;
     area: string;
-    content: string; 
+    content: string;
     filepath: string;
 }
 
+interface GitHubIssue {
+    url: string;
+    body: string | null;
+    title: string;
+    labels: (string | { name: string })[];
+    pull_request?: unknown;
+}
+
+function labelNamesOf(issue: GitHubIssue): string[] {
+    return (issue.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name));
+}
+
 // Fetch all issues (handles pagination)
-async function fetchAllIssues() {
+async function fetchAllIssues(): Promise<GitHubIssue[]> {
     let page = 1;
-    let allIssues: any[] = [];
+    let allIssues: GitHubIssue[] = [];
     const perPage = 100;
 
     while (true) {
@@ -41,10 +53,10 @@ async function fetchAllIssues() {
             }
         });
         if (!res.ok) throw new Error(`Failed to fetch issues: ${await res.text()}`);
-        const data = await res.json();
+        const data: GitHubIssue[] = await res.json();
 
         // We only care about real issues, not pull requests
-        const issuesOnly = data.filter((item: any) => !item.pull_request);
+        const issuesOnly = data.filter((item) => !item.pull_request);
         allIssues = allIssues.concat(issuesOnly);
 
         if (data.length < perPage) break;
@@ -91,7 +103,7 @@ async function findBacklogFiles() {
                     if (item) items.push(item);
                 }
             }
-        } catch (e) {
+        } catch {
             // Ignore if directory doesn't exist
             console.log(`Could not read directory ${dir}, skipping...`);
         }
@@ -100,7 +112,7 @@ async function findBacklogFiles() {
 }
 
 // Create or update a single issue
-async function createOrUpdateIssue(item: BacklogItem, existingIssue: any | undefined) {
+async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined) {
     const isClosed = CLOSED_STATUSES.has(item.status);
 
     // `status:*` is what lets a GitHub Projects board bucket cards by backlog stage
@@ -118,10 +130,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: any | undef
     if (existingIssue) {
         // Keep manually-added labels (triage, "good first issue", ...) intact; only replace the
         // labels this script owns (status/backlog-id prefixes plus the current type/area values).
-        const existingLabelNames: string[] = (existingIssue.labels ?? []).map((l: any) =>
-            typeof l === 'string' ? l : l.name
-        );
-        const preservedLabels = existingLabelNames.filter(
+        const preservedLabels = labelNamesOf(existingIssue).filter(
             (name) => !name.startsWith(STATUS_LABEL_PREFIX) && !name.startsWith(BACKLOG_ID_LABEL_PREFIX)
         );
         const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
@@ -203,14 +212,11 @@ async function main() {
     for (const item of localItems) {
         // Match by backlog-id label first (survives title/body edits), then fall back to the
         // hidden marker or title prefix for issues created before the label existed.
-        const existing = existingIssues.find(issue => {
-            const labelNames: string[] = (issue.labels ?? []).map((l: any) => (typeof l === 'string' ? l : l.name));
-            return (
-                labelNames.includes(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`) ||
-                issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) ||
-                issue.title.startsWith(`[${item.id}]`)
-            );
-        });
+        const existing = existingIssues.find(issue =>
+            labelNamesOf(issue).includes(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`) ||
+            issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) ||
+            issue.title.startsWith(`[${item.id}]`)
+        );
         
         await createOrUpdateIssue(item, existing);
         // Small delay to avoid hitting GitHub API rate limits too aggressively
