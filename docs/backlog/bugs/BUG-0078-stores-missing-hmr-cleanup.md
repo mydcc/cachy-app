@@ -2,7 +2,7 @@
 id: BUG-0078
 title: Core stores leak auto-save $effect.root closures and timers during HMR
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -83,4 +83,11 @@ if (import.meta.hot) {
 - [ ] Core stores (`journal`, `settings`, `indicator`) expose a `destroy()` method that halts all internal `$effect.root` instances and timers.
 - [ ] Core stores wire `destroy()` to `import.meta.hot.dispose`.
 
+## Out of scope
+
+- Changing auto-save debouncing intervals or storage backends — this item only adds lifecycle cleanup (`destroy()` + `import.meta.hot.dispose()`).
+- Refactoring legacy `.subscribe()` subscriber timer behavior — handled separately in BUG-0079.
+
 ## Links
+
+- N/A
