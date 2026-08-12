@@ -27,6 +27,7 @@ interface BacklogItem {
 }
 
 interface GitHubIssue {
+    number: number;
     url: string;
     body: string | null;
     title: string;
@@ -153,11 +154,10 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             body: JSON.stringify(payload)
         });
         if (res.ok) {
-            const data = await res.json();
-            const issueNumber = existingIssue ? (existingIssue.url.split('/').pop() ? parseInt(existingIssue.url.split('/').pop()!) : 0) : data.number;
-            if (issueNumber) {
-                await syncProjectKanbanStatus(issueNumber, item.status);
-            }
+            console.log(`[Sync] Updated issue ${item.id} (#${existingIssue.number})`);
+            await syncProjectKanbanStatus(existingIssue.number, item.status);
+        } else {
+            console.error(`[Sync] Failed to update issue ${item.id}: ${await res.text()}`);
         }
     } else {
         // Create new issue
@@ -223,6 +223,7 @@ function mapStatusToOptionName(status: string): string {
 }
 
 async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: string) {
+    console.log(`[Kanban Sync] Triggered for issue #${issueNumber} with status '${backlogStatus}'`);
     if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) return;
     const [owner, repo] = GITHUB_REPOSITORY.split('/');
     const targetOptionName = mapStatusToOptionName(backlogStatus);
