@@ -128,6 +128,12 @@
     untrack(() => {
       // 1. If prop changed externally (e.g. Preset), always sync even if focused
       if (currentSymbol !== lastPropSymbol) {
+        // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
+        if (currentFocused && localSymbol === "" && currentSymbol !== "") {
+          lastPropSymbol = currentSymbol;
+          return;
+        }
+
         localSymbol = currentSymbol || "";
         lastPropSymbol = currentSymbol;
         return;
