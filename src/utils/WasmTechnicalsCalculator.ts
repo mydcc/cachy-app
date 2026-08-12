@@ -50,13 +50,13 @@ interface WasmParsedResult {
 }
 
 export class WasmTechnicalsCalculator {
-  private instance: WasmTechnicalsInstance;
+  private instance: WasmTechnicalsInstance | null = null;
   private wasm: WasmModule;
 
   constructor(wasmModule: WasmModule) {
     this.wasm = wasmModule;
     // Instantiate Rust struct
-    this.instance = new wasmModule.TechnicalsCalculator();
+
   }
 
   public initialize(
@@ -81,35 +81,53 @@ export class WasmTechnicalsCalculator {
 
     // 2. Call Rust initialize
     // Signature Update: initialize(closes, highs, lows, volumes, times, settings)
-    this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(settings || {}));
+    try {
+        if (!this.instance) this.instance = new this.wasm.TechnicalsCalculator();
+        this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(settings || {}));
 
-    // 3. Construct Initial Result
-    const result = getEmptyData();
-    const lastTick = history[len-1];
+        // 3. Construct Initial Result
+        const result = getEmptyData();
+        const lastTick = history[len-1];
 
-    const updateJson = this.instance.update(
-        lastTick.open.toString(),
-        lastTick.high.toString(),
-        lastTick.low.toString(),
-        lastTick.close.toString(),
-        lastTick.volume.toString(),
-        lastTick.time
-    );
+        const updateJson = this.instance.update(
+            lastTick.open.toString(),
+            lastTick.high.toString(),
+            lastTick.low.toString(),
+            lastTick.close.toString(),
+            lastTick.volume.toString(),
+            lastTick.time
+        );
 
-    return this.parseWasmResult(updateJson, result);
+        return this.parseWasmResult(updateJson, result);
+    } catch (e) {
+        if (this.instance) {
+            try { this.instance.free?.(); } catch { /* Ignore */ }
+            this.instance = null;
+        }
+        throw e;
+    }
   }
 
   public update(tick: Kline): TechnicalsData {
-      // Pass full candle data: Open, High, Low, Close, Volume, Time
-      const resultJson = this.instance.update(
-          tick.open.toString(),
-          tick.high.toString(),
-          tick.low.toString(),
-          tick.close.toString(),
-          tick.volume.toString(),
-          tick.time
-      );
-      return this.parseWasmResult(resultJson, getEmptyData());
+      try {
+          if (!this.instance) this.instance = new this.wasm.TechnicalsCalculator();
+          // Pass full candle data: Open, High, Low, Close, Volume, Time
+          const resultJson = this.instance.update(
+              tick.open.toString(),
+              tick.high.toString(),
+              tick.low.toString(),
+              tick.close.toString(),
+              tick.volume.toString(),
+              tick.time
+          );
+          return this.parseWasmResult(resultJson, getEmptyData());
+      } catch (e) {
+          if (this.instance) {
+              try { this.instance.free?.(); } catch { /* Ignore */ }
+              this.instance = null;
+          }
+          throw e;
+      }
   }
 
   public shift() {

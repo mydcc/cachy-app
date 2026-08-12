@@ -57,6 +57,7 @@ vi.mock('$lib/server/logger', () => ({
 }));
 
 // Save original console methods before the import patches them
+const originalLog = console.log;
 const originalWarn = console.warn;
 const originalError = console.error;
 
@@ -70,6 +71,7 @@ beforeEach(() => {
 
 afterAll(() => {
   // Restore the original console methods to prevent cross-test contamination
+  console.log = originalLog;
   console.warn = originalWarn;
   console.error = originalError;
   delete (global as typeof global & { _isConsolePatched?: boolean })._isConsolePatched;

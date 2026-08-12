@@ -181,6 +181,7 @@ export async function runBenchmark(
     for (const engine of engines) {
       const times = await benchmarkEngine(engine, klines, settings, warmup, runs);
       if (times.length === 0) {
+        console.log(`  ⚠️  ${engine.padEnd(12)} @ ${String(size).padStart(6)} candles: UNAVAILABLE`);
         continue;
       }
 
@@ -207,6 +208,12 @@ export async function runBenchmark(
         true, // success
         size // candleCount
       );
+
+      console.log(
+        `  ${engine === 'ts' ? '📊' : engine === 'wasm' ? '⚙️' : '🎮'} ` +
+        `${engine.padEnd(12)} @ ${String(size).padStart(6)} candles: ` +
+        `median=${med.toFixed(1)}ms  p95=${p95.toFixed(1)}ms  ${engine !== 'ts' ? `speedup=${speedup.toFixed(2)}x` : '(baseline)'}`
+      );
     }
   }
 
@@ -216,6 +223,8 @@ export async function runBenchmark(
     if (!summary[run.engine]) summary[run.engine] = {};
     summary[run.engine][run.candleCount] = { median: run.median, speedup: run.speedupVsTs };
   }
+
+  console.log('\n✅ Benchmark complete. Results fed into adaptive strategy.\n');
 
   return {
     timestamp: Date.now(),

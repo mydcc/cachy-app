@@ -245,13 +245,7 @@ export class SMCService {
         }
 
         // Post-processing: Check FVG mitigation
-        // FVGs are generated in sequential order of startIndex, so they are naturally sorted.
         this.checkMitigation(candles, result.fairValueGaps);
-
-        // OBs are generated based on swing highs/lows and structure breaks, meaning
-        // they can be pushed out of sequential order. We MUST sort them by startIndex
-        // before using the sweep-line mitigation logic.
-        result.orderBlocks.sort((a, b) => a.startIndex - b.startIndex);
         this.checkMitigationOB(candles, result.orderBlocks);
 
         result.currentTrend = trend;
@@ -327,100 +321,44 @@ export class SMCService {
     }
 
     private checkMitigation(candles: SMCCandle[], fvgs: FairValueGap[]) {
-        if (fvgs.length === 0) return;
-
-        let fvgIndex = 0;
-        const activeBullish: FairValueGap[] = [];
-        const activeBearish: FairValueGap[] = [];
-        const len = candles.length;
-
-        for (let k = 0; k < len; k++) {
-            while (fvgIndex < fvgs.length && fvgs[fvgIndex].startIndex + 3 <= k) {
-                const f = fvgs[fvgIndex];
-                if (f.bias === TrendBias.BULLISH) activeBullish.push(f);
-                else activeBearish.push(f);
-                fvgIndex++;
-            }
-
-            if (activeBullish.length === 0 && activeBearish.length === 0 && fvgIndex === fvgs.length) {
-                break;
-            }
-
-            const c = candles[k];
-            const low = c.low;
-            const high = c.high;
-
-            let i = 0;
-            while (i < activeBullish.length) {
-                const fvg = activeBullish[i];
-                if (low <= fvg.top) { // Price dips into the gap
-                    fvg.mitigated = true;
-                    const last = activeBullish.pop()!;
-                    if (i < activeBullish.length) activeBullish[i] = last;
+        for (const fvg of fvgs) {
+            // Check candles after the FVG was formed (index + 3)
+            // Using a simple loop for now; in optimized version we'd do this during the main loop
+            // But since we need to know if FUTURE price hits it...
+            const startCheck = fvg.startIndex + 3;
+            for (let k = startCheck; k < candles.length; k++) {
+                const c = candles[k];
+                if (fvg.bias === TrendBias.BULLISH) {
+                    if (c.low <= fvg.top) { // Price dips into the gap
+                        fvg.mitigated = true;
+                        break;
+                    }
                 } else {
-                    i++;
-                }
-            }
-
-            let j = 0;
-            while (j < activeBearish.length) {
-                const fvg = activeBearish[j];
-                if (high >= fvg.bottom) { // Price rises into the gap
-                    fvg.mitigated = true;
-                    const last = activeBearish.pop()!;
-                    if (j < activeBearish.length) activeBearish[j] = last;
-                } else {
-                    j++;
+                    if (c.high >= fvg.bottom) { // Price rises into the gap
+                        fvg.mitigated = true;
+                        break;
+                    }
                 }
             }
         }
     }
 
     private checkMitigationOB(candles: SMCCandle[], obs: OrderBlock[]) {
-        if (obs.length === 0) return;
-
-        let obIndex = 0;
-        const activeBullish: OrderBlock[] = [];
-        const activeBearish: OrderBlock[] = [];
-        const len = candles.length;
-
-        for (let k = 0; k < len; k++) {
-            while (obIndex < obs.length && obs[obIndex].startIndex + 1 <= k) {
-                const ob = obs[obIndex];
-                if (ob.bias === TrendBias.BULLISH) activeBullish.push(ob);
-                else activeBearish.push(ob);
-                obIndex++;
-            }
-
-            if (activeBullish.length === 0 && activeBearish.length === 0 && obIndex === obs.length) {
-                break;
-            }
-
-            const c = candles[k];
-            const low = c.low;
-            const high = c.high;
-
-            let i = 0;
-            while (i < activeBullish.length) {
-                const ob = activeBullish[i];
-                if (low <= ob.top && high >= ob.bottom) { // Overlap
-                     ob.mitigated = true;
-                     const last = activeBullish.pop()!;
-                     if (i < activeBullish.length) activeBullish[i] = last;
+        for (const ob of obs) {
+            const startCheck = ob.startIndex + 1;
+            for (let k = startCheck; k < candles.length; k++) {
+                const c = candles[k];
+                // Simple touch mitigation
+                if (ob.bias === TrendBias.BULLISH) {
+                    if (c.low <= ob.top && c.high >= ob.bottom) { // Overlap
+                         ob.mitigated = true;
+                         break;
+                    }
                 } else {
-                    i++;
-                }
-            }
-
-            let j = 0;
-            while (j < activeBearish.length) {
-                const ob = activeBearish[j];
-                if (high >= ob.bottom && low <= ob.top) {
-                    ob.mitigated = true;
-                    const last = activeBearish.pop()!;
-                    if (j < activeBearish.length) activeBearish[j] = last;
-                } else {
-                    j++;
+                    if (c.high >= ob.bottom && c.low <= ob.top) {
+                        ob.mitigated = true;
+                        break;
+                    }
                 }
             }
         }

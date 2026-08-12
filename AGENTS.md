@@ -48,37 +48,6 @@ Nach jeder Änderung: `npm run check` und die betroffenen Tests ausführen. Eine
 - **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request, Ziel-Branch ist immer `develop`.
 - Keinen Code löschen, dessen Zweck unklar ist. Copyright-Header und Metadaten unangetastet lassen. `console.log`-Debug-Statements nur auf ausdrückliche Anweisung entfernen.
 
-## Backlog-Items: nicht autonom selbst auswählen und lösen
-
-`docs/backlog/` ist die einzige Quelle für anstehende Arbeit. Die Regel betrifft
-**wie ein Auftrag zustande kommt, nicht welcher Agent es ist** — es gibt keine
-Sonderrolle für ein bestimmtes Tool. Zwei Modi:
-
-- **Autonome/unbeaufsichtigte Auswahl** ("ich schaue mal, was im Backlog offen
-  ist, und löse das") — das macht **kein** Agent, egal ob Jules, Antigravity,
-  Cursor, Codex oder Claude Code. Stattdessen:
-  1. Fehlende Teile ergänzen — Acceptance Criteria, Out of Scope, offene Fragen
-     im Fix-Vorschlag klären (siehe `docs/backlog/README.md`) — und `status`
-     auf `ready` setzen, sobald das Item vollständig ist.
-  2. Die eigentliche Umsetzung läuft über die dafür vorgesehene, gefilterte
-     Pipeline: `.github/workflows/backlog-dispatch.yml`
-     (`scripts/jules/dispatch-backlog.mjs`, wöchentlich oder manuell per
-     Workflow-Dispatch) schickt `ready`-Items an Jules. Diese Pipeline —
-     nicht Jules als Tool — bringt die Schutzfilter mit: `area: execution`,
-     `area: security`, `area: exchange` und `priority: P0` werden bewusst
-     **nie automatisch dispatcht**, sondern erfordern eine manuelle
-     Übergabe (`scripts/jules/create-session.sh --file ...`) erst nachdem
-     ein Mensch das Item geprüft hat.
-- **Explizite menschliche Anweisung** ("löse jetzt BUG-0053") — das darf jeder
-  Agent, der dazu fähig ist, unabhängig vom Tool. Das ist gerichtete Arbeit,
-  kein Backlog-Grabbing, und braucht keine Dispatch-Pipeline.
-
-Ein Agent darf einen Backlog-Bug also jederzeit lesen, ergänzen, mit dem User
-diskutieren (vgl. `/backlog-groom`-Workflow) und auf `ready` setzen — einen PR
-mit der eigentlichen Fix-Implementierung öffnet er aber nur, wenn ihn entweder
-der User im konkreten Fall ausdrücklich dazu anweist, oder wenn er über die
-Dispatch-Pipeline mit deren Filtern dafür ausgewählt wurde.
-
 ## Scope-Hinweis für autonome/asynchrone Agenten (z. B. Jules)
 
 Gut geeignet für autonome Cloud-Sessions: Tests schreiben, i18n-Parität (DE/EN) prüfen, Doku/Backlog pflegen, isolierte Refactorings ohne Verhaltensänderung, Dependency-Updates, Accessibility-Fixes.

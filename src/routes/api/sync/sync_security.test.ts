@@ -57,6 +57,8 @@ describe('POST /api/sync', () => {
     } as Request;
 
     const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+    // Before fix: likely 500 or 200 (if upstream accepts it, but here we expect validation)
+    // After fix: 400
     expect(response.status).toBe(400);
   });
 

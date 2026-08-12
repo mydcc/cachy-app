@@ -16,7 +16,7 @@ import type {
   BaseMetrics,
   TotalMetrics,
 } from "../stores/types";
-import { tradeState, type TradeStateSnapshot } from "../stores/trade.svelte";
+import { tradeState, type TradeTarget, type TradeStateSnapshot } from "../stores/trade.svelte";
 import {
   resultsState,
   type ResultsState,
@@ -401,7 +401,7 @@ export class CalculatorService {
         CONSTANTS.DEFAULT_ATR_MULTIPLIER,
       ),
       stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
-      targets: currentTradeState.targets.map((t) => ({
+      targets: currentTradeState.targets.map((t: TradeTarget) => ({
         price: parseDecimal(t.price),
         percent: parseDecimal(t.percent),
         isLocked: t.isLocked,
