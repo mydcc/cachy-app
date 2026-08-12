@@ -48,6 +48,30 @@ Nach jeder Änderung: `npm run check` und die betroffenen Tests ausführen. Eine
 - **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request, Ziel-Branch ist immer `develop`.
 - Keinen Code löschen, dessen Zweck unklar ist. Copyright-Header und Metadaten unangetastet lassen. `console.log`-Debug-Statements nur auf ausdrückliche Anweisung entfernen.
 
+## Backlog-Items: vorbereiten, nicht selbst lösen
+
+`docs/backlog/` ist die einzige Quelle für anstehende Arbeit. Ein interaktiver
+Coding-Agent (Antigravity, Cursor, Codex, Claude Code, ...), der einen
+Backlog-Eintrag antrifft, **implementiert ihn nicht selbst**. Der Ablauf ist:
+
+1. Fehlende Teile ergänzen — Acceptance Criteria, Out of Scope, offene Fragen
+   im Fix-Vorschlag klären (siehe `docs/backlog/README.md`) — und `status`
+   auf `ready` setzen, sobald das Item vollständig ist.
+2. Die eigentliche Umsetzung übernimmt Jules, ausgelöst durch
+   `.github/workflows/backlog-dispatch.yml` (`scripts/jules/dispatch-backlog.mjs`,
+   wöchentlich oder manuell per Workflow-Dispatch).
+3. **Ausnahme, die *nie* automatisch dispatcht wird:** `area: execution`,
+   `area: security`, `area: exchange` oder `priority: P0` — diese bleiben
+   im Dispatch-Skript bewusst ausgeschlossen und müssen manuell per
+   `scripts/jules/create-session.sh --file ...` an Jules übergeben werden,
+   nachdem ein Mensch das Item geprüft hat. Auch hier gilt: vorbereiten, nicht
+   selbst implementieren.
+
+Ein Agent darf einen Backlog-Bug lesen, ergänzen, mit dem User diskutieren
+(vgl. `/backlog-groom`-Workflow) und auf `ready` setzen — aber keinen PR mit
+der eigentlichen Fix-Implementierung dafür öffnen, außer der User weist ihn
+im konkreten Fall ausdrücklich dazu an.
+
 ## Scope-Hinweis für autonome/asynchrone Agenten (z. B. Jules)
 
 Gut geeignet für autonome Cloud-Sessions: Tests schreiben, i18n-Parität (DE/EN) prüfen, Doku/Backlog pflegen, isolierte Refactorings ohne Verhaltensänderung, Dependency-Updates, Accessibility-Fixes.
