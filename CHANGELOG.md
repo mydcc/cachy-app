@@ -5,6 +5,13 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.4.0-beta.7](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.6...v1.4.0-beta.7) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ci:** lint only the PR's tip commit, not the full base..head range ([#1721](https://github.com/mydcc/cachy-app/issues/1721)) ([d8f239d](https://github.com/mydcc/cachy-app/commit/d8f239d3c9ae571ef83edb0373c1baa1cb943968)), closes [#1716](https://github.com/mydcc/cachy-app/issues/1716) [1711/#1712](https://github.com/mydcc/cachy-app/issues/1712) [#1716](https://github.com/mydcc/cachy-app/issues/1716)
+
 # [1.4.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.5...v1.4.0-beta.6) (2026-08-11)
 
 
