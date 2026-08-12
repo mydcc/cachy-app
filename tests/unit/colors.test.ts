@@ -1,5 +1,75 @@
-import { describe, it, expect } from 'vitest';
-import { hexToRgba } from '../../src/utils/colors';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { hexToRgba, getComputedColor } from '../../src/utils/colors';
+import * as environment from '$app/environment';
+
+// Mock $app/environment
+vi.mock('$app/environment', () => ({
+  browser: true
+}));
+
+describe('getComputedColor', () => {
+  let originalGetComputedStyle: typeof window.getComputedStyle;
+
+  beforeEach(() => {
+    originalGetComputedStyle = window.getComputedStyle;
+    // @ts-expect-error - overriding read-only browser property for testing
+    environment.browser = true;
+  });
+
+  afterEach(() => {
+    window.getComputedStyle = originalGetComputedStyle;
+    vi.restoreAllMocks();
+  });
+
+  it('returns the correct color when the variable exists on document.body', () => {
+    window.getComputedStyle = vi.fn().mockImplementation((element) => {
+      if (element === document.body) {
+        return {
+          getPropertyValue: vi.fn().mockImplementation((prop) => {
+            if (prop === '--primary-color') return ' #ff0000 ';
+            return '';
+          })
+        };
+      }
+      return { getPropertyValue: vi.fn().mockReturnValue('') };
+    }) as unknown as typeof window.getComputedStyle;
+
+    expect(getComputedColor('--primary-color')).toBe('#ff0000');
+  });
+
+  it('returns an empty string when the variable is missing', () => {
+    window.getComputedStyle = vi.fn().mockImplementation(() => {
+      return {
+        getPropertyValue: vi.fn().mockReturnValue('  ')
+      };
+    }) as unknown as typeof window.getComputedStyle;
+
+    expect(getComputedColor('--missing-color')).toBe('');
+  });
+
+  it('handles custom elements correctly', () => {
+    const mockElement = document.createElement('div');
+    window.getComputedStyle = vi.fn().mockImplementation((element) => {
+      if (element === mockElement) {
+        return {
+          getPropertyValue: vi.fn().mockImplementation((prop) => {
+            if (prop === '--secondary-color') return '#00ff00';
+            return '';
+          })
+        };
+      }
+      return { getPropertyValue: vi.fn().mockReturnValue('') };
+    }) as unknown as typeof window.getComputedStyle;
+
+    expect(getComputedColor('--secondary-color', mockElement)).toBe('#00ff00');
+  });
+
+  it('returns #000000 in SSR environment (!browser)', () => {
+    // @ts-expect-error - overriding read-only browser property for testing
+    environment.browser = false;
+    expect(getComputedColor('--any-color')).toBe('#000000');
+  });
+});
 
 describe('hexToRgba', () => {
   it('converts valid 6-character hex colors correctly', () => {
