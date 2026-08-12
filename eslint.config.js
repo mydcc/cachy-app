@@ -40,6 +40,7 @@ export default [
   {
     ignores: [
       "build/",
+      "src/lib/spacetimedb/**",
       "dist/",
       ".svelte-kit/",
       "node_modules/",
