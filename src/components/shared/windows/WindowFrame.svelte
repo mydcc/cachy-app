@@ -591,7 +591,7 @@
                             effectsState.triggerFeed(10);
                         }}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("common.feedDuck") || "Feed Duck"} aria-label={$_("common.feedDuck") || "Feed Duck"}>🍞</button
+                        title={$_("common.feedDuck")} aria-label={$_("common.feedDuck")}>🍞</button
                     >
                 </div>
             {/if}
@@ -631,8 +631,8 @@
 
             <button
                 class="close-btn"
-                title={$_("common.close") as string}
-                aria-label={$_("common.close") as string}
+                title={$_("common.close")}
+                aria-label={$_("common.close")}
                 onclick={() => windowManager.close(win.id)}
                 ondblclick={(e) => e.stopPropagation()}>✕</button
             >
