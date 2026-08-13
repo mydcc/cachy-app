@@ -347,7 +347,7 @@ async function findBacklogFiles() {
 }
 
 // Create or update a single issue
-async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[]): Promise<{ number: number; nodeId: string } | undefined> {
+async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[], hasOpenPR: boolean = false): Promise<{ number: number; nodeId: string } | undefined> {
     const isClosed = CLOSED_STATUSES.has(item.status);
 
     let milestoneNumber: number | null = null;
@@ -358,11 +358,12 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
     // `status:*` is what lets a GitHub Projects board bucket cards by backlog stage
     // (idea/specced/ready/in-progress), not just the two-state open/closed the Issues API offers.
     // `backlog-id:*` is the stable lookup key for matching, independent of title/body edits.
+    const effectiveStatus = hasOpenPR && !isClosed ? 'in-review' : item.status;
     const managedLabels = [
         item.type,
         item.area,
         item.priority,
-        item.status ? `${STATUS_LABEL_PREFIX}${item.status}` : '',
+        effectiveStatus ? `${STATUS_LABEL_PREFIX}${effectiveStatus}` : '',
         item.data_class && item.data_class !== 'none' ? `dataclass:${item.data_class}` : '',
         item.adr && item.adr !== 'none' ? `adr:${item.adr}` : '',
         ...(item.editions || []).map(e => `edition:${e}`),
@@ -411,7 +412,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (res.ok) {
             const data = await res.json();
             console.log(`[Sync] Updated issue ${item.id} (#${existingIssue.number})`);
-            await syncProjectKanbanStatus(existingIssue.number, item);
+            await syncProjectKanbanStatus(existingIssue.number, item, hasOpenPR);
             return { number: existingIssue.number, nodeId: data.node_id || existingIssue.node_id };
         } else {
             console.error(`[Sync] Failed to update issue ${item.id}: ${await res.text()}`);
@@ -465,14 +466,19 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         }
 
         if (data.number) {
-            await syncProjectKanbanStatus(data.number, item);
+            await syncProjectKanbanStatus(data.number, item, hasOpenPR);
         }
         return { number: data.number, nodeId: data.node_id };
     }
 }
 
-function mapStatusToOptionName(status: string): string {
+function mapStatusToOptionName(status: string, hasOpenPR: boolean = false): string {
+    if (hasOpenPR && status.toLowerCase() !== 'done' && status.toLowerCase() !== 'dropped') {
+        return 'In review';
+    }
     switch (status.toLowerCase()) {
+        case 'in-review':
+            return 'In review';
         case 'ready':
             return 'Ready';
         case 'in-progress':
@@ -556,11 +562,11 @@ async function updateDateField(projectId: string, itemId: string, fieldId: strin
     });
 }
 
-async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
-    console.log(`[Kanban Sync] Triggered for issue #${issueNumber} (${item.id}) with status '${item.status}'`);
+async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem, hasOpenPR: boolean = false) {
+    console.log(`[Kanban Sync] Triggered for issue #${issueNumber} (${item.id}) with status '${item.status}' (hasOpenPR: ${hasOpenPR})`);
     if (!PROJECT_SYNC_TOKEN || !GITHUB_REPOSITORY) return;
     const [owner, repo] = GITHUB_REPOSITORY.split('/');
-    const targetOptionName = mapStatusToOptionName(item.status);
+    const targetOptionName = mapStatusToOptionName(item.status, hasOpenPR);
 
     const query = `
       query GetIssueProjects($owner: String!, $repo: String!, $number: Int!) {
@@ -730,7 +736,15 @@ async function main() {
             issue.title.startsWith(`[${item.id}]`)
         );
         
-        const res = await createOrUpdateIssue(item, existing, milestones);
+        const matchingPRs = openPRs.filter(pr =>
+            pr.title.includes(item.id) ||
+            pr.body?.includes(item.id) ||
+            pr.head.ref.includes(item.id) ||
+            (existing?.number && pr.body?.match(new RegExp(`(?:Fixes|Closes|Resolves)\\s+#${existing.number}\\b`, 'i')))
+        );
+        const hasOpenPR = matchingPRs.length > 0;
+
+        const res = await createOrUpdateIssue(item, existing, milestones, hasOpenPR);
         if (res?.nodeId) {
             issueMap.set(item.id, res.nodeId);
         }
