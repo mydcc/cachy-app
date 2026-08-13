@@ -23,12 +23,36 @@ interface BacklogItem {
     type: string;
     status: string;
     area: string;
+    milestone?: string;
+    depends_on?: string[];
     estimate?: number;
     size?: string;
     start_date?: string;
     target_date?: string;
     content: string;
     filepath: string;
+}
+
+interface GitHubMilestone {
+    number: number;
+    title: string;
+}
+
+async function fetchRepoMilestones(): Promise<GitHubMilestone[]> {
+    try {
+        const url = `https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones?state=all&per_page=100`;
+        const res = await fetch(url, {
+            headers: {
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            }
+        });
+        if (!res.ok) return [];
+        return await res.json();
+    } catch {
+        return [];
+    }
 }
 
 interface GitHubIssue {
@@ -136,6 +160,12 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     const status = frontmatter.match(/^status:\s*(.+)$/m)?.[1]?.trim() || '';
     const area = frontmatter.match(/^area:\s*(.+)$/m)?.[1]?.trim() || '';
 
+    const milestone = frontmatter.match(/^milestone:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const dependsOnMatch = frontmatter.match(/^depends_on:\s*\[(.*?)\]/m)?.[1];
+    const depends_on = dependsOnMatch
+        ? dependsOnMatch.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean)
+        : [];
+
     const estimateRaw = frontmatter.match(/^estimate:\s*(.+)$/m)?.[1]?.trim();
     const estimate = estimateRaw ? parseFloat(estimateRaw) : undefined;
     const size = frontmatter.match(/^size:\s*(.+)$/m)?.[1]?.trim() || undefined;
@@ -145,7 +175,7 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     if (!id) return null;
 
     return {
-        id, title, type, status, area, estimate, size, start_date, target_date, content: body, filepath
+        id, title, type, status, area, milestone, depends_on, estimate, size, start_date, target_date, content: body, filepath
     };
 }
 
@@ -175,8 +205,16 @@ async function findBacklogFiles() {
 }
 
 // Create or update a single issue
-async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined) {
+async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[]) {
     const isClosed = CLOSED_STATUSES.has(item.status);
+
+    let milestoneNumber: number | null = null;
+    if (item.milestone && item.milestone.toLowerCase() !== 'none') {
+        const found = milestones.find(m => m.title.toLowerCase() === item.milestone!.toLowerCase());
+        if (found) {
+            milestoneNumber = found.number;
+        }
+    }
 
     // `status:*` is what lets a GitHub Projects board bucket cards by backlog stage
     // (idea/specced/ready/in-progress), not just the two-state open/closed the Issues API offers.
@@ -187,7 +225,12 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         item.status ? `${STATUS_LABEL_PREFIX}${item.status}` : '',
         `${BACKLOG_ID_LABEL_PREFIX}${item.id}`
     ].filter(Boolean);
-    const body = `${item.content}\n\n<!-- backlog-id: ${item.id} -->`;
+
+    let formattedBody = item.content;
+    if (item.depends_on && item.depends_on.length > 0) {
+        formattedBody = `> **Depends on:** ${item.depends_on.join(', ')}\n\n${formattedBody}`;
+    }
+    const body = `${formattedBody}\n\n<!-- backlog-id: ${item.id} -->`;
     const title = `[${item.id}] ${item.title}`;
 
     if (existingIssue) {
@@ -199,12 +242,15 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
 
         // Update existing issue
-        const payload = {
+        const payload: Record<string, unknown> = {
             title,
             body,
             labels,
             state: isClosed ? 'closed' : 'open'
         };
+        if (milestoneNumber !== null) {
+            payload.milestone = milestoneNumber;
+        }
         const res = await fetch(existingIssue.url, {
             method: 'PATCH',
             headers: {
@@ -223,11 +269,14 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         }
     } else {
         // Create new issue
-        const payload = {
+        const payload: Record<string, unknown> = {
             title,
             body,
             labels: managedLabels,
         };
+        if (milestoneNumber !== null) {
+            payload.milestone = milestoneNumber;
+        }
         const res = await fetch(BASE_URL, {
             method: 'POST',
             headers: {
@@ -492,6 +541,10 @@ async function main() {
     const existingIssues = await fetchAllIssues();
     console.log(`Found ${existingIssues.length} existing issues.`);
 
+    console.log("Fetching repository milestones...");
+    const milestones = await fetchRepoMilestones();
+    console.log(`Found ${milestones.length} milestones.`);
+
     console.log("Fetching open pull requests for auto-linking...");
     const openPRs = await fetchAllOpenPRs();
     console.log(`Found ${openPRs.length} open pull requests.`);
@@ -509,7 +562,7 @@ async function main() {
             issue.title.startsWith(`[${item.id}]`)
         );
         
-        await createOrUpdateIssue(item, existing);
+        await createOrUpdateIssue(item, existing, milestones);
         if (existing?.number) {
             await ensurePRsAreLinked(item, existing.number, openPRs);
         }
