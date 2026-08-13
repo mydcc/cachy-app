@@ -881,6 +881,7 @@ export class SettingsManager {
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
   isEncrypted = $state(false);
   isLocked = $state(false);
+  decryptionFailures = $state(0);
 
   /**
    * Resolves once `load()` has restored the encrypted secrets into memory.
@@ -980,6 +981,7 @@ export class SettingsManager {
     // 2. Get or Generate secure key (handles migration if legacyKey provided)
     const key = await cryptoService.getOrGenerateDeviceKey(
       legacyKey || undefined,
+      Object.keys(this.encryptedSecrets || {}).length > 0
     );
 
     // 3. Cleanup legacy key if migration happened
@@ -1030,6 +1032,7 @@ export class SettingsManager {
       }
 
       // 2. Decrypt Generic Secrets
+      let failures = 0;
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
           .filter(([key]) => SENSITIVE_KEYS.includes(key as keyof Settings))
@@ -1042,6 +1045,7 @@ export class SettingsManager {
               // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
               this[key] = decrypted;
             } catch (e) {
+              failures++;
               console.error("[Settings] Failed to decrypt secret " + key, e);
             }
           });
@@ -1049,6 +1053,7 @@ export class SettingsManager {
       }
 
       await Promise.all(tasks);
+      this.decryptionFailures = failures;
 
       this.isLocked = false;
       return true;
@@ -1257,8 +1262,10 @@ export class SettingsManager {
             try {
               const deviceKey = await this.getDeviceKey();
               const entries = Object.entries(this.encryptedSecrets || {});
+              let failures = 0;
               await Promise.all(
                 entries.map(async ([key, blob]) => {
+                  if (key === "_deviceKeyCanary") return;
                   try {
                     const decrypted = await cryptoService.decrypt(
                       blob as EncryptedBlob,
@@ -1269,6 +1276,7 @@ export class SettingsManager {
                       this[key] = decrypted;
                     }
                   } catch (e) {
+                    failures++;
                     console.error(
                       "[Settings] Failed to decrypt secret " + key,
                       e,
@@ -1276,7 +1284,9 @@ export class SettingsManager {
                   }
                 }),
               );
+              this.decryptionFailures = failures;
             } catch (e) {
+              this.decryptionFailures = SENSITIVE_KEYS.length;
               console.error(
                 "[Settings] Failed to initialize background decryption",
                 e,
@@ -1569,6 +1579,19 @@ export class SettingsManager {
             }
           }
         });
+
+        // Always write a canary to detect key loss without data loss
+        encryptionTasks.push((async () => {
+          try {
+            data.encryptedSecrets!["_deviceKeyCanary"] = await cryptoService.encrypt(
+              "canary",
+              encryptionPassword,
+            );
+          } catch (e) {
+            if (import.meta.env.DEV) console.error("Failed to encrypt canary", e);
+          }
+        })());
+
         await Promise.all(encryptionTasks);
       } else {
         // Locked mode: Ensure plain text fields are empty

@@ -703,6 +703,8 @@
     "en": "English"
   },
   "settings": {
+    "decryptionWarningTitle": "Security Warning",
+    "decryptionWarningMessage": "saved key(s) could not be read and need to be re-entered.",
     "calculation": {
       "analyzeFavorites": "Analyze All Favorites",
       "analyzeFavoritesBadgeAll": "All Favorites",

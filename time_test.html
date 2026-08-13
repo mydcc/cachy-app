@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+<script>
+console.log("Measuring...");
+async function run() {
+  const start = performance.now();
+  try {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open("cachy_keys_db", 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      request.onupgradeneeded = (e) => {
+         const db = e.target.result;
+         db.createObjectStore("keys", { keyPath: "id" });
+      };
+    });
+    console.log("DB opened", performance.now() - start);
+
+    const start2 = performance.now();
+    const result = await new Promise((resolve, reject) => {
+      const tx = db.transaction("keys", "readonly");
+      const store = tx.objectStore("keys");
+      const request = store.get("test");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    console.log("Get done", performance.now() - start2);
+
+    db.close();
+  } catch (e) {
+    console.error(e);
+  }
+}
+run();
+</script>
+</body>
+</html>
