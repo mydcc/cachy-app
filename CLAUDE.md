@@ -95,3 +95,4 @@ Conventional Commits (semantic-release): `feat:` (Minor), `fix:` (Patch), `refac
 - **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request.
 - Der Conventional-Commits-Check (`commit-lint.yml`) läuft nur auf `pull_request`-Events — direktes Pushen auf `develop` umgeht ihn. PRs sind die einzige Möglichkeit, den Check vor dem Merge zu erzwingen.
 - Target-Branch für PRs ist immer **`develop`**, nie `main`.
+- **Agent-Isolierung:** Bevor du mit der Arbeit beginnst, stell sicher, dass du dich auf einem sauberen `develop`-Branch befindest (`git checkout develop`, `git status`). Nutze Git Worktrees für parallele Aufgaben, um Konflikte mit anderen Agenten im selben Verzeichnis zu vermeiden (siehe `AGENTS.md`).
