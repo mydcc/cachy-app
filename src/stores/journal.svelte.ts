@@ -166,24 +166,27 @@ class JournalManager {
   marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
   systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
 
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     fn(this.entries);
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.entries; // Track
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(this.entries);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 20);
         });
       });
     });
+    return () => {
+      cleanup();
+      if (localTimer) clearTimeout(localTimer);
+    };
   }
 }
 

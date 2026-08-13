@@ -10,6 +10,9 @@ area: build
 data_class: none
 adr: none
 depends_on: [FEAT-0014]
+estimate: 5
+size: L
+target_date: 2026-10-14
 ---
 
 # FEAT-0031 — Rebrand a build without editing source
