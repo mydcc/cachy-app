@@ -2,7 +2,7 @@
 id: BUG-0053
 title: A lost or regenerated IndexedDB device key silently orphans every encrypted secret
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: M0
 editions: [community, pro, private]

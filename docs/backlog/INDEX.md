@@ -4,7 +4,7 @@
 
 89 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · 🟡 in-progress 1 · ✅ done 39
+Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
 
 ---
 
@@ -16,7 +16,7 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · 🟡 in-pro
 | --- | --- | --- | --- | --- |
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | exchange |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | calculation |
-| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 🟡 in-progress | security |
+| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | ✅ done | security |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | ✅ done | execution |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | security |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | ui |
@@ -162,7 +162,7 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · 🟡 in-pro
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | [BUG-0001](bugs/BUG-0001-bitget-ws-field-mismatch.md) | Bitget WebSocket account sync sends field names the account store never reads | P0 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0002](bugs/BUG-0002-numeric-zero-target-price.md) | Trade state stores numbers where its type declares strings | P0 | ✅ done | M0 | community, pro, private | A | none | — |
-| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | 🟡 in-progress | M0 | community, pro, private | A | none | — |
+| [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) | A lost or regenerated IndexedDB device key silently orphans every encrypted secret | P0 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0058](bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md) | A WS position push that omits qty silently closes a still-open position | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0060](bugs/BUG-0060-positions-account-envelope-mismatch.md) | PositionsSidebar reads /api/positions and /api/account through the wrong response envelope | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |

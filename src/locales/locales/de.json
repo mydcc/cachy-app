@@ -703,6 +703,8 @@
     "en": "Englisch"
   },
   "settings": {
+    "decryptionWarningTitle": "Sicherheitswarnung",
+    "decryptionWarningMessage": "gespeicherte Schlüssel konnten nicht gelesen werden und müssen neu eingegeben werden.",
     "calculation": {
       "analyzeFavorites": "Alle Favoriten analysieren",
       "analyzeFavoritesBadgeAll": "Alle Favoriten",

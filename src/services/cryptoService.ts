@@ -348,12 +348,16 @@ class CryptoServiceImpl {
    * This provides better security than localStorage as the key material cannot be easily exfiltrated via XSS.
    * For backward compatibility, legacy hex keys are imported as PBKDF2 keys to maintain the same derivation path.
    */
-  public async getOrGenerateDeviceKey(legacyHexKey?: string): Promise<CryptoKey> {
+  public async getOrGenerateDeviceKey(legacyHexKey?: string, hasEncryptedSecrets?: boolean): Promise<CryptoKey> {
     if (!browser) throw new Error("Browser environment required for Device Key");
 
     // 1. Try to load from IndexedDB
     let key = await this.loadKeyFromDB(DEVICE_KEY_ALIAS);
     if (key) return key;
+
+    if (hasEncryptedSecrets) {
+      throw new Error("DeviceKeyLost: Device key is missing but encrypted secrets exist.");
+    }
 
     // 2. Migration or Generation
     if (legacyHexKey) {
