@@ -2,7 +2,7 @@
 id: FEAT-0041
 title: Give every floating surface its z-index from one layer contract
 type: feature
-status: specced
+status: ready
 priority: P1
 milestone: M0
 editions: [community, pro, private]
@@ -107,9 +107,8 @@ place among floating surfaces.
 
 ## Open questions
 
-Whether the dock belongs above or below maximized windows. Today it is below
-(`12000` vs `20000`), which means maximizing a window hides the dock. That may
-be intentional.
+- **RESOLVED:** Whether the dock belongs above or below maximized windows.
+  **Resolution:** Option A (Full-Focus Mode). Maximized windows cover the dock (`--z-window-max` > `--z-window-dock`) to provide a 100% clean, immersive workspace area when maximized. Modals, quiz cards, toasts, and FX sit above maximized windows.
 
 ## Links
 
