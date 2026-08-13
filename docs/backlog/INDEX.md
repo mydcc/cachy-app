@@ -4,7 +4,7 @@
 
 81 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 12 · 📋 specced 27 · 🟢 ready 6 · ✅ done 36
+Counts by status: 💡 idea 12 · 📋 specced 27 · 🟢 ready 5 · ✅ done 37
 
 ---
 
@@ -36,7 +36,7 @@ Counts by status: 💡 idea 12 · 📋 specced 27 · 🟢 ready 6 · ✅ done 36
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | execution |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | execution |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | execution |
-| [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | 🟢 ready | ui |
+| [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | ui |
 
 ### M2
 
@@ -205,7 +205,7 @@ Counts by status: 💡 idea 12 · 📋 specced 27 · 🟢 ready 6 · ✅ done 36
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0066](bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md) | Position tooltip labels the live unrealized PnL row "Realized PnL | P2 | ✅ done | M3 | community, pro, private | none | none | — |
-| [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | 🟢 ready | M1 | community, pro, private | none | none | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) |
+| [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | M1 | community, pro, private | none | none | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
