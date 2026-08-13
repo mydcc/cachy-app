@@ -138,6 +138,22 @@ class BitgetWebSocketService {
 
 
 
+  private shouldThrottle(key: string, commit = true): boolean {
+    const now = Date.now();
+    const last = this.throttleMap.get(key) || 0;
+    if (now - last < this.UPDATE_INTERVAL) {
+      return true;
+    }
+    if (commit) {
+      this.throttleMap.set(key, now);
+    }
+    return false;
+  }
+
+  private commitThrottle(key: string): void {
+    this.throttleMap.set(key, Date.now());
+  }
+
   destroy() {
     logger.log("governance", `[BitgetWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
@@ -390,12 +406,12 @@ class BitgetWebSocketService {
        const instId = rawArg.instId;
 
        if (channel === "ticker") {
-           const throttleTicker = this.shouldThrottle(`${instId}:ticker`);
-           const throttlePrice = this.shouldThrottle(`${instId}:price`);
+           const throttleTicker = this.shouldThrottle(`${instId}:ticker`, false);
+           const throttlePrice = this.shouldThrottle(`${instId}:price`, false);
            // If both are throttled, we don't need to process ticker updates
            if (throttleTicker && throttlePrice) return;
        } else if (channel === "books" || channel === "books5" || channel === "books15") {
-           if (this.shouldThrottle(`${instId}:depth`)) return;
+           if (this.shouldThrottle(`${instId}:depth`, false)) return;
        }
     }
 
