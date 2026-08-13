@@ -28,9 +28,10 @@ class PresetManager {
     this.selectedPreset = next.selectedPreset;
   }
 
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+
 
   subscribe(fn: (value: PresetState) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     const getSnapshot = () => ({
       availablePresets: this.availablePresets,
       selectedPreset: this.selectedPreset,
@@ -40,19 +41,19 @@ class PresetManager {
       $effect(() => {
         const snap = getSnapshot(); // Track
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(snap);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 20);
         });
       });
     });
     return () => {
       cleanup();
-      if (this.notifyTimer) {
-        clearTimeout(this.notifyTimer);
-        this.notifyTimer = null;
+      if (localTimer) {
+        clearTimeout(localTimer);
+        localTimer = null;
       }
     };
   }

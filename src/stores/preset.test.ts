@@ -123,4 +123,38 @@ describe('PresetManager', () => {
         // Should still be 1 — the pending timer must have been cleared
         expect(subscriber).toHaveBeenCalledTimes(1);
     });
+
+    it('should notify all subscribers independently and not drop updates for remaining subscribers when one unsubscribes', async () => {
+        const subscriber1 = vi.fn();
+        const subscriber2 = vi.fn();
+
+        const unsubscribe1 = presetState.subscribe(subscriber1);
+        const unsubscribe2 = presetState.subscribe(subscriber2);
+
+        expect(subscriber1).toHaveBeenCalledTimes(1);
+        expect(subscriber2).toHaveBeenCalledTimes(1);
+
+        // Mutate state to schedule a debounced notification
+        presetState.availablePresets = ['p1'];
+
+        // Wait for the Svelte effect to run (which tracks the mutation and schedules the timer)
+        // using the async timer helper which flushes microtasks.
+        await vi.advanceTimersByTimeAsync(10);
+
+        // Before the timer finishes (20ms), subscriber1 unsubscribes.
+        // In the flawed implementation, unsubscribe clears `this.notifyTimer` for EVERYONE.
+        unsubscribe1();
+
+        // Advance the rest of the time
+        await vi.advanceTimersByTimeAsync(15);
+
+        // subscriber1 should not have been called again (still 1 from initial call)
+        expect(subscriber1).toHaveBeenCalledTimes(1);
+
+        // subscriber2 SHOULD be called with the new state
+        expect(subscriber2).toHaveBeenCalledTimes(2);
+
+        unsubscribe2();
+    });
+
 });
