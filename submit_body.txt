@@ -1,0 +1,11 @@
+🎯 What: Configured `vite-plugin-compression` in Vite and
+added Express middleware in `server.js` to serve headers.
+💡 Why: The `adapter-node` statically serves prerendered assets
+without hitting SvelteKit's `hooks.server.ts`. Using Express in
+the server wrapper correctly injects security headers like
+HSTS, CSP, XCTO, XFO, RP, resolving the Production Monitor alerts.
+Compression fixes the Lighthouse Performance-Score.
+✅ Verification: Verified locally by running `curl -I` on the
+production build server. Verified Vite build compression logs.
+✨ Result: The security headers are correctly appended to all
+HTML responses and assets are efficiently compressed.
