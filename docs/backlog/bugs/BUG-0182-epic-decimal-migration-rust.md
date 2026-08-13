@@ -2,7 +2,7 @@
 id: BUG-0182
 title: "Epic: Migrate Rust/WASM backend to rust_decimal"
 type: bug
-status: in-progress
+status: done
 branch: fix-decimal-migration
 priority: P1
 milestone: none
