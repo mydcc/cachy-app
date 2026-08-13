@@ -10,6 +10,10 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+estimate: 2
+size: S
+start_date: 2026-08-13
+target_date: 2026-08-15
 ---
 
 # BUG-0078 — Core stores leak auto-save $effect.root closures and timers during HMR
