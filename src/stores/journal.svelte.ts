@@ -20,6 +20,7 @@ import { safeJsonParse } from "../utils/safeJson";
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
   private effectCleanup: (() => void) | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
