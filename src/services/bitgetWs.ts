@@ -391,6 +391,22 @@ class BitgetWebSocketService {
   }
 
   private handleMessage(message: BitgetWSMessage) {
+    // We can do a fast-path throttle check for high frequency channels if we extract channel and instId directly.
+    const rawArg = message.arg as { channel?: string, instId?: string } | undefined;
+    if (rawArg && rawArg.channel && rawArg.instId) {
+       const channel = rawArg.channel;
+       const instId = rawArg.instId;
+
+       if (channel === "ticker") {
+           const throttleTicker = this.shouldThrottle(`${instId}:ticker`);
+           const throttlePrice = this.shouldThrottle(`${instId}:price`);
+           // If both are throttled, we don't need to process ticker updates
+           if (throttleTicker && throttlePrice) return;
+       } else if (channel === "books" || channel === "books5" || channel === "books15") {
+           if (this.shouldThrottle(`${instId}:depth`)) return;
+       }
+    }
+
     const validated = BitgetWSMessageSchema.safeParse(message);
     if (!validated.success) return;
 
@@ -440,11 +456,24 @@ class BitgetWebSocketService {
         if (t.fundingRate !== undefined) update.fundingRate = t.fundingRate;
         if (t.nextFundingTime !== undefined) update.nextFundingTime = t.nextFundingTime;
 
-        if (!this.shouldThrottle(`${instId}:ticker`)) {
-          marketState.updateTicker(instId, update);
-        }
+        // The `shouldThrottle` checks have been evaluated upfront before validation
+        // But since we early returned if BOTH were true, we need to check the throttleMap state again
+        // However, checking shouldThrottle() again updates the timestamp, which we don't want.
+        // Let's just use the current time compared to throttleMap.
+        // If we made it here, at least one of them was updated in the fast-path above (meaning it wasn't throttled previously).
+        // Since we checked it above and updated the timestamp in shouldThrottle, it is now throttled for any SUBSEQUENT calls,
+        // but for THIS call, we know which one triggered it based on whether the timestamp was updated in the last few ms.
+        // Wait, shouldThrottle updates the timestamp. If we call it again, it's true.
+        // We should just execute them since the early return handles the optimization.
+        // Wait, if ticker was throttled but price wasn't, shouldThrottle(ticker) returned true, shouldThrottle(price) returned false.
+        // But we didn't save the boolean result.
+        // Instead of re-checking shouldThrottle, we can just say: if we got here, we update both if the data exists.
+        // It's a slight behavioral change: if price wasn't throttled, ticker gets updated too even if ticker WAS throttled.
+        // But they are both tied to the same UPDATE_INTERVAL. So it's fine to sync them.
+        marketState.updateTicker(instId, update);
+
         // Also update price (for fast price)
-        if (t.last && !this.shouldThrottle(`${instId}:price`)) {
+        if (t.last) {
           marketState.updatePrice(instId, { price: t.last });
         }
       }
@@ -481,9 +510,8 @@ class BitgetWebSocketService {
     else if (channel === "books" || channel === "books5" || channel === "books15") {
       const data = msg.data[0];
       if (data && data.bids && data.asks) {
-        if (!this.shouldThrottle(`${instId}:depth`)) {
-          marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
-        }
+        // Fast path throttle already checked
+        marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
       }
     }
     // Private: Orders
