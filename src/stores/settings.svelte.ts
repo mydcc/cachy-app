@@ -1261,19 +1261,44 @@ export class SettingsManager {
           secretsPending = true;
           void (async () => {
             try {
+              let deviceKey: string | CryptoKey;
+              try {
+                  // Attempt to load device key without regenerating
+                  deviceKey = await this.getDeviceKey(false);
+              } catch (e) {
+                  // Device key is missing!
+                  // If we have secrets but no key, this is an orphaned state.
+                  // We should push ALL keys into decryption failures.
+                  const entries = Object.entries(this.encryptedSecrets || {});
+                  if (entries.length > 0) {
+                      entries.forEach(([k]) => {
+                          if (SENSITIVE_KEYS.includes(k as keyof Settings)) {
+                              this.decryptionFailures.push(k);
+                          }
+                      });
+                  }
+                  secretsPending = false;
+                  this.resolveSecretsReady();
+                  return; // Don't even try to decrypt
+              }
+
               if (this.deviceKeyCanary) {
                 try {
-                  const checkKey = await this.getDeviceKey(false);
-                  await cryptoService.decrypt(this.deviceKeyCanary, checkKey);
+                  await cryptoService.decrypt(this.deviceKeyCanary, deviceKey);
                 } catch (e) {
                   console.error("[Settings] Canary failed. Device key is lost.", e);
-                  Object.keys(this.encryptedSecrets || {}).forEach(k => this.decryptionFailures.push(k));
-                                    secretsPending = false;
+                  Object.keys(this.encryptedSecrets || {}).forEach(k => {
+                      if (SENSITIVE_KEYS.includes(k as keyof Settings)) {
+                          this.decryptionFailures.push(k);
+                      }
+                  });
+                  secretsPending = false;
                   this.resolveSecretsReady();
                   return;
                 }
               }
-              const deviceKey = await this.getDeviceKey(true);
+
+              // We successfully loaded the device key
               const entries = Object.entries(this.encryptedSecrets || {});
               await Promise.all(
                 entries.map(async ([key, blob]) => {
