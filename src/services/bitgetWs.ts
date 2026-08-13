@@ -136,15 +136,7 @@ class BitgetWebSocketService {
     }
   }
 
-  private shouldThrottle(key: string): boolean {
-    const now = Date.now();
-    const last = this.throttleMap.get(key) || 0;
-    if (now - last < this.UPDATE_INTERVAL) {
-      return true;
-    }
-    this.throttleMap.set(key, now);
-    return false;
-  }
+
 
   destroy() {
     logger.log("governance", `[BitgetWS] #${this.instanceId} destroy() called.`);
@@ -510,7 +502,7 @@ class BitgetWebSocketService {
     else if (channel === "books" || channel === "books5" || channel === "books15") {
       const data = msg.data[0];
       if (data && data.bids && data.asks) {
-        // Fast path throttle already checked
+        this.commitThrottle(`${instId}:depth`);
         marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
       }
     }
