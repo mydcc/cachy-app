@@ -320,7 +320,7 @@ class BitunixWebSocketService {
     }
   }
 
-  private shouldThrottle(key: string): boolean {
+  private shouldThrottle(key: string, commit = true): boolean {
     const now = Date.now();
     // Safety: Prevent map from growing indefinitely if user cycles symbols
     if (this.throttleMap.size > 1000) {
@@ -332,8 +332,14 @@ class BitunixWebSocketService {
     if (shouldBlock) {
       return true;
     }
-    this.throttleMap.set(key, now);
+    if (commit) {
+      this.throttleMap.set(key, now);
+    }
     return false;
+  }
+
+  private commitThrottle(key: string): void {
+    this.throttleMap.set(key, Date.now());
   }
 
   destroy() {
@@ -928,6 +934,7 @@ class BitunixWebSocketService {
           if (isObjectData) {
             switch (channel) {
               case "price": {
+                if (this.shouldThrottle(`${symbol}:price`, false)) return;
                 // HARDENING: Use Strict Zod Validation instead of loose casting
                 const priceRes = StrictPriceDataSchema.safeParse(data);
                 if (symbol && priceRes.success) {
@@ -952,15 +959,14 @@ class BitunixWebSocketService {
                          this.safeString(data.lastPrice ?? data.lp, symbol, 'lastPrice');
                     }
 
-                    if (!this.shouldThrottle(`${symbol}:price`)) {
-                        // The safeString results above, not the raw fields: that is
-                        // what the hardening block exists for, and it was computing
-                        // them and then reading `data.*` anyway.
-                        marketState.updateSymbol(symbol, {
-                          indexPrice: ip ? new Decimal(ip) : undefined,
-                          markPrice: mp ? new Decimal(mp) : undefined,
-                        });
-                    }
+                    // The safeString results above, not the raw fields: that is
+                    // what the hardening block exists for, and it was computing
+                    // them and then reading `data.*` anyway.
+                    this.commitThrottle(`${symbol}:price`);
+                    marketState.updateSymbol(symbol, {
+                      indexPrice: ip ? new Decimal(ip) : undefined,
+                      markPrice: mp ? new Decimal(mp) : undefined,
+                    });
                     return;
                   } catch (fastPathError) {
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
@@ -970,6 +976,7 @@ class BitunixWebSocketService {
               }
 
               case "ticker": {
+                if (this.shouldThrottle(`${symbol}:ticker`, false)) return;
                 const tickerRes = StrictTickerDataSchema.safeParse(data);
                 if (symbol && tickerRes.success) {
                   try {
@@ -986,7 +993,8 @@ class BitunixWebSocketService {
                     // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
                     const normalized = mdaService.normalizeTicker(message, "bitunix");
 
-                    if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
+                    if (normalized) {
+                      this.commitThrottle(`${symbol}:ticker`);
                       marketState.updateSymbol(symbol, {
                         lastPrice: normalized.lastPrice,
                         highPrice: normalized.high,
@@ -1005,6 +1013,7 @@ class BitunixWebSocketService {
               }
 
               case "depth_book5": {
+                if (this.shouldThrottle(`${symbol}:depth`, false)) return;
                 const depthRes = StrictDepthDataSchema.safeParse(data);
                 if (symbol && depthRes.success) {
                   try {
@@ -1014,14 +1023,13 @@ class BitunixWebSocketService {
                     const bids = sData.b as [string, string][];
                     const asks = sData.a as [string, string][];
 
-                    if (!this.shouldThrottle(`${symbol}:depth`)) {
-                      // sData, not data. The schema's SafeString transform is what
-                      // normalises numeric levels to strings; passing the raw
-                      // `data.b` / `data.a` here skipped it entirely, so an
-                      // orderbook level the exchange sent as a number reached
-                      // marketState as a number while the type said string.
-                      marketState.updateDepth(symbol, { bids, asks });
-                    }
+                    this.commitThrottle(`${symbol}:depth`);
+                    // sData, not data. The schema's SafeString transform is what
+                    // normalises numeric levels to strings; passing the raw
+                    // `data.b` / `data.a` here skipped it entirely, so an
+                    // orderbook level the exchange sent as a number reached
+                    // marketState as a number while the type said string.
+                    marketState.updateDepth(symbol, { bids, asks });
                     return;
                   } catch (fastPathError) {
                     if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
@@ -1267,9 +1275,10 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
 
         // Strict Type Safety via Zod
+        if (this.shouldThrottle(`${symbol}:price`)) return;
         const priceData = BitunixPriceDataSchema.safeParse(validatedMessage.data);
 
-        if (priceData.success && !this.shouldThrottle(`${symbol}:price`)) {
+        if (priceData.success) {
           const d = priceData.data;
           marketState.updateSymbol(symbol, {
             // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
@@ -1282,9 +1291,10 @@ class BitunixWebSocketService {
       } else if (validatedChannel === "ticker") {
         const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
+        if (this.shouldThrottle(`${symbol}:ticker`)) return;
         const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
-        if (normalized && !this.shouldThrottle(`${symbol}:ticker`)) {
+        if (normalized) {
           marketState.updateSymbol(symbol, {
             lastPrice: normalized.lastPrice,
             highPrice: normalized.high,
@@ -1313,8 +1323,9 @@ class BitunixWebSocketService {
           // consistency: depth is either validated or not applied, never
           // forwarded raw. No path was found where this branch previously
           // delivered usable but unnormalised levels.
+          if (this.shouldThrottle(`${symbol}:depth`)) return;
           const depthRes = StrictDepthDataSchema.safeParse(data);
-          if (depthRes.success && !this.shouldThrottle(`${symbol}:depth`)) {
+          if (depthRes.success) {
             marketState.updateDepth(symbol, {
               bids: depthRes.data.b as [string, string][],
               asks: depthRes.data.a as [string, string][],
