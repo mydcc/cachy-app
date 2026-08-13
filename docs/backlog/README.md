@@ -88,6 +88,7 @@ depends_on: []
 | `data_class` | `A`, `B`, `C`, `none` | Per ADR-0001 / ADR-0004. `none` = touches no data boundary |
 | `adr` | `none`, `required`, or `ADR-NNNN` | `required` means it may not be built until one exists |
 | `depends_on` | list of IDs | Hard blockers only, not "related to" |
+| `parent` | ID | Optional parent item for native GitHub Sub-Issue Relationship (e.g. `FEAT-0067`) |
 | `estimate` | number | Optional story points / hours estimate (e.g. `1`, `2`, `5`) |
 | `size` | `XS`, `S`, `M`, `L`, `XL` | Optional size classification for GitHub Projects |
 | `start_date` | `YYYY-MM-DD` | Optional start date for GitHub Projects Roadmap |
