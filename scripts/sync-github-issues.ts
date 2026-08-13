@@ -23,6 +23,10 @@ interface BacklogItem {
     type: string;
     status: string;
     area: string;
+    estimate?: number;
+    size?: string;
+    start_date?: string;
+    target_date?: string;
     content: string;
     filepath: string;
 }
@@ -132,10 +136,16 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     const status = frontmatter.match(/^status:\s*(.+)$/m)?.[1]?.trim() || '';
     const area = frontmatter.match(/^area:\s*(.+)$/m)?.[1]?.trim() || '';
 
+    const estimateRaw = frontmatter.match(/^estimate:\s*(.+)$/m)?.[1]?.trim();
+    const estimate = estimateRaw ? parseFloat(estimateRaw) : undefined;
+    const size = frontmatter.match(/^size:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const start_date = frontmatter.match(/^start_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const target_date = frontmatter.match(/^target_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
+
     if (!id) return null;
 
     return {
-        id, title, type, status, area, content: body, filepath
+        id, title, type, status, area, estimate, size, start_date, target_date, content: body, filepath
     };
 }
 
@@ -207,7 +217,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         });
         if (res.ok) {
             console.log(`[Sync] Updated issue ${item.id} (#${existingIssue.number})`);
-            await syncProjectKanbanStatus(existingIssue.number, item.status);
+            await syncProjectKanbanStatus(existingIssue.number, item);
         } else {
             console.error(`[Sync] Failed to update issue ${item.id}: ${await res.text()}`);
         }
@@ -253,7 +263,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         }
 
         if (data.number) {
-            await syncProjectKanbanStatus(data.number, item.status);
+            await syncProjectKanbanStatus(data.number, item);
         }
     }
 }
@@ -274,11 +284,80 @@ function mapStatusToOptionName(status: string): string {
     }
 }
 
-async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: string) {
-    console.log(`[Kanban Sync] Triggered for issue #${issueNumber} with status '${backlogStatus}'`);
+async function updateSingleSelectField(projectId: string, itemId: string, fieldId: string, optionId: string) {
+    const mutation = `
+      mutation UpdateSingleSelect($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+        updateProjectV2ItemFieldValue(
+          input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { singleSelectOptionId: $optionId }
+          }
+        ) { projectV2Item { id } }
+      }
+    `;
+    await fetch("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: mutation, variables: { projectId, itemId, fieldId, optionId } })
+    });
+}
+
+async function updateNumberField(projectId: string, itemId: string, fieldId: string, value: number) {
+    const mutation = `
+      mutation UpdateNumber($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Float!) {
+        updateProjectV2ItemFieldValue(
+          input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { number: $value }
+          }
+        ) { projectV2Item { id } }
+      }
+    `;
+    await fetch("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: mutation, variables: { projectId, itemId, fieldId, value } })
+    });
+}
+
+async function updateDateField(projectId: string, itemId: string, fieldId: string, value: string) {
+    const mutation = `
+      mutation UpdateDate($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Date!) {
+        updateProjectV2ItemFieldValue(
+          input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { date: $value }
+          }
+        ) { projectV2Item { id } }
+      }
+    `;
+    await fetch("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: mutation, variables: { projectId, itemId, fieldId, value } })
+    });
+}
+
+async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
+    console.log(`[Kanban Sync] Triggered for issue #${issueNumber} (${item.id}) with status '${item.status}'`);
     if (!PROJECT_SYNC_TOKEN || !GITHUB_REPOSITORY) return;
     const [owner, repo] = GITHUB_REPOSITORY.split('/');
-    const targetOptionName = mapStatusToOptionName(backlogStatus);
+    const targetOptionName = mapStatusToOptionName(item.status);
 
     const query = `
       query GetIssueProjects($owner: String!, $repo: String!, $number: Int!) {
@@ -290,11 +369,18 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
                 project {
                   id
                   title
-                  field(name: "Status") {
-                    ... on ProjectV2SingleSelectField {
-                      id
-                      name
-                      options {
+                  fields(first: 30) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options { id name }
+                      }
+                      ... on ProjectV2NumberField {
+                        id
+                        name
+                      }
+                      ... on ProjectV2DateField {
                         id
                         name
                       }
@@ -338,59 +424,59 @@ async function syncProjectKanbanStatus(issueNumber: number, backlogStatus: strin
 
         for (const itemNode of projectItems) {
             const projectId = itemNode.project?.id;
-            const statusField = itemNode.project?.field;
-            if (!projectId || !statusField || !statusField.options) {
-                console.log(`[Kanban Sync] Status field or project missing for issue #${issueNumber}`);
-                continue;
-            }
+            const fields = itemNode.project?.fields?.nodes || [];
+            if (!projectId || fields.length === 0) continue;
 
-            const targetOption = statusField.options.find(
-                (opt: { id: string; name: string }) =>
-                    opt.name.toLowerCase() === targetOptionName.toLowerCase()
-            );
-
-            if (!targetOption) {
-                console.log(`[Kanban Sync] Target option '${targetOptionName}' not found for issue #${issueNumber}. Available:`, statusField.options.map((o: { name: string }) => o.name));
-                continue;
-            }
-
-            const mutation = `
-              mutation UpdateStatus($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-                updateProjectV2ItemFieldValue(
-                  input: {
-                    projectId: $projectId
-                    itemId: $itemId
-                    fieldId: $fieldId
-                    value: { singleSelectOptionId: $optionId }
-                  }
-                ) {
-                  projectV2Item { id }
+            // 1. Status (SingleSelect)
+            const statusField = fields.find((f: { name?: string }) => f.name === 'Status');
+            if (statusField && statusField.options) {
+                const targetOption = statusField.options.find(
+                    (opt: { id: string; name: string }) =>
+                        opt.name.toLowerCase() === targetOptionName.toLowerCase()
+                );
+                if (targetOption) {
+                    await updateSingleSelectField(projectId, itemNode.id, statusField.id, targetOption.id);
+                    console.log(`[Kanban Sync] Synced Status '${targetOption.name}' for #${issueNumber}`);
                 }
-              }
-            `;
+            }
 
-            const mutRes = await fetch("https://api.github.com/graphql", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    query: mutation,
-                    variables: {
-                        projectId,
-                        itemId: itemNode.id,
-                        fieldId: statusField.id,
-                        optionId: targetOption.id
+            // 2. Estimate (Number)
+            if (item.estimate !== undefined) {
+                const estField = fields.find((f: { name?: string }) => f.name === 'Estimate');
+                if (estField?.id) {
+                    await updateNumberField(projectId, itemNode.id, estField.id, item.estimate);
+                    console.log(`[Kanban Sync] Synced Estimate '${item.estimate}' for #${issueNumber}`);
+                }
+            }
+
+            // 3. Size (SingleSelect)
+            if (item.size) {
+                const sizeField = fields.find((f: { name?: string }) => f.name === 'Size');
+                if (sizeField && sizeField.options) {
+                    const sizeOpt = sizeField.options.find((o: { name: string }) => o.name.toLowerCase() === item.size!.toLowerCase());
+                    if (sizeOpt) {
+                        await updateSingleSelectField(projectId, itemNode.id, sizeField.id, sizeOpt.id);
+                        console.log(`[Kanban Sync] Synced Size '${sizeOpt.name}' for #${issueNumber}`);
                     }
-                })
-            });
+                }
+            }
 
-            const mutJson = await mutRes.json();
-            if (mutJson.errors) {
-                console.error(`[Kanban Sync] Mutation error for issue #${issueNumber}:`, JSON.stringify(mutJson.errors));
-            } else {
-                console.log(`[Kanban Sync] Successfully synced issue #${issueNumber} -> '${targetOption.name}' on project '${itemNode.project.title}'`);
+            // 4. Start date (Date)
+            if (item.start_date) {
+                const startDateField = fields.find((f: { name?: string }) => f.name === 'Start date');
+                if (startDateField?.id) {
+                    await updateDateField(projectId, itemNode.id, startDateField.id, item.start_date);
+                    console.log(`[Kanban Sync] Synced Start date '${item.start_date}' for #${issueNumber}`);
+                }
+            }
+
+            // 5. Target date (Date)
+            if (item.target_date) {
+                const targetDateField = fields.find((f: { name?: string }) => f.name === 'Target date');
+                if (targetDateField?.id) {
+                    await updateDateField(projectId, itemNode.id, targetDateField.id, item.target_date);
+                    console.log(`[Kanban Sync] Synced Target date '${item.target_date}' for #${issueNumber}`);
+                }
             }
         }
     } catch (e) {
