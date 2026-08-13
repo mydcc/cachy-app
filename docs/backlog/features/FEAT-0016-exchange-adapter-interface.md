@@ -10,6 +10,9 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [FEAT-0011]
+estimate: 3
+size: M
+target_date: 2026-09-11
 ---
 
 # FEAT-0016 — Put every exchange behind one adapter interface

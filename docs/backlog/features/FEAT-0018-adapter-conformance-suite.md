@@ -10,6 +10,9 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [FEAT-0016]
+estimate: 5
+size: L
+target_date: 2026-09-09
 ---
 
 # FEAT-0018 — One conformance test suite every exchange adapter must pass

@@ -10,6 +10,9 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+estimate: 8
+size: XL
+target_date: 2026-10-06
 ---
 
 # BUG-0043 — A responsive window restored by hand on mobile re-maximizes on the next resize event

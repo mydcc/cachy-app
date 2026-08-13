@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2026-09-06
 ---
 
 # FEAT-0057 — Show the full Bitunix position/order dataset in the Market Activity panel

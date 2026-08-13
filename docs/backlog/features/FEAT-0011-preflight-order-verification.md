@@ -10,6 +10,9 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
+estimate: 1
+size: XS
+target_date: 2026-08-20
 ---
 
 # FEAT-0011 — Verify every order against displayed state before it leaves the client

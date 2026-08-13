@@ -10,6 +10,9 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-11-03
 ---
 
 # BUG-0009 — SymbolPickerWindow resolves with null against a type that excludes it

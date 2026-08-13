@@ -11,6 +11,9 @@ area: alerts
 data_class: A
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2026-09-09
 ---
 
 # FEAT-0027 — A local alert engine with price alerts
