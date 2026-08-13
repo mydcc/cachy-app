@@ -258,7 +258,7 @@
     <!-- Tab Content Area -->
     <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
         {#if settingsState.decryptionFailures > 0}
-            <div class="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-lg text-red-200">
+            <div class="mb-6 p-4 bg-danger-paired rounded-lg border border-[var(--border-color)]">
                 <div class="flex items-center gap-2 mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                     <h3 class="font-bold text-lg">{$_("settings.decryptionWarningTitle") || "Security Warning"}</h3>
