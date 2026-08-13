@@ -873,6 +873,7 @@ export class SettingsManager {
   // Private state
   private effectActive = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
 
   // Security State
@@ -916,7 +917,7 @@ export class SettingsManager {
       // 2. Register $effect for auto-saving and notifications
       this.effectActive = true;
 
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           if (!this.effectActive) return;
 
@@ -1759,6 +1760,25 @@ export class SettingsManager {
     const updates = fn(current);
     Object.assign(this, updates);
   }
+
+  destroy() {
+    this.effectActive = false;
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+  }
 }
 
 export const settingsState = new SettingsManager();
+
+// HMR: Cleanup on module disposal to prevent timers and effect leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    settingsState.destroy();
+  });
+}

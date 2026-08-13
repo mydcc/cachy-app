@@ -19,17 +19,29 @@ import { safeJsonParse } from "../utils/safeJson";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
+  private effectCleanup: (() => void) | null = null;
 
   constructor() {
     if (browser) {
       this.load();
 
       // Auto-save effect
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           this.save();
         });
       });
+    }
+  }
+
+  destroy() {
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
+    if (this.notifyTimer) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
     }
   }
 
@@ -191,3 +203,10 @@ class JournalManager {
 }
 
 export const journalState = new JournalManager();
+
+// HMR: Cleanup on module disposal to prevent timers and effect leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    journalState.destroy();
+  });
+}

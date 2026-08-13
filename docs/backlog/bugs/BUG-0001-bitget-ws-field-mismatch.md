@@ -10,6 +10,9 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-08-21
 ---
 
 # BUG-0001 — Bitget WebSocket account sync sends field names the account store never reads

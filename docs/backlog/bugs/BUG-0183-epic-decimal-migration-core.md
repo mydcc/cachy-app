@@ -10,6 +10,9 @@ area: services
 data_class: none
 adr: none
 depends_on: [BUG-0182]
+estimate: 2
+size: S
+target_date: 2026-09-16
 ---
 
 # BUG-0183 — Epic: Migrate Core & Services logic to decimal.js

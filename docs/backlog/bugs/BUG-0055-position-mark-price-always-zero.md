@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2026-09-18
 ---
 
 # BUG-0055 — Position mark price always renders as "0 → 0"

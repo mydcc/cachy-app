@@ -10,6 +10,9 @@ area: i18n
 data_class: none
 adr: none
 depends_on: []
+estimate: 13
+size: L
+target_date: 2026-12-06
 ---
 
 # BUG-0007 — Several UI strings are hardcoded instead of translated

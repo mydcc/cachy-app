@@ -10,6 +10,9 @@ area: security
 data_class: A
 adr: none
 depends_on: []
+estimate: 2
+size: S
+target_date: 2026-08-24
 ---
 
 # BUG-0053 — A lost or regenerated IndexedDB device key silently orphans every encrypted secret

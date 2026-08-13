@@ -10,6 +10,9 @@ area: security
 data_class: A
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2026-09-24
 ---
 
 # BUG-0004 — Legacy AES-CBC credential blobs may decrypt to silent garbage

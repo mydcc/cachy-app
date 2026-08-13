@@ -10,6 +10,9 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+estimate: 2
+size: S
+target_date: 2026-09-22
 ---
 
 # BUG-0042 — Dragging a window on a touch device jumps and can leave the window stuck to the finger

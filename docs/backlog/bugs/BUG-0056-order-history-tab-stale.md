@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2026-10-17
 ---
 
 # BUG-0056 — Order history tab shows stale trades
