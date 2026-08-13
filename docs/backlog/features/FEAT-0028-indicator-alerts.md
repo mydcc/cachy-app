@@ -12,7 +12,7 @@ adr: none
 depends_on: [FEAT-0027]
 estimate: 5
 size: L
-target_date: 2026-11-07
+target_date: 2027-01-29
 ---
 
 # FEAT-0028 — Alerts on indicator conditions

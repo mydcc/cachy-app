@@ -10,9 +10,6 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
-estimate: 3
-size: M
-target_date: 2026-10-19
 ---
 
 # BUG-0054 — Orders-tab loading indicator is broken in both directions

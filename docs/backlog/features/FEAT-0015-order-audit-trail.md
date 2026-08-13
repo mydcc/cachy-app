@@ -12,7 +12,7 @@ adr: none
 depends_on: [FEAT-0011]
 estimate: 5
 size: L
-target_date: 2026-09-12
+target_date: 2026-10-21
 ---
 
 # FEAT-0015 — Record every order submission attempt locally

@@ -12,7 +12,7 @@ adr: none
 depends_on: [FEAT-0016]
 estimate: 5
 size: L
-target_date: 2026-09-09
+target_date: 2026-11-12
 ---
 
 # FEAT-0018 — One conformance test suite every exchange adapter must pass
