@@ -212,7 +212,7 @@ async function addSubIssueNative(parentIssueNodeId: string, childIssueNodeId: st
         const res = await fetch("https://api.github.com/graphql", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${PROJECT_SYNC_TOKEN || GITHUB_TOKEN}`,
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
@@ -243,7 +243,7 @@ async function addBlockedByNative(issueNodeId: string, blockingIssueNodeId: stri
         const res = await fetch("https://api.github.com/graphql", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${PROJECT_SYNC_TOKEN || GITHUB_TOKEN}`,
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
