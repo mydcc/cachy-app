@@ -43,6 +43,11 @@ interface BacklogItem {
     type: string;
     status: string;
     area: string;
+    priority?: string;
+    assignees?: string[];
+    editions?: string[];
+    data_class?: string;
+    adr?: string;
     milestone?: string;
     parent?: string;
     depends_on?: string[];
@@ -275,6 +280,21 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     const type = frontmatter.match(/^type:\s*(.+)$/m)?.[1]?.trim() || '';
     const status = frontmatter.match(/^status:\s*(.+)$/m)?.[1]?.trim() || '';
     const area = frontmatter.match(/^area:\s*(.+)$/m)?.[1]?.trim() || '';
+    const priority = frontmatter.match(/^priority:\s*(.+)$/m)?.[1]?.trim() || undefined;
+
+    const assigneeSingle = frontmatter.match(/^assignee:\s*(.+)$/m)?.[1]?.trim();
+    const assigneesMatch = frontmatter.match(/^assignees:\s*\[(.*?)\]/m)?.[1];
+    const assignees = assigneesMatch
+        ? assigneesMatch.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean)
+        : (assigneeSingle && assigneeSingle !== 'none' ? [assigneeSingle] : undefined);
+
+    const editionsMatch = frontmatter.match(/^editions:\s*\[(.*?)\]/m)?.[1];
+    const editions = editionsMatch
+        ? editionsMatch.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean)
+        : [];
+
+    const data_class = frontmatter.match(/^data_class:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const adr = frontmatter.match(/^adr:\s*(.+)$/m)?.[1]?.trim() || undefined;
 
     const milestone = frontmatter.match(/^milestone:\s*(.+)$/m)?.[1]?.trim() || undefined;
     const parent = frontmatter.match(/^parent:\s*(.+)$/m)?.[1]?.trim() || undefined;
@@ -292,7 +312,7 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     if (!id) return null;
 
     return {
-        id, title, type, status, area, milestone, parent, depends_on, estimate, size, start_date, target_date, content: body, filepath
+        id, title, type, status, area, priority, assignees, editions, data_class, adr, milestone, parent, depends_on, estimate, size, start_date, target_date, content: body, filepath
     };
 }
 
@@ -336,7 +356,11 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
     const managedLabels = [
         item.type,
         item.area,
+        item.priority,
         item.status ? `${STATUS_LABEL_PREFIX}${item.status}` : '',
+        item.data_class && item.data_class !== 'none' ? `dataclass:${item.data_class}` : '',
+        item.adr && item.adr !== 'none' ? `adr:${item.adr}` : '',
+        ...(item.editions || []).map(e => `edition:${e}`),
         `${BACKLOG_ID_LABEL_PREFIX}${item.id}`
     ].filter(Boolean);
 
@@ -351,7 +375,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         // Keep manually-added labels (triage, "good first issue", ...) intact; only replace the
         // labels this script owns (status/backlog-id prefixes plus the current type/area values).
         const preservedLabels = labelNamesOf(existingIssue).filter(
-            (name) => !name.startsWith(STATUS_LABEL_PREFIX) && !name.startsWith(BACKLOG_ID_LABEL_PREFIX)
+            (name) => !name.startsWith(STATUS_LABEL_PREFIX) && !name.startsWith(BACKLOG_ID_LABEL_PREFIX) && !name.startsWith("dataclass:") && !name.startsWith("adr:") && !name.startsWith("edition:")
         );
         const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
 
@@ -365,6 +389,10 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (milestoneNumber !== null) {
             payload.milestone = milestoneNumber;
         }
+        if (item.assignees && item.assignees.length > 0) {
+            payload.assignees = item.assignees;
+        }
+
         const res = await fetch(existingIssue.url, {
             method: 'PATCH',
             headers: {
@@ -393,6 +421,10 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (milestoneNumber !== null) {
             payload.milestone = milestoneNumber;
         }
+        if (item.assignees && item.assignees.length > 0) {
+            payload.assignees = item.assignees;
+        }
+
         const res = await fetch(BASE_URL, {
             method: 'POST',
             headers: {
@@ -609,7 +641,19 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
                 }
             }
 
-            // 2. Estimate (Number)
+            // 2. Priority (SingleSelect)
+            if (item.priority) {
+                const priorityField = fields.find((f: { name?: string }) => f.name === 'Priority');
+                if (priorityField && priorityField.options) {
+                    const prioOpt = priorityField.options.find((o: { name: string }) => o.name.toLowerCase() === item.priority!.toLowerCase());
+                    if (prioOpt) {
+                        await updateSingleSelectField(projectId, itemNode.id, priorityField.id, prioOpt.id);
+                        console.log(`[Kanban Sync] Synced Priority '${prioOpt.name}' for #${issueNumber}`);
+                    }
+                }
+            }
+
+            // 3. Estimate (Number)
             if (item.estimate !== undefined) {
                 const estField = fields.find((f: { name?: string }) => f.name === 'Estimate');
                 if (estField?.id) {
@@ -618,7 +662,7 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
                 }
             }
 
-            // 3. Size (SingleSelect)
+            // 4. Size (SingleSelect)
             if (item.size) {
                 const sizeField = fields.find((f: { name?: string }) => f.name === 'Size');
                 if (sizeField && sizeField.options) {
@@ -630,7 +674,7 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
                 }
             }
 
-            // 4. Start date (Date)
+            // 5. Start date (Date)
             if (item.start_date) {
                 const startDateField = fields.find((f: { name?: string }) => f.name === 'Start date');
                 if (startDateField?.id) {
@@ -639,7 +683,7 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
                 }
             }
 
-            // 5. Target date (Date)
+            // 6. Target date (Date)
             if (item.target_date) {
                 const targetDateField = fields.find((f: { name?: string }) => f.name === 'Target date');
                 if (targetDateField?.id) {
