@@ -371,18 +371,21 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem) {
                   title
                   fields(first: 30) {
                     nodes {
+                      ... on ProjectV2Field {
+                        id
+                        name
+                        dataType
+                      }
                       ... on ProjectV2SingleSelectField {
                         id
                         name
+                        dataType
                         options { id name }
                       }
-                      ... on ProjectV2NumberField {
+                      ... on ProjectV2IterationField {
                         id
                         name
-                      }
-                      ... on ProjectV2DateField {
-                        id
-                        name
+                        dataType
                       }
                     }
                   }
