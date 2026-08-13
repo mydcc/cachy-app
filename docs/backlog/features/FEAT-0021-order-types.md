@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [FEAT-0011, FEAT-0017]
+estimate: 5
+size: L
+target_date: 2026-09-15
 ---
 
 # FEAT-0021 — Support market, limit, trigger and fixed-risk orders with TP/SL attached

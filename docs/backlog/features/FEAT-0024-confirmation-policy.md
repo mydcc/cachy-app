@@ -10,6 +10,9 @@ area: trade-panel
 data_class: A
 adr: none
 depends_on: [FEAT-0011]
+estimate: 5
+size: L
+target_date: 2026-09-12
 ---
 
 # FEAT-0024 — Let the user decide which actions need confirming

@@ -10,6 +10,9 @@ area: exchange
 data_class: A
 adr: none
 depends_on: []
+estimate: 8
+size: XL
+target_date: 2026-10-24
 ---
 
 # FEAT-0072 — Subscribe the private Bitunix TP/SL WebSocket channel

@@ -10,6 +10,9 @@ area: ui
 data_class: none
 adr: ADR-0006
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-10-22
 ---
 
 # BUG-0051 — SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing

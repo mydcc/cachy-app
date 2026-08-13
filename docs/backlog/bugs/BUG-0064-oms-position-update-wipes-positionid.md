@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [BUG-0062, BUG-0063]
+estimate: 3
+size: M
+target_date: 2026-08-24
 ---
 
 # BUG-0064 — omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes

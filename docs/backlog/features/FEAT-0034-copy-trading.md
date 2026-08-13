@@ -10,6 +10,9 @@ area: collaboration
 data_class: B
 adr: ADR-0004
 depends_on: [FEAT-0014]
+estimate: 5
+size: L
+target_date: 2026-10-11
 ---
 
 # FEAT-0034 — Share a trade setup live, as price levels only

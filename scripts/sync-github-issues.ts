@@ -306,8 +306,13 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     const estimateRaw = frontmatter.match(/^estimate:\s*(.+)$/m)?.[1]?.trim();
     const estimate = estimateRaw ? parseFloat(estimateRaw) : undefined;
     const size = frontmatter.match(/^size:\s*(.+)$/m)?.[1]?.trim() || undefined;
-    const start_date = frontmatter.match(/^start_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    let start_date = frontmatter.match(/^start_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
     const target_date = frontmatter.match(/^target_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
+
+    // Auto-trigger: If item is ready, in-progress, or done, but has no explicit start_date set, default to today's date
+    if (!start_date && (status === 'ready' || status === 'in-progress' || status === 'done')) {
+        start_date = new Date().toISOString().split('T')[0];
+    }
 
     if (!id) return null;
 

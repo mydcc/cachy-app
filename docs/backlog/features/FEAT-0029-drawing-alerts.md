@@ -10,6 +10,9 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0027]
+estimate: 3
+size: M
+target_date: 2026-11-06
 ---
 
 # FEAT-0029 — Alerts on chart drawings
