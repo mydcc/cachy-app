@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-09-14
 ---
 
 # BUG-0059 — A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account

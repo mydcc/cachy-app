@@ -2,7 +2,7 @@
 id: FEAT-0067
 title: Fetch Bitunix trading-pair metadata and validate orders against it
 type: feature
-status: in-progress
+status: specced
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: exchange
 data_class: C
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-09-05
 ---
 
 Branch: `feat/bitunix-readonly-data-display`

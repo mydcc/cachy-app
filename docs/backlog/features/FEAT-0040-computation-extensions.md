@@ -10,6 +10,9 @@ area: extensions
 data_class: none
 adr: ADR-0005
 depends_on: [FEAT-0039, FEAT-0011]
+estimate: 5
+size: L
+target_date: 2026-10-29
 ---
 
 # FEAT-0040 — Run user-written indicators in an isolated worker

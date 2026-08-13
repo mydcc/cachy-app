@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+estimate: 2
+size: S
+target_date: 2026-08-26
 ---
 
 # BUG-0062 — Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId)

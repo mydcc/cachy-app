@@ -10,6 +10,9 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-09-17
 ---
 
 # BUG-0047 — The Trading Academy content is unreachable on a phone because the pattern list fills the screen

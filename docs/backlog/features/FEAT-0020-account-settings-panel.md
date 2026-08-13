@@ -10,6 +10,9 @@ area: trade-panel
 data_class: A
 adr: none
 depends_on: [FEAT-0017]
+estimate: 2
+size: S
+target_date: 2026-09-16
 ---
 
 # FEAT-0020 — Show and change exchange account settings from Cachy

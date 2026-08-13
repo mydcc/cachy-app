@@ -2,7 +2,7 @@
 id: FEAT-0071
 title: Replace client-side cancel and close loops with native Bitunix endpoints
 type: feature
-status: ready
+status: specced
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-10-25
 ---
 
 # FEAT-0071 — Replace client-side cancel and close loops with native Bitunix endpoints

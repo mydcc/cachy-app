@@ -10,6 +10,9 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+estimate: 8
+size: XL
+target_date: 2026-12-05
 ---
 
 # BUG-0008 — The toast array grows without a bound

@@ -10,6 +10,9 @@ area: ui
 data_class: C
 adr: none
 depends_on: []
+estimate: 8
+size: L
+target_date: 2026-11-26
 ---
 
 # IDEA-0073 — Show best bid/ask and spread from the Bitunix tickers batch channel

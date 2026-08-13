@@ -10,6 +10,9 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-10-01
 ---
 
 # BUG-0048 — Glassmorphism leaves the Academy sidebar without a background and unreadable

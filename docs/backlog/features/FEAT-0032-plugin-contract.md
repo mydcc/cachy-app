@@ -10,6 +10,9 @@ area: extensions
 data_class: none
 adr: ADR-0005
 depends_on: [FEAT-0014, FEAT-0040]
+estimate: 3
+size: M
+target_date: 2026-10-13
 ---
 
 # FEAT-0032 — A plugin contract for paid modules

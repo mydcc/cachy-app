@@ -10,6 +10,9 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-09-11
 ---
 
 # FEAT-0070 — Place new TP/SL orders on existing Bitunix positions
