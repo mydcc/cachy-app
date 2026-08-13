@@ -38,11 +38,14 @@ and a few initiated users. It does not carry further:
 
 A local **entitlement store** that replaces the boolean pair:
 
-- An entitlement is a signed token (format to decide — signed JSON is enough)
-  naming a set of enabled modules/capabilities, verified **offline** against a
-  public key embedded in the build. No network call, ever — the same
+- An entitlement is a signed token — **decided: signed JSON, Ed25519,
+  verified via Web Crypto** (`docs/TODO.md` item 26) — naming a set of
+  enabled modules/capabilities, verified **offline** against a public key
+  embedded in the build. No network call, ever — the same
   fail-closed-for-the-module, never-for-the-core rule as
-  [`FEAT-0032`](FEAT-0032-plugin-contract.md).
+  [`FEAT-0032`](FEAT-0032-plugin-contract.md). The store's interface hides
+  the format so further verifiers (e.g. a wallet-signature proof) can be
+  added without touching consumers.
 - The footer switch stays, for every edition: it toggles between the
   presentation modes the current entitlement allows (today: calculator-only
   vs. full panel). Without an entitlement it is simply disabled, as now.
@@ -71,6 +74,9 @@ initiated-user workflows keep working during the transition.
       otherwise
 - [ ] The token never leaves the device (Class A; no telemetry, no validation
       call)
+- [ ] An existing install with `isProLicenseActive` already true receives a
+      generated **dev-class** entitlement on first start, distinguishable
+      from an issued licence, proven by a migration test
 
 ## Out of scope
 
@@ -82,13 +88,10 @@ initiated-user workflows keep working during the transition.
 
 ## Open questions
 
-- **Token format.** Signed JSON vs. JWT vs. a wallet-signature-derived proof
-  (the NFT thought in [`IDEA-0188`](../ideas/IDEA-0188-payment-rails-licensing.md)).
-  The store's interface should not care; decide the first format cheaply.
-- **Migration.** What happens to users whose `isProLicenseActive` is already
-  true — grandfather them with a generated local token, or ask them to re-enter
-  the dev override?
-- See `docs/TODO.md` item 26 for the decision framing.
+None — both former open questions (token format, migration) were decided on
+2026-08-13; the decisions and their reasoning live in `docs/TODO.md` item 26.
+The item is not `ready` only because
+[`FEAT-0014`](FEAT-0014-edition-build-targets.md) is not `done`.
 
 ## Links
 

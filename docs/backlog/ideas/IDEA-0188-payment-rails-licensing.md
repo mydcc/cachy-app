@@ -39,6 +39,12 @@ Hard constraints that survive any choice:
 - **Nothing sold is capability removed from the core** (`VISION.md`, "How it
   pays for itself" — the list of what may be sold lives there and only there).
 
+## Direction decided
+
+2026-08-13 (`docs/TODO.md` item 26): **BTCPayServer first.** Stripe remains a
+possible later fiat on-ramp; token-gating remains a spike. The build start
+stays M6 — this settles the direction, not the schedule.
+
 ## Why it is parked
 
 Deliberately no priority: nothing sellable exists before M6

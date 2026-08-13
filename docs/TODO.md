@@ -941,7 +941,7 @@ remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
 `createFromData()` case if `ChannelWindow` already covers every case this was
 meant for. Left in place per this repo's defensive-deletion rule.
 
-## 26. Edition entitlement: what replaces the cheat code, and which payment rail issues it
+## 26. ✅ Edition entitlement: what replaces the cheat code, and which payment rail issues it
 
 **Raised by the maintainer, August 2026** — planning session on the edition
 strategy. The runtime edition switch is currently a 5-character cheat code
@@ -958,18 +958,28 @@ entitlements is parked as
 [`IDEA-0188`](backlog/ideas/IDEA-0188-payment-rails-licensing.md)
 (BTCPayServer / Stripe / token-gated, external issuer, app never phones home).
 
-**The decisions still open, in order of when they bite:**
-
-1. **Token format** (blocks FEAT-0187 becoming `ready`): signed JSON is the
-   cheap first answer; a wallet-signature proof would make the token-gated
-   rail native later. The entitlement store's interface should hide this
-   either way.
-2. **Grandfathering**: what happens to installs where `isProLicenseActive`
-   is already true.
-3. **Rail choice** (blocks nothing before M6): BTCPayServer matches the
-   project's self-hosted posture; Stripe is the fiat on-ramp; token-gated is
-   a spike, not a commitment. Revenue framing lives in `VISION.md` ("How it
-   pays for itself") and only there.
+> **Decided, 2026-08-13 (maintainer):**
+>
+> 1. **Token format: signed JSON.** A minimal own format — JSON naming the
+>    enabled module set, Ed25519-signed, verified via Web Crypto against a
+>    public key embedded in the build. No JWT library in the bundle, no
+>    claims semantics that suggest online validation. The entitlement
+>    store's interface hides the format, so a wallet-signature proof can be
+>    added later as a second verifier without touching consumers.
+> 2. **Grandfathering: auto-migration.** On first start after the update, an
+>    install with `isProLicenseActive` already true generates a local
+>    **dev-class** entitlement — initiated users lose nothing, and the
+>    self-issued token stays distinguishable from a purchased licence.
+> 3. **Rail direction: BTCPayServer first.** Self-hosted, Bitcoin, no
+>    payment processor holding customer data. Stripe stays noted in
+>    [`IDEA-0188`](backlog/ideas/IDEA-0188-payment-rails-licensing.md) as a
+>    possible later fiat on-ramp; token-gating (NFT) remains a spike, not a
+>    commitment. Build start remains M6. Revenue framing lives in
+>    `VISION.md` ("How it pays for itself") and only there.
+>
+> FEAT-0187's open questions are resolved by 1 and 2; the item still waits
+> on [`FEAT-0014`](backlog/features/FEAT-0014-edition-build-targets.md)
+> before it can be `ready`.
 
 ## 27. Third-party reference material tracked in the public repository
 
