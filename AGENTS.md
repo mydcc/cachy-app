@@ -81,6 +81,15 @@ mit der eigentlichen Fix-Implementierung öffnet er aber nur, wenn ihn entweder
 der User im konkreten Fall ausdrücklich dazu anweist, oder wenn er über die
 Dispatch-Pipeline mit deren Filtern dafür ausgewählt wurde.
 
+## Git-Sauberkeit und Parallele Agenten-Workspaces
+
+Da sich mehrere Agenten (z.B. Claude, Antigravity, Cursor) denselben lokalen Ordner teilen, kommt es zu Konflikten (Detached HEAD, geerbte unfertige Commits), wenn Agenten unkoordiniert arbeiten. Jeder Agent **muss** folgende Start-Routine einhalten, bevor er einen neuen Task beginnt oder einen Feature-Branch erstellt:
+1. Sicherstellen, dass das Working Directory sauber ist (`git status`).
+2. Auf den `develop`-Branch wechseln (`git checkout develop`).
+3. (Optional) Die neuesten Änderungen holen (`git pull`).
+
+Für echtes paralleles Arbeiten **müssen** Git Worktrees (bzw. bei Antigravity Subagenten mit `Workspace: "share"`) genutzt werden, damit jeder Agent sein eigenes, isoliertes Arbeitsverzeichnis bekommt und sie sich nicht gegenseitig den Branch unter den Füßen wegziehen.
+
 ## Scope-Hinweis für autonome/asynchrone Agenten (z. B. Jules)
 
 Gut geeignet für autonome Cloud-Sessions: Tests schreiben, i18n-Parität (DE/EN) prüfen, Doku/Backlog pflegen, isolierte Refactorings ohne Verhaltensänderung, Dependency-Updates, Accessibility-Fixes.
