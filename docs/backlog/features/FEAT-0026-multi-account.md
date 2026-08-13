@@ -12,7 +12,7 @@ adr: none
 depends_on: [FEAT-0016]
 estimate: 2
 size: S
-target_date: 2026-09-10
+target_date: 2026-12-21
 ---
 
 # FEAT-0026 — Support several exchange accounts with an unmistakable active one

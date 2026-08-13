@@ -10,9 +10,6 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
-estimate: 3
-size: M
-target_date: 2026-10-31
 ---
 
 # BUG-0066 — Position tooltip labels the live unrealized PnL row "Realized PnL"

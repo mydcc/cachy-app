@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 estimate: 2
 size: S
-target_date: 2026-09-04
+target_date: 2026-11-24
 ---
 
 Branch: `feat/bitunix-readonly-data-display`

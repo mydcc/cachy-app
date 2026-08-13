@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 estimate: 3
 size: M
-target_date: 2026-09-17
+target_date: 2026-08-24
 ---
 
 # BUG-0182 — Epic: Migrate Rust/WASM backend to rust_decimal

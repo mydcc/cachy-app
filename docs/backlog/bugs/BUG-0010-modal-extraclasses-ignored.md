@@ -10,9 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-estimate: 13
-size: L
-target_date: 2026-12-12
 ---
 
 # BUG-0010 — modalState.show() accepts extraClasses and never applies it

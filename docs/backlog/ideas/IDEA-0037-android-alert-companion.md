@@ -10,9 +10,6 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0027]
-estimate: 8
-size: L
-target_date: 2026-11-26
 ---
 
 # IDEA-0037 — A native Android companion that runs only the alert engine

@@ -10,9 +10,6 @@ area: ui
 data_class: A
 adr: ADR-0006
 depends_on: [FEAT-0041]
-estimate: 3
-size: M
-target_date: 2026-10-25
 ---
 
 # FEAT-0044 — Make ModalFrame an adapter over WindowFrame instead of a second implementation

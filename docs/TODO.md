@@ -940,3 +940,49 @@ distinct from `ChannelWindow`'s more specific use, is still wanted), or
 remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
 `createFromData()` case if `ChannelWindow` already covers every case this was
 meant for. Left in place per this repo's defensive-deletion rule.
+
+## 26. Edition entitlement: what replaces the cheat code, and which payment rail issues it
+
+**Raised by the maintainer, August 2026** — planning session on the edition
+strategy. The runtime edition switch is currently a 5-character cheat code
+(`PowerToggle.svelte`) flipping a boolean. That was the right pragmatic tool
+and it does not carry to an audience: it is a shared secret, it cannot be
+revoked, it cannot express module sets, and a future licence purchase has
+nothing to hand the buyer.
+
+The **mechanism** is specced as
+[`FEAT-0187`](backlog/features/FEAT-0187-edition-entitlement-switch.md)
+(offline-verified signed entitlement naming a module set; footer switch
+stays; cheat code becomes a dev-only override). The **rail** that issues
+entitlements is parked as
+[`IDEA-0188`](backlog/ideas/IDEA-0188-payment-rails-licensing.md)
+(BTCPayServer / Stripe / token-gated, external issuer, app never phones home).
+
+**The decisions still open, in order of when they bite:**
+
+1. **Token format** (blocks FEAT-0187 becoming `ready`): signed JSON is the
+   cheap first answer; a wallet-signature proof would make the token-gated
+   rail native later. The entitlement store's interface should hide this
+   either way.
+2. **Grandfathering**: what happens to installs where `isProLicenseActive`
+   is already true.
+3. **Rail choice** (blocks nothing before M6): BTCPayServer matches the
+   project's self-hosted posture; Stripe is the fiat on-ramp; token-gated is
+   a spike, not a commitment. Revenue framing lives in `VISION.md` ("How it
+   pays for itself") and only there.
+
+## 27. Third-party reference material tracked in the public repository
+
+**Raised in the same session.** `bitunix_screenshot_of_ui_tpmp/` (32
+screenshots of the exchange's UI, 3.8 MB), `info/` (saved third-party web
+pages), `verification/` (ad-hoc verification artefacts) and a root-level
+`report.md` are all tracked in the public AGPL repository. Copyright and
+first-impression concerns; details and the fix plan in
+[`BUG-0192`](backlog/bugs/BUG-0192-third-party-assets-in-repo.md). The
+screenshots stay *reachable* — they are the reference for
+[`IDEA-0191`](backlog/ideas/IDEA-0191-trade-panel-reference-audit.md)'s
+trade-panel gap analysis — but as issue attachments, not tree content.
+
+**The decision:** keep/move/remove per path, and whether a history rewrite is
+worth it for the screenshots (they are already public; probably not).
+Defensive deletion applies — nothing is removed before this entry is decided.

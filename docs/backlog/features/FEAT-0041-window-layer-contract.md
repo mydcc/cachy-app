@@ -10,9 +10,6 @@ area: ui
 data_class: none
 adr: ADR-0006
 depends_on: []
-estimate: 2
-size: S
-target_date: 2026-09-13
 ---
 
 # FEAT-0041 — Give every floating surface its z-index from one layer contract
