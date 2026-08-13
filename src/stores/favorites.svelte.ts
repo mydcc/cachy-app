@@ -63,24 +63,27 @@ class FavoritesManager {
     this.save();
   }
 
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Compatibility
   subscribe(fn: (value: string[]) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     fn(this.items);
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.items; // Track
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(this.items);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 20);
         });
       });
     });
+    return () => {
+      cleanup();
+      if (localTimer) clearTimeout(localTimer);
+    };
   }
 }
 
