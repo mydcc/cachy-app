@@ -44,6 +44,7 @@ Nach jeder Änderung: `npm run check` und die betroffenen Tests ausführen. Eine
 
 ## Commits & Branches
 
+- **Sprache:** Commits, Pull-Request-Beschreibungen und PR-Kommentare MÜSSEN IMMER auf Englisch verfasst sein. Deutsch ist in PR-Kommentaren und Commits strengstens untersagt.
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `refactor`, `BREAKING CHANGE:` im Footer).
 - **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request, Ziel-Branch ist immer `develop`.
 - **Pull Request Linking:** Jeder Pull Request MUSS am Anfang der Beschreibung `Fixes #<github_issue_number>` (z. B. `Fixes #1770`) enthalten, damit GitHub den PR automatisch mit dem Issue verknüpft und die Kanban-Karte weiterschiebt.
