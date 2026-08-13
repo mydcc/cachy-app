@@ -355,7 +355,6 @@ class CryptoServiceImpl {
     let key = await this.loadKeyFromDB(DEVICE_KEY_ALIAS);
     if (key) return key;
     if (!allowRegenerate) throw new Error("Device key not found in DB");
-    if (!allowRegenerate) throw new Error("Device key not found in DB");
 
     // 2. Migration or Generation
     if (legacyHexKey) {

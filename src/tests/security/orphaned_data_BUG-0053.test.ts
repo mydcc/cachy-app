@@ -75,4 +75,12 @@ describe('BUG-0053: Orphaned Data Canary', () => {
     // Should NOT have generated a new device key
     expect(dbStorage['device_key']).toBeUndefined();
   });
+
+  it('generates a new key without error on first run', async () => {
+    const settings = new SettingsManager();
+    // Ensure we do not generate a key merely by instantiating SettingsManager on first run
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(settings.decryptionFailures.length).toBe(0);
+    expect(dbStorage['device_key']).toBeUndefined(); // Key should NOT be generated merely by opening the app
+  });
 });

@@ -636,6 +636,8 @@ export type TranslationKey =
   | "languages.english"
   | "languages.de"
   | "languages.en"
+  | "settings.decryptionFailedTitle"
+  | "settings.decryptionFailedDesc"
   | "settings.calculation.analyzeFavorites"
   | "settings.calculation.analyzeFavoritesBadgeAll"
   | "settings.calculation.analyzeFavoritesBadgeTop"
