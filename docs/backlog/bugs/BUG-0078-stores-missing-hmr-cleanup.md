@@ -4,12 +4,12 @@ title: Core stores leak auto-save $effect.root closures and timers during HMR
 type: bug
 status: ready
 priority: P2
-milestone: none
+milestone: M1
 editions: [community, pro, private]
 area: ui
 data_class: none
 adr: none
-depends_on: []
+depends_on: [BUG-0053]
 estimate: 2
 size: S
 start_date: 2026-08-13
