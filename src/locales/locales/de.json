@@ -79,16 +79,7 @@
       "marketCheck": "Analysiere den Markt für {symbol}",
       "techAnalysis": "Erstelle eine technische Analyse für {symbol}",
       "riskAudit": "Prüfe mein Setup auf Fehler und Risiken.",
-      "newsCheck": "Gibt es wichtige News?",
-      "techAnalysisBtn": "🧪 Tech Analyse",
-      "riskAuditBtn": "⚠️ Risiko Audit",
-      "newsCheckBtn": "📰 News Check"
-    },
-    "input": {
-      "enterCommand": "> BEFEHL EINGEBEN",
-      "messageAi": "KI Nachricht...",
-      "typeNote": "Notiz tippen...",
-      "typeHere": "Hier tippen..."
+      "newsCheck": "Gibt es wichtige News?"
     }
   },
   "legal": {

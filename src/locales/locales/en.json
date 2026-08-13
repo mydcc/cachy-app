@@ -79,16 +79,7 @@
       "marketCheck": "Analyze the market for {symbol}",
       "techAnalysis": "Create a technical analysis for {symbol}",
       "riskAudit": "Audit my setup for errors and risks.",
-      "newsCheck": "Are there any important news?",
-      "techAnalysisBtn": "🧪 Tech Analysis",
-      "riskAuditBtn": "⚠️ Risk Audit",
-      "newsCheckBtn": "📰 News Check"
-    },
-    "input": {
-      "enterCommand": "> ENTER COMMAND",
-      "messageAi": "Message AI...",
-      "typeNote": "Type note...",
-      "typeHere": "Type here..."
+      "newsCheck": "Are there any important news?"
     }
   },
   "legal": {

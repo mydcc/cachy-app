@@ -11,7 +11,6 @@ import { readFileSync } from "node:fs";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
-import compression from "vite-plugin-compression";
 
 // Single source of truth for the app version: the `version` field in
 // package.json, which semantic-release bumps on every release.
@@ -23,7 +22,7 @@ const { version: appVersion } = JSON.parse(
 ) as { version: string };
 
 export default defineConfig({
-  plugins: [sveltekit(), tailwindcss(), compression({ algorithm: "brotliCompress", ext: ".br" }), compression({ algorithm: "gzip", ext: ".gz" })],
+  plugins: [sveltekit(), tailwindcss()],
   test: {
     exclude: [
       ...configDefaults.exclude,
