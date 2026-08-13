@@ -1291,6 +1291,7 @@ export class SettingsManager {
                       "[Settings] Failed to decrypt secret " + key,
                       e,
                     );
+                    this.decryptionFailures.push(key);
                   }
                 }),
               );

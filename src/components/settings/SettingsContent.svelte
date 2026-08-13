@@ -261,20 +261,10 @@
             <div class="mb-6 p-4 bg-red-500/10 border border-red-500 text-red-500 rounded-lg shadow-sm flex items-start gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                 <div>
-                    <h4 class="font-bold text-sm mb-1">WARNING: Data Decryption Failed</h4>
+                    <h4 class="font-bold text-sm mb-1">{$_("settings.system.dataMaintenance") || "WARNING: Data Decryption Failed"}</h4>
                     <p class="text-xs opacity-90">
-                        {settingsState.decryptionFailures.length} saved key(s) could not be read and need to be re-entered. Your device key may have been lost.
-                    </p>
-                </div>
-            </div>
-        {/if}
-        {#if settingsState.decryptionFailures.length > 0}
-            <div class="mb-6 p-4 bg-red-500/10 border border-red-500 text-red-500 rounded-lg shadow-sm flex items-start gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                <div>
-                    <h4 class="font-bold text-sm mb-1">WARNING: Data Decryption Failed</h4>
-                    <p class="text-xs opacity-90">
-                        {settingsState.decryptionFailures.length} saved key(s) could not be read and need to be re-entered. Your device key may have been lost.
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                        {@html $_("app.backupPasswordRequired", { default: `${settingsState.decryptionFailures.length} saved key(s) could not be read and need to be re-entered. Your device key may have been lost.` }) }
                     </p>
                 </div>
             </div>

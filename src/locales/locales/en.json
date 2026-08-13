@@ -703,6 +703,8 @@
     "en": "English"
   },
   "settings": {
+    "decryptionFailedTitle": "Data Decryption Failed",
+    "decryptionFailedDesc": "{{count}} saved key(s) could not be read and need to be re-entered. Your device key may have been lost.",
     "calculation": {
       "analyzeFavorites": "Analyze All Favorites",
       "analyzeFavoritesBadgeAll": "All Favorites",

@@ -703,6 +703,8 @@
     "en": "Englisch"
   },
   "settings": {
+    "decryptionFailedTitle": "Datenentschlüsselung fehlgeschlagen",
+    "decryptionFailedDesc": "{{count}} gespeicherte(r) Schlüssel konnte(n) nicht gelesen werden und muss/müssen neu eingegeben werden. Ihr Geräteschlüssel ist möglicherweise verloren gegangen.",
     "calculation": {
       "analyzeFavorites": "Alle Favoriten analysieren",
       "analyzeFavoritesBadgeAll": "Alle Favoriten",
