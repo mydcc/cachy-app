@@ -30,7 +30,7 @@ const SENSITIVE_KEYS: (keyof Settings)[] = [
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
-export type AiProvider = "openai" | "gemini" | "anthropic" | "ollama" | "openrouter";
+export type AiProvider = "ollama" | "openrouter" | "openai" | "gemini" | "anthropic";
 export type BackgroundType =
   | "none"
   | "image"
