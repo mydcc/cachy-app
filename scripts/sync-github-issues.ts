@@ -1,21 +1,41 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import fs from 'fs/promises';
+import path from 'path';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
 const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY; // e.g. "mydcc/cachy-app"
 
-if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
-    console.error("Missing GITHUB_TOKEN or GITHUB_REPOSITORY environment variables");
+if (!GITHUB_TOKEN) {
+    console.error("Error: GITHUB_TOKEN environment variable is required.");
+    process.exit(1);
+}
+
+if (!GITHUB_REPOSITORY) {
+    console.error("Error: GITHUB_REPOSITORY environment variable is required.");
     process.exit(1);
 }
 
 const BASE_URL = `https://api.github.com/repos/${GITHUB_REPOSITORY}/issues`;
-
-// docs/backlog/README.md defines the full status lifecycle; only these two mean "no longer active work".
+const STATUS_LABEL_PREFIX = "status:";
+const BACKLOG_ID_LABEL_PREFIX = "backlog-id:";
 const CLOSED_STATUSES = new Set(['done', 'dropped']);
-const STATUS_LABEL_PREFIX = 'status:';
-const BACKLOG_ID_LABEL_PREFIX = 'backlog-id:';
 
 interface BacklogItem {
     id: string;
@@ -24,6 +44,7 @@ interface BacklogItem {
     status: string;
     area: string;
     milestone?: string;
+    parent?: string;
     depends_on?: string[];
     estimate?: number;
     size?: string;
@@ -55,8 +76,41 @@ async function fetchRepoMilestones(): Promise<GitHubMilestone[]> {
     }
 }
 
+async function ensureMilestone(title: string, milestones: GitHubMilestone[]): Promise<number | null> {
+    if (!title || title.toLowerCase() === 'none') return null;
+    const existing = milestones.find(m => m.title.toLowerCase() === title.toLowerCase());
+    if (existing) return existing.number;
+
+    try {
+        console.log(`[Milestone] Milestone '${title}' does not exist on repository. Creating it...`);
+        const url = `https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            },
+            body: JSON.stringify({ title })
+        });
+        if (res.ok) {
+            const data: GitHubMilestone = await res.json();
+            milestones.push(data);
+            console.log(`[Milestone] Successfully created milestone '${title}' (#${data.number})`);
+            return data.number;
+        } else {
+            console.error(`[Milestone] Failed to create milestone '${title}': ${await res.text()}`);
+        }
+    } catch (e) {
+        console.warn(`Could not create milestone '${title}':`, e);
+    }
+    return null;
+}
+
 interface GitHubIssue {
     number: number;
+    node_id: string;
     url: string;
     body: string | null;
     title: string;
@@ -146,6 +200,68 @@ async function ensurePRsAreLinked(item: BacklogItem, issueNumber: number, openPR
     }
 }
 
+async function addSubIssueNative(parentIssueNodeId: string, childIssueNodeId: string) {
+    const mutation = `
+      mutation AddSubIssue($issueId: ID!, $subIssueId: ID!) {
+        addSubIssue(input: { issueId: $issueId, subIssueId: $subIssueId }) {
+          issue { id }
+        }
+      }
+    `;
+    try {
+        const res = await fetch("https://api.github.com/graphql", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${PROJECT_SYNC_TOKEN || GITHUB_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                query: mutation,
+                variables: { issueId: parentIssueNodeId, subIssueId: childIssueNodeId }
+            })
+        });
+        const json = await res.json();
+        if (json.errors) {
+            console.warn(`[Relationships] Sub-issue note:`, json.errors[0]?.message);
+        } else {
+            console.log(`[Relationships] Linked Sub-Issue natively in GitHub`);
+        }
+    } catch (e) {
+        console.warn(`[Relationships] Could not link sub-issue natively:`, e);
+    }
+}
+
+async function addBlockedByNative(issueNodeId: string, blockingIssueNodeId: string) {
+    const mutation = `
+      mutation AddBlockedBy($issueId: ID!, $blockingIssueId: ID!) {
+        addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+          issue { id }
+        }
+      }
+    `;
+    try {
+        const res = await fetch("https://api.github.com/graphql", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${PROJECT_SYNC_TOKEN || GITHUB_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                query: mutation,
+                variables: { issueId: issueNodeId, blockingIssueId: blockingIssueNodeId }
+            })
+        });
+        const json = await res.json();
+        if (json.errors) {
+            console.warn(`[Relationships] Blocked-by note:`, json.errors[0]?.message);
+        } else {
+            console.log(`[Relationships] Linked Blocked-By natively in GitHub`);
+        }
+    } catch (e) {
+        console.warn(`[Relationships] Could not link blocked-by natively:`, e);
+    }
+}
+
 // Parse markdown file to extract frontmatter and body
 function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | null {
     const match = rawContent.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -161,6 +277,7 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     const area = frontmatter.match(/^area:\s*(.+)$/m)?.[1]?.trim() || '';
 
     const milestone = frontmatter.match(/^milestone:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const parent = frontmatter.match(/^parent:\s*(.+)$/m)?.[1]?.trim() || undefined;
     const dependsOnMatch = frontmatter.match(/^depends_on:\s*\[(.*?)\]/m)?.[1];
     const depends_on = dependsOnMatch
         ? dependsOnMatch.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean)
@@ -175,7 +292,7 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     if (!id) return null;
 
     return {
-        id, title, type, status, area, milestone, depends_on, estimate, size, start_date, target_date, content: body, filepath
+        id, title, type, status, area, milestone, parent, depends_on, estimate, size, start_date, target_date, content: body, filepath
     };
 }
 
@@ -205,15 +322,12 @@ async function findBacklogFiles() {
 }
 
 // Create or update a single issue
-async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[]) {
+async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[]): Promise<{ number: number; nodeId: string } | undefined> {
     const isClosed = CLOSED_STATUSES.has(item.status);
 
     let milestoneNumber: number | null = null;
     if (item.milestone && item.milestone.toLowerCase() !== 'none') {
-        const found = milestones.find(m => m.title.toLowerCase() === item.milestone!.toLowerCase());
-        if (found) {
-            milestoneNumber = found.number;
-        }
+        milestoneNumber = await ensureMilestone(item.milestone, milestones);
     }
 
     // `status:*` is what lets a GitHub Projects board bucket cards by backlog stage
@@ -262,8 +376,10 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             body: JSON.stringify(payload)
         });
         if (res.ok) {
+            const data = await res.json();
             console.log(`[Sync] Updated issue ${item.id} (#${existingIssue.number})`);
             await syncProjectKanbanStatus(existingIssue.number, item);
+            return { number: existingIssue.number, nodeId: data.node_id || existingIssue.node_id };
         } else {
             console.error(`[Sync] Failed to update issue ${item.id}: ${await res.text()}`);
         }
@@ -290,7 +406,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         
         if (!res.ok) {
             console.error(`Failed to create issue ${item.id}: ${await res.text()}`);
-            return;
+            return undefined;
         }
         
         const data = await res.json();
@@ -314,6 +430,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (data.number) {
             await syncProjectKanbanStatus(data.number, item);
         }
+        return { number: data.number, nodeId: data.node_id };
     }
 }
 
@@ -553,6 +670,8 @@ async function main() {
     const localItems = await findBacklogFiles();
     console.log(`Found ${localItems.length} local items.`);
 
+    const issueMap = new Map<string, string>(); // backlogId -> nodeId
+
     for (const item of localItems) {
         // Match by backlog-id label first (survives title/body edits), then fall back to the
         // hidden marker or title prefix for issues created before the label existed.
@@ -562,12 +681,41 @@ async function main() {
             issue.title.startsWith(`[${item.id}]`)
         );
         
-        await createOrUpdateIssue(item, existing, milestones);
+        const res = await createOrUpdateIssue(item, existing, milestones);
+        if (res?.nodeId) {
+            issueMap.set(item.id, res.nodeId);
+        }
         if (existing?.number) {
             await ensurePRsAreLinked(item, existing.number, openPRs);
         }
         // Small delay to avoid hitting GitHub API rate limits too aggressively
         await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    console.log("Syncing native GitHub Relationships (Parents & Blocked-By)...");
+    for (const item of localItems) {
+        const currentNodeId = issueMap.get(item.id);
+        if (!currentNodeId) continue;
+
+        // 1. Parent relationship (Add parent / sub-issue)
+        if (item.parent && item.parent !== 'none') {
+            const parentNodeId = issueMap.get(item.parent);
+            if (parentNodeId) {
+                console.log(`[Relationships] Linking ${item.id} as Sub-Issue of Parent ${item.parent}...`);
+                await addSubIssueNative(parentNodeId, currentNodeId);
+            }
+        }
+
+        // 2. Depends_on relationship (Mark as blocked by)
+        if (item.depends_on && item.depends_on.length > 0) {
+            for (const blockerId of item.depends_on) {
+                const blockerNodeId = issueMap.get(blockerId);
+                if (blockerNodeId) {
+                    console.log(`[Relationships] Marking ${item.id} as Blocked By ${blockerId}...`);
+                    await addBlockedByNative(currentNodeId, blockerNodeId);
+                }
+            }
+        }
     }
     
     console.log("Sync complete.");
