@@ -10,9 +10,6 @@ area: ui
 data_class: A
 adr: ADR-0006
 depends_on: [FEAT-0044]
-estimate: 8
-size: XL
-target_date: 2026-10-24
 ---
 
 # FEAT-0045 — Register the Trading Academy as its own window type

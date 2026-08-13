@@ -10,9 +10,6 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
-estimate: 3
-size: M
-target_date: 2026-08-19
 ---
 
 # BUG-0058 — A WS position push that omits `qty` silently closes a still-open position

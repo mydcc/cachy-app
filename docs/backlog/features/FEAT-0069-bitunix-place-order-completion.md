@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 estimate: 5
 size: L
-target_date: 2026-09-03
+target_date: 2026-11-27
 ---
 
 # FEAT-0069 — Send TP/SL, time-in-force and a client order ID with Bitunix order placement

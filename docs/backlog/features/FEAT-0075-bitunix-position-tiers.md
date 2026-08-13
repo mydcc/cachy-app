@@ -10,9 +10,8 @@ area: calculation
 data_class: C
 adr: none
 depends_on: []
-estimate: 13
-size: XL
-target_date: 2026-11-21
+estimate: 3
+size: M
 ---
 
 # FEAT-0075 — Show maintenance-margin tier context next to an open position
