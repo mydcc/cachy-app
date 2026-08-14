@@ -241,6 +241,11 @@ it is correct.
   imports and by a serverless build in CI.
 - Whitelabel theming: branding, palette and naming as configuration rather than
   as edits to `src/themes.css`.
+- The edition entitlement mechanism
+  ([`FEAT-0187`](backlog/features/FEAT-0187-edition-entitlement-switch.md)):
+  the cheat-code toggle is replaced by an offline-verifiable local entitlement
+  before any build ships to an audience — a shared secret does not survive
+  first contact with one.
 - Deployment documentation and a one-command path for a static host.
 - Licensing and attribution, checked against AGPL-3.0 obligations — the current
   licence has consequences for a whitelabel product that need a real answer

@@ -10,9 +10,6 @@ area: ai
 data_class: A
 adr: required
 depends_on: [FEAT-0011, FEAT-0012, FEAT-0013, FEAT-0015]
-estimate: 3
-size: M
-target_date: 2026-10-10
 ---
 
 # FEAT-0035 — Let an agent trade inside limits it cannot exceed

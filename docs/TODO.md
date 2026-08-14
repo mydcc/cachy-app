@@ -940,3 +940,59 @@ distinct from `ChannelWindow`'s more specific use, is still wanted), or
 remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
 `createFromData()` case if `ChannelWindow` already covers every case this was
 meant for. Left in place per this repo's defensive-deletion rule.
+
+## 26. ✅ Edition entitlement: what replaces the cheat code, and which payment rail issues it
+
+**Raised by the maintainer, August 2026** — planning session on the edition
+strategy. The runtime edition switch is currently a 5-character cheat code
+(`PowerToggle.svelte`) flipping a boolean. That was the right pragmatic tool
+and it does not carry to an audience: it is a shared secret, it cannot be
+revoked, it cannot express module sets, and a future licence purchase has
+nothing to hand the buyer.
+
+The **mechanism** is specced as
+[`FEAT-0187`](backlog/features/FEAT-0187-edition-entitlement-switch.md)
+(offline-verified signed entitlement naming a module set; footer switch
+stays; cheat code becomes a dev-only override). The **rail** that issues
+entitlements is parked as
+[`IDEA-0188`](backlog/ideas/IDEA-0188-payment-rails-licensing.md)
+(BTCPayServer / Stripe / token-gated, external issuer, app never phones home).
+
+> **Decided, 2026-08-13 (maintainer):**
+>
+> 1. **Token format: signed JSON.** A minimal own format — JSON naming the
+>    enabled module set, Ed25519-signed, verified via Web Crypto against a
+>    public key embedded in the build. No JWT library in the bundle, no
+>    claims semantics that suggest online validation. The entitlement
+>    store's interface hides the format, so a wallet-signature proof can be
+>    added later as a second verifier without touching consumers.
+> 2. **Grandfathering: auto-migration.** On first start after the update, an
+>    install with `isProLicenseActive` already true generates a local
+>    **dev-class** entitlement — initiated users lose nothing, and the
+>    self-issued token stays distinguishable from a purchased licence.
+> 3. **Rail direction: BTCPayServer first.** Self-hosted, Bitcoin, no
+>    payment processor holding customer data. Stripe stays noted in
+>    [`IDEA-0188`](backlog/ideas/IDEA-0188-payment-rails-licensing.md) as a
+>    possible later fiat on-ramp; token-gating (NFT) remains a spike, not a
+>    commitment. Build start remains M6. Revenue framing lives in
+>    `VISION.md` ("How it pays for itself") and only there.
+>
+> FEAT-0187's open questions are resolved by 1 and 2; the item still waits
+> on [`FEAT-0014`](backlog/features/FEAT-0014-edition-build-targets.md)
+> before it can be `ready`.
+
+## 27. Third-party reference material tracked in the public repository
+
+**Raised in the same session.** `bitunix_screenshot_of_ui_tpmp/` (32
+screenshots of the exchange's UI, 3.8 MB), `info/` (saved third-party web
+pages), `verification/` (ad-hoc verification artefacts) and a root-level
+`report.md` are all tracked in the public AGPL repository. Copyright and
+first-impression concerns; details and the fix plan in
+[`BUG-0192`](backlog/bugs/BUG-0192-third-party-assets-in-repo.md). The
+screenshots stay *reachable* — they are the reference for
+[`IDEA-0191`](backlog/ideas/IDEA-0191-trade-panel-reference-audit.md)'s
+trade-panel gap analysis — but as issue attachments, not tree content.
+
+**The decision:** keep/move/remove per path, and whether a history rewrite is
+worth it for the screenshots (they are already public; probably not).
+Defensive deletion applies — nothing is removed before this entry is decided.

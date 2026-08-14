@@ -10,9 +10,6 @@ area: ai
 data_class: none
 adr: none
 depends_on: []
-estimate: 3
-size: M
-target_date: 2026-11-06
 ---
 
 # BUG-0006 — Sentiment cache and AI response are trusted without schema validation

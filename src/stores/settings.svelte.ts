@@ -30,7 +30,7 @@ const SENSITIVE_KEYS: (keyof Settings)[] = [
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
-export type AiProvider = "openai" | "gemini" | "anthropic" | "ollama" | "openrouter";
+export type AiProvider = "ollama" | "openrouter" | "openai" | "gemini" | "anthropic";
 export type BackgroundType =
   | "none"
   | "image"
@@ -873,6 +873,7 @@ export class SettingsManager {
   // Private state
   private effectActive = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
 
   // Security State
@@ -880,6 +881,7 @@ export class SettingsManager {
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
   isEncrypted = $state(false);
   isLocked = $state(false);
+  decryptionFailures = $state(0);
 
   /**
    * Resolves once `load()` has restored the encrypted secrets into memory.
@@ -916,7 +918,7 @@ export class SettingsManager {
       // 2. Register $effect for auto-saving and notifications
       this.effectActive = true;
 
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           if (!this.effectActive) return;
 
@@ -979,6 +981,7 @@ export class SettingsManager {
     // 2. Get or Generate secure key (handles migration if legacyKey provided)
     const key = await cryptoService.getOrGenerateDeviceKey(
       legacyKey || undefined,
+      Object.keys(this.encryptedSecrets || {}).length > 0
     );
 
     // 3. Cleanup legacy key if migration happened
@@ -1029,6 +1032,7 @@ export class SettingsManager {
       }
 
       // 2. Decrypt Generic Secrets
+      let failures = 0;
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
           .filter(([key]) => SENSITIVE_KEYS.includes(key as keyof Settings))
@@ -1041,6 +1045,7 @@ export class SettingsManager {
               // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
               this[key] = decrypted;
             } catch (e) {
+              failures++;
               console.error("[Settings] Failed to decrypt secret " + key, e);
             }
           });
@@ -1048,6 +1053,7 @@ export class SettingsManager {
       }
 
       await Promise.all(tasks);
+      this.decryptionFailures = failures;
 
       this.isLocked = false;
       return true;
@@ -1256,8 +1262,10 @@ export class SettingsManager {
             try {
               const deviceKey = await this.getDeviceKey();
               const entries = Object.entries(this.encryptedSecrets || {});
+              let failures = 0;
               await Promise.all(
                 entries.map(async ([key, blob]) => {
+                  if (key === "_deviceKeyCanary") return;
                   try {
                     const decrypted = await cryptoService.decrypt(
                       blob as EncryptedBlob,
@@ -1268,6 +1276,7 @@ export class SettingsManager {
                       this[key] = decrypted;
                     }
                   } catch (e) {
+                    failures++;
                     console.error(
                       "[Settings] Failed to decrypt secret " + key,
                       e,
@@ -1275,7 +1284,9 @@ export class SettingsManager {
                   }
                 }),
               );
+              this.decryptionFailures = failures;
             } catch (e) {
+              this.decryptionFailures = SENSITIVE_KEYS.length;
               console.error(
                 "[Settings] Failed to initialize background decryption",
                 e,
@@ -1568,6 +1579,19 @@ export class SettingsManager {
             }
           }
         });
+
+        // Always write a canary to detect key loss without data loss
+        encryptionTasks.push((async () => {
+          try {
+            data.encryptedSecrets!["_deviceKeyCanary"] = await cryptoService.encrypt(
+              "canary",
+              encryptionPassword,
+            );
+          } catch (e) {
+            if (import.meta.env.DEV) console.error("Failed to encrypt canary", e);
+          }
+        })());
+
         await Promise.all(encryptionTasks);
       } else {
         // Locked mode: Ensure plain text fields are empty
@@ -1759,6 +1783,25 @@ export class SettingsManager {
     const updates = fn(current);
     Object.assign(this, updates);
   }
+
+  destroy() {
+    this.effectActive = false;
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+  }
 }
 
 export const settingsState = new SettingsManager();
+
+// HMR: Cleanup on module disposal to prevent timers and effect leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    settingsState.destroy();
+  });
+}

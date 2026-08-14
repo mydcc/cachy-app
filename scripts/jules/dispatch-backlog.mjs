@@ -112,7 +112,11 @@ function parseFrontMatter(text) {
     const idx = line.indexOf(":");
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
-    data[key] = line.slice(idx + 1).trim();
+    let val = line.slice(idx + 1).trim();
+    if (val.startsWith("[") && val.endsWith("]")) {
+      val = val.slice(1, -1).split(",").map(s => s.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+    }
+    data[key] = val;
   }
   return data;
 }
@@ -268,12 +272,21 @@ Halte dich an den Scope-Hinweis in AGENTS.md. Öffne einen PR gegen develop, mer
 }
 
 const items = loadBacklogItems();
-const ready = items.filter(
-  (i) =>
-    i.status === "ready" &&
-    !EXCLUDE_AREAS.includes(i.area) &&
-    i.priority !== "P0",
-);
+const ready = items.filter((i) => {
+  if (i.status !== "ready" || EXCLUDE_AREAS.includes(i.area) || i.priority === "P0") {
+    return false;
+  }
+  if (Array.isArray(i.depends_on) && i.depends_on.length > 0) {
+    const unresolved = i.depends_on.filter((depId) => {
+      const depItem = items.find((item) => item.id === depId);
+      return depItem && depItem.status !== "done" && depItem.status !== "dropped";
+    });
+    if (unresolved.length > 0) {
+      return false;
+    }
+  }
+  return true;
+});
 
 console.log(`${items.length} Backlog-Items insgesamt, ${ready.length} davon status=ready und im erlaubten Scope.`);
 

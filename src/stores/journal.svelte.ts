@@ -19,17 +19,30 @@ import { safeJsonParse } from "../utils/safeJson";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
+  private effectCleanup: (() => void) | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
       this.load();
 
       // Auto-save effect
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           this.save();
         });
       });
+    }
+  }
+
+  destroy() {
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
+    if (this.notifyTimer) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
     }
   }
 
@@ -166,25 +179,35 @@ class JournalManager {
   marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
   systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
 
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     fn(this.entries);
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.entries; // Track
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(this.entries);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 20);
         });
       });
     });
+    return () => {
+      cleanup();
+      if (localTimer) clearTimeout(localTimer);
+    };
   }
 }
 
 export const journalState = new JournalManager();
+
+// HMR: Cleanup on module disposal to prevent timers and effect leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    journalState.destroy();
+  });
+}

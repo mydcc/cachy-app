@@ -155,4 +155,24 @@ describe('Security Fix: Secure Storage of Secrets', () => {
       expect(stored.encryptedSecrets.openaiApiKey).toBeDefined();
       expect(stored.encryptedSecrets.openaiApiKey.ciphertext).toContain("KEY|||SESSION");
   });
+
+  it('should refuse to mint a replacement key when encrypted secrets exist', async () => {
+    // BUG-0053 testing
+    const { cryptoService } = await import('../../services/cryptoService');
+
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify({
+        encryptedSecrets: { "_deviceKeyCanary": { ciphertext: "some-data", iv: "", salt: "", method: "AES-GCM" } }
+    }));
+
+    // Mock getOrGenerateDeviceKey to throw when hasEncryptedSecrets is true
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockImplementationOnce(async (legacy, hasSecrets) => {
+        if (hasSecrets) throw new Error("DeviceKeyLost: Device key is missing but encrypted secrets exist.");
+        return "mock-device-key" as unknown as CryptoKey;
+    });
+
+    const settings = new SettingsManager();
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(settings.decryptionFailures).toBeGreaterThan(0);
+  });
 });

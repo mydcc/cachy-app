@@ -2,7 +2,7 @@
 id: BUG-0079
 title: Legacy subscribe() causes memory leaks and race conditions via shared debounce timers
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,9 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-estimate: 5
-size: L
-target_date: 2026-09-12
 ---
 
 # BUG-0079 — Legacy subscribe() causes memory leaks and race conditions via shared debounce timers

@@ -10,9 +10,6 @@ area: api
 data_class: none
 adr: ADR-0002
 depends_on: []
-estimate: 5
-size: L
-target_date: 2026-09-21
 ---
 
 # BUG-0052 — APP_ACCESS_TOKEN blocks BYOK users who have no way to know it

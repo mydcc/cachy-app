@@ -10,9 +10,6 @@ area: experiment
 data_class: none
 adr: required
 depends_on: []
-estimate: 13
-size: XL
-target_date: 2026-11-27
 ---
 
 # IDEA-0036 — A gamified fork built on SpacetimeDB and the 3D layer
