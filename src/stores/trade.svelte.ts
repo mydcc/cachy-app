@@ -30,8 +30,8 @@ import type { CurrentTradeData } from "./types";
 // For now, I will mirror the structure.
 
 export interface TradeTarget {
-  price: string | number | null;
-  percent: string | number | null;
+  price: string | null;
+  percent: string | null;
   isLocked: boolean;
 }
 

@@ -37,11 +37,11 @@
 
   interface Props {
     symbol: string;
-    entryPrice: string | number | null;
+    entryPrice: string | null;
     useAtrSl: boolean;
-    atrValue: string | number | null;
-    atrMultiplier: string | number | null;
-    stopLossPrice: string | number | null;
+    atrValue: string | null;
+    atrMultiplier: string | null;
+    stopLossPrice: string | null;
     atrMode: "manual" | "auto";
     atrTimeframe: string;
     atrFormulaDisplay: string;
@@ -81,7 +81,7 @@
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
-  const format = (val: string | number | null) =>
+  const format = (val: string | null) =>
     val === null || val === undefined ? "" : String(val);
 
   // Local state for numeric inputs (Buffer to prevent "vanishing decimal" bug)

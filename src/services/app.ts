@@ -120,9 +120,9 @@ export const app = {
         useAtrSl: true,
         atrMode: "auto",
         targets: [
-          { price: 120000, percent: 50, isLocked: false },
-          { price: 122000, percent: 25, isLocked: false },
-          { price: 124000, percent: 25, isLocked: false },
+          { price: "120000", percent: "50", isLocked: false },
+          { price: "122000", percent: "25", isLocked: false },
+          { price: "124000", percent: "25", isLocked: false },
         ],
       }));
 
