@@ -2,7 +2,7 @@
 id: FEAT-0193
 title: "Decompose marketWatcher.ts into subscription registry, polling loop and history fetching"
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,8 @@ depends_on: [BUG-0182, BUG-0183, BUG-0184]
 estimate: 2
 size: M
 target_date: 2026-09-14
+branch: FEAT-0193-split-market-watcher
+done_version: 1.6.0-beta.18
 ---
 
 # FEAT-0193 — Decompose `marketWatcher.ts` into subscription registry, polling loop and history fetching
@@ -65,14 +67,14 @@ adjusting the test.
 
 ## Acceptance criteria
 
-- [ ] Subscription registry and history fetching each live in their own module
-- [ ] `marketWatcher.ts` is under 400 lines and contains only lifecycle concerns
-- [ ] No method exceeds 200 lines
-- [ ] The five existing `marketWatcher*` test files pass **without being
+- [x] Subscription registry and history fetching each live in their own module
+- [x] `marketWatcher.ts` is under 400 lines and contains only lifecycle concerns
+- [x] No method exceeds 200 lines
+- [x] The five existing `marketWatcher*` test files pass **without being
       modified**
-- [ ] `npm run check` passes with 0 errors
-- [ ] `npm test` passes
-- [ ] `marketWatcher.ts`'s exported API is unchanged (callers untouched), or
+- [x] `npm run check` passes with 0 errors
+- [x] `npm test` passes
+- [x] `marketWatcher.ts`'s exported API is unchanged (callers untouched), or
       each change is listed and justified here on completion
 
 ## Out of scope
