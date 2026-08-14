@@ -166,7 +166,7 @@
     class:active={settingsState.showMarketOverview}
     onclick={() =>
       (settingsState.showMarketOverview = !settingsState.showMarketOverview)}
-    title={$_("settings.toggleMarketTiles") || "Toggle Market Tiles"}
+    title="Toggle Market Tiles"
   >
     {@html ICONS.overview}
   </button>
@@ -188,7 +188,7 @@
     class:active={settingsState.showMarketSentiment}
     onclick={() =>
       (settingsState.showMarketSentiment = !settingsState.showMarketSentiment)}
-    title={$_("settings.toggleMarketSentiment") || "Toggle Market Sentiment"}
+    title="Toggle Market Sentiment"
   >
     {@html ICONS.sentiment}
   </button>

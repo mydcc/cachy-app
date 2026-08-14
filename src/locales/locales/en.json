@@ -373,10 +373,7 @@
     "positionsAria": {
       "positionDetails": "Position Details",
       "symbolDetails": "Symbol Details"
-    },
-    "synchronizingHistory": "Synchronizing History...",
-    "cancelOrder": "Cancel Order",
-    "connectionStatus": "Connection Status"
+    }
   },
   "journal": {
     "title": "Trade Journal",
@@ -1564,9 +1561,7 @@
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
-    },
-    "toggleMarketTiles": "Toggle Market Tiles",
-    "toggleMarketSentiment": "Toggle Market Sentiment"
+    }
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -2286,8 +2281,7 @@
     "categoryLabel": "Category",
     "categoryTrading": "Trading & Strategies",
     "categoryTech": "Cachy App Knowledge",
-    "notReady": "Quiz questions are still loading, try again in a moment.",
-    "quickQuiz": "Quick Quiz"
+    "notReady": "Quiz questions are still loading, try again in a moment."
   },
   "cloud": {
     "title": "Community Cloud (Beta)",

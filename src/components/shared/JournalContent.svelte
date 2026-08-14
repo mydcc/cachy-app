@@ -471,7 +471,7 @@
                 {#if uiState.syncProgress}
                     <div
                         class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]"
-                        title={$_("dashboard.synchronizingHistory") || "Synchronizing History..."}
+                        title="Synchronizing History..."
                     >
                         <span
                             class="font-mono text-[10px] text-[var(--text-primary)] font-bold"
