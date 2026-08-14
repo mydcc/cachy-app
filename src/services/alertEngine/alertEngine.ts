@@ -32,7 +32,10 @@ interface WasmModule {
 }
 
 export interface AlertCondition {
-  [key: string]: string | number; // e.g. { price_cross_up: 60000.0 } or { price_reached: 50000.0 }
+  // Decimal strings only — the Rust side deserializes AlertCondition's
+  // threshold with rust_decimal's `serde-with-str`, which rejects a bare
+  // JSON number. e.g. { price_reached: "50000.0" }
+  [key: string]: string;
 }
 
 export interface AlertDefinition {
