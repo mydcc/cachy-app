@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
 import { Decimal } from "decimal.js";
+import type { NormalizedOrder } from "./types";
 
 vi.mock("./omsService", () => ({
   omsService: {
@@ -200,7 +201,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
 
       const getOrderDetailSpy = vi
         .spyOn(tradeService, "getOrderDetail")
-        .mockResolvedValue(liveOrder as any);
+        .mockResolvedValue(liveOrder as unknown as NormalizedOrder);
 
       const signedRequestSpy = vi
         .spyOn(tradeService, "signedRequest")
@@ -242,7 +243,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
         status: "NEW",
       };
 
-      vi.spyOn(tradeService, "getOrderDetail").mockResolvedValue(liveOrder as any);
+      vi.spyOn(tradeService, "getOrderDetail").mockResolvedValue(liveOrder as unknown as NormalizedOrder);
 
       const signedRequestSpy = vi
         .spyOn(tradeService, "signedRequest")

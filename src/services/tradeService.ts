@@ -683,7 +683,7 @@ class TradeService {
             logger.error("market", "[CloseAll] Failed to close all positions", e);
             const failedSymbols = symbol || "all";
             toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }) || `Close All Failed for: ${failedSymbols}`);
-            throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
+            throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED, { cause: e });
         }
     }
 
