@@ -39,13 +39,13 @@ export interface TradeStateSnapshot {
   tradeType: string;
   accountSize: string;
   riskPercentage: string;
-  entryPrice: string | number | null;
-  stopLossPrice: string | number | null;
-  leverage: string | number | null;
-  fees: string | number | null;
+  entryPrice: string | null;
+  stopLossPrice: string | null;
+  leverage: string | null;
+  fees: string | null;
   symbol: string;
-  atrValue: string | number | null;
-  atrMultiplier: string | number | null;
+  atrValue: string | null;
+  atrMultiplier: string | null;
   useAtrSl: boolean;
   atrMode: "auto" | "manual";
   atrTimeframe: string;
@@ -56,7 +56,7 @@ export interface TradeStateSnapshot {
   isPositionSizeLocked: boolean;
   lockedPositionSize: Decimal | null;
   isRiskAmountLocked: boolean;
-  riskAmount: string | number | null;
+  riskAmount: string | null;
   journalSearchQuery: string;
   journalFilterStatus: string;
   currentTradeData: CurrentTradeData | null;
@@ -73,28 +73,23 @@ const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 // Define Zod Schema for TradeTarget
 // Accept both string and number, keep as-is (don't force to string)
 const TradeTargetSchema = z.object({
-  price: z.union([z.string(), z.number()]).nullable(),
-  percent: z.union([z.string(), z.number()]).nullable(),
+  price: z.string().nullable(),
+  percent: z.string().nullable(),
   isLocked: z.boolean(),
 });
 
 // Helper to accept both string and number, keep as-is
 // (Don't force to string — let Decimal handle the comparison)
 const stringSchema = z
-  .union([
-    z.string().refine(
-      (val) => /^\d*\.?\d*$/.test(val),
-      "Must be a valid number"
-    ),
-    z.number().finite(),
-  ])
+  .string()
+  .refine(
+    (val) => val === "" || /^-?\d*\.?\d*$/.test(val),
+    "Must be a valid number"
+  )
   .nullable();
 
 // Required string schema (not nullable) for accountSize/riskPercentage which have defaults
-const requiredStringSchema = z.union([
-  z.string(),
-  z.number()
-]).transform(val => String(val));
+const requiredStringSchema = z.string();
 
 // Define Zod Schema for TradeState
 const TradeStateSchema = z.object({
@@ -164,13 +159,13 @@ class TradeManager {
   tradeType = $state<string>(INITIAL_TRADE_STATE.tradeType);
   accountSize = $state<string>(INITIAL_TRADE_STATE.accountSize);
   riskPercentage = $state<string>(INITIAL_TRADE_STATE.riskPercentage);
-  entryPrice = $state<string | number | null>(INITIAL_TRADE_STATE.entryPrice);
-  stopLossPrice = $state<string | number | null>(INITIAL_TRADE_STATE.stopLossPrice);
-  leverage = $state<string | number | null>(INITIAL_TRADE_STATE.leverage);
-  fees = $state<string | number | null>(INITIAL_TRADE_STATE.fees);
+  entryPrice = $state<string | null>(INITIAL_TRADE_STATE.entryPrice);
+  stopLossPrice = $state<string | null>(INITIAL_TRADE_STATE.stopLossPrice);
+  leverage = $state<string | null>(INITIAL_TRADE_STATE.leverage);
+  fees = $state<string | null>(INITIAL_TRADE_STATE.fees);
   symbol = $state<string>(INITIAL_TRADE_STATE.symbol);
-  atrValue = $state<string | number | null>(INITIAL_TRADE_STATE.atrValue);
-  atrMultiplier = $state<string | number | null>(INITIAL_TRADE_STATE.atrMultiplier);
+  atrValue = $state<string | null>(INITIAL_TRADE_STATE.atrValue);
+  atrMultiplier = $state<string | null>(INITIAL_TRADE_STATE.atrMultiplier);
   useAtrSl = $state<boolean>(INITIAL_TRADE_STATE.useAtrSl);
   atrMode = $state<"auto" | "manual">(INITIAL_TRADE_STATE.atrMode);
   atrTimeframe = $state<string>(INITIAL_TRADE_STATE.atrTimeframe);
@@ -181,7 +176,7 @@ class TradeManager {
   isPositionSizeLocked = $state<boolean>(INITIAL_TRADE_STATE.isPositionSizeLocked);
   lockedPositionSize = $state<Decimal | null>(INITIAL_TRADE_STATE.lockedPositionSize);
   isRiskAmountLocked = $state<boolean>(INITIAL_TRADE_STATE.isRiskAmountLocked);
-  riskAmount = $state<string | number | null>(INITIAL_TRADE_STATE.riskAmount);
+  riskAmount = $state<string | null>(INITIAL_TRADE_STATE.riskAmount);
   journalSearchQuery = $state<string>(INITIAL_TRADE_STATE.journalSearchQuery);
   journalFilterStatus = $state<string>(INITIAL_TRADE_STATE.journalFilterStatus);
 

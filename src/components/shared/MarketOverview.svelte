@@ -341,7 +341,7 @@
           atrMode: "auto" as "auto" | "manual",
         };
         if (currentPrice) {
-          newState.entryPrice = new Decimal(currentPrice).toNumber();
+          newState.entryPrice = new Decimal(currentPrice).toString();
         }
         return newState;
       });
