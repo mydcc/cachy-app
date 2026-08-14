@@ -35,6 +35,7 @@
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import CachyIcon from "../CachyIcon.svelte";
+    import { _ } from "svelte-i18n";
 
     interface Props {
         /** The logic instance representing this window. contains state and behavioral rules. */
@@ -589,7 +590,8 @@
                             effectsState.triggerDuckEvent({ type: "feed", amount: 10 });
                         }}
                         ondblclick={(e) => e.stopPropagation()}
-                        title="Feed Duck (Profit)">🍞</button
+                        title={$_("windows.feedDuck")}
+                        aria-label={$_("windows.feedDuck")}>🍞</button
                     >
                 </div>
             {/if}

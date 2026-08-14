@@ -86,10 +86,12 @@ export class DuckLogic {
             }
         }
         this.updateStreak();
+        this.saveState();
     }
 
     private saveState(): void {
         if (!browser) return;
+        this.checkAndUnlockAchievements();
         const state: DuckDaoState = {
             xp: this.xp,
             level: this.level,
@@ -100,7 +102,6 @@ export class DuckLogic {
             achievements: this.achievements,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        this.checkAndUnlockAchievements();
     }
 
     private updateStreak(): void {

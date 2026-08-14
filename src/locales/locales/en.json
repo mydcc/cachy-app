@@ -4,7 +4,8 @@
     "smash": "Smash Window",
     "opacity": "Opacity",
     "glass": "Glass",
-    "burn": "Burn"
+    "burn": "Burn",
+    "feedDuck": "Feed Duck"
   },
   "app": {
     "title": "Cachy",

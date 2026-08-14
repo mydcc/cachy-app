@@ -4,7 +4,8 @@
     "smash": "Fenster zerschmettern",
     "opacity": "Deckkraft",
     "glass": "Glas",
-    "burn": "Verbrennen"
+    "burn": "Verbrennen",
+    "feedDuck": "Ente füttern"
   },
   "app": {
     "title": "Cachy",

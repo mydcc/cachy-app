@@ -40,6 +40,11 @@ export function applyStateAnimation(
     dt: number,
     stateTimer: number
 ): boolean {
+    if (refs.accessories.cape.visible) {
+        animateCape(refs.accessories.cape, time);
+    }
+    void dt;
+
     switch (state) {
         case DuckState.IDLE:
             applyIdle(refs, time);
@@ -50,7 +55,7 @@ export function applyStateAnimation(
             return stateTimer <= 0;
 
         case DuckState.CELEBRATING:
-            applyCelebrating(refs, dt);
+            applyCelebrating(refs, time);
             return stateTimer <= 0;
 
         case DuckState.SAD:
@@ -79,10 +84,6 @@ function applyIdle(refs: DuckMeshRefs, time: number): void {
     refs.leftWing.rotation.z = 0.2 + Math.sin(time * 1.5) * 0.05;
     refs.rightWing.rotation.z = -0.2 - Math.sin(time * 1.5) * 0.05;
     refs.sleepEyes.visible = false;
-
-    if (refs.accessories.cape.visible) {
-        animateCape(refs.accessories.cape, time);
-    }
 }
 
 // ─── EATING ───────────────────────────────────────────────────────────────────
@@ -97,14 +98,13 @@ function applyEating(refs: DuckMeshRefs, time: number): void {
 
 // ─── CELEBRATING ──────────────────────────────────────────────────────────────
 
-function applyCelebrating(refs: DuckMeshRefs, dt: number): void {
+function applyCelebrating(refs: DuckMeshRefs, time: number): void {
     // Spin-Effekt wird in DuckLogic.update() auf group.rotation.y gesetzt
     refs.head.position.y = 0.6;
     refs.head.rotation.x = 0;
-    refs.leftWing.rotation.z = 0.2 + Math.sin(Date.now() * 0.02) * 1.0;
-    refs.rightWing.rotation.z = -0.2 - Math.sin(Date.now() * 0.02) * 1.0;
+    refs.leftWing.rotation.z = 0.2 + Math.sin(time * 20) * 1.0;
+    refs.rightWing.rotation.z = -0.2 - Math.sin(time * 20) * 1.0;
     refs.sleepEyes.visible = false;
-    void dt;
 }
 
 // ─── SAD ──────────────────────────────────────────────────────────────────────

@@ -528,6 +528,14 @@
 
     function onDocumentClick(event: MouseEvent) {
         if (!camera || !duckLogic) return;
+        const target = event.target as HTMLElement | null;
+        if (
+            target?.closest(
+                ".window-frame, .glass-panel, button, input, select, textarea, [role='button'], [role='dialog']",
+            )
+        ) {
+            return;
+        }
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
