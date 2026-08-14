@@ -20,7 +20,7 @@
 
 // This was generated using spacetimedb cli version 1.11.3 (commit 02449737ca3b29e7e39679fccbef541a50f32094).
 
-
+/* eslint-disable */
 /* tslint:disable */
 import {
   DbConnectionBuilder as __DbConnectionBuilder,
