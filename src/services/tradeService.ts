@@ -41,8 +41,9 @@ import {
     BitunixPositionTierResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
+import type { NormalizedOrder } from "../types/bitunix";
 import { appFetch } from "../lib/appAuth";
-import { unwrapApiEnvelope } from "../utils/utils";
+import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 
 export interface TpSlOrder {
     orderId: string;
@@ -76,8 +77,25 @@ export class BitunixApiError extends Error {
     }
 }
 
+export interface ModifyOrderParams {
+    orderId?: string;
+    clientId?: string;
+    symbol?: string;
+    qty?: string | Decimal | number;
+    price?: string | Decimal | number;
+    tpPrice?: string | Decimal | number;
+    tpStopType?: string;
+    tpOrderType?: string;
+    tpOrderPrice?: string | Decimal | number;
+    slPrice?: string | Decimal | number;
+    slStopType?: string;
+    slOrderType?: string;
+    slOrderPrice?: string | Decimal | number;
+}
+
 export const TRADE_ERRORS = {
     POSITION_NOT_FOUND: "tradeErrors.positionNotFound",
+    ORDER_NOT_FOUND: "tradeErrors.orderNotFound",
     FETCH_FAILED: "trade.fetchFailed",
     CLOSE_ALL_FAILED: "trade.closeAllFailed"
 };
@@ -397,17 +415,27 @@ class TradeService {
                 logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close.`, cancelError);
             }
 
-            const result = await this.signedRequest("POST", "/api/orders", {
-                type: "place-order",
-                symbol,
-                side: apiSide,
-                orderType: "MARKET",
-                qty,
-                reduceOnly: true,
-                clientOrderId,
-                tradeSide,
-                positionId,
-            });
+            const provider = settingsState.apiProvider || "bitunix";
+            let result: unknown;
+            if (provider === "bitunix" && position.positionId) {
+                result = await this.signedRequest("POST", "/api/orders", {
+                    type: "flash-close-position",
+                    symbol,
+                    positionId: position.positionId,
+                });
+            } else {
+                result = await this.signedRequest("POST", "/api/orders", {
+                    type: "place-order",
+                    symbol,
+                    side: apiSide,
+                    orderType: "MARKET",
+                    qty,
+                    reduceOnly: true,
+                    clientOrderId,
+                    tradeSide,
+                    positionId,
+                });
+            }
 
             return { success: true, data: result };
 
@@ -546,16 +574,15 @@ class TradeService {
         });
     }
 
-    public async cancelAllOrders(symbol: string, throwOnError = false) {
-        if (!symbol) return;
-        logger.log("market", `[Trade] Cancelling all orders for ${symbol}`);
+    public async cancelAllOrders(symbol?: string, throwOnError = false) {
+        logger.log("market", `[Trade] Cancelling all orders${symbol ? ` for ${symbol}` : ""}`);
         try {
              return await this.signedRequest("POST", "/api/orders", {
-                symbol,
+                symbol: symbol || undefined,
                 type: "cancel-all"
              });
         } catch (e: unknown) {
-             logger.warn("market", `[Trade] Failed to cancel orders for ${symbol}`, e);
+             logger.warn("market", `[Trade] Failed to cancel orders${symbol ? ` for ${symbol}` : ""}`, e);
              if (throwOnError) throw e;
         }
     }
@@ -626,28 +653,85 @@ class TradeService {
         });
     }
 
-    public async closeAllPositions() {
-        // Pre-fetch all open positions once before looping to avoid triggering
-        // concurrent stale data fetches (and network overhead) within the ensurePositionFreshness loop below.
+    public async closeAllPositions(symbol?: string) {
+        logger.log("market", `[CloseAll] Closing all positions${symbol ? ` for ${symbol}` : ""}`);
         try {
-            await this.fetchOpenPositionsFromApi();
-        } catch (e) {
-            logger.error("market", "[CloseAll] Pre-fetch of positions failed", e);
-            // Continue with potentially stale OMS data rather than aborting entirely
-        }
-        const positions = omsService.getPositions();
-        const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side, forceFullClose: true }));
-        const results = await Promise.allSettled(promises);
+            const provider = settingsState.apiProvider || "bitunix";
+            if (provider === "bitunix") {
+                return await this.signedRequest("POST", "/api/orders", {
+                    type: "close-all-positions",
+                    symbol: symbol || undefined,
+                });
+            }
 
-        const failures = results.filter(r => r.status === "rejected");
-        if (failures.length > 0) {
-            const failedSymbols = results.map((r, i) => r.status === "rejected" ? (positions[i]?.symbol ?? `position[${i}]`) : null).filter(Boolean).join(", ");
-            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
-            toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }) || `Flash Close Failed for: ${failedSymbols}`);
+            // Fallback for non-Bitunix providers
+            const positions = omsService.getPositions();
+            const toClose = symbol ? positions.filter(p => p.symbol === symbol) : positions;
+            const promises = toClose.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side, forceFullClose: true }));
+            const results = await Promise.allSettled(promises);
+
+            const failures = results.filter(r => r.status === "rejected");
+            if (failures.length > 0) {
+                const failedSymbols = results.map((r, i) => r.status === "rejected" ? (toClose[i]?.symbol ?? `position[${i}]`) : null).filter(Boolean).join(", ");
+                logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
+                toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }) || `Close All Failed for: ${failedSymbols}`);
+                throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
+            }
+
+            return results;
+        } catch (e: unknown) {
+            logger.error("market", "[CloseAll] Failed to close all positions", e);
+            const failedSymbols = symbol || "all";
+            toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }) || `Close All Failed for: ${failedSymbols}`);
             throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
         }
+    }
 
-        return results;
+    public async getOrderDetail(orderId?: string, clientId?: string): Promise<NormalizedOrder> {
+        if (!orderId && !clientId) {
+            throw new Error("Either orderId or clientId must be provided");
+        }
+        return await this.signedRequest<NormalizedOrder>("POST", "/api/orders", {
+            type: "order-detail",
+            orderId,
+            clientId,
+        });
+    }
+
+    public async modifyOrder(params: ModifyOrderParams) {
+        if (!params.orderId && !params.clientId) {
+            throw new Error("Either orderId or clientId must be provided to modify order");
+        }
+
+        // AC 3: Safe Modify — Synchronous call to get_order_detail first
+        const liveOrder = await this.getOrderDetail(params.orderId, params.clientId);
+        if (!liveOrder) {
+            throw new Error(TRADE_ERRORS.ORDER_NOT_FOUND);
+        }
+
+        const qty = params.qty !== undefined ? formatApiNum(params.qty) : liveOrder.amount;
+        const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
+        const symbol = params.symbol || liveOrder.symbol;
+
+        const payload: Record<string, unknown> = {
+            type: "modify-order",
+            orderId: params.orderId || liveOrder.orderId,
+            clientId: params.clientId || liveOrder.clientId,
+            symbol,
+            qty,
+            price,
+            tpPrice: params.tpPrice !== undefined ? formatApiNum(params.tpPrice) : (liveOrder.tpPrice || undefined),
+            tpStopType: params.tpStopType || liveOrder.tpStopType,
+            tpOrderType: params.tpOrderType || liveOrder.tpOrderType,
+            slPrice: params.slPrice !== undefined ? formatApiNum(params.slPrice) : (liveOrder.slPrice || undefined),
+            slStopType: params.slStopType || liveOrder.slStopType,
+            slOrderType: params.slOrderType || liveOrder.slOrderType,
+        };
+
+        if (params.tpOrderPrice !== undefined) payload.tpOrderPrice = formatApiNum(params.tpOrderPrice);
+        if (params.slOrderPrice !== undefined) payload.slOrderPrice = formatApiNum(params.slOrderPrice);
+
+        return await this.signedRequest("POST", "/api/orders", payload);
     }
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {

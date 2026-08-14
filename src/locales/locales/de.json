@@ -2237,7 +2237,8 @@
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}",
     "positionMismatch": "Position Seite stimmt nicht überein (erwartet {expected}, erhalten {actual})",
-    "dataError": "Dateninkonsistenz erkannt"
+    "dataError": "Dateninkonsistenz erkannt",
+    "orderNotFound": "Order nicht gefunden"
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",

@@ -2,7 +2,7 @@
 id: FEAT-0071
 title: Replace client-side cancel and close loops with native Bitunix endpoints
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -46,11 +46,11 @@ the WS channels remain the source of truth for final state.
 
 ## Acceptance criteria
 
-- [ ] `tradeService` implements `cancel_all_orders` issuing exactly one API request (per symbol filter) and surfaces partial failures from `failureList`.
-- [ ] `tradeService` implements `close_all_position` and `flash_close_position` natively; flash close targets a `positionId`, proven correct in hedge mode.
-- [ ] `tradeService` implements `modify_order` using a "Safe Modify" approach: before the order is modified, Cachy MUST issue a synchronous call to `get_order_detail`. The intended modification (e.g., TP/SL) is then merged with the guaranteed `qty` and `price` from the live response and sent to Bitunix.
-- [ ] An open limit order's price/quantity or TP/SL can be modified without losing its order ID.
-- [ ] The old for-loop implementations are removed completely.
+- [x] `tradeService` implements `cancel_all_orders` issuing exactly one API request (per symbol filter) and surfaces partial failures from `failureList`.
+- [x] `tradeService` implements `close_all_position` and `flash_close_position` natively; flash close targets a `positionId`, proven correct in hedge mode.
+- [x] `tradeService` implements `modify_order` using a "Safe Modify" approach: before the order is modified, Cachy MUST issue a synchronous call to `get_order_detail`. The intended modification (e.g., TP/SL) is then merged with the guaranteed `qty` and `price` from the live response and sent to Bitunix.
+- [x] An open limit order's price/quantity or TP/SL can be modified without losing its order ID.
+- [x] The old for-loop implementations are removed completely.
 
 ## Out of scope
 
