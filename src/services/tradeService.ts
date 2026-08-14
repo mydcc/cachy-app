@@ -464,7 +464,7 @@ class TradeService {
 
             // [FIX] Notify User & Prevent Crash
             logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(`${get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed"}: ${msg}`);
+            toastService.error(get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey, { values: { msg } }) || `Flash Close Failed: ${msg}`);
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
@@ -643,7 +643,7 @@ class TradeService {
         if (failures.length > 0) {
             const failedSymbols = results.map((r, i) => r.status === "rejected" ? (positions[i]?.symbol ?? `position[${i}]`) : null).filter(Boolean).join(", ");
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions: ${failedSymbols}`);
-            toastService.error(`${get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey) || "Flash Close Failed for"}: ${failedSymbols}`);
+            toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }) || `Flash Close Failed for: ${failedSymbols}`);
             throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
         }
 

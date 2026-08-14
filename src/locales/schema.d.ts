@@ -1056,6 +1056,7 @@ export type TranslationKey =
   | "settings.hotkeys.mode1Desc"
   | "settings.hotkeys.mode2Desc"
   | "settings.hotkeys.switchToCustom"
+  | "settings.hotkeys.confirmOverwrite"
   | "settings.tabs.general"
   | "settings.tabs.api"
   | "settings.tabs.ai"
@@ -1883,6 +1884,7 @@ export type TranslationKey =
   | "trade.closeAllFailed"
   | "trade.apiError"
   | "trade.fetchFailed"
+  | "trade.flashCloseFailed"
   | "workerErrors.eventError"
   | "workerErrors.notAvailable"
   | "workerErrors.timeout"
@@ -1921,4 +1923,7 @@ export type TranslationKey =
   | "cloud.eraseConfirm"
   | "cloud.eraseDone"
   | "cloud.eraseNeedsConnection"
-  | "cloud.eraseUnavailable";
+  | "cloud.eraseUnavailable"
+  | "marketAnalyst.analysisFailed"
+  | "calculationStrategy.criticalLag"
+  | "calculationStrategy.slowCalc";
