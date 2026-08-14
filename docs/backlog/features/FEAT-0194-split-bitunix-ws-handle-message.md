@@ -9,7 +9,7 @@ editions: [community, pro, private]
 area: services
 data_class: none
 adr: none
-depends_on: [BUG-0182, BUG-0183, BUG-0184]
+depends_on: [BUG-0182, BUG-0183, BUG-0184, FEAT-0193]
 estimate: 3
 size: M
 target_date: 2026-09-14
@@ -19,6 +19,15 @@ target_date: 2026-09-14
 
 Sub-item 2 of 5 under [`FEAT-0190`](FEAT-0190-epic-split-god-functions.md).
 Read that item's "Rules that apply to every sub-item" first.
+
+> **Sequenced after [`FEAT-0193`](FEAT-0193-split-market-watcher.md), not just
+> ordered.** `depends_on` includes `FEAT-0193` so `scripts/jules/dispatch-backlog.mjs`
+> will not dispatch this item until FEAT-0193's status is `done` on `develop` —
+> i.e. until its PR has been reviewed and merged, not merely opened. Two
+> service-layer splits landing from independent agent sessions at the same
+> time is exactly the kind of parallel-refactor collision the parent epic
+> waited for the decimal migration to avoid; running them one at a time avoids
+> it here too.
 
 ## Problem
 

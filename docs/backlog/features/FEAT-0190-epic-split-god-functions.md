@@ -71,10 +71,20 @@ as five sub-items. Sequenced by risk and coverage rather than by size:
 | Order | Item | Module | Route |
 | --- | --- | --- | --- |
 | 1 | [`FEAT-0193`](FEAT-0193-split-market-watcher.md) | `marketWatcher.ts` | agent-dispatchable |
-| 2 | [`FEAT-0194`](FEAT-0194-split-bitunix-ws-handle-message.md) | `bitunixWs.ts` | agent-dispatchable |
+| 2 | [`FEAT-0194`](FEAT-0194-split-bitunix-ws-handle-message.md) | `bitunixWs.ts` | agent-dispatchable, `depends_on: [..., FEAT-0193]` |
 | 3 | [`FEAT-0195`](FEAT-0195-split-market-store.md) | `market.svelte.ts` | dispatchable, needs a decision first |
 | 4 | [`FEAT-0196`](FEAT-0196-split-active-technicals-manager.md) | `activeTechnicalsManager.svelte.ts` | **manual** — no tests exist |
 | 5 | [`FEAT-0197`](FEAT-0197-split-settings-store.md) | `settings.svelte.ts` | **manual** — credentials + Klasse-A data |
+
+**FEAT-0193 and FEAT-0194 run one at a time, enforced rather than merely
+suggested.** FEAT-0194's `depends_on` lists `FEAT-0193`, and
+`scripts/jules/dispatch-backlog.mjs` will not dispatch an item while any of
+its `depends_on` entries are not `status: done`. So FEAT-0194 stays
+undispatched until FEAT-0193's PR is reviewed, merged, and its item flipped to
+`done` on `develop` — not merely opened. Two independent agent sessions
+touching adjacent service-layer files at the same time is the same
+parallel-refactor collision the whole epic waited for the decimal migration
+to avoid; this keeps it from recurring one level down.
 
 ### Rules that apply to every sub-item
 
