@@ -55,7 +55,7 @@ Real tools with a clear job. None of them run on their own.
 | Directory | Contents |
 | --- | --- |
 | `brain/` | A separate Python project — `train.py`, `export.py`, `requirements.txt` and its own README. Not part of the app build. |
-| `pine/` | 18 TradingView Pine Script indicator sources (ADX, MACD, Ichimoku, SuperTrend, …). Reference material for the indicator implementations in `src/utils/indicators.ts`, not executable here. |
+| `pine/` | 18 publicly available Pine Script indicator sources (ADX, MACD, Ichimoku, SuperTrend, …). Reference material for the indicator implementations in `src/utils/indicators.ts`, not executable here. |
 | `maintenance/` | Four one-shot patch scripts (`fix_left_panel.py`, `fix_registry_journal.py`, `fix_window_container.py`, `patch_news_final_clean.js`) written to perform a specific refactor once. They are **not idempotent** and are not meant to be run again — they are kept as a record of what was changed. Do not run one to find out what it does. |
 | `jules/` | Wrappers around the [Jules API](https://developers.google.com/jules/api) (`create-session.sh`, `list-sources.sh`) plus `monitor-production.sh` (wired into `production-monitor.yml`). See `jules/README.md` for setup. Needs `JULES_API_KEY` / `JULES_SOURCE`, never commit the key. |
 

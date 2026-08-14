@@ -32,8 +32,8 @@ depends on which of two things is meant.** Individuals who happen to work at an
 institution — analysts, discretionary traders — are squarely in scope; nothing
 about commitment 1 changes because the person using the calculator has a Bloomberg
 terminal on the other monitor. That is the direction to be "unentbehrlich"
-(indispensable) for, the same way TradingView is: people at institutions use it
-by choice, not because their institution operates it for them.
+(indispensable) for, the same way the leading charting tools are: people at institutions use them
+by choice, not because their institution operates them for them.
 
 What is **not** in scope is Cachy operating a multi-tenant service *for* an
 institution — the thing regulated finance actually needs from an institutional
