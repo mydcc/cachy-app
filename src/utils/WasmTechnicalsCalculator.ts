@@ -27,8 +27,8 @@ import { getEmptyData } from "./technicalsCalculator";
 // The WASM glue module and calculator instance it exports — see the
 // equivalent (and actually used) types in services/wasmCalculator.ts.
 interface WasmTechnicalsInstance {
-  initialize(closes: Float64Array, highs: Float64Array, lows: Float64Array, volumes: Float64Array, times: Float64Array, settingsJson: string): void;
-  update(open: number, high: number, low: number, close: number, volume: number, time: number): string;
+  initialize(closes: string[], highs: string[], lows: string[], volumes: string[], times: Float64Array, settingsJson: string): void;
+  update(open: string, high: string, low: string, close: string, volume: string, time: string): string;
   free?(): void;
 }
 
@@ -63,19 +63,21 @@ export class WasmTechnicalsCalculator {
     history: Kline[],
     settings: Record<string, unknown>
   ): TechnicalsData {
-    // 1. Prepare data for WASM (Float64Array)
+    // 1. Prepare data for WASM. Prices and volumes go over as decimal strings
+    // so no value is round-tripped through f64 on the way in; only the
+    // timestamps stay numeric.
     const len = history.length;
-    const closes = new Float64Array(len);
-    const highs = new Float64Array(len);
-    const lows = new Float64Array(len);
-    const volumes = new Float64Array(len);
+    const closes = new Array<string>(len);
+    const highs = new Array<string>(len);
+    const lows = new Array<string>(len);
+    const volumes = new Array<string>(len);
     const times = new Float64Array(len);
 
     for(let i=0; i<len; i++) {
-        closes[i] = history[i].close.toNumber();
-        highs[i] = history[i].high.toNumber();
-        lows[i] = history[i].low.toNumber();
-        volumes[i] = history[i].volume.toNumber();
+        closes[i] = history[i].close.toString();
+        highs[i] = history[i].high.toString();
+        lows[i] = history[i].low.toString();
+        volumes[i] = history[i].volume.toString();
         times[i] = history[i].time;
     }
 
@@ -88,12 +90,12 @@ export class WasmTechnicalsCalculator {
     const lastTick = history[len-1];
 
     const updateJson = this.instance.update(
-        lastTick.open.toNumber(),
-        lastTick.high.toNumber(),
-        lastTick.low.toNumber(),
-        lastTick.close.toNumber(),
-        lastTick.volume.toNumber(),
-        lastTick.time
+        lastTick.open.toString(),
+        lastTick.high.toString(),
+        lastTick.low.toString(),
+        lastTick.close.toString(),
+        lastTick.volume.toString(),
+        String(lastTick.time)
     );
 
     return this.parseWasmResult(updateJson, result);
@@ -102,12 +104,12 @@ export class WasmTechnicalsCalculator {
   public update(tick: Kline): TechnicalsData {
       // Pass full candle data: Open, High, Low, Close, Volume, Time
       const resultJson = this.instance.update(
-          tick.open.toNumber(),
-          tick.high.toNumber(),
-          tick.low.toNumber(),
-          tick.close.toNumber(),
-          tick.volume.toNumber(),
-          tick.time
+          tick.open.toString(),
+          tick.high.toString(),
+          tick.low.toString(),
+          tick.close.toString(),
+          tick.volume.toString(),
+          String(tick.time)
       );
       return this.parseWasmResult(resultJson, getEmptyData());
   }

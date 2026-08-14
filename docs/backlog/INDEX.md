@@ -4,7 +4,7 @@
 
 89 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
+Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 4 · ✅ done 41
 
 ---
 
@@ -130,7 +130,7 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
 | --- | --- | --- | --- | --- |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
-| [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | 🟢 ready | core |
+| [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | 🟢 ready | services |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | 🟢 ready | ui |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -180,7 +180,7 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | M3 | community, pro, private | none | none | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | 🟢 ready | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | 🟢 ready | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |

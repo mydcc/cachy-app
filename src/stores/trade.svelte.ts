@@ -70,18 +70,22 @@ export interface TradeStateSnapshot {
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
+// State is string-only, but persisted state written by earlier versions may
+// still hold native numbers. Normalize them here instead of rejecting them —
+// a rejected parse resets the whole trade state and destroys the user's notes,
+// tags and targets along with it.
+const legacyNumericString = z
+  .union([z.string(), z.number().finite()])
+  .transform((val) => String(val));
+
 // Define Zod Schema for TradeTarget
-// Accept both string and number, keep as-is (don't force to string)
 const TradeTargetSchema = z.object({
-  price: z.string().nullable(),
-  percent: z.string().nullable(),
+  price: legacyNumericString.nullable(),
+  percent: legacyNumericString.nullable(),
   isLocked: z.boolean(),
 });
 
-// Helper to accept both string and number, keep as-is
-// (Don't force to string — let Decimal handle the comparison)
-const stringSchema = z
-  .string()
+const stringSchema = legacyNumericString
   .refine(
     (val) => val === "" || /^-?\d*\.?\d*$/.test(val),
     "Must be a valid number"
@@ -89,7 +93,7 @@ const stringSchema = z
   .nullable();
 
 // Required string schema (not nullable) for accountSize/riskPercentage which have defaults
-const requiredStringSchema = z.string();
+const requiredStringSchema = legacyNumericString;
 
 // Define Zod Schema for TradeState
 const TradeStateSchema = z.object({

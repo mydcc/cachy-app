@@ -48,11 +48,7 @@ impl AlertEngineWasm {
         let current_price = Decimal::from_str(current_price_str)
             .map_err(|e| JsValue::from_str(&format!("Invalid decimal string: {}", e)))?;
 
-        let events = self.engine.evaluate(
-            symbol,
-            Decimal::from_str(&current_price_str).unwrap(),
-            timestamp as i64,
-        );
+        let events = self.engine.evaluate(symbol, current_price, timestamp as i64);
         let js_events = serde_wasm_bindgen::to_value(&events)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize events: {}", e)))?;
         Ok(js_events)

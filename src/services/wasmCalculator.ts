@@ -30,7 +30,7 @@ import { toNumFast } from '../utils/fastConversion';
 // dynamically imported from a static asset (see ensureLoaded below), so
 // there is no static type from the module itself to import.
 interface WasmTechnicalsInstance {
-  initialize(closes: Float64Array, highs: Float64Array, lows: Float64Array, volumes: Float64Array, times: Float64Array, settingsJson: string): void;
+  initialize(closes: string[], highs: string[], lows: string[], volumes: string[], times: Float64Array, settingsJson: string): void;
   update(open: string, high: string, low: string, close: string, volume: string, time: string): string;
 }
 
@@ -41,11 +41,23 @@ interface WasmModule {
 
 // Parsed JSON emitted by the WASM module — flat maps of indicator name to
 // value, grouped and reshaped into TechnicalsData below.
+// Since the Rust side moved to rust_decimal, every value in these maps is
+// serialized as a decimal *string*, not a JSON number. Typing them honestly
+// keeps the conversion below explicit — a bare `as number` cast would compile
+// and then silently put strings into TechnicalsData's number fields.
 interface WasmRawResult {
-  movingAverages?: Record<string, number>;
-  oscillators?: Record<string, number>;
-  volatility?: Record<string, number>;
-  pivots?: Record<string, number>;
+  movingAverages?: Record<string, string>;
+  oscillators?: Record<string, string>;
+  volatility?: Record<string, string>;
+  pivots?: Record<string, string>;
+}
+
+// TechnicalsData is a display-layer type and still holds native numbers, so
+// the decimal strings are parsed exactly once, here at the boundary.
+function fromWasmDecimal(value: string | undefined): number {
+  if (value === undefined) return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 class WasmCalculator {
@@ -116,22 +128,25 @@ class WasmCalculator {
 
     if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
     
+    // Prices and volumes cross the boundary as decimal strings so the WASM
+    // side can parse them straight into rust_decimal. Only `times` stays
+    // numeric — it is a timestamp, not a financial value.
     const len = klines.length;
-    const closes = new Float64Array(len);
-    const highs = new Float64Array(len);
-    const lows = new Float64Array(len);
-    const volumes = new Float64Array(len);
+    const closes = new Array<string>(len);
+    const highs = new Array<string>(len);
+    const lows = new Array<string>(len);
+    const volumes = new Array<string>(len);
     const times = new Float64Array(len);
-    
+
     for (let i = 0; i < len; i++) {
       const k = klines[i];
-      closes[i] = toNumFast(k.close);
-      highs[i] = toNumFast(k.high);
-      lows[i] = toNumFast(k.low);
-      volumes[i] = toNumFast(k.volume || 0);
+      closes[i] = k.close.toString();
+      highs[i] = k.high.toString();
+      lows[i] = k.low.toString();
+      volumes[i] = k.volume ? k.volume.toString() : "0";
       times[i] = k.time;
     }
-    
+
     // Settings conversion for WASM module (matches Rust IndicatorSettings struct)
     const wasmSettings = {
         // Trend
@@ -166,13 +181,16 @@ class WasmCalculator {
 
     this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(wasmSettings));
     
+    // Pass the Decimal values straight through as strings. Reading them back
+    // out of the Float64Arrays above would round-trip them through f64 first
+    // and throw away the precision the string boundary exists to preserve.
     const last = klines[len - 1];
     const resultJson = this.instance.update(
         last.open.toString(),
-        highs[len-1].toString(),
-        lows[len-1].toString(),
-        closes[len-1].toString(),
-        volumes[len-1].toString(),
+        last.high.toString(),
+        last.low.toString(),
+        last.close.toString(),
+        last.volume ? last.volume.toString() : "0",
         last.time.toString()
     );
     
@@ -187,7 +205,7 @@ class WasmCalculator {
     if (raw.movingAverages) {
         data.movingAverages = [];
         for (const [key, value] of Object.entries(raw.movingAverages)) {
-            const val = value as number;
+            const val = fromWasmDecimal(value);
             
             // Standard MAs
             data.movingAverages.push({
@@ -213,7 +231,7 @@ class WasmCalculator {
         const adxGroups: Record<string, Record<string, number>> = {};
 
         for (const [key, value] of Object.entries(raw.oscillators)) {
-            const val = value as number;
+            const val = fromWasmDecimal(value);
 
             if (key.includes(".macd") || key.includes(".signal") || key.includes(".histogram")) {
                 const [params, type] = key.split('.');
@@ -319,7 +337,7 @@ class WasmCalculator {
         const stGroups: Record<string, Record<string, number>> = {};
 
         for (const [key, value] of Object.entries(raw.volatility)) {
-             const val = value as number;
+             const val = fromWasmDecimal(value);
              
              if (key.startsWith("BB")) {
                  const parts = key.split('_');
@@ -388,13 +406,13 @@ class WasmCalculator {
         if (type === 'classic') {
              data.pivots = {
                  classic: {
-                     p: raw.pivots.P || 0,
-                     r1: raw.pivots.R1 || 0,
-                     r2: raw.pivots.R2 || 0,
-                     r3: raw.pivots.R3 || 0,
-                     s1: raw.pivots.S1 || 0,
-                     s2: raw.pivots.S2 || 0,
-                     s3: raw.pivots.S3 || 0,
+                     p: fromWasmDecimal(raw.pivots.P),
+                     r1: fromWasmDecimal(raw.pivots.R1),
+                     r2: fromWasmDecimal(raw.pivots.R2),
+                     r3: fromWasmDecimal(raw.pivots.R3),
+                     s1: fromWasmDecimal(raw.pivots.S1),
+                     s2: fromWasmDecimal(raw.pivots.S2),
+                     s3: fromWasmDecimal(raw.pivots.S3),
                  },
              };
         }

@@ -79,21 +79,28 @@ export class TechnicalsCalculator {
         wasm.__wbg_technicalscalculator_free(ptr, 0);
     }
     /**
-     * @param {Float64Array} closes_arr
-     * @param {Float64Array} highs_arr
-     * @param {Float64Array} lows_arr
-     * @param {Float64Array} volumes_arr
+     * Seed the calculator with price history.
+     *
+     * Prices and volumes cross the boundary as decimal strings, not `f64`:
+     * widening a `f64` to `Decimal` on this side cannot recover precision that
+     * was already lost on the way in, which is the whole point of BUG-0182.
+     * `_times` stays numeric — it is a millisecond timestamp, not a financial
+     * value, and is currently unused.
+     * @param {string[]} closes_arr
+     * @param {string[]} highs_arr
+     * @param {string[]} lows_arr
+     * @param {string[]} volumes_arr
      * @param {Float64Array} _times
      * @param {string} settings_json
      */
     initialize(closes_arr, highs_arr, lows_arr, volumes_arr, _times, settings_json) {
-        const ptr0 = passArrayF64ToWasm0(closes_arr, wasm.__wbindgen_malloc);
+        const ptr0 = passArrayJsValueToWasm0(closes_arr, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArrayF64ToWasm0(highs_arr, wasm.__wbindgen_malloc);
+        const ptr1 = passArrayJsValueToWasm0(highs_arr, wasm.__wbindgen_malloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArrayF64ToWasm0(lows_arr, wasm.__wbindgen_malloc);
+        const ptr2 = passArrayJsValueToWasm0(lows_arr, wasm.__wbindgen_malloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArrayF64ToWasm0(volumes_arr, wasm.__wbindgen_malloc);
+        const ptr3 = passArrayJsValueToWasm0(volumes_arr, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
         const ptr4 = passArrayF64ToWasm0(_times, wasm.__wbindgen_malloc);
         const len4 = WASM_VECTOR_LEN;
@@ -179,6 +186,14 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
+        __wbg___wbindgen_string_get_b0ca35b86a603356: function(arg0, arg1) {
+            const obj = arg1;
+            const ret = typeof(obj) === 'string' ? obj : undefined;
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
         __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
@@ -234,6 +249,12 @@ const TechnicalsCalculatorFinalization = (typeof FinalizationRegistry === 'undef
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_technicalscalculator_free(ptr, 1));
 
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
+
 let cachedDataViewMemory0 = null;
 function getDataViewMemory0() {
     if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
@@ -262,10 +283,24 @@ function getUint8ArrayMemory0() {
     return cachedUint8ArrayMemory0;
 }
 
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
 function passArrayF64ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 8, 8) >>> 0;
     getFloat64ArrayMemory0().set(arg, ptr / 8);
     WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArrayJsValueToWasm0(array, malloc) {
+    const ptr = malloc(array.length * 4, 4) >>> 0;
+    for (let i = 0; i < array.length; i++) {
+        const add = addToExternrefTable0(array[i]);
+        getDataViewMemory0().setUint32(ptr + 4 * i, add, true);
+    }
+    WASM_VECTOR_LEN = array.length;
     return ptr;
 }
 

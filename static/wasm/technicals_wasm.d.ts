@@ -14,7 +14,16 @@ export class AlertEngineWasm {
 export class TechnicalsCalculator {
     free(): void;
     [Symbol.dispose](): void;
-    initialize(closes_arr: Float64Array, highs_arr: Float64Array, lows_arr: Float64Array, volumes_arr: Float64Array, _times: Float64Array, settings_json: string): void;
+    /**
+     * Seed the calculator with price history.
+     *
+     * Prices and volumes cross the boundary as decimal strings, not `f64`:
+     * widening a `f64` to `Decimal` on this side cannot recover precision that
+     * was already lost on the way in, which is the whole point of BUG-0182.
+     * `_times` stays numeric — it is a millisecond timestamp, not a financial
+     * value, and is currently unused.
+     */
+    initialize(closes_arr: string[], highs_arr: string[], lows_arr: string[], volumes_arr: string[], _times: Float64Array, settings_json: string): void;
     constructor();
     shift(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): void;
     update(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): string;
@@ -39,6 +48,7 @@ export interface InitOutput {
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __externref_table_dealloc: (a: number) => void;
+    readonly __externref_table_alloc: () => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_start: () => void;
 }

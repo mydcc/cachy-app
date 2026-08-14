@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use rust_decimal::prelude::FromPrimitive;
-use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use rust_decimal::MathematicalOps;
 use wasm_bindgen::prelude::*;
@@ -26,6 +24,37 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::str::FromStr;
+
+/// `Decimal` division panics on a zero divisor, where the `f64` arithmetic this
+/// engine replaced produced `NaN`/`Inf` and simply rendered a garbage
+/// indicator. A panic inside WASM tears down the calculator instance and takes
+/// the whole Technicals panel with it, so every divisor that can reach zero
+/// from settings or from market data goes through here instead.
+#[inline]
+fn safe_div(numerator: Decimal, divisor: Decimal) -> Decimal {
+    numerator.checked_div(divisor).unwrap_or(Decimal::ZERO)
+}
+
+/// `log10` is undefined for values <= 0 and `MathematicalOps::log10` panics
+/// there. Same reasoning as `safe_div`.
+#[inline]
+fn safe_log10(value: Decimal) -> Decimal {
+    if value <= Decimal::ZERO {
+        return Decimal::ZERO;
+    }
+    value.checked_log10().unwrap_or(Decimal::ZERO)
+}
+
+/// Parse a series of decimal strings coming from JS. An unparseable entry
+/// falls back to zero rather than aborting the whole series — the caller
+/// always sends a positionally aligned OHLCV set and dropping an entry would
+/// desynchronise the buffers.
+fn parse_decimals(values: &[String]) -> Vec<Decimal> {
+    values
+        .iter()
+        .map(|v| Decimal::from_str(v).unwrap_or(Decimal::ZERO))
+        .collect()
+}
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct IndicatorSettings {
@@ -71,6 +100,39 @@ pub struct IndicatorSettings {
     pub vwap: Vec<VwapSettings>,
     #[serde(default)]
     pub mfi: Vec<MfiSettings>,
+}
+
+impl IndicatorSettings {
+    /// Drop every indicator whose configured period cannot produce a result.
+    ///
+    /// Most period inputs in the settings UI have no lower bound, so a zero
+    /// (or, for HMA and CHOP, a one) reaches this module and would end up as a
+    /// zero divisor. Under `f64` that produced a `NaN` reading; under `Decimal`
+    /// it panics. Dropping the indicator here keeps the panel alive and simply
+    /// omits the misconfigured reading — the same outcome as before, without
+    /// the trap.
+    fn drop_unusable_periods(&mut self) {
+        self.ema.retain(|s| s.length >= 1);
+        self.sma.retain(|s| s.length >= 1);
+        self.wma.retain(|s| s.length >= 1);
+        self.vwma.retain(|s| s.length >= 1);
+        // HMA divides by the weight sum of length/2, which is zero below 2.
+        self.hma.retain(|s| s.length >= 2);
+        self.rsi.retain(|s| s.length >= 1);
+        self.macd.retain(|s| s.fast >= 1 && s.slow >= 1 && s.signal >= 1);
+        self.bb.retain(|s| s.length >= 1);
+        self.atr.retain(|s| s.length >= 1);
+        self.stoch.retain(|s| s.k >= 1 && s.d >= 1 && s.smooth >= 1);
+        self.cci.retain(|s| s.length >= 1);
+        self.adx.retain(|s| s.length >= 1);
+        self.supertrend.retain(|s| s.length >= 1);
+        self.mom.retain(|s| s.length >= 1);
+        self.wr.retain(|s| s.length >= 1);
+        self.volma.retain(|s| s.length >= 1);
+        // CHOP divides by log10(length), which is zero at 1.
+        self.chop.retain(|s| s.length >= 2);
+        self.mfi.retain(|s| s.length >= 1);
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -405,33 +467,29 @@ impl TechnicalsCalculator {
         }
     }
 
+    /// Seed the calculator with price history.
+    ///
+    /// Prices and volumes cross the boundary as decimal strings, not `f64`:
+    /// widening a `f64` to `Decimal` on this side cannot recover precision that
+    /// was already lost on the way in, which is the whole point of BUG-0182.
+    /// `_times` stays numeric — it is a millisecond timestamp, not a financial
+    /// value, and is currently unused.
     pub fn initialize(
         &mut self,
-        closes_arr: &[f64],
-        highs_arr: &[f64],
-        lows_arr: &[f64],
-        volumes_arr: &[f64],
+        closes_arr: Vec<String>,
+        highs_arr: Vec<String>,
+        lows_arr: Vec<String>,
+        volumes_arr: Vec<String>,
         _times: &[f64],
         settings_json: &str,
     ) {
-        let closes: Vec<Decimal> = closes_arr
-            .iter()
-            .map(|&x| Decimal::from_f64(x).unwrap_or(Decimal::ZERO))
-            .collect();
-        let highs: Vec<Decimal> = highs_arr
-            .iter()
-            .map(|&x| Decimal::from_f64(x).unwrap_or(Decimal::ZERO))
-            .collect();
-        let lows: Vec<Decimal> = lows_arr
-            .iter()
-            .map(|&x| Decimal::from_f64(x).unwrap_or(Decimal::ZERO))
-            .collect();
-        let volumes: Vec<Decimal> = volumes_arr
-            .iter()
-            .map(|&x| Decimal::from_f64(x).unwrap_or(Decimal::ZERO))
-            .collect();
+        let closes: Vec<Decimal> = parse_decimals(&closes_arr);
+        let highs: Vec<Decimal> = parse_decimals(&highs_arr);
+        let lows: Vec<Decimal> = parse_decimals(&lows_arr);
+        let volumes: Vec<Decimal> = parse_decimals(&volumes_arr);
 
         self.settings = serde_json::from_str(settings_json).unwrap_or_default();
+        self.settings.drop_unusable_periods();
         let len = closes.len();
         if len == 0 {
             return;
@@ -1421,7 +1479,10 @@ impl TechnicalsCalculator {
                 let chop = if range == Decimal::ZERO {
                     Decimal::ZERO
                 } else {
-                    dec!(100.0) * (sum_tr / range).log10() / (Decimal::from(*len)).log10()
+                    safe_div(
+                        dec!(100.0) * safe_log10(safe_div(sum_tr, range)),
+                        safe_log10(Decimal::from(*len)),
+                    )
                 };
                 out.volatility.insert(format!("CHOP{}", len), chop);
             }
@@ -1875,10 +1936,10 @@ mod tests {
         let mut calc = TechnicalsCalculator::new();
 
         // Mock data for initialization
-        let closes = vec![100.0; 20];
-        let highs = vec![105.0; 20];
-        let lows = vec![95.0; 20];
-        let volumes = vec![1000.0; 20];
+        let closes = vec!["100".to_string(); 20];
+        let highs = vec!["105".to_string(); 20];
+        let lows = vec!["95".to_string(); 20];
+        let volumes = vec!["1000".to_string(); 20];
         let times = vec![0.0; 20];
 
         // Settings with specific multiplier 4.5
@@ -1886,7 +1947,7 @@ mod tests {
             "supertrend": [{ "length": 14, "multiplier": 4.5 }]
         }"#;
 
-        calc.initialize(&closes, &highs, &lows, &volumes, &times, settings_json);
+        calc.initialize(closes, highs, lows, volumes, &times, settings_json);
 
         // Verify that the state was initialized with the correct multiplier
         // Key is "14-4.5"
@@ -1900,6 +1961,162 @@ mod tests {
             dec!(4.5),
             "Multiplier should be dec!(4.5) as set in settings"
         );
+    }
+
+    fn series(values: &[&str]) -> Vec<String> {
+        values.iter().map(|v| v.to_string()).collect()
+    }
+
+    /// The whole point of BUG-0182: a value that f64 cannot represent must
+    /// survive the round trip unchanged. In f64, 0.1 + 0.2 + 0.3 is
+    /// 0.6000000000000001, so an f64 engine cannot produce exactly "0.3" here.
+    #[test]
+    fn test_initialize_and_update_are_exact() {
+        let mut calc = TechnicalsCalculator::new();
+        let closes = series(&["0.1", "0.2", "0.3"]);
+        let volumes = series(&["1", "1", "1"]);
+        let times = vec![0.0; 3];
+
+        calc.initialize(
+            closes.clone(),
+            closes.clone(),
+            closes,
+            volumes,
+            &times,
+            r#"{"sma":[{"length":3}]}"#,
+        );
+
+        let json = calc.update(
+            "0.4".into(),
+            "0.4".into(),
+            "0.4".into(),
+            "0.4".into(),
+            "1".into(),
+            "0".into(),
+        );
+
+        // (0.1 + 0.2 + 0.3 - 0.1 + 0.4) / 3 == 0.3, exactly.
+        assert!(
+            json.contains(r#""SMA3":"0.3""#),
+            "SMA3 should be exactly 0.3, got {}",
+            json
+        );
+    }
+
+    /// Financial values must leave the module as strings, never as JSON
+    /// numbers — a JSON number would hand the precision straight back.
+    #[test]
+    fn test_output_values_are_decimal_strings() {
+        let mut calc = TechnicalsCalculator::new();
+        let closes = series(&["1", "2", "3"]);
+        let times = vec![0.0; 3];
+
+        calc.initialize(
+            closes.clone(),
+            closes.clone(),
+            closes.clone(),
+            closes,
+            &times,
+            r#"{"sma":[{"length":3}]}"#,
+        );
+
+        let json = calc.update(
+            "4".into(),
+            "4".into(),
+            "4".into(),
+            "4".into(),
+            "1".into(),
+            "0".into(),
+        );
+
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+        let sma = &parsed["movingAverages"]["SMA3"];
+        assert!(
+            sma.is_string(),
+            "indicator values must serialize as strings, got {}",
+            sma
+        );
+    }
+
+    /// Most period inputs in the settings UI have no lower bound. Under f64 a
+    /// zero period produced a NaN reading; under Decimal an unguarded divisor
+    /// would panic and take the whole calculator instance down.
+    #[test]
+    fn test_degenerate_periods_do_not_panic() {
+        let mut calc = TechnicalsCalculator::new();
+        let closes = series(&["100"; 30]);
+        let times = vec![0.0; 30];
+
+        let settings_json = r#"{
+            "ema": [{ "length": 0 }],
+            "sma": [{ "length": 0 }],
+            "wma": [{ "length": 0 }],
+            "vwma": [{ "length": 0 }],
+            "hma": [{ "length": 1 }],
+            "rsi": [{ "length": 0 }],
+            "macd": [{ "fast": 0, "slow": 0, "signal": 0 }],
+            "bb": [{ "length": 0, "std_dev": 2 }],
+            "atr": [{ "length": 0 }],
+            "stoch": [{ "k": 0, "d": 0, "smooth": 0 }],
+            "cci": [{ "length": 0 }],
+            "adx": [{ "length": 0 }],
+            "supertrend": [{ "length": 0, "multiplier": 3 }],
+            "mom": [{ "length": 0 }],
+            "wr": [{ "length": 0 }],
+            "volma": [{ "length": 0 }],
+            "chop": [{ "length": 1 }],
+            "mfi": [{ "length": 0 }]
+        }"#;
+
+        calc.initialize(
+            closes.clone(),
+            closes.clone(),
+            closes.clone(),
+            closes,
+            &times,
+            settings_json,
+        );
+
+        // Must return rather than trap; the misconfigured indicators are simply
+        // absent from the output.
+        let json = calc.update(
+            "100".into(),
+            "100".into(),
+            "100".into(),
+            "100".into(),
+            "1".into(),
+            "0".into(),
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+        assert!(parsed["movingAverages"].as_object().unwrap().is_empty());
+        assert!(parsed["oscillators"].as_object().unwrap().is_empty());
+    }
+
+    /// A completely flat series makes CHOP's log10 arguments degenerate.
+    #[test]
+    fn test_flat_series_does_not_panic() {
+        let mut calc = TechnicalsCalculator::new();
+        let closes = series(&["100"; 30]);
+        let times = vec![0.0; 30];
+
+        calc.initialize(
+            closes.clone(),
+            closes.clone(),
+            closes.clone(),
+            closes,
+            &times,
+            r#"{"chop":[{"length":14}],"atr":[{"length":14}],"wr":[{"length":14}]}"#,
+        );
+
+        let json = calc.update(
+            "100".into(),
+            "100".into(),
+            "100".into(),
+            "100".into(),
+            "1".into(),
+            "0".into(),
+        );
+        serde_json::from_str::<serde_json::Value>(&json).expect("valid JSON");
     }
 }
 pub mod alert_engine;
