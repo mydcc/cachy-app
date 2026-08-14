@@ -11,7 +11,7 @@ jobs:
     name: i18n String Compliance
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -25,7 +25,7 @@ jobs:
     name: Decimal.js Enforcement
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Check for unsafe number arithmetic in critical files
         run: |
@@ -57,7 +57,7 @@ jobs:
     name: Backlog & Documentation Links
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -81,7 +81,7 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -108,7 +108,7 @@ jobs:
     # reason to block a pull request.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -126,7 +126,7 @@ jobs:
     name: TypeScript Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -144,7 +144,7 @@ jobs:
     name: ESLint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
