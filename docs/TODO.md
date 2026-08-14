@@ -838,13 +838,13 @@ No feature list, no target customer definition, nothing scoped.
 > institutions" — that was an overreach on my part, drawn from the code
 > being single-user and from the whitepaper's unscoped claim, not from
 > anything the maintainer asked for. The maintainer's actual goal —
-> indispensable for large investors, the way TradingView is — is legitimate
+> indispensable for large investors, the way leading market tools are — is legitimate
 > and is now the stated direction.
 >
 > The resolution distinguishes two different things "institutional" can
 > mean. **Individuals at institutions using the product** — analysts,
 > discretionary traders — were never excluded and need nothing new; that's
-> TradingView's actual relationship with institutions and it's fully
+> how professional market tools actually relate to institutions and it's fully
 > compatible with Local-First. **Cachy operating a multi-tenant service for
 > an institution** is the part that's out of scope, because what regulated
 > finance needs from that (centralised audit logging, retention under a
