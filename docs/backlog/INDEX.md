@@ -2,9 +2,9 @@
 
 # Backlog index
 
-89 items. How to read and add them: [README.md](README.md).
+94 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
+Counts by status: 💡 idea 16 · 📋 specced 31 · 🟢 ready 7 · ✅ done 40
 
 ---
 
@@ -143,6 +143,11 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
 | [FEAT-0190](features/FEAT-0190-epic-split-god-functions.md) | Epic: Split the five oversized functions along the module boundary | P2 | 📋 specced | core |
+| [FEAT-0193](features/FEAT-0193-split-market-watcher.md) | Decompose marketWatcher.ts into subscription registry, polling loop and history fetching | P2 | 🟢 ready | services |
+| [FEAT-0194](features/FEAT-0194-split-bitunix-ws-handle-message.md) | Split bitunixWs.ts handleMessage into parsing, validation and channel dispatch | P2 | 🟢 ready | services |
+| [FEAT-0195](features/FEAT-0195-split-market-store.md) | Decompose market.svelte.ts into cache management, update batching and kline buffers | P2 | 📋 specced | services |
+| [FEAT-0196](features/FEAT-0196-split-active-technicals-manager.md) | Cover activeTechnicalsManager with characterisation tests, then split it | P2 | 📋 specced | services |
+| [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | 📋 specced | security |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -235,6 +240,11 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md) | Replace the cheat code with a verifiable local entitlement | P2 | 📋 specced | M5 | community, pro, private | A | none | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
 | [FEAT-0190](features/FEAT-0190-epic-split-god-functions.md) | Epic: Split the five oversized functions along the module boundary | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
+| [FEAT-0193](features/FEAT-0193-split-market-watcher.md) | Decompose marketWatcher.ts into subscription registry, polling loop and history fetching | P2 | 🟢 ready | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
+| [FEAT-0194](features/FEAT-0194-split-bitunix-ws-handle-message.md) | Split bitunixWs.ts handleMessage into parsing, validation and channel dispatch | P2 | 🟢 ready | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md), [FEAT-0193](features/FEAT-0193-split-market-watcher.md) |
+| [FEAT-0195](features/FEAT-0195-split-market-store.md) | Decompose market.svelte.ts into cache management, update batching and kline buffers | P2 | 📋 specced | none | community, pro, private | C | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
+| [FEAT-0196](features/FEAT-0196-split-active-technicals-manager.md) | Cover activeTechnicalsManager with characterisation tests, then split it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
+| [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -252,4 +262,4 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 5 · ✅ done 40
 
 ---
 
-Next free number: **0193**
+Next free number: **0198**
