@@ -1214,7 +1214,8 @@
       "activePreset": "Aktives Preset:",
       "mode1Desc": "⚡ Direktmodus - Drücke \"L\" für Long, \"S\" für Short (am schnellsten)",
       "mode2Desc": "🛡️ Sicherheitsmodus - Drücke \"Alt+L\" für Long, \"Alt+S\" für Short (verhindert Unfälle)",
-      "switchToCustom": "Zur benutzerdefinierten Konfiguration wechseln"
+      "switchToCustom": "Zur benutzerdefinierten Konfiguration wechseln",
+      "confirmOverwrite": "\"{newCombo}\" wird von \"{existingLabel}\" verwendet. Überschreiben?"
     },
     "tabs": {
       "general": "Allgemein",
@@ -2305,7 +2306,15 @@
   "trade": {
     "apiError": "API-Fehler: {error}",
     "closeAbortedSafety": "Schließen sicherheitshalber abgebrochen. Offene Orders konnten nicht storniert werden.",
-    "closeAllFailed": "Schließen aller Positionen fehlgeschlagen",
-    "fetchFailed": "Abrufen fehlgeschlagen"
+    "closeAllFailed": "Flash Close fehlgeschlagen für: {failedSymbols}",
+    "fetchFailed": "Abrufen fehlgeschlagen",
+    "flashCloseFailed": "Flash Close fehlgeschlagen: {msg}"
+  },
+  "marketAnalyst": {
+    "analysisFailed": "Analyse für {symbol} fehlgeschlagen: {error}"
+  },
+  "calculationStrategy": {
+    "criticalLag": "Kritische Verzögerung: {engine} dauerte {duration}ms",
+    "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)"
   }
 }

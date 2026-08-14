@@ -1189,7 +1189,8 @@
       "activePreset": "Active Preset:",
       "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
       "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
-      "switchToCustom": "Switch to Custom Configuration"
+      "switchToCustom": "Switch to Custom Configuration",
+      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
     },
     "tabs": {
       "general": "General",
@@ -2255,9 +2256,10 @@
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
-    "closeAllFailed": "Failed to close all positions",
+    "closeAllFailed": "Flash Close Failed for: {failedSymbols}",
     "apiError": "API Error: {error}",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "flashCloseFailed": "Flash Close Failed: {msg}"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",
@@ -2307,5 +2309,12 @@
     "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
     "eraseNeedsConnection": "Connect first — erasure runs against the server.",
     "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
+  },
+  "marketAnalyst": {
+    "analysisFailed": "Analysis failed for {symbol}: {error}"
+  },
+  "calculationStrategy": {
+    "criticalLag": "Critical Lag: {engine} took {duration}ms",
+    "slowCalc": "Slow Calc: {engine} ({duration}ms)"
   }
 }

@@ -24,6 +24,8 @@
 
 import type { IndicatorSettings } from '../types/indicators';
 import { toastService } from './toastService.svelte';
+import { _ } from '../locales/i18n';
+import { get } from 'svelte/store';
 
 export type CalculationEngine = 'ts' | 'wasm' | 'gpu' | 'auto';
 
@@ -105,10 +107,10 @@ class CalculationStrategy {
     // Threshold warning (Step 5)
     if (duration > 500) {
         console.error(`[ACE] CRITICAL: Engine ${engine} took ${duration.toFixed(2)}ms`);
-        toastService.error(`Critical Lag: ${engine.toUpperCase()} took ${duration.toFixed(0)}ms`);
+        toastService.error(get(_)("calculationStrategy.criticalLag", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }));
     } else if (duration > 100) {
         console.warn(`[ACE] Warning: Engine ${engine} took ${duration.toFixed(2)}ms`);
-        toastService.warning(`Slow Calc: ${engine.toUpperCase()} (${duration.toFixed(0)}ms)`, 2000);
+        toastService.warning(get(_)("calculationStrategy.slowCalc", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }), 2000);
     }
   }
 

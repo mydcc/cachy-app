@@ -31,6 +31,8 @@ import { favoritesState } from "../stores/favorites.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
 import { toastService } from "./toastService.svelte";
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
 import type { IndicatorResult } from "./technicalsTypes";
 
@@ -267,7 +269,7 @@ class MarketAnalystService {
 
             // Toast for significant errors (ignore expected data shortage)
             if (errorMsg !== "MIN_DATA_REQUIRED") {
-                toastService.error(`Analysis failed for ${symbol}: ${errorMsg}`);
+                toastService.error(get(_)("marketAnalyst.analysisFailed", { values: { symbol, error: errorMsg } }));
             }
         } finally {
             analysisState.isAnalyzing = false;
