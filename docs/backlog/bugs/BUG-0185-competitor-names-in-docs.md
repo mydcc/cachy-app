@@ -2,7 +2,7 @@
 id: BUG-0185
 title: Competitor platform names appear in user-facing and planning documentation
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -64,11 +64,11 @@ whitepaper must stay in sync. Do not touch the excluded code/UI occurrences.
 
 ## Acceptance criteria
 
-- [ ] `grep -ri tradingview docs/ src/lib/assets/content/ scripts/README.md`
-      returns no hits
-- [ ] The reworded sentences still state indicator parity as a fact, in both
+- [x] `grep -ri tradingview docs/ src/lib/assets/content/ scripts/README.md`
+      returns no hits (outside this bug ticket)
+- [x] The reworded sentences still state indicator parity as a fact, in both
       languages
-- [ ] No other document content changed (wording pass only)
+- [x] No other document content changed (wording pass only)
 
 ## Open questions
 
