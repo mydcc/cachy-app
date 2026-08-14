@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -71,18 +71,28 @@ impl AlertEngine {
         self.alerts.retain(|a| a.id != id);
     }
 
-    pub fn evaluate(&mut self, symbol: &str, current_price: Decimal, timestamp: i64) -> Vec<AlertEvent> {
+    pub fn evaluate(
+        &mut self,
+        symbol: &str,
+        current_price: Decimal,
+        timestamp: i64,
+    ) -> Vec<AlertEvent> {
         let mut events = Vec::new();
         let last_price_opt = self.last_prices.get(symbol).copied();
 
-        for alert in self.alerts.iter_mut().filter(|a| a.active && a.symbol == symbol) {
+        for alert in self
+            .alerts
+            .iter_mut()
+            .filter(|a| a.active && a.symbol == symbol)
+        {
             let mut triggered = false;
 
             match alert.condition {
                 AlertCondition::PriceReached(target) => {
                     if let Some(last_price) = last_price_opt {
-                        if (last_price < target && current_price >= target) ||
-                           (last_price > target && current_price <= target) {
+                        if (last_price < target && current_price >= target)
+                            || (last_price > target && current_price <= target)
+                        {
                             triggered = true;
                         }
                     } else {
@@ -90,21 +100,21 @@ impl AlertEngine {
                             triggered = true;
                         }
                     }
-                },
+                }
                 AlertCondition::PriceCrossUp(target) => {
                     if let Some(last_price) = last_price_opt {
                         if last_price < target && current_price >= target {
                             triggered = true;
                         }
                     }
-                },
+                }
                 AlertCondition::PriceCrossDown(target) => {
                     if let Some(last_price) = last_price_opt {
                         if last_price > target && current_price <= target {
                             triggered = true;
                         }
                     }
-                },
+                }
             }
 
             if triggered {
