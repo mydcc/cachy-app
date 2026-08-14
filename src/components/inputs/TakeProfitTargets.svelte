@@ -27,8 +27,8 @@
 
   interface Props {
     targets: Array<{
-      price: string | number | null;
-      percent: string | number | null;
+      price: string | null;
+      percent: string | null;
       isLocked: boolean;
     }>;
     calculatedTpDetails?: IndividualTpResult[];
