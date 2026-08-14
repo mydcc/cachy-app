@@ -182,16 +182,14 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
 
         // Verification:
-        // 1. Fast Path called normalizeTicker -> Threw Error
-        // 2. Catch block caught it
-        // 3. Fallback logic (Zod) ran -> Called normalizeTicker AGAIN (success)
-        // 4. updateSymbol called with success result
+        // 1. Fast Path called shouldThrottle with read-only
+        // 2. Fast Path called normalizeTicker -> Threw Error
+        // 3. Catch block caught it
+        // 4. Fallback (slow path) ran, successfully calling normalizeTicker again
+        // 5. marketState was updated
 
-        // We only expect it to be called once now because the fast path registers the throttle timestamp BEFORE calling normalizeMock.
-        // So the fallback path will return early due to throttling!
-        // Wait, if it's throttled, it returns early. So marketState.updateSymbol is NOT called.
-        // Let's modify the test to clear the throttle, or not expect the update.
-                // Instead of testing if the update was called (which is now throttled), we just ensure no crash occurred.
+        expect(normalizeMock).toHaveBeenCalledTimes(2);
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object));
     });
 
     it('should handle missing fields in Fast Path gracefully without crashing', () => {

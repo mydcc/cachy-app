@@ -138,6 +138,22 @@ class BitgetWebSocketService {
 
 
 
+  private shouldThrottle(key: string, commit = true): boolean {
+    const now = Date.now();
+    const last = this.throttleMap.get(key) || 0;
+    if (now - last < this.UPDATE_INTERVAL) {
+      return true;
+    }
+    if (commit) {
+      this.throttleMap.set(key, now);
+    }
+    return false;
+  }
+
+  private commitThrottle(key: string): void {
+    this.throttleMap.set(key, Date.now());
+  }
+
   destroy() {
     logger.log("governance", `[BitgetWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
@@ -390,12 +406,12 @@ class BitgetWebSocketService {
        const instId = rawArg.instId;
 
        if (channel === "ticker") {
-           const throttleTicker = this.shouldThrottle(`${instId}:ticker`);
-           const throttlePrice = this.shouldThrottle(`${instId}:price`);
+           const throttleTicker = this.shouldThrottle(`${instId}:ticker`, false);
+           const throttlePrice = this.shouldThrottle(`${instId}:price`, false);
            // If both are throttled, we don't need to process ticker updates
            if (throttleTicker && throttlePrice) return;
        } else if (channel === "books" || channel === "books5" || channel === "books15") {
-           if (this.shouldThrottle(`${instId}:depth`)) return;
+           if (this.shouldThrottle(`${instId}:depth`, false)) return;
        }
     }
 
@@ -448,24 +464,12 @@ class BitgetWebSocketService {
         if (t.fundingRate !== undefined) update.fundingRate = t.fundingRate;
         if (t.nextFundingTime !== undefined) update.nextFundingTime = t.nextFundingTime;
 
-        // The `shouldThrottle` checks have been evaluated upfront before validation
-        // But since we early returned if BOTH were true, we need to check the throttleMap state again
-        // However, checking shouldThrottle() again updates the timestamp, which we don't want.
-        // Let's just use the current time compared to throttleMap.
-        // If we made it here, at least one of them was updated in the fast-path above (meaning it wasn't throttled previously).
-        // Since we checked it above and updated the timestamp in shouldThrottle, it is now throttled for any SUBSEQUENT calls,
-        // but for THIS call, we know which one triggered it based on whether the timestamp was updated in the last few ms.
-        // Wait, shouldThrottle updates the timestamp. If we call it again, it's true.
-        // We should just execute them since the early return handles the optimization.
-        // Wait, if ticker was throttled but price wasn't, shouldThrottle(ticker) returned true, shouldThrottle(price) returned false.
-        // But we didn't save the boolean result.
-        // Instead of re-checking shouldThrottle, we can just say: if we got here, we update both if the data exists.
-        // It's a slight behavioral change: if price wasn't throttled, ticker gets updated too even if ticker WAS throttled.
-        // But they are both tied to the same UPDATE_INTERVAL. So it's fine to sync them.
-        marketState.updateTicker(instId, update);
+        if (!this.shouldThrottle(`${instId}:ticker`)) {
+          marketState.updateTicker(instId, update);
+        }
 
         // Also update price (for fast price)
-        if (t.last) {
+        if (t.last && !this.shouldThrottle(`${instId}:price`)) {
           marketState.updatePrice(instId, { price: t.last });
         }
       }
@@ -695,19 +699,6 @@ class BitgetWebSocketService {
     };
   }
 
-  private shouldThrottle(key: string): boolean {
-    const now = Date.now();
-    const lastUpdate = this.throttleMap.get(key) || 0;
-    if (now - lastUpdate < this.UPDATE_INTERVAL) {
-      return true;
-    }
-    this.throttleMap.set(key, now);
-    return false;
-  }
-
-  private commitThrottle(key: string): void {
-    this.throttleMap.set(key, Date.now());
-  }
 }
 
 export const bitgetWs = new BitgetWebSocketService();
