@@ -3,6 +3,7 @@ import { HistoryFetcher } from "./marketWatcher/historyFetcher";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
+import { type Kline } from "./technicalsTypes";
 
 export class MarketWatcher {
     private registry!: SubscriptionRegistry;
@@ -15,7 +16,7 @@ export class MarketWatcher {
     private maintenanceCycles: number = 0;
 
     constructor() {
-        this.registry = new SubscriptionRegistry(null as any);
+        this.registry = new SubscriptionRegistry(null as unknown as HistoryFetcher);
         this.historyFetcher = new HistoryFetcher(this.registry);
         this.registry.historyFetcher = this.historyFetcher;
     }
@@ -209,7 +210,7 @@ export class MarketWatcher {
     public get requestStartTimes() { return this.historyFetcher.requestStartTimes; }
 
     // Test specific delegations
-    public fillGaps(klines: any, intervalMs: number) { return this.historyFetcher.fillGaps(klines, intervalMs); }
+    public fillGaps(klines: Kline[], intervalMs: number) { return this.historyFetcher.fillGaps(klines, intervalMs); }
     public syncSubscriptions() { return this.registry.syncSubscriptions(); }
     public pruneZombieRequests() { return this.registry.pruneZombieRequests(); }
     public pollSymbolChannel(symbol: string, channel: string, provider: "bitunix" | "bitget") { return this.historyFetcher.pollSymbolChannel(symbol, channel, provider); }
