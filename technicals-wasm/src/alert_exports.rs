@@ -1,7 +1,7 @@
-use wasm_bindgen::prelude::*;
-use crate::alert_engine::{AlertEngine, AlertDefinition};
+use crate::alert_engine::{AlertDefinition, AlertEngine};
 use rust_decimal::Decimal;
 use std::str::FromStr;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct AlertEngineWasm {
@@ -39,11 +39,20 @@ impl AlertEngineWasm {
     }
 
     #[wasm_bindgen]
-    pub fn evaluate(&mut self, symbol: &str, current_price_str: &str, timestamp: f64) -> Result<JsValue, JsValue> {
+    pub fn evaluate(
+        &mut self,
+        symbol: &str,
+        current_price_str: &str,
+        timestamp: f64,
+    ) -> Result<JsValue, JsValue> {
         let current_price = Decimal::from_str(current_price_str)
             .map_err(|e| JsValue::from_str(&format!("Invalid decimal string: {}", e)))?;
 
-        let events = self.engine.evaluate(symbol, current_price, timestamp as i64);
+        let events = self.engine.evaluate(
+            symbol,
+            Decimal::from_str(&current_price_str).unwrap(),
+            timestamp as i64,
+        );
         let js_events = serde_wasm_bindgen::to_value(&events)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize events: {}", e)))?;
         Ok(js_events)
