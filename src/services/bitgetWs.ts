@@ -699,19 +699,6 @@ class BitgetWebSocketService {
     };
   }
 
-  private shouldThrottle(key: string): boolean {
-    const now = Date.now();
-    const lastUpdate = this.throttleMap.get(key) || 0;
-    if (now - lastUpdate < this.UPDATE_INTERVAL) {
-      return true;
-    }
-    this.throttleMap.set(key, now);
-    return false;
-  }
-
-  private commitThrottle(key: string): void {
-    this.throttleMap.set(key, Date.now());
-  }
 }
 
 export const bitgetWs = new BitgetWebSocketService();
