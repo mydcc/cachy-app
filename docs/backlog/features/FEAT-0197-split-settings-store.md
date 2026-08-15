@@ -2,7 +2,7 @@
 id: FEAT-0197
 title: "Extract entitlement state and the settings load/persist path out of settings.svelte.ts"
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
