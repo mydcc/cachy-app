@@ -374,7 +374,10 @@
     "positionsAria": {
       "positionDetails": "Positionsdetails",
       "symbolDetails": "Symboldetails"
-    }
+    },
+    "synchronizingHistory": "Verlauf wird synchronisiert...",
+    "cancelOrder": "Order abbrechen",
+    "connectionStatus": "Verbindungsstatus"
   },
   "journal": {
     "title": "Trade Journal",
@@ -1562,7 +1565,9 @@
       "healthTitle": "Daten-Gesundheit",
       "networkLogsTitle": "Netzwerk-Protokollierung",
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
-    }
+    },
+    "toggleMarketTiles": "Marktübersicht umschalten",
+    "toggleMarketSentiment": "Marktstimmung umschalten"
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -2260,7 +2265,8 @@
     "categoryLabel": "Kategorie",
     "categoryTrading": "Trading & Strategien",
     "categoryTech": "Cachy App-Wissen",
-    "notReady": "Die Quiz-Fragen werden noch geladen, versuche es gleich noch einmal."
+    "notReady": "Die Quiz-Fragen werden noch geladen, versuche es gleich noch einmal.",
+    "quickQuiz": "Schnellquiz"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",

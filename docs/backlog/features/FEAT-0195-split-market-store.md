@@ -2,7 +2,9 @@
 id: FEAT-0195
 title: "Decompose market.svelte.ts into cache management, update batching and kline buffers"
 type: feature
-status: ready
+status: done
+branch: feat/0195-split-market-store
+done_version: 1.6.0-beta.19
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -79,14 +81,18 @@ already merged on `develop`.
 
 ## Acceptance criteria
 
-- [ ] Cache management, kline buffers and telemetry each live in their own module
-- [ ] `market.svelte.ts` is under 400 lines
-- [ ] No method exceeds 200 lines
-- [ ] The three existing market store test files pass **without being modified**
-- [ ] `npm run check` passes with 0 errors
-- [ ] `npm test` passes
-- [ ] The store's exported API is unchanged (callers untouched), or each change
-      is listed and justified here on completion
+- [x] Cache management, kline buffers and telemetry each live in their own module
+- [x] `market.svelte.ts` is under 400 lines (356)
+- [x] No method exceeds 200 lines
+- [x] The three existing market store test files pass **without being modified**
+- [x] `npm run check` passes with 0 errors
+- [x] `npm test` passes
+- [x] The store's exported API is unchanged (callers untouched), or each change
+      is listed and justified here on completion — `MarketManager.getOrCreateSymbol`
+      and `touchSymbol` widened from `private` to `public` so the extracted
+      `applyUpdate`/`legacyUpdates` modules can call them. No external
+      consumer of `marketState` reached these before or reaches them now, so
+      this is inert for callers.
 
 ## Out of scope
 

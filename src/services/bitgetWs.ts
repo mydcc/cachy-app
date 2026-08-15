@@ -123,7 +123,7 @@ class BitgetWebSocketService {
         }
 
         // If market data is globally disabled, then we can force disconnect.
-        if (!settingsState.capabilities.marketData) {
+        if (!settingsState.entitlement.capabilities.marketData) {
           if (status !== "disconnected") {
             marketState.connectionStatus = "disconnected";
             this.cleanup();
@@ -171,7 +171,7 @@ class BitgetWebSocketService {
   connect(force?: boolean) {
     logger.log("governance", `[BitgetWS] #${this.instanceId} connect(force=${force}) entering. isDestroyed was: ${this.isDestroyed}`);
     this.isDestroyed = false;
-    if (this.isDestroyed || !settingsState.capabilities.marketData) return;
+    if (this.isDestroyed || !settingsState.entitlement.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
