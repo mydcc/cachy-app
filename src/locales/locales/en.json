@@ -2326,6 +2326,8 @@
     "slowCalc": "Slow Calc: {engine} ({duration}ms)"
   },
   "duck": {
+    "full": "Quack! The duck is stuffed and needs a break.",
+    "annoyed": "Quack! Too much clicking, give me a break!",
     "achievements": {
       "first_feed_name": "First Bread",
       "first_feed_desc": "Fed the duck for the first time.",

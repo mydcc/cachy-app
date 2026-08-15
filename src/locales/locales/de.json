@@ -2326,6 +2326,8 @@
     "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)"
   },
   "duck": {
+    "full": "Quack! Die Ente ist pappsatt und braucht eine Pause.",
+    "annoyed": "Quack! Zu viel Geklicke, lass mich kurz in Ruhe!",
     "achievements": {
       "first_feed_name": "Erstes Brot",
       "first_feed_desc": "Die Ente zum ersten Mal gefüttert.",

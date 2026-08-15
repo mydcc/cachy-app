@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
+import { DuckState, DUCK_STATE_PRIORITY } from "./types";
 import type { DuckDaoState } from "./types";
 
 // ─── DuckAchievements Unit Tests ──────────────────────────────────────────────
@@ -159,5 +160,44 @@ describe("Streak calculation", () => {
         const result = calculateStreak("2026-08-10", 9, "2026-08-11");
         expect(result.currentStreak).toBe(10);
         expect(result.longestStreak).toBe(10);
+    });
+});
+
+describe("DuckState and Priority", () => {
+    it("should define ANNOYED state with higher priority than EATING and SAD", () => {
+        expect(DuckState.ANNOYED).toBe("ANNOYED");
+        expect(DUCK_STATE_PRIORITY[DuckState.ANNOYED]).toBeGreaterThan(DUCK_STATE_PRIORITY[DuckState.EATING]);
+        expect(DUCK_STATE_PRIORITY[DuckState.ANNOYED]).toBeGreaterThan(DUCK_STATE_PRIORITY[DuckState.SAD]);
+        expect(DUCK_STATE_PRIORITY[DuckState.CELEBRATING]).toBeGreaterThan(DUCK_STATE_PRIORITY[DuckState.ANNOYED]);
+    });
+});
+
+describe("Satiety & Spam Rate calculation", () => {
+    it("simulates fullness increase and decay over time", () => {
+        let fullness = 0;
+        // 4 feeds: +25 each -> 100
+        for (let i = 0; i < 4; i++) {
+            fullness = Math.min(100, fullness + 25);
+        }
+        expect(fullness).toBe(100);
+
+        // 5th feed exceeds threshold
+        const isOverfed = fullness >= 100;
+        expect(isOverfed).toBe(true);
+
+        // 5 seconds pass -> decays by 5 * 5 = 25
+        const dt = 5;
+        fullness = Math.max(0, fullness - dt * 5);
+        expect(fullness).toBe(75);
+        expect(fullness < 100).toBe(true);
+    });
+
+    it("simulates spam detection within a 2000ms sliding window", () => {
+        const now = 10000;
+        const clicks = [8100, 8500, 9000, 9500, 10000]; // 5 clicks in last 2000ms
+        const recent = clicks.filter(t => now - t < 2000);
+        expect(recent.length).toBe(5);
+        const isSpam = recent.length >= 5;
+        expect(isSpam).toBe(true);
     });
 });

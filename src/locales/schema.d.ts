@@ -1951,4 +1951,6 @@ export type TranslationKey =
   | "duck.achievements.level_10_name"
   | "duck.achievements.level_10_desc"
   | "duck.achievements.level_20_name"
-  | "duck.achievements.level_20_desc";
+  | "duck.achievements.level_20_desc"
+  | "duck.full"
+  | "duck.annoyed";
