@@ -145,10 +145,7 @@ export class MarketManager {
         fundingRate: null,
         nextFundingTime: null,
         klines: {},
-        // Prototype-less: this is written with a dynamic timeframe key
-        // (klineBuffers.ts's applySymbolKlines) that CodeQL flags as a
-        // prototype-polluting assignment target.
-        klinesBuffers: Object.create(null),
+        klinesBuffers: new Map(),
       };
     }
     return this.data[symbol];

@@ -227,13 +227,8 @@ export class KlineBufferManager {
         volumes: backing.volumes.subarray(0, neededLen)
     };
 
-    // Prototype-less: current.klinesBuffers[timeframe] = ... below is a
-    // dynamic-key assignment CodeQL flags as prototype-polluting (the guard
-    // above rejects the key, but a null-prototype object is the fix the
-    // query actually recognizes — see market.svelte.ts's initializer, which
-    // must match since this fallback only runs if that one was skipped).
-    if (!current.klinesBuffers) current.klinesBuffers = Object.create(null) as Record<string, KlineBuffers>;
-    current.klinesBuffers[timeframe] = views;
+    if (!current.klinesBuffers) current.klinesBuffers = new Map();
+    current.klinesBuffers.set(timeframe, views);
     current.lastUpdated = Date.now();
   }
 
