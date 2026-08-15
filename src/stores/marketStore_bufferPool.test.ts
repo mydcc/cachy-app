@@ -35,7 +35,7 @@ describe("marketStore buffer pool characterisation", () => {
     it("verifies acquire/release pairing across an update -> evict cycle", async () => {
         const internals = market as unknown as {
             bufferPool: { pool: Map<number, Float64Array[]> };
-            backingBuffers: Map<string, any>;
+            backingBuffers: Map<string, unknown>;
         };
 
         market.updateSymbolKlines('BTCUSDT', '1m', [createKline(1000, 101)]);
@@ -59,8 +59,8 @@ describe("marketStore buffer pool characterisation", () => {
     it("demonstrates consistency across acquire -> update -> evict -> re-acquire", async () => {
         const internals = market as unknown as {
             bufferPool: { pool: Map<number, Float64Array[]> };
-            backingBuffers: Map<string, any>;
-            pendingKlineUpdates: Map<string, any>;
+            backingBuffers: Map<string, unknown>;
+            pendingKlineUpdates: Map<string, unknown>;
             touchSymbol: (symbol: string) => void;
             enforceCacheLimit: () => void;
             flushUpdates: () => void;
@@ -93,13 +93,13 @@ describe("marketStore buffer pool characterisation", () => {
     it("demonstrates that a buffer released via eviction is not still referenced by in-flight kline updates", async () => {
         const internals = market as unknown as {
             bufferPool: { pool: Map<number, Float64Array[]> };
-            backingBuffers: Map<string, any>;
-            pendingKlineUpdates: Map<string, any>;
+            backingBuffers: Map<string, unknown>;
+            pendingKlineUpdates: Map<string, unknown>;
             enforceCacheLimit: () => void;
             flushUpdates: () => void;
             flushIntervalId: ReturnType<typeof setInterval> | null;
             touchSymbol: (s: string) => void;
-            cacheMetadata: Map<string, any>;
+            cacheMetadata: Map<string, unknown>;
             evictLRU: () => string | null;
         };
 
@@ -115,7 +115,7 @@ describe("marketStore buffer pool characterisation", () => {
         // or just forcefully trigger eviction on BTCUSDT.
         internals.cacheMetadata.delete('BTCUSDT');
         // Then we call the internal release function
-        (market as any).releaseSymbolBackingBuffers('BTCUSDT');
+        (market as unknown as { releaseSymbolBackingBuffers: (symbol: string) => void }).releaseSymbolBackingBuffers('BTCUSDT');
         delete market.data['BTCUSDT'];
 
         expect(market.data['BTCUSDT']).toBeUndefined();
