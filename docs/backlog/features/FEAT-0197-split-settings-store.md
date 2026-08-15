@@ -122,6 +122,46 @@ a pure rename of the read/write path.
 
 Behaviour-preserving in PRs 2 and 3. `refactor:` commits only there.
 
+**Done as described, plus one deviation the plan didn't anticipate: the
+`$state` surface/merge/assignment step (~230 lines of straight
+`this.field = merged.field ?? default.field;`) had to become two methods,
+not stay inline in `load()`.** `load()` itself dropped from 382 to 86 lines
+(migrations and secrets logic extracted per the plan), but the remaining
+assignment step alone would still have been ~230 lines if left as one method
+— over the 200-line ceiling this item's own acceptance criteria sets for any
+method in the file. Split into `applyCoreFields()` (general/security/AI/
+market/technicals, 84 lines) and `applyDisplayFields()` (UI toggles/
+background customization/Burning Borders/docking, 121 lines), grouped along
+the file's existing section comments rather than arbitrarily at the midpoint.
+Same shape of finding as FEAT-0195's and FEAT-0196's own line-count
+corrections — the epic's per-file plans are a starting proposal, not a
+contract, exactly as the parent item says.
+
+- `migrations.ts`: `resolveApiProvider()`, `resolveGeminiModel()`,
+  `resolveAnthropicModel()` — pure functions, dev-log side effects preserved
+  verbatim, no `$state`.
+- `secretsLoader.ts`: `SecretsLoader` class — `getDeviceKey()`,
+  `applyApiKeys()`, `decryptSecrets()`, `applyFieldEncryption()`, plus
+  `SENSITIVE_KEYS` itself (moved here from `settings.svelte.ts`, since every
+  consumer of it is a secrets concern). Same collaborator shape as PR 2's
+  `EntitlementStore` and FEAT-0196: takes parameters instead of importing
+  `settings.svelte.ts` back, to avoid a circular import with the class that
+  constructs it. `settings.svelte.ts` still owns `unlock()`/`lock()`/
+  `setMasterPassword()` unchanged — those are explicit user-triggered
+  actions, not part of the `load()`/`save()` path this item scopes.
+- The `applyApiKeys()` legacy branch mutates the passed-in `apiKeys` object
+  in place rather than replacing it, preserving the original code's "don't
+  break component bindings" comment; the encrypted branch still replaces it
+  wholesale, same as before — verified against the original line by line,
+  not just re-derived from the comment.
+- Two incidental type fixes surfaced by giving `merged` an explicit `Settings`
+  parameter type instead of the implicit `any`-flavoured local it was before
+  (from spreading `parsed: any`): `appAccessToken` and `rssPresets`/
+  `customRssFeeds` are optional on `Settings` but non-optional `$state`
+  fields on the class, so `?? ""` / `?? []` fallbacks were added at the three
+  sites TypeScript now correctly flagged. No behaviour change — `defaultSettings`
+  already guaranteed non-undefined values there at runtime.
+
 ## Acceptance criteria
 
 - [x] Characterisation tests for legacy-shape loading, migration idempotence
@@ -131,16 +171,17 @@ Behaviour-preserving in PRs 2 and 3. `refactor:` commits only there.
 - [x] Entitlement state (`isPro`, `isProLicenseActive`) and the capability map
       live in their own store, reached through one accessor
       (`src/stores/entitlement.svelte.ts`, `settingsState.entitlement`)
-- [ ] `load()` is under 150 lines
-- [ ] No method in `settings.svelte.ts` exceeds 200 lines
+- [x] `load()` is under 150 lines (86)
+- [x] No method in `settings.svelte.ts` exceeds 200 lines (largest is the new
+      `applyDisplayFields()` at 121)
 - [x] `secretsReady` provably resolves exactly once on every path, covered by
       test (`src/stores/settings.load.test.ts`, PR 1)
 - [x] No settings shape written by a previous release fails to load
       (legacy-shape and deep-merge tests, PR 1)
 - [x] `settings.security.test.ts` passes **without being modified**
-- [ ] `npm run check` passes with 0 errors
-- [ ] `npm test` passes
-- [ ] No Klasse-A field changes storage location or encryption state; if one
+- [x] `npm run check` passes with 0 errors
+- [x] `npm test` passes (1160 passed / 6 skipped, full suite, all three PRs)
+- [x] No Klasse-A field changes storage location or encryption state; if one
       must, it is a `BREAKING CHANGE:` and is listed here
 
 ## Out of scope
