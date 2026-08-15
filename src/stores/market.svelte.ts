@@ -20,6 +20,7 @@ import { get } from "svelte/store";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
+import { isUnsafeObjectKey } from "../utils/utils";
 import { SymbolCache } from "./market/symbolCache";
 import { KlineBufferManager } from "./market/klineBuffers";
 import { MarketTelemetry } from "./market/telemetry.svelte";
@@ -136,6 +137,9 @@ export class MarketManager {
   }
 
   public getOrCreateSymbol(symbol: string): MarketData {
+    if (isUnsafeObjectKey(symbol)) {
+      throw new Error(`Unsafe symbol key: ${symbol}`);
+    }
     if (!this.data[symbol]) {
       this.data[symbol] = {
         symbol,
