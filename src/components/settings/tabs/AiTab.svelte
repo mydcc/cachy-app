@@ -23,11 +23,11 @@
     import { uiState } from "../../../stores/ui.svelte";
 
     const aiProviders: { value: AiProvider; label: string }[] = [
+        { value: "ollama", label: $_("settings.ai.provider.ollama") },
+        { value: "openrouter", label: $_("settings.ai.provider.openrouter") },
         { value: "openai", label: $_("settings.ai.provider.openai") },
         { value: "gemini", label: $_("settings.ai.provider.gemini") },
         { value: "anthropic", label: $_("settings.ai.provider.anthropic") },
-        { value: "ollama", label: $_("settings.ai.provider.ollama") },
-        { value: "openrouter", label: $_("settings.ai.provider.openrouter") },
     ];
 
     // Social Helper
@@ -106,7 +106,45 @@
                 </div>
 
                 <div class="mt-4 p-4 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)]">
-                    {#if settingsState.aiProvider === "openai"}
+                    {#if settingsState.aiProvider === "ollama"}
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="field-group">
+                                <label for="ollama-url">{$_("settings.ai.ollamaBaseUrl")}</label>
+                                <input
+                                    id="ollama-url"
+                                    bind:value={settingsState.ollamaBaseUrl}
+                                    class="input-field"
+                                    placeholder="http://localhost:11434"
+                                />
+                                <span class="text-[10px] text-[var(--text-secondary)]">
+                                    {$_("settings.ai.ollamaBaseUrlDesc")}
+                                </span>
+                            </div>
+                            <AiModelPicker
+                                provider="ollama"
+                                baseUrl={settingsState.ollamaBaseUrl}
+                                bind:model={settingsState.ollamaModel}
+                            />
+                        </div>
+                    {:else if settingsState.aiProvider === "openrouter"}
+                        <div class="grid grid-cols-1 gap-4">
+                            <div class="field-group">
+                                <label for="openrouter-key">{$_("settings.ai.openrouterApiKey")}</label>
+                                <input
+                                    id="openrouter-key"
+                                    type="password"
+                                    bind:value={settingsState.openrouterApiKey}
+                                    class="input-field"
+                                    placeholder="sk-or-..."
+                                />
+                            </div>
+                            <AiModelPicker
+                                provider="openrouter"
+                                apiKey={settingsState.openrouterApiKey}
+                                bind:model={settingsState.openrouterModel}
+                            />
+                        </div>
+                    {:else if settingsState.aiProvider === "openai"}
                         <div class="grid grid-cols-1 gap-4">
                             <div class="field-group">
                                 <label for="openai-key">{$_("settings.ai.openaiApiKey")}</label>
@@ -158,44 +196,6 @@
                                 provider="anthropic"
                                 apiKey={settingsState.anthropicApiKey}
                                 bind:model={settingsState.anthropicModel}
-                            />
-                        </div>
-                    {:else if settingsState.aiProvider === "ollama"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="ollama-url">{$_("settings.ai.ollamaBaseUrl")}</label>
-                                <input
-                                    id="ollama-url"
-                                    bind:value={settingsState.ollamaBaseUrl}
-                                    class="input-field"
-                                    placeholder="http://localhost:11434"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.ollamaBaseUrlDesc")}
-                                </span>
-                            </div>
-                            <AiModelPicker
-                                provider="ollama"
-                                baseUrl={settingsState.ollamaBaseUrl}
-                                bind:model={settingsState.ollamaModel}
-                            />
-                        </div>
-                    {:else if settingsState.aiProvider === "openrouter"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="openrouter-key">{$_("settings.ai.openrouterApiKey")}</label>
-                                <input
-                                    id="openrouter-key"
-                                    type="password"
-                                    bind:value={settingsState.openrouterApiKey}
-                                    class="input-field"
-                                    placeholder="sk-or-..."
-                                />
-                            </div>
-                            <AiModelPicker
-                                provider="openrouter"
-                                apiKey={settingsState.openrouterApiKey}
-                                bind:model={settingsState.openrouterModel}
                             />
                         </div>
                     {/if}
@@ -345,20 +345,18 @@
                 </div>
                 <div class="flex flex-col gap-2 mb-6">
                     {#if settingsState.discordChannels}
-                        {#each settingsState.discordChannels.map((_, i) => i) as i}
+                        {#each settingsState.discordChannels as _channel, i}
                             <div class="flex items-center gap-2">
                                 <input
                                     type="text"
-                                    bind:value={
-                                        settingsState.discordChannels[i]
-                                    }
+                                    bind:value={settingsState.discordChannels[i]}
                                     class="input-field"
                                     placeholder={$_("settings.ai.discord.channelId")}
                                 />
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
                                     onclick={() => removeDiscordChannel(i)}
-                                    aria-label="Remove channel"
+                                    aria-label={$_("settings.ai.aria.removeChannel")}
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -381,7 +379,7 @@
                     <button
                         class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
                         onclick={addDiscordChannel}
-                        aria-label="Add Channel"
+                        aria-label={$_("settings.ai.aria.addChannel")}
                     >
                         {$_("settings.ai.discord.addChannel")}
                     </button>

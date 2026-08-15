@@ -135,6 +135,39 @@ Zum Abschalten (z. B. um den Diff zu sehen, bevor er zum PR wird):
 Jules-Doku bereits standardmäßig auto-approved; das war nie der blockierende
 Schritt.
 
+## Wiederkehrende Agenten-Prompts (`prompts/`)
+
+Vier spezialisierte Prompts für wiederkehrende Jules-Tasks, die **in der
+Jules-UI** als eigene Scheduled Tasks eingerichtet werden (nicht über eines
+der Scripts hier — die UI kennt kein Aufrufen einer Datei als Prompt). Die
+Dateien in `prompts/` sind die versionierte Quelle der Wahrheit; bei einer
+Änderung den Inhalt hier committen und anschließend den Prompt-Text im
+jeweiligen Jules-Task in der UI aktualisieren.
+
+| Prompt | Rolle | Kadenz | Schreibzugriff |
+| --- | --- | --- | --- |
+| `prompts/bolt.md` | Performance — eine gemessene Optimierung pro Lauf | täglich | Produktionscode, PR gegen `develop` |
+| `prompts/palette.md` | UX & Accessibility — ein Micro-Fix pro Lauf | täglich | Produktionscode, PR gegen `develop` |
+| `prompts/sentinel.md` | Security — ein Fix im autonomen Rahmen pro Lauf | täglich | Produktionscode, PR gegen `develop` |
+| `prompts/ledger.md` | Korrektheits-Audit — ein Subsystem pro Lauf, reiner Auditor | wöchentlich (freitags, vor dem montäglichen Backlog-Dispatch) | nur `docs/backlog/**` + eigenes Journal, kein Produktionscode |
+
+Alle vier zeigen auf `AGENTS.md` als einzige Regelquelle (Svelte-5-Runes,
+`decimal.js`, Local-First-Grenze, Branch-Workflow) und duplizieren sie
+bewusst nicht — Regeländerungen an einer Stelle pflegen, nicht an fünfen.
+Jeder Prompt führt vor dem Start ein eigenes Journal unter `.jules/<name>.md`
+(nur kritische, wiederverwendbare Erkenntnisse, kein Aktivitätslog) und
+respektiert dieselbe Sperrzone für autonome Agenten wie
+`dispatch-backlog.mjs`: Risiko-/Positionsgrößen-Mathematik, Signatur-/
+Krypto-Logik und alles, was `decimal.js`-Präzision oder die
+Local-First-Grenze berührt, wird nicht autonom gemergt.
+
+`ledger.md` ist bewusst der einzige reine Auditor: Er ändert nie Code unter
+`src/`, `server/` oder `technicals-wasm/`, sondern legt Findings als
+Backlog-Items (`status: specced`, nie `ready`) an — die landen erst nach
+menschlichem Grooming im wöchentlichen `backlog-dispatch.yml`-Lauf. So bleibt
+die Entscheidung „ist das wirklich unblockiert" beim Menschen, wie im
+Abschnitt „Backlog automatisch abarbeiten" oben.
+
 ## Sicherheitsgrenzen (wichtig)
 
 - Jules erhält über `sourceContext` nur Lesezugriff auf den Git-Verlauf/Code des angegebenen Branches — **keine** Exchange-API-Keys, **keine** Deploy-Credentials, **keine** `.env`-Secrets. Diese sind ohnehin Klasse-A-Daten und dürfen laut `AGENTS.md`/`CLAUDE.md` nie einen Server oder eine fremde Cloud-VM erreichen.

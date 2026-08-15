@@ -16,12 +16,12 @@
  */
 
 
-import { CANDLESTICK_PATTERNS, type CandleData, type PatternDefinition } from './candlestickPatterns';
+import { CANDLESTICK_PATTERNS, type CandleData } from './candlestickPatterns';
 
 export class PatternDetector {
   // Flattened normalized templates (Open, High, Low, Close sequence)
   private normalizedTemplates: Map<string, Float64Array> = new Map();
-  private patternsByLength: Map<number, PatternDefinition[]> = new Map();
+  private patternsByLength: Map<number, { id: string; candles: CandleData[] }[]> = new Map();
   // Shared buffer for input normalization to avoid allocation
   // Max pattern length is small (e.g. 7), so 128 doubles is enough (32 candles)
   private sharedBuffer: Float64Array = new Float64Array(128);
@@ -127,7 +127,7 @@ export class PatternDetector {
     return detected;
   }
 
-  public checkPattern(pattern: PatternDefinition, candles: CandleData[]): boolean {
+  public checkPattern(pattern: { id: string; candles: CandleData[] }, candles: CandleData[]): boolean {
     const patternLen = pattern.candles.length;
     if (candles.length < patternLen) return false;
 

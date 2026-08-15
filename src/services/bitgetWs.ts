@@ -123,7 +123,7 @@ class BitgetWebSocketService {
         }
 
         // If market data is globally disabled, then we can force disconnect.
-        if (!settingsState.capabilities.marketData) {
+        if (!settingsState.entitlement.capabilities.marketData) {
           if (status !== "disconnected") {
             marketState.connectionStatus = "disconnected";
             this.cleanup();
@@ -136,14 +136,22 @@ class BitgetWebSocketService {
     }
   }
 
-  private shouldThrottle(key: string): boolean {
+
+
+  private shouldThrottle(key: string, commit = true): boolean {
     const now = Date.now();
     const last = this.throttleMap.get(key) || 0;
     if (now - last < this.UPDATE_INTERVAL) {
       return true;
     }
-    this.throttleMap.set(key, now);
+    if (commit) {
+      this.throttleMap.set(key, now);
+    }
     return false;
+  }
+
+  private commitThrottle(key: string): void {
+    this.throttleMap.set(key, Date.now());
   }
 
   destroy() {
@@ -163,7 +171,7 @@ class BitgetWebSocketService {
   connect(force?: boolean) {
     logger.log("governance", `[BitgetWS] #${this.instanceId} connect(force=${force}) entering. isDestroyed was: ${this.isDestroyed}`);
     this.isDestroyed = false;
-    if (this.isDestroyed || !settingsState.capabilities.marketData) return;
+    if (this.isDestroyed || !settingsState.entitlement.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
@@ -391,6 +399,22 @@ class BitgetWebSocketService {
   }
 
   private handleMessage(message: BitgetWSMessage) {
+    // We can do a fast-path throttle check for high frequency channels if we extract channel and instId directly.
+    const rawArg = message.arg as { channel?: string, instId?: string } | undefined;
+    if (rawArg && rawArg.channel && rawArg.instId) {
+       const channel = rawArg.channel;
+       const instId = rawArg.instId;
+
+       if (channel === "ticker") {
+           const throttleTicker = this.shouldThrottle(`${instId}:ticker`, false);
+           const throttlePrice = this.shouldThrottle(`${instId}:price`, false);
+           // If both are throttled, we don't need to process ticker updates
+           if (throttleTicker && throttlePrice) return;
+       } else if (channel === "books" || channel === "books5" || channel === "books15") {
+           if (this.shouldThrottle(`${instId}:depth`, false)) return;
+       }
+    }
+
     const validated = BitgetWSMessageSchema.safeParse(message);
     if (!validated.success) return;
 
@@ -443,6 +467,7 @@ class BitgetWebSocketService {
         if (!this.shouldThrottle(`${instId}:ticker`)) {
           marketState.updateTicker(instId, update);
         }
+
         // Also update price (for fast price)
         if (t.last && !this.shouldThrottle(`${instId}:price`)) {
           marketState.updatePrice(instId, { price: t.last });
@@ -481,9 +506,8 @@ class BitgetWebSocketService {
     else if (channel === "books" || channel === "books5" || channel === "books15") {
       const data = msg.data[0];
       if (data && data.bids && data.asks) {
-        if (!this.shouldThrottle(`${instId}:depth`)) {
-          marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
-        }
+        this.commitThrottle(`${instId}:depth`);
+        marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
       }
     }
     // Private: Orders
@@ -674,6 +698,7 @@ class BitgetWebSocketService {
       margin: undefined,
     };
   }
+
 }
 
 export const bitgetWs = new BitgetWebSocketService();

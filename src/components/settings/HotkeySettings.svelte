@@ -90,7 +90,7 @@
       // For this version: simple overwrite is fine, but let's confirm.
       if (
         !confirm(
-          `"${newCombo}" is used by "${existingAction.label}". Overwrite?`,
+          $_("settings.hotkeys.confirmOverwrite" as import("../../locales/schema").TranslationKey, { values: { newCombo, existingLabel: existingAction.label } })
         )
       ) {
         return;

@@ -33,7 +33,7 @@ vi.mock('./logger', () => ({
 vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
-        capabilities: { marketData: true },
+        entitlement: { capabilities: { marketData: true } },
         enableNetworkLogs: false
     }
 }));

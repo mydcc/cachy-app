@@ -120,9 +120,9 @@ export const app = {
         useAtrSl: true,
         atrMode: "auto",
         targets: [
-          { price: 120000, percent: 50, isLocked: false },
-          { price: 122000, percent: 25, isLocked: false },
-          { price: 124000, percent: 25, isLocked: false },
+          { price: "120000", percent: "50", isLocked: false },
+          { price: "122000", percent: "25", isLocked: false },
+          { price: "124000", percent: "25", isLocked: false },
         ],
       }));
 
@@ -322,10 +322,28 @@ export const app = {
     );
     const p = presets[name];
     if (p) {
-      // Ensure strings for legacy presets
-      if (typeof p.entryPrice === 'number') p.entryPrice = String(p.entryPrice);
-      if (typeof p.stopLossPrice === 'number') p.stopLossPrice = String(p.stopLossPrice);
-      if (typeof p.riskAmount === 'number') p.riskAmount = String(p.riskAmount);
+      // Ensure strings for legacy presets — the trade state holds these as
+      // strings only, and presets written by earlier versions may carry numbers.
+      const legacyNumericFields = [
+        "accountSize",
+        "riskPercentage",
+        "entryPrice",
+        "stopLossPrice",
+        "leverage",
+        "fees",
+        "atrValue",
+        "atrMultiplier",
+        "riskAmount",
+      ] as const;
+      for (const field of legacyNumericFields) {
+        if (typeof p[field] === "number") p[field] = String(p[field]);
+      }
+      if (Array.isArray(p.targets)) {
+        for (const t of p.targets) {
+          if (typeof t?.price === "number") t.price = String(t.price);
+          if (typeof t?.percent === "number") t.percent = String(t.percent);
+        }
+      }
 
       tradeState.update((s) => ({
         ...s,

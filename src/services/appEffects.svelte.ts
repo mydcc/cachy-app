@@ -10,7 +10,7 @@ import { Decimal } from "decimal.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setupRealtimeUpdatesEffect(app: any) {
-  const computeKeys = (s: Settings) =>
+  const computeKeys = (s: Pick<Settings, "apiProvider" | "apiKeys">) =>
     s.apiProvider === "bitget"
       ? `${s.apiKeys.bitget.key}:${s.apiKeys.bitget.secret}:${s.apiKeys.bitget.passphrase}`
       : `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;

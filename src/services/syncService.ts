@@ -174,7 +174,7 @@ export const syncService = {
 
   syncBitunixPositions: async () => {
     const settings = settingsState;
-    if (!settings.isPro) return;
+    if (!settings.entitlement.isPro) return;
     if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
       uiState.showError("settings.apiKeysRequired");
       return;

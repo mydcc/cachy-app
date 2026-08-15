@@ -125,7 +125,7 @@
         <button
           type="button"
           class="hover:text-[var(--text-primary)] focus:outline-none ml-1"
-          aria-label="Remove timeframe"
+          aria-label={$_("settings.calculation.aria.removeTimeframe")}
           onclick={() => removeTimeframe(i)}
         >
           <svg

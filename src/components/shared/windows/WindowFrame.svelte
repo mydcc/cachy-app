@@ -30,6 +30,8 @@
 -->
 
 <script lang="ts">
+    import { _ } from "../../../locales/i18n";
+
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
     import { effectsState } from "../../../stores/effects.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
@@ -522,7 +524,7 @@
                     class="tool-btn"
                     onclick={() => win.onHeaderExport()}
                     ondblclick={(e) => e.stopPropagation()}
-                    title="Export"
+                    title={$_("common.export")} aria-label={$_("common.export")}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -549,7 +551,7 @@
                     class="tool-btn danger"
                     onclick={() => win.onHeaderDelete()}
                     ondblclick={(e) => e.stopPropagation()}
-                    title="Delete/Clear"
+                    title={$_("common.delete")} aria-label={$_("common.delete")}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -590,8 +592,8 @@
                             effectsState.triggerDuckEvent({ type: "feed", amount: 10 });
                         }}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("windows.feedDuck")}
-                        aria-label={$_("windows.feedDuck")}>🍞</button
+                        title={$_("common.feedDuck")}
+                        aria-label={$_("common.feedDuck")}>🍞</button
                     >
                 </div>
             {/if}
@@ -604,7 +606,7 @@
                             class="tool-btn"
                             onclick={() => win.minimize()}
                             ondblclick={(e) => e.stopPropagation()}
-                            title="Minimize"
+                            title={$_("common.minimize")} aria-label={$_("common.minimize")}
                         >
                             <span class="icon-min"></span>
                         </button>
@@ -614,7 +616,7 @@
                             class="tool-btn"
                             onclick={() => win.toggleMaximize()}
                             ondblclick={(e) => e.stopPropagation()}
-                            title={win.isMaximized ? "Restore" : "Maximize"}
+                            title={win.isMaximized ? $_("common.restore") : $_("common.maximize")} aria-label={win.isMaximized ? $_("common.restore") : $_("common.maximize")}
                         >
                             <span
                                 class={win.isMaximized
@@ -631,6 +633,8 @@
 
             <button
                 class="close-btn"
+                title={$_("common.close")}
+                aria-label={$_("common.close")}
                 onclick={() => windowManager.close(win.id)}
                 ondblclick={(e) => e.stopPropagation()}>✕</button
             >

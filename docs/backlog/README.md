@@ -88,6 +88,11 @@ depends_on: []
 | `data_class` | `A`, `B`, `C`, `none` | Per ADR-0001 / ADR-0004. `none` = touches no data boundary |
 | `adr` | `none`, `required`, or `ADR-NNNN` | `required` means it may not be built until one exists |
 | `depends_on` | list of IDs | Hard blockers only, not "related to" |
+| `parent` | ID | Optional parent item for native GitHub Sub-Issue Relationship (e.g. `FEAT-0067`) |
+| `estimate` | number | Optional story points / hours estimate (e.g. `1`, `2`, `5`) |
+| `size` | `XS`, `S`, `M`, `L`, `XL` | Optional size classification for GitHub Projects |
+| `start_date` | `YYYY-MM-DD` | Optional start date for GitHub Projects Roadmap |
+| `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
 
 ### Status
 
@@ -166,6 +171,31 @@ one.
 
 ---
 
+## GitHub Issues mirror
+
+Every push to `develop`/`main` touching `docs/backlog/**/*.md` syncs the
+backlog to GitHub Issues (`.github/workflows/sync-backlog.yml`,
+`scripts/sync-github-issues.ts`) — for a Projects board view, nothing else.
+The direction only ever goes file → issue, never back:
+
+- Title and body are fully overwritten on every sync run. Editing them
+  directly on the Issue has no lasting effect — the next backlog push wipes
+  it out again, silently, no warning.
+- Labels are the one exception: everything except the `status:*` and
+  `backlog-id:*` labels the script owns is preserved across syncs. A
+  manually added label survives.
+- `backlog-id:<ID>` (as a label, and as an HTML comment in the body) is the
+  reconciliation key back to the actual file.
+
+**An Issue is a read-only mirror of its backlog file, not an editable
+copy.** Pointing an agent at an Issue to read/orient is fine — the title,
+body and `status:*` label are accurate as of the last sync. But grooming,
+filling in Acceptance Criteria, resolving an open question, or changing
+`status`: always through `docs/backlog/{bugs,features,ideas}/<ID>-*.md`,
+resolved via the `backlog-id:` label, never by editing the Issue directly.
+
+---
+
 ## Adding an item
 
 ```bash
@@ -177,3 +207,35 @@ npm run backlog:index
 Nothing else. No approval step, no triage meeting — an unsorted item in the
 backlog is better than an idea in a chat log. Set `status: idea` and
 `priority: P3` if you are not sure; that is what those values are for.
+
+---
+
+## Batch promotion
+
+Promote multiple `specced` items to `ready` in one operation instead of editing
+each file individually.
+
+```bash
+# Show all specced items, interactively select which to promote
+npm run backlog:promote
+
+# Show only specced items in the 'ui' area
+npm run backlog:promote -- --area=ui
+
+# Show only P1 items in the 'ui' area
+npm run backlog:promote -- --area=ui --priority=P1
+
+# Promote specific items by ID (bypass interactive selection)
+npm run backlog:promote -- --ids=FEAT-0042,FEAT-0051,BUG-0015
+```
+
+The script filters by `status: specced` (plus optional area/priority/milestone
+filters), lets you pick which matches to promote, sets their `status: ready`,
+and creates a single commit — you push it to create a PR. A PR created this
+way is checked automatically by the "Backlog Promotion Audit" workflow
+(`scripts/backlog-promote-workflow.mjs`), which fails the check if a
+promotion drops acceptance criteria or points `depends_on` at a non-existent
+item.
+
+**Useful when:** you have 5+ specced items ready to go and want to promote
+them all at once instead of editing each file separately.

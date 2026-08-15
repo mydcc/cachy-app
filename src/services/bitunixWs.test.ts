@@ -182,10 +182,11 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
 
         // Verification:
-        // 1. Fast Path called normalizeTicker -> Threw Error
-        // 2. Catch block caught it
-        // 3. Fallback logic (Zod) ran -> Called normalizeTicker AGAIN (success)
-        // 4. updateSymbol called with success result
+        // 1. Fast Path called shouldThrottle with read-only
+        // 2. Fast Path called normalizeTicker -> Threw Error
+        // 3. Catch block caught it
+        // 4. Fallback (slow path) ran, successfully calling normalizeTicker again
+        // 5. marketState was updated
 
         expect(normalizeMock).toHaveBeenCalledTimes(2);
         expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object));

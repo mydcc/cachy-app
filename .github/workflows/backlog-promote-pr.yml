@@ -1,0 +1,103 @@
+name: Backlog Promotion Audit
+
+# Audits PRs created by `npm run backlog:promote` (scripts/backlog-promote.mjs):
+# checks that every specced -> ready transition keeps its acceptance criteria
+# and that depends_on still resolves. See scripts/backlog-promote-workflow.mjs.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/backlog/**/*.md'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  audit:
+    name: Audit Batch Promotion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit promotion PR
+        id: audit
+        run: node scripts/backlog-promote-workflow.mjs
+
+      - name: Comment audit results
+        if: steps.audit.outputs.is_promotion_pr == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const resultsFile = path.join(process.env.GITHUB_WORKSPACE, '.audit-results.json');
+            if (!fs.existsSync(resultsFile)) {
+              console.log('No audit results file found');
+              return;
+            }
+
+            const results = JSON.parse(fs.readFileSync(resultsFile, 'utf8'));
+            let comment = `## 📋 Backlog Promotion Audit\n\n`;
+
+            if (results.items.length > 0) {
+              comment += `### Promoted Items (${results.items.length})\n\n`;
+              comment += `| ID | Title | Status | Result |\n`;
+              comment += `|----|-------|--------|--------|\n`;
+              for (const item of results.items) {
+                const icon = item.valid ? '✅' : '❌';
+                comment += `| ${item.id} | ${item.title} | specced → ready | ${icon} ${item.valid ? 'Valid' : 'Invalid'} |\n`;
+              }
+              comment += `\n`;
+            }
+
+            if (results.warnings.length > 0) {
+              comment += `### ⚠️ Warnings\n\n`;
+              for (const warning of results.warnings) comment += `- ${warning}\n`;
+              comment += `\n`;
+            }
+
+            if (results.errors.length > 0) {
+              comment += `### ❌ Errors\n\n`;
+              for (const error of results.errors) comment += `- ${error}\n`;
+              comment += `\n`;
+            }
+
+            comment += results.valid
+              ? `✅ **All checks passed.** Items are ready to promote.\n`
+              : `❌ **Audit failed.** Please review errors above.\n`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Add promotion label
+        if: steps.audit.outputs.is_promotion_pr == 'true' && steps.audit.outputs.valid == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['backlog-batch-promotion']
+            });
+
+      - name: Fail on invalid audit
+        if: steps.audit.outputs.is_promotion_pr == 'true' && steps.audit.outputs.valid != 'true'
+        run: exit 1

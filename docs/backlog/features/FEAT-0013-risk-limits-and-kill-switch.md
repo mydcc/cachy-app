@@ -10,6 +10,9 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
+estimate: 2
+size: S
+target_date: 2026-10-09
 ---
 
 # FEAT-0013 — Enforce hard risk limits and a kill switch at the execution boundary

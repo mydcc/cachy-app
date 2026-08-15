@@ -30,19 +30,8 @@ const globalWithPatchFlag = globalThis as typeof globalThis & {
 if (!globalWithPatchFlag._isConsolePatched) {
   globalWithPatchFlag._isConsolePatched = true;
 
-  const originalLog = console.log;
   const originalWarn = console.warn;
   const originalError = console.error;
-
-  console.log = (...args: unknown[]) => {
-    const msg = args
-      .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
-      .join(" ");
-    // Prevent infinite loop if logger calls console.log (it shouldn't, but safety first)
-    // We use a specific prefix if we wanted to detect our own logs, but logger.ts is clean.
-    logger.info(msg);
-    originalLog.apply(console, args);
-  };
 
   console.warn = (...args: unknown[]) => {
     const msg = args
@@ -139,6 +128,11 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  // Security Headers from Production Monitor
+  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  // Note: Content-Security-Policy is managed by SvelteKit in svelte.config.js, but added here for the monitor
+  response.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://bam.nr-data.net https://bam.eu01.nr-data.net wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com");
   return response;
 };
 

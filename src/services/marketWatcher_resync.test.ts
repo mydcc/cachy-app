@@ -34,7 +34,7 @@ vi.mock("./apiService", () => ({
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
     apiProvider: "bitunix",
-    capabilities: { marketData: true },
+    entitlement: { capabilities: { marketData: true } },
     chartHistoryLimit: 1000,
   },
 }));

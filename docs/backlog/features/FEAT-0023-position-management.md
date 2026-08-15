@@ -10,6 +10,9 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [FEAT-0021]
+estimate: 2
+size: S
+target_date: 2026-12-14
 ---
 
 # FEAT-0023 — Manage open positions without leaving Cachy

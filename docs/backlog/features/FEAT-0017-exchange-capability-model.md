@@ -10,6 +10,9 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [FEAT-0016]
+estimate: 2
+size: S
+target_date: 2026-11-05
 ---
 
 # FEAT-0017 — Describe what each exchange can do, and let the UI read it

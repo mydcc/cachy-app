@@ -5,6 +5,141 @@ semantic-release from Conventional Commit messages — do not edit it by hand.
 The 0.9x releases that preceded 1.0.0 were maintained manually and are kept in
 `docs/CHANGELOG-legacy.md`.
 
+# [1.5.0](https://github.com/mydcc/cachy-app/compare/v1.4.0...v1.5.0) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ci:** fix permission name to repository-projects in sync-backlog workflow ([7caa5d7](https://github.com/mydcc/cachy-app/commit/7caa5d70f35993fb934e97e51192fcf666740e4b))
+* **ci:** fix permission name to repository-projects in sync-backlog workflow ([#1870](https://github.com/mydcc/cachy-app/issues/1870)) ([bd4c66f](https://github.com/mydcc/cachy-app/commit/bd4c66f402dea6623c51a8c22473f200f3e61943))
+* **ci:** separate REST GITHUB_TOKEN and GraphQL PROJECT_SYNC_TOKEN ([bf63923](https://github.com/mydcc/cachy-app/commit/bf639233aba90fd96740b283092547a8f55b128f))
+* **ci:** separate REST GITHUB_TOKEN and GraphQL PROJECT_SYNC_TOKEN ([#1874](https://github.com/mydcc/cachy-app/issues/1874)) ([f45bbba](https://github.com/mydcc/cachy-app/commit/f45bbbaf88b38c508cfa697d7c6edd7eb5b4447e))
+* **ci:** use issue number directly and add explicit sync logging ([479ede7](https://github.com/mydcc/cachy-app/commit/479ede7aca11f7a7704095e5ec261cab232483a2))
+* **ci:** use issue number directly and add explicit sync logging ([#1873](https://github.com/mydcc/cachy-app/issues/1873)) ([1234a37](https://github.com/mydcc/cachy-app/commit/1234a3743f2bbe5d8446f31231f6226d622dd2f6))
+* disable commitlint body-max-line-length rule ([1044d59](https://github.com/mydcc/cachy-app/commit/1044d59a35ecddfdea8e2288dc494604e7047e02))
+* disable commitlint body-max-line-length rule ([#1825](https://github.com/mydcc/cachy-app/issues/1825)) ([871e664](https://github.com/mydcc/cachy-app/commit/871e6645cd2f31b90652c02f6472612c96301a6b))
+* harden backlog-to-issues sync (status labels, dropped items, label preservation) ([#1737](https://github.com/mydcc/cachy-app/issues/1737)) ([a64a9e9](https://github.com/mydcc/cachy-app/commit/a64a9e93023b27b76ce7f461b59e58a83a3b2475)), closes [#1736](https://github.com/mydcc/cachy-app/issues/1736)
+* preserve status/labels fidelity in backlog-to-issues sync ([4f62cf4](https://github.com/mydcc/cachy-app/commit/4f62cf4b06c5030e74b9c792a85b2537dafa5a8b))
+* satisfy ESLint no-explicit-any and no-unused-vars ([8980233](https://github.com/mydcc/cachy-app/commit/8980233d3a06ba20fd459942e23c1f76b8fc65b5))
+* **security:** prevent CryptoPanic API key leak in error logs ([51ae93a](https://github.com/mydcc/cachy-app/commit/51ae93ae1d4b35d1f2895781c8013fa21dd0ed00))
+* **security:** prevent CryptoPanic API key leak in error logs ([cd9bf79](https://github.com/mydcc/cachy-app/commit/cd9bf7999bc4a8f14beb4c09aecefccf9737a76b))
+* **security:** sanitize HTML injection in MarketOverview icons ([8eccbba](https://github.com/mydcc/cachy-app/commit/8eccbbaf6959e3c7bc0bb37eda017e1df9af273c))
+* **security:** sanitize HTML injection in MarketOverview icons ([867c100](https://github.com/mydcc/cachy-app/commit/867c100a861f5756b643274b25a7f842fc7942ea))
+* **security:** sanitize HTML injection in MarketOverview icons ([ceed654](https://github.com/mydcc/cachy-app/commit/ceed654b6412ad5af5f9cf2481764d8cde65224d))
+* **security:** sanitize HTML injection in MarketOverview icons ([52feb78](https://github.com/mydcc/cachy-app/commit/52feb786a5fb8cae6581f0b1ce47df3424b2f2d4))
+* **security:** suppress unsanitized HTML warnings via eslint-disable ([bbf1dfe](https://github.com/mydcc/cachy-app/commit/bbf1dfea6f15a0eed20c89576649e0e6b3094778))
+* **security:** suppress unsanitized HTML warnings via eslint-disable ([1d360ed](https://github.com/mydcc/cachy-app/commit/1d360ed07b6b83ce960c34dcf0d72701466f2a1c))
+* **security:** suppress unsanitized HTML warnings via eslint-disable ([9799a19](https://github.com/mydcc/cachy-app/commit/9799a1939ecffe72ee7ba95071431d91e886b064))
+* **smc:** sort orderblocks to fix mitigation sweep logic ([4f179ea](https://github.com/mydcc/cachy-app/commit/4f179ea16c8bfcffdee2f8765292d2e1c7040614))
+* **ui:** prevent symbol input from snapping back when cleared while focused ([51f1e9c](https://github.com/mydcc/cachy-app/commit/51f1e9c1e6aee9fbce8e53fe9060186dcefad33f))
+* **ui:** prevent symbol input from snapping back when cleared while focused ([540b921](https://github.com/mydcc/cachy-app/commit/540b921d7297cd88ded9b2217f66ba3d2c424a49))
+* **ui:** prevent symbol input from snapping back when cleared while focused ([e06bb19](https://github.com/mydcc/cachy-app/commit/e06bb19f33863d724c3ea3200cb2dcafff2517d3))
+* **ui:** prevent symbol input from snapping back when cleared while focused ([#1820](https://github.com/mydcc/cachy-app/issues/1820)) ([8c7d0e2](https://github.com/mydcc/cachy-app/commit/8c7d0e2be1272e40773345ae4bbb1ecec26dacb2))
+
+
+### Features
+
+* **ci:** add detailed logging for project kanban status sync ([1e4a128](https://github.com/mydcc/cachy-app/commit/1e4a1283faf2c9572d336b49908e3f3983b1e707))
+* **ci:** add detailed logging for project kanban status sync ([#1872](https://github.com/mydcc/cachy-app/issues/1872)) ([a39ecb9](https://github.com/mydcc/cachy-app/commit/a39ecb9475325cd8dd56644dc1d201c822d0742f))
+* **ci:** add PR auto-linking rule to AGENTS.md and safety check in sync script ([538f5be](https://github.com/mydcc/cachy-app/commit/538f5be8cb6c8eb211a66134f5d811ce57add826))
+* **ci:** add PR auto-linking rule to AGENTS.md and safety check in sync script ([#1877](https://github.com/mydcc/cachy-app/issues/1877)) ([79c9769](https://github.com/mydcc/cachy-app/commit/79c9769c47793b0281680064e86986effe43dbe4))
+* **ci:** auto-sync GitHub Project V2 Kanban Status field ([31c8dd3](https://github.com/mydcc/cachy-app/commit/31c8dd38c4a3424224e8b3f2ba80fccb9065da3e))
+* **ci:** auto-sync GitHub Project V2 Kanban Status field ([#1869](https://github.com/mydcc/cachy-app/issues/1869)) ([00c7043](https://github.com/mydcc/cachy-app/commit/00c70437f0aaea562091996e3500bf03684ba141))
+* **ci:** use PROJECT_SYNC_TOKEN in sync-backlog workflow ([b8f4003](https://github.com/mydcc/cachy-app/commit/b8f400363f2b19edb4f2122d7c95ba5ee2da08f4))
+* **ci:** use PROJECT_SYNC_TOKEN in sync-backlog workflow ([#1871](https://github.com/mydcc/cachy-app/issues/1871)) ([9bf9349](https://github.com/mydcc/cachy-app/commit/9bf9349b0ba5804533635526771fa8af228be7ef))
+* one-way sync of markdown backlog to github issues ([3c6fb45](https://github.com/mydcc/cachy-app/commit/3c6fb45edf89adec48f09f9769446098984e7f68))
+
+
+### Performance Improvements
+
+* **dataRepair:** batch kline requests by symbol to resolve N+1 API calls ([3bcf59a](https://github.com/mydcc/cachy-app/commit/3bcf59aa60f82aeb0e98c7f3b78edb961c8e090e))
+* **dataRepair:** batch kline requests by symbol to resolve N+1 API calls ([5e7b7bd](https://github.com/mydcc/cachy-app/commit/5e7b7bd4e3f9a9664ff5a116af0770a9b1d00c89))
+* **dataRepair:** batch kline requests by symbol to resolve N+1 API calls ([9fe348b](https://github.com/mydcc/cachy-app/commit/9fe348b7a458a2dd0e7491ddfc533a12c78b9fd8))
+* **repair:** resolve N+1 API call pattern in ATR repair ([edf910e](https://github.com/mydcc/cachy-app/commit/edf910e736c03ae1a2b768c4f25a8f4d71beac45))
+* **repair:** resolve N+1 API call pattern in ATR repair ([3de9b5b](https://github.com/mydcc/cachy-app/commit/3de9b5b1cc1ca5b04c1acc114d4609c716754a33))
+* **repair:** resolve N+1 API call pattern in ATR repair ([99488dc](https://github.com/mydcc/cachy-app/commit/99488dc148e543b25f44fa951fdc9f9202898f0d))
+* **repair:** resolve N+1 API call pattern in ATR repair ([#1866](https://github.com/mydcc/cachy-app/issues/1866)) ([ddb3a0f](https://github.com/mydcc/cachy-app/commit/ddb3a0f8b375c46def53fb11d1c538f6bb25ddb5))
+* **smc:** optimize mitigation detection loop ([1f194ca](https://github.com/mydcc/cachy-app/commit/1f194cada79b4413b998790c9d7012fb95224053))
+* **webgpu:** optimize arraybuffer mapping to typedarray conversion ([b6919a9](https://github.com/mydcc/cachy-app/commit/b6919a944676b76c2b5a1375b012efd23603c839))
+* **webgpu:** optimize arraybuffer mapping to typedarray conversion ([995705e](https://github.com/mydcc/cachy-app/commit/995705e801e86ffca5d456f007c58a92b84f79e7))
+* **webgpu:** optimize arraybuffer mapping to typedarray conversion ([#1845](https://github.com/mydcc/cachy-app/issues/1845)) ([7cdf29f](https://github.com/mydcc/cachy-app/commit/7cdf29fc52c4d2cfa496da5b8d39e15138f737b6))
+
+# [1.4.0](https://github.com/mydcc/cachy-app/compare/v1.3.0...v1.4.0) (2026-08-12)
+
+
+### Bug Fixes
+
+* **aria:** extract hardcoded aria-labels to locale files ([#1725](https://github.com/mydcc/cachy-app/issues/1725)) ([121dabe](https://github.com/mydcc/cachy-app/commit/121dabe71d9c470a118d0bc0d794649d19ab6213)), closes [#1716](https://github.com/mydcc/cachy-app/issues/1716)
+* **ci:** auto-publish Jules PRs instead of requiring a manual click ([055e2fd](https://github.com/mydcc/cachy-app/commit/055e2fd5312fa98dbf33205b2543c1398427a9ca)), closes [#1709](https://github.com/mydcc/cachy-app/issues/1709)
+* **ci:** lint only the PR's tip commit, not the full base..head range ([#1721](https://github.com/mydcc/cachy-app/issues/1721)) ([d8f239d](https://github.com/mydcc/cachy-app/commit/d8f239d3c9ae571ef83edb0373c1baa1cb943968)), closes [#1716](https://github.com/mydcc/cachy-app/issues/1716) [1711/#1712](https://github.com/mydcc/cachy-app/issues/1712) [#1716](https://github.com/mydcc/cachy-app/issues/1716)
+* **ci:** make Jules backlog dedup mandatory and honest in dry runs ([15508f7](https://github.com/mydcc/cachy-app/commit/15508f7b7807df8a0374beaaa5bea04d4f707652))
+* **ci:** repair create-session.sh --file and give sessions an item title ([04677ba](https://github.com/mydcc/cachy-app/commit/04677bab50ee01d01be8bfa59fc8c7659783bd78))
+* **ci:** scope Jules dedup to session subject fields and add an age window ([c56af82](https://github.com/mydcc/cachy-app/commit/c56af82fbf000933eb877bad7c6624c0b7b0dfa5))
+* correct Jules PR detection to use the PR body footer, not branch prefix ([c922d86](https://github.com/mydcc/cachy-app/commit/c922d865e7bcaee41a04a5b67b5bc6432d0e0f70))
+* **security:** resolve missing security headers and improve performance ([#1728](https://github.com/mydcc/cachy-app/issues/1728)) ([a0f8ef1](https://github.com/mydcc/cachy-app/commit/a0f8ef1ff85ce90954d0a52622ea8ab0de790ea4))
+* stop /jules-review from duplicating what CI already reports ([b5ae317](https://github.com/mydcc/cachy-app/commit/b5ae317c71de255b98ee27c7e6c233fb4a4aa43e)), closes [#1711](https://github.com/mydcc/cachy-app/issues/1711)
+* **ui:** extract hardcoded English strings in indicator settings ([2911c4d](https://github.com/mydcc/cachy-app/commit/2911c4d04dac7e8628223b0d73b69cd6e26b30a6))
+
+
+### Features
+
+* add /backlog-groom slash command ([62136d8](https://github.com/mydcc/cachy-app/commit/62136d8eb23f381505d92094b960122b369f6aec))
+* add /jules-review command for auditing Jules pull requests ([93460a1](https://github.com/mydcc/cachy-app/commit/93460a13a2773ba28c1e5ce55e113108e5d01946))
+* add AGENTS.md and Jules-based production monitoring ([47c5dcf](https://github.com/mydcc/cachy-app/commit/47c5dcf864ecdd176f532135ee3c80aa5326359e))
+* **alerts:** implement local alert engine ([fc9af83](https://github.com/mydcc/cachy-app/commit/fc9af837db9e42dd2440bfe7e0f6947328f2549d))
+* **alerts:** implement local alert engine ([c654918](https://github.com/mydcc/cachy-app/commit/c654918c1843097ca0d3fccfd479619a18cfc687))
+* **alerts:** implement local alert engine ([3245aa3](https://github.com/mydcc/cachy-app/commit/3245aa3053af5297f3a39cde609e4700edb2c4f2))
+* **alerts:** implement local alert engine ([348e7bb](https://github.com/mydcc/cachy-app/commit/348e7bbf12251a2cf21539af11a5d5f5675e62cd))
+* **alerts:** implement local alert engine ([d3ffaba](https://github.com/mydcc/cachy-app/commit/d3ffaba4e69859752a5279f7544bd8323018d7f2))
+* dispatch ready backlog items to Jules automatically ([6f49528](https://github.com/mydcc/cachy-app/commit/6f495288205fe0c3d6058326529e90e10acce721))
+
+
+### Performance Improvements
+
+* **render:** remove inline array allocations in render paths ([#1724](https://github.com/mydcc/cachy-app/issues/1724)) ([db8ed28](https://github.com/mydcc/cachy-app/commit/db8ed281447042b59971ad50e20fb76ba1225b7f)), closes [#each](https://github.com/mydcc/cachy-app/issues/each) [#1715](https://github.com/mydcc/cachy-app/issues/1715)
+
+# [1.4.0-beta.9](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.8...v1.4.0-beta.9) (2026-08-12)
+
+
+### Bug Fixes
+
+* **security:** resolve missing security headers and improve performance ([#1728](https://github.com/mydcc/cachy-app/issues/1728)) ([a0f8ef1](https://github.com/mydcc/cachy-app/commit/a0f8ef1ff85ce90954d0a52622ea8ab0de790ea4))
+
+# [1.4.0-beta.8](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.7...v1.4.0-beta.8) (2026-08-12)
+
+
+### Bug Fixes
+
+* **aria:** extract hardcoded aria-labels to locale files ([#1725](https://github.com/mydcc/cachy-app/issues/1725)) ([121dabe](https://github.com/mydcc/cachy-app/commit/121dabe71d9c470a118d0bc0d794649d19ab6213)), closes [#1716](https://github.com/mydcc/cachy-app/issues/1716)
+
+
+### Performance Improvements
+
+* **render:** remove inline array allocations in render paths ([#1724](https://github.com/mydcc/cachy-app/issues/1724)) ([db8ed28](https://github.com/mydcc/cachy-app/commit/db8ed281447042b59971ad50e20fb76ba1225b7f)), closes [#each](https://github.com/mydcc/cachy-app/issues/each) [#1715](https://github.com/mydcc/cachy-app/issues/1715)
+
+# [1.4.0-beta.7](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.6...v1.4.0-beta.7) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ci:** lint only the PR's tip commit, not the full base..head range ([#1721](https://github.com/mydcc/cachy-app/issues/1721)) ([d8f239d](https://github.com/mydcc/cachy-app/commit/d8f239d3c9ae571ef83edb0373c1baa1cb943968)), closes [#1716](https://github.com/mydcc/cachy-app/issues/1716) [1711/#1712](https://github.com/mydcc/cachy-app/issues/1712) [#1716](https://github.com/mydcc/cachy-app/issues/1716)
+
+# [1.4.0-beta.6](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.5...v1.4.0-beta.6) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ui:** extract hardcoded English strings in indicator settings ([2911c4d](https://github.com/mydcc/cachy-app/commit/2911c4d04dac7e8628223b0d73b69cd6e26b30a6))
+
+
+### Features
+
+* **alerts:** implement local alert engine ([fc9af83](https://github.com/mydcc/cachy-app/commit/fc9af837db9e42dd2440bfe7e0f6947328f2549d))
+* **alerts:** implement local alert engine ([c654918](https://github.com/mydcc/cachy-app/commit/c654918c1843097ca0d3fccfd479619a18cfc687))
+* **alerts:** implement local alert engine ([3245aa3](https://github.com/mydcc/cachy-app/commit/3245aa3053af5297f3a39cde609e4700edb2c4f2))
+* **alerts:** implement local alert engine ([348e7bb](https://github.com/mydcc/cachy-app/commit/348e7bbf12251a2cf21539af11a5d5f5675e62cd))
+* **alerts:** implement local alert engine ([d3ffaba](https://github.com/mydcc/cachy-app/commit/d3ffaba4e69859752a5279f7544bd8323018d7f2))
+
 # [1.4.0-beta.5](https://github.com/mydcc/cachy-app/compare/v1.4.0-beta.4...v1.4.0-beta.5) (2026-08-11)
 
 

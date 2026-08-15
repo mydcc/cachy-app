@@ -221,7 +221,24 @@
       "orderCancelled": "Order cancelled",
       "cancelFailed": "Failed to cancel order",
       "confirmCancel": "Cancel this TP/SL order?",
-      "noApiKeys": "No API keys configured"
+      "noApiKeys": "No API keys configured",
+      "title": "Price Alerts",
+      "active": "Active",
+      "history": "History",
+      "noActive": "No active alerts",
+      "fired": "Alert Fired!",
+      "priceReached": "{symbol} reached {price}",
+      "manage": "Manage Alerts",
+      "addAlert": "Add Alert",
+      "priceLimit": "Price",
+      "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
+      "createSuccess": "Alert created successfully.",
+      "deleteAlert": "Delete Alert",
+      "noHistory": "No history",
+      "crossesUp": "Crosses Up",
+      "crossesDown": "Crosses Down",
+      "reaches": "Reaches",
+      "symbol": "Symbol"
     },
     "generalInputs": {
       "header": "General",
@@ -354,7 +371,14 @@
       "statusCancelOnly": "Cancel-only",
       "statusStop": "Trading stopped",
       "apiNotSupported": "API trading disabled"
-    }
+    },
+    "positionsAria": {
+      "positionDetails": "Position Details",
+      "symbolDetails": "Symbol Details"
+    },
+    "synchronizingHistory": "Synchronizing History...",
+    "cancelOrder": "Cancel Order",
+    "connectionStatus": "Connection Status"
   },
   "journal": {
     "title": "Trade Journal",
@@ -684,6 +708,8 @@
     "en": "English"
   },
   "settings": {
+    "decryptionWarningTitle": "Security Warning",
+    "decryptionWarningMessage": "saved key(s) could not be read and need to be re-entered.",
     "calculation": {
       "analyzeFavorites": "Analyze All Favorites",
       "analyzeFavoritesBadgeAll": "All Favorites",
@@ -723,7 +749,10 @@
       "interval2sTooltip": "Great for intraday trading (1-15min). Moderate CPU.",
       "interval5sTooltip": "Good for day trading (15min+). Balanced.",
       "interval10sTooltip": "Ideal for swing trading (1h+). Low CPU.",
-      "intervalDesc": "Controls data freshness vs CPU usage"
+      "intervalDesc": "Controls data freshness vs CPU usage",
+      "aria": {
+        "removeTimeframe": "Remove timeframe"
+      }
     },
     "visuals": {
       "subtabs": {
@@ -963,6 +992,10 @@
         "token": "Bot Token",
         "channelId": "Channel ID",
         "addChannel": "+ Add Channel"
+      },
+      "aria": {
+        "removeChannel": "Remove channel",
+        "addChannel": "Add Channel"
       }
     },
     "technicals": {
@@ -1077,7 +1110,61 @@
         "strong sell": "Strong Sell",
         "overbought": "Overbought",
         "oversold": "Oversold"
-      }
+      },
+      "panelConfiguration": "Panel Configuration",
+      "toggleVisibility": "Toggle visibility",
+      "signals": "Signals",
+      "calculationEngine": "Calculation Engine",
+      "engine": "Engine",
+      "mode": "Mode",
+      "displayPreferences": "Display Preferences",
+      "calculationMode": "Calculation Mode",
+      "obvNoParams": "On Balance Volume has no configurable parameters.",
+      "awesomeOsc": "Awesome Osc.",
+      "anchor": "Anchor",
+      "rows": "Rows",
+      "maType": "MA Type",
+      "volumeProfile": "Volume Profile",
+      "williamsR": "Williams %R",
+      "cci": "CCI",
+      "momentum": "Momentum",
+      "wma": "WMA",
+      "vwma": "VWMA",
+      "hma": "HMA",
+      "choppiness": "Choppiness Idx",
+      "stochasticTitle": "Stochastic",
+      "parabolicSar": "Parabolic SAR",
+      "emaTitle": "EMA",
+      "smaTitle": "SMA",
+      "pivotClassic": "Classic",
+      "pivotWoodie": "Woodie",
+      "pivotCamarilla": "Camarilla",
+      "pivotFibonacci": "Fibonacci",
+      "kPeriod": "%K",
+      "dPeriod": "%D",
+      "smooth": "Smooth",
+      "diLength": "DI Length",
+      "smoothing": "Smoothing",
+      "threshold": "Threshold",
+      "conversion": "Conversion",
+      "base": "Base",
+      "spanB": "Span B",
+      "displacement": "Displacement",
+      "start": "Start",
+      "inc": "Inc",
+      "max": "Max",
+      "multiplier": "Multiplier",
+      "ema1": "EMA 1",
+      "ema2": "EMA 2",
+      "ema3": "EMA 3",
+      "sma1": "SMA 1",
+      "sma2": "SMA 2",
+      "sma3": "SMA 3",
+      "maTypeSma": "SMA",
+      "maTypeEma": "EMA",
+      "maTypeWma": "WMA",
+      "anchorSession": "Session",
+      "anchorFixed": "Fixed"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
@@ -1107,7 +1194,8 @@
       "activePreset": "Active Preset:",
       "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
       "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
-      "switchToCustom": "Switch to Custom Configuration"
+      "switchToCustom": "Switch to Custom Configuration",
+      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
     },
     "tabs": {
       "general": "General",
@@ -1330,6 +1418,13 @@
         "cmc": "CoinMarketCap API",
         "newsapi": "NewsAPI.org",
         "imgbb": "ImgBB API (Screenshots)"
+      },
+      "aria": {
+        "toggleToken": "Toggle token visibility",
+        "toggleKey": "Toggle key visibility",
+        "toggleSecret": "Toggle secret visibility",
+        "togglePassphrase": "Toggle passphrase visibility",
+        "removeFeed": "Remove feed"
       }
     },
     "imgbbExpiration": "Expiration Time",
@@ -1471,7 +1566,9 @@
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
-    }
+    },
+    "toggleMarketTiles": "Toggle Market Tiles",
+    "toggleMarketSentiment": "Toggle Market Sentiment"
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -1529,7 +1626,18 @@
     "copy": "Copy Content",
     "ignore": "Ignore",
     "send": "Send message",
-    "analyzing": "Analyzing..."
+    "analyzing": "Analyzing...",
+    "aria": {
+      "startQuiz": "Start Quiz",
+      "toggleVideo": "Toggle Video",
+      "removeTag": "Remove tag"
+    },
+    "export": "Export",
+    "delete": "Delete",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "feedDuck": "Feed Duck (Profit)"
   },
   "analyst": {
     "trend": {
@@ -2155,9 +2263,10 @@
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
-    "closeAllFailed": "Failed to close all positions",
+    "closeAllFailed": "Flash Close Failed for: {failedSymbols}",
     "apiError": "API Error: {error}",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "flashCloseFailed": "Flash Close Failed: {msg}"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",
@@ -2179,7 +2288,8 @@
     "categoryLabel": "Category",
     "categoryTrading": "Trading & Strategies",
     "categoryTech": "Cachy App Knowledge",
-    "notReady": "Quiz questions are still loading, try again in a moment."
+    "notReady": "Quiz questions are still loading, try again in a moment.",
+    "quickQuiz": "Quick Quiz"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
@@ -2207,5 +2317,12 @@
     "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
     "eraseNeedsConnection": "Connect first — erasure runs against the server.",
     "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
+  },
+  "marketAnalyst": {
+    "analysisFailed": "Analysis failed for {symbol}: {error}"
+  },
+  "calculationStrategy": {
+    "criticalLag": "Critical Lag: {engine} took {duration}ms",
+    "slowCalc": "Slow Calc: {engine} ({duration}ms)"
   }
 }

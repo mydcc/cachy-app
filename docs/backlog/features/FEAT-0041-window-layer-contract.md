@@ -2,7 +2,7 @@
 id: FEAT-0041
 title: Give every floating surface its z-index from one layer contract
 type: feature
-status: specced
+status: done
 priority: P1
 milestone: M0
 editions: [community, pro, private]
@@ -71,14 +71,14 @@ defects it exists to fix.
 
 ## Acceptance criteria
 
-- [ ] `grep -rn "z-index: [0-9]" src/components src/routes` returns no floating
+- [x] `grep -rn "z-index: [0-9]" src/components src/routes` returns no floating
       surface — only inline UI that ADR-0006 puts out of scope
-- [ ] `grep -rn "z-\[[0-9]" src` likewise
-- [ ] The quiz card renders above an open chart window
-- [ ] A test asserts the layer tokens are strictly ordered, so a later edit
+- [x] `grep -rn "z-\[[0-9]" src` likewise
+- [x] The quiz card renders above an open chart window
+- [x] A test asserts the layer tokens are strictly ordered, so a later edit
       cannot silently make `--z-modal` lower than `--z-window`
-- [ ] Toast and modal no longer tie at the same value
-- [ ] The offline banner, disclaimer notice and hotkey conflict warning use the
+- [x] Toast and modal no longer tie at the same value
+- [x] The offline banner, disclaimer notice and hotkey conflict warning use the
       toast layer instead of their current ad hoc values
 
 ## Out of scope
@@ -104,9 +104,8 @@ place among floating surfaces.
 
 ## Open questions
 
-Whether the dock belongs above or below maximized windows. Today it is below
-(`12000` vs `20000`), which means maximizing a window hides the dock. That may
-be intentional.
+- **RESOLVED:** Whether the dock belongs above or below maximized windows.
+  **Resolution:** Option A (Full-Focus Mode). Maximized windows cover the dock (`--z-window-max` > `--z-window-dock`) to provide a 100% clean, immersive workspace area when maximized. Modals, quiz cards, toasts, and FX sit above maximized windows.
 
 ## Links
 

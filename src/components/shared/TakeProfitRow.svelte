@@ -31,8 +31,8 @@
 
   interface Props {
     index: number;
-    price: string | number | null;
-    percent: string | number | null;
+    price: string | null;
+    percent: string | null;
     isLocked: boolean;
     tpDetail?: IndividualTpResult | undefined;
   }
@@ -60,7 +60,7 @@
     dispatch("remove", index);
   }
 
-  const format = (val: string | number | null) =>
+  const format = (val: string | null) =>
     val === null || val === undefined ? "" : String(val);
 
   function handlePriceInput(e: Event) {
@@ -97,12 +97,15 @@
     return 0.01;
   });
 
-  function formatProfit(val: Decimal) {
-    const num = val?.toNumber ? val.toNumber() : Number(val);
-    if (!num) return "0";
-    if (Math.abs(num) < 0.1) return num.toFixed(4);
-    if (Math.abs(num) < 1000) return num.toFixed(2);
-    return num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  function formatProfit(val: Decimal): string {
+    if (!val || val.isZero()) return "0";
+    const abs = val.abs();
+    if (abs.lt(0.1)) return val.toFixed(4);
+    if (abs.lt(1000)) return val.toFixed(2);
+    // decimal.js has no locale-aware thousands separator, so this is the one
+    // branch that genuinely needs Number() — safe here since a displayed
+    // profit is nowhere near float64's ~15-digit precision limit.
+    return val.toNumber().toLocaleString(undefined, { maximumFractionDigits: 0 });
   }
 </script>
 

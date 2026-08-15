@@ -2,7 +2,7 @@
 id: FEAT-0075
 title: Show maintenance-margin tier context next to an open position
 type: feature
-status: in-progress
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: calculation
 data_class: C
 adr: none
 depends_on: []
+estimate: 3
+size: M
 ---
 
 # FEAT-0075 — Show maintenance-margin tier context next to an open position

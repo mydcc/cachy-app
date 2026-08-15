@@ -1,5 +1,72 @@
 /* @ts-self-types="./technicals_wasm.d.ts" */
 
+export class AlertEngineWasm {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        AlertEngineWasmFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_alertenginewasm_free(ptr, 0);
+    }
+    /**
+     * @param {string} alert_json
+     */
+    add_alert(alert_json) {
+        const ptr0 = passStringToWasm0(alert_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.alertenginewasm_add_alert(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * @param {string} symbol
+     * @param {string} current_price_str
+     * @param {number} timestamp
+     * @returns {any}
+     */
+    evaluate(symbol, current_price_str, timestamp) {
+        const ptr0 = passStringToWasm0(symbol, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(current_price_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.alertenginewasm_evaluate(this.__wbg_ptr, ptr0, len0, ptr1, len1, timestamp);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    constructor() {
+        const ret = wasm.alertenginewasm_new();
+        this.__wbg_ptr = ret;
+        AlertEngineWasmFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {string} id
+     */
+    remove_alert(id) {
+        const ptr0 = passStringToWasm0(id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.alertenginewasm_remove_alert(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * @param {string} alerts_json
+     */
+    set_alerts(alerts_json) {
+        const ptr0 = passStringToWasm0(alerts_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.alertenginewasm_set_alerts(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+}
+if (Symbol.dispose) AlertEngineWasm.prototype[Symbol.dispose] = AlertEngineWasm.prototype.free;
+
 export class TechnicalsCalculator {
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -12,21 +79,28 @@ export class TechnicalsCalculator {
         wasm.__wbg_technicalscalculator_free(ptr, 0);
     }
     /**
-     * @param {Float64Array} closes
-     * @param {Float64Array} highs
-     * @param {Float64Array} lows
-     * @param {Float64Array} volumes
+     * Seed the calculator with price history.
+     *
+     * Prices and volumes cross the boundary as decimal strings, not `f64`:
+     * widening a `f64` to `Decimal` on this side cannot recover precision that
+     * was already lost on the way in, which is the whole point of BUG-0182.
+     * `_times` stays numeric — it is a millisecond timestamp, not a financial
+     * value, and is currently unused.
+     * @param {string[]} closes_arr
+     * @param {string[]} highs_arr
+     * @param {string[]} lows_arr
+     * @param {string[]} volumes_arr
      * @param {Float64Array} _times
      * @param {string} settings_json
      */
-    initialize(closes, highs, lows, volumes, _times, settings_json) {
-        const ptr0 = passArrayF64ToWasm0(closes, wasm.__wbindgen_malloc);
+    initialize(closes_arr, highs_arr, lows_arr, volumes_arr, _times, settings_json) {
+        const ptr0 = passArrayJsValueToWasm0(closes_arr, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArrayF64ToWasm0(highs, wasm.__wbindgen_malloc);
+        const ptr1 = passArrayJsValueToWasm0(highs_arr, wasm.__wbindgen_malloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passArrayF64ToWasm0(lows, wasm.__wbindgen_malloc);
+        const ptr2 = passArrayJsValueToWasm0(lows_arr, wasm.__wbindgen_malloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArrayF64ToWasm0(volumes, wasm.__wbindgen_malloc);
+        const ptr3 = passArrayJsValueToWasm0(volumes_arr, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
         const ptr4 = passArrayF64ToWasm0(_times, wasm.__wbindgen_malloc);
         const len4 = WASM_VECTOR_LEN;
@@ -36,50 +110,121 @@ export class TechnicalsCalculator {
     }
     constructor() {
         const ret = wasm.technicalscalculator_new();
-        this.__wbg_ptr = ret >>> 0;
+        this.__wbg_ptr = ret;
         TechnicalsCalculatorFinalization.register(this, this.__wbg_ptr, this);
         return this;
     }
     /**
-     * @param {number} _o
-     * @param {number} h
-     * @param {number} l
-     * @param {number} c
-     * @param {number} v
-     * @param {number} _t
+     * @param {string} _o_str
+     * @param {string} h_str
+     * @param {string} l_str
+     * @param {string} c_str
+     * @param {string} v_str
+     * @param {string} _t_str
      */
-    shift(_o, h, l, c, v, _t) {
-        wasm.technicalscalculator_shift(this.__wbg_ptr, _o, h, l, c, v, _t);
+    shift(_o_str, h_str, l_str, c_str, v_str, _t_str) {
+        const ptr0 = passStringToWasm0(_o_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(h_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(l_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(c_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(v_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ptr5 = passStringToWasm0(_t_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len5 = WASM_VECTOR_LEN;
+        wasm.technicalscalculator_shift(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
     }
     /**
-     * @param {number} _o
-     * @param {number} h
-     * @param {number} l
-     * @param {number} c
-     * @param {number} v
-     * @param {number} _t
+     * @param {string} _o_str
+     * @param {string} h_str
+     * @param {string} l_str
+     * @param {string} c_str
+     * @param {string} v_str
+     * @param {string} _t_str
      * @returns {string}
      */
-    update(_o, h, l, c, v, _t) {
-        let deferred1_0;
-        let deferred1_1;
+    update(_o_str, h_str, l_str, c_str, v_str, _t_str) {
+        let deferred7_0;
+        let deferred7_1;
         try {
-            const ret = wasm.technicalscalculator_update(this.__wbg_ptr, _o, h, l, c, v, _t);
-            deferred1_0 = ret[0];
-            deferred1_1 = ret[1];
+            const ptr0 = passStringToWasm0(_o_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ptr1 = passStringToWasm0(h_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len1 = WASM_VECTOR_LEN;
+            const ptr2 = passStringToWasm0(l_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len2 = WASM_VECTOR_LEN;
+            const ptr3 = passStringToWasm0(c_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len3 = WASM_VECTOR_LEN;
+            const ptr4 = passStringToWasm0(v_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len4 = WASM_VECTOR_LEN;
+            const ptr5 = passStringToWasm0(_t_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len5 = WASM_VECTOR_LEN;
+            const ret = wasm.technicalscalculator_update(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+            deferred7_0 = ret[0];
+            deferred7_1 = ret[1];
             return getStringFromWasm0(ret[0], ret[1]);
         } finally {
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+            wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
         }
     }
 }
 if (Symbol.dispose) TechnicalsCalculator.prototype[Symbol.dispose] = TechnicalsCalculator.prototype.free;
-
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
-        __wbg___wbindgen_throw_be289d5034ed271b: function(arg0, arg1) {
+        __wbg_Error_92b29b0548f8b746: function(arg0, arg1) {
+            const ret = Error(getStringFromWasm0(arg0, arg1));
+            return ret;
+        },
+        __wbg_String_8564e559799eccda: function(arg0, arg1) {
+            const ret = String(arg1);
+            const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
+        __wbg___wbindgen_string_get_b0ca35b86a603356: function(arg0, arg1) {
+            const obj = arg1;
+            const ret = typeof(obj) === 'string' ? obj : undefined;
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
+        __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
+        },
+        __wbg_new_32b398fb48b6d94a: function() {
+            const ret = new Array();
+            return ret;
+        },
+        __wbg_new_da52cf8fe3429cb2: function() {
+            const ret = new Object();
+            return ret;
+        },
+        __wbg_set_6be42768c690e380: function(arg0, arg1, arg2) {
+            arg0[arg1] = arg2;
+        },
+        __wbg_set_8a16b38e4805b298: function(arg0, arg1, arg2) {
+            arg0[arg1 >>> 0] = arg2;
+        },
+        __wbindgen_cast_0000000000000001: function(arg0) {
+            // Cast intrinsic for `F64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_cast_0000000000000002: function(arg0) {
+            // Cast intrinsic for `I64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_cast_0000000000000003: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(String) -> Externref`.
+            const ret = getStringFromWasm0(arg0, arg1);
+            return ret;
         },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;
@@ -97,9 +242,26 @@ function __wbg_get_imports() {
     };
 }
 
+const AlertEngineWasmFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_alertenginewasm_free(ptr, 1));
 const TechnicalsCalculatorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
-    : new FinalizationRegistry(ptr => wasm.__wbg_technicalscalculator_free(ptr >>> 0, 1));
+    : new FinalizationRegistry(ptr => wasm.__wbg_technicalscalculator_free(ptr, 1));
+
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
+
+let cachedDataViewMemory0 = null;
+function getDataViewMemory0() {
+    if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
+        cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
+    }
+    return cachedDataViewMemory0;
+}
 
 let cachedFloat64ArrayMemory0 = null;
 function getFloat64ArrayMemory0() {
@@ -110,8 +272,7 @@ function getFloat64ArrayMemory0() {
 }
 
 function getStringFromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return decodeText(ptr, len);
+    return decodeText(ptr >>> 0, len);
 }
 
 let cachedUint8ArrayMemory0 = null;
@@ -122,10 +283,24 @@ function getUint8ArrayMemory0() {
     return cachedUint8ArrayMemory0;
 }
 
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
+
 function passArrayF64ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 8, 8) >>> 0;
     getFloat64ArrayMemory0().set(arg, ptr / 8);
     WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArrayJsValueToWasm0(array, malloc) {
+    const ptr = malloc(array.length * 4, 4) >>> 0;
+    for (let i = 0; i < array.length; i++) {
+        const add = addToExternrefTable0(array[i]);
+        getDataViewMemory0().setUint32(ptr + 4 * i, add, true);
+    }
+    WASM_VECTOR_LEN = array.length;
     return ptr;
 }
 
@@ -166,6 +341,12 @@ function passStringToWasm0(arg, malloc, realloc) {
     return ptr;
 }
 
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_externrefs.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
+}
+
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 cachedTextDecoder.decode();
 const MAX_SAFARI_DECODE_BYTES = 2146435072;
@@ -195,10 +376,12 @@ if (!('encodeInto' in cachedTextEncoder)) {
 
 let WASM_VECTOR_LEN = 0;
 
-let wasmModule, wasm;
+let wasmModule, wasmInstance, wasm;
 function __wbg_finalize_init(instance, module) {
+    wasmInstance = instance;
     wasm = instance.exports;
     wasmModule = module;
+    cachedDataViewMemory0 = null;
     cachedFloat64ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();

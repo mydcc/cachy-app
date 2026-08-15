@@ -10,6 +10,8 @@ area: collaboration
 data_class: B
 adr: ADR-0004
 depends_on: [FEAT-0014]
+estimate: 5
+size: L
 ---
 
 # FEAT-0034 — Share a trade setup live, as price levels only
