@@ -23,13 +23,13 @@ export interface ParserContext {
   shouldThrottle: (key: string, commit?: boolean) => boolean;
 }
 
-export function parseMessage(message: Record<string, any>, context: ParserContext): ParseOutcome {
-  const channel = message.ch || message.topic;
+export function parseMessage(message: Record<string, unknown>, context: ParserContext): ParseOutcome {
+  const channel = (message.ch as string) || (message.topic as string);
   try {
     if (message && channel) {
-      const rawSymbol = message.symbol || "";
+      const rawSymbol = (message.symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
-      const data = message.data;
+      const data = message.data as Record<string, unknown>;
       const isObjectData = data && typeof data === "object" && !Array.isArray(data);
       if (isObjectData) {
         switch (channel) {

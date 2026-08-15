@@ -1,3 +1,4 @@
+import type { ParseOutcome } from "./messageParser";
 import Decimal from "decimal.js";
 import { marketState } from "../../stores/market.svelte";
 import { accountState } from "../../stores/account.svelte";
@@ -8,7 +9,7 @@ import { isAllowedChannel } from "../../types/bitunixValidation";
 import { mapToOMSPosition, mapToOMSOrder } from "../mappers";
 import { BitunixPriceDataSchema } from "../../types/bitunixValidation";
 import { logger } from "../logger";
-import type { ParseOutcome } from "./messageParser";
+
 
 export interface DispatchContext {
   commitThrottle: (key: string) => void;
@@ -19,7 +20,7 @@ export interface DispatchContext {
   syntheticSubs: Map<string, number>;
 }
 
-export function dispatchMessage(parsed: any, context: DispatchContext) {
+export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) {
   if (parsed.type === "ignore" || parsed.type === "critical_error") return;
   if (parsed.type === "fast_price") {
     const { symbol, data } = parsed;
@@ -67,16 +68,16 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
   }
   if (parsed.type === "validated") {
     const validatedMessage = parsed.message;
-    const validatedChannel = validatedMessage.ch || validatedMessage.topic;
+    const validatedChannel = ((validatedMessage as Record<string, unknown>).ch as string) || ((validatedMessage as Record<string, unknown>).topic as string);
     if (validatedChannel && !isAllowedChannel(validatedChannel)) {
       logger.warn("network", "[WebSocket] Unknown channel", validatedChannel);
       return;
     }
     if (validatedChannel === "price") {
-      const rawSymbol = validatedMessage.symbol || "";
+      const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
       if (context.shouldThrottle(`${symbol}:price`)) return;
-      const priceData = BitunixPriceDataSchema.safeParse(validatedMessage.data);
+      const priceData = BitunixPriceDataSchema.safeParse((validatedMessage as Record<string, unknown>).data);
       if (priceData.success) {
         const d = priceData.data;
         marketState.updateSymbol(symbol, {
@@ -85,10 +86,10 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
         });
       }
     } else if (validatedChannel === "ticker") {
-      const rawSymbol = validatedMessage.symbol || "";
+      const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
       if (context.shouldThrottle(`${symbol}:ticker`)) return;
-      const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
+      const normalized = mdaService.normalizeTicker(validatedMessage as Record<string, unknown>, "bitunix");
       if (normalized) {
         marketState.updateSymbol(symbol, {
           lastPrice: normalized.lastPrice,
@@ -99,18 +100,19 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
         });
       }
     } else if (validatedChannel === "depth_book5") {
-      const rawSymbol = validatedMessage.symbol || "";
+      const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
       if (context.shouldThrottle(`${symbol}:depth`)) return;
-      const data = validatedMessage.data;
-      if (data && data.a && data.b) {
+      const data = (validatedMessage as Record<string, unknown>).data as Record<string, unknown>;
+      const d = data as { a?: unknown[], b?: unknown[] };
+      if (d && d.a && d.b) {
         marketState.updateDepth(symbol, {
-          bids: data.b.map((level: unknown[]) => [String(level[0]), String(level[1])]),
-          asks: data.a.map((level: unknown[]) => [String(level[0]), String(level[1])]),
+          bids: d.b.map((level: unknown) => [String((level as unknown[])[0]), String((level as unknown[])[1])]),
+          asks: d.a.map((level: unknown) => [String((level as unknown[])[0]), String((level as unknown[])[1])]),
         });
       }
     } else if (validatedChannel?.startsWith("market_kline_") || validatedChannel === "mark_kline_1day") {
-      const rawSymbol = validatedMessage.symbol || "";
+      const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
       let timeframe = "1h";
       if (validatedChannel === "mark_kline_1day") timeframe = "1d";
@@ -126,12 +128,12 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
           timeframe = revMap[bitunixTf] || bitunixTf;
         }
       }
-      const kline = mdaService.normalizeKlines([validatedMessage.data], 'bitunix');
+      const kline = mdaService.normalizeKlines([(validatedMessage as Record<string, unknown>).data], 'bitunix');
       if (kline) marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
     } else if (validatedChannel === "trade") {
-      const rawSymbol = validatedMessage.symbol || "";
+      const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
-      const data = validatedMessage.data;
+      const data = (validatedMessage as Record<string, unknown>).data as Record<string, unknown>;
 
       const isTradeData = (d: unknown): boolean => {
          return d !== null && typeof d === 'object' && 'p' in d && 'v' in d && 's' in d && 't' in d;
@@ -143,10 +145,10 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
          if (listeners) {
              for (const item of items) {
                  const t = {
-                     price: String((item as any).p),
-                     amount: String((item as any).v),
-                     side: (item as any).s === 1 || (item as any).s === "1" || (item as any).s === "buy" ? ("buy" as const) : ("sell" as const),
-                     timestamp: typeof (item as any).t === 'number' ? (item as any).t as number : parseInt((item as any).t as string) || Date.now(),
+                     price: String((item as Record<string, unknown>).p),
+                     amount: String((item as Record<string, unknown>).v),
+                     side: (item as Record<string, unknown>).s === 1 || (item as Record<string, unknown>).s === "1" || (item as Record<string, unknown>).s === "buy" ? ("buy" as const) : ("sell" as const),
+                     timestamp: typeof (item as Record<string, unknown>).t === 'number' ? (item as Record<string, unknown>).t as number : parseInt((item as Record<string, unknown>).t as string) || Date.now(),
                      isSynthetic: false
                  };
                  listeners.forEach((listener) => {
@@ -160,7 +162,7 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
          }
       }
     } else if (validatedChannel === "position") {
-      const data = validatedMessage.data;
+      const data = (validatedMessage as Record<string, unknown>).data as Record<string, unknown>;
       if (data) {
         if (Array.isArray(data)) {
           data.forEach((item: Record<string, unknown>) => {
@@ -176,7 +178,7 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
         }
       }
     } else if (validatedChannel === "order") {
-      const data = validatedMessage.data;
+      const data = (validatedMessage as Record<string, unknown>).data as Record<string, unknown>;
       if (data) {
         const sanitize = (item: Record<string, unknown>) => {
           if (typeof item.orderId === "number") {
@@ -200,7 +202,7 @@ export function dispatchMessage(parsed: any, context: DispatchContext) {
         }
       }
     } else if (validatedChannel === "wallet") {
-      const data = validatedMessage.data;
+      const data = (validatedMessage as Record<string, unknown>).data as Record<string, unknown>;
       if (data) {
         if (Array.isArray(data)) data.forEach((item: Record<string, unknown>) => accountState.updateBalanceFromWs(item));
         else accountState.updateBalanceFromWs(data);

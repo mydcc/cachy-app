@@ -889,7 +889,7 @@ class BitunixWebSocketService {
     }
   }
 
-  public handleMessage(message: Record<string, any>, type: "public" | "private") {
+  public handleMessage(message: Record<string, unknown>, type: "public" | "private") {
     try {
       if (type === "public") {
         this.awaitingPongPublic = false;
