@@ -22,11 +22,13 @@ export enum DuckState {
     SAD = "SAD",
     SLEEPING = "SLEEPING",
     PETTING = "PETTING",
+    ANNOYED = "ANNOYED",
 }
 
 /** Priorität: höherer Wert = hat Vorrang */
 export const DUCK_STATE_PRIORITY: Record<DuckState, number> = {
-    [DuckState.CELEBRATING]: 5,
+    [DuckState.CELEBRATING]: 6,
+    [DuckState.ANNOYED]: 5,
     [DuckState.EATING]: 4,
     [DuckState.SAD]: 3,
     [DuckState.PETTING]: 2,

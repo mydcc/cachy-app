@@ -27,16 +27,16 @@ export interface DuckAccessories {
 /**
  * Erstellt alle visuellen Accessoires der Ente.
  * Alle Gruppen sind initial unsichtbar (visible = false).
- * Sie werden relativ zum übergebenen head-/body-Objekt positioniert.
+ * Sie werden relativ zum übergebenen head- oder duckGroup-Objekt positioniert.
  */
 export function createAccessories(
     head: THREE.Object3D,
-    body: THREE.Object3D
+    duckGroup: THREE.Group
 ): DuckAccessories {
     const glasses = createGlasses(head);
     const hat = createHat(head);
     const crown = createCrown(head);
-    const cape = createCape(body);
+    const cape = createCape(duckGroup);
 
     return { glasses, hat, crown, cape };
 }
@@ -137,28 +137,67 @@ function createCrown(head: THREE.Object3D): THREE.Group {
     return group;
 }
 
-// ─── Cape (Level 20) ─────────────────────────────────────────────────────────
+// ─── Cape / Königsmantel (Level 20) ──────────────────────────────────────────
 
-function createCape(body: THREE.Object3D): THREE.Group {
+function createCape(duckGroup: THREE.Group): THREE.Group {
     const group = new THREE.Group();
     const capeMat = new THREE.MeshStandardMaterial({
-        color: 0x6a0dad, // Lila — passt zu keiner Theme-Farbe, aber harmonisch auf Gelb
-        roughness: 0.6,
-        metalness: 0.0,
+        color: 0x6a0dad, // Königliches Purpur / Violett
+        roughness: 0.5,
+        metalness: 0.1,
         side: THREE.DoubleSide,
     });
+    const goldMat = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        roughness: 0.2,
+        metalness: 0.9,
+    });
+    const rubyMat = new THREE.MeshStandardMaterial({
+        color: 0xd50000,
+        roughness: 0.1,
+        metalness: 0.3,
+    });
 
-    // Einfaches Cape als PlaneGeometry — wird im update() animiert
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.55, 4, 4), capeMat);
-    plane.name = "cape_plane";
-    // Aufhängepunkt oben an der Schulter, Cape hängt nach hinten/unten
-    plane.position.set(0, 0, -0.25);
-    plane.rotation.x = 0.3;
-    group.add(plane);
+    // Hauptmantel (umhüllt Rücken & Flanken, sichtbar von allen Seiten)
+    const geom = new THREE.CylinderGeometry(
+        0.54,
+        0.74,
+        0.9,
+        24,
+        8,
+        true,
+        Math.PI * 0.35,
+        Math.PI * 1.3
+    );
+    geom.userData.origPositions = geom.attributes.position.clone();
 
-    group.position.set(0, 0.15, 0);
+    const capeMesh = new THREE.Mesh(geom, capeMat);
+    capeMesh.name = "cape_mesh";
+    capeMesh.position.set(0, -0.05, -0.05);
+    capeMesh.rotation.x = -0.15; // leicht nach hinten geweht
+    group.add(capeMesh);
+
+    // Goldener Kragen / Halskette
+    const collar = new THREE.Mesh(
+        new THREE.TorusGeometry(0.44, 0.025, 8, 24, Math.PI * 1.5),
+        goldMat
+    );
+    collar.position.set(0, 0.42, 0.12);
+    collar.rotation.x = Math.PI / 3;
+    collar.rotation.z = -Math.PI / 4;
+    group.add(collar);
+
+    // Rubin-Brosche am Hals
+    const brooch = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.06, 0),
+        rubyMat
+    );
+    brooch.position.set(0, 0.44, 0.42);
+    group.add(brooch);
+
+    group.position.set(0, 0, 0);
     group.visible = false;
-    body.add(group);
+    duckGroup.add(group);
     return group;
 }
 
@@ -167,22 +206,28 @@ function createCape(body: THREE.Object3D): THREE.Group {
  * wenn das Cape sichtbar ist.
  */
 export function animateCape(cape: THREE.Group, time: number): void {
-    const plane = cape.getObjectByName("cape_plane") as THREE.Mesh | undefined;
-    if (!plane) return;
+    const mesh = cape.getObjectByName("cape_mesh") as THREE.Mesh | undefined;
+    if (!mesh) return;
 
-    const pos = (plane.geometry as THREE.PlaneGeometry).attributes.position;
-    const originalY: number[] = [];
+    const geom = mesh.geometry as THREE.BufferGeometry;
+    const pos = geom.attributes.position;
+    const orig = geom.userData.origPositions as THREE.BufferAttribute | undefined;
+    if (!orig) return;
 
-    // Vertizes in den unteren 2/3 des Capes bewegen (obere Reihe = Befestigung)
     for (let i = 0; i < pos.count; i++) {
-        const y = pos.getY(i);
-        // Nur untere Hälfte animieren (y < 0)
-        if (y < 0) {
-            const x = pos.getX(i);
-            const wave = Math.sin(time * 3 + x * 4) * 0.04 + Math.sin(time * 2) * 0.02;
-            pos.setZ(i, wave);
+        const origX = orig.getX(i);
+        const origY = orig.getY(i);
+        const origZ = orig.getZ(i);
+
+        // Wehen im unteren Bereich des Mantels (origY < 0.1)
+        if (origY < 0.1) {
+            const factor = Math.abs(origY - 0.1) / 0.8;
+            const wave = Math.sin(time * 3 + origX * 4 + origY * 2) * 0.06 * factor;
+            pos.setZ(i, origZ - wave);
+            pos.setX(i, origX + Math.sin(time * 2 + origY * 3) * 0.02 * factor);
+        } else {
+            pos.setXYZ(i, origX, origY, origZ);
         }
-        originalY.push(y);
     }
     pos.needsUpdate = true;
 }

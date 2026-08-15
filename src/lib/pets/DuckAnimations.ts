@@ -70,6 +70,10 @@ export function applyStateAnimation(
             applyPetting(refs, time);
             return stateTimer <= 0;
 
+        case DuckState.ANNOYED:
+            applyAnnoyed(refs, time);
+            return stateTimer <= 0;
+
         default:
             return false;
     }
@@ -81,6 +85,7 @@ function applyIdle(refs: DuckMeshRefs, time: number): void {
     // sanftes Auf/Ab und leichte Rotation — wird in DuckLogic.update() auf group gesetzt
     refs.head.position.y = 0.6;
     refs.head.rotation.x = 0;
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.2 + Math.sin(time * 1.5) * 0.05;
     refs.rightWing.rotation.z = -0.2 - Math.sin(time * 1.5) * 0.05;
     refs.sleepEyes.visible = false;
@@ -91,6 +96,7 @@ function applyIdle(refs: DuckMeshRefs, time: number): void {
 function applyEating(refs: DuckMeshRefs, time: number): void {
     refs.head.position.y = 0.6 + Math.sin(time * 25) * 0.1;
     refs.head.rotation.x = Math.sin(time * 25) * 0.2;
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.2 + Math.sin(time * 40) * 0.7;
     refs.rightWing.rotation.z = -0.2 - Math.sin(time * 40) * 0.7;
     refs.sleepEyes.visible = false;
@@ -102,6 +108,7 @@ function applyCelebrating(refs: DuckMeshRefs, time: number): void {
     // Spin-Effekt wird in DuckLogic.update() auf group.rotation.y gesetzt
     refs.head.position.y = 0.6;
     refs.head.rotation.x = 0;
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.2 + Math.sin(time * 20) * 1.0;
     refs.rightWing.rotation.z = -0.2 - Math.sin(time * 20) * 1.0;
     refs.sleepEyes.visible = false;
@@ -113,6 +120,7 @@ function applySad(refs: DuckMeshRefs, time: number): void {
     // Kopf gesenkt, Flügel hängen
     refs.head.position.y = 0.4;
     refs.head.rotation.x = 0.4; // vorgebeugt
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.8 + Math.sin(time * 0.8) * 0.05;
     refs.rightWing.rotation.z = -0.8 - Math.sin(time * 0.8) * 0.05;
     refs.sleepEyes.visible = false;
@@ -124,6 +132,7 @@ function applySleeping(refs: DuckMeshRefs, time: number): void {
     // Sehr langsames Auf/Ab, Schlaf-Augen einblenden
     refs.head.position.y = 0.55 + Math.sin(time * 0.4) * 0.03;
     refs.head.rotation.x = 0.15; // leicht geneigt
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.6;
     refs.rightWing.rotation.z = -0.6;
     refs.sleepEyes.visible = true;
@@ -134,8 +143,20 @@ function applySleeping(refs: DuckMeshRefs, time: number): void {
 function applyPetting(refs: DuckMeshRefs, time: number): void {
     refs.head.position.y = 0.6 + Math.abs(Math.sin(time * 12)) * 0.12;
     refs.head.rotation.x = 0;
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.2 + Math.sin(time * 20) * 0.9;
     refs.rightWing.rotation.z = -0.2 - Math.sin(time * 20) * 0.9;
+    refs.sleepEyes.visible = false;
+}
+
+// ─── ANNOYED ──────────────────────────────────────────────────────────────────
+
+function applyAnnoyed(refs: DuckMeshRefs, time: number): void {
+    refs.head.position.y = 0.6;
+    refs.head.rotation.x = 0.1;
+    refs.head.rotation.y = Math.sin(time * 24) * 0.4; // Kopf schütteln
+    refs.leftWing.rotation.z = 0.6 + Math.sin(time * 30) * 0.4;
+    refs.rightWing.rotation.z = -0.6 - Math.sin(time * 30) * 0.4;
     refs.sleepEyes.visible = false;
 }
 
@@ -145,6 +166,7 @@ function applyPetting(refs: DuckMeshRefs, time: number): void {
 export function resetToIdle(refs: DuckMeshRefs): void {
     refs.head.position.y = 0.6;
     refs.head.rotation.x = 0;
+    refs.head.rotation.y = 0;
     refs.leftWing.rotation.z = 0.2;
     refs.rightWing.rotation.z = -0.2;
     refs.sleepEyes.visible = false;

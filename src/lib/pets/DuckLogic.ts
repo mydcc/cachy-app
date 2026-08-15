@@ -52,6 +52,10 @@ export class DuckLogic {
     private stateTimer = 0;
     private inactivityTimer = 0;
 
+    // Sättigung & Spam-Erkennung
+    private fullness = 0;
+    private recentPetTimestamps: number[] = [];
+
     // Persistenter Zustand
     private xp = 0;
     private level = 1;
@@ -181,6 +185,13 @@ export class DuckLogic {
 
         switch (event.type) {
             case "feed": {
+                if (this.fullness >= 100) {
+                    this.transitionTo(DuckState.ANNOYED, 2.5);
+                    const msg = get(_)(("duck.full") as TranslationKey) || "Quack! Die Ente ist pappsatt und braucht eine Pause.";
+                    toastService.warning(msg);
+                    return;
+                }
+                this.fullness = Math.min(100, this.fullness + 25);
                 this.xp += event.amount;
                 this.totalFeeds += 1;
                 const oldLevel = this.level;
@@ -230,7 +241,16 @@ export class DuckLogic {
                 break;
             }
             case "pet": {
-                this.transitionTo(DuckState.PETTING, 1.5);
+                const now = Date.now();
+                this.recentPetTimestamps = this.recentPetTimestamps.filter((t) => now - t < 2000);
+                this.recentPetTimestamps.push(now);
+                if (this.recentPetTimestamps.length >= 5) {
+                    this.transitionTo(DuckState.ANNOYED, 2.5);
+                    const msg = get(_)(("duck.annoyed") as TranslationKey) || "Quack! Zu viel Geklicke, lass mich kurz in Ruhe!";
+                    toastService.warning(msg);
+                } else {
+                    this.transitionTo(DuckState.PETTING, 1.5);
+                }
                 break;
             }
         }
@@ -299,8 +319,8 @@ export class DuckLogic {
         this.group.add(this.rightWing);
 
         // Accessoires (Sonnenbrille, Hut, Krone, Cape)
-        if (this.head && this.body) {
-            this.accessories = createAccessories(this.head, this.body);
+        if (this.head) {
+            this.accessories = createAccessories(this.head, this.group);
         }
     }
 
@@ -336,6 +356,7 @@ export class DuckLogic {
     public update(dt: number): void {
         this.animationTime += dt;
         this.inactivityTimer += dt;
+        this.fullness = Math.max(0, this.fullness - dt * 5);
 
         // Idle-Float und Basis-Rotation
         this.group.position.y = -6.5 + Math.sin(this.animationTime * 2) * 0.1;
