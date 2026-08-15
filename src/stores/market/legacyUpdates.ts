@@ -2,7 +2,7 @@ import { Decimal } from "decimal.js";
 import type { RawPriceUpdate, RawTickerUpdate, RawDepthUpdate, RawKlineWsMessage } from "./types";
 import type { MarketUpdatePayload } from "./types";
 
-export function updatePrice(marketManager: any, symbol: string, data: RawPriceUpdate) {
+export function updatePrice(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawPriceUpdate) {
   try {
     const update: MarketUpdatePayload = {
       nextFundingTime: data.nextFundingTime,
@@ -19,7 +19,7 @@ export function updatePrice(marketManager: any, symbol: string, data: RawPriceUp
   }
 }
 
-export function updateTicker(marketManager: any, symbol: string, data: RawTickerUpdate) {
+export function updateTicker(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawTickerUpdate) {
   try {
     const update: MarketUpdatePayload = {};
 
@@ -55,7 +55,7 @@ export function updateTicker(marketManager: any, symbol: string, data: RawTicker
   }
 }
 
-export function updateDepth(marketManager: any, symbol: string, data: RawDepthUpdate) {
+export function updateDepth(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawDepthUpdate) {
   try {
     marketManager.updateSymbol(symbol, {
       depth: { bids: data.bids, asks: data.asks },
@@ -65,7 +65,7 @@ export function updateDepth(marketManager: any, symbol: string, data: RawDepthUp
   }
 }
 
-export function updateKline(marketManager: any, symbol: string, timeframe: string, data: RawKlineWsMessage) {
+export function updateKline(marketManager: import("../market.svelte").MarketManager, symbol: string, timeframe: string, data: RawKlineWsMessage) {
   try {
     marketManager.updateSymbolKlines(
       symbol,

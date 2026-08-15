@@ -1,8 +1,9 @@
 import { Decimal } from "decimal.js";
 import { alertEngine } from "../../services/alertEngine/alertEngine";
 import type { MarketUpdatePayload, RawNumeric } from "./types";
+import type { MarketManager } from "../market.svelte";
 
-export function applyUpdate(marketManager: any, symbol: string, partial: MarketUpdatePayload) {
+export function applyUpdate(marketManager: MarketManager, symbol: string, partial: MarketUpdatePayload) {
   try {
     marketManager.touchSymbol(symbol);
     const current = marketManager.getOrCreateSymbol(symbol);
