@@ -161,7 +161,7 @@ export class MarketManager {
   }
 
   private enforceCacheLimit() {
-    this.symbolCache.enforceLimit(Object.keys(this.data).length, () => Object.keys(this.data));
+    this.symbolCache.enforceLimit(this.symbolCache.metadata.size, () => Array.from(this.symbolCache.metadata.keys()));
   }
 
   updateSymbol(symbol: string, partial: MarketUpdatePayload) {
