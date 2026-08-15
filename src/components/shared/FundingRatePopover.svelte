@@ -292,8 +292,8 @@
               {/if}
             </svg>
             <div class="flex justify-between text-[9px] text-[var(--text-secondary)] px-1 mt-0.5">
-              <span>7d ago</span>
-              <span>Now</span>
+              <span>{$_("marketOverview.fundingRateSparklineStart")}</span>
+              <span>{$_("marketOverview.fundingRateSparklineEnd")}</span>
             </div>
           </div>
         {/if}

@@ -128,7 +128,7 @@ describe("apiService.fetchBitunixFundingRateHistory", () => {
     vi.restoreAllMocks();
   });
 
-  it("normalizes fundingRate from percent to fraction and sorts chronologically", async () => {
+  it("passes fundingRate through as-is (already a fraction) and sorts chronologically", async () => {
     const mockResponse = {
       code: 0,
       data: [
@@ -158,9 +158,9 @@ describe("apiService.fetchBitunixFundingRateHistory", () => {
     expect(result).toHaveLength(2);
     // Oldest first
     expect(result[0].fundingTime).toBe(1770710000000);
-    expect(result[0].fundingRate).toEqual(new Decimal("0.00001"));
+    expect(result[0].fundingRate).toEqual(new Decimal("0.001000"));
     expect(result[1].fundingTime).toBe(1770720000000);
-    expect(result[1].fundingRate).toEqual(new Decimal("-0.00005776"));
+    expect(result[1].fundingRate).toEqual(new Decimal("-0.005776"));
   });
 
   it("throws when API returns invalid payload", async () => {

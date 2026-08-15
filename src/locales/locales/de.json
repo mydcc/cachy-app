@@ -689,6 +689,8 @@
     "fundingRateError": "Historie konnte nicht geladen werden",
     "fundingRateEmpty": "Keine Historie vorhanden",
     "fundingRatePredictedHint": "Vorhergesagte Rate für die nächste Abrechnung",
+    "fundingRateSparklineStart": "vor 7T",
+    "fundingRateSparklineEnd": "Jetzt",
     "countdown": "Countdown",
     "bid": "Bid",
     "ask": "Ask",

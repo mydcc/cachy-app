@@ -1093,7 +1093,11 @@ export const apiService = {
           }
 
           const items: FundingRateHistoryItem[] = validatedRes.data.map((entry) => {
-            const fundingRate = entry.fundingRate.dividedBy(100);
+            // Unlike funding_rate/batch (percent, needs /100 — see
+            // fetchBitunixFundingRates), get_funding_rate_history already
+            // returns the rate as a fraction, e.g. "-0.00001191" (see
+            // docs/bitunix-api/04_market.md response example).
+            const fundingRate = entry.fundingRate;
             const fundingTime =
               typeof entry.fundingTime === "string"
                 ? parseInt(entry.fundingTime, 10)

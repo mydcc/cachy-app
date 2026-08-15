@@ -626,6 +626,8 @@ export type TranslationKey =
   | "marketOverview.fundingRateError"
   | "marketOverview.fundingRateEmpty"
   | "marketOverview.fundingRatePredictedHint"
+  | "marketOverview.fundingRateSparklineStart"
+  | "marketOverview.fundingRateSparklineEnd"
   | "marketOverview.countdown"
   | "marketOverview.bid"
   | "marketOverview.ask"

@@ -686,6 +686,8 @@
     "fundingRateError": "Failed to load history",
     "fundingRateEmpty": "No history available",
     "fundingRatePredictedHint": "Predicted rate for the upcoming settlement",
+    "fundingRateSparklineStart": "7d ago",
+    "fundingRateSparklineEnd": "Now",
     "countdown": "Countdown",
     "bid": "Bid",
     "ask": "Ask",
