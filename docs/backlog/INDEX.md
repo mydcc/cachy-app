@@ -2,9 +2,9 @@
 
 # Backlog index
 
-94 items. How to read and add them: [README.md](README.md).
+95 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 30 · 🟢 ready 2 · ✅ done 46
+Counts by status: 💡 idea 16 · 📋 specced 29 · 🟢 ready 4 · ✅ done 46
 
 ---
 
@@ -145,9 +145,10 @@ Counts by status: 💡 idea 16 · 📋 specced 30 · 🟢 ready 2 · ✅ done 46
 | [FEAT-0190](features/FEAT-0190-epic-split-god-functions.md) | Epic: Decompose the five oversized modules along the module boundary | P2 | 📋 specced | core |
 | [FEAT-0193](features/FEAT-0193-split-market-watcher.md) | Decompose marketWatcher.ts into subscription registry, polling loop and history fetching | P2 | ✅ done | services |
 | [FEAT-0194](features/FEAT-0194-split-bitunix-ws-handle-message.md) | Split bitunixWs.ts handleMessage into parsing, validation and channel dispatch | P2 | ✅ done | services |
-| [FEAT-0195](features/FEAT-0195-split-market-store.md) | Decompose market.svelte.ts into cache management, update batching and kline buffers | P2 | 📋 specced | services |
+| [FEAT-0195](features/FEAT-0195-split-market-store.md) | Decompose market.svelte.ts into cache management, update batching and kline buffers | P2 | 🟢 ready | services |
 | [FEAT-0196](features/FEAT-0196-split-active-technicals-manager.md) | Cover activeTechnicalsManager with characterisation tests, then split it | P2 | 📋 specced | services |
 | [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | 📋 specced | security |
+| [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) | Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing | P2 | 🟢 ready | services |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -242,9 +243,10 @@ Counts by status: 💡 idea 16 · 📋 specced 30 · 🟢 ready 2 · ✅ done 46
 | [FEAT-0190](features/FEAT-0190-epic-split-god-functions.md) | Epic: Decompose the five oversized modules along the module boundary | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0193](features/FEAT-0193-split-market-watcher.md) | Decompose marketWatcher.ts into subscription registry, polling loop and history fetching | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0194](features/FEAT-0194-split-bitunix-ws-handle-message.md) | Split bitunixWs.ts handleMessage into parsing, validation and channel dispatch | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md), [FEAT-0193](features/FEAT-0193-split-market-watcher.md) |
-| [FEAT-0195](features/FEAT-0195-split-market-store.md) | Decompose market.svelte.ts into cache management, update batching and kline buffers | P2 | 📋 specced | none | community, pro, private | C | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
+| [FEAT-0195](features/FEAT-0195-split-market-store.md) | Decompose market.svelte.ts into cache management, update batching and kline buffers | P2 | 🟢 ready | none | community, pro, private | C | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md), [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) |
 | [FEAT-0196](features/FEAT-0196-split-active-technicals-manager.md) | Cover activeTechnicalsManager with characterisation tests, then split it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
+| [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) | Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing | P2 | 🟢 ready | none | community, pro, private | C | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -262,4 +264,4 @@ Counts by status: 💡 idea 16 · 📋 specced 30 · 🟢 ready 2 · ✅ done 46
 
 ---
 
-Next free number: **0198**
+Next free number: **0199**
