@@ -288,9 +288,15 @@ export class MarketManager {
           this.pendingKlineUpdates.set(key, pending);
       }
 
-      // Optimization: Just append. Logic to merge is handled in flush.
-      // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
-      for (const k of klines) pending.push(k);
+      // Optimization: In-place deduplication for the same candle.
+      // High-frequency WS updates often overwrite the exact same candle timestamp repeatedly.
+      for (const k of klines) {
+        if (pending.length > 0 && pending[pending.length - 1].time === k.time) {
+          pending[pending.length - 1] = k;
+        } else {
+          pending.push(k);
+        }
+      }
       if (pending.length > KLINE_BUFFER_HARD_LIMIT) pending.splice(0, pending.length - KLINE_BUFFER_HARD_LIMIT);
 
       // Safety check: force flush if too many SYMBOLS are pending updates
