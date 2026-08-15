@@ -2,7 +2,7 @@
 id: FEAT-0194
 title: "Split bitunixWs.ts handleMessage into parsing, validation and channel dispatch"
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

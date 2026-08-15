@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { parseMessage } from "./bitunixWs/messageParser";
+import { dispatchMessage } from "./bitunixWs/channelDispatch";
 import { marketState } from "../stores/market.svelte";
 import type { Kline } from "./technicalsTypes";
 import { accountState } from "../stores/account.svelte";
@@ -192,7 +194,7 @@ class BitunixWebSocketService {
    * handlers) each defined this inline as `(val: any, fieldName: string) => ...`;
    * named and shared here instead.
    */
-  private safeString(val: string | number, symbol: string, fieldName: string): string {
+  public safeString(val: string | number, symbol: string, fieldName: string): string {
     if (typeof val === 'number') {
       const now = Date.now();
       if (now - this.lastNumericWarning > 60000) {
@@ -896,11 +898,8 @@ class BitunixWebSocketService {
     }
   }
 
-  private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
+  public handleMessage(message: BitunixWSMessage, type: "public" | "private") {
     try {
-      // A JSON.stringify of every inbound message used to live here, purely to
-      // measure a length nobody read. On a market-data socket that is a full
-      // serialisation per tick, discarded.
       if (type === "public") {
         this.awaitingPongPublic = false;
         this.missedPongsPublic = 0;
@@ -909,565 +908,60 @@ class BitunixWebSocketService {
         this.missedPongsPrivate = 0;
       }
 
-      // [HYBRID FIX] Normalize channel (Bitunix sometimes sends 'topic' instead of 'ch')
-      const channel = message.ch || message.topic;
+      const parsed = parseMessage(message, {
+        shouldThrottle: (key: string, commit?: boolean) => this.shouldThrottle(key, commit)
+      });
 
-      // --- FAST PATH OPTIMIZATION ---
-      // [MAINTENANCE WARNING]
-      // This block prioritizes high-frequency events (Price/Ticker/Depth) but still performs Zod validation
-      // using strict schemas (e.g. StrictPriceDataSchema) to ensure data integrity before accessing fields.
-      // While it avoids some overhead of full message validation first, it remains safe.
-      // If the API schema changes, this block MUST be updated manually.
-      // Any error here is caught silently (in Prod) and falls back to the standard Zod validation path below.
-
-      // Check high-frequency messages (price, ticker, depth) and validate with specific schemas
-      // Wrapped in try-catch to prevent crashing the entire socket handler
-      try {
-        if (message && channel) {
-          const rawSymbol = message.symbol || "";
-          const symbol = normalizeSymbol(rawSymbol, "bitunix");
-          const data = message.data;
-
-          // Common guard for object data (price, ticker, kline) - Ensure strict object type
-          const isObjectData = data && typeof data === "object" && !Array.isArray(data);
-
-          if (isObjectData) {
-            switch (channel) {
-              case "price": {
-                if (this.shouldThrottle(`${symbol}:price`, false)) return;
-                // HARDENING: Use Strict Zod Validation instead of loose casting
-                const priceRes = StrictPriceDataSchema.safeParse(data);
-                if (symbol && priceRes.success) {
-                  try {
-                    // HARDENING: Direct property access + Warning on Numeric Types
-                    const ip = data.ip !== undefined ? this.safeString(data.ip, symbol, 'indexPrice') : undefined;
-                    // Mark price: the only transport that carries it for a
-                    // position — Bitunix's REST/WS position endpoints never
-                    // return markPrice (see BUG-0055). `mp` was previously
-                    // parsed for nothing and discarded.
-                    const mp = data.mp !== undefined ? this.safeString(data.mp, symbol, 'markPrice') : undefined;
-                    // fundingRate/nextFundingTime are NOT read from this WS field anymore:
-                    // `fr` is undocumented and scaled differently from Bitunix's REST
-                    // funding_rate/batch endpoint, which is now the sole source of truth
-                    // for funding rate (see fundingRateService.ts). Kept as a debug log
-                    // only, in case Bitunix's WS behavior needs re-investigating later.
-                    const fr = data.fr !== undefined ? this.safeString(data.fr, symbol, 'fundingRate') : undefined;
-                    if (fr !== undefined) this.debugLogRawFundingRate(symbol, fr);
-
-                    // Check precision loss on lastPrice if present (though we don't use it currently)
-                    if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                         this.safeString(data.lastPrice ?? data.lp, symbol, 'lastPrice');
-                    }
-
-                    // The safeString results above, not the raw fields: that is
-                    // what the hardening block exists for, and it was computing
-                    // them and then reading `data.*` anyway.
-                    this.commitThrottle(`${symbol}:price`);
-                    marketState.updateSymbol(symbol, {
-                      indexPrice: ip ? new Decimal(ip) : undefined,
-                      markPrice: mp ? new Decimal(mp) : undefined,
-                    });
-                    return;
-                  } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (price):", fastPathError);
-                  }
-                }
-                break;
-              }
-
-              case "ticker": {
-                if (this.shouldThrottle(`${symbol}:ticker`, false)) return;
-                const tickerRes = StrictTickerDataSchema.safeParse(data);
-                if (symbol && tickerRes.success) {
-                  try {
-                    // OPTIMIZATION: Mutate safe fields in place if they are numbers (unlikely from API but possible)
-                    // Avoiding full object allocation/clone for high frequency ticker
-                    if (typeof data.lastPrice === 'number') data.lastPrice = this.safeString(data.lastPrice, symbol, 'lastPrice');
-                    if (typeof data.high === 'number') data.high = this.safeString(data.high, symbol, 'high');
-                    if (typeof data.low === 'number') data.low = this.safeString(data.low, symbol, 'low');
-                    if (typeof data.volume === 'number') data.volume = this.safeString(data.volume, symbol, 'volume');
-                    if (typeof data.quoteVolume === 'number') data.quoteVolume = this.safeString(data.quoteVolume, symbol, 'quoteVolume');
-                    if (typeof data.v === 'number') data.v = this.safeString(data.v, symbol, 'v');
-                    if (typeof data.close === 'number') data.close = this.safeString(data.close, symbol, 'close');
-
-                    // Re-use message object since we mutated data in-place (safe because 'message' is transient from parse)
-                    const normalized = mdaService.normalizeTicker(message, "bitunix");
-
-                    if (normalized) {
-                      this.commitThrottle(`${symbol}:ticker`);
-                      marketState.updateSymbol(symbol, {
-                        lastPrice: normalized.lastPrice,
-                        highPrice: normalized.high,
-                        lowPrice: normalized.low,
-                        volume: normalized.volume,
-                        quoteVolume: normalized.quoteVolume,
-                        priceChangePercent: normalized.priceChangePercent
-                      });
-                    }
-                    return;
-                  } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (ticker):", fastPathError);
-                  }
-                }
-                break;
-              }
-
-              case "depth_book5": {
-                if (this.shouldThrottle(`${symbol}:depth`, false)) return;
-                const depthRes = StrictDepthDataSchema.safeParse(data);
-                if (symbol && depthRes.success) {
-                  try {
-                    const sData = depthRes.data;
-                    // Zod transform has already ensured all nested numbers are strings
-                    // However, we need to map to simple tuple arrays [string, string][] as expected by marketState
-                    const bids = sData.b as [string, string][];
-                    const asks = sData.a as [string, string][];
-
-                    this.commitThrottle(`${symbol}:depth`);
-                    // sData, not data. The schema's SafeString transform is what
-                    // normalises numeric levels to strings; passing the raw
-                    // `data.b` / `data.a` here skipped it entirely, so an
-                    // orderbook level the exchange sent as a number reached
-                    // marketState as a number while the type said string.
-                    marketState.updateDepth(symbol, { bids, asks });
-                    return;
-                  } catch (fastPathError) {
-                    if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (depth):", fastPathError);
-                  }
-                }
-                break;
-              }
-
-              default:
-                // Klines (dynamic channel names)
-                if (channel.startsWith("market_kline_") || channel === "mark_kline_1day") {
-                    try {
-                        const d = data as { close?: unknown; c?: unknown; open?: unknown; o?: unknown } | undefined;
-                        if (d && (d.close || d.c || d.open || d.o)) {
-                          let timeframe = "1h";
-                          if (channel === "mark_kline_1day") timeframe = "1d";
-                          else {
-                            const match = channel.match(/market_kline_(.+)/);
-                            if (match) {
-                              const bitunixTf = match[1];
-                              const revMap: Record<string, string> = {
-                                "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                                "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
-                              };
-                              timeframe = revMap[bitunixTf] || bitunixTf;
-                            }
-                          }
-
-                          if (timeframe === '15m' || timeframe === '30m') {
-                              if (import.meta.env.DEV) {
-                                  logger.log("network", `[BitunixWS] Received ${channel} -> mapped to ${timeframe}. Data:`, d);
-                              }
-                          }
-
-                          let candleStart = 0;
-                          const rawTs = message.ts || Date.now();
-                          const ts = parseTimestamp(rawTs);
-
-                          if (timeframe === "1M") {
-                            const d = new Date(ts);
-                            candleStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
-                          } else {
-                            const intervalMs = getIntervalMs(timeframe);
-                            candleStart = Math.floor(ts / intervalMs) * intervalMs;
-                          }
-
-                          const klineData = { ...d, ts: candleStart };
-                          const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
-                          marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
-
-                          // [SYNTHETIC] Dynamic Support
-                          // Iterate active synthetic subscriptions to see if any depend on this update
-                          if (this.syntheticSubs) {
-                              for (const key of this.syntheticSubs.keys()) {
-                                  // key format: "SYMBOL:TF"
-                                  const parts = key.split(":");
-                                  if (parts.length !== 2) continue;
-                                  
-                                  const subSymbol = parts[0];
-                                  const subTf = parts[1];
-                                  
-                                  // Optimization: Only check if symbol matches first
-                                  if (subSymbol !== symbol) continue; // Note: symbol is already normalized in local context? 
-                                  // Wait, `symbol` arg in handleMessage comes from `normalizedSymbol` or raw?
-                                  // `const symbol = message.data.symbol` is raw.
-                                  // The key uses `normalizedSymbol`.
-                                  // We must normalize `symbol` here to compare?
-                                  // In handleMessage: `const symbol = message.data. symbol;` which is e.g. "BTCUSDT".
-                                  // `normalizeKlines` uses "bitunix". 
-                                  // My sub keys use `normalizeSymbol(symbol, "bitunix")`.
-                                  // So I should compare against normalized.
-                                  // `const normalizedMessageSymbol = normalizeSymbol(symbol, "bitunix");`
-                                  // But `marketState.updateSymbolKlines` uses `symbol` (raw?). 
-                                  // Let's check typical usage. `subscribe` normalizes.
-                                  // `handleMessage` (line ~900): `const symbol = message.data.symbol;`
-                                  // This is likely raw "BTCUSDT" or "BTC-USDT".
-                                  // bitunixWs uses `normalizeSymbol` in subscribe.
-                                  // If handleMessage receives "BTCUSDT", and subscribe put "BTCUSDT" in key...
-                                  // Actually `normalizeSymbol` removes hyphens mostly.
-                                  
-                                  // Let's assume strict match on symbol specific to WS message. 
-                                  // Wait, if `syntheticSubs` has normalized, and `message` has raw...
-                                  // I should normalize message symbol before compare.
-                                  const msgSymbolNorm = normalizeSymbol(symbol, "bitunix");
-                                  if (subSymbol !== msgSymbolNorm) continue;
-
-                                  // Check timeframe dependency
-                                  const resolved = this.resolveTimeframe(subTf);
-                                  if (resolved.isSynthetic && resolved.base === timeframe) {
-                                      // Trigger Aggregation
-                                      const symbolData = marketState.data[symbol];
-                                      const mk = symbolData?.klines ? symbolData.klines[timeframe] : undefined;
-                                      
-                                      if (mk && mk.length > 0) {
-                                          const msBucket = resolved.intervalMs;
-                                          const bucketStart = Math.floor(candleStart / msBucket) * msBucket;
-                                          
-                                          const bucketCandles: Kline[] = [];
-                                          for (let i = mk.length - 1; i >= 0; i--) {
-                                              if (mk[i].time < bucketStart) break;
-                                              if (mk[i].time >= bucketStart) {
-                                                  bucketCandles.unshift(mk[i]);
-                                              }
-                                          }
-
-                                          if (bucketCandles.length > 0) {
-                                              const first = bucketCandles[0];
-                                              const last = bucketCandles[bucketCandles.length - 1];
-                                              let high = new Decimal(first.high);
-                                              let low = new Decimal(first.low);
-                                              let vol = new Decimal(0);
-                                              
-                                              for (const c of bucketCandles) {
-                                                  const h = new Decimal(c.high);
-                                                  const l = new Decimal(c.low);
-                                                  if (h.gt(high)) high = h;
-                                                  if (l.lt(low)) low = l;
-                                                  vol = vol.plus(c.volume);
-                                              }
-                                              
-                                              const synthKline: Kline = {
-                                                  time: bucketStart,
-                                                  open: first.open,
-                                                  high: high,
-                                                  low: low,
-                                                  close: last.close,
-                                                  volume: vol
-                                              };
-                                              
-                                              marketState.updateSymbolKlines(symbol, subTf, [synthKline], "ws");
-                                          }
-                                      }
-                                  }
-                              }
-                          }
-
-                        }
-                        return;
-                    } catch (fastPathError) {
-                        if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
-                    }
-                }
-                break;
-            }
-          }
-        }
-      } catch (e) {
-        if (import.meta.env.DEV) {
-          logger.warn("network", "[BitunixWS] FastPath exception (falling back to std validation)", e);
-        }
-      }
-      // --- END FAST PATH ---
-
-      // 1. Validate message structure with Zod (Fallback for Order, Position, Login, etc.)
-      // We rely on safeParse but we are lenient about extra fields (zod object is not strict by default)
-      // If the schema itself is strict, it would fail on new fields.
-      // BitunixWSMessageSchema in types/bitunixValidation.ts uses z.object({...}) which allows extra fields.
-      const validationResult = BitunixWSMessageSchema.safeParse(message);
-      if (!validationResult.success) {
-        const validationIssues = validationResult.error.issues;
-        
-        // Check if it's a critical structure failure vs minor field mismatch
-        // If 'event', 'op' or 'ch' are missing/wrong type, it's critical.
-        // If just data fields are off, we can ignore single message without counting towards circuit breaker.
-        const criticalFields = ["event", "op", "ch", "topic", "code"];
-        // Critical if:
-        // 1. Root level structure error (path is empty)
-        // 2. Critical field error (path[0] is in criticalFields)
-        const isCritical = validationIssues.some(i =>
-          i.path.length === 0 ||
-          (i.path.length > 0 && criticalFields.includes(String(i.path[0])))
-        );
-
-        if (isCritical) {
-          const now = Date.now();
-          if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
-            this.validationErrorCount = 0;
-          }
-          this.validationErrorCount++;
-          this.lastValidationErrorTime = now;
-
-          if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
-            logger.error(
-              "network",
-              "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.",
-            );
-            this.validationErrorCount = 0;
-            this.cleanup(type);
-            this.scheduleReconnect(type);
-            return;
-          }
-        }
-
-        logger.warn("network", "[WebSocket] Invalid message structure (ignored)", validationResult.error.issues);
-        return;
-      }
-
-      const validatedMessage = validationResult.data;
-
-      // 2. Handle special messages
-      if (validatedMessage && validatedMessage.event === "login") {
-        if (
-          validatedMessage.code === 0 ||
-          validatedMessage.code === "0" ||
-          validatedMessage.msg === "success"
-        ) {
-          if (settingsState.enableNetworkLogs) {
-            logger.log("network", "Login successful");
-          }
-          this.isAuthenticated = true;
-          this.subscribePrivate();
-        }
-        return;
-      }
-
-      if (!validatedMessage) return;
-      if (validatedMessage.op === "ping") return;
-
-      if (validatedMessage.op === "pong" || validatedMessage.pong) {
+      if (parsed.type === "critical_error") {
         const now = Date.now();
-        const start = type === "public" ? this.lastPingTimePublic : this.lastPingTimePrivate;
-        if (start > 0) {
-          const latency = now - start;
-          // Sanity check: latency should be realistic (< 10s)
-          if (latency >= 0 && latency < 10000) {
-            marketState.updateTelemetry({ wsLatency: latency });
-          }
+        if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
+          this.validationErrorCount = 0;
+        }
+        this.validationErrorCount++;
+        this.lastValidationErrorTime = now;
+
+        if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
+          logger.error("network", "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.");
+          this.validationErrorCount = 0;
+          this.cleanup(type);
+          this.scheduleReconnect(type);
         }
         return;
       }
 
-      // 3. Validate channel if present
-      const validatedChannel = validatedMessage.ch || validatedMessage.topic;
+      if (parsed.type === "ignore") return;
+
+      if (parsed.type === "validated") {
+        const validatedMessage = parsed.message;
+        if (validatedMessage.event === "login") {
+          if (validatedMessage.code === 0 || validatedMessage.code === "0" || validatedMessage.msg === "success") {
+            if (settingsState.enableNetworkLogs) logger.log("network", "Login successful");
+            this.isAuthenticated = true;
+            this.subscribePrivate();
+          }
+          return;
+        }
+        if (validatedMessage.op === "ping") return;
+        if (validatedMessage.op === "pong" || validatedMessage.pong) {
+          const now = Date.now();
+          const start = type === "public" ? this.lastPingTimePublic : this.lastPingTimePrivate;
+          if (start > 0) {
+            const latency = now - start;
+            if (latency >= 0 && latency < 10000) marketState.updateTelemetry({ wsLatency: latency });
+          }
+          return;
+        }
+      }
+
+      dispatchMessage(parsed, {
+        commitThrottle: (key: string) => this.commitThrottle(key),
+        safeString: (val: unknown, sym: string, field: string) => this.safeString(val as string | number, sym, field),
+        debugLogRawFundingRate: (sym: string, fr: string) => this.debugLogRawFundingRate(sym, fr),
+        shouldThrottle: (key: string) => this.shouldThrottle(key),
+        tradeListeners: this.tradeListeners,
+        syntheticSubs: this.syntheticSubs
+      });
       
-      if (validatedChannel && !isAllowedChannel(validatedChannel)) {
-        logger.warn("network", "[WebSocket] Unknown channel", validatedChannel);
-        return;
-      }
-
-      // 4. Handle price updates
-      if (validatedChannel === "price") {
-        const rawSymbol = validatedMessage.symbol || "";
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-
-        // Strict Type Safety via Zod
-        if (this.shouldThrottle(`${symbol}:price`)) return;
-        const priceData = BitunixPriceDataSchema.safeParse(validatedMessage.data);
-
-        if (priceData.success) {
-          const d = priceData.data;
-          marketState.updateSymbol(symbol, {
-            // lastPrice: normalized.lastPrice, // [HYBRID FIX] Disabled
-            indexPrice: d.ip ? String(d.ip) : undefined,
-            markPrice: d.mp ? String(d.mp) : undefined,
-            // fundingRate/nextFundingTime: see fast path above - sourced from
-            // REST (fundingRateService.ts), not this undocumented WS field.
-          });
-        }
-      } else if (validatedChannel === "ticker") {
-        const rawSymbol = validatedMessage.symbol || "";
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        if (this.shouldThrottle(`${symbol}:ticker`)) return;
-        const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
-
-        if (normalized) {
-          marketState.updateSymbol(symbol, {
-            lastPrice: normalized.lastPrice,
-            highPrice: normalized.high,
-            lowPrice: normalized.low,
-            volume: normalized.volume,
-            quoteVolume: normalized.quoteVolume,
-            priceChangePercent: normalized.priceChangePercent
-          });
-        }
-      }
-      else if (validatedChannel === "depth_book5") {
-        const rawSymbol = validatedMessage.symbol;
-        if (!rawSymbol) return;
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = validatedMessage.data;
-        if (symbol && data) {
-          // BitunixWSMessageSchema types `data` as z.any(), so reaching this
-          // branch does not mean the depth arrays were validated — this site
-          // used to pass raw, possibly numeric levels through while the declared
-          // type said string.
-          //
-          // Reachability is narrow, and worth being precise about: the fast path
-          // above handles depth_book5 whenever the payload parses, so this
-          // fallback only runs for payloads that failed StrictDepthDataSchema —
-          // which then fail here too, and the update is skipped. The effect is
-          // consistency: depth is either validated or not applied, never
-          // forwarded raw. No path was found where this branch previously
-          // delivered usable but unnormalised levels.
-          if (this.shouldThrottle(`${symbol}:depth`)) return;
-          const depthRes = StrictDepthDataSchema.safeParse(data);
-          if (depthRes.success) {
-            marketState.updateDepth(symbol, {
-              bids: depthRes.data.b as [string, string][],
-              asks: depthRes.data.a as [string, string][],
-            });
-          }
-        }
-      } else if (
-        validatedChannel &&
-        (validatedChannel.startsWith("market_kline_") ||
-          validatedChannel === "mark_kline_1day")
-      ) {
-        const rawSymbol = validatedMessage.symbol || "";
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = validatedMessage.data;
-        if (symbol && data) {
-          let timeframe = "1h";
-          if (validatedChannel === "mark_kline_1day") timeframe = "1d";
-          else {
-            const match = validatedChannel.match(/market_kline_(.+)/);
-            if (match) {
-              const bitunixTf = match[1];
-              const revMap: Record<string, string> = {
-                "1min": "1m",
-                "5min": "5m",
-                "15min": "15m",
-                "30min": "30m",
-                "60min": "1h",
-                "4h": "4h",
-                "1day": "1d",
-                "1week": "1w",
-                "1month": "1M",
-              };
-              timeframe = revMap[bitunixTf] || bitunixTf;
-            }
-          }
-          // [HYBRID FIX] Inject detached 'ts' from root message into data object
-          // Correctly calculate candle start time (floor to interval)
-          let candleStart = 0;
-          if (timeframe === "1M") {
-            const date = new Date(validatedMessage.ts || Date.now());
-            date.setUTCDate(1);
-            date.setUTCHours(0, 0, 0, 0);
-            candleStart = date.getTime();
-          } else {
-            const intervalMs = getIntervalMs(timeframe);
-            candleStart = Math.floor((validatedMessage.ts || Date.now()) / intervalMs) * intervalMs;
-          }
-
-          const klineData = { ...data, ts: candleStart };
-          const normalizedKlines = mdaService.normalizeKlines([klineData], "bitunix");
-          marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
-        }
-      }
-
-      else if (validatedChannel === "trade") {
-        const rawSymbol = validatedMessage.symbol || "";
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = validatedMessage.data;
-        // Fast Path: Check if valid trade data
-        if (data && (Array.isArray(data) ? isTradeData(data[0]) : isTradeData(data))) {
-             const items = Array.isArray(data) ? data : [data];
-             // Dispatch to listeners
-             const listeners = this.tradeListeners.get(symbol);
-             
-
-             if (listeners) {
-                 for (const item of items) {
-                     // [FIX] Normalize Trade Data for Type Safety
-                     const safeTrade: TradeData = {
-                         p: String(item.p ?? item.lastPrice ?? item.price ?? "0"),
-                         v: String(item.v ?? item.volume ?? item.amount ?? "0"),
-                         s: String(item.s ?? item.side ?? "buy"),
-                         t: Number(item.t ?? item.ts ?? item.time ?? Date.now())
-                     };
-
-                     for (const cb of listeners) {
-                         try {
-                             cb(safeTrade);
-                         } catch (e) {
-                             if (import.meta.env.DEV) {
-                                 console.warn("[BitunixWS] Trade listener error:", e);
-                             }
-                         }
-                     }
-                 }
-             }
-        } else {
-             // FALLBACK: Log invalid trade data structure
-             if (import.meta.env.DEV) {
-                 console.warn('[BitunixWS] Received trade message but isTradeData failed:', data);
-             }
-        }
-      }
-      else if (validatedChannel === "position") {
-        const data = validatedMessage.data;
-        if (data) {
-          const items = Array.isArray(data) ? data : [data];
-          items.forEach((item: Record<string, unknown>) => {
-            const val = BitunixPositionSchema.safeParse(item);
-            if (!val.success) {
-              logger.warn("network", "[BitunixWS] Position schema validation failed", val.error);
-              // We proceed with best effort for positions as IDs are less critical than Orders
-            }
-            accountState.updatePositionFromWs(item);
-            omsService.updatePosition(mapToOMSPosition(item));
-          });
-        }
-      } else if (validatedChannel === "order") {
-        const data = validatedMessage.data;
-        if (data) {
-          const sanitize = (item: Record<string, unknown>) => {
-             if (typeof item.orderId === 'number') {
-                 // Precision loss only happens > 15 digits, but we enforce string for consistency
-                 // safeJsonParse handles >15 digits, so this catches smaller IDs or edge cases
-                 if (item.orderId > 9007199254740991) {
-                     logger.warn("network", `[BitunixWS] CRITICAL: numeric orderId detected > MAX_SAFE_INTEGER: ${item.orderId}`);
-                 }
-                 item.orderId = String(item.orderId);
-             }
-             return item;
-          };
-
-          if (Array.isArray(data))
-            data.forEach((item: Record<string, unknown>) => {
-              const safeItem = sanitize(item);
-              accountState.updateOrderFromWs(safeItem);
-              omsService.updateOrder(mapToOMSOrder(safeItem));
-            });
-          else {
-            const safeItem = sanitize(data);
-            accountState.updateOrderFromWs(safeItem);
-            omsService.updateOrder(mapToOMSOrder(safeItem));
-          }
-        }
-      } else if (validatedChannel === "wallet") {
-        const data = validatedMessage.data;
-        if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: Record<string, unknown>) => accountState.updateBalanceFromWs(item));
-          else accountState.updateBalanceFromWs(data);
-        }
-      }
     } catch (err) {
       logger.error("network", "[WebSocket] Message handling error", err);
       logger.error("network", "[WebSocket] Problematic message", JSON.stringify(message).slice(0, 200));
