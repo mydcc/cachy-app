@@ -2,7 +2,7 @@
 id: FEAT-0198
 title: "Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing"
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -59,16 +59,16 @@ tests, not a refactor — use `test:` as the commit type.
 
 ## Acceptance criteria
 
-- [ ] A test file exists covering buffer acquire/release pairing across the
+- [x] A test file exists covering buffer acquire/release pairing across the
       acquire → update → evict → re-acquire cycle
-- [ ] Tests demonstrate no leak (every acquired buffer is eventually
+- [x] Tests demonstrate no leak (every acquired buffer is eventually
       released) and no use-after-release
-- [ ] No production code in `market.svelte.ts` changes
-- [ ] The three existing market store test files (`market.test.ts`,
+- [x] No production code in `market.svelte.ts` changes
+- [x] The three existing market store test files (`market.test.ts`,
       `marketStore.test.ts`, `marketStore_limits.test.ts`) pass **without
       being modified**
-- [ ] `npm run check` passes with 0 errors
-- [ ] `npm test` passes
+- [x] `npm run check` passes with 0 errors
+- [x] `npm test` passes
 
 ## Out of scope
 
