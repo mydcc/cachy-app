@@ -1,10 +1,24 @@
 ---
 description: Review open PRs against backlog acceptance criteria and CLAUDE.md/AGENTS.md rules, post findings as PR comment
+model: claude-sonnet-5
 ---
 
 Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and Cachy's non-negotiable rules (CLAUDE.md, AGENTS.md). This is oversight, not execution: never fix, commit, or merge — only report findings.
 
 **This command works for any agent** (Jules, Claude Code, Cursor, Codex, Antigravity, etc.), not Jules-specific. It uses backlog item metadata to structure the review.
+
+## Model & Token Efficiency
+
+**Recommended Model:** Claude Sonnet 5 (best cost/quality balance for code review)
+
+**Token Optimization via Prompt Caching:** This command caches the stable review rules:
+- `CLAUDE.md` (non-negotiable rules: Svelte 5, decimal.js, theming, Local-First)
+- `AGENTS.md` (review standard checklist)
+- This command file itself (process and example)
+
+After the first review, subsequent reviews hit the cache → ~60-80% token savings. The cache is valid for 5 minutes; if you run multiple reviews in quick succession, the savings compound.
+
+When to use Haiku 4.5 instead: For small, routine PRs where you won't run another review within 5 minutes (cache expires, not worth the setup).
 
 ## Scope: Which PRs to Review
 
