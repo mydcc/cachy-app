@@ -2,7 +2,8 @@
 id: FEAT-0196
 title: "Cover activeTechnicalsManager with characterisation tests, then split it"
 type: feature
-status: in-progress
+status: done
+done_version: 1.6.0-beta.19
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -88,22 +89,68 @@ drop it, not carry it forward by default because it was there before.
 
 Behaviour-preserving. `refactor:` commits only in PR 2.
 
+**Deviation from the suggested shape, argued as the Proposal invites:**
+keeping "scheduling (3) and execution (4)" together in
+`activeTechnicalsManager.svelte.ts` cannot satisfy the under-400-lines
+criterion below — `performCalculation` (112), `isTechnicalsEqual` (69),
+`prepareBuffersWithRealtime` (68) and `injectRealtimePrice` (41) alone are
+~290 lines, on top of scheduling. Same shape as FEAT-0195's own
+`applySymbolKlines` finding: the epic's line-count assumptions about this
+file didn't survive contact with the actual code. Extracted a third module,
+`src/services/activeTechnicals/calculationExecutor.ts`, holding
+responsibility 4 (`performCalculation`, `prepareBuffersWithRealtime`,
+`isTechnicalsEqual`, `handleResult`, `injectRealtimePrice`, `workerState`,
+`pool`) plus `forceRefresh` (categorised under responsibility 1 in this
+item's own list, but it only ever touches `workerState` and calls
+`performCalculation` — nothing to do with the `subscribers` map — so it
+moved with execution instead, where it actually belongs).
+
+`activeTechnicalsManager.svelte.ts` ends up as the pure orchestrator:
+construction/wiring of the three collaborators, `startMonitoring`/
+`stopMonitoring` (the `$effect.root` lifecycle), `scheduleCalculation`, and
+the four public passthroughs (`register`, `unregister`, `forceRefresh`,
+`setSymbolVisibility`).
+
+**Keeping PR 1's tests passing unmodified required delegation, not just
+extraction.** `activeTechnicalsManager.test.ts` asserts directly on internal
+state by name (`subscribers`, `visibleSymbols`, `pausedCalculations`,
+`isTabVisible`, `workerState`, `pool`, `handleVisibilityChange`,
+`prepareBuffersWithRealtime`) via a type-cast, the same pattern
+`bitunixWs.leak.test.ts` uses. Since that state now lives on the three
+extracted collaborators, `ActiveTechnicalsManager` exposes it back under the
+same names via thin `private get`/`set` accessors that delegate to
+`this.registry`/`this.visibility`/`this.executor`. The state and behaviour
+genuinely moved; these accessors are pass-throughs for the already-merged
+test contract, not a parallel re-implementation.
+
 ## Acceptance criteria
 
 - [x] A characterisation test file exists covering ref-counting, visibility
       pause/resume, throttle coalescing, buffer pairing and teardown cleanup
       (`src/services/activeTechnicalsManager.test.ts`)
-- [ ] Those tests were written and merged **before** any production code moved
-      (PR 1 merged; PR 2 — the split — not started)
-- [ ] Subscriber registry and visibility control each live in their own module
-- [ ] `activeTechnicalsManager.svelte.ts` is under 400 lines
-- [ ] No method exceeds 200 lines
-- [ ] Every `$effect` registering a listener or subscription still returns a
-      cleanup function after the split
-- [ ] `npm run check` passes with 0 errors
-- [ ] `npm test` passes
-- [ ] The exported API is unchanged (callers untouched), or each change is
-      listed and justified here on completion
+- [x] Those tests were written and merged **before** any production code moved
+      (PR 1 merged as a separate PR, before PR 2 touched any production code)
+- [x] Subscriber registry and visibility control each live in their own module
+      (`src/services/activeTechnicals/subscriptionRegistry.ts`,
+      `visibilityController.ts` — plus `calculationExecutor.ts` for
+      responsibility 4, see the deviation note above)
+- [x] `activeTechnicalsManager.svelte.ts` is under 400 lines (346)
+- [x] No method exceeds 200 lines (largest is `performCalculation` at 113,
+      moved into `calculationExecutor.ts`)
+- [x] Every `$effect` registering a listener or subscription still returns a
+      cleanup function after the split (the `$effect.root` in
+      `startMonitoring`/`stopMonitoring` is untouched; `VisibilityController`'s
+      `document.addEventListener('visibilitychange', ...)` has no
+      corresponding removal, same as before the split — it's a singleton-
+      lifetime listener with no teardown path either way, not a regression)
+- [x] `npm run check` passes with 0 errors
+- [x] `npm test` passes (full suite, 1146 tests, including PR 1's
+      characterisation tests unmodified)
+- [x] The exported API is unchanged (callers untouched) — verified against
+      all four call sites (`TechnicalsPanel.svelte`, `MarketOverview.svelte`,
+      `marketWatcher/historyFetcher.ts`, `actions/viewport.ts`): each uses
+      only `register`/`unregister`/`forceRefresh`/`setSymbolVisibility`,
+      unchanged
 
 ## Out of scope
 
