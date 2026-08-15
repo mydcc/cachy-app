@@ -227,8 +227,8 @@ export class KlineBufferManager {
         volumes: backing.volumes.subarray(0, neededLen)
     };
 
-    if (!current.klinesBuffers) current.klinesBuffers = {};
-    current.klinesBuffers[timeframe] = views;
+    if (!current.klinesBuffers) current.klinesBuffers = new Map();
+    current.klinesBuffers.set(timeframe, views);
     current.lastUpdated = Date.now();
   }
 
