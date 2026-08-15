@@ -46,6 +46,7 @@ After every change: run `npm run check` and affected tests. A task is considered
 
 - **Language:** Commits, Pull Request descriptions, and PR comments MUST ALWAYS be written in English. German is strictly forbidden in PR comments and commits.
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `refactor`, `BREAKING CHANGE:` in footer).
+- **No tool-attribution footers.** Do not append `Co-Authored-By: Claude ...`, `Claude-Session: ...`, or similar agent-attribution lines to commit messages — they aren't part of Cachy's commit standard. Keep the message to the Conventional Commits format above.
 - **Never push directly to `develop` or `main`.** Every change goes through a feature branch and a Pull Request; target branch is always `develop`.
 - **Pull Request Linking:** Every Pull Request MUST include `Fixes #<github_issue_number>` (e.g. `Fixes #1770`) at the start of its description so GitHub automatically links the PR with the issue and advances the Kanban card.
 - Do not delete code of unclear purpose. Leave copyright headers and metadata untouched. Remove `console.log` debug statements only upon explicit instruction.
