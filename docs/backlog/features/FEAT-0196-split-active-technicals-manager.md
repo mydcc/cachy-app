@@ -2,7 +2,7 @@
 id: FEAT-0196
 title: "Cover activeTechnicalsManager with characterisation tests, then split it"
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -70,6 +70,16 @@ minimum:
 - effect and listener cleanup: no leaked timers or `visibilitychange`
   listeners after teardown (`bitunixWs.leak.test.ts` is the pattern to copy)
 
+**Finding from PR 1:** `prepareBuffersWithRealtime` has no callers anywhere in
+this file — it's private with zero call sites, i.e. dead code today. It also
+calls `this.pool.acquire()` six times but never calls `this.pool.release()`
+on the buffers it replaces, so if it were ever wired up, buffers would flow
+into the pool but never back out. PR 1's characterisation tests pin this
+as-is (isolated calls to the method, not a live code path) rather than fixing
+it — that's a behaviour change, out of scope here. Whoever does PR 2 should
+decide deliberately whether to keep carrying this dead method forward or
+drop it, not carry it forward by default because it was there before.
+
 **PR 2 — the split.** Suggested shape, once PR 1 pins the behaviour:
 
 - `src/services/activeTechnicals/subscriptionRegistry.ts` (1)
@@ -80,9 +90,11 @@ Behaviour-preserving. `refactor:` commits only in PR 2.
 
 ## Acceptance criteria
 
-- [ ] A characterisation test file exists covering ref-counting, visibility
+- [x] A characterisation test file exists covering ref-counting, visibility
       pause/resume, throttle coalescing, buffer pairing and teardown cleanup
+      (`src/services/activeTechnicalsManager.test.ts`)
 - [ ] Those tests were written and merged **before** any production code moved
+      (PR 1 merged; PR 2 — the split — not started)
 - [ ] Subscriber registry and visibility control each live in their own module
 - [ ] `activeTechnicalsManager.svelte.ts` is under 400 lines
 - [ ] No method exceeds 200 lines
