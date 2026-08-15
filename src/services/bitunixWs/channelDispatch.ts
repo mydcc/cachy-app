@@ -105,8 +105,8 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
       const data = validatedMessage.data;
       if (data && data.a && data.b) {
         marketState.updateDepth(symbol, {
-          bids: data.b.map((level: any) => [String(level[0]), String(level[1])]),
-          asks: data.a.map((level: any) => [String(level[0]), String(level[1])]),
+          bids: data.b.map((level: unknown[]) => [String(level[0]), String(level[1])]),
+          asks: data.a.map((level: unknown[]) => [String(level[0]), String(level[1])]),
         });
       }
     } else if (validatedChannel?.startsWith("market_kline_") || validatedChannel === "mark_kline_1day") {

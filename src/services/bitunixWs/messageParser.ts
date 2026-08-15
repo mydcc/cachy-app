@@ -1,4 +1,4 @@
-type BitunixWSMessage = any;
+type BitunixWSMessage = Record<string, any>;
 import type { z } from 'zod';
 import {
   BitunixWSMessageSchema,
@@ -14,7 +14,7 @@ export type ParseOutcome =
   | { type: "fast_price"; symbol: string; data: z.infer<typeof StrictPriceDataSchema>; rawSymbol: string }
   | { type: "fast_ticker"; symbol: string; data: z.infer<typeof StrictTickerDataSchema>; rawSymbol: string; normalized: any }
   | { type: "fast_depth"; symbol: string; data: z.infer<typeof StrictDepthDataSchema>; rawSymbol: string }
-  | { type: "fast_kline"; symbol: string; timeframe: string; data: any; rawSymbol: string }
+  | { type: "fast_kline"; symbol: string; timeframe: string; data: unknown; rawSymbol: string }
   | { type: "validated"; message: BitunixWSMessage }
   | { type: "critical_error"; issues: z.ZodIssue[] }
   | { type: "ignore"; reason?: string };
@@ -23,7 +23,7 @@ export interface ParserContext {
   shouldThrottle: (key: string, commit?: boolean) => boolean;
 }
 
-export function parseMessage(message: any, context: ParserContext): ParseOutcome {
+export function parseMessage(message: Record<string, any>, context: ParserContext): ParseOutcome {
   const channel = message.ch || message.topic;
   try {
     if (message && channel) {

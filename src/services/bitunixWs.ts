@@ -18,30 +18,22 @@
 import { parseMessage } from "./bitunixWs/messageParser";
 import { dispatchMessage } from "./bitunixWs/channelDispatch";
 import { marketState } from "../stores/market.svelte";
-import type { Kline } from "./technicalsTypes";
-import { accountState } from "../stores/account.svelte";
+
+
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { getIntervalMs, parseTimestamp } from "../utils/utils";
 import { connectionManager } from "./connectionManager";
-import { mdaService } from "./mdaService";
-import { omsService } from "./omsService";
+
+
 import { logger } from "./logger";
-import { mapToOMSPosition, mapToOMSOrder } from "./mappers";
+
 import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import { Decimal } from "decimal.js";
 import type { BitunixWSMessage } from "../types/bitunix";
-import {
-  BitunixWSMessageSchema,
-  BitunixPriceDataSchema,
-  StrictPriceDataSchema,
-  StrictTickerDataSchema,
-  StrictDepthDataSchema,
-  BitunixPositionSchema,
-  isAllowedChannel,
-} from "../types/bitunixValidation";
+
 
 export interface TradeData {
   p: string; // price
@@ -898,7 +890,7 @@ class BitunixWebSocketService {
     }
   }
 
-  public handleMessage(message: BitunixWSMessage, type: "public" | "private") {
+  public handleMessage(message: any, type: "public" | "private") {
     try {
       if (type === "public") {
         this.awaitingPongPublic = false;
