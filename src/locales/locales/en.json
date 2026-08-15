@@ -2271,7 +2271,8 @@
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",
-    "dataError": "Data Inconsistency Detected"
+    "dataError": "Data Inconsistency Detected",
+    "orderNotFound": "Order not found"
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",

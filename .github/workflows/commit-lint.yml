@@ -31,8 +31,23 @@ jobs:
         # linting the whole range meant one non-conforming early commit could
         # never be fixed short of a history rewrite, permanently blocking the
         # PR even after later commits were clean.
+        #
+        # Message extracted directly via `git log -1 --format=%B` and piped
+        # to stdin, rather than `commitlint --from SHA~1 --to SHA`, for two
+        # reasons:
+        # - The default checkout for a pull_request event is the synthetic
+        #   refs/pull/N/merge ref, not head.sha, so `commitlint --last` would
+        #   lint GitHub's auto-generated merge-ref message instead of the
+        #   PR's actual tip commit.
+        # - "$SHA~1" is only the tip's *first* parent. When the tip is itself
+        #   a merge commit (e.g. base merged into the PR branch to resolve a
+        #   conflict), `commitlint --from $SHA~1 --to $SHA` walks every
+        #   commit reachable through the *second* parent too — the PR's
+        #   entire "what's new since I branched" range from the base, not
+        #   just the tip's own message. `--git-log-args "--first-parent"`
+        #   looks like the fix but isn't: @commitlint/read's underlying git
+        #   client silently ignores arbitrary git-log-args (see its own
+        #   source comment), so it has no effect. Reading the one commit's
+        #   message directly sidesteps range/parent logic entirely.
         run: |
-          npx commitlint \
-            --from "${{ github.event.pull_request.head.sha }}~1" \
-            --to "${{ github.event.pull_request.head.sha }}" \
-            --verbose
+          git log -1 --format=%B "${{ github.event.pull_request.head.sha }}" | npx commitlint --verbose
