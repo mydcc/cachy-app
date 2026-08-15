@@ -226,6 +226,7 @@ export type TranslationKey =
   | "dashboard.alerts.priceLimit"
   | "dashboard.alerts.gapDetected"
   | "dashboard.alerts.createSuccess"
+  | "dashboard.alerts.deleteAlert"
   | "dashboard.alerts.noHistory"
   | "dashboard.alerts.crossesUp"
   | "dashboard.alerts.crossesDown"
