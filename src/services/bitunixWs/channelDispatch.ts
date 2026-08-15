@@ -15,11 +15,11 @@ export interface DispatchContext {
   safeString: (val: unknown, symbol: string, field: string) => string | undefined;
   debugLogRawFundingRate: (symbol: string, fr: string) => void;
   shouldThrottle: (key: string) => boolean;
-  tradeListeners: Map<string, Set<(trade: any) => void>>;
+  tradeListeners: Map<string, Set<(trade: import('../bitunixWs').TradeData) => void>>;
   syntheticSubs: Map<string, number>;
 }
 
-export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) {
+export function dispatchMessage(parsed: any, context: DispatchContext) {
   if (parsed.type === "ignore" || parsed.type === "critical_error") return;
   if (parsed.type === "fast_price") {
     const { symbol, data } = parsed;
@@ -146,12 +146,12 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
                      price: String((item as any).p),
                      amount: String((item as any).v),
                      side: (item as any).s === 1 || (item as any).s === "1" || (item as any).s === "buy" ? ("buy" as const) : ("sell" as const),
-                     timestamp: typeof (item as any).t === 'number' ? (item as any).t : parseInt((item as any).t as string) || Date.now(),
+                     timestamp: typeof (item as any).t === 'number' ? (item as any).t as number : parseInt((item as any).t as string) || Date.now(),
                      isSynthetic: false
                  };
                  listeners.forEach((listener) => {
                      try {
-                         listener(t);
+                         listener(t as unknown as import('../bitunixWs').TradeData);
                      } catch (err) {
                          logger.error("network", "[BitunixWS] Trade listener error", err);
                      }

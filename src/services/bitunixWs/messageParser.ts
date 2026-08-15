@@ -1,4 +1,4 @@
-type BitunixWSMessage = Record<string, any>;
+type BitunixWSMessage = Record<string, unknown>;
 import type { z } from 'zod';
 import {
   BitunixWSMessageSchema,
@@ -12,7 +12,7 @@ import { mdaService } from "../mdaService";
 
 export type ParseOutcome =
   | { type: "fast_price"; symbol: string; data: z.infer<typeof StrictPriceDataSchema>; rawSymbol: string }
-  | { type: "fast_ticker"; symbol: string; data: z.infer<typeof StrictTickerDataSchema>; rawSymbol: string; normalized: any }
+  | { type: "fast_ticker"; symbol: string; data: z.infer<typeof StrictTickerDataSchema>; rawSymbol: string; normalized: ReturnType<typeof mdaService.normalizeTicker> }
   | { type: "fast_depth"; symbol: string; data: z.infer<typeof StrictDepthDataSchema>; rawSymbol: string }
   | { type: "fast_kline"; symbol: string; timeframe: string; data: unknown; rawSymbol: string }
   | { type: "validated"; message: BitunixWSMessage }
