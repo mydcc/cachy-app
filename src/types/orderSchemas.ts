@@ -92,6 +92,19 @@ export const ClosePositionSchema = BaseRequestSchema.extend({
   marginCoin: z.string().optional().default("USDT"), // For Bitget
 });
 
+// --- Close All Positions ---
+export const CloseAllPositionsSchema = BaseRequestSchema.extend({
+  type: z.literal("close-all-positions"),
+  symbol: z.string().optional(), // Optional symbol filter
+});
+
+// --- Flash Close Single Position ---
+export const FlashClosePositionSchema = BaseRequestSchema.extend({
+  type: z.literal("flash-close-position"),
+  positionId: z.string().min(1),
+  symbol: z.string().optional(),
+});
+
 // --- Cancel All ---
 export const CancelAllSchema = BaseRequestSchema.extend({
   type: z.literal("cancel-all"),
@@ -104,6 +117,35 @@ export const CancelOrderSchema = BaseRequestSchema.extend({
   symbol: z.string().min(1),
   orderId: z.string().min(1),
   marginCoin: z.string().optional().default("USDT"), // For Bitget
+});
+
+// --- Order Detail ---
+export const OrderDetailSchema = BaseRequestSchema.extend({
+  type: z.literal("order-detail"),
+  orderId: z.string().optional(),
+  clientId: z.string().optional(),
+}).refine(data => !!data.orderId || !!data.clientId, {
+  message: "Either orderId or clientId must be provided",
+});
+
+// --- Modify Order ---
+export const ModifyOrderSchema = BaseRequestSchema.extend({
+  type: z.literal("modify-order"),
+  orderId: z.string().optional(),
+  clientId: z.string().optional(),
+  symbol: z.string().optional(),
+  qty: PositiveNumericString,
+  price: NumericString.optional(),
+  tpPrice: NumericString.optional(),
+  tpStopType: z.string().optional(),
+  tpOrderType: z.string().optional(),
+  tpOrderPrice: NumericString.optional(),
+  slPrice: NumericString.optional(),
+  slStopType: z.string().optional(),
+  slOrderType: z.string().optional(),
+  slOrderPrice: NumericString.optional(),
+}).refine(data => !!data.orderId || !!data.clientId, {
+  message: "Either orderId or clientId must be provided",
 });
 
 // --- History ---
@@ -135,14 +177,22 @@ export const PendingSchema = BaseRequestSchema.extend({
 export const OrderRequestSchema = z.discriminatedUnion("type", [
   PlaceOrderSchema,
   ClosePositionSchema,
+  CloseAllPositionsSchema,
+  FlashClosePositionSchema,
   CancelAllSchema,
   CancelOrderSchema,
+  OrderDetailSchema,
+  ModifyOrderSchema,
   HistorySchema,
   PendingSchema
 ]);
 
 export type PlaceOrderPayload = z.infer<typeof PlaceOrderSchema>;
 export type ClosePositionPayload = z.infer<typeof ClosePositionSchema>;
+export type CloseAllPositionsPayload = z.infer<typeof CloseAllPositionsSchema>;
+export type FlashClosePositionPayload = z.infer<typeof FlashClosePositionSchema>;
 export type CancelAllPayload = z.infer<typeof CancelAllSchema>;
 export type CancelOrderPayload = z.infer<typeof CancelOrderSchema>;
+export type OrderDetailPayload = z.infer<typeof OrderDetailSchema>;
+export type ModifyOrderPayload = z.infer<typeof ModifyOrderSchema>;
 export type OrderRequestPayload = z.infer<typeof OrderRequestSchema>;

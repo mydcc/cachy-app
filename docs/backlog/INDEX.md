@@ -4,7 +4,7 @@
 
 95 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 26 · 🟢 ready 2 · ✅ done 51
+Counts by status: 💡 idea 16 · 📋 specced 26 · 🟢 ready 1 · ✅ done 52
 
 ---
 
@@ -73,7 +73,7 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · 🟢 ready 2 · ✅ done 51
 | [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | trade-panel |
 | [BUG-0066](bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md) | Position tooltip labels the live unrealized PnL row "Realized PnL | P2 | ✅ done | trade-panel |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
-| [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | 🟢 ready | execution |
+| [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | exchange |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | 💡 idea | trade-panel |
 
@@ -237,7 +237,7 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · 🟢 ready 2 · ✅ done 51
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | none | community, pro, private | A | ADR-0006 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | none | community, pro, private | A | ADR-0006 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) |
-| [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | 🟢 ready | M3 | community, pro, private | A | none | — |
+| [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md) | Replace the cheat code with a verifiable local entitlement | P2 | 📋 specced | M5 | community, pro, private | A | none | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
 | [FEAT-0190](features/FEAT-0190-epic-split-god-functions.md) | Epic: Decompose the five oversized modules along the module boundary | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |

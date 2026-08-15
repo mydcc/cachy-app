@@ -155,25 +155,23 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
       }
+      else if (payload.type === "close-all-positions") {
+        result = await closeAllBitunixPositions(apiKey, apiSecret, payload.symbol);
+      }
+      else if (payload.type === "flash-close-position") {
+        result = await flashCloseBitunixPosition(apiKey, apiSecret, payload.positionId);
+      }
       else if (payload.type === "cancel-all") {
-        // Implementation for Cancel All (Pending + Loop)
-        const pending = await fetchBitunixPendingOrders(apiKey, apiSecret);
-        const symbol = payload.symbol; // Optional filter
-
-        const toCancel = symbol
-            ? pending.filter(o => o.symbol === symbol)
-            : pending;
-
-        const promises = toCancel.map(order =>
-             cancelBitunixOrder(apiKey, apiSecret, order.symbol, order.id)
-                .catch(err => ({ status: 'rejected', error: err, id: order.id }))
-        );
-
-        await Promise.all(promises);
-        result = { success: true, count: toCancel.length };
+        result = await cancelAllBitunixOrders(apiKey, apiSecret, payload.symbol);
       }
       else if (payload.type === "cancel-order") {
         result = await cancelBitunixOrder(apiKey, apiSecret, payload.symbol, payload.orderId);
+      }
+      else if (payload.type === "order-detail") {
+        result = await fetchBitunixOrderDetail(apiKey, apiSecret, payload.orderId, payload.clientId);
+      }
+      else if (payload.type === "modify-order") {
+        result = await modifyBitunixOrder(apiKey, apiSecret, payload);
       }
     }
     // --- BITGET ---
@@ -297,6 +295,237 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
     // instead of a silent success.
     const failure = res.data?.failureList?.[0];
     if (failure) throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+
+    return res.data;
+}
+
+async function cancelAllBitunixOrders(apiKey: string, apiSecret: string, symbol?: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/cancel_all_orders";
+
+    const payload: Record<string, string> = {};
+    if (symbol) payload.symbol = symbol;
+
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Cancel all failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    // Surface partial failures from failureList if any
+    const failure = res.data?.failureList?.[0];
+    if (failure) {
+        throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+    }
+
+    return res.data;
+}
+
+async function closeAllBitunixPositions(apiKey: string, apiSecret: string, symbol?: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/close_all_position";
+
+    const payload: Record<string, string> = {};
+    if (symbol) payload.symbol = symbol;
+
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Close all positions failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data ?? { success: true };
+}
+
+async function flashCloseBitunixPosition(apiKey: string, apiSecret: string, positionId: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/flash_close_position";
+
+    const payload = { positionId };
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Flash close failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data;
+}
+
+async function fetchBitunixOrderDetail(
+    apiKey: string,
+    apiSecret: string,
+    orderId?: string,
+    clientId?: string,
+): Promise<NormalizedOrder> {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/get_order_detail";
+
+    const params: Record<string, string> = {};
+    if (orderId) params.orderId = orderId;
+    if (clientId) params.clientId = clientId;
+
+    const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
+
+    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+        method: "GET",
+        headers: {
+            "api-key": apiKey,
+            timestamp: timestamp,
+            nonce: nonce,
+            sign: signature,
+            "Content-Type": "application/json",
+        },
+    });
+
+    if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
+    const text = await response.text();
+    const res = safeJsonParse(text) as BitunixResponse<BitunixOrder>;
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    const o = res.data;
+    if (!o) throw new Error("Order not found");
+
+    return {
+        id: o.orderId,
+        orderId: o.orderId,
+        clientId: o.clientId,
+        symbol: o.symbol,
+        type: o.type,
+        side: o.side,
+        price: formatApiNum(o.price) || null,
+        amount: formatApiNum(o.qty) || "0",
+        filled: formatApiNum(o.tradeQty) || "0",
+        avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
+        realizedPNL: formatApiNum(o.realizedPNL) || "0",
+        fee: formatApiNum(o.fee) || "0",
+        reduceOnly: Boolean(o.reduceOnly),
+        status: o.status || "UNKNOWN",
+        time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+        mtime: o.mtime,
+        leverage: o.leverage,
+        marginMode: o.marginMode,
+        positionMode: o.positionMode,
+        tpPrice: o.tpPrice,
+        tpStopType: o.tpStopType,
+        tpOrderType: o.tpOrderType,
+        slPrice: o.slPrice,
+        slStopType: o.slStopType,
+        slOrderType: o.slOrderType,
+    };
+}
+
+async function modifyBitunixOrder(
+    apiKey: string,
+    apiSecret: string,
+    modifyData: {
+        orderId?: string;
+        clientId?: string;
+        symbol?: string;
+        qty: string;
+        price?: string;
+        tpPrice?: string;
+        tpStopType?: string;
+        tpOrderType?: string;
+        tpOrderPrice?: string;
+        slPrice?: string;
+        slStopType?: string;
+        slOrderType?: string;
+        slOrderPrice?: string;
+    },
+) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/modify_order";
+
+    const body: Record<string, unknown> = {
+        orderId: modifyData.orderId,
+        clientId: modifyData.clientId,
+        symbol: modifyData.symbol,
+        qty: modifyData.qty,
+        price: modifyData.price,
+        tpPrice: modifyData.tpPrice,
+        tpStopType: modifyData.tpStopType,
+        tpOrderType: modifyData.tpOrderType,
+        tpOrderPrice: modifyData.tpOrderPrice,
+        slPrice: modifyData.slPrice,
+        slStopType: modifyData.slStopType,
+        slOrderType: modifyData.slOrderType,
+        slOrderPrice: modifyData.slOrderPrice,
+    };
+
+    const finalPayload = cleanPayload(body);
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            timestamp: timestamp,
+            nonce: nonce,
+            sign: signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Modify failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
 
     return res.data;
 }
