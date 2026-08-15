@@ -588,10 +588,11 @@
                         class="tool-btn success"
                         onclick={(e) => {
                             e.stopPropagation();
-                            effectsState.triggerFeed(10);
+                            effectsState.triggerDuckEvent({ type: "feed", amount: 10 });
                         }}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("common.feedDuck")} aria-label={$_("common.feedDuck")}>🍞</button
+                        title={$_("common.feedDuck")}
+                        aria-label={$_("common.feedDuck")}>🍞</button
                     >
                 </div>
             {/if}

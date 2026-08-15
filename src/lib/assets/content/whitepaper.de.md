@@ -187,7 +187,7 @@ Der `technicalsService.ts` routet die Berechnung über die `calculationStrategy`
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Manuell berechnet aus den High/Low/Close-Werten des Vortages.
 
-**Upgrade (Januar 2026)**: Migration von `technicalindicators` auf die eigene WASM-Implementierung für exakte Übereinstimmung mit TradingView. In der neuesten Iteration wurde dies weiter optimiert, indem wir wo möglich auf reine TypeScript-Implementierungen umgestiegen sind, um WASM-Abhängigkeiten zu entfernen und die Ladezeiten auf mobilen Geräten zu verbessern.
+**Upgrade (Januar 2026)**: Migration von `technicalindicators` auf die eigene WASM-Implementierung für exakte Übereinstimmung mit branchenüblichen Referenzimplementierungen. In der neuesten Iteration wurde dies weiter optimiert, indem wir wo möglich auf reine TypeScript-Implementierungen umgestiegen sind, um WASM-Abhängigkeiten zu entfernen und die Ladezeiten auf mobilen Geräten zu verbessern.
 
 Diese Daten werden im **Technicals Panel** visualisiert, einem dedizierten Overlay für schnelle Marktbewertungen.
 

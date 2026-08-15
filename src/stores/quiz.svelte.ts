@@ -20,6 +20,7 @@ import { CONSTANTS } from "../lib/constants";
 import { locale, _ } from "../locales/i18n";
 import { get } from "svelte/store";
 import { toastService } from "../services/toastService.svelte";
+import { effectsState } from "./effects.svelte";
 
 export interface FlashCard {
   id: string;
@@ -217,6 +218,10 @@ class QuizStore {
     if (this.activeQuestion) {
       this.knownQuestionIds.add(this.activeQuestion.id);
       this.saveProgress();
+      effectsState.triggerDuckEvent({
+        type: "academy_complete",
+        lessonId: this.activeQuestion.id,
+      });
     }
     this.nextQuestion();
   }

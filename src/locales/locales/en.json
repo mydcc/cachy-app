@@ -4,7 +4,8 @@
     "smash": "Smash Window",
     "opacity": "Opacity",
     "glass": "Glass",
-    "burn": "Burn"
+    "burn": "Burn",
+    "feedDuck": "Feed Duck"
   },
   "app": {
     "title": "Cachy",
@@ -232,6 +233,7 @@
       "priceLimit": "Price",
       "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
       "createSuccess": "Alert created successfully.",
+      "deleteAlert": "Delete Alert",
       "noHistory": "No history",
       "crossesUp": "Crosses Up",
       "crossesDown": "Crosses Down",
@@ -373,7 +375,10 @@
     "positionsAria": {
       "positionDetails": "Position Details",
       "symbolDetails": "Symbol Details"
-    }
+    },
+    "synchronizingHistory": "Synchronizing History...",
+    "cancelOrder": "Cancel Order",
+    "connectionStatus": "Connection Status"
   },
   "journal": {
     "title": "Trade Journal",
@@ -1561,7 +1566,9 @@
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
-    }
+    },
+    "toggleMarketTiles": "Toggle Market Tiles",
+    "toggleMarketSentiment": "Toggle Market Sentiment"
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -2282,7 +2289,8 @@
     "categoryLabel": "Category",
     "categoryTrading": "Trading & Strategies",
     "categoryTech": "Cachy App Knowledge",
-    "notReady": "Quiz questions are still loading, try again in a moment."
+    "notReady": "Quiz questions are still loading, try again in a moment.",
+    "quickQuiz": "Quick Quiz"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
@@ -2317,5 +2325,29 @@
   "calculationStrategy": {
     "criticalLag": "Critical Lag: {engine} took {duration}ms",
     "slowCalc": "Slow Calc: {engine} ({duration}ms)"
+  },
+  "duck": {
+    "full": "Quack! The duck is stuffed and needs a break.",
+    "annoyed": "Quack! Too much clicking, give me a break!",
+    "achievements": {
+      "first_feed_name": "First Bread",
+      "first_feed_desc": "Fed the duck for the first time.",
+      "ten_feeds_name": "Regular",
+      "ten_feeds_desc": "Fed the duck 10 times.",
+      "hundred_feeds_name": "Master Baker",
+      "hundred_feeds_desc": "Fed the duck 100 times.",
+      "streak_3_name": "Routine",
+      "streak_3_desc": "Active 3 days in a row.",
+      "streak_7_name": "Week Streaker",
+      "streak_7_desc": "Active 7 days in a row.",
+      "streak_30_name": "Iron Discipline",
+      "streak_30_desc": "Active 30 days in a row.",
+      "level_5_name": "Stylish",
+      "level_5_desc": "Reached Level 5 — the duck now wears a hat.",
+      "level_10_name": "Duck Master",
+      "level_10_desc": "Reached Level 10 — rocking the crown.",
+      "level_20_name": "Legendary Quacker",
+      "level_20_desc": "Reached Level 20 — the cape flows."
+    }
   }
 }

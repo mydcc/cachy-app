@@ -66,6 +66,7 @@
   // Initialisierung der App-Logik, sobald die Komponente gemountet ist
   onMount(() => {
     app.init();
+    effectsState.triggerDuckEvent({ type: "daily_login" });
 
     // Global listener for markdown anchor links
     const handleAnchorClick = (e: MouseEvent) => {
@@ -621,9 +622,9 @@
           <button
             id="save-journal-btn"
             class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
-            class:pro-execute={settingsState.capabilities.tradeExecution}
+            class:pro-execute={settingsState.entitlement.capabilities.tradeExecution}
             onclick={async () => {
-              if (settingsState.capabilities.tradeExecution) {
+              if (settingsState.entitlement.capabilities.tradeExecution) {
                 // Pro: Execute Trade
                 uiState.showError("app.tradeExecutionDev");
               } else {
@@ -633,15 +634,15 @@
             }}
             disabled={resultsState.positionSize === "-"}
             use:trackClick={{
-              category: settingsState.capabilities.tradeExecution
+              category: settingsState.entitlement.capabilities.tradeExecution
                 ? "Trading"
                 : "Journal",
               action: "Click",
-              name: settingsState.capabilities.tradeExecution
+              name: settingsState.entitlement.capabilities.tradeExecution
                 ? "ExecuteTrade"
                 : "SaveTrade",
             }}
-            >{settingsState.capabilities.tradeExecution
+            >{settingsState.entitlement.capabilities.tradeExecution
               ? $_("dashboard.executeTrade")
               : $_("dashboard.addTradeToJournal")}</button
           >

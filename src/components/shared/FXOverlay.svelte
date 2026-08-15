@@ -35,6 +35,8 @@
     let clock = new THREE.Clock();
     let stressLogic: StressLogic | null = null;
     let duckLogic: DuckLogic | null = null;
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
 
     let progress = 0;
     let isFlying = false;
@@ -388,9 +390,9 @@
     });
 
     $effect(() => {
-        if (effectsState.feedEvent && duckLogic) {
-            duckLogic.feed(effectsState.feedEvent.amount);
-            effectsState.consumeFeedEvent();
+        if (effectsState.duckEvent && duckLogic) {
+            duckLogic.handleEvent(effectsState.duckEvent);
+            effectsState.consumeDuckEvent();
 
             if (!animationId) {
                 clock.start();
@@ -508,9 +510,11 @@
         }
 
         window.addEventListener("resize", onWindowResize);
+        document.addEventListener("click", onDocumentClick);
         return () => {
             if (animationId) cancelAnimationFrame(animationId);
             window.removeEventListener("resize", onWindowResize);
+            document.removeEventListener("click", onDocumentClick);
             renderer?.dispose();
         };
     });
@@ -520,6 +524,25 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onDocumentClick(event: MouseEvent) {
+        if (!camera || !duckLogic) return;
+        const target = event.target as HTMLElement | null;
+        if (
+            target?.closest(
+                ".window-frame, .glass-panel, button, input, select, textarea, [role='button'], [role='dialog']",
+            )
+        ) {
+            return;
+        }
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(duckLogic.getGroup(), true);
+        if (intersects.length > 0) {
+            effectsState.triggerDuckEvent({ type: "pet" });
+        }
     }
 </script>
 

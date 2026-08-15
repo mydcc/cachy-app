@@ -4,7 +4,8 @@
     "smash": "Fenster zerschmettern",
     "opacity": "Deckkraft",
     "glass": "Glas",
-    "burn": "Verbrennen"
+    "burn": "Verbrennen",
+    "feedDuck": "Ente füttern"
   },
   "app": {
     "title": "Cachy",
@@ -232,6 +233,7 @@
       "priceLimit": "Preis",
       "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
       "createSuccess": "Alarm erfolgreich erstellt.",
+      "deleteAlert": "Alarm löschen",
       "noHistory": "Kein Verlauf",
       "crossesUp": "Kreuzt nach oben",
       "crossesDown": "Kreuzt nach unten",
@@ -373,7 +375,10 @@
     "positionsAria": {
       "positionDetails": "Positionsdetails",
       "symbolDetails": "Symboldetails"
-    }
+    },
+    "synchronizingHistory": "Verlauf wird synchronisiert...",
+    "cancelOrder": "Order abbrechen",
+    "connectionStatus": "Verbindungsstatus"
   },
   "journal": {
     "title": "Trade Journal",
@@ -1561,7 +1566,9 @@
       "healthTitle": "Daten-Gesundheit",
       "networkLogsTitle": "Netzwerk-Protokollierung",
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
-    }
+    },
+    "toggleMarketTiles": "Marktübersicht umschalten",
+    "toggleMarketSentiment": "Marktstimmung umschalten"
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -2260,7 +2267,8 @@
     "categoryLabel": "Kategorie",
     "categoryTrading": "Trading & Strategien",
     "categoryTech": "Cachy App-Wissen",
-    "notReady": "Die Quiz-Fragen werden noch geladen, versuche es gleich noch einmal."
+    "notReady": "Die Quiz-Fragen werden noch geladen, versuche es gleich noch einmal.",
+    "quickQuiz": "Schnellquiz"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
@@ -2317,5 +2325,29 @@
   "calculationStrategy": {
     "criticalLag": "Kritische Verzögerung: {engine} dauerte {duration}ms",
     "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)"
+  },
+  "duck": {
+    "full": "Quack! Die Ente ist pappsatt und braucht eine Pause.",
+    "annoyed": "Quack! Zu viel Geklicke, lass mich kurz in Ruhe!",
+    "achievements": {
+      "first_feed_name": "Erstes Brot",
+      "first_feed_desc": "Die Ente zum ersten Mal gefüttert.",
+      "ten_feeds_name": "Stammgast",
+      "ten_feeds_desc": "Die Ente 10-mal gefüttert.",
+      "hundred_feeds_name": "Bäckermeister",
+      "hundred_feeds_desc": "Die Ente 100-mal gefüttert.",
+      "streak_3_name": "Routiniert",
+      "streak_3_desc": "3 Tage in Folge aktiv.",
+      "streak_7_name": "Wochenstreaker",
+      "streak_7_desc": "7 Tage in Folge aktiv.",
+      "streak_30_name": "Eiserne Disziplin",
+      "streak_30_desc": "30 Tage in Folge aktiv.",
+      "level_5_name": "Stilbewusst",
+      "level_5_desc": "Level 5 erreicht — die Ente trägt jetzt einen Hut.",
+      "level_10_name": "Duck Master",
+      "level_10_desc": "Level 10 erreicht — die Krone sitzt.",
+      "level_20_name": "Legendary Quacker",
+      "level_20_desc": "Level 20 erreicht — das Cape weht."
+    }
   }
 }

@@ -31,7 +31,7 @@
     name: "StartQuiz",
   }}
   aria-label={$_("common.aria.startQuiz")}
-  title="Quick Quiz"
+  title={$_("quiz.quickQuiz") || "Quick Quiz"}
 >
   <svg
     xmlns="http://www.w3.org/2000/svg"
