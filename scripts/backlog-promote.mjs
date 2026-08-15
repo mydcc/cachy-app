@@ -216,10 +216,22 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01LpnNn3xpGnQyChkYX65uMy`;
 
   try {
-    const { execSync } = await import("node:child_process");
-    execSync(`git add ${selected.map(i => `"${i.file}"`).join(" ")}`, { cwd: ROOT });
-    execSync(`git commit -m "${commitMsg.replace(/"/g, '\\"')}"`, { cwd: ROOT });
-    console.log(`✅ Commit created. Push with: git push -u origin $(git rev-parse --abbrev-ref HEAD)`);
+    const { spawnSync } = await import("node:child_process");
+    const filesToAdd = selected.map(i => i.file);
+
+    // Stage files safely with array arguments
+    const addResult = spawnSync("git", ["add", ...filesToAdd], { cwd: ROOT });
+    if (addResult.status !== 0) {
+      throw new Error(`git add failed: ${addResult.stderr.toString()}`);
+    }
+
+    // Commit safely with array arguments
+    const commitResult = spawnSync("git", ["commit", "-m", commitMsg], { cwd: ROOT });
+    if (commitResult.status !== 0) {
+      throw new Error(`git commit failed: ${commitResult.stderr.toString()}`);
+    }
+
+    console.log(`✅ Commit created. Push with: git push -u origin <your-branch>`);
   } catch (err) {
     console.error(`❌ Git error: ${err.message}`);
     process.exit(1);
