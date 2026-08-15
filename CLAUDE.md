@@ -86,6 +86,17 @@ npm run test:e2e     # Playwright-E2E-Tests (tests/e2e)
 - **Debug-Logs behalten:** `console.log`-Statements nur auf ausdrückliche Anweisung entfernen.
 - **Playwright:** Robuste Selektoren (`getByRole`, `getByText`), `expect(locator).toBeVisible()` statt fester Timeouts.
 
+## Codebase-Verständnis für alle Agenten
+
+Diese CLAUDE.md und `AGENTS.md` gelten für **alle Coding-Agenten** — Claude Code, Jules, Cursor, Codex, Antigravity, etc. Agenten, die diese Projektregeln befolgen (nicht nur die Tool-eigenen Defaults), haben ein tieferes Verständnis:
+
+- Die **nicht verhandelbaren Regeln** (Svelte-5-Only, decimal.js, Theming, Performance) sind Grenzbedingungen — nicht „nice to have", sondern Anforderungen, die Geld oder Funktionalität kosten, wenn ignoriert.
+- **Backlog-Items lesen** (`docs/backlog/`) zeigt, was getan werden soll und warum. Acceptance-Criteria definieren Erfolg. Out-of-Scope verhindert Scope-Creep.
+- **ADRs lesen** (`docs/adr/`) erklärt, warum einige Architektur-Entscheidungen unverrückbar sind.
+- **Local-First-Boundary** (Klasse A/B/C) ist nicht verhandelbar — Verstoß = Datenleck oder Geldbetrug.
+
+Code-Reviews (`/backlog-review` Skill) nutzten diese Regeln automatisiert, aber kein Review ersetzt manuelles Lesen.
+
 ## Commits
 
 Conventional Commits (semantic-release): `feat:` (Minor), `fix:` (Patch), `refactor:` (kein Release), `BREAKING CHANGE:` im Footer für Major.
