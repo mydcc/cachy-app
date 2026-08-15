@@ -63,19 +63,19 @@
             const isMatch = await checkCheatCode(typedBuffer);
             if (isMatch) {
                 // Toggle the entire license
-                settingsState.isProLicenseActive =
-                    !settingsState.isProLicenseActive;
+                settingsState.entitlement.isProLicenseActive =
+                    !settingsState.entitlement.isProLicenseActive;
                 typedBuffer = ""; // Reset buffer after match
 
                 trackCustomEvent(
                     "Security",
                     "CheatCode",
-                    settingsState.isProLicenseActive ? "Unlocked" : "Locked",
+                    settingsState.entitlement.isProLicenseActive ? "Unlocked" : "Locked",
                 );
 
                 // If license is deactivated, also deactivate Pro feature to be consistent
-                if (!settingsState.isProLicenseActive) {
-                    settingsState.isPro = false;
+                if (!settingsState.entitlement.isProLicenseActive) {
+                    settingsState.entitlement.isPro = false;
                 }
             }
         };
@@ -85,20 +85,20 @@
     });
 
     function handleToggle(event: Event) {
-        if (!settingsState.isProLicenseActive) {
+        if (!settingsState.entitlement.isProLicenseActive) {
             event.preventDefault();
             return;
         }
 
         const input = event.target as HTMLInputElement;
-        settingsState.isPro = input.checked;
+        settingsState.entitlement.isPro = input.checked;
         trackCustomEvent(
             "ProStatus",
             "Toggle",
-            settingsState.isPro ? "Activated" : "Deactivated", // Analytics
+            settingsState.entitlement.isPro ? "Activated" : "Deactivated", // Analytics
         );
 
-        if (settingsState.isPro) {
+        if (settingsState.entitlement.isPro) {
             uiState.showFeedback("save");
         }
     }
@@ -107,9 +107,9 @@
 <div class="checkbox-wrapper-25">
     <input
         type="checkbox"
-        checked={settingsState.isPro}
+        checked={settingsState.entitlement.isPro}
         onchange={handleToggle}
-        disabled={!settingsState.isProLicenseActive}
+        disabled={!settingsState.entitlement.isProLicenseActive}
     />
 </div>
 

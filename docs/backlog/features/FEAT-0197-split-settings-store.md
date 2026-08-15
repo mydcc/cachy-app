@@ -89,6 +89,30 @@ reach it through **one** accessor. This is the piece
 [`FEAT-0187`](FEAT-0187-edition-entitlement-switch.md) builds on, and the
 ADR-0003 boundary the parent epic is really about.
 
+**Done as `src/stores/entitlement.svelte.ts`, `EntitlementStore`.** Holds
+`isPro`, `isProLicenseActive` and the `capabilities` getter exactly as they
+were. It cannot import `settings.svelte.ts` back (that would be circular
+with `SettingsManager` constructing it), so it takes the settings fields
+`capabilities` depends on — `apiKeys`, `apiProvider`, `autoTrading`,
+`multiAccount`, `showMarketActivity` — as constructor-injected getters
+instead, the same collaborator shape FEAT-0196 used for
+`activeTechnicalsManager.svelte.ts`. `SettingsManager` exposes it as
+`readonly entitlement = new EntitlementStore(...)` — the one accessor.
+
+**Public API change, as the PR's own point, listed per this item's own
+acceptance criteria:** every external reader/writer of `settingsState.isPro`,
+`settingsState.isProLicenseActive` and `settingsState.capabilities` moved to
+`settingsState.entitlement.isPro`, `.isProLicenseActive`, `.capabilities`.
+Updated at the 7 real call sites
+(`PowerToggle.svelte`, `JournalContent.svelte`, `MarketOverview.svelte`,
+`+page.svelte`, `bitunixWs.ts`, `bitgetWs.ts`,
+`marketWatcher/historyFetcher.ts`, plus `syncService.ts` and a structural-
+typing fix in `appEffects.svelte.ts` that the type checker caught) and in the
+9 test files that mock `settingsState` directly with a `capabilities: {...}`
+shape (all under `entitlement: { capabilities: {...} }` now). No Klasse-A
+field changed storage location, encryption state, or default value — this is
+a pure rename of the read/write path.
+
 **PR 3 — split `load()`/`save()`.** Suggested shape:
 
 - `src/stores/settings/migrations.ts` — versioned one-shot migrations
@@ -100,16 +124,20 @@ Behaviour-preserving in PRs 2 and 3. `refactor:` commits only there.
 
 ## Acceptance criteria
 
-- [ ] Characterisation tests for legacy-shape loading, migration idempotence
+- [x] Characterisation tests for legacy-shape loading, migration idempotence
       and `secretsReady` resolution exist and were merged **before** any
-      production code moved
-- [ ] Entitlement state (`isPro`, `isProLicenseActive`) and the capability map
+      production code moved (`src/stores/settings.load.test.ts`, PR 1 / #1935,
+      merged before PR 2 touched anything)
+- [x] Entitlement state (`isPro`, `isProLicenseActive`) and the capability map
       live in their own store, reached through one accessor
+      (`src/stores/entitlement.svelte.ts`, `settingsState.entitlement`)
 - [ ] `load()` is under 150 lines
 - [ ] No method in `settings.svelte.ts` exceeds 200 lines
-- [ ] `secretsReady` provably resolves exactly once on every path, covered by test
-- [ ] No settings shape written by a previous release fails to load
-- [ ] `settings.security.test.ts` passes **without being modified**
+- [x] `secretsReady` provably resolves exactly once on every path, covered by
+      test (`src/stores/settings.load.test.ts`, PR 1)
+- [x] No settings shape written by a previous release fails to load
+      (legacy-shape and deep-merge tests, PR 1)
+- [x] `settings.security.test.ts` passes **without being modified**
 - [ ] `npm run check` passes with 0 errors
 - [ ] `npm test` passes
 - [ ] No Klasse-A field changes storage location or encryption state; if one

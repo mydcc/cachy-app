@@ -12,6 +12,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
+import { EntitlementStore } from "./entitlement.svelte";
 
 const SENSITIVE_KEYS: (keyof Settings)[] = [
   "openaiApiKey",
@@ -555,10 +556,20 @@ export class SettingsManager {
     defaultSettings.positionViewMode,
   );
   pnlViewMode = $state<PnlViewMode | undefined>(defaultSettings.pnlViewMode);
-  isPro = $state<boolean>(defaultSettings.isPro);
   feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
   hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
-  isProLicenseActive = $state<boolean>(defaultSettings.isProLicenseActive);
+  /**
+   * Edition/entitlement state (isPro, isProLicenseActive, the capability
+   * map) lives in its own store (FEAT-0197 PR 2) -- this is the one accessor
+   * every consumer outside this file reaches it through.
+   */
+  readonly entitlement = new EntitlementStore(
+    () => this.apiKeys,
+    () => this.apiProvider,
+    () => this.autoTrading,
+    () => this.multiAccount,
+    () => this.showMarketActivity,
+  );
   glassBlur = $state<number>(defaultSettings.glassBlur);
   glassSaturate = $state<number>(defaultSettings.glassSaturate);
   glassOpacity = $state<number>(defaultSettings.glassOpacity);
@@ -666,58 +677,9 @@ export class SettingsManager {
     const hasApiKeys =
       this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
 
-    return (this.isPro || hasApiKeys) && this.showSidebarActivity;
+    return (this.entitlement.isPro || hasApiKeys) && this.showSidebarActivity;
   }
 
-  get capabilities() {
-    // Check if user has API credentials
-    // For Bitget, we need key, secret AND passphrase
-    const hasBitgetKeys = Boolean(
-      this.apiKeys?.bitget?.key &&
-      this.apiKeys?.bitget?.secret &&
-      this.apiKeys?.bitget?.passphrase,
-    );
-
-    // For Bitunix, just key and secret
-    const hasBitunixKeys = Boolean(
-      this.apiKeys?.bitunix?.key && this.apiKeys?.bitunix?.secret,
-    );
-
-    const hasApiKeys =
-      this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
-
-    return {
-      // ========== PUBLIC FEATURES (Community + Pro) ==========
-      // Market data via WebSocket/API - available for all users
-      marketData: this.showMarketActivity,
-
-      // Position calculator - always available (core feature)
-      positionCalculator: true,
-
-      // Technical indicators (RSI, Bollinger, etc.) - free for all
-      technicals: true,
-
-      // News sentiment analysis - free for all
-      newsSentiment: true,
-
-      // ========== PRO FEATURES (PowerToggle + API Secret) ==========
-      // Trade execution - requires Pro license AND API credentials
-      tradeExecution: this.isPro && hasApiKeys,
-
-      // Live account data from private WebSocket
-      livePositions: this.isPro && hasApiKeys,
-      liveOrders: this.isPro && hasApiKeys,
-      liveBalance: this.isPro && hasApiKeys,
-
-      // Pro-only settings (require live data access)
-      pnlSettings: this.isPro && hasApiKeys,
-      feeSettings: this.isPro && hasApiKeys,
-
-      // Future features (prepared for expansion)
-      autoTrading: this.autoTrading,
-      multiAccount: this.multiAccount,
-    };
-  }
   showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
   showTechnicalsSummary = $state<boolean>(
     defaultSettings.showTechnicalsSummary,
@@ -1116,6 +1078,7 @@ export class SettingsManager {
       // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
       // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
       const genericEncryptionTasks = SENSITIVE_KEYS.map(async (key) => {
+        // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a readable key
         const value = this[key];
         if (typeof value === "string" && value.length > 0) {
           // Encrypt with Session Key (implied)
@@ -1220,7 +1183,7 @@ export class SettingsManager {
       this.hideUnfilledOrders = merged.hideUnfilledOrders;
       this.positionViewMode = merged.positionViewMode;
       this.pnlViewMode = merged.pnlViewMode;
-      this.isPro = merged.isPro;
+      this.entitlement.isPro = merged.isPro;
       this.feePreference = merged.feePreference;
       this.hotkeyMode = merged.hotkeyMode;
       // Granular updates for apiKeys to preserve object references if components bind to them
@@ -1382,7 +1345,7 @@ export class SettingsManager {
       this.rssPresets = merged.rssPresets || defaultSettings.rssPresets;
       this.customRssFeeds =
         merged.customRssFeeds || defaultSettings.customRssFeeds;
-      this.isProLicenseActive =
+      this.entitlement.isProLicenseActive =
         merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
       this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
       this.glassSaturate =
@@ -1643,7 +1606,7 @@ export class SettingsManager {
       hideUnfilledOrders: this.hideUnfilledOrders,
       positionViewMode: this.positionViewMode,
       pnlViewMode: this.pnlViewMode,
-      isPro: this.isPro,
+      isPro: this.entitlement.isPro,
       feePreference: this.feePreference,
       hotkeyMode: this.hotkeyMode,
       apiKeys: this.isEncrypted
@@ -1742,7 +1705,7 @@ export class SettingsManager {
       showBrokerLink: this.showBrokerLink,
       rssPresets: $state.snapshot(this.rssPresets),
       customRssFeeds: $state.snapshot(this.customRssFeeds),
-      isProLicenseActive: this.isProLicenseActive,
+      isProLicenseActive: this.entitlement.isProLicenseActive,
       glassBlur: this.glassBlur,
       glassSaturate: this.glassSaturate,
       glassOpacity: this.glassOpacity,
