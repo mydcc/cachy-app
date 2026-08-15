@@ -18,6 +18,7 @@
 import { Decimal } from "decimal.js";
 import { CONSTANTS } from "../constants";
 import type { JournalEntry } from "../../stores/types";
+import { isUnsafeObjectKey } from "../../utils/utils";
 import { getTradePnL } from "./core";
 import {
   calculateJournalStats,
@@ -403,6 +404,10 @@ export function getAssetData(journal: JournalEntry[], context?: JournalContext) 
   tradesToIterate.forEach((t) => {
     if (!context && t.status === "Open") return;
     const sym = t.symbol;
+    // Reject the three property names that would let this
+    // bracket-assignment walk onto Object.prototype instead of setting an
+    // own property.
+    if (isUnsafeObjectKey(sym)) return;
     if (!symbolStats[sym])
       symbolStats[sym] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
 

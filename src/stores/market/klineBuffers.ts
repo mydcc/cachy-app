@@ -21,6 +21,7 @@ import type { Kline, KlineBuffers } from "../../services/technicalsTypes";
 import type { MarketData } from "../market.svelte";
 import type { RawKline, RawNumeric } from "./types";
 import { settingsState } from "../settings.svelte";
+import { isUnsafeObjectKey } from "../../utils/utils";
 
 export class KlineBufferManager {
   public bufferPool = new BufferPool();
@@ -94,6 +95,11 @@ export class KlineBufferManager {
     enforceLimit: boolean,
     current: MarketData
   ) {
+    // timeframe ultimately traces back to a WS channel/topic string rather
+    // than a fixed internal enum — reject it before it's ever used as an
+    // object key (current.klines[timeframe], current.klinesBuffers[timeframe]).
+    if (isUnsafeObjectKey(timeframe)) return;
+
     if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
         klines.sort((a, b) => a.time - b.time);
         const dedupedRaw: RawKline[] = [];

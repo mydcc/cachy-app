@@ -37,6 +37,17 @@ export interface ApiEnvelope<T> {
   error?: { code?: string | number; message?: string; details?: unknown };
 }
 
+/**
+ * Rejects the three property names that let a bracket-assignment
+ * (`obj[key] = value`) walk onto an object's prototype chain instead of
+ * setting an own property. Use before any `obj[externallyDerivedKey] = ...`
+ * where the key ultimately traces back to exchange/WS data or user-entered
+ * strings (trade tags, symbols) rather than a fixed internal enum.
+ */
+export function isUnsafeObjectKey(key: string): boolean {
+  return key === "__proto__" || key === "constructor" || key === "prototype";
+}
+
 export function unwrapApiEnvelope<T>(
   body: ApiEnvelope<T>,
 ): { data: T | null; code?: string | number; message?: string } {
