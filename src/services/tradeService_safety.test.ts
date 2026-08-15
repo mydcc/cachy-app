@@ -53,6 +53,12 @@ vi.mock("./toastService.svelte", () => ({
     }
 }));
 
+// FEAT-0011: every state-mutating call carries an order-gate pass as its
+// fourth argument, and `signedRequest` refuses one that arrives without it.
+// That the pass is genuine, single-use and bound to this account is covered
+// in orderGate.test.ts; here it only has to be present.
+const GATE_PASS = expect.anything();
+
 describe("TradeService Safety - Flash Close", () => {
     beforeEach(() => {
         // Reset OMS
@@ -171,6 +177,6 @@ describe("TradeService Safety - Flash Close", () => {
             side: "BUY",
             tradeSide: "CLOSE",
             reduceOnly: true
-        }));
+        }), GATE_PASS);
     });
 });

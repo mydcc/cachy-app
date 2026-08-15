@@ -45,6 +45,16 @@ import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder } from "../types/bitunix";
 import { appFetch } from "../lib/appAuth";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
+import {
+    orderGate,
+    assertGatePass,
+    accountFingerprint,
+    translateRefusal,
+    OrderRefusedError,
+    type GatePass,
+    type DisplayedState,
+    type OrderIntent,
+} from "./orderGate";
 
 export interface TpSlOrder {
     orderId: string;
@@ -114,15 +124,38 @@ class TradeService {
 
     // Helper to sign and send requests to backend
     // Test mocks this
+    //
+    // FEAT-0011: this is the transport, and it is not reachable for a
+    // state-mutating order without a pass from the order gate. `pass` is
+    // typed optional because read-only calls (history, pending,
+    // order-detail, TP/SL listing) legitimately have none — for anything
+    // that changes exchange state `assertGatePass` throws, so a call site
+    // that skips the gate fails at runtime rather than sending an
+    // unverified order. A source-level scan catches the same mistake
+    // earlier; see src/tests/architecture/order_gate_bypass.test.ts.
     public async signedRequest<T>(
         method: string,
         endpoint: string,
-        payload: Record<string, unknown>
+        payload: Record<string, unknown>,
+        pass?: GatePass
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
         const provider = settingsState.apiProvider;
         const keys = settingsState.apiKeys[provider];
+
+        // Re-read of the account the request will actually be signed with,
+        // compared against the account the gate approved. Settings can change
+        // between the click and the send; this is where that is caught.
+        assertGatePass(
+            {
+                endpoint,
+                payload,
+                provider,
+                accountFingerprint: accountFingerprint(keys?.key),
+            },
+            pass
+        );
 
         if (!keys || !keys.key) {
             throw new Error("apiErrors.missingCredentials");
@@ -315,6 +348,36 @@ class TradeService {
         return payload;
     }
 
+    /**
+     * The account half of the displayed state — the exchange and key the UI
+     * currently shows as active. Every intent needs it; nothing else about
+     * an intent is shared, so the rest is built per call site.
+     */
+    private displayedAccount(): Pick<DisplayedState, "provider" | "accountFingerprint"> {
+        const provider = settingsState.apiProvider;
+        return {
+            provider,
+            accountFingerprint: accountFingerprint(settingsState.apiKeys[provider]?.key),
+        };
+    }
+
+    /**
+     * FEAT-0011: verify, then transmit. Every mutating order in this service
+     * goes through here — `signedRequest` refuses one that does not.
+     */
+    private async gatedRequest<T>(
+        intent: Omit<OrderIntent, "displayed"> & { displayed: Omit<DisplayedState, "provider" | "accountFingerprint"> },
+        method = "POST",
+    ): Promise<T> {
+        const full: OrderIntent = {
+            ...intent,
+            displayed: { ...this.displayedAccount(), ...intent.displayed },
+        };
+        return await orderGate.submit<T>(full, (pass) =>
+            this.signedRequest<T>(method, full.endpoint, full.payload, pass),
+        );
+    }
+
     // Hardening: Centralized Freshness Check
     private async ensurePositionFreshness(symbol: string, positionSide: "long" | "short") {
         let positions = omsService.getPositions();
@@ -419,22 +482,38 @@ class TradeService {
             const provider = settingsState.apiProvider || "bitunix";
             let result: unknown;
             if (provider === "bitunix" && position.positionId) {
-                result = await this.signedRequest("POST", "/api/orders", {
-                    type: "flash-close-position",
-                    symbol,
-                    positionId: position.positionId,
+                result = await this.gatedRequest({
+                    kind: "reduce",
+                    endpoint: "/api/orders",
+                    payload: {
+                        type: "flash-close-position",
+                        symbol,
+                        positionId: position.positionId,
+                    },
+                    displayed: { symbol, positionId: position.positionId },
                 });
             } else {
-                result = await this.signedRequest("POST", "/api/orders", {
-                    type: "place-order",
-                    symbol,
-                    side: apiSide,
-                    orderType: "MARKET",
-                    qty,
-                    reduceOnly: true,
-                    clientOrderId,
-                    tradeSide,
-                    positionId,
+                result = await this.gatedRequest({
+                    kind: "reduce",
+                    endpoint: "/api/orders",
+                    payload: {
+                        type: "place-order",
+                        symbol,
+                        side: apiSide,
+                        orderType: "MARKET",
+                        qty,
+                        reduceOnly: true,
+                        clientOrderId,
+                        tradeSide,
+                        positionId,
+                    },
+                    displayed: {
+                        symbol,
+                        side: apiSide,
+                        positionAmount: position.amount,
+                        fullClose: true,
+                        positionId,
+                    },
                 });
             }
 
@@ -448,8 +527,12 @@ class TradeService {
 
         } catch (e: unknown) {
             // Use rawMessage for display when available (human-readable API text),
-            // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound")
-            const msg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
+            // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound").
+            // A gate refusal (FEAT-0011) names the field that disagreed and
+            // is already translatable, so it wins over both.
+            const msg = e instanceof OrderRefusedError
+                ? translateRefusal(e.refusal, get(_) as (key: string, options?: { values?: Record<string, string> }) => string)
+                : (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
 
             // Handle Optimistic Order Rollback/Recovery
             if (clientOrderId) {
@@ -574,19 +657,29 @@ class TradeService {
     public async cancelOrder(symbol: string, orderId: string) {
         if (!symbol || !orderId) return;
         logger.log("market", `[Trade] Cancelling order ${orderId} for ${symbol}`);
-        return await this.signedRequest("POST", "/api/orders", {
-            symbol,
-            orderId,
-            type: "cancel-order"
+        return await this.gatedRequest({
+            kind: "cancel",
+            endpoint: "/api/orders",
+            payload: {
+                symbol,
+                orderId,
+                type: "cancel-order"
+            },
+            displayed: { symbol, orderId },
         });
     }
 
     public async cancelAllOrders(symbol?: string, throwOnError = false) {
         logger.log("market", `[Trade] Cancelling all orders${symbol ? ` for ${symbol}` : ""}`);
         try {
-             return await this.signedRequest("POST", "/api/orders", {
-                symbol: symbol || undefined,
-                type: "cancel-all"
+             return await this.gatedRequest({
+                kind: "bulk",
+                endpoint: "/api/orders",
+                payload: {
+                    symbol: symbol || undefined,
+                    type: "cancel-all"
+                },
+                displayed: symbol ? { symbol } : {},
              });
         } catch (e: unknown) {
              logger.warn("market", `[Trade] Failed to cancel orders${symbol ? ` for ${symbol}` : ""}`, e);
@@ -654,15 +747,29 @@ class TradeService {
             pnl: pnlVal,
         });
 
-        return this.signedRequest("POST", "/api/orders", {
-            type: "place-order",
-            symbol,
-            side,
-            orderType: "MARKET",
-            qty,
-            reduceOnly: true,
-            tradeSide,
-            positionId,
+        return this.gatedRequest({
+            kind: "reduce",
+            endpoint: "/api/orders",
+            payload: {
+                type: "place-order",
+                symbol,
+                side,
+                orderType: "MARKET",
+                qty,
+                reduceOnly: true,
+                tradeSide,
+                positionId,
+            },
+            displayed: {
+                symbol,
+                side,
+                // The ceiling comes from the position re-read above, not from
+                // the caller's `amount` — comparing the caller's number
+                // against itself would prove nothing.
+                positionAmount: position.amount,
+                fullClose: !amount,
+                positionId,
+            },
         });
     }
 
@@ -671,9 +778,14 @@ class TradeService {
         try {
             const provider = settingsState.apiProvider || "bitunix";
             if (provider === "bitunix") {
-                return await this.signedRequest("POST", "/api/orders", {
-                    type: "close-all-positions",
-                    symbol: symbol || undefined,
+                return await this.gatedRequest({
+                    kind: "bulk",
+                    endpoint: "/api/orders",
+                    payload: {
+                        type: "close-all-positions",
+                        symbol: symbol || undefined,
+                    },
+                    displayed: symbol ? { symbol } : {},
                 });
             }
 
@@ -744,7 +856,23 @@ class TradeService {
         if (params.tpOrderPrice !== undefined) payload.tpOrderPrice = formatApiNum(params.tpOrderPrice);
         if (params.slOrderPrice !== undefined) payload.slOrderPrice = formatApiNum(params.slOrderPrice);
 
-        return await this.signedRequest("POST", "/api/orders", payload);
+        // The displayed side of a modify is what the caller asked for, before
+        // formatApiNum() touched it. Comparing the formatted payload back
+        // against the raw request is what catches a serialisation defect —
+        // the exact failure mode that produced the float bug in the order
+        // payload and the `response.json()`-corrupted order IDs.
+        return await this.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/orders",
+            payload,
+            displayed: {
+                symbol: typeof symbol === "string" ? symbol : undefined,
+                orderId: params.orderId,
+                entryPrice: params.price !== undefined ? new Decimal(params.price) : undefined,
+                stopLossPrice: params.slPrice !== undefined ? new Decimal(params.slPrice) : undefined,
+                takeProfits: params.tpPrice !== undefined ? [new Decimal(params.tpPrice)] : undefined,
+            },
+        });
     }
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
@@ -822,14 +950,25 @@ class TradeService {
     }
 
     public async cancelTpSlOrder(order: TpSlOrder) {
-        return this.signedRequest("POST", "/api/tpsl", {
-            exchange: "bitunix",
-            action: "cancel",
-            params: {
-                orderId: order.orderId || order.id,
+        // `/api/tpsl` nests the order fields under `params`; the gate reads
+        // symbol/orderId off the top level, so they are mirrored there. The
+        // route ignores the extra keys.
+        const orderId = order.orderId || order.id;
+        return this.gatedRequest({
+            kind: "cancel",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "cancel",
                 symbol: order.symbol,
-                planType: order.planType,
+                orderId,
+                params: {
+                    orderId,
+                    symbol: order.symbol,
+                    planType: order.planType,
+                },
             },
+            displayed: { symbol: order.symbol, orderId },
         });
     }
 
@@ -840,15 +979,34 @@ class TradeService {
         triggerPrice: string,
         qty?: string
     }) {
-        return this.signedRequest("POST", "/api/tpsl", {
-            exchange: "bitunix",
-            action: "modify",
-            params: {
-                orderId: params.orderId,
+        return this.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "modify",
                 symbol: params.symbol,
-                planType: params.planType,
-                triggerPrice: params.triggerPrice,
-                qty: params.qty
+                orderId: params.orderId,
+                params: {
+                    orderId: params.orderId,
+                    symbol: params.symbol,
+                    planType: params.planType,
+                    triggerPrice: params.triggerPrice,
+                    qty: params.qty
+                },
+            },
+            displayed: {
+                symbol: params.symbol,
+                orderId: params.orderId,
+                // A PROFIT plan's trigger is a take-profit level, a LOSS
+                // plan's is a stop — same field on the wire, different
+                // meaning, and each has to land in the slot the gate checks.
+                takeProfits: params.planType === "PROFIT" ? [new Decimal(params.triggerPrice)] : undefined,
+                stopLossPrice: params.planType === "LOSS" ? new Decimal(params.triggerPrice) : undefined,
+            },
+            priceFields: {
+                stopLoss: "params.triggerPrice",
+                takeProfit: "params.triggerPrice",
             },
         });
     }

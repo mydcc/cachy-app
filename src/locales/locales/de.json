@@ -2259,6 +2259,35 @@
     "dataError": "Dateninkonsistenz erkannt",
     "orderNotFound": "Order nicht gefunden"
   },
+  "orderGate": {
+    "title": "Order abgelehnt",
+    "mismatch": "Order abgelehnt: {field} stimmt nicht mit der Anzeige überein (erwartet {expected}, erhalten {actual}). Die Order wurde nicht gesendet.",
+    "missing": "Order abgelehnt: {field} fehlt in der Order und konnte deshalb nicht geprüft werden. Die Order wurde nicht gesendet.",
+    "sizeMismatch": "Order abgelehnt: Die Größe stimmt nicht mit einer frischen Berechnung überein (erwartet {expected}, erhalten {actual}, Toleranz {tolerance}). Die Order wurde nicht gesendet.",
+    "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
+    "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet.",
+    "riskLimit": "Order abgelehnt: {field} überschreitet ein konfiguriertes Risiko-Limit ({detail}). Die Order wurde nicht gesendet.",
+    "bypassed": "Order abgelehnt: Eine Order vom Typ {action} hat versucht, die Börse ohne Prüfung zu erreichen. Das ist ein Fehler — bitte melden.",
+    "fields": {
+      "account": "das Konto",
+      "accountState": "Hebel / Margin-Modus",
+      "action": "die Order-Aktion",
+      "endpoint": "der Ziel-Endpunkt",
+      "gate": "die Prüfung",
+      "killSwitch": "der Kill Switch",
+      "leverage": "der Hebel",
+      "marginMode": "der Margin-Modus",
+      "orderId": "die Order-ID",
+      "positionId": "die Positions-ID",
+      "price": "der Einstiegskurs",
+      "qty": "die Positionsgröße",
+      "reduceOnly": "das Reduce-Only-Flag",
+      "side": "die Richtung",
+      "stopLoss": "der Stop-Loss",
+      "symbol": "das Symbol",
+      "takeProfit": "der Take-Profit"
+    }
+  },
   "workerErrors": {
     "eventError": "Worker Fehler Event",
     "notAvailable": "Worker nicht verfügbar",

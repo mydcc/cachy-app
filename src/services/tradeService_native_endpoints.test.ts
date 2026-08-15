@@ -71,6 +71,12 @@ vi.mock("./toastService.svelte", () => ({
   },
 }));
 
+// FEAT-0011: every state-mutating call carries an order-gate pass as its
+// fourth argument, and `signedRequest` refuses one that arrives without it.
+// That the pass is genuine, single-use and bound to this account is covered
+// in orderGate.test.ts; here it only has to be present.
+const GATE_PASS = expect.anything();
+
 describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,7 +94,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
         symbol: "BTCUSDT",
         type: "cancel-all",
-      });
+      }, GATE_PASS);
     });
 
     it("issues a single request with type=cancel-all without symbol", async () => {
@@ -102,7 +108,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
         symbol: undefined,
         type: "cancel-all",
-      });
+      }, GATE_PASS);
     });
   });
 
@@ -118,7 +124,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
         type: "close-all-positions",
         symbol: "BTCUSDT",
-      });
+      }, GATE_PASS);
       // Verify no OMS iteration occurred
       expect(omsService.getPositions).not.toHaveBeenCalled();
     });
@@ -152,7 +158,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
         type: "flash-close-position",
         symbol: "BTCUSDT",
         positionId: "pos-123456",
-      });
+      }, GATE_PASS);
     });
   });
 
@@ -228,7 +234,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
         slPrice: "142", // updated (formatApiNum strips trailing zero)
         slStopType: "MARK_PRICE", // preserved
         slOrderType: "MARKET", // preserved
-      });
+      }, GATE_PASS);
       expect(result).toEqual({ orderId: "order-999", clientId: "client-abc" });
     });
 
@@ -265,7 +271,8 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
           symbol: "SOLUSDT",
           qty: "10",
           price: "148.5",
-        })
+        }),
+        GATE_PASS
       );
     });
   });
