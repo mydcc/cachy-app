@@ -36,24 +36,33 @@ function isStatusError(error: unknown): error is StatusError {
   );
 }
 
-// Bitunix's funding_rate/batch endpoint returns ALL trading pairs in one
-// response and takes no filter parameters (confirmed against the official
-// docs) - so this proxies it as-is, cached briefly server-side. A 30s TTL
-// is generous: funding rate only changes at settlement, hours apart.
+// Bitunix funding rate proxy:
+// 1. If `symbol` is specified: proxies GET /api/v1/futures/market/get_funding_rate_history
+// 2. If no `symbol`: proxies GET /api/v1/futures/market/funding_rate/batch (all pairs)
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const provider = url.searchParams.get("provider") || "bitunix";
+  const symbol = url.searchParams.get("symbol");
+  const limit = url.searchParams.get("limit") || "30";
 
   if (provider !== "bitunix") {
     return json({ message: "Unsupported provider" }, { status: 400 });
   }
 
-  const cacheKey = `funding-rate:${provider}`;
+  const cacheKey = symbol
+    ? `funding-rate-history:${provider}:${symbol}:${limit}`
+    : `funding-rate:${provider}`;
 
   try {
     const data = await cache.getOrFetch(
       cacheKey,
       async () => {
-        const apiUrl = "https://fapi.bitunix.com/api/v1/futures/market/funding_rate/batch";
+        let apiUrl = "https://fapi.bitunix.com/api/v1/futures/market/funding_rate/batch";
+        if (symbol) {
+          const cleanSymbol = symbol.replace(/[^a-zA-Z0-9]/g, "");
+          const parsedLimit = parseInt(limit, 10);
+          const validLimit = isNaN(parsedLimit) ? 30 : Math.min(Math.max(parsedLimit, 1), 200);
+          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=${encodeURIComponent(cleanSymbol)}&limit=${validLimit}`;
+        }
         const response = await fetch(apiUrl);
 
         if (!response.ok) {

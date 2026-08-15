@@ -4,7 +4,7 @@ import { settingsState, type Settings } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
-import { fundingRateService } from "./fundingRateService";
+import { fundingRateService } from "./fundingRateService.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { Decimal } from "decimal.js";
 

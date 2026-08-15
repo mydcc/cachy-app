@@ -62,6 +62,18 @@ export const BitunixFundingRateBatchResponseSchema = z.object({
   data: z.array(BitunixFundingRateSchema).optional(),
 });
 
+export const BitunixFundingRateHistoryItemSchema = z.object({
+  fundingRate: StrictDecimal,
+  fundingTime: z.union([z.number(), z.string()]),
+  markPrice: StrictDecimal.nullable().optional(),
+});
+
+export const BitunixFundingRateHistoryResponseSchema = z.object({
+  code: z.union([z.number(), z.string()]),
+  msg: z.string().optional(),
+  data: z.array(BitunixFundingRateHistoryItemSchema).optional(),
+});
+
 // Bitunix Kline Schema
 export const BitunixKlineSchema = z.object({
   open: StrictDecimal,

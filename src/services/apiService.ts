@@ -36,6 +36,7 @@ export class ApiStatusError extends Error {
 import {
   BitunixTickerResponseSchema,
   BitunixFundingRateBatchResponseSchema,
+  BitunixFundingRateHistoryResponseSchema,
   BitunixKlineSchema,
   BitgetKlineSchema,
   validateResponseSize,
@@ -59,6 +60,12 @@ export interface FundingRateEntry {
   fundingRate: Decimal; // normalized fraction, e.g. 0.0005 = 0.05% (see fetchBitunixFundingRates)
   nextFundingTime: number | string; // ms epoch
   fundingInterval?: number | string; // settlement interval in hours, varies per symbol
+}
+
+export interface FundingRateHistoryItem {
+  fundingRate: Decimal; // normalized fraction, e.g. 0.0001 = 0.01%
+  fundingTime: number; // epoch ms
+  markPrice?: Decimal | null;
 }
 
 // Raw Bitget kline shape when the endpoint returns objects instead of
@@ -1035,6 +1042,72 @@ export const apiService = {
             });
           }
           return result;
+        } catch (e: unknown) {
+          if (e instanceof Error && e.name === "AbortError") throw e;
+          if (
+            e instanceof Error &&
+            (e.message.startsWith("apiErrors.") ||
+              e.message.startsWith("bitunixErrors."))
+          ) {
+            throw e;
+          }
+          throw new Error("apiErrors.generic", { cause: e });
+        }
+      },
+      priority,
+      1,
+      timeout,
+    );
+  },
+
+  async fetchBitunixFundingRateHistory(
+    symbol: string,
+    limit = 30,
+    priority: "high" | "normal" = "normal",
+    timeout = 10000,
+  ): Promise<FundingRateHistoryItem[]> {
+    const rawSymbol = apiService.normalizeSymbol(symbol, "bitunix");
+    const key = `FUNDING_RATE_HISTORY:bitunix:${rawSymbol}:${limit}`;
+    return requestManager.schedule(
+      key,
+      async (signal) => {
+        try {
+          const response = await fetch(
+            `/api/funding-rate?provider=bitunix&symbol=${encodeURIComponent(rawSymbol)}&limit=${limit}`,
+            { signal },
+          );
+          if (!response.ok) throw new Error("apiErrors.generic");
+          const data = await apiService.safeJson(response);
+
+          const validation = BitunixFundingRateHistoryResponseSchema.safeParse(data);
+          if (!validation.success) {
+            logger.error("network", "[API] Invalid funding rate history response", validation.error.issues);
+            throw new Error("apiErrors.invalidResponse");
+          }
+          const validatedRes = validation.data;
+          if (validatedRes.code !== undefined && validatedRes.code !== 0) {
+            throw new Error(getBitunixErrorKey(validatedRes.code));
+          }
+          if (!validatedRes.data) {
+            throw new Error("apiErrors.invalidResponse");
+          }
+
+          const items: FundingRateHistoryItem[] = validatedRes.data.map((entry) => {
+            const fundingRate = entry.fundingRate.dividedBy(100);
+            const fundingTime =
+              typeof entry.fundingTime === "string"
+                ? parseInt(entry.fundingTime, 10)
+                : entry.fundingTime;
+            return {
+              fundingRate,
+              fundingTime: isNaN(fundingTime) ? 0 : fundingTime,
+              markPrice: entry.markPrice ?? null,
+            };
+          });
+
+          // Sort chronologically ascending (oldest first, newest last)
+          items.sort((a, b) => a.fundingTime - b.fundingTime);
+          return items;
         } catch (e: unknown) {
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (

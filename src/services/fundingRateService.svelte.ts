@@ -15,9 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { apiService, type FundingRateEntry } from "./apiService";
+import { apiService, type FundingRateEntry, type FundingRateHistoryItem } from "./apiService";
 import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
+import { Decimal } from "decimal.js";
 
 // Bitunix's funding_rate/batch endpoint returns the currently predicted rate
 // for the *next* settlement, not the last locked-in one - it can still move
@@ -26,6 +27,17 @@ import { logger } from "./logger";
 // still plenty fresh for this purpose and stays far under Bitunix's 10
 // req/sec limit.
 const POLL_INTERVAL_MS = 60_000;
+const HISTORY_CACHE_TTL_MS = 5 * 60_000; // 5 minutes cache for 7d history
+
+export interface FundingRateHistoryData {
+  items: FundingRateHistoryItem[];
+  avg7d: Decimal;
+  minRate: Decimal;
+  maxRate: Decimal;
+  fetchedAt: number;
+  isLoading: boolean;
+  error: string | null;
+}
 
 class FundingRateService {
   private intervalId: ReturnType<typeof setInterval> | null = null;
@@ -35,6 +47,10 @@ class FundingRateService {
   // immediately from already-fetched data instead of waiting up to
   // POLL_INTERVAL_MS for the next scheduled poll - see applyCachedRateFor().
   private lastRates: Map<string, FundingRateEntry> | null = null;
+
+  // History state for UI components (reactive Svelte 5 state)
+  historyState = $state<Record<string, FundingRateHistoryData>>({});
+  private inFlightHistory = new Map<string, Promise<FundingRateHistoryData>>();
 
   start(): void {
     if (this.intervalId) return;
@@ -64,6 +80,96 @@ class FundingRateService {
       nextFundingTime: entry.nextFundingTime,
       fundingInterval: entry.fundingInterval,
     });
+  }
+
+  /**
+   * Fetch 7-day funding rate history on-demand for `symbol`.
+   * Caches results in memory for 5 minutes.
+   */
+  async fetchHistory(symbol: string, force = false): Promise<FundingRateHistoryData> {
+    if (!symbol) {
+      return {
+        items: [],
+        avg7d: new Decimal(0),
+        minRate: new Decimal(0),
+        maxRate: new Decimal(0),
+        fetchedAt: 0,
+        isLoading: false,
+        error: null,
+      };
+    }
+
+    const normSymbol = apiService.normalizeSymbol(symbol, "bitunix");
+    const existing = this.historyState[normSymbol];
+    const now = Date.now();
+
+    if (!force && existing && !existing.isLoading && now - existing.fetchedAt < HISTORY_CACHE_TTL_MS) {
+      return existing;
+    }
+
+    const inFlight = this.inFlightHistory.get(normSymbol);
+    if (inFlight) return inFlight;
+
+    // Set loading state in reactive object
+    this.historyState[normSymbol] = {
+      items: existing?.items ?? [],
+      avg7d: existing?.avg7d ?? new Decimal(0),
+      minRate: existing?.minRate ?? new Decimal(0),
+      maxRate: existing?.maxRate ?? new Decimal(0),
+      fetchedAt: existing?.fetchedAt ?? 0,
+      isLoading: true,
+      error: null,
+    };
+
+    const fetchPromise = (async () => {
+      try {
+        // Fetch up to 30 items (7 days @ 8h = 21 items)
+        const items = await apiService.fetchBitunixFundingRateHistory(normSymbol, 30);
+        
+        let sum = new Decimal(0);
+        let min = items.length > 0 ? items[0].fundingRate : new Decimal(0);
+        let max = items.length > 0 ? items[0].fundingRate : new Decimal(0);
+
+        for (const item of items) {
+          sum = sum.plus(item.fundingRate);
+          if (item.fundingRate.lt(min)) min = item.fundingRate;
+          if (item.fundingRate.gt(max)) max = item.fundingRate;
+        }
+
+        const avg7d = items.length > 0 ? sum.dividedBy(items.length) : new Decimal(0);
+
+        const data: FundingRateHistoryData = {
+          items,
+          avg7d,
+          minRate: min,
+          maxRate: max,
+          fetchedAt: Date.now(),
+          isLoading: false,
+          error: null,
+        };
+
+        this.historyState[normSymbol] = data;
+        return data;
+      } catch (err: unknown) {
+        logger.warn("market", `[FundingRate] History fetch failed for ${normSymbol}`, err);
+        const data: FundingRateHistoryData = {
+          items: existing?.items ?? [],
+          avg7d: existing?.avg7d ?? new Decimal(0),
+          minRate: existing?.minRate ?? new Decimal(0),
+          maxRate: existing?.maxRate ?? new Decimal(0),
+          fetchedAt: existing?.fetchedAt ?? 0,
+          isLoading: false,
+          error: err instanceof Error ? err.message : "Failed to load funding rate history",
+        };
+        this.historyState[normSymbol] = data;
+        return data;
+      } finally {
+        this.inFlightHistory.delete(normSymbol);
+      }
+    })();
+
+    this.inFlightHistory.set(normSymbol, fetchPromise);
+    return fetchPromise;
   }
 
   private async poll(): Promise<void> {
