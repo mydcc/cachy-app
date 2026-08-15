@@ -2,7 +2,8 @@
 id: FEAT-0190
 title: "Epic: Decompose the five oversized modules along the module boundary"
 type: feature
-status: specced
+status: done
+done_version: 1.6.0-beta.19
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -117,15 +118,20 @@ the *reasoning* behind that exclusion even though the epic is filed as
 
 ## Acceptance criteria
 
-- [ ] All five sub-items ([`FEAT-0193`](FEAT-0193-split-market-watcher.md) …
+- [x] All five sub-items ([`FEAT-0193`](FEAT-0193-split-market-watcher.md) …
       [`FEAT-0197`](FEAT-0197-split-settings-store.md)) are `done` or `dropped`
-- [ ] No method in the five modules exceeds 200 lines
-- [ ] Edition/entitlement state lives in its own store, imported by
+      (all five `done`, plus the prerequisite [`FEAT-0198`](FEAT-0198-market-store-buffer-pool-characterisation-tests.md))
+- [x] No method in the five modules exceeds 200 lines
+- [x] Edition/entitlement state lives in its own store, imported by
       `settings.svelte.ts` consumers through one accessor
-- [ ] `bitunixWs.ts`'s extracted units map onto the FEAT-0016 adapter concerns
+      (`src/stores/entitlement.svelte.ts`, `settingsState.entitlement`, FEAT-0197 PR 2)
+- [x] `bitunixWs.ts`'s extracted units map onto the FEAT-0016 adapter concerns
       (transport, parsing, dispatch), stated in that sub-item's PR description
-- [ ] No public API of the five modules changes, or each change is listed and
+      (FEAT-0194)
+- [x] No public API of the five modules changes, or each change is listed and
       justified in the relevant sub-item on completion
+      (FEAT-0195's `getOrCreateSymbol`/`touchSymbol` widening, FEAT-0197's
+      `settingsState.entitlement.*` accessor — both documented in their items)
 
 ## Out of scope
 

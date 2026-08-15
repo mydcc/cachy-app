@@ -2,7 +2,9 @@
 id: FEAT-0197
 title: "Extract entitlement state and the settings load/persist path out of settings.svelte.ts"
 type: feature
-status: in-progress
+status: done
+done_version: 1.6.0-beta.19
+branch: feat-0197-settings-characterisation-tests, feat-0197-extract-entitlement-store, feat-0197-split-load-save
 priority: P2
 milestone: none
 editions: [community, pro, private]
