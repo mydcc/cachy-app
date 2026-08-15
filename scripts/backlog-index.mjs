@@ -46,6 +46,8 @@ const PRIORITIES = ["P0", "P1", "P2", "P3"];
 const EDITIONS = ["community", "pro", "private"];
 const DATA_CLASSES = ["A", "B", "C", "none"];
 const MILESTONES = ["none", "M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"];
+const DISPATCH_LABELS = ["none", "plan-validation", "architecture-review", "needs-estimation", "ready"];
+const DISPATCH_TARGETS = ["none", "jules", "early-dispatch", "manual", "blocked"];
 
 const REQUIRED = [
   "id",
@@ -155,6 +157,15 @@ for (const [dir, type] of Object.entries(DIRS)) {
 
     if (item.adr !== "none" && item.adr !== "required" && !/^ADR-\d{4}$/.test(item.adr ?? "")) {
       errors.push(`${file}: adr is "${item.adr}", expected none, required or ADR-NNNN`);
+    }
+
+    // Validate dispatch-label and dispatch-target (optional fields)
+    if (item["dispatch-label"] && !DISPATCH_LABELS.includes(item["dispatch-label"])) {
+      errors.push(`${file}: dispatch-label is "${item["dispatch-label"]}", expected one of ${DISPATCH_LABELS.join(", ")}`);
+    }
+
+    if (item["dispatch-target"] && !DISPATCH_TARGETS.includes(item["dispatch-target"])) {
+      errors.push(`${file}: dispatch-target is "${item["dispatch-target"]}", expected one of ${DISPATCH_TARGETS.join(", ")}`);
     }
 
     items.push({ ...item, file: `${dir}/${filename}` });

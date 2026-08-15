@@ -1,0 +1,55 @@
+name: Early PR Dispatch (Plan Validation)
+
+# Erstellt Draft-PRs für Backlog-Items zur Plan-Validierung durch Agenten
+# bevor die Implementierung startet. Ist manuell triggerbar und filterbar
+# nach dispatch-label, area, priority.
+#
+# Use: GitHub UI → Actions → Early PR Dispatch → workflow_dispatch
+# Oder via CLI: gh workflow run early-pr-dispatch.yml -f dispatch_label=plan-validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      dispatch_label:
+        description: 'Filter items by dispatch-label (plan-validation, architecture-review, needs-estimation)'
+        type: string
+        default: 'plan-validation'
+      area:
+        description: 'Optional: filter by area (ui, execution, exchange, etc). Leave empty for all.'
+        type: string
+        default: ''
+      priority:
+        description: 'Optional: filter by priority (P0, P1, P2, P3). Leave empty for all.'
+        type: string
+        default: ''
+      dry_run:
+        description: 'Show what would be created, do not create PRs'
+        type: boolean
+        default: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 'lts/*'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create early PR drafts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          DISPATCH_LABEL: ${{ inputs.dispatch_label }}
+          AREA_FILTER: ${{ inputs.area }}
+          PRIORITY_FILTER: ${{ inputs.priority }}
+        run: |
+          node scripts/dispatch/early-pr-dispatch.mjs

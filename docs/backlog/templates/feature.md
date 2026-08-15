@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+dispatch-label: none
+dispatch-target: none
 ---
 
 # FEAT-NNNN — Title

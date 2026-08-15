@@ -276,6 +276,16 @@ const ready = items.filter((i) => {
   if (i.status !== "ready" || EXCLUDE_AREAS.includes(i.area) || i.priority === "P0") {
     return false;
   }
+  // Check dispatch-target field: only dispatch items marked for Jules
+  // dispatch-target: 'none' (default) → skip
+  // dispatch-target: 'jules' → dispatch normally
+  // dispatch-target: 'manual' → skip (user-triggered dispatch only)
+  // dispatch-target: 'early-dispatch' → skip (different schedule)
+  // dispatch-target: 'blocked' → skip (dependencies not met)
+  const dispatchTarget = i["dispatch-target"] || "none";
+  if (dispatchTarget !== "jules") {
+    return false;
+  }
   if (Array.isArray(i.depends_on) && i.depends_on.length > 0) {
     const unresolved = i.depends_on.filter((depId) => {
       const depItem = items.find((item) => item.id === depId);

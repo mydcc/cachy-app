@@ -1,9 +1,16 @@
 name: Backlog Dispatch (Jules)
 
-# Schickt docs/backlog/-Items mit status: ready automatisch an Jules —
-# siehe scripts/jules/dispatch-backlog.mjs für den genauen Filter/Ablauf.
+# Schickt docs/backlog/-Items mit status: ready + dispatch-target: jules
+# automatisch an Jules — siehe scripts/jules/dispatch-backlog.mjs für den genauen Filter/Ablauf.
 # execution/security/exchange und P0 bleiben bewusst außen vor (manuell
 # per scripts/jules/create-session.sh --file ...).
+#
+# Unterstützt dispatch-target Feld:
+#   - 'none' — nicht zum Dispatch
+#   - 'jules' — normaler Dispatch (Montag)
+#   - 'early-dispatch' — schneller Dispatch (nicht yet implemented)
+#   - 'manual' — nur per workflow_dispatch mit spezifischen IDs
+#   - 'blocked' — abhängigkeiten nicht erfüllt; wird übersprungen
 
 on:
   schedule:
