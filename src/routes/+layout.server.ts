@@ -19,7 +19,7 @@ import type { LayoutServerLoad } from "./$types";
 import { CONSTANTS } from "../lib/constants";
 import { INITIAL_TRADE_STATE } from "../stores/trade.svelte"; // Import initialTradeState
 
-// export const prerender = true;
+export const prerender = false;
 export const ssr = false; // Disable SSR to prevent hydration mismatch with theme
 
 export const load: LayoutServerLoad = async ({ cookies }) => {
