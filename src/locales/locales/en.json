@@ -232,6 +232,7 @@
       "priceLimit": "Price",
       "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
       "createSuccess": "Alert created successfully.",
+      "deleteAlert": "Delete Alert",
       "noHistory": "No history",
       "crossesUp": "Crosses Up",
       "crossesDown": "Crosses Down",

@@ -52,7 +52,7 @@
         <div class="input-group">
             <input type="text" bind:value={newAlertSymbol} placeholder={$t('dashboard.alerts.symbol') as string || "Symbol"} class="form-input" />
             <input type="number" bind:value={newAlertPrice} placeholder={$t('dashboard.alerts.priceLimit') as string} class="form-input" />
-            <button class="add-btn" onclick={createAlert}>+</button>
+            <button class="add-btn" aria-label={$t('dashboard.alerts.addAlert') as string} onclick={createAlert}>+</button>
         </div>
     </div>
 
@@ -73,7 +73,7 @@
                         <strong>{alert.symbol}</strong>
                         <span>{formatCondition(alert.condition)}</span>
                     </div>
-                    <button class="delete-btn" onclick={() => removeAlert(alert.id)}>
+                    <button class="delete-btn" aria-label={$t('dashboard.alerts.deleteAlert') as string} onclick={() => removeAlert(alert.id)}>
                         ×
                     </button>
                 </div>
@@ -92,7 +92,7 @@
                         <span>{formatCondition(alert.condition)}</span>
                         <span class="fired-badge">{$t('dashboard.alerts.fired', { default: 'Fired' })}</span>
                     </div>
-                    <button class="delete-btn" onclick={() => removeAlert(alert.id)}>
+                    <button class="delete-btn" aria-label={$t('dashboard.alerts.deleteAlert') as string} onclick={() => removeAlert(alert.id)}>
                         ×
                     </button>
                 </div>

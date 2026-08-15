@@ -232,6 +232,7 @@
       "priceLimit": "Preis",
       "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
       "createSuccess": "Alarm erfolgreich erstellt.",
+      "deleteAlert": "Alarm löschen",
       "noHistory": "Kein Verlauf",
       "crossesUp": "Kreuzt nach oben",
       "crossesDown": "Kreuzt nach unten",
