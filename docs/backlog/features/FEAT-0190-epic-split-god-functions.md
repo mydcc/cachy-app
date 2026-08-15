@@ -72,7 +72,7 @@ as five sub-items. Sequenced by risk and coverage rather than by size:
 | --- | --- | --- | --- |
 | 1 | [`FEAT-0193`](FEAT-0193-split-market-watcher.md) | `marketWatcher.ts` | agent-dispatchable |
 | 2 | [`FEAT-0194`](FEAT-0194-split-bitunix-ws-handle-message.md) | `bitunixWs.ts` | agent-dispatchable, `depends_on: [..., FEAT-0193]` |
-| 3 | [`FEAT-0195`](FEAT-0195-split-market-store.md) | `market.svelte.ts` | dispatchable, needs a decision first |
+| 3 | [`FEAT-0195`](FEAT-0195-split-market-store.md) | `market.svelte.ts` | agent-dispatchable, `depends_on: [..., FEAT-0198]` |
 | 4 | [`FEAT-0196`](FEAT-0196-split-active-technicals-manager.md) | `activeTechnicalsManager.svelte.ts` | **manual** — no tests exist |
 | 5 | [`FEAT-0197`](FEAT-0197-split-settings-store.md) | `settings.svelte.ts` | **manual** — credentials + Klasse-A data |
 
@@ -140,6 +140,8 @@ the *reasoning* behind that exclusion even though the epic is filed as
   [`FEAT-0195`](FEAT-0195-split-market-store.md),
   [`FEAT-0196`](FEAT-0196-split-active-technicals-manager.md),
   [`FEAT-0197`](FEAT-0197-split-settings-store.md)
+- [`FEAT-0198`](FEAT-0198-market-store-buffer-pool-characterisation-tests.md) —
+  prerequisite test-only item, unblocks FEAT-0195
 - [`docs/adr/0003-edition-boundary.md`](../../adr/0003-edition-boundary.md)
 - [`BUG-0182`](../bugs/BUG-0182-epic-decimal-migration-rust.md),
   [`BUG-0183`](../bugs/BUG-0183-epic-decimal-migration-core.md),

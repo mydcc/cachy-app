@@ -2,14 +2,14 @@
 id: FEAT-0195
 title: "Decompose market.svelte.ts into cache management, update batching and kline buffers"
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
 area: services
 data_class: C
 adr: none
-depends_on: [BUG-0182, BUG-0183, BUG-0184]
+depends_on: [BUG-0182, BUG-0183, BUG-0184, FEAT-0198]
 estimate: 3
 size: M
 target_date: 2026-09-21
@@ -19,6 +19,13 @@ target_date: 2026-09-21
 
 Sub-item 3 of 5 under [`FEAT-0190`](FEAT-0190-epic-split-god-functions.md).
 Read that item's "Rules that apply to every sub-item" first.
+
+> **Sequenced after [`FEAT-0198`](FEAT-0198-market-store-buffer-pool-characterisation-tests.md),
+> not just ordered.** `depends_on` includes `FEAT-0198` so
+> `scripts/jules/dispatch-backlog.mjs` will not dispatch this item until
+> FEAT-0198's status is `done` on `develop`. The buffer-pool/eviction coupling
+> was this item's one open question — undispatchable without test coverage
+> pinning that coupling first, dispatchable once it exists.
 
 ## Problem
 
@@ -65,17 +72,16 @@ Behaviour-preserving. `refactor:` commits only.
 Three test files exist and are the baseline: `market.test.ts`,
 `marketStore.test.ts`, `marketStore_limits.test.ts`
 (`marketStore_limits.test.ts` covers the eviction path specifically). They
-must keep passing **unchanged**. Coverage of the buffer-pool lifecycle is
-thinner than the eviction logic — add characterisation tests for
-acquire/release pairing **before** moving that code.
+must keep passing **unchanged**. Buffer-pool acquire/release pairing is
+covered by [`FEAT-0198`](FEAT-0198-market-store-buffer-pool-characterisation-tests.md),
+which must land first — do not move buffer-pool code without that coverage
+already merged on `develop`.
 
 ## Acceptance criteria
 
 - [ ] Cache management, kline buffers and telemetry each live in their own module
 - [ ] `market.svelte.ts` is under 400 lines
 - [ ] No method exceeds 200 lines
-- [ ] Buffer acquire/release pairing has explicit test coverage, added before
-      the buffer code was moved
 - [ ] The three existing market store test files pass **without being modified**
 - [ ] `npm run check` passes with 0 errors
 - [ ] `npm test` passes
@@ -87,16 +93,9 @@ acquire/release pairing **before** moving that code.
 - Any change to cache size limits, eviction policy or flush cadence.
 - Touching any of the other four modules in [`FEAT-0190`](FEAT-0190-epic-split-god-functions.md).
 
-## Open questions
-
-- **Dispatch route not yet decided.** Coverage is adequate for the eviction
-  path but thin for buffer-pool lifetime, and the cache/buffer coupling is the
-  one genuinely subtle part of this decomposition. Either add the missing
-  characterisation tests manually first and then dispatch, or keep the whole
-  item manual. Needs a call before this goes to `ready`.
-
 ## Links
 
+- [`FEAT-0198`](FEAT-0198-market-store-buffer-pool-characterisation-tests.md) — prerequisite, must be `done` first
 - [`FEAT-0190`](FEAT-0190-epic-split-god-functions.md) — parent epic and shared rules
 - [`docs/adr/0003-edition-boundary.md`](../../adr/0003-edition-boundary.md)
 - [`docs/adr/0004-spacetimedb-data-scope.md`](../../adr/0004-spacetimedb-data-scope.md) —
