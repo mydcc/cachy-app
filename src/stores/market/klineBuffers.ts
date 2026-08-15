@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import { BufferPool } from "../../utils/bufferPool";
 import { Decimal } from "decimal.js";
 import type { Kline, KlineBuffers } from "../../services/technicalsTypes";
@@ -175,58 +192,14 @@ export class KlineBufferManager {
     }
 
     const bufferKey = `${symbol}:${timeframe}`;
-    let offset = 0;
-    let isAppend = false;
+
+    const res = this.mergeKlines(history, newKlines, effectiveLimit);
+    history = res.history;
+    const offset = res.offset;
+    const isAppend = res.isAppend;
 
     if (newKlines.length > 0) {
-        if (history.length === 0) {
-            newKlines.sort((a, b) => a.time - b.time);
-            if (newKlines.length > effectiveLimit) newKlines = newKlines.slice(-effectiveLimit);
-            history = newKlines;
-            current.klines[timeframe] = history;
-        } else {
-            newKlines.sort((a, b) => a.time - b.time);
-            const lastHistTime = history[history.length - 1].time;
-            const firstNewTime = newKlines[0].time;
-
-            if (firstNewTime > lastHistTime) {
-                offset = history.length;
-                history.push(...newKlines);
-                isAppend = true;
-            } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
-                offset = history.length - 1;
-                history[history.length - 1] = newKlines[0];
-                isAppend = true;
-            } else if (firstNewTime >= lastHistTime) {
-                for (const k of newKlines) {
-                    if (k.time === lastHistTime) {
-                        history[history.length - 1] = k;
-                    } else if (k.time > lastHistTime) {
-                        history.push(k);
-                    }
-                }
-                isAppend = false;
-            } else {
-                const merged: Kline[] = [];
-                let i = 0, j = 0;
-                while (i < history.length && j < newKlines.length) {
-                    if (history[i].time < newKlines[j].time) merged.push(history[i++]);
-                    else if (history[i].time > newKlines[j].time) merged.push(newKlines[j++]);
-                    else { merged.push(newKlines[j++]); i++; }
-                }
-                while (i < history.length) merged.push(history[i++]);
-                while (j < newKlines.length) merged.push(newKlines[j++]);
-                history = merged;
-                current.klines[timeframe] = history;
-                isAppend = false;
-            }
-
-            if (history.length > effectiveLimit) {
-                history = history.slice(-effectiveLimit);
-                current.klines[timeframe] = history;
-                isAppend = false;
-            }
-        }
+        current.klines[timeframe] = history;
     }
 
     const neededLen = history.length;
@@ -235,9 +208,81 @@ export class KlineBufferManager {
     let backing = this.getBuffer(bufferKey);
     if (!backing || backing.times.length < neededLen) {
         backing = this.ensureCapacity(bufferKey, neededLen);
-        isAppend = false;
     }
 
+    this.writeToBuffer(backing, history, neededLen, offset, isAppend);
+
+    const views: KlineBuffers = {
+        times: backing.times.subarray(0, neededLen),
+        opens: backing.opens.subarray(0, neededLen),
+        highs: backing.highs.subarray(0, neededLen),
+        lows: backing.lows.subarray(0, neededLen),
+        closes: backing.closes.subarray(0, neededLen),
+        volumes: backing.volumes.subarray(0, neededLen)
+    };
+
+    if (!current.klinesBuffers) current.klinesBuffers = {};
+    current.klinesBuffers[timeframe] = views;
+    current.lastUpdated = Date.now();
+  }
+
+  private mergeKlines(history: Kline[], newKlines: Kline[], effectiveLimit: number) {
+    let offset = 0;
+    let isAppend = false;
+    let mergedHistory = history;
+
+    if (newKlines.length > 0) {
+        if (mergedHistory.length === 0) {
+            newKlines.sort((a, b) => a.time - b.time);
+            if (newKlines.length > effectiveLimit) newKlines = newKlines.slice(-effectiveLimit);
+            mergedHistory = newKlines;
+        } else {
+            newKlines.sort((a, b) => a.time - b.time);
+            const lastHistTime = mergedHistory[mergedHistory.length - 1].time;
+            const firstNewTime = newKlines[0].time;
+
+            if (firstNewTime > lastHistTime) {
+                offset = mergedHistory.length;
+                mergedHistory.push(...newKlines);
+                isAppend = true;
+            } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
+                offset = mergedHistory.length - 1;
+                mergedHistory[mergedHistory.length - 1] = newKlines[0];
+                isAppend = true;
+            } else if (firstNewTime >= lastHistTime) {
+                for (const k of newKlines) {
+                    if (k.time === lastHistTime) {
+                        mergedHistory[mergedHistory.length - 1] = k;
+                    } else if (k.time > lastHistTime) {
+                        mergedHistory.push(k);
+                    }
+                }
+                isAppend = false;
+            } else {
+                const merged: Kline[] = [];
+                let i = 0, j = 0;
+                while (i < mergedHistory.length && j < newKlines.length) {
+                    if (mergedHistory[i].time < newKlines[j].time) merged.push(mergedHistory[i++]);
+                    else if (mergedHistory[i].time > newKlines[j].time) merged.push(newKlines[j++]);
+                    else { merged.push(newKlines[j++]); i++; }
+                }
+                while (i < mergedHistory.length) merged.push(mergedHistory[i++]);
+                while (j < newKlines.length) merged.push(newKlines[j++]);
+                mergedHistory = merged;
+                isAppend = false;
+            }
+
+            if (mergedHistory.length > effectiveLimit) {
+                mergedHistory = mergedHistory.slice(-effectiveLimit);
+                isAppend = false;
+            }
+        }
+    }
+
+    return { history: mergedHistory, offset, isAppend };
+  }
+
+  private writeToBuffer(backing: KlineBuffers, history: Kline[], neededLen: number, offset: number, isAppend: boolean) {
     if (isAppend) {
         for (let i = offset; i < neededLen; i++) {
             const k = history[i];
@@ -259,18 +304,5 @@ export class KlineBufferManager {
             backing.volumes[i] = k.volume.toNumber();
         }
     }
-
-    const views: KlineBuffers = {
-        times: backing.times.subarray(0, neededLen),
-        opens: backing.opens.subarray(0, neededLen),
-        highs: backing.highs.subarray(0, neededLen),
-        lows: backing.lows.subarray(0, neededLen),
-        closes: backing.closes.subarray(0, neededLen),
-        volumes: backing.volumes.subarray(0, neededLen)
-    };
-
-    if (!current.klinesBuffers) current.klinesBuffers = {};
-    current.klinesBuffers[timeframe] = views;
-    current.lastUpdated = Date.now();
   }
 }
