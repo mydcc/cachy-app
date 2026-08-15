@@ -117,6 +117,15 @@
     </div>
 
     <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        {#if settingsState.decryptionFailures > 0}
+            <div class="mb-6 flex items-center gap-2 text-sm text-[var(--text-danger)] bg-danger-paired/10 p-3 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                <span>
+                    <strong>{$_("settings.decryptionWarningTitle") || "Security Warning"}:</strong> {settingsState.decryptionFailures} {$_("settings.decryptionWarningMessage") || "saved key(s) could not be read and need to be re-entered."}
+                </span>
+            </div>
+        {/if}
+
         <!-- Exchanges -->
         {#if activeSubTab === "exchanges"}
             <section class="settings-section animate-fade-in">
