@@ -33,7 +33,7 @@ vi.mock('../stores/market.svelte', () => ({
   },
 }));
 
-import { apiService } from './apiService';
+import { apiService, type FundingRateEntry } from './apiService';
 import { marketState } from '../stores/market.svelte';
 import { fundingRateService } from './fundingRateService.svelte';
 
@@ -95,8 +95,8 @@ describe('fundingRateService', () => {
       const rates = new Map([
         ['BTCUSDT', { fundingRate: new Decimal('0.0005'), nextFundingTime: '1770710400000', fundingInterval: 8 }],
       ]);
-      let resolveFetch: ((val: Map<string, any>) => void) | undefined;
-      const fetchPromise = new Promise<Map<string, any>>((res) => {
+      let resolveFetch: ((val: Map<string, FundingRateEntry>) => void) | undefined;
+      const fetchPromise = new Promise<Map<string, FundingRateEntry>>((res) => {
         resolveFetch = res;
       });
       vi.mocked(apiService.fetchBitunixFundingRates).mockReturnValue(fetchPromise);

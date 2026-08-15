@@ -2,7 +2,7 @@
 id: FEAT-0074
 title: Surface funding-rate history for a symbol
 type: feature
-status: completed
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
