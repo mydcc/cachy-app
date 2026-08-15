@@ -23,7 +23,8 @@ import { createAccessories } from "./DuckAccessories";
 import type { DuckAccessories } from "./DuckAccessories";
 import { applyStateAnimation, resetToIdle } from "./DuckAnimations";
 import type { DuckMeshRefs } from "./DuckAnimations";
-import { checkNewAchievements } from "./DuckAchievements";
+import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
+import { toastService } from "../../services/toastService.svelte";
 
 const STORAGE_KEY = "duck_dao_state";
 const XP_PER_LEVEL = 50;
@@ -141,6 +142,12 @@ export class DuckLogic {
         if (newlyUnlocked.length > 0) {
             this.achievements = [...this.achievements, ...newlyUnlocked];
             console.log("🦆 Duck achievements unlocked:", newlyUnlocked);
+            for (const id of newlyUnlocked) {
+                const ach = DUCK_ACHIEVEMENTS.find((a) => a.id === id);
+                if (ach) {
+                    toastService.success(`🏆 ${ach.name}: ${ach.description}`);
+                }
+            }
             // Celebration-Zustand triggern (höchste Prio)
             this.transitionTo(DuckState.CELEBRATING, 2.5);
         }

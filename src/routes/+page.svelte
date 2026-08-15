@@ -66,6 +66,7 @@
   // Initialisierung der App-Logik, sobald die Komponente gemountet ist
   onMount(() => {
     app.init();
+    effectsState.triggerDuckEvent({ type: "daily_login" });
 
     // Global listener for markdown anchor links
     const handleAnchorClick = (e: MouseEvent) => {

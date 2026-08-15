@@ -37,7 +37,6 @@
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import CachyIcon from "../CachyIcon.svelte";
-    import { _ } from "svelte-i18n";
 
     interface Props {
         /** The logic instance representing this window. contains state and behavioral rules. */

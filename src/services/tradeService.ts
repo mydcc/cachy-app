@@ -33,6 +33,7 @@ import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
+import { effectsState } from "../stores/effects.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import {
     PositionRawSchema,
@@ -409,6 +410,12 @@ class TradeService {
                 positionId,
             });
 
+            const pnlVal = position.unrealizedPnl ? position.unrealizedPnl.toNumber() : 0;
+            effectsState.triggerDuckEvent({
+                type: pnlVal >= 0 ? "trade_win" : "trade_loss",
+                pnl: pnlVal,
+            });
+
             return { success: true, data: result };
 
         } catch (e: unknown) {
@@ -613,6 +620,12 @@ class TradeService {
         const qty = amount ? amount.toString() : position.amount.toString();
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
+
+        const pnlVal = position.unrealizedPnl ? position.unrealizedPnl.toNumber() : 0;
+        effectsState.triggerDuckEvent({
+            type: pnlVal >= 0 ? "trade_win" : "trade_loss",
+            pnl: pnlVal,
+        });
 
         return this.signedRequest("POST", "/api/orders", {
             type: "place-order",
