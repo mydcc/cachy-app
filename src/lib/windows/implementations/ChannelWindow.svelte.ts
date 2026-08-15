@@ -99,7 +99,7 @@ export class ChannelWindow extends WindowBase {
         return {
             url: this.url,
             sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock",
-            allow: "xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
+            allow: "xr-spatial-tracking; camera; microphone; display-capture"
         };
     }
 
