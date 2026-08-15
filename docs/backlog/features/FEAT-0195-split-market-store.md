@@ -2,7 +2,8 @@
 id: FEAT-0195
 title: "Decompose market.svelte.ts into cache management, update batching and kline buffers"
 type: feature
-status: ready
+status: in-progress
+branch: feat/0195-split-market-store
 priority: P2
 milestone: none
 editions: [community, pro, private]
