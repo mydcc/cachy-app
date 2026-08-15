@@ -2,9 +2,9 @@
 
 # Backlog index
 
-101 items. How to read and add them: [README.md](README.md).
+102 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 53
+Counts by status: 💡 idea 15 · 📋 specced 32 · ✅ done 55
 
 ---
 
@@ -75,7 +75,8 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 53
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | exchange |
-| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | 💡 idea | trade-panel |
+| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
+| [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 
 ### M4
 
@@ -139,9 +140,9 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 53
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | docs |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | repo |
-| [BUG-0199](bugs/BUG-0199-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [BUG-0201](bugs/BUG-0201-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | ui |
 | [BUG-0203](bugs/BUG-0203-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | ui |
+| [BUG-0205](bugs/BUG-0205-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -228,9 +229,9 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 53
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | M1 | community, pro, private | none | none | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0199](bugs/BUG-0199-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
 | [BUG-0201](bugs/BUG-0201-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | none | community | none | none | — |
 | [BUG-0203](bugs/BUG-0203-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | none | community | none | none | — |
+| [BUG-0205](bugs/BUG-0205-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -272,8 +273,9 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 53
 | [IDEA-0186](ideas/IDEA-0186-docs-as-public-surface.md) | Audit every public-facing document as a first-contact surface | P3 | 💡 idea | M5 | community, pro, private | none | none | — |
 | [IDEA-0188](ideas/IDEA-0188-payment-rails-licensing.md) | Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated | P3 | 💡 idea | M6 | pro, private | none | required | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md), [FEAT-0032](features/FEAT-0032-plugin-contract.md) |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | none | pro, private | A | required | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
-| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | 💡 idea | M3 | community, pro, private | none | none | — |
+| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | M3 | community, pro, private | none | none | — |
+| [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | M3 | community, pro, private | none | none | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) |
 
 ---
 
-Next free number: **0205**
+Next free number: **0206**

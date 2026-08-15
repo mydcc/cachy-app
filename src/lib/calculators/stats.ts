@@ -17,7 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import { CONSTANTS } from "../constants";
-import { parseTimestamp } from "../../utils/utils";
+import { parseTimestamp, isUnsafeObjectKey } from "../../utils/utils";
 import type { JournalEntry } from "../../stores/types";
 import type { Kline } from "../../services/apiService";
 import { getTradePnL } from "./core";
@@ -352,6 +352,11 @@ export function getTagData(trades: JournalEntry[], context?: JournalContext) {
     }
 
     tags.forEach((tag) => {
+      // Tags are free-text user input — reject the three names that would
+      // let this bracket-assignment walk onto Object.prototype instead of
+      // setting an own property.
+      if (isUnsafeObjectKey(tag)) return;
+
       if (!tagStats[tag])
         tagStats[tag] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
 
