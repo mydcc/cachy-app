@@ -779,7 +779,7 @@
           </div>
 
           <div class="flex items-center gap-0.5">
-            {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
+            {#if CHANNEL_CONFIG[baseAsset] && settingsState.entitlement.isPro}
               {@const windowId = `channel-${baseAsset}`}
               {@const isOpen = windowManager.windows.some(
                 (w) => w.id === windowId,

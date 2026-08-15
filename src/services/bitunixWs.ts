@@ -285,7 +285,7 @@ class BitunixWebSocketService {
           return;
         }
 
-        if (!settingsState.capabilities.marketData) {
+        if (!settingsState.entitlement.capabilities.marketData) {
           if (status !== "disconnected") {
             marketState.connectionStatus = "disconnected";
             this.cleanup("public");
@@ -382,7 +382,7 @@ class BitunixWebSocketService {
   }
 
   private connectPublic(force = false) {
-    if (this.isDestroyed || !settingsState.capabilities.marketData) return;
+    if (this.isDestroyed || !settingsState.entitlement.capabilities.marketData) return;
 
     // HARDENING: Enforce WSS
     if (!WS_PUBLIC_URL.startsWith("wss://")) {
@@ -532,7 +532,7 @@ class BitunixWebSocketService {
     const apiKey = settings.apiKeys?.bitunix?.key;
     const apiSecret = settings.apiKeys?.bitunix?.secret;
 
-    if (!apiKey || !apiSecret || !settingsState.capabilities.marketData) return;
+    if (!apiKey || !apiSecret || !settingsState.entitlement.capabilities.marketData) return;
 
     if (this.wsPrivate) {
       if (

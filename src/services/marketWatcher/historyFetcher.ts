@@ -308,7 +308,7 @@ export class HistoryFetcher {
     }
 
     public async pollSymbolChannel(symbol: string, channel: string, provider: "bitunix" | "bitget") {
-        if (!settingsState.capabilities.marketData) return;
+        if (!settingsState.entitlement.capabilities.marketData) return;
         const lockKey = `${symbol}:${channel}`;
         return this.pendingRequests.execute(lockKey, async () => {
             this.inFlight++;
