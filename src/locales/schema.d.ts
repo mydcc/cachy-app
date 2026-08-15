@@ -24,7 +24,6 @@ export type TranslationKey =
   | "windows.opacity"
   | "windows.glass"
   | "windows.burn"
-  | "windows.feedDuck"
   | "app.title"
   | "app.journalButton"
   | "app.journalButtonTitle"
@@ -1899,7 +1898,6 @@ export type TranslationKey =
   | "tradeErrors.positionNotFound"
   | "tradeErrors.positionMismatch"
   | "tradeErrors.dataError"
-  | "tradeErrors.orderNotFound"
   | "trade.closeAbortedSafety"
   | "trade.closeAllFailed"
   | "trade.apiError"
@@ -1948,8 +1946,6 @@ export type TranslationKey =
   | "marketAnalyst.analysisFailed"
   | "calculationStrategy.criticalLag"
   | "calculationStrategy.slowCalc"
-  | "duck.full"
-  | "duck.annoyed"
   | "duck.achievements.first_feed_name"
   | "duck.achievements.first_feed_desc"
   | "duck.achievements.ten_feeds_name"
@@ -1967,4 +1963,6 @@ export type TranslationKey =
   | "duck.achievements.level_10_name"
   | "duck.achievements.level_10_desc"
   | "duck.achievements.level_20_name"
-  | "duck.achievements.level_20_desc";
+  | "duck.achievements.level_20_desc"
+  | "duck.full"
+  | "duck.annoyed";
