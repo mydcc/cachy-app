@@ -15,73 +15,241 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * Copyright (C) 2026 MYDCT
- */
-
 import * as THREE from "three";
 import { browser } from "$app/environment";
+import { DuckState, DUCK_STATE_PRIORITY } from "./types";
+import type { DuckDaoState, DuckTriggerEvent } from "./types";
+import { createAccessories } from "./DuckAccessories";
+import type { DuckAccessories } from "./DuckAccessories";
+import { applyStateAnimation, resetToIdle } from "./DuckAnimations";
+import type { DuckMeshRefs } from "./DuckAnimations";
+import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
+import { toastService } from "../../services/toastService.svelte";
+import { _ } from "../../locales/i18n";
+import { get } from "svelte/store";
+import type { TranslationKey } from "../../locales/schema";
+
+const STORAGE_KEY = "duck_dao_state";
+const XP_PER_LEVEL = 50;
+const SLEEP_AFTER_SECONDS = 300; // 5 Minuten Inaktivität
 
 export class DuckLogic {
     private scene: THREE.Scene;
     private group: THREE.Group;
+
+    // Geometrie-Referenzen
     private head: THREE.Mesh | null = null;
     private beak: THREE.Mesh | null = null;
     private body: THREE.Mesh | null = null;
     private leftWing: THREE.Mesh | null = null;
     private rightWing: THREE.Mesh | null = null;
-    private glasses: THREE.Group | null = null;
+    private sleepEyes: THREE.Group | null = null;
+    private accessories: DuckAccessories | null = null;
 
-    private state: "IDLE" | "EATING" | "CELEBRATING" = "IDLE";
+    // Zustands-Maschine
+    private state: DuckState = DuckState.IDLE;
     private animationTime = 0;
-    private eatTimer = 0;
+    private stateTimer = 0;
+    private inactivityTimer = 0;
 
-    // State Persistence
+    // Persistenter Zustand
     private xp = 0;
     private level = 1;
+    private currentStreak = 0;
+    private longestStreak = 0;
+    private lastActiveDate = "";
+    private totalFeeds = 0;
+    private achievements: string[] = [];
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
         this.group = new THREE.Group();
         this.group.scale.set(1.5, 1.5, 1.5);
-        // Position: Bottom Left corner, next to the chat button area
         this.group.position.set(-8.5, -6.5, 0);
-        this.group.rotation.y = 1.0; // Face inwards towards the center
+        this.group.rotation.y = 1.0;
         this.loadState();
     }
 
-    private loadState() {
+    // ─── Persistenz ───────────────────────────────────────────────────────────
+
+    private loadState(): void {
         if (!browser) return;
-        const stored = localStorage.getItem("duck_dao_state");
+        const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
-                const data = JSON.parse(stored);
-                this.xp = data.xp || 0;
-                this.level = Math.floor(this.xp / 100) + 1;
+                const data: Partial<DuckDaoState> = JSON.parse(stored);
+                this.xp = data.xp ?? 0;
+                this.level = data.level ?? Math.floor(this.xp / XP_PER_LEVEL) + 1;
+                this.currentStreak = data.currentStreak ?? 0;
+                this.longestStreak = data.longestStreak ?? 0;
+                this.lastActiveDate = data.lastActiveDate ?? "";
+                this.totalFeeds = data.totalFeeds ?? 0;
+                this.achievements = data.achievements ?? [];
             } catch (e) {
-                console.error("Failed to load duck state", e);
+                console.error("DuckLogic: Failed to load duck state", e);
+            }
+        }
+        this.updateStreak();
+        this.saveState();
+    }
+
+    private saveState(): void {
+        if (!browser) return;
+        this.checkAndUnlockAchievements();
+        const state: DuckDaoState = {
+            xp: this.xp,
+            level: this.level,
+            currentStreak: this.currentStreak,
+            longestStreak: this.longestStreak,
+            lastActiveDate: this.lastActiveDate,
+            totalFeeds: this.totalFeeds,
+            achievements: this.achievements,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    private updateStreak(): void {
+        const today = new Date().toISOString().slice(0, 10);
+        if (!this.lastActiveDate) {
+            this.currentStreak = 1;
+        } else {
+            const last = new Date(this.lastActiveDate);
+            const now = new Date(today);
+            const diffDays = Math.round(
+                (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            if (diffDays === 1) {
+                this.currentStreak += 1;
+            } else if (diffDays > 1) {
+                this.currentStreak = 1; // Streak gerissen
+            }
+            // diffDays === 0: selber Tag, kein Update nötig
+        }
+        if (this.currentStreak > this.longestStreak) {
+            this.longestStreak = this.currentStreak;
+        }
+        this.lastActiveDate = today;
+    }
+
+    private checkAndUnlockAchievements(): void {
+        const currentState: DuckDaoState = {
+            xp: this.xp,
+            level: this.level,
+            currentStreak: this.currentStreak,
+            longestStreak: this.longestStreak,
+            lastActiveDate: this.lastActiveDate,
+            totalFeeds: this.totalFeeds,
+            achievements: this.achievements,
+        };
+        const newlyUnlocked = checkNewAchievements(currentState);
+        if (newlyUnlocked.length > 0) {
+            this.achievements = [...this.achievements, ...newlyUnlocked];
+            console.log("🦆 Duck achievements unlocked:", newlyUnlocked);
+            for (const id of newlyUnlocked) {
+                const ach = DUCK_ACHIEVEMENTS.find((a) => a.id === id);
+                if (ach) {
+                    const name = get(_)(ach.nameKey as TranslationKey) || ach.id;
+                    const desc = get(_)(ach.descriptionKey as TranslationKey) || "";
+                    toastService.success(`🏆 ${name}: ${desc}`);
+                }
+            }
+            // Celebration-Zustand triggern (höchste Prio)
+            this.transitionTo(DuckState.CELEBRATING, 2.5);
+        }
+    }
+
+    // ─── Zustandsmaschine ─────────────────────────────────────────────────────
+
+    private transitionTo(next: DuckState, duration: number): void {
+        const currentPrio = DUCK_STATE_PRIORITY[this.state];
+        const nextPrio = DUCK_STATE_PRIORITY[next];
+        if (nextPrio >= currentPrio || this.state === DuckState.IDLE || this.state === DuckState.SLEEPING) {
+            this.state = next;
+            this.stateTimer = duration;
+            this.animationTime = 0;
+        }
+    }
+
+    // ─── Öffentliche API ──────────────────────────────────────────────────────
+
+    public handleEvent(event: DuckTriggerEvent): void {
+        // Inaktivitäts-Timer zurücksetzen
+        this.inactivityTimer = 0;
+        if (this.state === DuckState.SLEEPING) {
+            this.state = DuckState.IDLE;
+        }
+
+        switch (event.type) {
+            case "feed": {
+                this.xp += event.amount;
+                this.totalFeeds += 1;
+                const oldLevel = this.level;
+                this.level = Math.floor(this.xp / XP_PER_LEVEL) + 1;
+                if (this.level > oldLevel) {
+                    this.transitionTo(DuckState.CELEBRATING, 2.5);
+                    this.updateAppearance();
+                    console.log("🦆 Duck leveled up!", this.level);
+                } else {
+                    this.transitionTo(DuckState.EATING, 1.0);
+                }
+                this.saveState();
+                break;
+            }
+            case "trade_win": {
+                // Kleinerer XP-Bonus, proportional zum PnL
+                const pnlNum = typeof event.pnl === "number" ? event.pnl : event.pnl.toNumber();
+                const xpBonus = Math.max(5, Math.min(50, Math.floor(Math.abs(pnlNum) / 10)));
+                this.xp += xpBonus;
+                const oldLevel = this.level;
+                this.level = Math.floor(this.xp / XP_PER_LEVEL) + 1;
+                if (this.level > oldLevel) {
+                    this.transitionTo(DuckState.CELEBRATING, 2.5);
+                    this.updateAppearance();
+                } else {
+                    this.transitionTo(DuckState.CELEBRATING, 1.5);
+                }
+                this.saveState();
+                break;
+            }
+            case "trade_loss": {
+                this.transitionTo(DuckState.SAD, 3.0);
+                break;
+            }
+            case "daily_login": {
+                // Streak wurde bereits in loadState() aktualisiert
+                this.transitionTo(DuckState.CELEBRATING, 1.0);
+                this.saveState();
+                break;
+            }
+            case "academy_complete": {
+                this.xp += 20;
+                this.level = Math.floor(this.xp / XP_PER_LEVEL) + 1;
+                this.transitionTo(DuckState.CELEBRATING, 1.5);
+                this.updateAppearance();
+                this.saveState();
+                break;
+            }
+            case "pet": {
+                this.transitionTo(DuckState.PETTING, 1.5);
+                break;
             }
         }
     }
 
-    private saveState() {
-        if (!browser) return;
-        localStorage.setItem("duck_dao_state", JSON.stringify({ xp: this.xp, level: this.level }));
-    }
+    // ─── Initialisierung ──────────────────────────────────────────────────────
 
-    public init() {
+    public init(): void {
         console.log("DuckLogic: Initializing 🦆");
         this.createDuckGeometry();
         this.scene.add(this.group);
         this.updateAppearance();
     }
 
-    private createDuckGeometry() {
-        // Materials
+    private createDuckGeometry(): void {
         const yellowMat = new THREE.MeshStandardMaterial({
             color: 0xffd700,
             roughness: 0.4,
-            metalness: 0.1
+            metalness: 0.1,
         });
         const orangeMat = new THREE.MeshStandardMaterial({ color: 0xff8c00 });
         const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
@@ -99,10 +267,10 @@ export class DuckLogic {
         // Beak
         this.beak = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.4, 32), orangeMat);
         this.beak.rotation.x = -Math.PI / 2;
-        this.beak.position.set(0, 0, 0.35); // Relative to head is better, but adding to head group is easier
+        this.beak.position.set(0, 0, 0.35);
         this.head.add(this.beak);
 
-        // Eyes
+        // Normal eyes (immer sichtbar, außer im Schlaf)
         const eyeGeom = new THREE.SphereGeometry(0.05, 16, 16);
         const leftEye = new THREE.Mesh(eyeGeom, blackMat);
         leftEye.position.set(-0.15, 0.1, 0.3);
@@ -111,6 +279,10 @@ export class DuckLogic {
         const rightEye = new THREE.Mesh(eyeGeom, blackMat);
         rightEye.position.set(0.15, 0.1, 0.3);
         this.head.add(rightEye);
+
+        // Schlaf-Augen (Halbkreise, initial unsichtbar)
+        this.sleepEyes = this.createSleepEyes(blackMat);
+        this.head.add(this.sleepEyes);
 
         // Wings
         const wingGeom = new THREE.SphereGeometry(0.3, 32, 16);
@@ -126,89 +298,85 @@ export class DuckLogic {
         this.rightWing.rotation.z = -0.2;
         this.group.add(this.rightWing);
 
-        // Sunglasses (Hidden by default, shown at level 2)
-        this.glasses = new THREE.Group();
-        const lensGeom = new THREE.BoxGeometry(0.15, 0.1, 0.05);
-        const lensMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 });
-
-        const leftLens = new THREE.Mesh(lensGeom, lensMat);
-        leftLens.position.set(-0.15, 0, 0);
-        this.glasses.add(leftLens);
-
-        const rightLens = new THREE.Mesh(lensGeom, lensMat);
-        rightLens.position.set(0.15, 0, 0);
-        this.glasses.add(rightLens);
-
-        const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.02), lensMat);
-        this.glasses.add(bridge);
-
-        this.glasses.position.set(0, 0.65, 0.65);
-        this.glasses.visible = false;
-        this.group.add(this.glasses); // Attach to group or head? Head is better if animated.
-        this.head.add(this.glasses); // Re-parent to head
-        this.glasses.position.set(0, 0.15, 0.35); // Adjust relative to head
-    }
-
-    private updateAppearance() {
-        if (this.level >= 2 && this.glasses) {
-            this.glasses.visible = true;
+        // Accessoires (Sonnenbrille, Hut, Krone, Cape)
+        if (this.head && this.body) {
+            this.accessories = createAccessories(this.head, this.body);
         }
     }
 
-    public feed(amount: number) {
-        this.xp += amount;
-        const oldLevel = this.level;
-        this.level = Math.floor(this.xp / 5) + 1; // Fast leveling for MVP (5 feeds = lvl 2)
+    private createSleepEyes(mat: THREE.Material): THREE.Group {
+        const group = new THREE.Group();
+        // Halbkreise simuliert durch abgeflachte Zylinder
+        const halfEyeGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.01, 16, 1, false, 0, Math.PI);
+        const leftSleep = new THREE.Mesh(halfEyeGeom, mat);
+        leftSleep.position.set(-0.15, 0.1, 0.3);
+        leftSleep.rotation.z = Math.PI;
+        group.add(leftSleep);
 
-        if (this.level > oldLevel) {
-            this.state = "CELEBRATING";
-            this.animationTime = 0;
-            this.updateAppearance();
-            console.log("Duck leveled up!", this.level);
-        } else {
-            this.state = "EATING";
-            this.eatTimer = 1.0; // 1 second eat animation
-        }
+        const rightSleep = new THREE.Mesh(halfEyeGeom, mat);
+        rightSleep.position.set(0.15, 0.1, 0.3);
+        rightSleep.rotation.z = Math.PI;
+        group.add(rightSleep);
 
-        this.saveState();
+        group.visible = false;
+        return group;
     }
 
-    public update(dt: number) {
+    private updateAppearance(): void {
+        if (!this.accessories) return;
+        this.accessories.glasses.visible = this.level >= 2;
+        // Hut nur zwischen Level 5 und 9 (Krone ab 10)
+        this.accessories.hat.visible = this.level >= 5 && this.level < 10;
+        this.accessories.crown.visible = this.level >= 10;
+        this.accessories.cape.visible = this.level >= 20;
+    }
+
+    // ─── Animation Loop ───────────────────────────────────────────────────────
+
+    public update(dt: number): void {
         this.animationTime += dt;
+        this.inactivityTimer += dt;
 
-        // Idle floating
+        // Idle-Float und Basis-Rotation
         this.group.position.y = -6.5 + Math.sin(this.animationTime * 2) * 0.1;
+        if (this.state !== DuckState.CELEBRATING) {
+            this.group.rotation.y = 1.0 + Math.sin(this.animationTime * 0.5) * 0.1;
+        }
 
-        // Rotation to face slightly to the right/center
-        this.group.rotation.y = 1.0 + Math.sin(this.animationTime * 0.5) * 0.1;
+        // Inaktivität → Schlafen
+        if (this.inactivityTimer >= SLEEP_AFTER_SECONDS && this.state === DuckState.IDLE) {
+            this.state = DuckState.SLEEPING;
+        }
 
-        if (this.state === "EATING") {
-            this.eatTimer -= dt;
-            if (this.eatTimer <= 0) {
-                this.state = "IDLE";
-                if (this.head) this.head.position.y = 0.6; // Reset
-            } else {
-                // Bob head more intensely
-                if (this.head) {
-                    this.head.position.y = 0.6 + Math.sin(this.animationTime * 25) * 0.1;
-                    this.head.rotation.x = Math.sin(this.animationTime * 25) * 0.2;
-                }
-                // Flap wings faster
-                if (this.leftWing) this.leftWing.rotation.z = 0.2 + Math.sin(this.animationTime * 40) * 0.7;
-                if (this.rightWing) this.rightWing.rotation.z = -0.2 - Math.sin(this.animationTime * 40) * 0.7;
-            }
-        } else if (this.state === "CELEBRATING") {
-            // Spin jump
+        // Celebrating: Spin-Effekt direkt auf group
+        if (this.state === DuckState.CELEBRATING) {
             this.group.rotation.y += dt * 10;
             this.group.position.y += Math.sin(this.animationTime * 10) * 0.5;
+        }
 
-            if (this.animationTime > 2.0) {
-                this.state = "IDLE";
-            }
+        if (!this.head || !this.leftWing || !this.rightWing || !this.sleepEyes || !this.accessories) {
+            return;
+        }
+
+        const refs: DuckMeshRefs = {
+            group: this.group,
+            head: this.head,
+            leftWing: this.leftWing,
+            rightWing: this.rightWing,
+            sleepEyes: this.sleepEyes,
+            accessories: this.accessories,
+        };
+
+        this.stateTimer -= dt;
+        const expired = applyStateAnimation(this.state, refs, this.animationTime, dt, this.stateTimer);
+
+        if (expired && this.state !== DuckState.IDLE && this.state !== DuckState.SLEEPING) {
+            this.state = DuckState.IDLE;
+            resetToIdle(refs);
         }
     }
 
-    public getGroup() {
+    public getGroup(): THREE.Group {
         return this.group;
     }
 }

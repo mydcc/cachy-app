@@ -4,7 +4,8 @@
     "smash": "Fenster zerschmettern",
     "opacity": "Deckkraft",
     "glass": "Glas",
-    "burn": "Verbrennen"
+    "burn": "Verbrennen",
+    "feedDuck": "Ente füttern"
   },
   "app": {
     "title": "Cachy",
@@ -2323,5 +2324,27 @@
   "calculationStrategy": {
     "criticalLag": "Kritische Verzögerung: {engine} dauerte {duration}ms",
     "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)"
+  },
+  "duck": {
+    "achievements": {
+      "first_feed_name": "Erstes Brot",
+      "first_feed_desc": "Die Ente zum ersten Mal gefüttert.",
+      "ten_feeds_name": "Stammgast",
+      "ten_feeds_desc": "Die Ente 10-mal gefüttert.",
+      "hundred_feeds_name": "Bäckermeister",
+      "hundred_feeds_desc": "Die Ente 100-mal gefüttert.",
+      "streak_3_name": "Routiniert",
+      "streak_3_desc": "3 Tage in Folge aktiv.",
+      "streak_7_name": "Wochenstreaker",
+      "streak_7_desc": "7 Tage in Folge aktiv.",
+      "streak_30_name": "Eiserne Disziplin",
+      "streak_30_desc": "30 Tage in Folge aktiv.",
+      "level_5_name": "Stilbewusst",
+      "level_5_desc": "Level 5 erreicht — die Ente trägt jetzt einen Hut.",
+      "level_10_name": "Duck Master",
+      "level_10_desc": "Level 10 erreicht — die Krone sitzt.",
+      "level_20_name": "Legendary Quacker",
+      "level_20_desc": "Level 20 erreicht — das Cape weht."
+    }
   }
 }

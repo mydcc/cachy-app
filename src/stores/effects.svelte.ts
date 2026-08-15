@@ -19,6 +19,8 @@
   Copyright (C) 2026 MYDCT
 */
 
+import type { DuckTriggerEvent } from "../lib/pets/types";
+
 export class EffectsState {
     projectileOrigin: DOMRect | null = $state(null);
     smashTarget: { rect: DOMRect; id: string } | null = $state(null);
@@ -44,14 +46,16 @@ export class EffectsState {
         this.smashTarget = null;
     }
 
-    feedEvent: { amount: number } | null = $state(null);
+    // ─── Duck Events ──────────────────────────────────────────────────────────
 
-    triggerFeed(amount: number) {
-        this.feedEvent = { amount };
+    duckEvent: DuckTriggerEvent | null = $state(null);
+
+    triggerDuckEvent(event: DuckTriggerEvent) {
+        this.duckEvent = event;
     }
 
-    consumeFeedEvent() {
-        this.feedEvent = null;
+    consumeDuckEvent() {
+        this.duckEvent = null;
     }
 }
 

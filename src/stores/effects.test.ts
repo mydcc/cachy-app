@@ -23,7 +23,7 @@ describe("EffectsState", () => {
   beforeEach(() => {
     effectsState.consumeProjectileEvent();
     effectsState.consumeSmashEvent();
-    effectsState.consumeFeedEvent();
+    effectsState.consumeDuckEvent();
     vi.restoreAllMocks();
   });
 
@@ -36,7 +36,7 @@ describe("EffectsState", () => {
 
     expect(state.projectileOrigin).toBeNull();
     expect(state.smashTarget).toBeNull();
-    expect(state.feedEvent).toBeNull();
+    expect(state.duckEvent).toBeNull();
   });
 
   it("should trigger projectile event with a real DOM element", () => {
@@ -120,13 +120,53 @@ describe("EffectsState", () => {
     expect(effectsState.smashTarget).toBeNull();
   });
 
-  it("should trigger and consume feed event correctly", () => {
-    const amount = 500;
+  // ─── Duck Events ──────────────────────────────────────────────────────────
 
-    effectsState.triggerFeed(amount);
-    expect(effectsState.feedEvent).toEqual({ amount });
+  it("should trigger and consume a feed duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "feed", amount: 10 });
+    expect(effectsState.duckEvent).toEqual({ type: "feed", amount: 10 });
 
-    effectsState.consumeFeedEvent();
-    expect(effectsState.feedEvent).toBeNull();
+    effectsState.consumeDuckEvent();
+    expect(effectsState.duckEvent).toBeNull();
+  });
+
+  it("should trigger and consume a trade_win duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "trade_win", pnl: 250 });
+    expect(effectsState.duckEvent).toEqual({ type: "trade_win", pnl: 250 });
+
+    effectsState.consumeDuckEvent();
+    expect(effectsState.duckEvent).toBeNull();
+  });
+
+  it("should trigger and consume a trade_loss duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "trade_loss", pnl: -75 });
+    expect(effectsState.duckEvent).toEqual({ type: "trade_loss", pnl: -75 });
+
+    effectsState.consumeDuckEvent();
+    expect(effectsState.duckEvent).toBeNull();
+  });
+
+  it("should trigger and consume a pet duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "pet" });
+    expect(effectsState.duckEvent).toEqual({ type: "pet" });
+
+    effectsState.consumeDuckEvent();
+    expect(effectsState.duckEvent).toBeNull();
+  });
+
+  it("should trigger and consume a daily_login duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "daily_login" });
+    expect(effectsState.duckEvent).toEqual({ type: "daily_login" });
+
+    effectsState.consumeDuckEvent();
+    expect(effectsState.duckEvent).toBeNull();
+  });
+
+  it("should trigger and consume an academy_complete duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "academy_complete", lessonId: "lesson-42" });
+    expect(effectsState.duckEvent).toEqual({ type: "academy_complete", lessonId: "lesson-42" });
+
+    effectsState.consumeDuckEvent();
+    expect(effectsState.duckEvent).toBeNull();
   });
 });
