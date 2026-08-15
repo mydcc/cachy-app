@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
 import type { DuckDaoState } from "./types";
 

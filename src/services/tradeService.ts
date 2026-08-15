@@ -410,9 +410,9 @@ class TradeService {
                 positionId,
             });
 
-            const pnlVal = position.unrealizedPnl ? position.unrealizedPnl.toNumber() : 0;
+            const pnlVal = position.unrealizedPnl ?? new Decimal(0);
             effectsState.triggerDuckEvent({
-                type: pnlVal >= 0 ? "trade_win" : "trade_loss",
+                type: pnlVal.isNegative() ? "trade_loss" : "trade_win",
                 pnl: pnlVal,
             });
 
@@ -621,9 +621,9 @@ class TradeService {
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
-        const pnlVal = position.unrealizedPnl ? position.unrealizedPnl.toNumber() : 0;
+        const pnlVal = position.unrealizedPnl ?? new Decimal(0);
         effectsState.triggerDuckEvent({
-            type: pnlVal >= 0 ? "trade_win" : "trade_loss",
+            type: pnlVal.isNegative() ? "trade_loss" : "trade_win",
             pnl: pnlVal,
         });
 

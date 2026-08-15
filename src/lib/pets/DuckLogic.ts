@@ -25,6 +25,9 @@ import { applyStateAnimation, resetToIdle } from "./DuckAnimations";
 import type { DuckMeshRefs } from "./DuckAnimations";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
 import { toastService } from "../../services/toastService.svelte";
+import { _ } from "../../locales/i18n";
+import { get } from "svelte/store";
+import type { TranslationKey } from "../../locales/schema";
 
 const STORAGE_KEY = "duck_dao_state";
 const XP_PER_LEVEL = 50;
@@ -145,7 +148,9 @@ export class DuckLogic {
             for (const id of newlyUnlocked) {
                 const ach = DUCK_ACHIEVEMENTS.find((a) => a.id === id);
                 if (ach) {
-                    toastService.success(`🏆 ${ach.name}: ${ach.description}`);
+                    const name = get(_)(ach.nameKey as TranslationKey) || ach.id;
+                    const desc = get(_)(ach.descriptionKey as TranslationKey) || "";
+                    toastService.success(`🏆 ${name}: ${desc}`);
                 }
             }
             // Celebration-Zustand triggern (höchste Prio)
@@ -192,7 +197,8 @@ export class DuckLogic {
             }
             case "trade_win": {
                 // Kleinerer XP-Bonus, proportional zum PnL
-                const xpBonus = Math.max(5, Math.min(50, Math.floor(Math.abs(event.pnl) / 10)));
+                const pnlNum = typeof event.pnl === "number" ? event.pnl : event.pnl.toNumber();
+                const xpBonus = Math.max(5, Math.min(50, Math.floor(Math.abs(pnlNum) / 10)));
                 this.xp += xpBonus;
                 const oldLevel = this.level;
                 this.level = Math.floor(this.xp / XP_PER_LEVEL) + 1;

@@ -44,17 +44,19 @@ export interface DuckDaoState {
     achievements: string[];
 }
 
+import type { Decimal } from "decimal.js";
+
 export type DuckTriggerEvent =
     | { type: "feed"; amount: number }
-    | { type: "trade_win"; pnl: number }
-    | { type: "trade_loss"; pnl: number }
+    | { type: "trade_win"; pnl: number | Decimal }
+    | { type: "trade_loss"; pnl: number | Decimal }
     | { type: "daily_login" }
     | { type: "academy_complete"; lessonId: string }
     | { type: "pet" };
 
 export interface Achievement {
     id: string;
-    name: string;
-    description: string;
+    nameKey: string;
+    descriptionKey: string;
     condition: (state: DuckDaoState) => boolean;
 }
