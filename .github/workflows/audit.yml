@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Least-privilege default: every job here only checks out the repo to lint,
+# type-check, test or benchmark — none of them write to the repo or the
+# GitHub API.
+permissions:
+  contents: read
+
 jobs:
   i18n-lint:
     name: i18n String Compliance

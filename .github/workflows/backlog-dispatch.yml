@@ -15,6 +15,11 @@ on:
         type: boolean
         default: false
 
+# Least-privilege default: this reads the backlog and dispatches to Jules via
+# its own API (JULES_API_KEY), never through GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   dispatch:
     runs-on: ubuntu-latest

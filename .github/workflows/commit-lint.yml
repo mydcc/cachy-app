@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Least-privilege default: this workflow only reads the PR's commits to lint
+# them, it never writes to the repo or the GitHub API.
+permissions:
+  contents: read
+
 jobs:
   commitlint:
     name: Conventional Commits
