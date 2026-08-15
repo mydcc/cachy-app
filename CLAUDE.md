@@ -1,98 +1,97 @@
 # CLAUDE.md
 
-Cachy — Local-First-Webapp für Krypto-Trader (Positionsgrößen-Rechner, Risikomanagement, Trade-Journal, Echtzeit-Marktdaten via Bitunix/Bitget). Der Code fließt in eine Trading-Engine mit echtem Geld: Präzision und Verifikation gehen vor Geschwindigkeit.
+Cachy — Local-First web app for crypto traders (Position Size Calculator, Risk Management, Trade Journal, real-time market data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
 
-## Sprache
+This file is the Claude Code-specific extension of `AGENTS.md` (the tool-agnostic reference).
 
-- **Antworten an den User: Deutsch.**
-- Code, Variablen, Kommentare, Commits: Englisch.
-
-## Befehle
+## Setup
 
 ```bash
-npm run dev          # Dev-Server (baut zuerst WASM via scripts/build_wasm.sh)
-npm run build        # Produktions-Build (inkl. WASM)
-npm run check        # svelte-check (Typprüfung) — nach jeder Änderung ausführen
-npm test             # Alle Vitest-Unit-Tests
-npx vitest run <pfad>  # Einzelne Testdatei, z. B. npx vitest run src/stores/market.test.ts
-npm run test:e2e     # Playwright-E2E-Tests (tests/e2e)
+npm run dev          # Dev server (builds WASM first via scripts/build_wasm.sh)
+npm run build        # Production build (including WASM)
+npm run check        # svelte-check — run after EVERY change
+npm test             # Vitest unit tests
+npm run test:e2e     # Playwright E2E tests
 ```
 
-## Architektur
+## Architecture
 
-- **Local-First (Datenklassen-Grenze, siehe `docs/adr/0001-local-first-boundary.md`):**
-  - **Klasse A — verlässt das Gerät nie:** Journal, Settings, API-Keys/Secrets, Presets, private Notizen, Trade-Entwürfe. Ausschließlich `localStorage`. Niemals an einen Cachy-Server senden — auch nicht als Telemetrie, Crash-Report oder Debug-Log. (Ausnahme: API-Keys als Credential eines nutzerinitiierten Exchange-Requests über den Proxy.)
-  - **Klasse B — darf serverseitig liegen:** derzeit nur Global-Chat-Nachrichten (SpacetimeDB, `server/spacetimedb/`). Nur unter allen vier Bedingungen: Opt-in und standardmäßig aus, authentifiziert (kein anonymer Zugriff), minimal (keine Klasse-A-Daten, auch nicht als Metadaten), und nicht essenziell (Rechner, Journal, Risikomanagement funktionieren vollständig ohne Server).
-  - **Klasse C — öffentliche Marktdaten und daraus abgeleitete Analysen** (Preise, Klines, News, Sentiment): darf überall liegen, aber **nie neben einer Nutzer-Identität**. Welche Symbole jemand beobachtet, ist Nutzerdatum. Siehe `docs/adr/0004-spacetimedb-data-scope.md`.
-  - Jedes **neue** Klasse-B-Feature braucht eine eigene ADR. Ein Feld von Klasse A nach B zu verschieben ist ein `BREAKING CHANGE:`.
-  - Local-First **nicht** als Absolutaussage formulieren („keine Server-Persistenz") — das war falsch und hat die Doku vom Code entkoppelt.
-  - **Der Core läuft ohne Server** (`docs/adr/0003-edition-boundary.md`): Core-Code — Rechner, Risiko-Engine, Journal, Presets, Notizen, Settings, Exchange-Anbindung, Indikatoren und deren UI — importiert **niemals** aus `src/lib/spacetimedb/` oder `src/services/cloudService.ts`. Nicht hinter einem Flag, nicht in einem try/catch. Server-gestützte Features sind Module hinter einer Schnittstelle.
-- `src/services/` — API- und WebSocket-Services (Bitunix/Bitget), Berechnungslogik. Tests liegen direkt daneben (`*.test.ts`).
-- `src/stores/` — Svelte-5-Rune-Stores (`*.svelte.ts`), ebenfalls mit Tests daneben.
-- `src/components/` — UI-Komponenten (inputs, layout, results, settings, shared).
-- `src/lib/` — Rechner-Kern (`calculator.ts`), Utilities, Types.
-- `src/routes/[[lang]]/` — i18n-Routing (Deutsch + Englisch, `src/locales/`). Neue UI-Texte immer in **beiden** Sprachen anlegen.
-- `server/` — SpacetimeDB-Modul; hat eine eigene CLAUDE.md mit eigenen Regeln.
-- `technicals-wasm/` — WASM-Modul für Indikator-Berechnungen.
+**Local-First Data Classes** (see `docs/adr/0001-local-first-boundary.md`):
+- **Class A (never leaves device):** Journal, Settings, API Keys/Secrets, Presets, private notes, trade drafts. `localStorage` only. Never send to a server — not even telemetry, crash reports, or debug logs. (Exception: API Keys as credential of user-initiated exchange requests via proxy.)
+- **Class B (may reside server-side):** Currently only Global Chat (SpacetimeDB, `server/spacetimedb/`). Only under all four conditions: opt-in and default off, authenticated (no anonymous access), minimal (no Class A data, not even as metadata), non-essential (Calculator, Journal, Risk Management work completely without server).
+- **Class C (public market data & derived analytics):** Prices, klines, news, sentiment. Can reside anywhere but **never next to a user identity.** What symbols someone watches is user data. See `docs/adr/0004-spacetimedb-data-scope.md`.
+- Every new Class B feature requires its own ADR. Moving a field from Class A to B is a `BREAKING CHANGE:`.
+- Never phrase Local-First as an absolute ("no server persistence") — that was wrong and decoupled docs from code.
+- **Core runs without server** (`docs/adr/0003-edition-boundary.md`): Core code — Calculator, Risk Engine, Journal, Presets, Notes, Settings, Exchange integrations, Indicators and their UI — **never** imports from `src/lib/spacetimedb/` or `src/services/cloudService.ts`. Not behind a flag, not in a try/catch. Server features are modules behind an interface.
 
-## Planung & Dokumentation
+**Directory Structure:**
+- `src/services/` — API/WebSocket services (Bitunix/Bitget), calculation logic. Tests alongside (`*.test.ts`).
+- `src/stores/` — Svelte 5 rune stores (`*.svelte.ts`), tests alongside.
+- `src/components/` — UI components (inputs, layout, results, settings, shared).
+- `src/lib/` — Calculator core (`calculator.ts`), utilities, types.
+- `src/routes/[[lang]]/` — i18n routing (German + English, `src/locales/`). New UI strings always in **both** languages.
+- `server/` — SpacetimeDB module; has its own CLAUDE.md with separate rules.
+- `technicals-wasm/` — WASM module for indicator calculations.
 
-`docs/README.md` ist die Karte — dort steht, welches Dokument wofür zuständig ist. Kurzfassung:
+## Planning & Documentation
 
-| Frage | Dokument |
+`docs/README.md` is the map — see which doc serves which purpose. Quick reference:
+
+| Question | Document |
 |---|---|
-| Warum gibt es Cachy? | `docs/VISION.md` |
-| Wo liegt welcher Code? | `docs/ARCHITECTURE.md` |
-| Was wird wann gebaut? | `docs/MILESTONES.md` → `docs/ROADMAP.md` |
-| Woran arbeite ich konkret? | `docs/backlog/INDEX.md` |
-| Was darf ich nicht ändern? | `docs/adr/` |
-| Was wartet auf eine Entscheidung des Users? | `docs/TODO.md` |
+| Why does Cachy exist? | `docs/VISION.md` |
+| Where is what code? | `docs/ARCHITECTURE.md` |
+| What ships when? | `docs/MILESTONES.md` → `docs/ROADMAP.md` |
+| What am I working on? | `docs/backlog/INDEX.md` |
+| What can't I change? | `docs/adr/` |
+| What needs human decision? | `docs/TODO.md` |
 
-- **Verlinken, nie duplizieren.** Ein Fakt lebt in genau einer Datei. Zwei Kopien einer Begründung sind der Grund, warum Doku aufhört zu stimmen (siehe `docs/REPO-AUDIT.md`).
-- Neue Aufgabe → Backlog-Eintrag aus `docs/backlog/templates/` anlegen, danach `npm run backlog:index`. Das Front-Matter wird validiert; `npm run backlog:check` schlägt fehl, wenn der Index veraltet ist.
-- Neue Entscheidung, die künftige Arbeit einschränkt → ADR (`docs/adr/template.md`), nicht ein Absatz irgendwo.
+- **Link, never duplicate.** One fact lives in exactly one file. Two copies of a rationale is why docs stop matching code (see `docs/REPO-AUDIT.md`).
+- New task → Create backlog entry from `docs/backlog/templates/`, then `npm run backlog:index`. Front matter is validated; `npm run backlog:check` fails if the index is stale.
+- New decision that constrains future work → ADR (`docs/adr/template.md`), not a paragraph somewhere.
 
-## Nicht verhandelbare Regeln
+## Non-Negotiable Rules
 
-### Svelte 5 Runes only (Legacy-Syntax ist verboten)
+**Svelte 5 Runes Only** — Legacy syntax is strictly forbidden.
 
-| Verboten (Legacy) | Stattdessen |
+| Forbidden (Legacy) | Use Instead |
 |---|---|
 | `export let x` | `let { x } = $props()` |
 | `$: doubled = …` | `$derived(…)` / `$effect(…)` |
-| `createEventDispatcher` | Callback-Props (`onclick`) |
+| `createEventDispatcher` | Callback props (`onclick`) |
 | `<slot>` | Snippets `{#snippet …}` |
 
 - State: `let count = $state(0);`
-- Jeder `$effect`, der Listener/Subscriptions registriert, **muss** eine Cleanup-Funktion zurückgeben.
+- Every `$effect` that registers listeners/subscriptions **must** return a cleanup function.
 
-### Finanzdaten
+**Financial Data:** `decimal.js` for ALL prices, amounts, balances. Native `number` strictly forbidden for financial values (rounding errors = money loss).
 
-- **`decimal.js` für alle Preise, Beträge und Balances.** Natives `number` ist für Finanzwerte verboten (Rundungsfehler = Geldverlust).
+**Theming (20+ themes):** No hardcoded colors (`#ffffff`, etc.). Use CSS variables (`var(--bg-primary)`, `var(--text-secondary)`, …) or paired classes from `src/themes.css` (`.bg-accent-paired`, `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`, `.hover-bg-accent-paired`).
 
-### Theming (20+ Themes)
+**Performance:** No heavy computations (sort/filter/map) directly in template `{#each}` — prepare data with `$derived` beforehand.
 
-- **Keine hardcodierten Farben** (kein `#ffffff` o. ä.). Nur CSS-Variablen: `var(--bg-primary)`, `var(--text-secondary)`, …
-- Für Hintergrund+Text die **Paired-Klassen** aus `src/themes.css` verwenden: `.bg-accent-paired`, `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`, `.hover-bg-accent-paired`.
+## Workflow
 
-### Performance
+- **Verification over claims:** After every code change, run `npm run check` and affected tests (skill `/verify`). Only then claim completion.
+- **Defensive deletion:** Never delete code of unclear purpose. Leave copyright headers and metadata untouched.
+- **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
+- **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 
-- Keine schweren Berechnungen (sort/filter/map) direkt im Template `{#each}` — Daten vorher mit `$derived` aufbereiten.
+## Codebase Understanding for All Agents
 
-## Arbeitsweise
+This CLAUDE.md and `AGENTS.md` apply to **all coding agents** — Claude Code, Jules, Cursor, Codex, Antigravity, etc. Agents following these project rules (not just tool defaults) have deeper understanding:
 
-- **Verifikation statt Behauptung:** Nach jeder Code-Änderung `npm run check` und die betroffenen Tests ausführen (Skill `/verify`). Erst danach als erledigt melden.
-- **Defensive Deletion:** Keinen Code löschen, dessen Zweck unklar ist. Copyright-Header und Metadaten unangetastet lassen.
-- **Debug-Logs behalten:** `console.log`-Statements nur auf ausdrückliche Anweisung entfernen.
-- **Playwright:** Robuste Selektoren (`getByRole`, `getByText`), `expect(locator).toBeVisible()` statt fester Timeouts.
+- **Non-negotiable rules** (Svelte-5-Only, decimal.js, Theming, Performance) are boundary conditions — not "nice to have", but requirements that cost money or functionality if ignored.
+- **Read backlog items** (`docs/backlog/`) to see what should be done and why. Acceptance Criteria define success. Out of Scope prevents creep.
+- **Read ADRs** (`docs/adr/`) to understand why some architecture decisions are irreversible.
+- **Local-First Boundary** (Classes A/B/C) is non-negotiable — violation = data leak or fraud.
 
-## Commits
+Code reviews (`/backlog-review` skill) enforce these rules automatically, but no review replaces manual reading.
 
-Conventional Commits (semantic-release): `feat:` (Minor), `fix:` (Patch), `refactor:` (kein Release), `BREAKING CHANGE:` im Footer für Major.
+## Commits & Branches
 
-## Branch-Workflow
-
-- **Niemals direkt auf `develop` oder `main` pushen.** Jede Änderung läuft über einen Feature-Branch und einen Pull Request.
-- Der Conventional-Commits-Check (`commit-lint.yml`) läuft nur auf `pull_request`-Events — direktes Pushen auf `develop` umgeht ihn. PRs sind die einzige Möglichkeit, den Check vor dem Merge zu erzwingen.
-- Target-Branch für PRs ist immer **`develop`**, nie `main`.
-- **Agent-Isolierung:** Bevor du mit der Arbeit beginnst, stell sicher, dass du dich auf einem sauberen `develop`-Branch befindest (`git checkout develop`, `git status`). Nutze Git Worktrees für parallele Aufgaben, um Konflikte mit anderen Agenten im selben Verzeichnis zu vermeiden (siehe `AGENTS.md`).
+- **Language:** Commits and PR descriptions MUST be in English. Never German in commits or PR comments.
+- **Conventional Commits:** `feat:` (Minor), `fix:` (Patch), `refactor:` (no release), `BREAKING CHANGE:` in footer for Major.
+- **Never push directly to `develop` or `main`.** Every change goes through a feature branch and PR; target is always `develop`, never `main`.
+- **Pull Request Linking:** Every PR MUST include `Fixes #<github_issue_number>` (e.g., `Fixes #1770`) at the start of its description so GitHub auto-links the PR with the issue and advances the Kanban card.
+- **Agent Isolation:** Before starting work, ensure you're on a clean `develop` branch (`git checkout develop`, `git status`). Use Git worktrees for parallel tasks to avoid conflicts with other agents in the same directory (see `AGENTS.md`).
