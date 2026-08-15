@@ -13,19 +13,12 @@ import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { EntitlementStore } from "./entitlement.svelte";
-
-const SENSITIVE_KEYS: (keyof Settings)[] = [
-  "openaiApiKey",
-  "geminiApiKey",
-  "anthropicApiKey",
-  "discordBotToken",
-  "newsApiKey",
-  "cryptoPanicApiKey",
-  "cmcApiKey",
-  "imgbbApiKey",
-  "appAccessToken",
-  "cloudToken",
-];
+import { SecretsLoader, SENSITIVE_KEYS } from "./settings/secretsLoader";
+import {
+  resolveApiProvider,
+  resolveGeminiModel,
+  resolveAnthropicModel,
+} from "./settings/migrations";
 
 // Removed MarketDataInterval as it is legacy (WebSockets preferred)
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
@@ -570,6 +563,8 @@ export class SettingsManager {
     () => this.multiAccount,
     () => this.showMarketActivity,
   );
+  /** Encrypted-credential handling and the secretsReady handshake (FEAT-0197 PR 3). */
+  private readonly secretsLoader = new SecretsLoader();
   glassBlur = $state<number>(defaultSettings.glassBlur);
   glassSaturate = $state<number>(defaultSettings.glassSaturate);
   glassOpacity = $state<number>(defaultSettings.glassOpacity);
@@ -926,40 +921,6 @@ export class SettingsManager {
     }
   }
 
-  // --- Device Security ---
-  private _deviceKey: string | CryptoKey | null = null;
-
-  /**
-   * Securely retrieves the device key.
-   * Migrates from localStorage to IndexedDB if necessary.
-   */
-  private async getDeviceKey(): Promise<string | CryptoKey> {
-    if (!browser) return "server-side-key-placeholder";
-    if (this._deviceKey) return this._deviceKey;
-
-    // 1. Check for legacy key in localStorage for migration
-    const legacyKey = localStorage.getItem("cachy_device_id");
-
-    // 2. Get or Generate secure key (handles migration if legacyKey provided)
-    const key = await cryptoService.getOrGenerateDeviceKey(
-      legacyKey || undefined,
-      Object.keys(this.encryptedSecrets || {}).length > 0
-    );
-
-    // 3. Cleanup legacy key if migration happened
-    if (legacyKey) {
-      if (import.meta.env.DEV) {
-        console.warn(
-          "[Settings] Migrated device key from localStorage to secure storage.",
-        );
-      }
-      localStorage.removeItem("cachy_device_id");
-    }
-
-    this._deviceKey = key;
-    return key;
-  }
-
   // --- Security Methods ---
 
   async unlock(password: string): Promise<boolean> {
@@ -1134,347 +1095,50 @@ export class SettingsManager {
 
       const merged = { ...defaultSettings, ...parsed, apiKeys: mergedApiKeys };
 
-      // Migration: Ensure bitunix is default once if not already migrated
-      const migrationKey = "cachy_v0.94_broker_migrated_v2";
-      const migrationDone = localStorage.getItem(migrationKey);
-
-      // No untrack needed - effectActive is false during load
-      let loadedProvider = merged.apiProvider;
-
-      if (!migrationDone) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Settings] First load of v0.94: Forcing Bitunix as default.",
-          );
-        }
-        loadedProvider = "bitunix";
-        localStorage.setItem(migrationKey, "true");
-      }
-
-      // If user had Binance before, fallback to Bitget or Bitunix?
-      // Since Binance is gone, if provider was "binance", set to "bitunix" or "bitget".
-      if (loadedProvider === "binance") {
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Settings] Binance provider found (deprecated). Resetting to Bitunix.",
-          );
-        }
-        loadedProvider = "bitunix";
-      }
-
-      const finalProvider = loadedProvider === "bitget" ? "bitget" : "bitunix";
-
       // Set the private field directly during load to avoid dual logging
-      this._apiProvider = finalProvider;
+      this._apiProvider = resolveApiProvider(merged.apiProvider);
 
-      if (loadedProvider && loadedProvider !== finalProvider) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            `[Settings] Invalid provider "${loadedProvider}" reset to "${finalProvider}"`,
-          );
-        }
-      }
-      this.appAccessToken = merged.appAccessToken;
-      this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
-      this.autoFetchBalance = merged.autoFetchBalance;
-      this.showSidebars = merged.showSidebars;
-      this.showTechnicals = merged.showTechnicals;
-      this.showIndicatorParams = merged.showIndicatorParams;
-      this.hideUnfilledOrders = merged.hideUnfilledOrders;
-      this.positionViewMode = merged.positionViewMode;
-      this.pnlViewMode = merged.pnlViewMode;
-      this.entitlement.isPro = merged.isPro;
-      this.feePreference = merged.feePreference;
-      this.hotkeyMode = merged.hotkeyMode;
       // Granular updates for apiKeys to preserve object references if components bind to them
-      // Security: Load Keys
-      if (
-        merged.encryptedApiKeys &&
-        Object.keys(merged.encryptedApiKeys).length > 0
-      ) {
-        this.isEncrypted = true;
-        this.isLocked = true;
-        this.encryptedApiKeys = merged.encryptedApiKeys;
-        // Ensure plain keys are empty in memory if locked
-        this.apiKeys = {
-          bitunix: { key: "", secret: "" },
-          bitget: { key: "", secret: "", passphrase: "" },
-        };
-      } else {
-        // Legacy: Load plain keys
-        this.isEncrypted = false;
-        this.isLocked = false;
-        if (merged.apiKeys) {
-          if (merged.apiKeys.bitunix)
-            this.apiKeys.bitunix = merged.apiKeys.bitunix;
-          if (merged.apiKeys.bitget)
-            this.apiKeys.bitget = merged.apiKeys.bitget;
-        }
-      }
+      const apiKeyResult = this.secretsLoader.applyApiKeys(merged, this.apiKeys);
+      this.isEncrypted = apiKeyResult.isEncrypted;
+      this.isLocked = apiKeyResult.isLocked;
+      this.encryptedApiKeys = apiKeyResult.encryptedApiKeys;
+      this.apiKeys = apiKeyResult.apiKeys;
 
       // Security: Load Encrypted Secrets (Generic)
       if (merged.encryptedSecrets) {
         this.encryptedSecrets = merged.encryptedSecrets;
 
-        // If Obfuscation Mode (no master password), decrypt immediately
+        // If Obfuscation Mode (no master password), decrypt immediately.
+        // load() is sync, so this is a fire-and-forget background task.
         if (!this.isEncrypted) {
-          // We need to trigger this async but load is sync.
-          // We'll launch a background decryption.
           secretsPending = true;
-          void (async () => {
-            try {
-              const deviceKey = await this.getDeviceKey();
-              const entries = Object.entries(this.encryptedSecrets || {});
-              let failures = 0;
-              await Promise.all(
-                entries.map(async ([key, blob]) => {
-                  if (key === "_deviceKeyCanary") return;
-                  try {
-                    const decrypted = await cryptoService.decrypt(
-                      blob as EncryptedBlob,
-                      deviceKey,
-                    );
-                    if (SENSITIVE_KEYS.includes(key as keyof Settings)) {
-                      // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
-                      this[key] = decrypted;
-                    }
-                  } catch (e) {
-                    failures++;
-                    console.error(
-                      "[Settings] Failed to decrypt secret " + key,
-                      e,
-                    );
-                  }
-                }),
-              );
+          void this.secretsLoader
+            .decryptSecrets(this.encryptedSecrets, (key, value) => {
+              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
+              this[key] = value;
+            })
+            .then((failures) => {
               this.decryptionFailures = failures;
-            } catch (e) {
+            })
+            .catch((e) => {
               this.decryptionFailures = SENSITIVE_KEYS.length;
               console.error(
                 "[Settings] Failed to initialize background decryption",
                 e,
               );
-            } finally {
-              // Release waiters even when decryption failed — a request without
-              // the token gets a clean 401, a request that never fires hangs
-              // the UI.
+            })
+            .finally(() => {
+              // Release waiters even when decryption failed — a request
+              // without the token gets a clean 401, a request that never
+              // fires hangs the UI.
               this.resolveSecretsReady();
-            }
-          })();
+            });
         }
       }
 
-      this.customHotkeys = merged.customHotkeys || {};
-      this.favoriteTimeframes = merged.favoriteTimeframes;
-      // Strict limit on favorites to prevent memory overflow (User Agreement: 12)
-      this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, 12);
-      this.syncRsiTimeframe = merged.syncRsiTimeframe;
-      this.imgbbApiKey = merged.imgbbApiKey;
-      this.imgbbExpiration = merged.imgbbExpiration;
-      this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
-      this.imgurClientId = merged.imgurClientId;
-      this.cloudEnabled = merged.cloudEnabled;
-      this.cloudHost = merged.cloudHost;
-      this.cloudDbName = merged.cloudDbName;
-      this.cloudToken = merged.cloudToken;
-      this.sidePanelMode = merged.sidePanelMode;
-      this.chatStyle = merged.chatStyle;
-      this.maxPrivateNotes = merged.maxPrivateNotes;
-      this.customSystemPrompt = merged.customSystemPrompt;
-      this.aiProvider = merged.aiProvider;
-      this.autoTrading = merged.autoTrading;
-      this.multiAccount = merged.multiAccount;
-      this.openaiApiKey = merged.openaiApiKey;
-      this.openaiModel = merged.openaiModel;
-      this.geminiApiKey = merged.geminiApiKey;
-      this.geminiModel = merged.geminiModel;
-      this.anthropicApiKey = merged.anthropicApiKey;
-      this.anthropicModel = merged.anthropicModel;
-      this.ollamaBaseUrl = merged.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
-      this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
-      this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
-      this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
-      this.analysisDepth = merged.analysisDepth;
-      this.aiConfirmActions = merged.aiConfirmActions;
-      this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
-      this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
-      this.aiConfirmClear = merged.aiConfirmClear;
-      this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
-      this.showSpinButtons = merged.showSpinButtons;
-      this.disclaimerAccepted = merged.disclaimerAccepted;
-      this.useUtcDateParsing = merged.useUtcDateParsing;
-      this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
-      this.debugMode = merged.debugMode;
-      this.syncFavorites = merged.syncFavorites;
-      this.confirmTradeDeletion = merged.confirmTradeDeletion;
-      this.confirmBulkDeletion = merged.confirmBulkDeletion;
-      this.chatFontSize = merged.chatFontSize;
-      this.fontFamily = merged.fontFamily;
-      this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
-      this.newsApiKey = merged.newsApiKey;
-      this.cryptoPanicPlan =
-        merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
-      this.cryptoPanicFilter =
-        merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
-      this.enableNewsAnalysis = merged.enableNewsAnalysis;
-      this.cmcApiKey = merged.cmcApiKey;
-      this.enableCmcContext = merged.enableCmcContext;
-      this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
-      this.showMarketOverview =
-        merged.showMarketOverview ?? defaultSettings.showMarketOverview;
-      this.showMarketActivity = merged.showMarketActivity;
-      this.showSidebarActivity =
-        merged.showSidebarActivity ?? defaultSettings.showSidebarActivity;
-      this.showMarketSentiment = merged.showMarketSentiment;
-      this.showTechnicalsSummary = merged.showTechnicalsSummary;
-      this.showTechnicalsConfluence = merged.showTechnicalsConfluence;
-      this.showTechnicalsVolatility = merged.showTechnicalsVolatility;
-      this.showTechnicalsOscillators = merged.showTechnicalsOscillators;
-      this.showTechnicalsMAs = merged.showTechnicalsMAs;
-      this.showTechnicalsAdvanced = merged.showTechnicalsAdvanced;
-      this.showTechnicalsSignals = merged.showTechnicalsSignals;
-      this.showTechnicalsPivots =
-        merged.showTechnicalsPivots ?? defaultSettings.showTechnicalsPivots;
-      this.logSettings = merged.logSettings || defaultSettings.logSettings;
-      this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
-      this.showCgHeatLink =
-        merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
-      this.heatmapMode = merged.heatmapMode || defaultSettings.heatmapMode;
-      this.showBrokerLink =
-        merged.showBrokerLink ?? defaultSettings.showBrokerLink;
-      this.rssPresets = merged.rssPresets || defaultSettings.rssPresets;
-      this.customRssFeeds =
-        merged.customRssFeeds || defaultSettings.customRssFeeds;
-      this.entitlement.isProLicenseActive =
-        merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
-      this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
-      this.glassSaturate =
-        merged.glassSaturate ?? defaultSettings.glassSaturate;
-      this.glassOpacity = merged.glassOpacity ?? defaultSettings.glassOpacity;
-
-      // Background Customization
-      this.enableGlassmorphism =
-        merged.enableGlassmorphism ?? defaultSettings.enableGlassmorphism;
-      this.backgroundType =
-        merged.backgroundType ?? defaultSettings.backgroundType;
-      this.backgroundUrl =
-        merged.backgroundUrl ?? defaultSettings.backgroundUrl;
-      this.backgroundOpacity =
-        merged.backgroundOpacity ?? defaultSettings.backgroundOpacity;
-      this.backgroundBlur =
-        merged.backgroundBlur ?? defaultSettings.backgroundBlur;
-      this.backgroundAnimationPreset =
-        merged.backgroundAnimationPreset ??
-        defaultSettings.backgroundAnimationPreset;
-      this.backgroundAnimationIntensity =
-        merged.backgroundAnimationIntensity ??
-        defaultSettings.backgroundAnimationIntensity;
-      this.videoPlaybackSpeed =
-        merged.videoPlaybackSpeed ?? defaultSettings.videoPlaybackSpeed;
-
-      // Deep merge galaxy settings to ensure new fields (camPos, galaxyRot) are populated if missing in old storage
-      this.galaxySettings = {
-        ...defaultSettings.galaxySettings,
-        ...(merged.galaxySettings || {}),
-      };
-
-      // Deep merge TradeFlow settings for persistence
-      this.tradeFlowSettings = {
-        ...defaultSettings.tradeFlowSettings,
-        ...(merged.tradeFlowSettings || {}),
-      };
-
-      this.enableNetworkLogs =
-        merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
-
-      // Social Media
-      this.discordBotToken = merged.discordBotToken;
-      this.discordChannels =
-        merged.discordChannels || defaultSettings.discordChannels;
-
-      this._marketMode = merged.marketMode || defaultSettings.marketMode;
-      this.analyzeAllFavorites =
-        merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
-      this.marketCacheSize =
-        merged.marketCacheSize ?? defaultSettings.marketCacheSize;
-
-      this.technicalsUpdateMode =
-        merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
-      this.technicalsUpdateInterval = merged.technicalsUpdateInterval;
-      this.technicalsCacheSize =
-        merged.technicalsCacheSize ?? defaultSettings.technicalsCacheSize;
-      this.technicalsCacheTTL =
-        merged.technicalsCacheTTL ?? defaultSettings.technicalsCacheTTL;
-      this.maxTechnicalsHistory =
-        merged.maxTechnicalsHistory ?? defaultSettings.maxTechnicalsHistory;
-      this.enableIndicatorOptimization =
-        merged.enableIndicatorOptimization ??
-        defaultSettings.enableIndicatorOptimization;
-      this.chartHistoryLimit =
-        merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
-      this.repairTimeframe =
-        merged.repairTimeframe || defaultSettings.repairTimeframe;
-
-      // Burning Borders Persistence
-      this.enableBurningBorders =
-        merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
-      this.borderEffect = merged.borderEffect ?? defaultSettings.borderEffect;
-      this.borderEffectColorMode =
-        merged.borderEffectColorMode ?? defaultSettings.borderEffectColorMode;
-      this.borderEffectCustomColor =
-        merged.borderEffectCustomColor ??
-        defaultSettings.borderEffectCustomColor;
-      this.burningBordersIntensity =
-        merged.burningBordersIntensity ??
-        defaultSettings.burningBordersIntensity;
-      this.burnNewsWindows =
-        merged.burnNewsWindows ?? defaultSettings.burnNewsWindows;
-      this.burnChannelWindows =
-        merged.burnChannelWindows ?? defaultSettings.burnChannelWindows;
-      this.burnMarketOverviewTiles =
-        merged.burnMarketOverviewTiles ??
-        defaultSettings.burnMarketOverviewTiles;
-      this.burnFlashCards =
-        merged.burnFlashCards ?? defaultSettings.burnFlashCards;
-      this.burnJournal = merged.burnJournal ?? defaultSettings.burnJournal;
-      this.burnModals = merged.burnModals ?? defaultSettings.burnModals;
-      this.burnSettings = merged.burnSettings ?? defaultSettings.burnSettings;
-      this.burnGuide = merged.burnGuide ?? defaultSettings.burnGuide;
-      this.fireConfig = {
-        ...defaultSettings.fireConfig,
-        ...(merged.fireConfig || {}),
-      };
-
-      this.enableDockingCentered =
-        merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
-      this.dockingPosition =
-        merged.dockingPosition ?? defaultSettings.dockingPosition;
-
-      // Legacy manual sync migration removed. WebSockets handle this now.
-
-      // Migration for Gemini Model: Ensure we use a stable version
-      // We do this at the very end to ensure it's not overwritten by 'merged.geminiModel'
-      if (this.geminiModel === "gemma" || !this.geminiModel) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Settings] Migrating geminiModel to gemini-1.5-flash for stability.",
-          );
-        }
-        this.geminiModel = "gemini-1.5-flash";
-      }
-
-      // Migration for Anthropic Model: claude-3-5-sonnet-20240620 (the old
-      // hardcoded default) and every other Claude 2.x/3.x snapshot ID are
-      // retired. Move users still pointing at one onto a current model —
-      // the live model picker in Settings → AI takes over from here.
-      if (!this.anthropicModel || /^claude-[23]/.test(this.anthropicModel)) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            `[Settings] Migrating anthropicModel from "${this.anthropicModel}" to claude-sonnet-5 (retired).`,
-          );
-        }
-        this.anthropicModel = "claude-sonnet-5";
-      }
+      this.applyCoreFields(merged);
+      this.applyDisplayFields(merged);
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("[Settings] Load failed, using defaults:", e);
@@ -1487,6 +1151,214 @@ export class SettingsManager {
     }
   }
 
+  /** General, security and AI/market/technicals fields. Part of load()'s merge+assign step. */
+  private applyCoreFields(merged: Settings) {
+    this.appAccessToken = merged.appAccessToken ?? "";
+    this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
+    this.autoFetchBalance = merged.autoFetchBalance;
+    this.showSidebars = merged.showSidebars;
+    this.showTechnicals = merged.showTechnicals;
+    this.showIndicatorParams = merged.showIndicatorParams;
+    this.hideUnfilledOrders = merged.hideUnfilledOrders;
+    this.positionViewMode = merged.positionViewMode;
+    this.pnlViewMode = merged.pnlViewMode;
+    this.entitlement.isPro = merged.isPro;
+    this.feePreference = merged.feePreference;
+    this.hotkeyMode = merged.hotkeyMode;
+
+    this.customHotkeys = merged.customHotkeys || {};
+    this.favoriteTimeframes = merged.favoriteTimeframes;
+    // Strict limit on favorites to prevent memory overflow (User Agreement: 12)
+    this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, 12);
+    this.syncRsiTimeframe = merged.syncRsiTimeframe;
+    this.imgbbApiKey = merged.imgbbApiKey;
+    this.imgbbExpiration = merged.imgbbExpiration;
+    this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
+    this.imgurClientId = merged.imgurClientId;
+    this.cloudEnabled = merged.cloudEnabled;
+    this.cloudHost = merged.cloudHost;
+    this.cloudDbName = merged.cloudDbName;
+    this.cloudToken = merged.cloudToken;
+    this.sidePanelMode = merged.sidePanelMode;
+    this.chatStyle = merged.chatStyle;
+    this.maxPrivateNotes = merged.maxPrivateNotes;
+    this.customSystemPrompt = merged.customSystemPrompt;
+    this.aiProvider = merged.aiProvider;
+    this.autoTrading = merged.autoTrading;
+    this.multiAccount = merged.multiAccount;
+    this.openaiApiKey = merged.openaiApiKey;
+    this.openaiModel = merged.openaiModel;
+    this.geminiApiKey = merged.geminiApiKey;
+    this.geminiModel = resolveGeminiModel(merged.geminiModel);
+    this.anthropicApiKey = merged.anthropicApiKey;
+    this.anthropicModel = resolveAnthropicModel(merged.anthropicModel);
+    this.ollamaBaseUrl = merged.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
+    this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
+    this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
+    this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
+    this.analysisDepth = merged.analysisDepth;
+    this.aiConfirmActions = merged.aiConfirmActions;
+    this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
+    this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
+    this.aiConfirmClear = merged.aiConfirmClear;
+    this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
+    this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
+    this.newsApiKey = merged.newsApiKey;
+    this.cryptoPanicPlan =
+      merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
+    this.cryptoPanicFilter =
+      merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
+    this.enableNewsAnalysis = merged.enableNewsAnalysis;
+    this.cmcApiKey = merged.cmcApiKey;
+    this.enableCmcContext = merged.enableCmcContext;
+
+    this._marketMode = merged.marketMode || defaultSettings.marketMode;
+    this.analyzeAllFavorites =
+      merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
+    this.marketCacheSize =
+      merged.marketCacheSize ?? defaultSettings.marketCacheSize;
+
+    this.technicalsUpdateMode =
+      merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
+    this.technicalsUpdateInterval = merged.technicalsUpdateInterval;
+    this.technicalsCacheSize =
+      merged.technicalsCacheSize ?? defaultSettings.technicalsCacheSize;
+    this.technicalsCacheTTL =
+      merged.technicalsCacheTTL ?? defaultSettings.technicalsCacheTTL;
+    this.maxTechnicalsHistory =
+      merged.maxTechnicalsHistory ?? defaultSettings.maxTechnicalsHistory;
+    this.enableIndicatorOptimization =
+      merged.enableIndicatorOptimization ??
+      defaultSettings.enableIndicatorOptimization;
+    this.chartHistoryLimit =
+      merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
+    this.repairTimeframe =
+      merged.repairTimeframe || defaultSettings.repairTimeframe;
+  }
+
+  /** Display/UI, background customization and Burning Borders fields. Part of load()'s merge+assign step. */
+  private applyDisplayFields(merged: Settings) {
+    this.showSpinButtons = merged.showSpinButtons;
+    this.disclaimerAccepted = merged.disclaimerAccepted;
+    this.useUtcDateParsing = merged.useUtcDateParsing;
+    this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
+    this.debugMode = merged.debugMode;
+    this.syncFavorites = merged.syncFavorites;
+    this.confirmTradeDeletion = merged.confirmTradeDeletion;
+    this.confirmBulkDeletion = merged.confirmBulkDeletion;
+    this.chatFontSize = merged.chatFontSize;
+    this.fontFamily = merged.fontFamily;
+    this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
+    this.showMarketOverview =
+      merged.showMarketOverview ?? defaultSettings.showMarketOverview;
+    this.showMarketActivity = merged.showMarketActivity;
+    this.showSidebarActivity =
+      merged.showSidebarActivity ?? defaultSettings.showSidebarActivity;
+    this.showMarketSentiment = merged.showMarketSentiment;
+    this.showTechnicalsSummary = merged.showTechnicalsSummary;
+    this.showTechnicalsConfluence = merged.showTechnicalsConfluence;
+    this.showTechnicalsVolatility = merged.showTechnicalsVolatility;
+    this.showTechnicalsOscillators = merged.showTechnicalsOscillators;
+    this.showTechnicalsMAs = merged.showTechnicalsMAs;
+    this.showTechnicalsAdvanced = merged.showTechnicalsAdvanced;
+    this.showTechnicalsSignals = merged.showTechnicalsSignals;
+    this.showTechnicalsPivots =
+      merged.showTechnicalsPivots ?? defaultSettings.showTechnicalsPivots;
+    this.logSettings = merged.logSettings || defaultSettings.logSettings;
+    this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
+    this.showCgHeatLink =
+      merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
+    this.heatmapMode = merged.heatmapMode || defaultSettings.heatmapMode;
+    this.showBrokerLink =
+      merged.showBrokerLink ?? defaultSettings.showBrokerLink;
+    this.rssPresets = merged.rssPresets || defaultSettings.rssPresets || [];
+    this.customRssFeeds =
+      merged.customRssFeeds || defaultSettings.customRssFeeds || [];
+    this.entitlement.isProLicenseActive =
+      merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
+    this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
+    this.glassSaturate =
+      merged.glassSaturate ?? defaultSettings.glassSaturate;
+    this.glassOpacity = merged.glassOpacity ?? defaultSettings.glassOpacity;
+
+    // Background Customization
+    this.enableGlassmorphism =
+      merged.enableGlassmorphism ?? defaultSettings.enableGlassmorphism;
+    this.backgroundType =
+      merged.backgroundType ?? defaultSettings.backgroundType;
+    this.backgroundUrl =
+      merged.backgroundUrl ?? defaultSettings.backgroundUrl;
+    this.backgroundOpacity =
+      merged.backgroundOpacity ?? defaultSettings.backgroundOpacity;
+    this.backgroundBlur =
+      merged.backgroundBlur ?? defaultSettings.backgroundBlur;
+    this.backgroundAnimationPreset =
+      merged.backgroundAnimationPreset ??
+      defaultSettings.backgroundAnimationPreset;
+    this.backgroundAnimationIntensity =
+      merged.backgroundAnimationIntensity ??
+      defaultSettings.backgroundAnimationIntensity;
+    this.videoPlaybackSpeed =
+      merged.videoPlaybackSpeed ?? defaultSettings.videoPlaybackSpeed;
+
+    // Deep merge galaxy settings to ensure new fields (camPos, galaxyRot) are populated if missing in old storage
+    this.galaxySettings = {
+      ...defaultSettings.galaxySettings,
+      ...(merged.galaxySettings || {}),
+    };
+
+    // Deep merge TradeFlow settings for persistence
+    this.tradeFlowSettings = {
+      ...defaultSettings.tradeFlowSettings,
+      ...(merged.tradeFlowSettings || {}),
+    };
+
+    this.enableNetworkLogs =
+      merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
+
+    // Social Media
+    this.discordBotToken = merged.discordBotToken;
+    this.discordChannels =
+      merged.discordChannels || defaultSettings.discordChannels;
+
+    // Burning Borders Persistence
+    this.enableBurningBorders =
+      merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
+    this.borderEffect = merged.borderEffect ?? defaultSettings.borderEffect;
+    this.borderEffectColorMode =
+      merged.borderEffectColorMode ?? defaultSettings.borderEffectColorMode;
+    this.borderEffectCustomColor =
+      merged.borderEffectCustomColor ??
+      defaultSettings.borderEffectCustomColor;
+    this.burningBordersIntensity =
+      merged.burningBordersIntensity ??
+      defaultSettings.burningBordersIntensity;
+    this.burnNewsWindows =
+      merged.burnNewsWindows ?? defaultSettings.burnNewsWindows;
+    this.burnChannelWindows =
+      merged.burnChannelWindows ?? defaultSettings.burnChannelWindows;
+    this.burnMarketOverviewTiles =
+      merged.burnMarketOverviewTiles ??
+      defaultSettings.burnMarketOverviewTiles;
+    this.burnFlashCards =
+      merged.burnFlashCards ?? defaultSettings.burnFlashCards;
+    this.burnJournal = merged.burnJournal ?? defaultSettings.burnJournal;
+    this.burnModals = merged.burnModals ?? defaultSettings.burnModals;
+    this.burnSettings = merged.burnSettings ?? defaultSettings.burnSettings;
+    this.burnGuide = merged.burnGuide ?? defaultSettings.burnGuide;
+    this.fireConfig = {
+      ...defaultSettings.fireConfig,
+      ...(merged.fireConfig || {}),
+    };
+
+    this.enableDockingCentered =
+      merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
+    this.dockingPosition =
+      merged.dockingPosition ?? defaultSettings.dockingPosition;
+
+    // Legacy manual sync migration removed. WebSockets handle this now.
+  }
+
   private async save() {
     if (!browser || !this.effectActive || this.saveLock) return;
 
@@ -1495,18 +1367,15 @@ export class SettingsManager {
     try {
       const data = this.toJSON();
 
-      // --- Security: Encrypt Sensitive Keys ---
-      if (!data.encryptedSecrets) {
-        data.encryptedSecrets = {};
-      }
-
       // Determine encryption key: Device Key (obfuscation) or Session Key (master password)
       let encryptionPassword: string | CryptoKey | undefined = undefined;
       let canEncrypt = true;
 
       if (!this.isEncrypted) {
         // Obfuscation Mode: Use Device Key
-        encryptionPassword = await this.getDeviceKey();
+        encryptionPassword = await this.secretsLoader.getDeviceKey(
+          Object.keys(this.encryptedSecrets || {}).length > 0,
+        );
       } else {
         // Master Password Mode: Use Session Key (implicit)
         // If locked, we cannot encrypt new data.
@@ -1515,54 +1384,11 @@ export class SettingsManager {
         }
       }
 
-      if (canEncrypt) {
-        const encryptionTasks = SENSITIVE_KEYS.map(async (key) => {
-          const value = data[key];
-
-          // Only encrypt if value is present and not empty
-          if (typeof value === "string" && value.length > 0) {
-            try {
-              // Encrypt
-              const blob = await cryptoService.encrypt(
-                value,
-                encryptionPassword,
-              );
-              data.encryptedSecrets![key] = blob;
-
-              // Redact plain text from saved object
-              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
-              data[key] = "";
-            } catch (err) {
-              if (import.meta.env.DEV) {
-                console.error(`[Settings] Failed to encrypt ${key}:`, err);
-              }
-              // Safety: Do not save plain text on error
-              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
-              data[key] = "";
-            }
-          }
-        });
-
-        // Always write a canary to detect key loss without data loss
-        encryptionTasks.push((async () => {
-          try {
-            data.encryptedSecrets!["_deviceKeyCanary"] = await cryptoService.encrypt(
-              "canary",
-              encryptionPassword,
-            );
-          } catch (e) {
-            if (import.meta.env.DEV) console.error("Failed to encrypt canary", e);
-          }
-        })());
-
-        await Promise.all(encryptionTasks);
-      } else {
-        // Locked mode: Ensure plain text fields are empty
-        for (const key of SENSITIVE_KEYS) {
-          // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
-          data[key] = "";
-        }
-      }
+      await this.secretsLoader.applyFieldEncryption(
+        data,
+        canEncrypt,
+        encryptionPassword,
+      );
 
       const current = localStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
