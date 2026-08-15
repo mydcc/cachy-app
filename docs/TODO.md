@@ -996,3 +996,42 @@ trade-panel gap analysis — but as issue attachments, not tree content.
 **The decision:** keep/move/remove per path, and whether a history rewrite is
 worth it for the screenshots (they are already public; probably not).
 Defensive deletion applies — nothing is removed before this entry is decided.
+
+## 28. Dependabot `ip-address` alerts (#15, #16, #17) — no fix available upstream
+
+**Raised by Dependabot**, August 2026 — three alerts against `ip-address`
+(SSRF/trust-boundary bypass via octal-decoded leading-zero octets, CIDR
+suffix suppressing special-use classification, IPv4-mapped/NAT64 IPv6
+misclassification).
+
+Investigated and confirmed **not fixable via `package.json`/`overrides`**.
+`ip-address` only appears at `node_modules/npm/node_modules/ip-address`
+(`package-lock.json`), bundled (`"inBundle": true`) inside the `npm` CLI
+tarball itself, pulled in transitively via `semantic-release →
+@semantic-release/npm → npm → make-fetch-happen → @npmcli/agent →
+socks-proxy-agent → socks`. npm extracts bundled dependencies as-is from the
+parent tarball; a root-level `overrides` entry (tried: `"ip-address":
+"^10.5.0"`) has no effect on them — confirmed by installing with the
+override and finding the resolved version unchanged. Checked the npm
+registry directly: even the latest npm release (`npm@12.0.2`) still bundles
+`ip-address@10.2.0` — there is currently **no upstream npm release with a
+patched `ip-address`**.
+
+**Risk:** none to Cachy. The path is `devDependency`-only (active solely
+during the semantic-release publish step), and `ip-address` is used
+internally by npm's own SOCKS-proxy client — no exposure to user data, no
+SSRF surface in Cachy's own code (Local-First Klasse A/B/C boundary
+unaffected).
+
+**The decision:** nothing to build. Dismiss alerts #15 and #17 (the two that
+support only "risk is tolerable" / "no fix available" style reasons) on
+GitHub with **"Vulnerable code is not actually used"** — accurate,
+verifiable in `package-lock.json`, and it's the reason that best matches the
+finding (npm's internal SOCKS-proxy path is never reachable from app code).
+Alert #16 (CIDR-suffix bypass) can be dismissed the same way for the same
+root cause. Re-open only if:
+1. Dependabot re-flags after a `package-lock.json` regeneration and the
+   nested path has moved (re-check whether it's still `inBundle`), or
+2. A future `npm`/`@semantic-release/npm` release bundles a patched
+   `ip-address` — then `npm update` picks it up automatically and the
+   alerts should auto-close.
