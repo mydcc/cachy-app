@@ -41,7 +41,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const BACKLOG = join(ROOT, "docs", "backlog");
@@ -124,12 +124,10 @@ function getFilteredItems(items) {
 }
 
 async function branchExists(branchName) {
-  try {
-    execSync(`git rev-parse --verify ${branchName}`, { stdio: "pipe" });
-    return true;
-  } catch {
-    return false;
-  }
+  const result = spawnSync("git", ["rev-parse", "--verify", branchName], {
+    stdio: "pipe",
+  });
+  return result.status === 0;
 }
 
 async function createDraftPR(item) {
@@ -171,10 +169,9 @@ ${validationChecklist}`;
     console.log(`Creating draft PR for ${item.id} on branch ${branchName}...`);
 
     if (!(await branchExists(branchName))) {
-      try {
-        execSync(`git checkout -b ${branchName} origin/develop`, { cwd: ROOT });
-      } catch (err) {
-        console.error(`❌ Failed to create branch ${branchName}: ${err.message}`);
+      const checkoutResult = spawnSync("git", ["checkout", "-b", branchName, "origin/develop"], { cwd: ROOT });
+      if (checkoutResult.status !== 0) {
+        console.error(`❌ Failed to create branch ${branchName}: ${checkoutResult.stderr.toString()}`);
         return false;
       }
     }
