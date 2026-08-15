@@ -93,6 +93,8 @@ depends_on: []
 | `size` | `XS`, `S`, `M`, `L`, `XL` | Optional size classification for GitHub Projects |
 | `start_date` | `YYYY-MM-DD` | Optional start date for GitHub Projects Roadmap |
 | `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
+| `dispatch-label` | `none`, `plan-validation`, `architecture-review`, `needs-estimation`, `ready` | Optional: marks items for early plan validation workflows |
+| `dispatch-target` | `none`, `jules`, `early-dispatch`, `manual`, `blocked` | Optional: controls Jules dispatch routing (Phase 2+) |
 
 ### Status
 
@@ -207,3 +209,35 @@ npm run backlog:index
 Nothing else. No approval step, no triage meeting — an unsorted item in the
 backlog is better than an idea in a chat log. Set `status: idea` and
 `priority: P3` if you are not sure; that is what those values are for.
+
+---
+
+## Batch Promotion
+
+Promote multiple `specced` items to `ready` in one operation instead of editing
+each file individually.
+
+```bash
+# Show all specced items, interactively select which to promote
+npm run backlog:promote
+
+# Show only specced items in the 'ui' area
+npm run backlog:promote -- --area=ui
+
+# Show only P1 items in the 'ui' area
+npm run backlog:promote -- --area=ui --priority=P1
+
+# Promote specific items by ID (bypass interactive selection)
+npm run backlog:promote -- --ids=FEAT-0042,FEAT-0051,BUG-0015
+```
+
+The script:
+1. Filters backlog items by `status: specced` (and optional area/priority/milestone filters)
+2. Shows matching items
+3. Asks you to select which ones to promote (enter comma-separated numbers)
+4. Updates all selected items to `status: ready`
+5. Creates a single commit with all changes
+6. You push the commit to create a PR
+
+**Useful when:** You have 5+ specced items ready to go and want to promote them
+all at once instead of editing each file separately.
