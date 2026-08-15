@@ -1,5 +1,5 @@
 ---
-id: BUG-0204
+id: BUG-0210
 title: Security Warning in settings is too prominent and misplaced
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0204 — Security Warning in settings is too prominent and misplaced
+# BUG-0210 — Security Warning in settings is too prominent and misplaced
 
 ## Symptom
 

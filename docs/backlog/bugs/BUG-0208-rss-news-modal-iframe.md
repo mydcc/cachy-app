@@ -1,5 +1,5 @@
 ---
-id: BUG-0202
+id: BUG-0208
 title: RSS Market Sentiment news open in new tab instead of modal iframe
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0202 — RSS Market Sentiment news open in new tab instead of modal iframe
+# BUG-0208 — RSS Market Sentiment news open in new tab instead of modal iframe
 
 ## Symptom
 

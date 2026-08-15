@@ -1,5 +1,5 @@
 ---
-id: BUG-0205
+id: BUG-0211
 title: Position details hidden behind tooltip delay
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0205 — Position details hidden behind tooltip delay
+# BUG-0211 — Position details hidden behind tooltip delay
 
 ## Symptom
 

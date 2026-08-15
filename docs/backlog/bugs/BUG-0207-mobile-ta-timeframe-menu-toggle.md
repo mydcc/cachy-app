@@ -1,5 +1,5 @@
 ---
-id: BUG-0201
+id: BUG-0207
 title: Mobile Technical Analysis timeframe menu fails to reopen
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0201 — Mobile Technical Analysis timeframe menu fails to reopen
+# BUG-0207 — Mobile Technical Analysis timeframe menu fails to reopen
 
 ## Symptom
 

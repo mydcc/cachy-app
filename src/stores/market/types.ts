@@ -36,7 +36,12 @@ export interface MarketData {
   quoteVolume?: Decimal | null;
   priceChangePercent?: Decimal | null;
   klines: Record<string, Kline[]>;
-  klinesBuffers?: Record<string, KlineBuffers>;
+  // Map, not Record: this is written with a dynamic timeframe key (see
+  // klineBuffers.ts's applySymbolKlines) that CodeQL flags as a
+  // prototype-polluting assignment on a plain object, Object.create(null)
+  // included — a Map is the pattern its own recommendation names that it
+  // actually recognizes.
+  klinesBuffers?: Map<string, KlineBuffers>;
   technicals?: Record<string, import("../../services/technicalsTypes").TechnicalsData>;
   lastUpdated?: number;
 }

@@ -1,5 +1,5 @@
 ---
-id: BUG-0203
+id: BUG-0209
 title: Inconsistent and poorly placed number input arrows (Leverage / Risk)
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0203 — Inconsistent and poorly placed number input arrows (Leverage / Risk)
+# BUG-0209 — Inconsistent and poorly placed number input arrows (Leverage / Risk)
 
 ## Symptom
 

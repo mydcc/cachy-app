@@ -145,7 +145,7 @@ export class MarketManager {
         fundingRate: null,
         nextFundingTime: null,
         klines: {},
-        klinesBuffers: {},
+        klinesBuffers: new Map(),
       };
     }
     return this.data[symbol];

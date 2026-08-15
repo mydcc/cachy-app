@@ -1,5 +1,5 @@
 ---
-id: BUG-0200
+id: BUG-0206
 title: Quiz flashcard close button is misplaced
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0200 — Quiz flashcard close button is misplaced
+# BUG-0206 — Quiz flashcard close button is misplaced
 
 ## Symptom
 
