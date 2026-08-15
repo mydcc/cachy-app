@@ -2,9 +2,9 @@
 
 # Backlog index
 
-97 items. How to read and add them: [README.md](README.md).
+103 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 55
+Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 
 ---
 
@@ -140,6 +140,9 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 55
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | docs |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | repo |
+| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | ui |
+| [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | ui |
+| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -155,6 +158,9 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 55
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
 | [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | i18n |
+| [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 📋 specced | ui |
+| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 📋 specced | ui |
+| [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -224,6 +230,9 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 55
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | M1 | community, pro, private | none | none | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | none | community | none | none | — |
+| [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | none | community | none | none | — |
+| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -254,6 +263,9 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 55
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 📋 specced | none | community | none | none | — |
+| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 📋 specced | none | community | none | none | — |
+| [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 📋 specced | none | community | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -268,4 +280,4 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 55
 
 ---
 
-Next free number: **0201**
+Next free number: **0212**
