@@ -11,14 +11,17 @@ vi.mock("$app/environment", () => ({
 describe("marketStore buffer pool characterisation", () => {
     let market: MarketManager;
 
+    let originalCacheSize: number | undefined;
+
     beforeEach(() => {
         vi.useFakeTimers();
         market = new MarketManager();
-        // Force small cache to easily test eviction
+        originalCacheSize = settingsState.marketCacheSize;
         settingsState.marketCacheSize = 2;
     });
 
     afterEach(() => {
+        if (originalCacheSize !== undefined) settingsState.marketCacheSize = originalCacheSize;
         market.destroy();
         vi.useRealTimers();
     });
@@ -105,18 +108,30 @@ describe("marketStore buffer pool characterisation", () => {
 
         // Add first symbol
         market.updateSymbolKlines('BTCUSDT', '1m', [createKline(1000, 101)]);
-        await vi.advanceTimersByTimeAsync(300);
 
-        // Add a pending kline update
+        // Advance time so BTCUSDT is explicitly older
+        await vi.advanceTimersByTimeAsync(1000);
+
+        // Add a pending kline update. The WS path does NOT call touchSymbol.
         market.updateSymbolKlines('BTCUSDT', '1m', [createKline(2000, 102)], 'ws');
         expect(internals.pendingKlineUpdates.has('BTCUSDT:1m')).toBe(true);
 
-        // Instead of messing with timers to trigger LRU, we can just delete it via arbitrary eviction code path,
-        // or just forcefully trigger eviction on BTCUSDT.
-        internals.cacheMetadata.delete('BTCUSDT');
-        // Then we call the internal release function
-        (market as unknown as { releaseSymbolBackingBuffers: (symbol: string) => void }).releaseSymbolBackingBuffers('BTCUSDT');
-        delete market.data['BTCUSDT'];
+        // Clear flush interval so our pending kline update does not auto-flush while we add other symbols
+        if (internals.flushIntervalId) {
+            clearInterval(internals.flushIntervalId);
+        }
+
+        // Add second symbol
+        market.updateTicker("ETHUSDT", { lastPrice: "200" });
+        await vi.advanceTimersByTimeAsync(100);
+
+        // Add third symbol
+        market.updateTicker("SOLUSDT", { lastPrice: "30" });
+        await vi.advanceTimersByTimeAsync(100);
+
+        // Manually enforce limits. The limit is 2. We have BTCUSDT (oldest), ETHUSDT, SOLUSDT.
+        // BTCUSDT will be evicted.
+        internals.enforceCacheLimit();
 
         expect(market.data['BTCUSDT']).toBeUndefined();
         expect(internals.backingBuffers.has('BTCUSDT:1m')).toBe(false);
