@@ -2,9 +2,9 @@
 
 # Backlog index
 
-95 items. How to read and add them: [README.md](README.md).
+96 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 53
+Counts by status: 💡 idea 15 · 📋 specced 26 · ✅ done 55
 
 ---
 
@@ -75,7 +75,8 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 53
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | exchange |
-| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | 💡 idea | trade-panel |
+| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
+| [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 
 ### M4
 
@@ -260,8 +261,9 @@ Counts by status: 💡 idea 16 · 📋 specced 26 · ✅ done 53
 | [IDEA-0186](ideas/IDEA-0186-docs-as-public-surface.md) | Audit every public-facing document as a first-contact surface | P3 | 💡 idea | M5 | community, pro, private | none | none | — |
 | [IDEA-0188](ideas/IDEA-0188-payment-rails-licensing.md) | Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated | P3 | 💡 idea | M6 | pro, private | none | required | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md), [FEAT-0032](features/FEAT-0032-plugin-contract.md) |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | none | pro, private | A | required | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
-| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | 💡 idea | M3 | community, pro, private | none | none | — |
+| [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | M3 | community, pro, private | none | none | — |
+| [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | M3 | community, pro, private | none | none | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) |
 
 ---
 
-Next free number: **0199**
+Next free number: **0200**

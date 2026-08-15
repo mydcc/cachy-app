@@ -2,7 +2,7 @@
 id: IDEA-0191
 title: Derive the trade-panel UI gap list from the reference screenshots
 type: idea
-status: idea
+status: done
 priority: P3
 milestone: M3
 editions: [community, pro, private]
@@ -35,6 +35,8 @@ The work, when picked up:
    items.
 
 The output is a gap list and new backlog items, not UI work itself.
+
+*Update: The visual analysis has been completed and documented in [IDEA-0199-bitunix-ui-analysis.md](IDEA-0199-bitunix-ui-analysis.md).*
 
 ## Why not now
 
