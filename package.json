@@ -98,6 +98,7 @@
     "zod": "^4.4.3"
   },
   "overrides": {
-    "cookie": "1.1.1"
+    "cookie": "1.1.1",
+    "esbuild": "^0.25.0"
   }
 }
