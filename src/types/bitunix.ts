@@ -121,6 +121,17 @@ export interface BitunixOrderPayload {
   // HEDGE-mode-only (docs/bitunix-api/07_trade.md:583-584) — see BUG-0062.
   tradeSide?: "OPEN" | "CLOSE";
   positionId?: string;
+  // FEAT-0069 — 07_trade.md:586-596.
+  effect?: "IOC" | "FOK" | "GTC" | "POST_ONLY";
+  clientId?: string;
+  tpPrice?: string | number;
+  tpStopType?: "MARK_PRICE" | "LAST_PRICE";
+  tpOrderType?: "LIMIT" | "MARKET";
+  tpOrderPrice?: string | number;
+  slPrice?: string | number;
+  slStopType?: "MARK_PRICE" | "LAST_PRICE";
+  slOrderType?: "LIMIT" | "MARKET";
+  slOrderPrice?: string | number;
   [key: string]: unknown;
 }
 

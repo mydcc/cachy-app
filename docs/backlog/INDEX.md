@@ -2,9 +2,9 @@
 
 # Backlog index
 
-104 items. How to read and add them: [README.md](README.md).
+105 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
+Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 61
 
 ---
 
@@ -66,7 +66,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | exchange |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
-| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | execution |
+| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | execution |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | execution |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
@@ -134,6 +134,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | services |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | ui |
+| [BUG-0212](bugs/BUG-0212-market-overview-loop.md) | Market Overview modal and favorite tiles reload in a loop | P1 | 📋 specced | ui |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -143,7 +144,6 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | ui |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | ui |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
-| [BUG-0212](bugs/BUG-0212-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -199,6 +199,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
+| [BUG-0212](bugs/BUG-0212-market-overview-loop.md) | Market Overview modal and favorite tiles reload in a loop | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -215,7 +216,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | M3 | community, pro, private | C | none | — |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
-| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
+| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
@@ -235,7 +236,6 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | none | community | none | none | — |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | none | community | none | none | — |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
-| [BUG-0212](bugs/BUG-0212-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | none | community | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -284,4 +284,4 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 
 ---
 
-Next free number: **0212**
+Next free number: **0213**

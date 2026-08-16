@@ -1,3 +1,17 @@
+---
+id: BUG-0212
+title: Market Overview modal and favorite tiles reload in a loop
+type: bug
+status: specced
+priority: P1
+milestone: none
+editions: [community, pro, private]
+area: ui
+data_class: none
+adr: none
+depends_on: []
+---
+
 # BUG-0212: Market Overview Modal and Favorite Tiles Infinite Reload Loop
 
 ## Description

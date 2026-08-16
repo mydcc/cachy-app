@@ -321,6 +321,112 @@ describe("paperExchange — resting orders", () => {
     });
 });
 
+// FEAT-0069: TP/SL sent with the entry become resting plans on the position
+// the entry created — the atomic form, simulated atomically.
+describe("paperExchange — TP/SL attached at entry", () => {
+    it("creates both plans from a single request", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "55000",
+            slPrice: "45000",
+        });
+
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.orders).toHaveLength(2);
+        expect(paperState.orders.every((o) => o.reduceOnly)).toBe(true);
+    });
+
+    it("gives the target and the stop opposite trigger directions", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "55000",
+            slPrice: "45000",
+        });
+
+        const byLevel = Object.fromEntries(
+            paperState.orders.map((o) => [o.triggerPrice, o.triggerDirection]),
+        );
+        // Both are closing BUY-side orders; only the level tells them apart.
+        expect(byLevel["55000"]).toBe("above");
+        expect(byLevel["45000"]).toBe("below");
+    });
+
+    it("fires the target when the feed rises to it, not immediately", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "55000",
+            slPrice: "45000",
+        });
+
+        // Deriving direction from the order side would have filled the
+        // take-profit here, at a price below it.
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(50000));
+        expect(paperState.positions).toHaveLength(1);
+
+        feed.BTCUSDT = new Decimal(55000);
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(55000));
+        expect(paperState.positions).toHaveLength(0);
+        expect(paperState.balance.eq(15000)).toBe(true);
+    });
+
+    it("fires the stop when the feed falls to it", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "55000",
+            slPrice: "45000",
+        });
+
+        feed.BTCUSDT = new Decimal(45000);
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(45000));
+        expect(paperState.positions).toHaveLength(0);
+        expect(paperState.balance.eq(5000)).toBe(true);
+    });
+
+    it("attaches nothing to a closing order", async () => {
+        await open("1");
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            reduceOnly: true,
+            tradeSide: "CLOSE",
+            tpPrice: "55000",
+        });
+        expect(paperState.orders).toHaveLength(0);
+    });
+
+    it("attaches only what was asked for", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            slPrice: "45000",
+        });
+        expect(paperState.orders).toHaveLength(1);
+        expect(paperState.orders[0].triggerPrice).toBe("45000");
+    });
+});
+
 // AC: "Simulated rejection, timeout and partial fill are each reachable and
 // each have a test."
 describe("paperExchange — simulated failures", () => {

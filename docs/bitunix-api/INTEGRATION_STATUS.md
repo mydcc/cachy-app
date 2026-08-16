@@ -67,7 +67,7 @@ Tradepanel ist das der größte fehlende Block.
 
 | Endpoint | Status | Code / Anmerkung |
 |---|---|---|
-| `POST …/trade/place_order` | 🟡 | [routes/api/orders](../../src/routes/api/orders/+server.ts) (`type: "place-order"`). Gesendet: `symbol`, `side`, `orderType`, `qty`, `price`, `reduceOnly`, `tradeSide`/`positionId` (Hedge), `triggerPrice`. **Nicht genutzt:** `tpPrice`/`slPrice` (kein atomares TP/SL beim Öffnen), `effect` (GTC/IOC/FOK/POST_ONLY), `clientId` (Idempotenz bei Netzwerk-Retries) |
+| `POST …/trade/place_order` | ✅ | [routes/api/orders](../../src/routes/api/orders/+server.ts) (`type: "place-order"`), Client: `tradeService.placeOrder()`. Gesendet: `symbol`, `side`, `orderType`, `qty`, `price`, `reduceOnly`, `tradeSide`/`positionId` (Hedge), `triggerPrice`, sowie seit FEAT-0069 `tpPrice`/`tpStopType`/`tpOrderType`/`tpOrderPrice`, die `sl*`-Gegenstücke, `effect` (nur bei LIMIT) und `clientId` (eine ID pro Sendeversuch, bei Retry wiederverwendbar) |
 | `POST …/trade/cancel_orders` | ✅ | `cancelBitunixOrder` in [routes/api/orders](../../src/routes/api/orders/+server.ts) |
 | `POST …/trade/cancel_all_orders` | ❌ | Cachy loopt stattdessen über pending + Einzel-Cancel (`type: "cancel-all"`) — race-anfällig, mehr Rate-Limit-Last |
 | `POST …/trade/close_all_position` | ❌ | `tradeService.closeAllPositions()` feuert parallele MARKET-reduceOnly-Orders |
@@ -148,7 +148,7 @@ Verfügbar, aber weder geholt noch angezeigt:
 1. **`trading_pairs`** — Order-Validierung/Präzision; Grundlage für alles Weitere
 2. **Account-Settings-Block** — `get_leverage_margin_mode` (lesen) +
    `change_leverage`, `change_margin_mode`, `adjust_position_margin` (schreiben)
-3. **`place_order` vervollständigen** — `tpPrice`/`slPrice` atomar, `effect`, `clientId`
+3. ~~**`place_order` vervollständigen**~~ — erledigt (FEAT-0069): `tpPrice`/`slPrice` atomar, `effect`, `clientId`
 4. **`tpsl/place_order` + `tpsl/position/place_order`** — TP/SL nachträglich setzen
 5. **Native Endpoints statt Client-Loops** — `cancel_all_orders`,
    `close_all_position`, `flash_close_position`, `modify_order`
