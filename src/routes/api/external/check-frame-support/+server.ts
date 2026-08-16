@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     return json({ error: "Missing url parameter" }, { status: 400 });
   }
 
-  let hostname = "";
+  let hostname: string;
   try {
     hostname = new URL(targetUrl).hostname.toLowerCase();
   } catch {

@@ -13,7 +13,6 @@
   import { uiState } from "../../stores/ui.svelte";
   import { newsStore } from "../../stores/news.svelte";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
-  import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import { slide } from "svelte/transition";
   import type { NewsItem } from "../../services/newsService";
@@ -60,7 +59,6 @@
   });
   let analysis = $derived(newsStore.sentiment);
   let isLoading = $derived(newsStore.isLoading);
-  let error = $derived(newsStore.error ? "fetch_error" : null);
 
   // Color mapping based on score
   let sentimentColor = $derived.by(() => {

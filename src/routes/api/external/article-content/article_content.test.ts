@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../../lib/server/clientToken";
+import type { RequestEvent } from "@sveltejs/kit";
 
 const getClientAddress = () => "127.0.0.1";
 
@@ -29,7 +30,7 @@ describe("Article Content Extractor", () => {
     const response = await POST({
       request,
       getClientAddress,
-    } as any);
+    } as unknown as RequestEvent);
 
     expect(response.status).toBe(400);
   });
@@ -69,7 +70,7 @@ describe("Article Content Extractor", () => {
     const response = await POST({
       request,
       getClientAddress,
-    } as any);
+    } as unknown as RequestEvent);
 
     expect(response.status).toBe(200);
     const json = await response.json();
