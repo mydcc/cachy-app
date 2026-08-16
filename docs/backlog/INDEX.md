@@ -4,7 +4,7 @@
 
 103 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 29 · 🟢 ready 1 · ✅ done 57
+Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 1 · ✅ done 58
 
 ---
 
@@ -33,7 +33,7 @@ Counts by status: 💡 idea 16 · 📋 specced 29 · 🟢 ready 1 · ✅ done 57
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | execution |
-| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | execution |
+| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | execution |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | execution |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | execution |
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | ui |
@@ -183,7 +183,7 @@ Counts by status: 💡 idea 16 · 📋 specced 29 · 🟢 ready 1 · ✅ done 57
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
-| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | M0 | community, pro, private | A | none | — |

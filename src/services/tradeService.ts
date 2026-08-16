@@ -44,6 +44,8 @@ import {
 import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder } from "../types/bitunix";
 import { appFetch } from "../lib/appAuth";
+import { paperState } from "../stores/paperTrading.svelte";
+import { paperExchange } from "./paperExchange";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import {
     orderGate,
@@ -153,9 +155,19 @@ class TradeService {
                 payload,
                 provider,
                 accountFingerprint: accountFingerprint(keys?.key),
+                paperMode: paperState.enabled,
             },
             pass
         );
+
+        // FEAT-0012: THE seam. Live and paper differ here and nowhere else —
+        // construction, the gate, the risk limits, OMS tracking, the journal
+        // and the UI have all already run identically to reach this line.
+        // Everything below it is the network; nothing below it runs in paper
+        // mode, so a simulated order cannot produce an outbound request.
+        if (paperState.enabled) {
+            return (await paperExchange.handle(endpoint, payload)) as T;
+        }
 
         if (!keys || !keys.key) {
             throw new Error("apiErrors.missingCredentials");
@@ -353,11 +365,12 @@ class TradeService {
      * currently shows as active. Every intent needs it; nothing else about
      * an intent is shared, so the rest is built per call site.
      */
-    private displayedAccount(): Pick<DisplayedState, "provider" | "accountFingerprint"> {
+    private displayedAccount(): Pick<DisplayedState, "provider" | "accountFingerprint" | "paperMode"> {
         const provider = settingsState.apiProvider;
         return {
             provider,
             accountFingerprint: accountFingerprint(settingsState.apiKeys[provider]?.key),
+            paperMode: paperState.enabled,
         };
     }
 
@@ -366,7 +379,9 @@ class TradeService {
      * goes through here — `signedRequest` refuses one that does not.
      */
     private async gatedRequest<T>(
-        intent: Omit<OrderIntent, "displayed"> & { displayed: Omit<DisplayedState, "provider" | "accountFingerprint"> },
+        intent: Omit<OrderIntent, "displayed"> & {
+            displayed: Omit<DisplayedState, "provider" | "accountFingerprint" | "paperMode">;
+        },
         method = "POST",
     ): Promise<T> {
         const full: OrderIntent = {

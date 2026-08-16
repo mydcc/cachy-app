@@ -25,6 +25,9 @@ export const CONSTANTS = {
   // the settings blob: the kill switch is written synchronously on every
   // change, and it must not share a debounced save with anything else.
   LOCAL_STORAGE_RISK_KEY: "cachy_risk_limits",
+  // FEAT-0012. Class A: simulated balances and positions are the user's
+  // trading behaviour and stay on this device, like the journal.
+  LOCAL_STORAGE_PAPER_KEY: "cachy_paper_trading",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
   LOCAL_STORAGE_QUIZ_CATEGORY_KEY: "cachy_quiz_category",

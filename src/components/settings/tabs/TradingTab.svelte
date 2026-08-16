@@ -22,6 +22,7 @@
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
+    import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import {
         HOTKEY_ACTIONS,
@@ -45,6 +46,10 @@
         {
             id: "risk",
             label: $_("settings.risk.subTab") || "Risk & Kill Switch",
+        },
+        {
+            id: "paper",
+            label: $_("settings.paper.subTab") || "Paper Trading",
         },
         { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
@@ -545,6 +550,12 @@
         {#if activeSubTab === "risk"}
             <section class="animate-fade-in">
                 <RiskLimitsSettings />
+            </section>
+        {/if}
+
+        {#if activeSubTab === "paper"}
+            <section class="animate-fade-in">
+                <PaperTradingSettings />
             </section>
         {/if}
 

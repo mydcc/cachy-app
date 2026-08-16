@@ -1625,6 +1625,42 @@
       "resetLimits": "Alle Limits löschen",
       "resetTitle": "Alle Limits löschen?",
       "resetMessage": "Jedes Limit wird ausgeschaltet. Der Kill Switch ist davon nicht betroffen. Fortfahren?"
+    },
+    "paper": {
+      "subTab": "Paper Trading",
+      "modeTitle": "Modus",
+      "modePaper": "PAPER — Orders werden simuliert, es fließt kein Geld",
+      "modeLive": "LIVE — Orders gehen an die Börse",
+      "modeDescription": "Der Paper-Modus tauscht ganz zuletzt die Börse gegen einen Simulator. Alles davor — Positionsgröße, Order-Prüfung, Risiko-Limits, Positionsverwaltung, Journal — läuft exakt wie im Live-Betrieb. Genau das macht das Üben hier aussagekräftig.",
+      "balance": "Simuliertes Guthaben: {amount} USDT",
+      "switchToPaper": "Zu Paper wechseln",
+      "switchToLive": "Zu Live wechseln",
+      "confirmOnTitle": "Zum Paper Trading wechseln?",
+      "confirmOnMessage": "Offene Positionen und Orders werden aus der Ansicht entfernt und beim Zurückwechseln neu geladen. Keine Live-Position wird geschlossen oder verändert. Fortfahren?",
+      "confirmOffTitle": "Zum Live-Trading wechseln?",
+      "confirmOffMessage": "Ab sofort gehen Orders an die echte Börse und bewegen echtes Geld. Dein simuliertes Buch bleibt erhalten und ist beim Zurückwechseln wieder da. Fortfahren?",
+      "resetBook": "Simuliertes Buch zurücksetzen",
+      "resetTitle": "Simuliertes Buch zurücksetzen?",
+      "resetMessage": "Simulierte Positionen, Orders und das Guthaben werden gelöscht, das Guthaben kehrt auf den Startwert zurück. Dein Journal bleibt unberührt. Fortfahren?",
+      "simulationTitle": "Simulation",
+      "startingBalance": "Startguthaben",
+      "startingBalanceHint": "Wert, auf den ein Reset das simulierte Guthaben zurücksetzt.",
+      "slippage": "Slippage bei Market-Orders",
+      "slippageHint": "Wird bei jeder Market-Ausführung zu deinen Ungunsten angewendet. Der Standard ist bewusst nicht null — ein Simulator, der zum Mittelkurs ausführt, schmeichelt jeder Strategie, die viel handelt.",
+      "takerFee": "Taker-Gebühr",
+      "makerFee": "Maker-Gebühr",
+      "feeHint": "Basispunkte. 6 bps = 0,06 %.",
+      "partialRatio": "Teilausführungs-Anteil",
+      "partialRatioHint": "Anteil der angefragten Menge, den eine Teilausführung liefert, wenn dieser Fehlermodus gewählt ist.",
+      "invalidValue": "Dieser Wert wurde nicht gespeichert. Er muss eine Zahl ab null sein.",
+      "failureTitle": "Simulierte Fehler",
+      "failureDescription": "Ein Simulator, der nur gelingt, trainiert die Oberfläche für eine Welt, die es nicht gibt. Wähle einen Fehler und platziere eine Order, um zu sehen, wie die App damit umgeht.",
+      "failure": {
+        "none": "Keine",
+        "reject": "Ablehnung",
+        "timeout": "Timeout",
+        "partial": "Teilausführung"
+      }
     }
   },
   "calculationDashboard": {
@@ -2442,6 +2478,12 @@
       "level_10_desc": "Level 10 erreicht — die Krone sitzt.",
       "level_20_name": "Legendary Quacker",
       "level_20_desc": "Level 20 erreicht — das Cape weht."
+    }
+  },
+  "header": {
+    "paperMode": {
+      "badge": "Paper",
+      "tooltip": "Paper Trading ist aktiv. Orders werden simuliert, es fließt kein Geld."
     }
   }
 }

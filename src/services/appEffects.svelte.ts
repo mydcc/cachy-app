@@ -6,6 +6,7 @@ import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
 import { fundingRateService } from "./fundingRateService.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { paperTradingService } from "./paperTradingService";
 import { Decimal } from "decimal.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,6 +83,10 @@ export function setupRealtimeUpdatesEffect(app: any) {
           const lastPrice = marketData.lastPrice;
           untrack(() => {
             app.currentMarketPrice = lastPrice;
+            // FEAT-0012: the simulator fills resting orders against the same
+            // live feed the chart draws, so paper results are produced by the
+            // prices that actually happened. No-op while paper mode is off.
+            paperTradingService.onPrice(normSymbol, new Decimal(lastPrice));
             if (settingsState.autoUpdatePriceInput) {
               const newPrice = new Decimal(lastPrice).toString();
               if (tradeState.entryPrice !== newPrice) {

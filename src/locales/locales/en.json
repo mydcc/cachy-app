@@ -1625,6 +1625,42 @@
       "resetLimits": "Clear all limits",
       "resetTitle": "Clear all limits?",
       "resetMessage": "Every limit will be switched off. The kill switch is not affected. Continue?"
+    },
+    "paper": {
+      "subTab": "Paper Trading",
+      "modeTitle": "Mode",
+      "modePaper": "PAPER — orders are simulated, no money moves",
+      "modeLive": "LIVE — orders go to the exchange",
+      "modeDescription": "Paper mode swaps the exchange for a simulator at the very last step. Everything before it — sizing, order verification, risk limits, position tracking, the journal — runs exactly as it does live, which is what makes practising here mean something.",
+      "balance": "Simulated balance: {amount} USDT",
+      "switchToPaper": "Switch to paper",
+      "switchToLive": "Switch to live",
+      "confirmOnTitle": "Switch to paper trading?",
+      "confirmOnMessage": "Open positions and orders will be cleared from view and refetched when you switch back. No live position is closed or changed. Continue?",
+      "confirmOffTitle": "Switch to live trading?",
+      "confirmOffMessage": "From this moment orders go to the real exchange and move real money. Your simulated book is kept and will be there when you switch back. Continue?",
+      "resetBook": "Reset simulated book",
+      "resetTitle": "Reset the simulated book?",
+      "resetMessage": "Simulated positions, orders and balance are cleared and the balance returns to its starting value. Your journal is not touched. Continue?",
+      "simulationTitle": "Simulation",
+      "startingBalance": "Starting balance",
+      "startingBalanceHint": "What a reset returns the simulated balance to.",
+      "slippage": "Market-order slippage",
+      "slippageHint": "Applied against you on every market fill. The default is deliberately not zero — a simulator that fills at the mid price flatters every strategy that trades often.",
+      "takerFee": "Taker fee",
+      "makerFee": "Maker fee",
+      "feeHint": "Basis points. 6 bps = 0.06 %.",
+      "partialRatio": "Partial fill ratio",
+      "partialRatioHint": "Share of the requested quantity a partial fill delivers, when that failure mode is selected.",
+      "invalidValue": "That value was not stored. It has to be a number of zero or more.",
+      "failureTitle": "Simulated failures",
+      "failureDescription": "A simulator that only succeeds trains the interface for a world that does not exist. Pick a failure and place an order to see how the app handles it.",
+      "failure": {
+        "none": "None",
+        "reject": "Reject",
+        "timeout": "Timeout",
+        "partial": "Partial fill"
+      }
     }
   },
   "positionsList": {
@@ -2442,6 +2478,12 @@
       "level_10_desc": "Reached Level 10 — rocking the crown.",
       "level_20_name": "Legendary Quacker",
       "level_20_desc": "Reached Level 20 — the cape flows."
+    }
+  },
+  "header": {
+    "paperMode": {
+      "badge": "Paper",
+      "tooltip": "Paper trading is on. Orders are simulated and no money moves."
     }
   }
 }
