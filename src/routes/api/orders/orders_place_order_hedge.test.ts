@@ -67,6 +67,8 @@ describe("POST /api/orders place-order forwards tradeSide/positionId", () => {
 
     const [, options] = fetchMock.mock.calls[0];
     const sentBody = JSON.parse(options.body as string);
+    expect(sentBody.orderType).toBe("MARKET");
+    expect(sentBody.type).toBeUndefined();
     expect(sentBody.tradeSide).toBe("CLOSE");
     expect(sentBody.positionId).toBe("662491704776252252");
   });
