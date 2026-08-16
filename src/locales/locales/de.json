@@ -2539,5 +2539,57 @@
       "badge": "Paper",
       "tooltip": "Paper Trading ist aktiv. Orders werden simuliert, es fließt kein Geld."
     }
+  },
+  "orderEntry": {
+    "title": "Diese Position platzieren",
+    "notReady": "Erst Einstiegskurs und Stop eingeben, damit eine Positionsgröße berechnet werden kann.",
+    "submitLive": "Order platzieren",
+    "submitPaper": "Paper-Order platzieren",
+    "submitting": "Wird platziert…",
+    "placed": "Order platziert",
+    "timeInForce": "Gültigkeitsdauer",
+    "type": {
+      "market": "Market",
+      "limit": "Limit",
+      "trigger": "Trigger"
+    },
+    "side": {
+      "long": "Long",
+      "short": "Short"
+    },
+    "summary": {
+      "size": "Größe",
+      "entry": "Einstieg",
+      "stop": "Stop"
+    },
+    "unsupported": {
+      "trigger": "Trigger-Orders sind für diese Börse noch nicht integriert — Cachy kennt kein verifiziertes Anfrageformat dafür.",
+      "generic": "Diese Börse unterstützt diesen Ordertyp nicht.",
+      "unknownExchange": "Cachy weiß nicht, was diese Börse unterstützt, und bietet deshalb keine Ordertypen an, die es nicht prüfen kann."
+    },
+    "notes": {
+      "noAttachedProtection": "Diese Börse kann keinen Stop an den Einstieg anhängen. Der Stop wird als zweite Anfrage platziert, die Position ist also kurz ungeschützt — du wirst benachrichtigt, falls er nicht ankommt.",
+      "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner."
+    },
+    "confirm": {
+      "titleLive": "Diese Order platzieren?",
+      "titlePaper": "Diese Paper-Order platzieren?",
+      "message": "{side} {qty} {symbol} als {type}-Order, mit Stop bei {stop}. Fortfahren?"
+    },
+    "protection": {
+      "attached": "am Einstieg angehängt",
+      "placed": "separat platziert",
+      "none": "nicht angefordert",
+      "failed": "NICHT VORHANDEN"
+    },
+    "result": {
+      "placed": "Einstieg platziert. Stop: {stop}. Ziel: {target}."
+    },
+    "errors": {
+      "entryRejected": "Die Order wurde nicht platziert.",
+      "unprotectedTitle": "Position ist ungeschützt",
+      "unprotected": "Der Einstieg wurde platziert, aber sein Stop liegt nicht an der Börse. Die Position ist ohne Stop offen. Cachy schließt sie nicht von sich aus — setze jetzt einen Stop oder schließe die Position selbst.",
+      "targetMissing": "Einstieg und Stop liegen an, der Take-Profit jedoch nicht."
+    }
   }
 }
