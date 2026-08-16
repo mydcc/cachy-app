@@ -15,10 +15,10 @@ on:
         type: boolean
         default: false
 
-# Permissions: contents: write allows updating dispatched backlog items to 'in-progress'
-# on develop, which triggers sync-backlog.yml to advance GitHub Kanban cards.
+# Least-privilege default: this reads the backlog and dispatches to Jules via
+# its own API (JULES_API_KEY), never through GITHUB_TOKEN.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   dispatch:
@@ -26,8 +26,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: develop
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -43,15 +41,4 @@ jobs:
             node scripts/jules/dispatch-backlog.mjs --dry-run
           else
             node scripts/jules/dispatch-backlog.mjs
-          fi
-
-      - name: Commit and push in-progress status updates
-        if: inputs.dry_run != true
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain docs/backlog/)" ]; then
-            git add docs/backlog/
-            git commit -m "chore(backlog): mark dispatched items in-progress [skip ci]"
-            git push origin develop
           fi
