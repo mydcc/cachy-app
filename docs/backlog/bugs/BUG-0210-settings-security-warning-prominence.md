@@ -2,7 +2,7 @@
 id: BUG-0210
 title: Security Warning in settings is too prominent and misplaced
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community]
@@ -35,10 +35,10 @@ BUG-0053 introduced `decryptionFailures` detection and placed a global, high-pro
 
 ## Acceptance criteria
 
-- [ ] Global alert box in `SettingsContent.svelte` is removed.
-- [ ] Contextual, informative warnings are placed in the relevant settings tabs (`ConnectionsTab`, `AiTab`) when decryption failures occur.
-- [ ] The warning copy clearly explains what happened (decryption failed due to device storage reset) and what action to take (re-entering the key).
-- [ ] In tabs without sensitive keys (e.g., Visuals, System, Trading), no unnecessary security alert is rendered.
+- [x] Global alert box in `SettingsContent.svelte` is removed.
+- [x] Contextual, informative warnings are placed in the relevant settings tabs (`ConnectionsTab`, `AiTab`) when decryption failures occur.
+- [x] The warning copy clearly explains what happened (decryption failed due to device storage reset) and what action to take (re-entering the key).
+- [x] In tabs without sensitive keys (e.g., Visuals, System, Trading), no unnecessary security alert is rendered.
 
 ## Out of scope
 
