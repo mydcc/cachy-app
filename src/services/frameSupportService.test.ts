@@ -18,12 +18,12 @@ describe("frameSupportService", () => {
   it("should identify known blocked domains", () => {
     expect(frameSupportService.isDomainFrameBlocked("https://www.coindesk.com/markets/2026/08/16/article")).toBe(true);
     expect(frameSupportService.isDomainFrameBlocked("https://theblock.co/post/123")).toBe(true);
+    expect(frameSupportService.isDomainFrameBlocked("https://decrypt.co/12345/btc")).toBe(true);
     expect(frameSupportService.isDomainFrameBlocked("https://bloomberg.com/news/123")).toBe(true);
   });
 
   it("should identify known supported domains", () => {
     expect(frameSupportService.isDomainFrameBlocked("https://cointelegraph.com/news/123")).toBe(false);
-    expect(frameSupportService.isDomainFrameBlocked("https://decrypt.co/12345/btc")).toBe(false);
     expect(frameSupportService.isDomainFrameBlocked("https://space.cachy.app/channel")).toBe(false);
   });
 

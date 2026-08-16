@@ -15,6 +15,9 @@ const STORAGE_KEY = "cachy_frame_support_cache";
 const KNOWN_SEEDS: Record<string, boolean> = {
   "coindesk.com": false,
   "theblock.co": false,
+  "decrypt.co": false,
+  "bitcoinmagazine.com": false,
+  "bitcoin-kurier.de": false,
   "bloomberg.com": false,
   "wsj.com": false,
   "reuters.com": false,
@@ -25,7 +28,6 @@ const KNOWN_SEEDS: Record<string, boolean> = {
   "ft.com": false,
   "forbes.com": false,
   "cointelegraph.com": true,
-  "decrypt.co": true,
   "space.cachy.app": true,
   "cachy.app": true,
 };
