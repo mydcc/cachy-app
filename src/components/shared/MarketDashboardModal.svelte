@@ -233,7 +233,7 @@
                     <div
                         class="text-lg font-bold truncate text-[var(--accent-color)]"
                     >
-                        {sortedResults[0]?.symbol || "Scanning..."}
+                        {sortedResults[0]?.symbol || $_("app.marketDashboard.scanning")}
                     </div>
                     <div class="text-xs text-[var(--text-secondary)]">
                         Score: {sortedResults[0]?.confluenceScore.toFixed(0) ||
@@ -272,7 +272,7 @@
                                         style="background-color: var(--success-color);"
                                     ></span>
                                 </span>
-                                Live
+                                {$_("app.marketDashboard.live")}
                             </span>
                         {/if}
                     </div>
@@ -348,7 +348,7 @@
                                         : trends['15m'] === 'bearish'
                                           ? 'bg-[var(--danger-color)]'
                                           : 'bg-[var(--text-secondary)]/20'}"
-                                    title="15m Trend"
+                                    title={$_("app.marketDashboard.trendMatrix.trend15m")}
                                 ></div>
                                 <!-- 1h -->
                                 <div
@@ -358,7 +358,7 @@
                                         : trends['1h'] === 'bearish'
                                           ? 'bg-[var(--danger-color)]'
                                           : 'bg-[var(--text-secondary)]/20'}"
-                                    title="1h Trend"
+                                    title={$_("app.marketDashboard.trendMatrix.trend1h")}
                                 ></div>
                                 <!-- 4h -->
                                 <div
@@ -368,7 +368,7 @@
                                         : trends['4h'] === 'bearish'
                                           ? 'bg-[var(--danger-color)]'
                                           : 'bg-[var(--text-secondary)]/20'} ring-2 ring-[var(--bg-tertiary)]"
-                                    title="4h Trend (Major)"
+                                    title={$_("app.marketDashboard.trendMatrix.trend4h")}
                                 ></div>
                                 <!-- 1d -->
                                 <div
@@ -378,7 +378,7 @@
                                         : trends['1d'] === 'bearish'
                                           ? 'bg-[var(--danger-color)]'
                                           : 'bg-[var(--text-secondary)]/20'}"
-                                    title="1d Trend"
+                                    title={$_("app.marketDashboard.trendMatrix.trend1d")}
                                 ></div>
                             </div>
 
@@ -408,10 +408,9 @@
                             class="p-8 text-center text-[var(--text-secondary)]"
                         >
                             {#if settingsState.favoriteSymbols.length === 0}
-                                No favorites selected. Add symbols to your
-                                favorites list.
+                                {$_("app.marketDashboard.noFavorites")}
                             {:else}
-                                Waiting for analysis data...
+                                {$_("app.marketDashboard.waitingAnalysis")}
                             {/if}
                         </div>
                     {/each}
