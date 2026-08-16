@@ -44,9 +44,11 @@
  * Requires: JULES_API_KEY, JULES_SOURCE (see scripts/jules/README.md)
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { updateFrontMatter } from "../lib/backlog-frontmatter.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const BACKLOG = join(ROOT, "docs", "backlog");
@@ -232,10 +234,10 @@ Folge exakt dem Ablauf aus "Working an item as an agent" in docs/backlog/README.
 2. Prüfe depends_on — falls eine Abhängigkeit nicht done ist, stoppe und sag das.
 3. Prüfe adr — falls "required" und keine ADR existiert, ist das Item nicht baubar.
 4. Prüfe data_class (${item.data_class ?? "?"}) — falls ungleich none, gelten ADR-0001/ADR-0004.
-5. Setze status: in-progress im Front-Matter, mit Branch-Namen, als ersten Commit.
+5. Der Status des Items ist auf 'in-progress' gesetzt.
 6. Baue es gemäß AGENTS.md (Svelte 5 Runes only, decimal.js, keine hardcodierten Farben, Tests neben dem Code).
 7. Verifiziere mit npm run check und den betroffenen Tests.
-8. Setze status: done erst wenn Acceptance Criteria bewiesen sind — sonst status: in-progress lassen und im PR sagen, was fehlt.
+8. Setze status: done im Front-Matter erst wenn Acceptance Criteria bewiesen sind — sonst status: in-progress lassen und im PR sagen, was fehlt.
 9. npm run backlog:index ausführen.
 
 Halte dich an den Scope-Hinweis in AGENTS.md. Öffne einen PR gegen develop, merge nicht selbst.`;
@@ -309,6 +311,7 @@ console.log(
 );
 
 let dispatched = 0;
+let updatedCount = 0;
 
 for (const item of ready) {
   if (dispatched >= MAX_PER_RUN) {
@@ -316,7 +319,18 @@ for (const item of ready) {
     break;
   }
   if (subjects.has(item.id)) {
-    console.log(`⏭️  ${item.id}: Session bearbeitet dieses Item bereits, überspringe.`);
+    if (item.status === "ready") {
+      console.log(`🔄 ${item.id}: Session bearbeitet dieses Item bereits — Status wird auf 'in-progress' synchronisiert.`);
+      if (!DRY_RUN) {
+        const fullPath = join(ROOT, item.file);
+        const content = readFileSync(fullPath, "utf8");
+        const updated = updateFrontMatter(content, { status: "in-progress" });
+        writeFileSync(fullPath, updated, "utf8");
+        updatedCount++;
+      }
+    } else {
+      console.log(`⏭️  ${item.id}: Session bearbeitet dieses Item bereits, überspringe.`);
+    }
     continue;
   }
   if (mentions.has(item.id)) {
@@ -328,7 +342,25 @@ for (const item of ready) {
     continue;
   }
   const ok = await createSession(item);
-  if (ok) dispatched++;
+  if (ok) {
+    dispatched++;
+    if (!DRY_RUN) {
+      const fullPath = join(ROOT, item.file);
+      const content = readFileSync(fullPath, "utf8");
+      const updated = updateFrontMatter(content, { status: "in-progress" });
+      writeFileSync(fullPath, updated, "utf8");
+      updatedCount++;
+      console.log(`📝 ${item.id}: Status in ${item.file} auf 'in-progress' gesetzt.`);
+    }
+  }
 }
 
-console.log(DRY_RUN ? `${dispatched} Session(s) würden erstellt.` : `${dispatched} Session(s) erstellt.`);
+if (updatedCount > 0 && !DRY_RUN) {
+  console.log(`\n📚 Aktualisiere Backlog-Index (${updatedCount} Item(s) auf 'in-progress' gesetzt)...`);
+  const indexRes = spawnSync("npm", ["run", "backlog:index"], { cwd: ROOT, stdio: "inherit" });
+  if (indexRes.status !== 0) {
+    console.error("⚠️  Backlog-Index konnte nicht aktualisiert werden.");
+  }
+}
+
+console.log(DRY_RUN ? `${dispatched} Session(s) würden erstellt.` : `${dispatched} Session(s) erstellt (${updatedCount} Item(s) aktualisiert).`);

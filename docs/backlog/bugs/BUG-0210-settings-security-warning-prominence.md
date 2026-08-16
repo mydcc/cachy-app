@@ -2,7 +2,7 @@
 id: BUG-0210
 title: Security Warning in settings is too prominent and misplaced
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community]

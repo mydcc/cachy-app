@@ -2,7 +2,7 @@
 id: BUG-0207
 title: Mobile Technical Analysis timeframe menu fails to reopen
 type: bug
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community]

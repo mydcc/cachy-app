@@ -2,7 +2,7 @@
 id: BUG-0208
 title: RSS Market Sentiment news open in new tab instead of modal iframe
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community]
