@@ -730,6 +730,152 @@ class TradeService {
         };
     }
 
+    /**
+     * Generates the client order ID for one submission attempt.
+     *
+     * FEAT-0069's open question was whether this should be random per attempt
+     * or derived deterministically so a crash-and-reload can rediscover an
+     * in-flight order. Neither pure form works:
+     *
+     * - Purely random, regenerated on every retry, defeats the entire point.
+     *   A retry after an ambiguous response is exactly when idempotency
+     *   matters, and a fresh ID there doubles the order.
+     * - Derived from the order's content collides on purpose. Two deliberate
+     *   identical entries — the same symbol, side, size and price, which is
+     *   ordinary when scaling in — would produce the same ID, and the second
+     *   would be rejected as a duplicate of an order the trader meant to
+     *   place.
+     *
+     * So the unit is the *attempt*, not the content: random per attempt, and
+     * `placeOrder` accepts one back so a retry of that attempt reuses it.
+     * Rediscovery after a crash comes from the FEAT-0015 audit trail, which
+     * already persists the id alongside everything else about the attempt —
+     * rather than from a second persistence mechanism that could disagree
+     * with it.
+     */
+    public newClientOrderId(): string {
+        // Bitunix caps clientId at 64 chars (07_trade.md); this is ~30.
+        const stamp = Date.now().toString(36);
+        const rand = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+        return `cachy-${stamp}-${rand}`;
+    }
+
+    /**
+     * Opens or adds to a position — FEAT-0069.
+     *
+     * Everything the exchange accepts in one request goes in one request:
+     * the entry, its stop and its target. A position that exists before its
+     * protective orders do is unprotected for as long as the second request
+     * takes, and that second request can fail.
+     *
+     * The intent is `open`, so this is the path on which the FEAT-0011 gate's
+     * size recomputation, leverage and margin-mode checks, and FEAT-0013's
+     * risk limits and kill switch all actually apply.
+     */
+    public async placeOrder(params: {
+        symbol: string;
+        side: "BUY" | "SELL";
+        orderType?: "LIMIT" | "MARKET";
+        qty: Decimal | string;
+        price?: Decimal | string;
+        /** Time in force. Ignored for market orders — see the route. */
+        effect?: "GTC" | "IOC" | "FOK" | "POST_ONLY";
+        /** Pass the previous attempt's id to retry it idempotently. */
+        clientId?: string;
+        reduceOnly?: boolean;
+        tradeSide?: "OPEN" | "CLOSE";
+        positionId?: string;
+        takeProfit?: {
+            price: Decimal | string;
+            stopType?: "MARK_PRICE" | "LAST_PRICE";
+            orderType?: "LIMIT" | "MARKET";
+            orderPrice?: Decimal | string;
+        };
+        stopLoss?: {
+            price: Decimal | string;
+            stopType?: "MARK_PRICE" | "LAST_PRICE";
+            orderType?: "LIMIT" | "MARKET";
+            orderPrice?: Decimal | string;
+        };
+        /**
+         * What the UI showed when the user confirmed. The gate compares the
+         * payload against this rather than against the values it was built
+         * from — see FEAT-0011.
+         */
+        displayed: {
+            accountSize: Decimal;
+            riskPercentage: Decimal;
+            entryPrice: Decimal;
+            stopLossPrice: Decimal;
+            takeProfits?: Decimal[];
+            leverage?: Decimal;
+            marginMode?: string;
+            accountStateAt?: number;
+        };
+    }) {
+        const orderType = params.orderType ?? "MARKET";
+        const clientId = params.clientId ?? this.newClientOrderId();
+
+        // formatApiNum everywhere: a price serialised as "1e-7" is rejected
+        // by the exchange, and a native float here would undo the precision
+        // the calculator spent effort producing.
+        const payload: Record<string, unknown> = {
+            type: "place-order",
+            symbol: params.symbol,
+            side: params.side,
+            orderType,
+            qty: formatApiNum(params.qty),
+            price: params.price !== undefined ? formatApiNum(params.price) : undefined,
+            reduceOnly: params.reduceOnly ?? false,
+            clientId,
+            // Omitted for MARKET by the route too; not sending it at all
+            // keeps the audit record honest about what went out.
+            effect: orderType === "MARKET" ? undefined : (params.effect ?? "GTC"),
+            tradeSide: params.tradeSide,
+            positionId: params.positionId,
+        };
+
+        if (params.takeProfit) {
+            payload.tpPrice = formatApiNum(params.takeProfit.price);
+            payload.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
+            payload.tpOrderType = params.takeProfit.orderType ?? "MARKET";
+            if (params.takeProfit.orderPrice !== undefined) {
+                payload.tpOrderPrice = formatApiNum(params.takeProfit.orderPrice);
+            }
+        }
+
+        if (params.stopLoss) {
+            payload.slPrice = formatApiNum(params.stopLoss.price);
+            payload.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
+            payload.slOrderType = params.stopLoss.orderType ?? "MARKET";
+            if (params.stopLoss.orderPrice !== undefined) {
+                payload.slOrderPrice = formatApiNum(params.stopLoss.orderPrice);
+            }
+        }
+
+        const meta = marketState.symbolMeta[params.symbol];
+        const stepSize =
+            meta?.basePrecision !== undefined
+                ? new Decimal(10).pow(-meta.basePrecision)
+                : undefined;
+
+        const result = await this.gatedRequest({
+            kind: "open",
+            endpoint: "/api/orders",
+            payload,
+            displayed: {
+                symbol: params.symbol,
+                side: params.side,
+                ...params.displayed,
+                stepSize,
+            },
+        });
+
+        // Returned so a caller retrying an ambiguous failure can reuse the
+        // same id rather than minting a new one.
+        return { clientId, result };
+    }
+
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
         const { symbol, positionSide, amount, forceFullClose } = params;
 

@@ -136,6 +136,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           // HEDGE-mode close (BUG-0062) — see PlaceOrderSchema's comment.
           tradeSide: payload.tradeSide,
           positionId: payload.positionId,
+          // FEAT-0069. `effect` is documented as required for LIMIT and
+          // meaningless otherwise, so a market order sends none rather than a
+          // value the exchange ignores.
+          effect: payload.orderType === "MARKET" ? undefined : payload.effect,
+          clientId: payload.clientId,
+          tpPrice: payload.tpPrice,
+          tpStopType: payload.tpStopType,
+          tpOrderType: payload.tpOrderType,
+          tpOrderPrice: payload.tpOrderPrice,
+          slPrice: payload.slPrice,
+          slStopType: payload.slStopType,
+          slOrderType: payload.slOrderType,
+          slOrderPrice: payload.slOrderPrice,
         };
         // Remove undefined safe
         const cleanedPayload = cleanPayload(orderPayload);
@@ -557,6 +570,32 @@ async function placeBitunixOrder(
     const safeTrigger = formatApiNum(orderData.triggerPrice as string | number | undefined);
     if (!safeTrigger) throw new Error(ORDER_ERRORS.INVALID_TRIGGER);
     payload.triggerPrice = safeTrigger;
+  }
+
+  // FEAT-0069: attached TP/SL levels go through the same Decimal formatting
+  // as every other price. `formatApiNum` is what keeps a low-priced asset
+  // from being serialised as "1e-7", which the exchange rejects.
+  for (const field of [
+    "tpPrice",
+    "tpOrderPrice",
+    "slPrice",
+    "slOrderPrice",
+  ] as const) {
+    const raw = orderData[field] as string | number | undefined;
+    if (raw === undefined) continue;
+    const safe = formatApiNum(raw);
+    if (!safe || new Decimal(safe).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    payload[field] = safe;
+  }
+
+  // A LIMIT take-profit or stop needs the price it will be placed at.
+  // Catching it here costs nothing; learning it from a rejection costs a
+  // round trip with a position already open behind it.
+  if (payload.tpOrderType === "LIMIT" && payload.tpOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+  if (payload.slOrderType === "LIMIT" && payload.slOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
   }
 
   const finalPayload = cleanPayload(payload);
