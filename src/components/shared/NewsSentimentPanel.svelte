@@ -387,16 +387,40 @@
         <h2 class="text-lg font-bold text-[var(--text-primary)]">
           {$_("dashboard.article")}
         </h2>
-        <button
-          onclick={() => closeModal()}
-          class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"
-        >
-          ✕
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            onclick={() => openInNewTab()}
+            class="flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1 rounded hover:bg-[var(--bg-secondary)] border border-[var(--border-color)] transition-colors"
+            title={$_("dashboard.openInNewTab")}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+            <span>{$_("dashboard.openInNewTab")}</span>
+          </button>
+          <button
+            onclick={() => closeModal()}
+            class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--bg-secondary)] transition-colors"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-hidden flex flex-col">
+      <div class="flex-1 overflow-hidden flex flex-col min-h-[500px]">
         {#if iframeBlocked}
           <div class="flex flex-col items-center justify-center h-full p-6 bg-[var(--bg-secondary)]">
             <p class="text-[var(--text-secondary)] mb-4 text-center">
@@ -412,8 +436,8 @@
         {:else}
           <iframe
             src={selectedArticleUrl}
-            title="News Article"
-            class="w-full h-full border-0"
+            title={$_("dashboard.article")}
+            class="w-full h-full border-0 flex-1"
             onload={() => {}}
             onerror={() => handleIframeError()}
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-pointer-lock"
