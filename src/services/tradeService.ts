@@ -257,6 +257,10 @@ class TradeService {
             }
             tradeState.remoteLeverage = new Decimal(validation.data.leverage);
             tradeState.remoteMarginMode = validation.data.marginMode;
+            // FEAT-0011 measures staleness from here. Stamped only on a
+            // successful read, so a failed refresh leaves the previous
+            // timestamp to age out rather than looking freshly confirmed.
+            tradeState.remoteAccountStateAt = Date.now();
         } catch (e) {
             logger.debug("api", "[TradeService] fetchLeverageMarginMode failed", e);
         }

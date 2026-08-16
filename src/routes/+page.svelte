@@ -42,6 +42,7 @@
   import type { TranslationKey } from "../locales/schema";
 
   import SummaryResults from "../components/results/SummaryResults.svelte";
+  import PlaceOrderPanel from "../components/results/PlaceOrderPanel.svelte";
   import LanguageSwitcher from "../components/shared/LanguageSwitcher.svelte";
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
@@ -457,6 +458,9 @@
           on:toggleLock={() => app.togglePositionSizeLock()}
           on:copy={() => uiState.showFeedback("copy")}
         />
+        <!-- FEAT-0021: places the position the summary above just described,
+             from the same calculator output. -->
+        <PlaceOrderPanel />
         {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
             <h2 class="section-header">

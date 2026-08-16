@@ -61,6 +61,13 @@ export interface TradeStateSnapshot {
   journalFilterStatus: string;
   currentTradeData: CurrentTradeData | null;
   remoteLeverage: Decimal | undefined;
+  /**
+   * When the exchange last confirmed leverage/margin mode, epoch ms.
+   * FEAT-0011's gate refuses an opening order whose account state is older
+   * than its freshness window, so this is what makes an `open` verifiable
+   * rather than permanently stale.
+   */
+  remoteAccountStateAt: number | undefined;
   remoteMarginMode: string | undefined;
   remoteMakerFee: Decimal | undefined;
   remoteTakerFee: Decimal | undefined;
@@ -152,6 +159,7 @@ export const INITIAL_TRADE_STATE = {
   // Transient / Remote data placeholders
   currentTradeData: null as CurrentTradeData | null,
   remoteLeverage: undefined as Decimal | undefined,
+  remoteAccountStateAt: undefined as number | undefined,
   remoteMarginMode: undefined as string | undefined,
   remoteMakerFee: undefined as Decimal | undefined,
   remoteTakerFee: undefined as Decimal | undefined,
@@ -191,6 +199,9 @@ class TradeManager {
    */
   currentTradeData = $state<CurrentTradeData | null>(INITIAL_TRADE_STATE.currentTradeData);
   remoteLeverage = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteLeverage);
+  remoteAccountStateAt = $state<number | undefined>(
+    INITIAL_TRADE_STATE.remoteAccountStateAt,
+  );
   remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
   remoteMakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteMakerFee);
   remoteTakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteTakerFee);
@@ -331,6 +342,9 @@ class TradeManager {
 
       delete toSave.currentTradeData;
       delete toSave.remoteLeverage;
+      // Transient like remoteLeverage: a timestamp restored from disk would
+      // claim the account state was confirmed in a previous session.
+      delete toSave.remoteAccountStateAt;
       delete toSave.remoteMarginMode;
       delete toSave.remoteMakerFee;
       delete toSave.remoteTakerFee;
@@ -486,6 +500,7 @@ class TradeManager {
       journalFilterStatus: this.journalFilterStatus,
       currentTradeData: this.currentTradeData,
       remoteLeverage: this.remoteLeverage,
+      remoteAccountStateAt: this.remoteAccountStateAt,
       remoteMarginMode: this.remoteMarginMode,
       remoteMakerFee: this.remoteMakerFee,
       remoteTakerFee: this.remoteTakerFee,
