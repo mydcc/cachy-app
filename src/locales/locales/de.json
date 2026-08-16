@@ -1661,6 +1661,27 @@
         "timeout": "Timeout",
         "partial": "Teilausführung"
       }
+    },
+    "audit": {
+      "subTab": "Order-Log",
+      "title": "Order-Audit-Trail",
+      "description": "Jede Order, die diese App zu senden versucht hat — was gesendet wurde, was zurückkam und welche Prüfungen sie bestanden hat. Auch abgelehnte Orders werden erfasst; genau die hätte keine Konsole je gezeigt, weil nichts gesendet wurde.",
+      "retention": "Bleibt nur auf diesem Gerät und wird nie hochgeladen. Die letzten {max} Versuche werden aufbewahrt, ältere entfallen. API-Keys, Secrets und Signaturen werden entfernt, bevor etwas geschrieben wird.",
+      "export": "Als JSON exportieren",
+      "refresh": "Aktualisieren",
+      "clear": "Log leeren",
+      "clearTitle": "Order-Log leeren?",
+      "clearMessage": "Alle erfassten Sendeversuche werden gelöscht. Das lässt sich nicht rückgängig machen und betrifft weder dein Journal noch offene Positionen. Fortfahren?",
+      "empty": "Noch keine Order-Versuche erfasst.",
+      "count": "{count} Versuch(e) erfasst, neueste zuerst.",
+      "refusedField": "Abgelehnt wegen: {field}",
+      "modeLive": "Live",
+      "modePaper": "Paper",
+      "outcome": {
+        "sent": "Gesendet",
+        "refused": "Abgelehnt",
+        "failed": "Fehlgeschlagen"
+      }
     }
   },
   "calculationDashboard": {

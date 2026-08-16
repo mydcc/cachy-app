@@ -1661,6 +1661,27 @@
         "timeout": "Timeout",
         "partial": "Partial fill"
       }
+    },
+    "audit": {
+      "subTab": "Order Log",
+      "title": "Order audit trail",
+      "description": "Every order this app tried to submit — what was sent, what came back, and which checks it passed. Refused orders are recorded too; those are the ones no console would ever have shown, because nothing was sent.",
+      "retention": "Kept on this device only, never uploaded. The most recent {max} attempts are retained; older ones are dropped. API keys, secrets and signatures are removed before anything is written.",
+      "export": "Export as JSON",
+      "refresh": "Refresh",
+      "clear": "Clear log",
+      "clearTitle": "Clear the order log?",
+      "clearMessage": "Every recorded submission attempt is deleted. This cannot be undone, and it does not affect your journal or any open position. Continue?",
+      "empty": "No order attempts recorded yet.",
+      "count": "{count} attempt(s) recorded, newest first.",
+      "refusedField": "Refused on: {field}",
+      "modeLive": "Live",
+      "modePaper": "Paper",
+      "outcome": {
+        "sent": "Sent",
+        "refused": "Refused",
+        "failed": "Failed"
+      }
     }
   },
   "positionsList": {

@@ -23,6 +23,7 @@
     import IndicatorSettings from "./IndicatorSettings.svelte";
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
+    import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import {
         HOTKEY_ACTIONS,
@@ -50,6 +51,10 @@
         {
             id: "paper",
             label: $_("settings.paper.subTab") || "Paper Trading",
+        },
+        {
+            id: "audit",
+            label: $_("settings.audit.subTab") || "Order Log",
         },
         { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
@@ -556,6 +561,12 @@
         {#if activeSubTab === "paper"}
             <section class="animate-fade-in">
                 <PaperTradingSettings />
+            </section>
+        {/if}
+
+        {#if activeSubTab === "audit"}
+            <section class="animate-fade-in">
+                <OrderAuditSettings />
             </section>
         {/if}
 
