@@ -198,6 +198,9 @@
     "analyzing": "Analysiere externe Welt...",
     "noNews": "Keine Nachrichten gefunden.",
     "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
+    "article": "Artikel",
+    "iframeBlocked": "Diese Website blockiert das Einbetten. Du kannst sie in einem neuen Tab öffnen.",
+    "openInNewTab": "In neuem Tab öffnen",
     "configure": "Konfigurieren",
     "tpsl": "TP/SL",
     "tpslManager": {

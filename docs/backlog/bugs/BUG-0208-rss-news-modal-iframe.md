@@ -34,8 +34,8 @@ The links in the RSS feed are likely rendered as standard `<a>` tags with `targe
 
 ## Acceptance criteria
 
-- [ ] Clicking a news link opens a modal with an iframe containing the article.
-- [ ] The user remains within the Cachy app.
-- [ ] If the iframe is blocked, a clear fallback to open the link in a new tab is provided.
+- [x] Clicking a news link opens a modal with an iframe containing the article.
+- [x] The user remains within the Cachy app.
+- [x] If the iframe is blocked, a clear fallback to open the link in a new tab is provided.
 
 ## Links
