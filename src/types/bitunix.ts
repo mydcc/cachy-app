@@ -113,7 +113,7 @@ export interface NormalizedPosition {
 export interface BitunixOrderPayload {
   symbol: string;
   side: string;
-  type: string;
+  orderType: string;
   qty: string | number;
   price?: string | number;
   reduceOnly?: boolean;
